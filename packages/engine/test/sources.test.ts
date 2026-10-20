@@ -226,7 +226,7 @@ describe("sourceUsage and the register", () => {
     const doc = rows.find((r) => r.source.docRef?.identifier === "TEST-DOC-001")!;
     expect(doc).toMatchObject({ typeLabel: "Document reference", state: "in_use", stateText: "In use", responder: "Alex Example (fictional) (MSAT engineer)" });
     expect(doc.citing[0]).toMatchObject({ ref: VESSEL_S, active: true, display: expect.any(String) });
-    expect(doc.citing[0]!.text).toMatch(/^Source: .*Vessel type/);
+    expect(doc.citing[0]!.text).toMatch(/^SU: .*Vessel type/);
     const unused = rows.find((r) => r.source.docRef?.identifier === "TEST-DOC-002")!;
     expect(unused).toMatchObject({ state: "unused", stateText: "Unused", citing: [], responder: "Sam Sample (fictional)" });
   });

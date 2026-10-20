@@ -13,7 +13,7 @@ questions:
     prompt: Batch size (formulated bulk volume)
     label: Batch size
     why: Batch size drives mixing, hold time, filter sizing and filling duration. A change outside the {{validated|demonstrated}} batch size range is a scale change for the {{validated|current}} state.
-    help: Source — nominal batch size and the batch size range covered by PPQ. Target — planned nominal batch size and planned range.
+    help: SU — nominal batch size and the batch size range covered by PPQ. RU — planned nominal batch size and planned range.
     sides: paired
     binds: uo.compounding.param.batch_size
     input:
@@ -25,10 +25,10 @@ questions:
   - id: comp.mixing_coverage
     section: uo.compounding
     parent: comp.batch_size
-    prompt: What batch volume range does the source mixing study cover?
+    prompt: What batch volume range does the SU mixing study cover?
     label: Mixing study coverage
     why: Homogeneity is demonstrated only over the volumes studied. A larger batch may need a new or extended mixing study.
-    triggerNote: Asked because the target batch size is larger than the source.
+    triggerNote: Asked because the RU batch size is larger than the SU.
     sides: source
     binds: uo.compounding.study.mixing.coverage
     input: { type: range, units: [L, mL] }
@@ -39,8 +39,8 @@ questions:
     parent: comp.batch_size
     prompt: Maximum hold time of the formulated bulk before filtration
     label: Bulk hold time (maximum)
-    why: Larger batches usually take longer to compound and filter. The target maximum must stay within the {{validated|demonstrated}} hold time, or a hold time study is needed.
-    triggerNote: Asked because the target batch size is larger than the source.
+    why: Larger batches usually take longer to compound and filter. The RU maximum must stay within the {{validated|demonstrated}} hold time, or a hold time study is needed.
+    triggerNote: Asked because the RU batch size is larger than the SU.
     sideLabels: { source: "{{Validated|Demonstrated}} maximum hold time", target: Planned maximum hold time }
     sides: paired
     binds: uo.compounding.param.max_hold_time.max
@@ -77,10 +77,10 @@ questions:
   - id: comp.mixing_demonstrated
     section: uo.compounding
     parent: comp.mixer
-    prompt: Has mixing effectiveness (homogeneity) been demonstrated for the target vessel and mixer at the planned batch volume?
-    label: Target mixing effectiveness data
-    why: Source mixing data do not transfer to a different mixer or vessel design; homogeneity must be demonstrated for the target configuration.
-    triggerNote: Asked because the target mixer or vessel differs from the source.
+    prompt: Has mixing effectiveness (homogeneity) been demonstrated for the RU vessel and mixer at the planned batch volume?
+    label: RU mixing effectiveness data
+    why: SU mixing data do not transfer to a different mixer or vessel design; homogeneity must be demonstrated for the RU configuration.
+    triggerNote: Asked because the RU mixer or vessel differs from the SU.
     sides: target
     binds: uo.compounding.study.mixing.status
     input: { type: choice, optionsFrom: evidenceAvailability }
@@ -93,7 +93,7 @@ questions:
     section: uo.compounding
     prompt: Mixing speed
     label: Mixing speed
-    why: Mixing speed affects homogeneity and shear stress on the protein. The target operating range is compared with the source proven acceptable range.
+    why: Mixing speed affects homogeneity and shear stress on the protein. The RU operating range is compared with the SU proven acceptable range.
     sides: paired
     binds: uo.compounding.param.mixing_speed
     input: { type: parameter, units: [rpm] }
@@ -111,7 +111,7 @@ questions:
     section: uo.compounding
     prompt: Compounding temperature
     label: Compounding temperature
-    why: Product temperature during compounding affects stability; the target range is compared with the source {{validated|demonstrated}} range.
+    why: Product temperature during compounding affects stability; the RU range is compared with the SU {{validated|demonstrated}} range.
     sides: paired
     binds: uo.compounding.param.temperature
     input: { type: parameter, units: ["°C"] }
@@ -130,10 +130,10 @@ questions:
   - id: comp.hold_cov
     section: uo.compounding
     parent: comp.hold_time
-    prompt: What maximum hold duration do the hold time study data cover at the target conditions (vessel, temperature, container)?
-    label: Bulk hold study coverage (target)
+    prompt: What maximum hold duration do the hold time study data cover at the RU conditions (vessel, temperature, container)?
+    label: Bulk hold study coverage (RU)
     why: Hold-time data are specific to the vessel, temperature and product conditions studied. The longest planned hold must be covered by that study.
-    triggerNote: Asked because the planned maximum hold time is longer than the source.
+    triggerNote: Asked because the planned maximum hold time is longer than the SU.
     tags: [m3]
     sides: target
     binds: uo.compounding.study.hold_time.coverage
@@ -146,7 +146,7 @@ questions:
     prompt: What endpoints does the hold time study use to support the planned hold?
     label: Bulk hold study basis
     why: A hold time claim needs chemical, physical (for example particles and aggregation) and microbial evidence. A study with only some endpoints supports only part of the claim.
-    triggerNote: Asked because the planned maximum hold time is longer than the source.
+    triggerNote: Asked because the planned maximum hold time is longer than the SU.
     tags: [m3]
     sides: target
     binds: uo.compounding.study.hold_time.basis
@@ -156,10 +156,10 @@ questions:
   # ---- cleaning validation (reusable vessel)
   - id: comp.cleaning
     section: uo.compounding
-    prompt: Is cleaning validation complete for the target reusable compounding vessel and product-contact parts?
+    prompt: Is cleaning validation complete for the RU reusable compounding vessel and product-contact parts?
     label: Cleaning validation coverage (compounding equipment)
-    why: A reusable stainless or glass vessel at the target must have validated cleaning for this product (limits, worst-case location, hold times) before GMP use.
-    triggerNote: Asked because the target compounding vessel is reusable (stainless steel or glass).
+    why: A reusable stainless or glass vessel at the RU must have validated cleaning for this product (limits, worst-case location, hold times) before GMP use.
+    triggerNote: Asked because the RU compounding vessel is reusable (stainless steel or glass).
     tags: [m3]
     sides: target
     binds: uo.compounding.study.cleaning.status
@@ -171,7 +171,7 @@ questions:
     section: uo.compounding
     prompt: Qualification status of the compounding vessel
     label: Vessel qualification status
-    why: Equipment used for GMP manufacture must be qualified. A target vessel that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    why: Equipment used for GMP manufacture must be qualified. An RU vessel that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
     tags: [m3]
     sides: paired
     sameAsSource: false
@@ -181,10 +181,10 @@ questions:
   - id: comp.vessel_range
     section: uo.compounding
     parent: comp.vessel_qual
-    prompt: Qualified working volume range of the target compounding vessel
+    prompt: Qualified working volume range of the RU compounding vessel
     label: Vessel qualified working volume
     why: Qualification (for example mixing and temperature uniformity) covers a stated working volume range. A planned batch volume outside that range is not supported by the qualification.
-    triggerNote: Asked because the target vessel is qualified or has a qualification planned.
+    triggerNote: Asked because the RU vessel is qualified or has a qualification planned.
     tags: [m3]
     sides: target
     binds: uo.compounding.equip.vessel.qualifiedRange
@@ -195,7 +195,7 @@ questions:
     section: uo.compounding
     prompt: Qualification status of the mixer
     label: Mixer qualification status
-    why: Equipment used for GMP manufacture must be qualified. A target mixer that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    why: Equipment used for GMP manufacture must be qualified. An RU mixer that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
     tags: [m3]
     sides: paired
     sameAsSource: false
@@ -205,10 +205,10 @@ questions:
   - id: comp.mixer_range
     section: uo.compounding
     parent: comp.mixer_qual
-    prompt: Qualified speed range of the target mixer
+    prompt: Qualified speed range of the RU mixer
     label: Mixer qualified speed range
     why: Mixer qualification covers a defined speed range. Planned mixing speeds outside that range are not supported by the qualification.
-    triggerNote: Asked because the target mixer is qualified or has a qualification planned.
+    triggerNote: Asked because the RU mixer is qualified or has a qualification planned.
     tags: [m3]
     sides: target
     binds: uo.compounding.equip.mixer.qualifiedRange
@@ -217,9 +217,9 @@ questions:
 
   - id: comp.procedures
     section: uo.compounding
-    prompt: Status of target procedures for compounding
-    label: Target compounding procedures
-    why: Procedures and batch record instructions must reflect the target equipment and parameters before GMP manufacture.
+    prompt: Status of RU procedures for compounding
+    label: RU compounding procedures
+    why: Procedures and batch record instructions must reflect the RU equipment and parameters before GMP manufacture.
     sides: target
     binds: uo.compounding.doc.procedures.status
     input: { type: choice, optionsFrom: procedureStatus }

@@ -408,6 +408,11 @@ overlays:
   - gapKey: R-FILL-PUMP:uo.aseptic_filling.equip.filler.operatingPrinciple
     owner: MSAT lead (fictional)
     status: in_progress
+    notes: Pump vendor has offered a loan unit for a fill-accuracy trial (fictional). Confirm the trial window with the RU planner.
+  - gapKey: R-BATCH-SIZE:uo.compounding.param.batch_size
+    notes: The RU batch is planned at a larger size than any SU batch; check the mixing and hold studies against this scale-up (fictional).
+  - gapKey: R-INTEGRITY-TESTS:uo.sterile_filtration.ipc.integrity.tests#pupsit
+    notes: RU filtration skid is not yet set up for PUPSIT; the filter vendor visit is booked for next quarter (fictional).
 
 # Milestone 4: traceability and verification. All names, dates and documents are fictional.
 # Each step is a dated action by a named person, replayed in order after the interview.

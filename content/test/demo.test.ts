@@ -66,7 +66,7 @@ describe("ARX-217 demo (golden)", () => {
   it("renders the document to Markdown, HTML and the register to CSV", () => {
     const doc = buildDocument(content, project, a, "2026-10-02T00:00:00.000Z");
     expect(doc.title).toBe("Gap assessment: ARX-217 — Site North (fictional), Line 2 to Site South (fictional), Line 4");
-    expect(doc.sections.map((s) => s.id)).toHaveLength(17);
+    expect(doc.sections.map((s) => s.id)).toHaveLength(18);
     const md = renderMarkdown(doc);
     expect(md).toContain("Proof of concept. Not validated. Not for GMP use.");
     expect(md).toContain("DEMO-PPQ-217-01");
@@ -100,11 +100,11 @@ describe("ARX-217 demo (golden)", () => {
       expect(md).toMatch(/not attributable in a GMP sense/);
     });
 
-    it("has a Verification status section and appendices A to D after the approval section", () => {
+    it("has a Verification status section and appendices A to E after the approval section", () => {
       const ids = doc.sections.map((x) => x.id);
       expect(ids).toContain("verification-status");
       expect(ids.indexOf("verification-status")).toBeLessThan(ids.indexOf("source-register"));
-      expect(doc.sections.filter((x) => x.appendix).map((x) => x.number)).toEqual(["A", "B", "C", "D"]);
+      expect(doc.sections.filter((x) => x.appendix).map((x) => x.number)).toEqual(["A", "B", "C", "D", "E"]);
     });
 
     it("lists the unused document reference in the source register", () => {
@@ -115,8 +115,9 @@ describe("ARX-217 demo (golden)", () => {
 
     it("adds verification columns to the gap register CSV", () => {
       const header = gapsToCsv(content, a.gaps, project).split(/\r?\n/)[0]!;
-      expect(header).toContain("Source verification");
-      expect(header).toContain("Target verification");
+      expect(header).toContain("SU verification");
+      expect(header).toContain("RU verification");
+      expect(header).toContain("Notes");
     });
 
     it("removing the only source of a verified value reverts it and logs the revert", () => {

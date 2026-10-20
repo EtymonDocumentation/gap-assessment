@@ -16,45 +16,53 @@ document:
   banner: Proof of concept. Not validated. Not for GMP use.
   purpose: >-
     This document compares the {{validated|current}} manufacturing process for {program} at
-    {sourceSite} (source) with the planned process at {targetSite} (target). It
+    {sourceSite} (sending unit, SU) with the planned process at {targetSite} (receiving unit, RU). It
     identifies differences, classifies each difference, lists the activities
-    {{implied before the target process can be considered validated|implied by the differences for the target program stage}}, and records
+    {{implied before the RU process can be considered validated|implied by the differences for the RU program stage}}, and records
     information that is still missing. It is a draft generated from structured
     interview answers and must be reviewed and approved before use.
   scope: >-
     Product: {program} ({modality}; {dosageForm}; {presentation}). Transfer type:
-    {transferType}. Program stage: source {sourceStage}; target {targetStage}.
+    {transferType}. Program stage: sending unit {sourceStage}; receiving unit {targetStage}.
     Intended markets: {markets}. The assessment covers the unit
     operations listed below for both sites. Unit operations outside this list are
     not assessed in this version.
   sourceSummaryIntro: >-
-    The source process {{as validated|as it currently stands}}, as recorded in the interview. Each value shows
+    The SU process {{as validated|as it currently stands}}, as recorded in the interview. Each value shows
     its source and verification state. Values marked "Unknown — to be confirmed" or
     "Not established" are open information items.
   targetSummaryIntro: >-
-    The planned target process, as recorded in the interview. Values marked "same as
-    source" were asserted by the responder to match the source and follow the source
+    The planned RU process, as recorded in the interview. Values marked "same as
+    SU" were asserted by the responder to match the SU and follow the SU
     value.
   differencesIntro: >-
-    Every recorded attribute was compared between source and target using the
+    Every recorded attribute was compared between SU and RU using the
     versioned comparison rules listed under References. Differences are grouped by
     unit operation. Attributes found equivalent are counted but not listed individually.
   gapTableIntro: >-
-    One row per difference or information gap. The rule identifier and version show
-    which comparison rule produced the classification. Severity reflects the rule
-    unless adjusted, in which case the adjustment and its justification are shown.
+    One row per difference or information gap. The Gap column gives the category and
+    the reason, followed by why it matters. Severity reflects the rule unless adjusted,
+    in which case the adjustment and its justification are shown. Actions lists the
+    activities the gap implies. Notes holds the discussion recorded for the gap. The
+    rule, owner, status, regulatory flag and verification of each gap are listed in the
+    Gap details appendix, when it is included.
+  gapDetailsIntro: >-
+    Details of each gap in the detailed gap table: the comparison rule (identifier and
+    version) that produced the classification, the owner and status recorded in the
+    tool, whether the gap requires regulatory affairs assessment, and the verification
+    state of the SU and RU values behind it.
   activitiesIntro: >-
     Validation and data activities implied by the differences above, with the gaps
     that drive each, most severe first. Where a study provides evidence for an
-    activity, its source and target status are shown, and the readiness column
-    summarises the target status: evidence available, planned, not planned,
+    activity, its SU and RU status are shown, and the readiness column
+    summarises the RU status: evidence available, planned, not planned,
     bridging or action required, or information required (the status is unknown or
     not established). Activities whose gaps are closed or accepted in the register
     remain listed with that status. The list is a starting point for the transfer
     plan; it does not replace a documented risk assessment.
   equipmentQualificationIntro: >-
-    Qualification status of the equipment at each site, and the range the target
-    equipment is qualified for compared with the range the target process needs.
+    Qualification status of the equipment at each site, and the range the RU
+    equipment is qualified for compared with the range the RU process needs.
     Unknown or missing values are shown as such; none is assumed. Related gaps are
     the differences recorded for the same equipment.
   openItemsIntro: >-
@@ -74,7 +82,7 @@ document:
     in a GMP sense.
   approvalRoles:
     - Author (MSAT)
-    - Process owner, target site
+    - Process owner, RU site
     - Quality assurance
     - Regulatory affairs
   regulatoryStatement: >-
@@ -84,8 +92,8 @@ document:
   verificationStatement: >-
     Every value is shown as Unverified, Verified (by name, role and date) or
     Verification withdrawn. A verification is withdrawn automatically when the
-    verified value or its status changes, including a target value that follows
-    the source ("same as source") when the source value changes. See the
+    verified value or its status changes, including an RU value that follows
+    the SU ("same as SU") when the SU value changes. See the
     Verification status section.
   verificationStatusIntro: >-
     Counts of the entries behind this document by verification state, for each
@@ -109,7 +117,7 @@ document:
     tool.
   changeLogReviewNote: >-
     Revisions issued and reviewer comments are not counted here. They are listed in
-    Appendix C (Revision history) and Appendix D (Reviewer comments), and they appear
+    the Revision history and Reviewer comments appendices, and they appear
     in the full change log, so that issuing a revision or adding a comment does not
     change the content it refers to.
   revisionHistoryIntro: >-

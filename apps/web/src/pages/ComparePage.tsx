@@ -1,10 +1,10 @@
-import { formatQuestionSide, questionLabel, sidesOf, type Gap } from "@gap/engine";
+import { formatQuestionSide, questionLabel, setGapOverlay, sidesOf, type Gap } from "@gap/engine";
 import { useState } from "react";
 import { CategoryChip, Empty, RegulatoryFlag, SeverityBadge } from "../components";
 import { href } from "../router";
 import { useAssessment, useContent, useStageWording, useStore } from "../store";
 
-/** Source and target side by side, per section, with a comparison marker on each row. */
+/** SU and RU side by side, per section, with a comparison marker on each row and a note per gap. */
 export function ComparePage() {
   const project = useStore((s) => s.project)!;
   const content = useContent();
@@ -25,10 +25,10 @@ export function ComparePage() {
         </label>
       </div>
       <p className="small" data-testid="stage-line">
-        <strong>Program stage:</strong> source {wording.sourceLabel}; target {wording.targetLabel}.
+        <strong>Program stage:</strong> sending unit (SU) {wording.sourceLabel}; receiving unit (RU) {wording.targetLabel}.
       </p>
       <p className="muted">
-        Every visible question, with the source {wording.sourceValidated ? "validated" : "current"} state and the target planned state. Select a value to change it in the interview.
+        Every visible question, with the sending unit (SU) {wording.sourceValidated ? "validated" : "current"} state and the receiving unit (RU) planned state. Select a value to change it in the interview. Add a note to a difference here; it appears in the Notes column of the document.
       </p>
       {sections.length === 0 && <Empty>No unit operations are in scope yet. Answer the scoping questions first.</Empty>}
       {sections.map((sec) => {
@@ -46,9 +46,10 @@ export function ComparePage() {
                 <thead>
                   <tr>
                     <th scope="col">Attribute</th>
-                    <th scope="col">{wording.sourceValidated ? "Source (validated)" : "Source (current)"}</th>
-                    <th scope="col">Target (planned)</th>
+                    <th scope="col">{wording.sourceValidated ? "SU (validated)" : "SU (current)"}</th>
+                    <th scope="col">RU (planned)</th>
                     <th scope="col">Comparison</th>
+                    <th scope="col">Notes</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -86,6 +87,13 @@ export function ComparePage() {
                             ))}
                           </div>
                         </td>
+                        <td>
+                          <div className="stack">
+                            {gs.map((g) => (
+                              <NoteCell key={g.key} g={g} />
+                            ))}
+                          </div>
+                        </td>
                       </tr>
                     );
                   })}
@@ -95,6 +103,78 @@ export function ComparePage() {
           </section>
         );
       })}
+    </div>
+  );
+}
+
+/** The note on one gap: shown when there is one, and edited in place for a difference. Same overlay as the owner and status on the Register page. */
+function NoteCell({ g }: { g: Gap }) {
+  const update = useStore((s) => s.update);
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(g.notes ?? "");
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const editable = g.category !== "equivalent";
+  const id = `note-${g.displayId}`;
+  if (!editable && !g.notes) return <span className="muted">—</span>;
+  return (
+    <div className="note-cell">
+      {g.notes ? (
+        <p className="note-text">
+          <span className="small muted">{g.displayId}: </span>
+          {g.notes}
+        </p>
+      ) : (
+        <span className="small muted">{g.displayId}: no note</span>
+      )}
+      {editable && !editing && (
+        <button
+          className="btn small"
+          aria-expanded={false}
+          aria-controls={id}
+          onClick={() => {
+            setText(g.notes ?? "");
+            setMsg(null);
+            setEditing(true);
+          }}
+        >
+          {g.notes ? "Edit note" : "Add note"}
+          <span className="visually-hidden"> for {g.displayId}</span>
+        </button>
+      )}
+      {editable && editing && (
+        <form
+          id={id}
+          className="stack"
+          aria-label={`Note for ${g.displayId}`}
+          onSubmit={(e) => {
+            e.preventDefault();
+            const err = update((p, actor) => setGapOverlay(p, g.key, { notes: text }, actor), `Note for ${g.displayId} saved`);
+            if (err) setMsg({ ok: false, text: err });
+            else {
+              setMsg(null);
+              setEditing(false);
+            }
+          }}
+        >
+          <label className="field compact">
+            <span className="small">Note for {g.displayId}</span>
+            <textarea rows={3} value={text} onChange={(e) => setText(e.target.value)} />
+          </label>
+          <div className="row inline">
+            <button type="submit" className="btn primary small">
+              Save note<span className="visually-hidden"> for {g.displayId}</span>
+            </button>
+            <button type="button" className="btn small" onClick={() => setEditing(false)}>
+              Cancel<span className="visually-hidden"> note for {g.displayId}</span>
+            </button>
+          </div>
+          {msg && (
+            <span role="alert" className="small error">
+              {msg.text}
+            </span>
+          )}
+        </form>
+      )}
     </div>
   );
 }

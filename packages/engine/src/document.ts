@@ -6,12 +6,12 @@ import type { Assessment, Gap } from "./compare";
 import { riskRanked } from "./compare";
 import { formatQuestionSide, formatResolved, questionLabel, STATUS_TEXT } from "./format";
 import { instanceRefs, type QuestionInstance } from "./sequencer";
-import { entryLabel, sourceShort } from "./labels";
+import { displaySourceNames, entryLabel, sourceLabel } from "./labels";
 import { cellVerification, verificationSummary } from "./verification";
 import { sourceRegisterRows } from "./source-register";
 import { changeLogActionCounts } from "./changelog";
 import { effectiveStaged } from "./custom";
-import { commentDisplayId, revisionState, revisionStatusLabel } from "./review";
+import { commentDisplayId, omittedSectionIds, optionalSectionTitle, revisionState, revisionStatusLabel } from "./review";
 import { STAGE_NOT_ESTABLISHED, stageBasis, stagedFor, stageWording } from "./stage";
 
 export type Block =
@@ -131,8 +131,8 @@ function sideVerificationText(project: Project, refs: string[], side: "source" |
 
 function sourcesText(project: Project, refs: string[]): string {
   const ids = new Set(refs.flatMap((r) => getEntry(project, r)?.sourceIds ?? []));
-  const labels = project.sources.filter((s) => ids.has(s.id)).map(sourceShort);
-  return [...new Set(labels)].join("; ") || "—";
+  // Documents first: when a document backs the value, only the documents are shown (see displaySources).
+  return displaySourceNames(project.sources.filter((s) => ids.has(s.id))).join("; ") || "—";
 }
 
 function sideRows(content: ContentBundle, project: Project, insts: QuestionInstance[]): string[][] {
@@ -172,8 +172,14 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
   };
   const diffs = a.gaps.filter((g) => g.category !== "equivalent");
   const sections: DocSection[] = [];
+  // Optional sections the user left out are not built at all, so section numbers and appendix letters close up.
+  const omittedIds = omittedSectionIds(project);
+  const omitted = new Set(omittedIds);
   let n = 0;
-  const add = (id: string, title: string, blocks: Block[]) => sections.push({ id, number: String(++n), title, blocks });
+  const add = (id: string, title: string, blocks: Block[]) => {
+    if (omitted.has(id)) return;
+    sections.push({ id, number: String(++n), title, blocks });
+  };
 
   add("purpose", "Purpose", [{ type: "paragraph", text: fill(t.purpose, vars) }]);
 
@@ -195,7 +201,7 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
     return blocks;
   };
   add("source-summary", w.sourceSummaryHeading, [{ type: "paragraph", text: fill(t.sourceSummaryIntro, vars) }, ...sectionBlocks("source")]);
-  add("target-summary", "Target summary (planned state)", [{ type: "paragraph", text: fill(t.targetSummaryIntro, vars) }, ...sectionBlocks("target")]);
+  add("target-summary", w.targetSummaryHeading, [{ type: "paragraph", text: fill(t.targetSummaryIntro, vars) }, ...sectionBlocks("target")]);
 
   const secsWithGaps = content.sections.filter((s) => a.gaps.some((g) => g.sectionId === s.id));
   const cats = CATEGORIES;
@@ -216,27 +222,25 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
   }
   add("differences", "Summary of differences by unit operation", diffBlocks);
 
+  const actionsText = (g: Gap) => {
+    const acts = g.activities.map((x) => activityLabel(content, x)).join("; ");
+    // Joined with "; " so the regulatory sentence never runs into the last action ("Training Requires ...").
+    return [acts, g.regulatoryNote].filter(Boolean).join("; ") || "—";
+  };
   add("gap-table", "Detailed gap table", [
     { type: "paragraph", text: fill(t.gapTableIntro, vars) },
     {
       type: "table",
-      columns: ["ID", "Section", "Attribute", "Source", "Target", "Category", "Why it matters", "Activities implied", "Severity", "Regulatory", "Owner", "Status", "Rule", "Source verification", "Target verification"],
+      columns: ["ID", "Attribute", "SU", "RU", "Gap", "Severity", "Actions", "Notes"],
       rows: diffs.map((g) => [
         g.displayId,
-        g.sectionTitle,
-        g.attribute,
+        `${g.sectionTitle} — ${g.attribute}`,
         g.sourceDisplay,
         g.targetDisplay,
-        `${categoryLabel(content, g.category)}. ${g.detail}`,
-        g.rationale,
-        g.activities.map((x) => activityLabel(content, x)).join("; ") || "—",
+        `${categoryLabel(content, g.category)}. ${g.detail} Why it matters: ${g.rationale}`,
         severityText(g),
-        g.regulatoryNote ?? "—",
-        g.owner ?? "[unassigned]",
-        STATUS_LABEL[g.status],
-        `${g.ruleId} v${g.ruleVersion}`,
-        sideVerificationText(project, g.inputRefs, "source"),
-        sideVerificationText(project, g.inputRefs, "target"),
+        actionsText(g),
+        g.notes ?? "—",
       ]),
     },
     { type: "note", text: t.regulatoryStatement },
@@ -261,7 +265,7 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
     { type: "paragraph", text: fill(t.activitiesIntro, vars) },
     {
       type: "table",
-      columns: ["Activity", "Description", "Implied by gaps", "Severity", "Regulatory", "Linked studies: source status", "Linked studies: target status", "Readiness"],
+      columns: ["Activity", "Description", "Implied by gaps", "Severity", "Regulatory", "Linked studies: SU status", "Linked studies: RU status", "Readiness"],
       rows: plan.map((r) => [
         r.label,
         r.stageNote ? `${r.description} Program stage: ${r.stageNote}` : r.description,
@@ -282,7 +286,7 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
     equipment.length
       ? {
           type: "table",
-          columns: ["Unit operation", "Equipment", "Source qualification", "Target qualification", "Qualified range (target)", "Required by target process", "Related gaps"],
+          columns: ["Unit operation", "Equipment", "SU qualification", "RU qualification", "Qualified range (RU)", "Required by RU process", "Related gaps"],
           rows: equipment.map((e) => [
             e.uoLabel,
             e.equipLabel,
@@ -304,7 +308,7 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
       ? {
           type: "table",
           columns: ["No.", "Section", "Side", "Question", "Status"],
-          rows: a.openItems.map((o, i) => [String(i + 1), o.sectionTitle, o.side === "shared" ? "Scoping" : o.side === "source" ? "Source" : "Target", o.prompt, STATUS_TEXT[o.status]]),
+          rows: a.openItems.map((o, i) => [String(i + 1), o.sectionTitle, o.side === "shared" ? "Scoping" : o.side === "source" ? "SU" : "RU", o.prompt, STATUS_TEXT[o.status]]),
         }
       : { type: "paragraph", text: "No open information items." },
   ]);
@@ -320,7 +324,7 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
   ]);
 
   const vs = verificationSummary(content, project);
-  const sideName = { shared: "Scoping", source: "Source", target: "Target" } as const;
+  const sideName = { shared: "Scoping", source: "SU", target: "RU" } as const;
   const countRow = (name: string, side: string, c: { total: number; verified: number; withdrawn: number; unverified: number; notVerifiable: number }) => [
     name,
     side,
@@ -349,7 +353,7 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
       rows: [
         ...vs.rows.map((r) => countRow(r.sectionTitle, sideName[r.side], r.counts)),
         ...(["shared", "source", "target"] as const).filter((sd) => vs.bySide[sd].total > 0).map((sd) => countRow("All sections", sideName[sd], vs.bySide[sd])),
-        countRow("All sections", "Scoping, source and target", vs.all),
+        countRow("All sections", "Scoping, SU and RU", vs.all),
       ],
     },
   ];
@@ -373,9 +377,9 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
     responders.set(k, r);
   }
   const refRows: string[][] = [
-    ...docs.map((s) => [s.docRef!.identifier, s.docRef!.docType, s.docRef!.title ?? s.label, s.docRef!.version ?? "—"]),
+    ...docs.map((s) => [s.docRef!.identifier, s.docRef!.docType, s.docRef!.title ?? sourceLabel(s), s.docRef!.version ?? "—"]),
     ...[...responders].map(([name, r]) => [`Interview: ${name}`, "Interview answers", `${r.count} answers${r.role ? `; ${r.role}` : ""}; ${[...r.dates].sort().join(", ")}`, "—"]),
-    ...others.map((s) => [s.label, s.type, s.file?.name ?? "—", "—"]),
+    ...others.map((s) => [sourceLabel(s), s.type, s.file?.name ?? "—", "—"]),
     ["Question bank", "Tool content", `Version ${content.versions.questions}`, content.versions.questions],
     ["Comparison rules", "Tool content", `Version ${content.versions.rules}`, content.versions.rules],
     ["Catalog", "Tool content", `Version ${content.versions.catalog}`, content.versions.catalog],
@@ -390,8 +394,29 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
     { type: "table", columns: ["Role", "Name", "Signature", "Date"], rows: t.approvalRoles.map((r) => [r, "[placeholder]", "[placeholder]", "[placeholder]"]) },
   ]);
 
-  const appendix = (id: string, title: string, blocks: Block[]) =>
+  const appendix = (id: string, title: string, blocks: Block[]) => {
+    if (omitted.has(id)) return;
     sections.push({ id, number: String.fromCharCode(65 + sections.filter((x) => x.appendix).length), appendix: true, title, blocks });
+  };
+
+  appendix("gap-details", "Gap details", [
+    { type: "paragraph", text: fill(t.gapDetailsIntro, vars) },
+    diffs.length
+      ? {
+          type: "table",
+          columns: ["ID", "Rule", "Owner", "Status", "Regulatory", "SU verification", "RU verification"],
+          rows: diffs.map((g) => [
+            g.displayId,
+            `${g.ruleId} v${g.ruleVersion}`,
+            g.owner ?? "[unassigned]",
+            STATUS_LABEL[g.status],
+            g.regulatoryNote ?? "—",
+            sideVerificationText(project, g.inputRefs, "source"),
+            sideVerificationText(project, g.inputRefs, "target"),
+          ]),
+        }
+      : { type: "paragraph", text: "No differences have been identified." },
+  ]);
 
   // Entries that are no longer asked about (inactive) are counted, not listed: the document shows only current values.
   const citedBy = (citing: { text: string; active: boolean }[]) => {
@@ -404,7 +429,7 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
   const allRegister = sourceRegisterRows(content, project);
   // A source that only supports recorded values no longer asked about is not listed (the document shows only current values).
   const register = allRegister.filter((r) => r.state !== "in_use" || r.citing.some((c) => c.active));
-  const omitted = allRegister.length - register.length;
+  const hiddenSourceCount = allRegister.length - register.length;
   appendix("source-register", "Source register", [
     { type: "paragraph", text: fill(t.sourceRegisterIntro, vars) },
     register.length
@@ -414,7 +439,7 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
           rows: register.map((r, i) => [
             `S-${String(i + 1).padStart(3, "0")}`,
             r.typeLabel,
-            r.source.docRef ? [r.source.docRef.identifier, r.source.docRef.title, r.source.docRef.version ? `version ${r.source.docRef.version}` : ""].filter(Boolean).join(", ") : r.source.label,
+            r.source.docRef ? [r.source.docRef.identifier, r.source.docRef.title, r.source.docRef.version ? `version ${r.source.docRef.version}` : ""].filter(Boolean).join(", ") : sourceLabel(r.source),
             r.responder,
             r.date,
             r.stateText,
@@ -422,12 +447,12 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
           ]),
         }
       : { type: "paragraph", text: "No sources have been recorded." },
-    ...(omitted
-      ? [{ type: "note" as const, text: `${omitted} further source${omitted === 1 ? "" : "s"} support${omitted === 1 ? "s" : ""} only recorded values that are not currently asked about; ${omitted === 1 ? "it is" : "they are"} kept in the project file and not listed here.` }]
+    ...(hiddenSourceCount
+      ? [{ type: "note" as const, text: `${hiddenSourceCount} further source${hiddenSourceCount === 1 ? "" : "s"} support${hiddenSourceCount === 1 ? "s" : ""} only recorded values that are not currently asked about; ${hiddenSourceCount === 1 ? "it is" : "they are"} kept in the project file and not listed here.` }]
       : []),
   ]);
 
-  // Revision and comment events are not counted: they are listed in Appendices C and D, and counting them here
+  // Revision and comment events are not counted: they are listed in the Revision history and Reviewer comments appendices, and counting them here
   // would make the content look changed each time a revision is issued or a comment is added.
   const counts = changeLogActionCounts(project, { excludeReview: true });
   const countedTotal = counts.reduce((sum, c) => sum + c.count, 0);
@@ -461,12 +486,16 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
       : { type: "paragraph", text: "No revision has been issued yet." },
     { type: "note", text: t.revisionStatement },
   ]);
-  // Appendix D is added empty first, so a comment can point at it like at any other section; its table is filled in below.
+  // Reviewer comments is added empty first, so a comment can point at it like at any other section; its table is filled in below.
   appendix("reviewer-comments", "Reviewer comments", []);
 
   const sectionAnchor = (sectionId: string): string => {
     const s = sections.find((x) => x.id === sectionId);
-    if (!s) return `Unknown section (${sectionId})`;
+    if (!s) {
+      // A section the user left out still names the place a comment was made, so the comment keeps its meaning.
+      const title = optionalSectionTitle(sectionId);
+      return title ? `${title} (section omitted from this export)` : `Unknown section (${sectionId})`;
+    }
     return `${s.appendix ? "Appendix " : ""}${s.number}. ${s.title}`;
   };
   const comments: DocComment[] = project.document.comments.map((c) => {
@@ -487,7 +516,7 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
   });
 
   const REPLY_KIND = { reply: "Reply", resolution: "Resolution", reopen: "Reopened" } as const;
-  sections.find((s) => s.id === "reviewer-comments")!.blocks.push(
+  sections.find((s) => s.id === "reviewer-comments")?.blocks.push(
     { type: "paragraph", text: fill(t.reviewerCommentsIntro, vars) },
     comments.length
       ? {
@@ -513,12 +542,13 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
     status: "DRAFT",
     meta: [
       ["Project", project.meta.title],
-      ["Source program stage", w.sourceLabel],
-      ["Target program stage", w.targetLabel],
+      ["SU program stage", w.sourceLabel],
+      ["RU program stage", w.targetLabel],
       ["Generated", generatedAt.replace("T", " ").slice(0, 16) + " UTC"],
       ["Differences identified", String(diffs.length)],
       ["Open information items", String(a.openItems.length)],
       ["Entries verified", `${vs.all.verified} of ${vs.all.total}`],
+      ["Sections omitted", omittedIds.length ? omittedIds.map((id) => optionalSectionTitle(id)).join("; ") : "None"],
       ["Verification", t.verificationStatement],
     ],
     cover: {

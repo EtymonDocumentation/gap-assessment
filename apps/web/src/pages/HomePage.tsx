@@ -27,7 +27,7 @@ export function HomePage({ notice }: { notice?: string }) {
         </p>
       )}
       <p className="lede">
-        Compare a <strong>source</strong> process with a planned <strong>target</strong> site through a guided interview. The tool
+        Compare a <strong>sending unit</strong> (SU) process with a planned <strong>receiving unit</strong> (RU) site through a guided interview. The tool
         classifies every difference, builds a gap register and drafts a gap assessment document. Values are never filled in for you: anything
         unknown stays visible as an open item.
       </p>
@@ -57,9 +57,9 @@ export function HomePage({ notice }: { notice?: string }) {
             <div>
               <dt>Program stage</dt>
               <dd>
-                Source: {wording.sourceLabel}
+                Sending unit (SU): {wording.sourceLabel}
                 <br />
-                Target: {wording.targetLabel}
+                Receiving unit (RU): {wording.targetLabel}
               </dd>
             </div>
             <div>

@@ -20,10 +20,10 @@ questions:
   - id: ss.stability
     section: uo.storage_shipping
     parent: ss.condition
-    prompt: Do available stability data support the target storage condition for the full shelf life?
-    label: Stability support for storage condition (target)
+    prompt: Do available stability data support the RU storage condition for the full shelf life?
+    label: Stability support for storage condition (RU)
     why: A different storage condition needs its own stability data (real-time and accelerated), because degradation pathways and rates change with temperature.
-    triggerNote: Asked because the target storage condition differs from the source.
+    triggerNote: Asked because the RU storage condition differs from the SU.
     sides: target
     binds: uo.storage_shipping.study.stability_support.status
     input: { type: choice, optionsFrom: evidenceAvailability }
@@ -68,10 +68,10 @@ questions:
   - id: ss.shipping_validation
     section: uo.storage_shipping
     parent: ss.shipper
-    prompt: Is shipping qualification available for the target shipping configuration and lane (worst-case transit time and seasonal profiles)?
-    label: Shipping lane qualification (target)
+    prompt: Is shipping qualification available for the RU shipping configuration and lane (worst-case transit time and seasonal profiles)?
+    label: Shipping lane qualification (RU)
     why: Shipping qualification shows that the configuration holds the labeled temperature for the longest planned transit under summer and winter profiles. Without it the lane is not qualified.
-    triggerNote: Asked because the target shipping configuration or lane differs from the source.
+    triggerNote: Asked because the RU shipping configuration or lane differs from the SU.
     sides: target
     binds: uo.storage_shipping.study.shipping_validation.status
     input: { type: choice, optionsFrom: evidenceAvailability }
@@ -123,10 +123,10 @@ questions:
 
   - id: ss.ship_scope
     section: uo.storage_shipping
-    prompt: What testing supports the shipping qualification of the target configuration and lane?
-    label: Shipping qualification scope (target)
+    prompt: What testing supports the shipping qualification of the RU configuration and lane?
+    label: Shipping qualification scope (RU)
     why: A desk-based assessment or thermal chamber test alone does not show performance on the real lane (handling, dwell time and ambient extremes). The scope decides how much of the lane is proven.
-    triggerNote: Asked because the shipping configuration, lane or transport modes differ from the source.
+    triggerNote: Asked because the shipping configuration, lane or transport modes differ from the SU.
     tags: [m3]
     sides: target
     binds: uo.storage_shipping.study.shipping_validation.scope
@@ -139,10 +139,10 @@ questions:
 
   - id: ss.ship_profiles
     section: uo.storage_shipping
-    prompt: Which seasonal temperature profiles does the target shipping qualification cover?
-    label: Shipping seasonal profiles (target)
+    prompt: Which seasonal temperature profiles does the RU shipping qualification cover?
+    label: Shipping seasonal profiles (RU)
     why: Ambient extremes in summer and winter set the worst-case thermal load. A qualification with one profile does not cover the other season.
-    triggerNote: Asked because the shipping configuration, lane or transport modes differ from the source.
+    triggerNote: Asked because the shipping configuration, lane or transport modes differ from the SU.
     tags: [m3]
     sides: target
     binds: uo.storage_shipping.study.shipping_validation.profiles
@@ -154,7 +154,7 @@ questions:
     section: uo.storage_shipping
     prompt: Qualification status of the finished-product storage equipment
     label: Storage equipment qualification status
-    why: Storage equipment must be qualified and mapped before GMP storage. A target store that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    why: Storage equipment must be qualified and mapped before GMP storage. An RU store that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
     tags: [m3]
     sides: paired
     sameAsSource: false
@@ -165,7 +165,7 @@ questions:
     section: uo.storage_shipping
     prompt: Qualification status of the shipping configuration
     label: Shipper qualification status
-    why: A shipping configuration is qualified for a defined duration and temperature profile. A target configuration that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    why: A shipping configuration is qualified for a defined duration and temperature profile. An RU configuration that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
     tags: [m3]
     sides: paired
     sameAsSource: false
@@ -175,10 +175,10 @@ questions:
   - id: ss.shipper_range
     section: uo.storage_shipping
     parent: ss.shipper_qual
-    prompt: Qualified duration range of the target shipping configuration
+    prompt: Qualified duration range of the RU shipping configuration
     label: Shipper qualified duration
     why: The thermal qualification holds the labeled temperature for a stated duration. A planned transit time beyond that duration is not supported by the qualification.
-    triggerNote: Asked because the target shipping configuration is qualified or has a qualification planned.
+    triggerNote: Asked because the RU shipping configuration is qualified or has a qualification planned.
     tags: [m3]
     sides: target
     binds: uo.storage_shipping.equip.shipper.qualifiedRange
@@ -187,9 +187,9 @@ questions:
 
   - id: ss.procedures
     section: uo.storage_shipping
-    prompt: Status of target procedures for storage and shipping
-    label: Target storage and shipping procedures
-    why: Storage, pack-out, shipping and excursion-handling procedures must reflect the target set-up before GMP distribution.
+    prompt: Status of RU procedures for storage and shipping
+    label: RU storage and shipping procedures
+    why: Storage, pack-out, shipping and excursion-handling procedures must reflect the RU set-up before GMP distribution.
     sides: target
     binds: uo.storage_shipping.doc.procedures.status
     input: { type: choice, optionsFrom: procedureStatus }

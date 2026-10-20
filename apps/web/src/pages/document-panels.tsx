@@ -611,7 +611,7 @@ export function CommentsPanel({ project, doc, assessment }: { project: Project; 
         </button>
       </div>
       <p className="small muted">
-        Comments are kept in the project and appear in Appendix D of the document and as Word comments in the Word document. They never change the assessment. Names are free text without a login.
+        Comments are kept in the project and appear in the Reviewer comments appendix of the document and as Word comments in the Word document. They never change the assessment. Names are free text without a login.
       </p>
       <fieldset className="row wrap filter-set">
         <legend>Show comments</legend>

@@ -524,9 +524,9 @@ optionSets:
     - { value: pq_complete, label: Performance qualification (PQ) complete }
     - { value: requalification_due, label: Qualified; requalification due }
   ppqStrategy:
-    - { value: full_ppq, label: Full PPQ at the target (new batches) }
-    - { value: reduced_bridging, label: Reduced or bridging PPQ with source data leveraged }
-    - { value: source_data_leveraged, label: Source PPQ data judged to cover the target (no new PPQ) }
+    - { value: full_ppq, label: Full PPQ at the RU (new batches) }
+    - { value: reduced_bridging, label: Reduced or bridging PPQ with SU data leveraged }
+    - { value: source_data_leveraged, label: SU PPQ data judged to cover the RU (no new PPQ) }
     - { value: not_decided, label: Not yet decided }
   elDataSource:
     - { value: product_specific_study, label: Product-specific extractables and leachables study }
@@ -577,48 +577,48 @@ optionSets:
     - { value: not_defined, label: Profiles not defined }
 
 activities:
-  - { key: information_gathering, label: Information gathering, description: Establish the missing source or target information before the comparison can be completed. }
+  - { key: information_gathering, label: Information gathering, description: Establish the missing SU or RU information before the comparison can be completed. }
   - { key: risk_assessment_update, label: Risk assessment update, description: Update the process or contamination control risk assessment for the change. }
-  - { key: engineering_run, label: Engineering run, description: Non-GMP run at the target to confirm equipment and process performance before PPQ. }
-  - { key: scientific_justification, label: Scientific justification or characterization, description: Document a scientific rationale or perform characterization work to support the target range. }
-  - { key: comparability_assessment, label: Comparability assessment, description: Assess product comparability between source and target processes. }
-  - { key: ppq, label: Process performance qualification, description: PPQ at the target covering the changed element., studies: [ppq] }
-  - { key: ppq_coverage_assessment, label: PPQ coverage assessment, description: Determine whether existing PPQ data cover the target condition or whether additional PPQ is needed., studies: [ppq] }
-  - { key: mixing_study, label: Mixing study, description: Demonstrate homogeneity at the target batch volume and mixing configuration., studies: [mixing] }
-  - { key: hold_time_study, label: Hold time study, description: "Establish or extend the {{validated|demonstrated}} hold time for the target condition.", studies: [hold_time, filtered_hold] }
-  - { key: filter_bacterial_retention, label: Filter validation (bacterial retention), description: Bacterial retention validation for the target filter with product under worst-case conditions., studies: [bacterial_retention] }
-  - { key: filter_compatibility, label: Filter compatibility study, description: Chemical compatibility of the target filter with the product., studies: [filter_compatibility] }
-  - { key: extractables_leachables, label: Extractables and leachables assessment, description: E&L assessment of the target product-contact materials., studies: [sua_el, filter_extractables, container_el] }
-  - { key: filter_sizing, label: Filter sizing confirmation, description: Confirm filter area and throughput for the target batch volume., studies: [filter_sizing] }
-  - { key: fill_accuracy_study, label: Fill accuracy study, description: Demonstrate fill accuracy and precision of the target filling system with product or a justified surrogate., studies: [fill_accuracy] }
-  - { key: product_quality_impact, label: Product-quality impact assessment, description: "Assess shear and other stress effects of the target equipment on product quality (for example, subvisible particles, aggregation).", studies: [pump_product_impact] }
-  - { key: media_fill, label: Aseptic process simulation (media fill), description: "Media fill covering the target line, duration, container format and interventions.", studies: [aps] }
-  - { key: equipment_qualification, label: Equipment qualification, description: IQ/OQ/PQ of target equipment. }
-  - { key: cci_study, label: Container closure integrity study, description: "CCI demonstration for the target container, closure, seal and capping process.", studies: [cci] }
-  - { key: rsf_study, label: Residual seal force study, description: Establish the RSF range for the target capping equipment and correlate it with CCI., studies: [rsf_cci_correlation] }
-  - { key: environmental_monitoring_assessment, label: Environmental monitoring assessment, description: Assess the environmental monitoring programme for the target barrier and room classification. }
-  - { key: csv_assessment, label: Computerized system assessment, description: Assess validation status and data flows of the target computerized systems. }
-  - { key: procedure_update, label: Procedure update, description: Create or update procedures and batch record instructions at the target. }
-  - { key: training, label: Training, description: Train target personnel on the changed or new procedures. }
-  - { key: freeze_thaw_study, label: Freeze-thaw and thaw study, description: "Demonstrate that the target container, freezer and thaw method give acceptable product quality (for example, no aggregation or concentration gradient) across the {{validated|demonstrated}} freeze-thaw conditions.", studies: [freeze_thaw, thaw_homogeneity] }
-  - { key: lyo_cycle_verification, label: Lyophilization cycle verification, description: "Run and verify the lyophilization cycle at the target (shelf mapping, product temperature, residual moisture, cake appearance) to show the cycle performs as {{validated|run at the source}}.", studies: [cycle_verification, aps_loading] }
+  - { key: engineering_run, label: Engineering run, description: Non-GMP run at the RU to confirm equipment and process performance before PPQ. }
+  - { key: scientific_justification, label: Scientific justification or characterization, description: Document a scientific rationale or perform characterization work to support the RU range. }
+  - { key: comparability_assessment, label: Comparability assessment, description: Assess product comparability between SU and RU processes. }
+  - { key: ppq, label: Process performance qualification, description: PPQ at the RU covering the changed element., studies: [ppq] }
+  - { key: ppq_coverage_assessment, label: PPQ coverage assessment, description: Determine whether existing PPQ data cover the RU condition or whether additional PPQ is needed., studies: [ppq] }
+  - { key: mixing_study, label: Mixing study, description: Demonstrate homogeneity at the RU batch volume and mixing configuration., studies: [mixing] }
+  - { key: hold_time_study, label: Hold time study, description: "Establish or extend the {{validated|demonstrated}} hold time for the RU condition.", studies: [hold_time, filtered_hold] }
+  - { key: filter_bacterial_retention, label: Filter validation (bacterial retention), description: Bacterial retention validation for the RU filter with product under worst-case conditions., studies: [bacterial_retention] }
+  - { key: filter_compatibility, label: Filter compatibility study, description: Chemical compatibility of the RU filter with the product., studies: [filter_compatibility] }
+  - { key: extractables_leachables, label: Extractables and leachables assessment, description: E&L assessment of the RU product-contact materials., studies: [sua_el, filter_extractables, container_el] }
+  - { key: filter_sizing, label: Filter sizing confirmation, description: Confirm filter area and throughput for the RU batch volume., studies: [filter_sizing] }
+  - { key: fill_accuracy_study, label: Fill accuracy study, description: Demonstrate fill accuracy and precision of the RU filling system with product or a justified surrogate., studies: [fill_accuracy] }
+  - { key: product_quality_impact, label: Product-quality impact assessment, description: "Assess shear and other stress effects of the RU equipment on product quality (for example, subvisible particles, aggregation).", studies: [pump_product_impact] }
+  - { key: media_fill, label: Aseptic process simulation (media fill), description: "Media fill covering the RU line, duration, container format and interventions.", studies: [aps] }
+  - { key: equipment_qualification, label: Equipment qualification, description: IQ/OQ/PQ of RU equipment. }
+  - { key: cci_study, label: Container closure integrity study, description: "CCI demonstration for the RU container, closure, seal and capping process.", studies: [cci] }
+  - { key: rsf_study, label: Residual seal force study, description: Establish the RSF range for the RU capping equipment and correlate it with CCI., studies: [rsf_cci_correlation] }
+  - { key: environmental_monitoring_assessment, label: Environmental monitoring assessment, description: Assess the environmental monitoring programme for the RU barrier and room classification. }
+  - { key: csv_assessment, label: Computerized system assessment, description: Assess validation status and data flows of the RU computerized systems. }
+  - { key: procedure_update, label: Procedure update, description: Create or update procedures and batch record instructions at the RU. }
+  - { key: training, label: Training, description: Train RU personnel on the changed or new procedures. }
+  - { key: freeze_thaw_study, label: Freeze-thaw and thaw study, description: "Demonstrate that the RU container, freezer and thaw method give acceptable product quality (for example, no aggregation or concentration gradient) across the {{validated|demonstrated}} freeze-thaw conditions.", studies: [freeze_thaw, thaw_homogeneity] }
+  - { key: lyo_cycle_verification, label: Lyophilization cycle verification, description: "Run and verify the lyophilization cycle at the RU (shelf mapping, product temperature, residual moisture, cake appearance) to show the cycle performs as {{validated|run at the SU}}.", studies: [cycle_verification, aps_loading] }
   - { key: avi_qualification, label: Automated inspection qualification, description: "Qualify the automated inspection system against a defect kit (detection probability compared with manual inspection, for example a Knapp-style study) and set the rejection criteria.", studies: [avi_qualification] }
   - { key: inspector_qualification, label: Inspector qualification, description: "Qualify and periodically requalify manual inspectors against the defect library, with documented acceptance criteria.", studies: [inspector_qualification] }
   - { key: shipping_validation, label: Shipping validation, description: "Qualify the shipping configuration and lane (thermal performance over the worst-case transit time and seasonal profiles).", studies: [shipping_validation] }
-  - { key: serialization_verification, label: Serialization verification, description: "Verify serialization and aggregation (code quality, data transfer and reporting) for the target markets.", studies: [serialization_verification] }
-  - { key: stability_assessment, label: Stability assessment, description: "Assess whether available stability data support the target storage condition, time out of refrigeration or excursion allowance.", studies: [stability_support, tor_stability] }
-  - { key: temperature_mapping, label: Temperature mapping, description: Map and qualify storage areas and monitoring points for the target storage condition. }
-  - { key: equipment_requalification, label: Equipment requalification, description: "Requalify or extend the qualified range of target equipment so it covers the planned operating range (OQ re-execution, or a documented assessment and delta qualification)." }
-  - { key: cleaning_validation, label: Cleaning validation, description: "Validate cleaning of the target product-contact equipment (worst-case selection, residue and microbial limits, sampling and hold times).", studies: [cleaning] }
-  - { key: cci_method_validation, label: CCI test method validation, description: "Validate the container closure integrity test method for the target container (sensitivity, positive and negative controls, repeatability).", studies: [cci_method_validation] }
-  - { key: filter_integrity_validation, label: Filter integrity test validation, description: "Establish and validate the product-wet integrity test specification and procedure for the target filter and tester.", studies: [integrity_validation] }
+  - { key: serialization_verification, label: Serialization verification, description: "Verify serialization and aggregation (code quality, data transfer and reporting) for the RU markets.", studies: [serialization_verification] }
+  - { key: stability_assessment, label: Stability assessment, description: "Assess whether available stability data support the RU storage condition, time out of refrigeration or excursion allowance.", studies: [stability_support, tor_stability] }
+  - { key: temperature_mapping, label: Temperature mapping, description: Map and qualify storage areas and monitoring points for the RU storage condition. }
+  - { key: equipment_requalification, label: Equipment requalification, description: "Requalify or extend the qualified range of RU equipment so it covers the planned operating range (OQ re-execution, or a documented assessment and delta qualification)." }
+  - { key: cleaning_validation, label: Cleaning validation, description: "Validate cleaning of the RU product-contact equipment (worst-case selection, residue and microbial limits, sampling and hold times).", studies: [cleaning] }
+  - { key: cci_method_validation, label: CCI test method validation, description: "Validate the container closure integrity test method for the RU container (sensitivity, positive and negative controls, repeatability).", studies: [cci_method_validation] }
+  - { key: filter_integrity_validation, label: Filter integrity test validation, description: "Establish and validate the product-wet integrity test specification and procedure for the RU filter and tester.", studies: [integrity_validation] }
 
 categories:
-  - { key: equivalent, label: Equivalent, description: Source and target are the same. }
-  - { key: within_validated_range, label: "Within {{validated|source}} range", description: "Target differs but lies within the source PAR or {{validated|demonstrated}} range, or is covered by {{existing validation|the source data}}." }
-  - { key: outside_validated_range, label: "Outside {{validated|source}} range", description: "Target lies outside the source PAR or {{validated|demonstrated}} range, or is not covered by {{existing validation|the source data}}." }
+  - { key: equivalent, label: Equivalent, description: SU and RU are the same. }
+  - { key: within_validated_range, label: "Within {{validated|SU}} range", description: "RU differs but lies within the SU PAR or {{validated|demonstrated}} range, or is covered by {{existing validation|the SU data}}." }
+  - { key: outside_validated_range, label: "Outside {{validated|SU}} range", description: "RU lies outside the SU PAR or {{validated|demonstrated}} range, or is not covered by {{existing validation|the SU data}}." }
   - { key: different_principle, label: Different operating principle or design, description: "Equipment, component or design differs in kind rather than in value." }
   - { key: scale_change, label: Scale change, description: Batch size or equipment capacity differs. }
-  - { key: new_requirement, label: New requirement, description: "Present at target, absent from source." }
-  - { key: removed_element, label: Removed element, description: "Present at source, absent from target." }
-  - { key: information_required, label: Information required, description: The source or target value is unknown or not established. }
+  - { key: new_requirement, label: New requirement, description: "Present at RU, absent from SU." }
+  - { key: removed_element, label: Removed element, description: "Present at SU, absent from RU." }
+  - { key: information_required, label: Information required, description: The SU or RU value is unknown or not established. }

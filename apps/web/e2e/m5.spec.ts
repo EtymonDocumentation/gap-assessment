@@ -173,11 +173,14 @@ test("mapping editor: suggest, change a heading, reorder, leave out needs a tick
   await expect(page.getByRole("heading", { level: 2, name: /^Template headings/ })).toBeVisible();
   // Nothing is mapped yet.
   await expect(unmapped).toContainText(/\(1\d\)$/);
+  const mappedCount = async () => Number(/\((\d+)\)/.exec((await unmapped.textContent()) ?? "")?.[1]);
+  const before = await mappedCount();
   await page.getByRole("button", { name: "Suggest a mapping" }).click();
   await expect(page.getByRole("status").filter({ hasText: "A suggested mapping was filled in" })).toBeVisible();
-  const mappedCount = async () => Number(/\((\d+)\)/.exec((await unmapped.textContent()) ?? "")?.[1]);
   const after = await mappedCount();
-  expect(after).toBeLessThan(10);
+  // The suggestion maps most of the document; the Gap details appendix has no heading in this sample, so it stays listed.
+  expect(after).toBeLessThan(before);
+  expect(after).toBeLessThanOrEqual(10);
 
   // Remove the content the suggestion put under "Objective": it shows up as not mapped.
   const objective = page.locator("li.map-row", { has: page.getByRole("heading", { level: 3, name: /Objective/ }) });
@@ -189,14 +192,14 @@ test("mapping editor: suggest, change a heading, reorder, leave out needs a tick
   // Put two pieces of content under "Definitions" and move one up and down with the buttons.
   const defs = page.locator("li.map-row", { has: page.getByRole("heading", { level: 3, name: /Definitions/ }) });
   await defs.getByLabel("Add tool content").selectOption({ label: "1. Purpose" });
-  await defs.getByLabel("Add tool content").selectOption({ label: "Appendix A. Source register" });
+  await defs.getByLabel("Add tool content").selectOption({ label: "Appendix B. Source register" });
   const items = defs.locator("ol.map-blocks > li > span:first-child");
-  await expect(items).toHaveText(["1. Purpose", "Appendix A. Source register"]);
-  await defs.getByRole("button", { name: /^Move Appendix A\. Source register up/ }).click();
-  await expect(items).toHaveText(["Appendix A. Source register", "1. Purpose"]);
-  await defs.getByRole("button", { name: /^Move Appendix A\. Source register down/ }).click();
-  await expect(items).toHaveText(["1. Purpose", "Appendix A. Source register"]);
-  await defs.getByRole("button", { name: /^Remove Appendix A\. Source register/ }).click();
+  await expect(items).toHaveText(["1. Purpose", "Appendix B. Source register"]);
+  await defs.getByRole("button", { name: /^Move Appendix B[.] Source register up/ }).click();
+  await expect(items).toHaveText(["Appendix B. Source register", "1. Purpose"]);
+  await defs.getByRole("button", { name: /^Move Appendix B[.] Source register down/ }).click();
+  await expect(items).toHaveText(["1. Purpose", "Appendix B. Source register"]);
+  await defs.getByRole("button", { name: /^Remove Appendix B[.] Source register/ }).click();
   await expect(items).toHaveText(["1. Purpose"]);
   // With content, the choices are replace / keep and add ours.
   await expect(defs.getByLabel("Their existing text under this heading").locator("option")).toHaveText(["Replace their text", "Keep their text and add ours after it"]);
@@ -297,7 +300,7 @@ test("document: Word export in all four modes, from the saved mapping, with the 
   await expect(rows.first()).toContainText("Word");
   await expect(rows.first()).toContainText("PDF outline");
   await expect(rows.nth(1)).toContainText("placeholder-tag");
-  await expect(rows.last()).toContainText("Built-in default 1.1.0");
+  await expect(rows.last()).toContainText("Built-in default 1.2.0");
   await expect(rows.last().locator("td").nth(3)).toHaveText("1");
   await expect(rows.last().locator("td").nth(4)).toHaveText("No");
   await expect(rows.first().locator("code")).toHaveText(/^[0-9a-f]{12}$/);
@@ -306,7 +309,7 @@ test("document: Word export in all four modes, from the saved mapping, with the 
   await page.getByRole("button", { name: "Download Markdown" }).click();
   await expect(rows).toHaveCount(6);
   await expect(rows.first()).toContainText("Markdown");
-  await expect(rows.first()).toContainText("Built-in default 1.1.0");
+  await expect(rows.first()).toContainText("Built-in default 1.2.0");
   await page.getByRole("button", { name: "Download HTML" }).click();
   await expect(rows).toHaveCount(7);
   await expect(rows.first()).toContainText("HTML");
@@ -351,7 +354,7 @@ test("revisions: the demo has revision 1; issue revision 2; a change shows the c
   await expect(state).toHaveText(/^Revision 2, issued for review on \d{4}-\d{2}-\d{2}\.$/);
   await expect(table.locator("tbody tr")).toHaveCount(2);
   await expect(table.locator("tbody tr").first()).toContainText("Q. Tester (fictional)");
-  await expect(table.locator("tbody tr").first()).toContainText("Built-in default 1.1.0");
+  await expect(table.locator("tbody tr").first()).toContainText("Built-in default 1.2.0");
   await expect(page.getByRole("button", { name: "Issue revision" })).toBeFocused();
 
   // The name typed last is offered again.
@@ -363,7 +366,7 @@ test("revisions: the demo has revision 1; issue revision 2; a change shows the c
   await go(page, "#/builder");
   await page.getByRole("searchbox", { name: "Filter by text or path" }).fill("pump");
   await page.locator('[id="edit-fill.pump-target"]').click();
-  await page.getByRole("dialog").getByRole("button", { name: "Same as source" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Same as SU" }).click();
   await expect(page.getByRole("dialog")).toBeHidden();
   await go(page, "#/document");
   await expect(state).toContainText("Revision 2, issued for review");
@@ -420,7 +423,7 @@ test("comments: the demo comments, add one on a gap, reply, resolve, reopen, fil
   await expect(c4).toContainText(`${gapOption?.split(":")[0]}`);
   await expect(c4).toContainText("Q. Tester (fictional)");
   expect(await count("Open")).toBe(open0 + 1);
-  // It appears in Appendix D of the document, too.
+  // It appears in Appendix E of the document, too.
   await expect(page.locator(".doc-preview")).toContainText("C-004");
 
   // Reply.

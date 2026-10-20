@@ -49,9 +49,10 @@ describe("stored stage", () => {
     expect(sourceValidated(p)).toBe(s === "commercial");
     const w = stageWording(p);
     expect(w.sourceValidated).toBe(s === "commercial");
-    expect(w.sourceSummaryHeading).toBe(s === "commercial" ? "Source program summary (validated state)" : "Source program summary (current state)");
+    expect(w.sourceSummaryHeading).toBe(s === "commercial" ? "Sending unit program summary (validated state)" : "Sending unit program summary (current state)");
     expect(w.sourceStateColumn).toBe(s === "commercial" ? "Validated state" : "Current state");
-    expect(w.sourceSideText).toBe(s === "commercial" ? "Source — validated state" : "Source — current state");
+    expect(w.sourceSideText).toBe(s === "commercial" ? "SU — validated state" : "SU — current state");
+    expect(w.targetSummaryHeading).toBe("Receiving unit summary (planned state)");
     expect(w.rangeShort).toBe(s === "commercial" ? "Validated range" : "Demonstrated range");
   });
 
@@ -81,13 +82,13 @@ describe("validation expectations", () => {
 
   it("names both stages in the statement", () => {
     expect(basis("clinical", "commercial").statement).toBe(
-      "Source program stage: Clinical (GMP, not process validated). Target program stage: Commercial (process validated).",
+      "Sending unit (SU) program stage: Clinical (GMP, not process validated). Receiving unit (RU) program stage: Commercial (process validated).",
     );
-    expect(basis(undefined, undefined).statement).toBe("Source program stage: [not established]. Target program stage: [not established].");
+    expect(basis(undefined, undefined).statement).toBe("Sending unit (SU) program stage: [not established]. Receiving unit (RU) program stage: [not established].");
   });
 
-  it("offers no source PPQ to leverage from a clinical or development source", () => {
-    expect(basis("clinical", "commercial").sourcePoint).toContain("no source PPQ or process validation evidence to leverage");
+  it("offers no SU PPQ to leverage from a clinical or development source", () => {
+    expect(basis("clinical", "commercial").sourcePoint).toContain("no SU PPQ or process validation evidence to leverage");
     expect(basis("clinical", "commercial").sourcePoint).toContain("Aseptic process simulation");
     expect(basis("development", "commercial").sourcePoint).toContain("no GMP evidence to leverage");
     expect(basis("commercial", "commercial").sourcePoint).toContain("can be leveraged");
@@ -125,8 +126,8 @@ describe("validation expectations", () => {
   it("gives a PPQ note per target stage, each to confirm with QA", () => {
     const note = (s: ProgramStage | undefined, t: ProgramStage | undefined) => activityStageNote("ppq", stageWordingFor(s, t));
     expect(note("clinical", "commercial")).toContain("typically a full PPQ");
-    expect(note("commercial", "commercial")).toContain("depends on source PPQ coverage");
-    expect(note("commercial", "clinical")).toContain("not expected at a clinical target");
+    expect(note("commercial", "commercial")).toContain("depends on SU PPQ coverage");
+    expect(note("commercial", "clinical")).toContain("not expected at a clinical RU");
     expect(note("commercial", "development")).toContain("not expected for development");
     expect(note("commercial", undefined)).toContain("not established");
     for (const s of [...PROGRAM_STAGES, undefined]) for (const t of [...PROGRAM_STAGES, undefined]) expect(note(s, t)).toMatch(/Confirm with QA\.$/);

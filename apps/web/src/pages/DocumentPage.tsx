@@ -1,4 +1,4 @@
-import { buildDocument, documentFingerprint, recordExport, revisionState, verificationSummary } from "@gap/engine";
+import { buildDocument, documentFingerprint, OPTIONAL_SECTIONS, omittedSectionIds, recordExport, revisionState, setOmittedSections, verificationSummary } from "@gap/engine";
 import type { DocumentExport, TemplateRecord } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlBody, renderMarkdown } from "@gap/renderers";
 import { useMemo, useState } from "react";
@@ -23,6 +23,22 @@ export function DocumentPage() {
   const choice = useWordChoice();
   const wording = useStageWording();
   const state = useMemo(() => revisionState(project, doc), [project, doc]);
+  const omitted = omittedSectionIds(project);
+  const [sectionError, setSectionError] = useState("");
+
+  /** Ticks or unticks one optional section. The choice is stored with the project and applies to every format. */
+  const toggleSection = (id: string, include: boolean) => {
+    const title = OPTIONAL_SECTIONS.find((x) => x.id === id)?.title ?? id;
+    // Worked out from the stored project, not from this render, so two quick clicks both count.
+    const err = update(
+      (p) => {
+        const current = omittedSectionIds(p);
+        return setOmittedSections(p, include ? current.filter((x) => x !== id) : [...current, id]);
+      },
+      include ? `${title} included in the document` : `${title} left out of the document`,
+    );
+    setSectionError(err ?? "");
+  };
 
   /** Every download is written to the export history, with the revision it was made at and whether the content has changed since. */
   const recordDownload = (format: DocumentExport["format"], template: TemplateRecord) =>
@@ -35,6 +51,7 @@ export function DocumentPage() {
           template,
           ...(state.latest ? { revision: state.latest.number } : {}),
           fingerprint: documentFingerprint(doc),
+          ...(omitted.length ? { omittedSections: omitted } : {}),
           changedSinceRevision: state.changedSinceIssue,
         }),
       "Download recorded in the export history",
@@ -110,6 +127,29 @@ export function DocumentPage() {
         </div>
         <p className="small muted">
           Names are free text without a login, so verification is not attributable in a GMP sense. The full breakdown by section is in the document.
+        </p>
+      </section>
+      <section className="card no-print" aria-labelledby="sections-title">
+        <h2 id="sections-title">Sections to include</h2>
+        <p className="small">
+          Untick a section to leave it out of the preview and of every download (Markdown, HTML, Word and print). Numbering and appendix letters close up, and the document
+          lists what was left out. Purpose, Scope, the SU and RU summaries, the Detailed gap table and Open information items are always included.
+        </p>
+        <fieldset className="stack">
+          <legend className="small">Optional sections</legend>
+          <ul className="section-choice">
+            {OPTIONAL_SECTIONS.map((sec) => (
+              <li key={sec.id}>
+                <label>
+                  <input type="checkbox" checked={!omitted.includes(sec.id)} onChange={(e) => toggleSection(sec.id, e.target.checked)} />
+                  <span>{sec.appendix ? `${sec.title} (appendix)` : sec.title}</span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        </fieldset>
+        <p className="small muted" role="status">
+          {sectionError || (omitted.length ? `${omitted.length} optional ${omitted.length === 1 ? "section is" : "sections are"} left out.` : "All optional sections are included.")}
         </p>
       </section>
       <WordPanel

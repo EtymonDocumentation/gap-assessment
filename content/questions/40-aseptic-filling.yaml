@@ -20,10 +20,10 @@ questions:
   - id: fill.accuracy
     section: uo.aseptic_filling
     parent: fill.pump
-    prompt: Is fill accuracy and precision data available for the target pump with this product or a justified surrogate?
-    label: Fill accuracy data (target pump)
-    why: Fill accuracy depends on the pump principle and product viscosity; source data do not demonstrate the target pump's performance.
-    triggerNote: Asked because the target filling pump principle differs from the source.
+    prompt: Is fill accuracy and precision data available for the RU pump with this product or a justified surrogate?
+    label: Fill accuracy data (RU pump)
+    why: Fill accuracy depends on the pump principle and product viscosity; SU data do not demonstrate the RU pump's performance.
+    triggerNote: Asked because the RU filling pump principle differs from the SU.
     sides: target
     binds: uo.aseptic_filling.study.fill_accuracy.status
     input: { type: choice, optionsFrom: evidenceAvailability }
@@ -32,10 +32,10 @@ questions:
   - id: fill.shear
     section: uo.aseptic_filling
     parent: fill.pump
-    prompt: Has the product-quality impact of the target pump (for example shear, subvisible particles, aggregation) been assessed with this product?
-    label: Pump product-quality impact (target pump)
+    prompt: Has the product-quality impact of the RU pump (for example shear, subvisible particles, aggregation) been assessed with this product?
+    label: Pump product-quality impact (RU pump)
     why: Different pump mechanisms apply different shear and stress to proteins, which can affect particles and aggregation.
-    triggerNote: Asked because the target filling pump principle differs from the source.
+    triggerNote: Asked because the RU filling pump principle differs from the SU.
     sides: target
     binds: uo.aseptic_filling.study.pump_product_impact.status
     input: { type: choice, optionsFrom: impactAssessment }
@@ -44,10 +44,10 @@ questions:
   - id: fill.ppq
     section: uo.aseptic_filling
     parent: fill.pump
-    prompt: Is filling with the target pump principle covered by existing PPQ data for this product?
-    label: PPQ coverage of target pump
+    prompt: Is filling with the RU pump principle covered by existing PPQ data for this product?
+    label: PPQ coverage of RU pump
     why: PPQ demonstrates the commercial process as designed; a different filling principle is normally outside the existing PPQ.
-    triggerNote: Asked because the target filling pump principle differs from the source.
+    triggerNote: Asked because the RU filling pump principle differs from the SU.
     sides: target
     binds: uo.aseptic_filling.study.ppq.status
     input: { type: choice, optionsFrom: validationCoverage }
@@ -57,7 +57,7 @@ questions:
     section: uo.aseptic_filling
     prompt: Fill volume
     label: Fill volume
-    why: Fill volume determines deliverable volume and is normally a critical parameter; the target range is compared with the source {{validated|demonstrated}} range.
+    why: Fill volume determines deliverable volume and is normally a critical parameter; the RU range is compared with the SU {{validated|demonstrated}} range.
     sides: paired
     binds: uo.aseptic_filling.param.fill_volume
     input: { type: parameter, units: [mL, µL] }
@@ -84,10 +84,10 @@ questions:
   - id: fill.aps
     section: uo.aseptic_filling
     parent: fill.duration
-    prompt: What maximum filling duration does the current aseptic process simulation (media fill) on the target line cover?
-    label: APS duration coverage (target line)
+    prompt: What maximum filling duration does the current aseptic process simulation (media fill) on the RU line cover?
+    label: APS duration coverage (RU line)
     why: The APS must cover the longest planned filling duration on the line actually used. Longer batches can fall outside current media fill coverage.
-    triggerNote: Asked because the target batch size or filling duration is larger than the source.
+    triggerNote: Asked because the RU batch size or filling duration is larger than the SU.
     sides: target
     binds: uo.aseptic_filling.study.aps.coverage
     input: { type: quantity, units: [h, min] }
@@ -136,10 +136,10 @@ questions:
   # ---- process performance qualification (PPQ)
   - id: fill.ppq_strategy
     section: uo.aseptic_filling
-    prompt: What PPQ approach is planned at the target for this change?
-    label: PPQ approach at target
-    why: The PPQ approach (full, reduced or leveraged from the source) decides how many batches are needed and what the validation plan must contain. It must be justified when source data are leveraged.
-    triggerNote: Asked because the target filling principle, batch size or container format differs from the source.
+    prompt: What PPQ approach is planned at the RU for this change?
+    label: PPQ approach at RU
+    why: The PPQ approach (full, reduced or leveraged from the SU) decides how many batches are needed and what the validation plan must contain. It must be justified when SU data are leveraged.
+    triggerNote: Asked because the RU filling principle, batch size or container format differs from the SU.
     tags: [m3]
     sides: target
     binds: uo.aseptic_filling.study.ppq.strategy
@@ -153,7 +153,7 @@ questions:
   - id: fill.ppq_batches
     section: uo.aseptic_filling
     parent: fill.ppq_strategy
-    prompt: How many PPQ batches are planned at the target?
+    prompt: How many PPQ batches are planned at the RU?
     label: Planned PPQ batches
     why: The number of PPQ batches is part of the validation plan and must be justified by process variability and risk. It is recorded so the validation plan can be sized.
     tags: [m3]
@@ -167,7 +167,7 @@ questions:
     section: uo.aseptic_filling
     prompt: Number of consecutive media fill runs in the initial aseptic process simulation on the line
     label: APS initial runs
-    why: Initial qualification of an aseptic line is normally shown by repeated successful simulations (EU GMP Annex 1 expects at least three consecutive runs). The number of initial runs sets the target APS programme.
+    why: Initial qualification of an aseptic line is normally shown by repeated successful simulations (EU GMP Annex 1 expects at least three consecutive runs). The number of initial runs sets the RU APS programme.
     tags: [m3]
     sideLabels: { source: Initial runs performed, target: Initial runs planned }
     sides: paired
@@ -178,7 +178,7 @@ questions:
     section: uo.aseptic_filling
     prompt: Maximum number of interventions per batch that the aseptic process simulation represents
     label: Maximum interventions simulated
-    why: The simulation must include the worst-case number and type of interventions allowed in routine manufacture; a higher number at the target is not covered by the source simulation.
+    why: The simulation must include the worst-case number and type of interventions allowed in routine manufacture; a higher number at the RU is not covered by the SU simulation.
     tags: [m3]
     sideLabels: { source: Maximum interventions simulated, target: Maximum interventions planned }
     sides: paired
@@ -187,10 +187,10 @@ questions:
 
   - id: fill.aps_scope
     section: uo.aseptic_filling
-    prompt: Does the aseptic process simulation on the target line cover the target container format, closure, filling principle and intervention set?
-    label: APS scope coverage (target line)
-    why: A simulation is valid for the line, container and closure configuration it represents. A different filling principle, container or stopper is normally not covered by a simulation of the source configuration.
-    triggerNote: Asked because the filling principle, container format or stopper differs from the source.
+    prompt: Does the aseptic process simulation on the RU line cover the RU container format, closure, filling principle and intervention set?
+    label: APS scope coverage (RU line)
+    why: A simulation is valid for the line, container and closure configuration it represents. A different filling principle, container or stopper is normally not covered by a simulation of the SU configuration.
+    triggerNote: Asked because the filling principle, container format or stopper differs from the SU.
     tags: [m3]
     sides: target
     binds: uo.aseptic_filling.study.aps.status
@@ -216,10 +216,10 @@ questions:
   - id: fill.filtered_hold_cov
     section: uo.aseptic_filling
     parent: fill.filtered_hold
-    prompt: What maximum filtered bulk hold duration do the hold time study data cover at the target conditions (vessel, temperature, container)?
-    label: Filtered bulk hold study coverage (target)
+    prompt: What maximum filtered bulk hold duration do the hold time study data cover at the RU conditions (vessel, temperature, container)?
+    label: Filtered bulk hold study coverage (RU)
     why: Hold-time data are specific to the vessel, temperature and product conditions studied. The longest planned hold must be covered by that study.
-    triggerNote: Asked because the planned filtered bulk hold is longer than the source.
+    triggerNote: Asked because the planned filtered bulk hold is longer than the SU.
     tags: [m3]
     sides: target
     binds: uo.aseptic_filling.study.filtered_hold.coverage
@@ -229,10 +229,10 @@ questions:
   # ---- extractables and leachables of the container closure
   - id: fill.container_el
     section: uo.aseptic_filling
-    prompt: Are extractables and leachables data available for the target primary container and stopper with this product?
-    label: Container closure E&L data (target)
-    why: Glass, stopper elastomer and coatings can release extractables into the product over shelf life. A different supplier, format or part is not covered by the source E&L data.
-    triggerNote: Asked because the container format, container supplier or stopper differs from the source.
+    prompt: Are extractables and leachables data available for the RU primary container and stopper with this product?
+    label: Container closure E&L data (RU)
+    why: Glass, stopper elastomer and coatings can release extractables into the product over shelf life. A different supplier, format or part is not covered by the SU E&L data.
+    triggerNote: Asked because the container format, container supplier or stopper differs from the SU.
     tags: [m3]
     sides: target
     binds: uo.aseptic_filling.study.container_el.status
@@ -256,10 +256,10 @@ questions:
 
   - id: fill.cleaning
     section: uo.aseptic_filling
-    prompt: Is cleaning validation complete for the target reusable product-contact equipment (filling parts and holding vessel)?
+    prompt: Is cleaning validation complete for the RU reusable product-contact equipment (filling parts and holding vessel)?
     label: Cleaning validation coverage (filling equipment)
-    why: Reusable product-contact equipment at the target must have validated cleaning for this product, with acceptance limits and hold times, before GMP use.
-    triggerNote: Asked because the target uses reusable product-contact equipment (stainless or glass vessel, or a reusable pump).
+    why: Reusable product-contact equipment at the RU must have validated cleaning for this product, with acceptance limits and hold times, before GMP use.
+    triggerNote: Asked because the RU uses reusable product-contact equipment (stainless or glass vessel, or a reusable pump).
     tags: [m3]
     sides: target
     binds: uo.aseptic_filling.study.cleaning.status
@@ -272,10 +272,10 @@ questions:
   - id: fill.cleaning_worst
     section: uo.aseptic_filling
     parent: fill.cleaning
-    prompt: How is the worst case chosen for cleaning validation of the target equipment?
+    prompt: How is the worst case chosen for cleaning validation of the RU equipment?
     label: Cleaning worst-case approach
     why: Cleaning validation is performed at the worst-case soil and location (hardest-to-clean product, lowest-flow or dead-leg location). A documented worst-case rationale is the basis for the studied conditions.
-    triggerNote: Asked because the target uses reusable product-contact equipment.
+    triggerNote: Asked because the RU uses reusable product-contact equipment.
     tags: [m3]
     sides: target
     binds: uo.aseptic_filling.study.cleaning.worstCase
@@ -288,7 +288,7 @@ questions:
     prompt: What acceptance limits apply to carryover after cleaning?
     label: Cleaning carryover limits
     why: Carryover limits should be health-based and scientifically justified, together with residue, bioburden and endotoxin limits. Visual and rinse criteria alone do not demonstrate limits for potent or sensitising residues.
-    triggerNote: Asked because the target uses reusable product-contact equipment.
+    triggerNote: Asked because the RU uses reusable product-contact equipment.
     tags: [m3]
     sides: target
     binds: uo.aseptic_filling.study.cleaning.carryover
@@ -300,7 +300,7 @@ questions:
     section: uo.aseptic_filling
     prompt: Qualification status of the filling machine
     label: Filler qualification status
-    why: Equipment used for GMP manufacture must be qualified. A target filler that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    why: Equipment used for GMP manufacture must be qualified. An RU filler that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
     tags: [m3]
     sides: paired
     sameAsSource: false
@@ -310,10 +310,10 @@ questions:
   - id: fill.filler_speed_range
     section: uo.aseptic_filling
     parent: fill.filler_qual
-    prompt: Qualified speed range of the target filling machine
+    prompt: Qualified speed range of the RU filling machine
     label: Filler qualified speed range
     why: Operational qualification covers a defined speed range. Planned line speeds outside that range are not supported by the qualification.
-    triggerNote: Asked because the target filler is qualified or has a qualification planned.
+    triggerNote: Asked because the RU filler is qualified or has a qualification planned.
     tags: [m3]
     sides: target
     binds: uo.aseptic_filling.equip.filler.qualifiedRange_speed
@@ -323,10 +323,10 @@ questions:
   - id: fill.filler_volume_range
     section: uo.aseptic_filling
     parent: fill.filler_qual
-    prompt: Qualified fill volume range of the target filling machine
+    prompt: Qualified fill volume range of the RU filling machine
     label: Filler qualified volume range
     why: Dosing accuracy is qualified over a stated volume range. Fill volumes outside that range are not supported by the qualification.
-    triggerNote: Asked because the target filler is qualified or has a qualification planned.
+    triggerNote: Asked because the RU filler is qualified or has a qualification planned.
     tags: [m3]
     sides: target
     binds: uo.aseptic_filling.equip.filler.qualifiedRange_volume
@@ -346,9 +346,9 @@ questions:
 
   - id: fill.procedures
     section: uo.aseptic_filling
-    prompt: Status of target procedures for aseptic filling
-    label: Target filling procedures
-    why: Filling, intervention and line-clearance procedures must reflect the target line before GMP manufacture.
+    prompt: Status of RU procedures for aseptic filling
+    label: RU filling procedures
+    why: Filling, intervention and line-clearance procedures must reflect the RU line before GMP manufacture.
     sides: target
     binds: uo.aseptic_filling.doc.procedures.status
     input: { type: choice, optionsFrom: procedureStatus }

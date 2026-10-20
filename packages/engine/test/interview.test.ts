@@ -18,7 +18,7 @@ describe("applyAnswer: sources and entries", () => {
       responder: { name: "Alex Example (fictional)", role: "MSAT engineer" },
       date: T0,
     });
-    expect(s.label).toBe("Interview answer: Compounding vessel type [source]");
+    expect(s.label).toBe("Interview answer: Compounding vessel type [SU]");
     expect(s.id).toMatch(/^src-/);
     expect(s.supersededBy).toBeUndefined();
   });
@@ -351,7 +351,7 @@ describe("applyAnswer: rejected answers", () => {
   });
 
   it("rejects same_as_source on the source side", () => {
-    rejects(() => ask(P, "comp.vessel_type", "source", { kind: "same_as_source" }), /only available on target-side paired questions/);
+    rejects(() => ask(P, "comp.vessel_type", "source", { kind: "same_as_source" }), /only available on RU-side paired questions/);
     rejects(() => ask(P, "comp.mixing_speed", "source", { kind: "same_as_source" }), /only available/);
     rejects(
       () => par(P, "comp.mixing_speed", "source", { classification: "same", setPoint: q(1, "rpm"), nor: rng(1, 2, "rpm"), par: rng(1, 2, "rpm"), rangeBasis: "PPQ" }),

@@ -99,7 +99,7 @@ export interface AnswerOptions {
 }
 
 function sideLabel(side: QuestionInstance["side"]): string {
-  return side === "shared" ? "scoping" : side;
+  return side === "shared" ? "scoping" : side === "source" ? "SU" : "RU";
 }
 
 /**
@@ -139,7 +139,7 @@ export function applyAnswer(
 
   for (const w of writes) {
     if (w.ans.kind === "same_as_source" && (side !== "target" || !sameAsSourceAllowed(q))) {
-      throw new AnswerError("“Same as source” is only available on target-side paired questions");
+      throw new AnswerError("“Same as SU” is only available on RU-side paired questions");
     }
     if (w.ans.kind === "not_applicable" && !w.ans.justification.trim()) {
       throw new AnswerError("Not applicable requires a justification");

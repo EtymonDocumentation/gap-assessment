@@ -32,11 +32,60 @@ export const DOCUMENT_SECTION_IDS: readonly string[] = [
   "verification-status",
   "references",
   "approval",
+  "gap-details",
   "source-register",
   "change-log-summary",
   "revision-history",
   "reviewer-comments",
 ];
+
+/**
+ * The sections a user may leave out of the document, in document order. Everything else is mandatory: the purpose, the
+ * scope, the SU and RU summaries, the detailed gap table and the open information items (unknowns must stay visible).
+ * The titles here are the titles buildDocument uses.
+ */
+export const OPTIONAL_SECTIONS: readonly { id: string; title: string; appendix: boolean }[] = [
+  { id: "differences", title: "Summary of differences by unit operation", appendix: false },
+  { id: "validation-plan", title: "Validation plan", appendix: false },
+  { id: "equipment-qualification", title: "Equipment qualification comparison", appendix: false },
+  { id: "risk", title: "Risk ranking", appendix: false },
+  { id: "verification-status", title: "Verification status", appendix: false },
+  { id: "references", title: "References", appendix: false },
+  { id: "approval", title: "Approval", appendix: false },
+  { id: "gap-details", title: "Gap details", appendix: true },
+  { id: "source-register", title: "Source register", appendix: true },
+  { id: "change-log-summary", title: "Change log summary", appendix: true },
+  { id: "revision-history", title: "Revision history", appendix: true },
+  { id: "reviewer-comments", title: "Reviewer comments", appendix: true },
+];
+
+/** Title of an optional section, or undefined for a mandatory or unknown id. */
+export function optionalSectionTitle(id: string): string | undefined {
+  return OPTIONAL_SECTIONS.find((s) => s.id === id)?.title;
+}
+
+/** The sections currently left out of the document: the stored choice, limited to optional sections, in document order. */
+export function omittedSectionIds(project: Project): string[] {
+  const stored = new Set(project.document.omittedSections ?? []);
+  return OPTIONAL_SECTIONS.filter((s) => stored.has(s.id)).map((s) => s.id);
+}
+
+/**
+ * Records which optional sections the document leaves out. Mandatory and unknown ids are refused. An empty list means
+ * the document includes everything (the default). This is an export setting, not a change to the assessment, so it has no
+ * change-log entry; the document says what it omits (the "Sections omitted" line) and each export record keeps the list.
+ */
+export function setOmittedSections(project: Project, ids: string[]): Project {
+  for (const id of ids) {
+    if (!optionalSectionTitle(id)) throw new ReviewError(`"${id}" cannot be left out of the document`);
+  }
+  const next = structuredClone(project);
+  const wanted = new Set(ids);
+  const list = OPTIONAL_SECTIONS.filter((s) => wanted.has(s.id)).map((s) => s.id);
+  if (list.length) next.document.omittedSections = list;
+  else delete next.document.omittedSections;
+  return next;
+}
 
 /** Sections and meta rows whose content describes the review itself; they are not part of the fingerprint. */
 const FINGERPRINT_SKIP_SECTIONS = new Set(["revision-history", "reviewer-comments"]);
@@ -263,6 +312,10 @@ export function recordExport(project: Project, record: DocumentExport): Project 
   }
   if (!record.fingerprint) throw new ReviewError("An export record needs the document fingerprint");
   const next = structuredClone(project);
-  next.document.exports.push({ ...structuredClone(record), template: cleanTemplate(record.template) });
+  // The export keeps which optional sections it left out. A record that does not say takes the project's current choice;
+  // an empty list is stored as no field at all, so "nothing omitted" reads the same as before this setting existed.
+  const { omittedSections, ...rest } = structuredClone(record);
+  const left = omittedSections ?? omittedSectionIds(project);
+  next.document.exports.push({ ...rest, template: cleanTemplate(record.template), ...(left.length ? { omittedSections: left } : {}) });
   return next;
 }

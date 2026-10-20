@@ -423,7 +423,7 @@ describe("validation plan: CSV", () => {
     const csv = validationPlanToCsv(planOf(p));
     const lines = csv.trimEnd().split("\r\n");
     expect(lines).toHaveLength(planOf(p).length + 1);
-    expect(lines[0]).toBe('"Activity","Description","Implied by gaps","Gap statuses","Highest severity","Regulatory","Readiness","Linked studies","Source study status","Target study status","Open gaps","Open information items"');
+    expect(lines[0]).toBe('"Activity","Description","Implied by gaps","Gap statuses","Highest severity","Regulatory","Readiness","Linked studies","SU study status","RU study status","Open gaps","Open information items"');
     expect(csv.endsWith("\r\n")).toBe(true);
     expect(csv).toContain('"PPQ activity"');
     expect(csv).toContain("PPQ (Filling X): Not covered");
@@ -468,7 +468,7 @@ describe("equipment qualification", () => {
     expect(filler.ranges[0]!.attribute).toBe("Fill volume");
     expect(filler.ranges[0]!.qualified).toEqual({ display: "5–100 mL", entry: "established" });
     expect(filler.ranges[0]!.required).toMatchObject({ display: "45–55 mL", entry: "established" });
-    expect(filler.ranges[0]!.required!.basis).toContain("target NOR");
+    expect(filler.ranges[0]!.required!.basis).toContain("RU NOR");
     // The coverage gap is linked, with its category and display id.
     const coverage = filler.gaps.find((g) => g.key.startsWith("R-FX-QRANGE"))!;
     expect(coverage).toMatchObject({ category: "within_validated_range" });
@@ -514,7 +514,7 @@ describe("equipment qualification", () => {
   it("exports a CSV with the same protections", () => {
     const csv = equipmentQualificationToCsv(eq(equipped()));
     const lines = csv.trimEnd().split("\r\n");
-    expect(lines[0]).toBe('"Unit operation","Equipment","Source qualification","Target qualification","Qualified range (target)","Required by target process","Gaps"');
+    expect(lines[0]).toBe('"Unit operation","Equipment","SU qualification","RU qualification","Qualified range (RU)","Required by RU process","Gaps"');
     expect(lines[1]).toContain('"Fill volume: 5–100 mL"');
     expect(lines[1]).toContain("45–55 mL");
     expect(csv).not.toMatch(/undefined|NaN|\[object/);

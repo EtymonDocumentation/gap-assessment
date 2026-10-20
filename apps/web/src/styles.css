@@ -27,6 +27,12 @@
   --c-info: #8a6d00;
 
   --radius: 8px;
+  /* Compact spacing: tighter than before, text sizes unchanged (not below 13px). */
+  --space-card: 12px;
+  --space-stack: 0.6rem;
+  --space-stack-lg: 1rem;
+  --cell-y: 5px;
+  --cell-x: 8px;
   --shadow: 0 1px 2px rgb(0 0 0 / 6%), 0 2px 8px rgb(0 0 0 / 4%);
   --font: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
 }
@@ -226,7 +232,7 @@ h3 {
 main {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 20px 16px 40px;
+  padding: 14px 16px 32px;
 }
 main:focus {
   outline: none;
@@ -253,10 +259,10 @@ main:focus {
 /* ---------------------------------------------------------------- primitives */
 
 .stack > * + * {
-  margin-top: 0.75rem;
+  margin-top: var(--space-stack);
 }
 .stack-lg > * + * {
-  margin-top: 1.25rem;
+  margin-top: var(--space-stack-lg);
 }
 .row {
   display: flex;
@@ -283,11 +289,11 @@ main:focus {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: var(--space-card);
   box-shadow: var(--shadow);
 }
 .card.tight {
-  padding: 12px;
+  padding: 10px;
 }
 
 .muted {
@@ -825,14 +831,14 @@ input.num {
 table.data {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   background: var(--surface);
 }
 table.data th,
 table.data td {
   text-align: left;
   vertical-align: top;
-  padding: 7px 9px;
+  padding: var(--cell-y) var(--cell-x);
   border-bottom: 1px solid var(--border);
 }
 table.data thead th {
@@ -1460,4 +1466,50 @@ details.report h4 {
 .revisions-table .wrap-text,
 .export-table td {
   overflow-wrap: anywhere;
+}
+
+/* ---------------------------------------------------------------- M5.2: notes, cited documents, section choice */
+
+.note-cell {
+  display: grid;
+  gap: 4px;
+  min-width: 12rem;
+}
+.note-text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.cite-pick,
+.cite-new {
+  min-width: 0;
+}
+.cite-pick {
+  display: grid;
+  gap: 4px;
+}
+.cite-option {
+  align-items: flex-start;
+}
+.cite-option input {
+  margin-top: 4px;
+  flex: none;
+}
+.section-choice {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+  gap: 4px 16px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.section-choice label {
+  display: inline-flex;
+  gap: 8px;
+  align-items: flex-start;
+  min-height: 24px;
+}
+.section-choice input {
+  margin-top: 4px;
+  flex: none;
 }

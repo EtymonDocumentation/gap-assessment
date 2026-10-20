@@ -4,8 +4,10 @@ import {
   isCustomQuestion,
   formatQuestionSide,
   isAnswered,
+  instanceRefs,
   nextInstance,
   progress,
+  sourceShort,
   questionLabel,
   setEntrySequence,
   setResponder,
@@ -14,7 +16,7 @@ import {
   type QuestionInstance,
   type SectionProgress,
 } from "@gap/engine";
-import type { DocRef, Project } from "@gap/process-model";
+import { getEntry, type DocRef, type Project } from "@gap/process-model";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CategoryChip, Modal, ResponderForm, SeverityBadge } from "../components";
 import { sideText } from "../lib";
@@ -74,7 +76,7 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
             ))}
           </fieldset>
           <p id="mode-help" className="small muted">
-            {mode === "paired" ? "Source, then target, for each question." : "All source answers first, then the target pass."}
+            {mode === "paired" ? "SU, then RU, for each question." : "All SU answers first, then the RU pass."}
           </p>
           <p className="small">
             Responder: <strong>{project.interview.responder?.name ?? "not set"}</strong>{" "}
@@ -162,7 +164,7 @@ function ProgressMap({
               </a>
               {s.section.kind !== "scoping" && s.total > 0 && (
                 <span className="pm-sides small muted">
-                  S {s.bySide.source.answered}/{s.bySide.source.total} · T {s.bySide.target.answered}/{s.bySide.target.total}
+                  SU {s.bySide.source.answered}/{s.bySide.source.total} · RU {s.bySide.target.answered}/{s.bySide.target.total}
                   {s.confirmed && " · confirmed"}
                 </span>
               )}
@@ -196,7 +198,14 @@ function QuestionCard({
   const [error, setError] = useState("");
   const [naOpen, setNaOpen] = useState(false);
   const [naText, setNaText] = useState("");
+  // Documents cited with this answer: register documents already backing the current value stay ticked; one new reference can be added.
+  const registerDocs = useMemo(() => project.sources.filter((s) => s.type === "document_reference" && s.docRef && !s.supersededBy), [project.sources]);
+  const [citedIds, setCitedIds] = useState<string[]>(() => {
+    const ids = new Set(instanceRefs(inst).flatMap((r) => getEntry(project, r)?.sourceIds ?? []));
+    return registerDocs.filter((s) => ids.has(s.id)).map((s) => s.id);
+  });
   const [docId, setDocId] = useState("");
+  const [docTitle, setDocTitle] = useState("");
   const [docType, setDocType] = useState("");
   const headingRef = useRef<HTMLHeadingElement>(null);
 
@@ -214,11 +223,20 @@ function QuestionCard({
   const gaps = a.gaps.filter((g) => g.questionId === q.id);
   const answered = isAnswered(project, inst);
 
-  const docRefs = (): DocRef[] => (docId.trim() ? [{ identifier: docId.trim(), docType: docType.trim() || "Document" }] : []);
+  const docRefs = (): DocRef[] => [
+    ...registerDocs.filter((s) => citedIds.includes(s.id)).map((s) => s.docRef!),
+    ...(docId.trim() ? [{ identifier: docId.trim(), docType: docType.trim() || "Document", ...(docTitle.trim() ? { title: docTitle.trim() } : {}) }] : []),
+  ];
   const submit = (input: AnswerInput) => {
-    const err = onSave(input, input.kind === "value" || input.kind === "composite" ? docRefs() : []);
+    const withValue = input.kind === "value" || input.kind === "composite";
+    if (withValue && !docId.trim() && (docTitle.trim() || docType.trim())) {
+      setError("Enter the reference ID of the new document, or clear its title and type.");
+      return;
+    }
+    const err = onSave(input, withValue ? docRefs() : []);
     setError(err ?? "");
   };
+  const citedCount = citedIds.length + (docId.trim() ? 1 : 0);
 
   return (
     <article className="card question-card" aria-labelledby="q-prompt">
@@ -241,7 +259,7 @@ function QuestionCard({
 
       {side === "target" && q.sides === "paired" && (
         <div className="source-ref">
-          <span className="small muted">{wording.sourceValidated ? "Source (validated)" : "Source (current)"}: </span>
+          <span className="small muted">{wording.sourceValidated ? "SU (validated)" : "SU (current)"}: </span>
           <span>{formatQuestionSide(content, project, q, "source")}</span>
         </div>
       )}
@@ -258,16 +276,47 @@ function QuestionCard({
         <QuestionInput q={q} side={side} form={form} setForm={setForm} />
 
         <details className="cite">
-          <summary>Cite a supporting document (optional)</summary>
-          <div className="row wrap">
-            <label className="field">
-              <span>Document identifier</span>
-              <input value={docId} onChange={(e) => setDocId(e.target.value)} placeholder="e.g. DEMO-PPQ-001 (fictional)" />
-            </label>
-            <label className="field">
-              <span>Document type</span>
-              <input value={docType} onChange={(e) => setDocType(e.target.value)} placeholder="e.g. PPQ report" />
-            </label>
+          <summary>
+            Cite supporting documents (optional)
+            {citedCount > 0 && <span className="small muted"> — {citedCount} selected</span>}
+          </summary>
+          <div className="stack">
+            <p className="small muted" id={`cite-help-${inst.key}`}>
+              Where a document backs this value, the document is shown as its source instead of the interview. Documents are recorded with a value, not with Unknown or Not applicable.
+            </p>
+            {registerDocs.length > 0 && (
+              <fieldset className="cite-pick" aria-describedby={`cite-help-${inst.key}`}>
+                <legend className="small">Documents already in the register</legend>
+                {registerDocs.map((s) => (
+                  <label key={s.id} className="row inline cite-option">
+                    <input
+                      type="checkbox"
+                      checked={citedIds.includes(s.id)}
+                      onChange={(e) => setCitedIds((cur) => (e.target.checked ? [...cur, s.id] : cur.filter((x) => x !== s.id)))}
+                    />
+                    <span>{sourceShort(s)}</span>
+                  </label>
+                ))}
+              </fieldset>
+            )}
+            <fieldset className="cite-new">
+              <legend className="small">Add a new document reference</legend>
+              <div className="row wrap">
+                <label className="field">
+                  <span>Reference ID</span>
+                  <input value={docId} onChange={(e) => setDocId(e.target.value)} placeholder="e.g. DEMO-PPQ-001 (fictional)" />
+                </label>
+                <label className="field">
+                  <span>Title</span>
+                  <input value={docTitle} onChange={(e) => setDocTitle(e.target.value)} placeholder="e.g. PPQ report" />
+                </label>
+                <label className="field">
+                  <span>Document type</span>
+                  <input value={docType} onChange={(e) => setDocType(e.target.value)} placeholder="e.g. Report" />
+                </label>
+              </div>
+              <p className="small muted">A reference ID that is already in the register reuses that document.</p>
+            </fieldset>
           </div>
         </details>
 
@@ -286,7 +335,7 @@ function QuestionCard({
           </button>
           {sameAllowed && (
             <button type="button" className="btn" onClick={() => submit({ kind: "same_as_source" })}>
-              Same as source
+              Same as SU
             </button>
           )}
           <button type="button" className="btn ghost" aria-expanded={naOpen} onClick={() => setNaOpen((o) => !o)}>
@@ -369,8 +418,8 @@ function SectionSummary({ sectionId, instances, thenKey }: { sectionId: string; 
           <thead>
             <tr>
               <th scope="col">Attribute</th>
-              <th scope="col">Source</th>
-              <th scope="col">Target</th>
+              <th scope="col">SU</th>
+              <th scope="col">RU</th>
               <th scope="col">Comparison</th>
             </tr>
           </thead>

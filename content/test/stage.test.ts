@@ -59,13 +59,13 @@ const ALLOWED = [
   /not yet validated/gi,
   /(?:full )?process validation \(PPQ\) is not expected/gi, // target expectations
   /full process validation/gi,
-  /(?:The )?target (?:process )?(?:is|must be) validated/gi,
+  /(?:The )?RU (?:process )?(?:is|must be) validated/gi,
   /own validated specification/gi, // a target-side statement
   /not validated[^.]*until bacterial retention is demonstrated/gi, // a target-side statement
   /(?:cleaning|computerized system|method) validation/gi,
   /validated and qualified together with its equipment/gi,
   /how the check was validated/gi,
-  /Has the target CCI test method been validated/gi, // a question about the target
+  /Has the RU CCI test method been validated/gi, // a question about the target
 ];
 
 function sourceValidatedClaims(md: string): string[] {
@@ -106,7 +106,7 @@ describe("program stage question", () => {
 describe.each(PAIRS)("source %s, target %s", (source, target) => {
   const { project, a, doc, md } = build(source, target);
   const validated = source === "commercial";
-  const word = validated ? "validated" : "source";
+  const word = validated ? "validated" : "SU";
 
   it("stores the stage per side", () => {
     const s = resolveEntry(project, "source.site.programStage");
@@ -120,7 +120,7 @@ describe.each(PAIRS)("source %s, target %s", (source, target) => {
     expect(categoryLabel(staged, "within_validated_range")).toBe(`Within ${word} range`);
     expect(categoryLabel(staged, "outside_validated_range")).toBe(`Outside ${word} range`);
     const table = section(doc, "difference-summary") ?? section(doc, "gap-table");
-    expect(JSON.stringify(table)).toContain(`${validated ? "Within validated" : "Within source"} range`);
+    expect(JSON.stringify(table)).toContain(`${validated ? "Within validated" : "Within SU"} range`);
   });
 
   it("words the compare details and the field label by the source stage", () => {
@@ -135,19 +135,19 @@ describe.each(PAIRS)("source %s, target %s", (source, target) => {
 
   it("titles the source summary and its column by the source stage", () => {
     const sum = section(doc, "source-summary");
-    expect(sum.title).toBe(validated ? "Source program summary (validated state)" : "Source program summary (current state)");
+    expect(sum.title).toBe(validated ? "Sending unit program summary (validated state)" : "Sending unit program summary (current state)");
     expect(JSON.stringify(sum)).toContain(validated ? "Validated state" : "Current state");
   });
 
   it("opens the validation plan with the stage basis", () => {
     const plan = section(doc, "validation-plan");
     const first = plan.blocks[0]!;
-    expect(first.type === "paragraph" && first.text).toBe(`Stage basis. Source program stage: ${STAGE_LABEL[source]}. Target program stage: ${STAGE_LABEL[target]}.`);
+    expect(first.type === "paragraph" && first.text).toBe(`Stage basis. Sending unit (SU) program stage: ${STAGE_LABEL[source]}. Receiving unit (RU) program stage: ${STAGE_LABEL[target]}.`);
     const text = plain(JSON.stringify(plan.blocks.slice(0, 3)));
-    if (source === "commercial") expect(text).toContain("The source process is validated");
-    else if (source === "clinical") expect(text).toContain("no source PPQ or process validation evidence to leverage");
+    if (source === "commercial") expect(text).toContain("The SU process is validated");
+    else if (source === "clinical") expect(text).toContain("no SU PPQ or process validation evidence to leverage");
     else expect(text).toContain("no process validation and no GMP evidence to leverage");
-    if (target === "commercial") expect(text).toContain("A commercial target is expected to need PPQ at the target");
+    if (target === "commercial") expect(text).toContain("A commercial RU is expected to need PPQ at the RU");
     if (target === "clinical") expect(text).toContain("phase-appropriate expectations");
     if (target === "development") expect(text).toContain("They are not for GMP supply");
     expect(text).toContain("expectations to confirm with QA");
@@ -156,11 +156,11 @@ describe.each(PAIRS)("source %s, target %s", (source, target) => {
   it("shows both stages on the cover and in the meta lines", () => {
     expect(doc.cover.sourceStage).toBe(STAGE_LABEL[source]);
     expect(doc.cover.targetStage).toBe(STAGE_LABEL[target]);
-    expect(meta(doc, "Source program stage")).toBe(STAGE_LABEL[source]);
-    expect(meta(doc, "Target program stage")).toBe(STAGE_LABEL[target]);
+    expect(meta(doc, "SU program stage")).toBe(STAGE_LABEL[source]);
+    expect(meta(doc, "RU program stage")).toBe(STAGE_LABEL[target]);
     const labels = doc.meta.map(([k]) => k);
     expect(labels.indexOf("Revision")).toBe(labels.indexOf("Generated") + 1);
-    expect(plain(md)).toContain(`Program stage: source ${STAGE_LABEL[source]}; target ${STAGE_LABEL[target]}.`);
+    expect(plain(md)).toContain(`Program stage: sending unit ${STAGE_LABEL[source]}; receiving unit ${STAGE_LABEL[target]}.`);
   });
 
   it("keeps every non-equivalent outcome with an activity, and the generic rules last", () => {
@@ -206,14 +206,14 @@ describe("stage not established", () => {
     expect(STAGE_NOT_ESTABLISHED).toBe("[not established]");
     expect(doc.cover.sourceStage).toBe("[not established]");
     expect(doc.cover.targetStage).toBe("[not established]");
-    expect(meta(doc, "Source program stage")).toBe("[not established]");
-    expect(meta(doc, "Target program stage")).toBe("[not established]");
-    expect(plain(md)).toContain("Program stage: source [not established]; target [not established].");
+    expect(meta(doc, "SU program stage")).toBe("[not established]");
+    expect(meta(doc, "RU program stage")).toBe("[not established]");
+    expect(plain(md)).toContain("Program stage: sending unit [not established]; receiving unit [not established].");
   });
 
   it("uses the non-validated wording and makes no source validation claim", () => {
-    expect(categoryLabel(stagedFor(content, project), "within_validated_range")).toBe("Within source range");
-    expect(section(doc, "source-summary").title).toBe("Source program summary (current state)");
+    expect(categoryLabel(stagedFor(content, project), "within_validated_range")).toBe("Within SU range");
+    expect(section(doc, "source-summary").title).toBe("Sending unit program summary (current state)");
     expect(sourceValidatedClaims(md)).toEqual([]);
   });
 
@@ -256,9 +256,9 @@ describe("stage wording in the bundle", () => {
     const v = stagedContent(content, true);
     const n = stagedContent(content, false);
     expect(categoryLabel(v, "within_validated_range")).toBe("Within validated range");
-    expect(categoryLabel(n, "within_validated_range")).toBe("Within source range");
+    expect(categoryLabel(n, "within_validated_range")).toBe("Within SU range");
     expect(categoryLabel(v, "outside_validated_range")).toBe("Outside validated range");
-    expect(categoryLabel(n, "outside_validated_range")).toBe("Outside source range");
+    expect(categoryLabel(n, "outside_validated_range")).toBe("Outside SU range");
   });
 
   it("is memoised and idempotent", () => {

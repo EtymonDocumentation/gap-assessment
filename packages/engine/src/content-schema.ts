@@ -143,7 +143,7 @@ export const questionSchema = z.object({
     sourceFields: z.array(z.enum(PARAMETER_FIELDS)).optional(),
     targetFields: z.array(z.enum(PARAMETER_FIELDS)).optional(),
   }),
-  /** Offer "Same as source" on the target side. Defaults to true for paired questions. */
+  /** Offer "Same as SU" on the RU side. Defaults to true for paired questions. */
   sameAsSource: z.boolean().optional(),
   /** Labels for the source and target sides when they differ from the prompt. */
   sideLabels: z.object({ source: z.string().optional(), target: z.string().optional() }).optional(),
@@ -240,6 +240,7 @@ export const templateSchema = z.object({
     targetSummaryIntro: z.string(),
     differencesIntro: z.string(),
     gapTableIntro: z.string(),
+    gapDetailsIntro: z.string(),
     activitiesIntro: z.string(),
     equipmentQualificationIntro: z.string(),
     openItemsIntro: z.string(),

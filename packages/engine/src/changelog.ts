@@ -3,7 +3,7 @@ import { formatValue, STATUS_TEXT } from "./format";
 import { cell } from "./csv";
 import type { ContentBundle } from "./content";
 import { effectiveStaged } from "./custom";
-import { entryLabel } from "./labels";
+import { displaySideTags, entryLabel, sideName } from "./labels";
 import { commentDisplayId } from "./review";
 
 /**
@@ -107,9 +107,9 @@ function valueStateText(content: ContentBundle, project: Project, ref: string, v
   const optionSet = l.question?.input.type === "parameter" && l.field === "classification" ? "classification" : l.field === "rangeBasis" ? "rangeBasis" : undefined;
   let text: string;
   if (s.status === "established" || (s.status === undefined && s.value !== undefined)) {
-    text = s.value !== undefined ? formatValue(content, l.question, s.value, optionSet) : s.sameAsSource ? "Same as source" : NONE;
-    if (s.sameAsSource && s.value !== undefined) text += " (same as source)";
-    else if (s.sameAsSource) text = "Same as source";
+    text = s.value !== undefined ? formatValue(content, l.question, s.value, optionSet) : s.sameAsSource ? "Same as SU" : NONE;
+    if (s.sameAsSource && s.value !== undefined) text += " (same as SU)";
+    else if (s.sameAsSource) text = "Same as SU";
   } else if (s.status === "not_applicable") {
     text = s.justification ? `Not applicable: ${s.justification}` : STATUS_TEXT.not_applicable;
   } else if (s.status === "unknown") text = STATUS_TEXT.unknown;
@@ -257,7 +257,7 @@ function toRow(content: ContentBundle, project: Project, ev: ChangeEvent, i: num
       const a = isObj(ev.after) ? ev.after : undefined;
       const id = typeof a?.sectionId === "string" ? a.sectionId : undefined;
       const sec = id ? content.sectionById.get(id) : undefined;
-      row.subject = sec ? `${sec.title} (${String(a?.side)})` : (ev.detail ?? "");
+      row.subject = sec ? `${sec.title} (${sideName(String(a?.side))})` : (ev.detail ?? "");
       withSection(id, sec?.title);
       return row;
     }
@@ -317,7 +317,9 @@ export function changeLogView(content: ContentBundle, project: Project, filter: 
   project.changeLog.forEach((ev, i) => {
     if (filter.actor && ev.by.trim().toLowerCase() !== filter.actor.trim().toLowerCase()) return;
     if (filter.action && ev.action !== filter.action) return;
-    const row = toRow(eff, project, ev, i);
+    const raw = toRow(eff, project, ev, i);
+    // Older records may carry "[source]" / "[target]" in a stored label; the log shows "[SU]" / "[RU]" (display only).
+    const row: ChangeRow = { ...raw, subject: displaySideTags(raw.subject), before: displaySideTags(raw.before), after: displaySideTags(raw.after), detail: displaySideTags(raw.detail) };
     if (filter.section && row.sectionId !== filter.section) return;
     if (text && ![row.time, row.by, row.actionLabel, row.subject, row.before, row.after, row.detail].join(" ").toLowerCase().includes(text)) return;
     rows.push(row);

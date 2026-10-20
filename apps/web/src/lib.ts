@@ -24,12 +24,12 @@ export const SEVERITY_TEXT: Record<Severity, string> = { high: "High", medium: "
 
 /** Side badges. The source text follows the stage wording (StageWording.sourceSideText). */
 export function sideText(w: { sourceSideText: string }): Record<"source" | "target" | "shared", string> {
-  return { source: w.sourceSideText, target: "Target — planned state", shared: "Scoping (shared)" };
+  return { source: w.sourceSideText, target: "RU — planned state", shared: "Scoping (shared)" };
 }
 
 /** Short category labels. The keys never change; only the two range labels follow the source stage. */
 export function categoryShort(validated: boolean): Record<Category, string> {
-  const word = validated ? "validated" : "source";
+  const word = validated ? "validated" : "SU";
   return {
     equivalent: "Equivalent",
     within_validated_range: `Within ${word} range`,

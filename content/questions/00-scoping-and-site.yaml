@@ -6,8 +6,8 @@ bank:
   version: 1.3.0
 
 sections:
-  - { id: scoping, title: Scoping, kind: scoping, order: 0, intro: These answers decide which unit operations and questions apply. They are shared by source and target. }
-  - { id: site, title: Site and facility, kind: site, order: 5, intro: "Facility, aseptic barrier and systems at the source and target." }
+  - { id: scoping, title: Scoping, kind: scoping, order: 0, intro: These answers decide which unit operations and questions apply. They are shared by SU and RU. }
+  - { id: site, title: Site and facility, kind: site, order: 5, intro: "Facility, aseptic barrier and systems at the SU and RU." }
   - { id: uo.ds_receipt_thaw, title: Drug substance receipt and thaw, kind: uo, uo: ds_receipt_thaw, order: 10 }
   - { id: uo.compounding, title: "Pooling, compounding and dilution", kind: uo, uo: compounding, order: 20 }
   - { id: uo.sterile_filtration, title: Bioburden reduction and sterile filtration, kind: uo, uo: sterile_filtration, order: 30 }
@@ -97,7 +97,7 @@ questions:
   - id: site.name
     section: site
     prompt: Site name
-    why: Identifies the source and target sites in the assessment. Use fictional names in this proof of concept.
+    why: Identifies the SU and RU sites in the assessment. Use fictional names in this proof of concept.
     sides: paired
     sameAsSource: false
     binds: site.name
@@ -116,10 +116,10 @@ questions:
     prompt: Program stage at this site
     label: Program stage
     why: >-
-      The stage decides what evidence the source can offer and what the target is expected to show. A commercial
-      (process validated) source has PPQ and validation to leverage; a clinical (GMP, not process validated) source
-      or a development source does not, so the document then says "source range" and "current state" instead of
-      "validated". It also sets the validation expectations for the target (PPQ, phase-appropriate or
+      The stage decides what evidence the SU can offer and what the RU is expected to show. A commercial
+      (process validated) SU has PPQ and validation to leverage; a clinical (GMP, not process validated) SU
+      or a development SU does not, so the document then says "SU range" and "current state" instead of
+      "validated". It also sets the validation expectations for the RU (PPQ, phase-appropriate or
       engineering runs). Nothing is assumed: an unanswered stage is listed as an open item.
     sides: paired
     sameAsSource: false
@@ -150,7 +150,7 @@ questions:
     section: site
     prompt: Containment approach for operator protection
     label: Containment approach
-    why: High-potency products need operator protection that must remain compatible with aseptic conditions at the target.
+    why: High-potency products need operator protection that must remain compatible with aseptic conditions at the RU.
     triggerNote: Asked because the product requires containment.
     sides: paired
     binds: site.containment

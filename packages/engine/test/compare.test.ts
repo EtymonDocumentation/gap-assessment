@@ -65,7 +65,7 @@ const categoryOf = (p: Project, key: string) => gap(run(p), key).category;
 // ================================================================== range
 
 describe("range comparator (process parameter, R-PARAM-RANGE)", () => {
-  it("equivalent: set point and NOR match the source", () => {
+  it("equivalent: set point and NOR match the SU", () => {
     const g = gap(run(speed(kit, {})), MS);
     expect(g).toMatchObject({
       category: "equivalent",
@@ -74,7 +74,7 @@ describe("range comparator (process parameter, R-PARAM-RANGE)", () => {
       activities: [],
       status: "closed",
       rationale: "No difference identified.",
-      detail: "Target set point and NOR match the source.",
+      detail: "RU set point and NOR match the SU.",
     });
     expect(g.displayId).toMatch(/^EQ-\d{3}$/);
     expect(g.regulatoryNote).toBeUndefined();
@@ -87,7 +87,7 @@ describe("range comparator (process parameter, R-PARAM-RANGE)", () => {
     expect(categoryOf(p, "R-PARAM-RANGE:uo.aseptic_filling.param.fill_volume")).toBe("equivalent");
   });
 
-  it("within_validated_range: target window inside the source PAR, low severity, procedure update only, no regulatory note", () => {
+  it("within_validated_range: RU window inside the SU PAR, low severity, procedure update only, no regulatory note", () => {
     const g = gap(run(speed(kit, { cls: "CPP" }, { sp: rpm(160), nor: rr(130, 170) })), MS);
     expect(g).toMatchObject({
       category: "within_validated_range",
@@ -97,8 +97,8 @@ describe("range comparator (process parameter, R-PARAM-RANGE)", () => {
       status: "open",
     });
     expect(g.regulatoryNote).toBeUndefined();
-    expect(g.rationale).toContain("Record the target range in procedures");
-    expect(g.detail).toBe("The target NOR 130–170 rpm lies within the source PAR 100–200 rpm.");
+    expect(g.rationale).toContain("Record the RU range in procedures");
+    expect(g.detail).toBe("The RU NOR 130–170 rpm lies within the SU PAR 100–200 rpm.");
     expect(g.displayId).toMatch(/^G-\d{3}$/);
   });
 
@@ -106,7 +106,7 @@ describe("range comparator (process parameter, R-PARAM-RANGE)", () => {
     expect(categoryOf(speed(kit, {}, { sp: rpm(100), nor: rr(100, 200) }), MS)).toBe("within_validated_range");
   });
 
-  it("outside_validated_range: NOR extends beyond the PAR; severity follows the source classification", () => {
+  it("outside_validated_range: NOR extends beyond the PAR; severity follows the SU classification", () => {
     const outside = { sp: rpm(150), nor: rr(90, 170) };
     const label = (value: string) => content.catalog.optionSets["classification"]!.find((o) => o.value === value)!.label;
     for (const [cls, severity] of [["CPP", "high"], ["KPP", "medium"], ["non_critical", "low"]] as const) {
@@ -115,11 +115,11 @@ describe("range comparator (process parameter, R-PARAM-RANGE)", () => {
         category: "outside_validated_range",
         severity,
         ruleSeverity: severity,
-        severityNote: `Parameter classified as ${label(cls)} at source.`,
+        severityNote: `Parameter classified as ${label(cls)} at SU.`,
         regulatoryNote: REGULATORY_NOTE,
         activities: ["scientific_justification", "engineering_run", "ppq_coverage_assessment"],
       });
-      expect(g.detail).toBe("The target NOR 90–170 rpm extends beyond the source PAR 100–200 rpm.");
+      expect(g.detail).toBe("The RU NOR 90–170 rpm extends beyond the SU PAR 100–200 rpm.");
     }
   });
 
@@ -128,10 +128,10 @@ describe("range comparator (process parameter, R-PARAM-RANGE)", () => {
     expect(g.category).toBe("outside_validated_range");
   });
 
-  it("uses the set point when the target NOR is unknown", () => {
+  it("uses the set point when the RU NOR is unknown", () => {
     const g = gap(run(speed(kit, {}, { sp: rpm(150), nor: "unknown" })), MS);
     expect(g.category).toBe("within_validated_range");
-    expect(g.detail).toBe("The target set point 150 rpm lies within the source PAR 100–200 rpm.");
+    expect(g.detail).toBe("The RU set point 150 rpm lies within the SU PAR 100–200 rpm.");
     const out = gap(run(speed(kit, {}, { sp: rpm(250), nor: "unknown" })), MS);
     expect(out.category).toBe("outside_validated_range");
   });
@@ -141,25 +141,25 @@ describe("range comparator (process parameter, R-PARAM-RANGE)", () => {
     expect(g).toMatchObject({
       category: "outside_validated_range",
       severity: "high",
-      severityNote: "Classification not established at source; the most conservative severity is applied.",
+      severityNote: "Classification not established at SU; the most conservative severity is applied.",
     });
   });
 
-  it("information_required when the target set point and NOR are both unknown", () => {
+  it("information_required when the RU set point and NOR are both unknown", () => {
     const g = gap(run(speed(kit, {}, { sp: "unknown", nor: "unknown" })), MS);
     expect(g).toMatchObject({ category: "information_required", activities: ["information_gathering"], status: "open" });
-    expect(g.detail).toBe("Target set point unknown (to be confirmed); target NOR unknown (to be confirmed).");
+    expect(g.detail).toBe("RU set point unknown (to be confirmed); RU NOR unknown (to be confirmed).");
     expect(g.regulatoryNote).toBeUndefined();
     expect(g.rationale).toBe("The comparison cannot be completed until the missing information is established. No value is assumed.");
   });
 
-  it("information_required when the source PAR is unknown", () => {
+  it("information_required when the SU PAR is unknown", () => {
     const noPar = gap(run(speed(kit, { par: "unknown" }, { nor: rr(130, 170) })), MS);
     expect(noPar).toMatchObject({ category: "information_required" });
-    expect(noPar.detail).toBe("Source PAR unknown (to be confirmed).");
+    expect(noPar.detail).toBe("SU PAR unknown (to be confirmed).");
   });
 
-  it("a matching set point is not enough for 'equivalent' when the target NOR is unknown but the source NOR is known", () => {
+  it("a matching set point is not enough for 'equivalent' when the RU NOR is unknown but the SU NOR is known", () => {
     expect(categoryOf(speed(kit, {}, { sp: rpm(150), nor: "unknown" }), MS)).toBe("within_validated_range");
   });
 
@@ -169,23 +169,23 @@ describe("range comparator (process parameter, R-PARAM-RANGE)", () => {
     expect([cpp.severity, free.severity]).toEqual(["high", "low"]);
   });
 
-  it("information_required when source and target units cannot be compared", () => {
+  it("information_required when SU and RU units cannot be compared", () => {
     // Not reachable through the interview (units are validated), so the entry is written directly.
     const p = speed(kit, {});
     const broken = structuredClone(p);
     const e = getEntry(broken, "target.uo.compounding.param.mixing_speed.nor")!;
     e.value = rng(1, 2, "L");
     const g = gap(run(broken), MS);
-    expect(g).toMatchObject({ category: "information_required", detail: "Source and target units are not comparable." });
+    expect(g).toMatchObject({ category: "information_required", detail: "SU and RU units are not comparable." });
   });
 
   it("a parameter marked not applicable is reported as information_required, not as removed or new", () => {
     let p = speed(kit, {});
-    p = na(p, "comp.mixing_speed", "target", "Not used at target (fictional)");
+    p = na(p, "comp.mixing_speed", "target", "Not used at RU (fictional)");
     expect(categoryOf(p, MS)).toBe("information_required");
   });
 
-  it("prefers the source validated range over the PAR when both are recorded", () => {
+  it("prefers the SU validated range over the PAR when both are recorded", () => {
     const k = customKit((raw) => {
       const mixSpeed = Object.values(raw.questionFiles as Record<string, any>) // eslint-disable-line @typescript-eslint/no-explicit-any
         .flatMap((f) => f.questions as any[]) // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -195,11 +195,11 @@ describe("range comparator (process parameter, R-PARAM-RANGE)", () => {
     const target = { sp: rpm(250), nor: rr(220, 280) };
     const withVr = gap(k.run(speed(k, { vr: rr(100, 300) }, target)), MS);
     expect(withVr.category).toBe("within_validated_range");
-    expect(withVr.detail).toBe("The target NOR 220–280 rpm lies within the source validated range 100–300 rpm.");
+    expect(withVr.detail).toBe("The RU NOR 220–280 rpm lies within the SU validated range 100–300 rpm.");
     // Validated range unknown: falls back to the PAR, which does not cover the target.
     const fallback = gap(k.run(speed(k, { vr: "unknown" }, target)), MS);
     expect(fallback.category).toBe("outside_validated_range");
-    expect(fallback.detail).toContain("source PAR 100–200 rpm");
+    expect(fallback.detail).toContain("SU PAR 100–200 rpm");
     // Without the field at all the same target is outside.
     expect(categoryOf(speed(kit, {}, target), MS)).toBe("outside_validated_range");
   });
@@ -228,21 +228,21 @@ describe("scale comparator", () => {
       const p = k.par(k.base(), "comp.batch_size", "source", { setPoint: L(100), nor: rng(90, 110, "L"), par: rng(80, 120, "L"), rangeBasis: "PPQ" });
       const same2 = k.par(p, "comp.batch_size", "target", { setPoint: q(100000, "mL"), nor: rng(90, 110, "L") });
       const g = gap(k.run(same2), BATCH);
-      expect(g).toMatchObject({ category: "equivalent", detail: "Target nominal value and range match the source." });
+      expect(g).toMatchObject({ category: "equivalent", detail: "RU nominal value and range match the SU." });
     });
 
-    it("within_validated_range: the target window lies inside the source PAR", () => {
+    it("within_validated_range: the RU window lies inside the SU PAR", () => {
       const g = gap(run(batch(kit, { sp: L(100), par: rng(50, 150, "L") }, { sp: L(120), nor: rng(100, 140, "L") })), BATCH);
       expect(g).toMatchObject({ category: "within_validated_range", severity: "low", activities: [] });
-      expect(g.rationale).toBe("The target batch size lies within the batch size range covered by the source validation.");
+      expect(g.rationale).toBe("The RU batch size lies within the batch size range covered by the SU validation.");
       expect(g.regulatoryNote).toBeUndefined();
     });
 
-    it("scale_change: the ratio of target to source set point drives severity (x2 or more is high)", () => {
+    it("scale_change: the ratio of RU to SU set point drives severity (x2 or more is high)", () => {
       const g = gap(run(grown()), BATCH);
       expect(g).toMatchObject({ category: "scale_change", severity: "high", regulatoryNote: REGULATORY_NOTE });
       expect(g.severityNote).toBe("Magnitude ×2.5 (≥ ×2).");
-      expect(g.detail).toBe("Nominal scale changes ×2.5 (100 L to 250 L); outside the source PAR 80–120 L.");
+      expect(g.detail).toBe("Nominal scale changes ×2.5 (100 L to 250 L); outside the SU PAR 80–120 L.");
       expect(g.activities).toEqual(["mixing_study", "hold_time_study", "filter_sizing", "media_fill", "engineering_run", "ppq_coverage_assessment"]);
     });
 
@@ -278,13 +278,13 @@ describe("scale comparator", () => {
       expect(g.severityNote).toBeUndefined();
     });
 
-    it("information_required when the target set point is unknown and the NOR is outside the PAR", () => {
+    it("information_required when the RU set point is unknown and the NOR is outside the PAR", () => {
       const g = gap(run(batch(kit, { sp: L(100) }, { sp: "unknown", nor: rng(200, 300, "L") })), BATCH);
       expect(g.category).toBe("information_required");
-      expect(g.detail).toBe("Target nominal value unknown (to be confirmed).");
+      expect(g.detail).toBe("RU nominal value unknown (to be confirmed).");
     });
 
-    it("information_required when both target values are unknown", () => {
+    it("information_required when both RU values are unknown", () => {
       const g = gap(run(batch(kit, { sp: L(100) }, { sp: "unknown", nor: "unknown" })), BATCH);
       expect(g.category).toBe("information_required");
     });
@@ -318,7 +318,7 @@ describe("scale comparator", () => {
       const p = v(unk(base(), "comp.vessel_capacity", "source"), "comp.vessel_capacity", "target", q(100, "L"));
       const g = gap(run(p), CAPACITY);
       expect(g).toMatchObject({ category: "information_required", severity: "low" });
-      expect(g.detail).toBe("Source value unknown (to be confirmed).");
+      expect(g.detail).toBe("SU value unknown (to be confirmed).");
     });
   });
 });
@@ -329,17 +329,17 @@ describe("upper_limit comparator", () => {
   const dur = (s: number, t: number, su = "h", tu = "h") => pair(base(), "fill.duration", q(s, su), q(t, tu));
 
   it("equivalent: same limit, also across units (24 h vs 1440 min)", () => {
-    expect(gap(run(dur(24, 1440, "h", "min")), FILL_DUR)).toMatchObject({ category: "equivalent", detail: "Target limit equals the source limit." });
+    expect(gap(run(dur(24, 1440, "h", "min")), FILL_DUR)).toMatchObject({ category: "equivalent", detail: "RU limit equals the SU limit." });
   });
 
-  it("within_validated_range: a lower target limit is covered by the source limit", () => {
+  it("within_validated_range: a lower RU limit is covered by the SU limit", () => {
     const g = gap(run(dur(24, 12)), FILL_DUR);
     expect(g).toMatchObject({ category: "within_validated_range", severity: "low", activities: [] });
-    expect(g.detail).toBe("Target 12 h is within the source validated maximum of 24 h.");
+    expect(g.detail).toBe("RU 12 h is within the SU validated maximum of 24 h.");
     expect(g.regulatoryNote).toBeUndefined();
   });
 
-  it("outside_validated_range: a higher target limit exceeds the source (rule severity, regulatory note)", () => {
+  it("outside_validated_range: a higher RU limit exceeds the SU (rule severity, regulatory note)", () => {
     const g = gap(run(dur(24, 36)), FILL_DUR);
     expect(g).toMatchObject({
       category: "outside_validated_range",
@@ -347,7 +347,7 @@ describe("upper_limit comparator", () => {
       regulatoryNote: REGULATORY_NOTE,
       activities: ["media_fill", "hold_time_study", "ppq_coverage_assessment"],
     });
-    expect(g.detail).toBe("Target 36 h exceeds the source validated maximum of 24 h.");
+    expect(g.detail).toBe("RU 36 h exceeds the SU validated maximum of 24 h.");
     expect(categoryOf(dur(24, 1500, "h", "min"), FILL_DUR)).toBe("outside_validated_range"); // 25 h
   });
 
@@ -365,7 +365,7 @@ describe("upper_limit comparator", () => {
     expect(gap(run(p), FILL_DUR)).toMatchObject({ category: "information_required", severity: "high" });
   });
 
-  it("source not applicable and target present is a new requirement", () => {
+  it("SU not applicable and RU present is a new requirement", () => {
     const p = v(na(base(), "fill.duration", "source", "No limit (fictional)"), "fill.duration", "target", q(24, "h"));
     expect(categoryOf(p, FILL_DUR)).toBe("new_requirement");
   });
@@ -377,17 +377,17 @@ describe("lower_limit comparator (not used by the shipped rules; exercised on a 
   });
   const dur = (s: number, t: number) => k.pair(k.base(), "fill.duration", q(s, "h"), q(t, "h"));
 
-  it("a higher target minimum is within the source minimum", () => {
+  it("a higher RU minimum is within the SU minimum", () => {
     const g = gap(k.run(dur(10, 12)), FILL_DUR);
     expect(g).toMatchObject({ category: "within_validated_range", comparator: "lower_limit" });
-    expect(g.detail).toBe("Target 12 h is within the source validated minimum of 10 h.");
+    expect(g.detail).toBe("RU 12 h is within the SU validated minimum of 10 h.");
   });
 
-  it("a lower target minimum is outside", () => {
+  it("a lower RU minimum is outside", () => {
     const g = gap(k.run(dur(10, 8)), FILL_DUR);
     expect(g.category).toBe("outside_validated_range");
     // Questionable wording kept as written: a target *below* a minimum is described as "exceeds ... minimum".
-    expect(g.detail).toBe("Target 8 h exceeds the source validated minimum of 10 h.");
+    expect(g.detail).toBe("RU 8 h exceeds the SU validated minimum of 10 h.");
   });
 
   it("equal minimums are equivalent", () => {
@@ -400,7 +400,7 @@ describe("lower_limit comparator (not used by the shipped rules; exercised on a 
 describe("enum comparator", () => {
   it("equivalent: same value", () => {
     const g = gap(run(pair(base(), "fill.pump", "rotary_piston", "rotary_piston")), PUMP);
-    expect(g).toMatchObject({ category: "equivalent", detail: "Source and target are the same.", severity: "none", activities: [] });
+    expect(g).toMatchObject({ category: "equivalent", detail: "SU and RU are the same.", severity: "none", activities: [] });
   });
 
   it("different_principle: values differ; rule severity, regulatory note and activities apply", () => {
@@ -409,7 +409,7 @@ describe("enum comparator", () => {
       category: "different_principle",
       severity: "high",
       ruleSeverity: "high",
-      detail: "Source and target differ.",
+      detail: "SU and RU differ.",
       regulatoryNote: REGULATORY_NOTE,
       status: "open",
       activities: ["engineering_run", "fill_accuracy_study", "product_quality_impact", "comparability_assessment", "equipment_qualification", "ppq", "procedure_update", "training"],
@@ -424,12 +424,12 @@ describe("enum comparator", () => {
     expect(g.regulatoryNote).toBeUndefined();
   });
 
-  it("same-as-source resolves live: equivalent, shown as such, citing both entries", () => {
+  it("same-as-SU resolves live: equivalent, shown as such, citing both entries", () => {
     let p = v(base(), "fill.pump", "source", "rotary_piston");
     p = same(p, "fill.pump");
     const g = gap(run(p), PUMP);
     expect(g.category).toBe("equivalent");
-    expect(g.targetDisplay).toBe("Rotary piston pump (same as source)");
+    expect(g.targetDisplay).toBe("Rotary piston pump (same as SU)");
     expect(g.inputEntryIds).toHaveLength(2);
     // Changing the source afterwards changes the result without touching the target answer.
     const changed = v(p, "fill.pump", "source", "peristaltic");
@@ -439,15 +439,15 @@ describe("enum comparator", () => {
 
   it("information_required when a side is unknown, with the missing side named", () => {
     const g = gap(run(v(unk(base(), "fill.pump", "source"), "fill.pump", "target", "peristaltic")), PUMP);
-    expect(g).toMatchObject({ category: "information_required", detail: "Source value unknown (to be confirmed).", activities: ["information_gathering"] });
+    expect(g).toMatchObject({ category: "information_required", detail: "SU value unknown (to be confirmed).", activities: ["information_gathering"] });
     expect(g.regulatoryNote).toBeUndefined();
     const both = gap(run(unk(unk(base(), "fill.pump", "source"), "fill.pump", "target")), PUMP);
-    expect(both.detail).toBe("Source value unknown (to be confirmed); target value unknown (to be confirmed).");
+    expect(both.detail).toBe("SU value unknown (to be confirmed); RU value unknown (to be confirmed).");
   });
 
   it("information_required when a side was never answered", () => {
     const g = gap(run(v(base(), "fill.pump", "source", "rotary_piston")), PUMP);
-    expect(g).toMatchObject({ category: "information_required", detail: "Target value not established." }); // sentence starts with a capital even when the source is fine
+    expect(g).toMatchObject({ category: "information_required", detail: "RU value not established." }); // sentence starts with a capital even when the source is fine
   });
 
   it("config.differentAs chooses the category for a difference", () => {
@@ -472,7 +472,7 @@ describe("text comparator", () => {
     expect(g.targetDisplay).toBe("Filter Vendor B (fictional)");
   });
 
-  it("information_required when the target is unknown", () => {
+  it("information_required when the RU is unknown", () => {
     const p = unk(v(base(), "filt.supplier", "source", "Filter Vendor A (fictional)"), "filt.supplier", "target");
     expect(gap(run(p), SUPPLIER).category).toBe("information_required");
   });
@@ -482,31 +482,31 @@ describe("text comparator", () => {
 
 describe("presence comparator", () => {
   it("equivalent when present on both sides", () => {
-    expect(gap(run(pair(base(), "filt.sua", "yes", "yes")), SUA)).toMatchObject({ category: "equivalent", detail: "Present at source and target." });
+    expect(gap(run(pair(base(), "filt.sua", "yes", "yes")), SUA)).toMatchObject({ category: "equivalent", detail: "Present at SU and RU." });
   });
 
   it("equivalent when absent on both sides", () => {
-    expect(gap(run(pair(base(), "filt.sua", "no", "no")), SUA)).toMatchObject({ category: "equivalent", detail: "Not used at source or target." });
+    expect(gap(run(pair(base(), "filt.sua", "no", "no")), SUA)).toMatchObject({ category: "equivalent", detail: "Not used at SU or RU." });
   });
 
-  it("new_requirement: absent at source, present at target, with the rule's activities", () => {
+  it("new_requirement: absent at SU, present at RU, with the rule's activities", () => {
     const g = gap(run(pair(base(), "filt.sua", "no", "yes")), SUA);
     expect(g).toMatchObject({
       category: "new_requirement",
       severity: "medium",
       regulatoryNote: REGULATORY_NOTE,
-      detail: "Absent at source; present at target.",
+      detail: "Absent at SU; present at RU.",
       sourceDisplay: "No",
       targetDisplay: "Yes",
       activities: ["extractables_leachables", "filter_compatibility", "procedure_update", "training"],
     });
   });
 
-  it("removed_element: present at source, absent at target; the outcome overrides rationale and activities", () => {
+  it("removed_element: present at SU, absent at RU; the outcome overrides rationale and activities", () => {
     const g = gap(run(pair(base(), "filt.sua", "yes", "no")), SUA);
     expect(g).toMatchObject({
       category: "removed_element",
-      detail: "Present at source; absent at target.",
+      detail: "Present at SU; absent at RU.",
       activities: ["equipment_qualification", "procedure_update", "training"],
       rationale: "Replacing a single-use assembly with reusable equipment introduces cleaning and sterilization requirements.",
       severity: "medium",
@@ -533,7 +533,7 @@ describe("set comparator (R-INTEGRITY-TESTS)", () => {
 
   it("equivalent: same elements in a different order", () => {
     const g = gap(run(sets(["pupsit", "post_use"], ["post_use", "pupsit"])), INTEGRITY);
-    expect(g).toMatchObject({ category: "equivalent", detail: "Same elements at source and target." });
+    expect(g).toMatchObject({ category: "equivalent", detail: "Same elements at SU and RU." });
     expect(g.subKey).toBeUndefined();
   });
 
@@ -546,7 +546,7 @@ describe("set comparator (R-INTEGRITY-TESTS)", () => {
       severity: "high",
       regulatoryNote: REGULATORY_NOTE,
       attribute: "Filter integrity tests: Pre-use post-sterilization integrity test (PUPSIT)",
-      detail: "Pre-use post-sterilization integrity test (PUPSIT): present at source, absent at target.",
+      detail: "Pre-use post-sterilization integrity test (PUPSIT): present at SU, absent at RU.",
     });
     expect(a.gaps.filter((x) => x.questionId === "filt.integrity")).toHaveLength(1);
   });
@@ -591,16 +591,16 @@ describe("set comparator (R-INTEGRITY-TESTS)", () => {
 // ================================================================== coverage
 
 describe("coverage comparator", () => {
-  describe("mixing study coverage of the target batch size (source study, target value)", () => {
+  describe("mixing study coverage of the RU batch size (SU study, RU value)", () => {
     const cov = (c: Parameters<typeof v>[3]) => v(grown(), "comp.mixing_coverage", "source", c);
 
-    it("within_validated_range when the target NOR lies inside the covered range", () => {
+    it("within_validated_range when the RU NOR lies inside the covered range", () => {
       const g = gap(run(cov(rng(20, 400, "L"))), MIX_COV);
       expect(g).toMatchObject({ category: "within_validated_range", severity: "low", activities: [], detail: "200–300 L is within the covered range 20–400 L." });
       expect(g.regulatoryNote).toBeUndefined();
     });
 
-    it("outside_validated_range when the target NOR extends beyond it (rule severity high)", () => {
+    it("outside_validated_range when the RU NOR extends beyond it (rule severity high)", () => {
       const g = gap(run(cov(rng(20, 100, "L"))), MIX_COV);
       expect(g).toMatchObject({ category: "outside_validated_range", severity: "high", activities: ["mixing_study"], detail: "200–300 L is not within the covered range 20–100 L." });
       expect(g.regulatoryNote).toBeUndefined(); // rule is not flagged for regulatory assessment
@@ -610,7 +610,7 @@ describe("coverage comparator", () => {
       expect(categoryOf(cov(rng(20000, 400000, "mL")), MIX_COV)).toBe("within_validated_range");
     });
 
-    it("uses the target set point when the NOR is unknown", () => {
+    it("uses the RU set point when the NOR is unknown", () => {
       const p = v(
         batch(kit, { sp: L(100) }, { sp: L(250), nor: "unknown" }),
         "comp.mixing_coverage",
@@ -622,7 +622,7 @@ describe("coverage comparator", () => {
       expect(categoryOf(v(batch(kit, { sp: L(100) }, { sp: L(250), nor: "unknown" }), "comp.mixing_coverage", "source", rng(20, 200, "L")), MIX_COV)).toBe("outside_validated_range");
     });
 
-    it("shows the checked value in the target column and nothing in the source column of other rows", () => {
+    it("shows the checked value in the RU column and nothing in the SU column of other rows", () => {
       const g = gap(run(cov(rng(20, 100, "L"))), MIX_COV);
       expect(g.sourceDisplay).toBe("20–100 L");
       expect(g.targetDisplay).toBe("Checked against: SP 250 L; NOR 200–300 L");
@@ -631,12 +631,12 @@ describe("coverage comparator", () => {
     it("information_required when the coverage is unknown, naming the missing item", () => {
       const g = gap(run(unk(grown(), "comp.mixing_coverage", "source")), MIX_COV);
       expect(g.category).toBe("information_required");
-      expect(g.detail).toContain("Covered range (source) unknown (to be confirmed)");
+      expect(g.detail).toContain("Covered range (SU) unknown (to be confirmed)");
     });
 
   });
 
-  describe("APS duration coverage (target study, target value, quantity)", () => {
+  describe("APS duration coverage (RU study, RU value, quantity)", () => {
     const longer = () => pair(base(), "fill.duration", q(24, "h"), q(36, "h"));
 
     it("within_validated_range when the media fill covers the planned duration", () => {
@@ -664,10 +664,10 @@ describe("coverage comparator", () => {
       const p = v(unk(grown(), "fill.duration", "target"), "fill.aps", "target", q(48, "h"));
       const g = gap(run(v(p, "fill.duration", "source", q(24, "h"))), APS);
       expect(g.category).toBe("information_required");
-      expect(g.detail).toBe("Compared value (target) unknown (to be confirmed).");
+      expect(g.detail).toBe("Compared value (RU) unknown (to be confirmed).");
     });
 
-    it("is a target-only row: the source column is a dash", () => {
+    it("is an RU-only row: the SU column is a dash", () => {
       const g = gap(run(v(longer(), "fill.aps", "target", q(30, "h"))), APS);
       expect(g.sourceDisplay).toBe("—");
       expect(g.targetDisplay).toBe("30 h");
@@ -677,7 +677,7 @@ describe("coverage comparator", () => {
 
 // ================================================================== evidence
 
-describe("evidence comparator (target-side answer mapped to a category)", () => {
+describe("evidence comparator (RU-side answer mapped to a category)", () => {
   const pumpChanged = () => pair(base(), "fill.pump", "rotary_piston", "peristaltic");
   const filterChanged = () => pair(base(), "filt.membrane", "pes", "pvdf");
 
@@ -708,7 +708,7 @@ describe("evidence comparator (target-side answer mapped to a category)", () => 
     expect(categoryOf(v(filterChanged(), "filt.bret", "target", "not_covered"), BRET)).toBe("outside_validated_range");
   });
 
-  it("procedures map to equivalent, or new_requirement for both update and new (the target value tells them apart)", () => {
+  it("procedures map to equivalent, or new_requirement for both update and new (the RU value tells them apart)", () => {
     expect(categoryOf(v(base(), "comp.procedures", "target", "in_place"), COMP_PROC)).toBe("equivalent");
     const upd = gap(run(v(base(), "comp.procedures", "target", "update_required")), COMP_PROC);
     expect(upd).toMatchObject({ category: "new_requirement", severity: "low", activities: ["procedure_update", "training"], targetDisplay: "Exist; update required" });
@@ -716,7 +716,7 @@ describe("evidence comparator (target-side answer mapped to a category)", () => 
     expect(gap(run(v(base(), "comp.procedures", "target", "new_required")), COMP_PROC)).toMatchObject({ category: "new_requirement", severity: "low", targetDisplay: "New procedures required" });
   });
 
-  it("is a target-only row: the source column is a dash", () => {
+  it("is an RU-only row: the SU column is a dash", () => {
     const g = gap(run(v(pumpChanged(), "fill.accuracy", "target", "planned")), ACCURACY);
     expect(g.sourceDisplay).toBe("—");
     expect(g.targetDisplay).toBe("Planned, not yet available");
@@ -752,17 +752,17 @@ describe("not_applicable handling", () => {
   };
 
   it("not applicable on both sides is equivalent", () => {
-    expect(vessel("na", "na")).toMatchObject({ category: "equivalent", detail: "Not applicable at source or target." });
+    expect(vessel("na", "na")).toMatchObject({ category: "equivalent", detail: "Not applicable at SU or RU." });
   });
 
-  it("not applicable at source with a value at target is a new requirement", () => {
+  it("not applicable at SU with a value at RU is a new requirement", () => {
     const g = vessel("na", "glass");
-    expect(g).toMatchObject({ category: "new_requirement", detail: "Not applicable at source; present at target.", severity: "medium", regulatoryNote: REGULATORY_NOTE });
+    expect(g).toMatchObject({ category: "new_requirement", detail: "Not applicable at SU; present at RU.", severity: "medium", regulatoryNote: REGULATORY_NOTE });
     expect(g.sourceDisplay).toBe("Not applicable: Not used (fictional)");
   });
 
-  it("a value at source with not applicable at target is a removed element", () => {
-    expect(vessel("glass", "na")).toMatchObject({ category: "removed_element", detail: "Present at source; not applicable at target." });
+  it("a value at SU with not applicable at RU is a removed element", () => {
+    expect(vessel("glass", "na")).toMatchObject({ category: "removed_element", detail: "Present at SU; not applicable at RU." });
   });
 
   it("not applicable against an unknown is information_required", () => {
@@ -989,11 +989,11 @@ describe("gap records", () => {
   });
 
   it("informational rules (site name) produce no row", () => {
-    const p = pair(base(), "site.name", "Source Site (fictional)", "Target Site (fictional)");
+    const p = pair(base(), "site.name", "SU Site (fictional)", "RU Site (fictional)");
     expect(run(p).gaps.some((g) => g.ruleId === "R-SITE-INFO")).toBe(false);
   });
 
-  it("source-only or target-only questions with no rule produce no row", () => {
+  it("SU-only or RU-only questions with no rule produce no row", () => {
     const a = run(base());
     expect(a.gaps.every((g) => g.ruleId.startsWith("R-"))).toBe(true);
     expect(a.gaps.some((g) => g.questionId === "scope.program")).toBe(false);
@@ -1029,7 +1029,7 @@ describe("open items", () => {
     expect(unanswered.status).toBe("not_established");
   });
 
-  it("a same-as-source answer whose source is unknown is an open item on the target", () => {
+  it("a same-as-SU answer whose SU is unknown is an open item on the RU", () => {
     let p = unk(base(), "fill.pump", "source");
     p = same(p, "fill.pump");
     const items = run(p).openItems.filter((o) => o.questionId === "fill.pump");

@@ -1,6 +1,7 @@
 /// <reference types="node" />
 import { describe, expect, it, vi } from "vitest";
 import { BUILTIN_TEMPLATE_VERSION, buildStarterTemplate, importTemplateFile, renderDocx, suggestMapping, type RenderDocxInput } from "../src/index";
+import { COVER_LABELS } from "../src/front";
 import { ACCENT, BANNER_FILL, CATEGORY_TINTS, CONTRAST_PAIRS, LABEL_FILL, NEUTRAL_TINT, ON_ACCENT, SEVERITY_TINTS, ZEBRA_FILL, contrastRatio, tintForColumn } from "../src/palette";
 import { BANNER, GENERATED_AT, buildModel, fixture, type Model } from "./fixtures";
 import { customProps, plainText, strictDocx, type StrictResult } from "./strict";
@@ -73,13 +74,15 @@ describe("built-in look: cover page", () => {
     const facts = factsOf(res, "Program");
     const c = model.doc.cover;
     const meta = (k: string) => model.doc.meta.find(([x]) => x === k)![1];
-    expect([...facts.keys()]).toEqual(["Program", "Product", "Source site", "Source program stage", "Target site", "Target program stage", "Revision", "Status", "Generated"]);
+    expect([...facts.keys()]).toEqual(["Program", "Product", COVER_LABELS.suSite, COVER_LABELS.suStage, COVER_LABELS.ruSite, COVER_LABELS.ruStage, "Revision", "Status", "Generated"]);
     expect(facts.get("Program")).toBe(c.program);
     expect(facts.get("Product")).toBe(c.product);
-    expect(facts.get("Source site")).toBe(c.sourceSite);
-    expect(facts.get("Target site")).toBe(c.targetSite);
-    expect(facts.get("Source program stage")).toBe("Commercial (process validated)");
-    expect(facts.get("Target program stage")).toBe("Clinical (GMP, not process validated)");
+    expect(facts.get("Sending unit (SU) site")).toBe(c.sourceSite);
+    expect(facts.get("Receiving unit (RU) site")).toBe(c.targetSite);
+    expect(facts.get("Sending unit (SU) program stage")).toBe("Commercial (process validated)");
+    expect(facts.get("Receiving unit (RU) program stage")).toBe("Clinical (GMP, not process validated)");
+    // The sites are SU and RU everywhere in the front matter: no label calls them source or target.
+    expect([...facts.keys()].some((k) => /(source|target)/i.test(k))).toBe(false);
     expect(facts.get("Revision")).toBe(meta("Revision"));
     expect(facts.get("Status")).toBe(model.doc.status);
     expect(facts.get("Generated")).toBe(meta("Generated"));
@@ -90,7 +93,7 @@ describe("built-in look: cover page", () => {
     const m: Model = { ...model, doc: { ...model.doc, cover: { program: BAD, product: BAD, sourceSite: BAD, targetSite: BAD, sourceStage: BAD, targetStage: BAD } } };
     const res = await renderBuiltin(m);
     const facts = factsOf(res, "Program");
-    for (const k of ["Program", "Product", "Source site", "Target site", "Source program stage", "Target program stage"]) expect(facts.get(k), k).toContain("<w:p>&amp; ]]>");
+    for (const k of ["Program", "Product", COVER_LABELS.suSite, COVER_LABELS.ruSite, COVER_LABELS.suStage, COVER_LABELS.ruStage]) expect(facts.get(k), k).toContain("<w:p>&amp; ]]>");
     expect(res.text("word/document.xml")).not.toContain("<script>");
     expect(res.text("word/document.xml")).not.toMatch(/\u0001/);
   });
@@ -193,7 +196,7 @@ describe("built-in look: table of contents and document control", () => {
 });
 
 describe("built-in look: tables", () => {
-  const gap = (res: StrictResult) => findTable(res, ["ID", "Attribute", "Rule", "Category", "Severity"]);
+  const gap = (res: StrictResult) => findTable(res, ["ID", "Attribute", "SU", "RU", "Gap", "Severity", "Actions", "Notes"]);
 
   it("gives header rows an accent fill with white bold text that repeats on every page", async () => {
     const res = await renderBuiltin();
@@ -222,12 +225,12 @@ describe("built-in look: tables", () => {
     rows.slice(1).forEach((r, i) => expect(fillOf(r[plain]!), `row ${i + 1}`).toBe(i % 2 === 1 ? ZEBRA_FILL : undefined));
   });
 
-  it("shows category and severity as text plus one subtle tint per value, found by column header", async () => {
+  it("shows the gap category (the start of the Gap cell) and the severity as text plus one subtle tint per value, found by column header", async () => {
     const res = await renderBuiltin();
     const rows = rowsOf(gap(res));
     const header = rows[0]!.map(text);
     const sev = header.indexOf("Severity");
-    const cat = header.indexOf("Category");
+    const cat = header.indexOf("Gap");
     const severities = new Set<string>();
     const categories = new Set<string>();
     for (const r of rows.slice(1)) {
@@ -238,6 +241,8 @@ describe("built-in look: tables", () => {
       const key = /^(high|medium|low|none)/i.exec(sevText)![1]!.toLowerCase() as keyof typeof SEVERITY_TINTS;
       expect(fillOf(r[sev]!), sevText).toBe(SEVERITY_TINTS[key]);
       const tint = CATEGORY_TINTS.find((c) => c.match.test(catText.toLowerCase()));
+      // The category label is followed by ". " and the detail, so the cell always holds more than the label.
+      expect(catText, catText).toMatch(/^[^.]+. ./);
       expect(tint, catText).toBeTruthy();
       expect(fillOf(r[cat]!), catText).toBe(tint!.fill);
       severities.add(key);
@@ -258,6 +263,8 @@ describe("built-in look: tables", () => {
   it("matches columns by header, never by value, and falls back to a neutral tint", () => {
     const sev = tintForColumn("Severity")!;
     const cat = tintForColumn(" category ")!;
+    expect(tintForColumn("Gap")).toBe(cat);
+    expect(tintForColumn("Implied by gaps")).toBeUndefined();
     expect(tintForColumn("Attribute")).toBeUndefined();
     expect(tintForColumn("Regulatory")).toBeUndefined();
     expect(sev("High (adjusted from Medium by A. Reviewer (fictional): reason)")).toBe(SEVERITY_TINTS.high);
@@ -319,10 +326,10 @@ describe("built-in look: colours", () => {
 
 describe("built-in look: versioning and the other modes", () => {
   it("bumps the built-in template version", async () => {
-    expect(BUILTIN_TEMPLATE_VERSION).toBe("1.1.0");
+    expect(BUILTIN_TEMPLATE_VERSION).toBe("1.2.0");
     const out = await renderDocx({ doc: model.doc, tagData: model.tagData, mode: "builtin", generatedAt: GENERATED_AT });
-    expect(out.templateRecord).toEqual({ mode: "builtin", name: "Built-in default", version: "1.1.0" });
-    expect(customProps(strictDocx(out.bytes)).templateVersion).toBe("1.1.0");
+    expect(out.templateRecord).toEqual({ mode: "builtin", name: "Built-in default", version: "1.2.0" });
+    expect(customProps(strictDocx(out.bytes)).templateVersion).toBe("1.2.0");
   });
 
   async function other(mode: RenderDocxInput["mode"], file: string, mapped: boolean): Promise<StrictResult> {

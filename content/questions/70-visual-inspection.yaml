@@ -20,10 +20,10 @@ questions:
   - id: vi.avi_qualification
     section: uo.visual_inspection
     parent: vi.method
-    prompt: Is a qualification of the target automated or semi-automated inspection (detection performance against a defect kit, for example a Knapp-style study) available?
-    label: Automated inspection qualification (target)
+    prompt: Is a qualification of the RU automated or semi-automated inspection (detection performance against a defect kit, for example a Knapp-style study) available?
+    label: Automated inspection qualification (RU)
     why: Automated inspection must be shown to detect defects at least as well as the {{validated|existing}} manual process, using a defect kit with known defect types and sizes. A new or changed system has no such evidence until it is qualified.
-    triggerNote: Asked because the target inspection method differs from the source and is semi-automated or automated.
+    triggerNote: Asked because the RU inspection method differs from the SU and is semi-automated or automated.
     sides: target
     binds: uo.visual_inspection.study.avi_qualification.status
     input: { type: choice, optionsFrom: evidenceAvailability }
@@ -35,10 +35,10 @@ questions:
   - id: vi.inspector_qualification
     section: uo.visual_inspection
     parent: vi.method
-    prompt: Is a qualification programme for the target manual inspectors in place (initial qualification and requalification against the defect library)?
-    label: Inspector qualification (target)
+    prompt: Is a qualification programme for the RU manual inspectors in place (initial qualification and requalification against the defect library)?
+    label: Inspector qualification (RU)
     why: Manual inspection performance depends on trained and periodically requalified inspectors. A new site or a move to manual or semi-automated inspection needs documented qualification before routine use.
-    triggerNote: Asked because the target inspection method differs from the source and uses human inspectors.
+    triggerNote: Asked because the RU inspection method differs from the SU and uses human inspectors.
     sides: target
     binds: uo.visual_inspection.study.inspector_qualification.status
     input: { type: choice, optionsFrom: evidenceAvailability }
@@ -97,7 +97,7 @@ questions:
     section: uo.visual_inspection
     prompt: Qualification status of the inspection equipment
     label: Inspection equipment qualification status
-    why: Inspection equipment (inspection booth or automated inspection machine) must be qualified. A target system that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    why: Inspection equipment (inspection booth or automated inspection machine) must be qualified. An RU system that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
     tags: [m3]
     sides: paired
     sameAsSource: false
@@ -107,10 +107,10 @@ questions:
   - id: vi.rate_range
     section: uo.visual_inspection
     parent: vi.qual
-    prompt: Qualified inspection rate range of the target inspection equipment
+    prompt: Qualified inspection rate range of the RU inspection equipment
     label: Inspection equipment qualified rate range
     why: Detection performance is qualified at a stated inspection rate. Planned rates above that range are not supported by the qualification.
-    triggerNote: Asked because the target inspection equipment is qualified or has a qualification planned.
+    triggerNote: Asked because the RU inspection equipment is qualified or has a qualification planned.
     tags: [m3]
     sides: target
     binds: uo.visual_inspection.equip.inspection.qualifiedRange
@@ -119,9 +119,9 @@ questions:
 
   - id: vi.procedures
     section: uo.visual_inspection
-    prompt: Status of target procedures for visual inspection
-    label: Target inspection procedures
-    why: Inspection, re-inspection, AQL and reject-handling procedures must reflect the target method and equipment before GMP manufacture.
+    prompt: Status of RU procedures for visual inspection
+    label: RU inspection procedures
+    why: Inspection, re-inspection, AQL and reject-handling procedures must reflect the RU method and equipment before GMP manufacture.
     sides: target
     binds: uo.visual_inspection.doc.procedures.status
     input: { type: choice, optionsFrom: procedureStatus }

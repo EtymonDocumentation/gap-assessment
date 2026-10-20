@@ -15,7 +15,7 @@ import {
 } from "@gap/process-model";
 import type { ContentBundle } from "./content";
 import { effectiveStaged } from "./custom";
-import { entryLabel, type EntryLabel } from "./labels";
+import { entryLabel, sideName, type EntryLabel } from "./labels";
 import { instanceRefs, visibleInstances, type QuestionInstance } from "./sequencer";
 
 /**
@@ -215,7 +215,7 @@ export function verifySection(
 ): BulkVerifyResult {
   const eff = effectiveStaged(content, project);
   const { refs, title } = sectionRefs(eff, project, sectionId, side);
-  return verifyEntries(project, refs, actor, opts, `${title}${side === "all" ? "" : ` (${side})`}`);
+  return verifyEntries(project, refs, actor, opts, `${title}${side === "all" ? "" : ` (${sideName(side)})`}`);
 }
 
 // ------------------------------------------------------------------ one cell: verify and withdraw

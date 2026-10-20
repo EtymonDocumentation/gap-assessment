@@ -21,8 +21,8 @@ questions:
     section: uo.ds_receipt_thaw
     prompt: Drug substance storage temperature before use
     label: Drug substance storage temperature
-    why: The storage temperature is the condition supported by drug substance stability data. A target range wider than the {{validated|demonstrated}} one is not covered by those data.
-    help: Source — the storage temperature and the range supported by drug substance stability data. Target — the planned storage set point and range.
+    why: The storage temperature is the condition supported by drug substance stability data. An RU range wider than the {{validated|demonstrated}} one is not covered by those data.
+    help: SU — the storage temperature and the range supported by drug substance stability data. RU — the planned storage set point and range.
     sides: paired
     binds: uo.ds_receipt_thaw.param.storage_temperature
     input: { type: parameter, units: ["°C"] }
@@ -50,10 +50,10 @@ questions:
   - id: rt.freeze_thaw
     section: uo.ds_receipt_thaw
     parent: rt.thaw_principle
-    prompt: Is freeze-thaw or thaw study data available for the target thaw method and drug substance container with this product?
-    label: Freeze-thaw and thaw study (target)
-    why: Thaw rate and container geometry change the exposure to cryoconcentration and temperature gradients. Source freeze-thaw data support only the source thaw method and container.
-    triggerNote: Asked because the target thaw method or drug substance container differs from the source.
+    prompt: Is freeze-thaw or thaw study data available for the RU thaw method and drug substance container with this product?
+    label: Freeze-thaw and thaw study (RU)
+    why: Thaw rate and container geometry change the exposure to cryoconcentration and temperature gradients. SU freeze-thaw data support only the SU thaw method and container.
+    triggerNote: Asked because the RU thaw method or drug substance container differs from the SU.
     sides: target
     binds: uo.ds_receipt_thaw.study.freeze_thaw.status
     input: { type: choice, optionsFrom: evidenceAvailability }
@@ -99,7 +99,7 @@ questions:
     section: uo.ds_receipt_thaw
     prompt: Maximum time at ambient temperature after thaw, before compounding
     label: Maximum ambient time after thaw
-    why: Time at room temperature after thaw is limited by drug substance stability and bioburden control. The target maximum must stay within the {{validated|demonstrated}} time.
+    why: Time at room temperature after thaw is limited by drug substance stability and bioburden control. The RU maximum must stay within the {{validated|demonstrated}} time.
     triggerNote: Asked because the drug substance is received frozen.
     sideLabels: { source: "{{Validated|Demonstrated}} maximum time at ambient temperature", target: Planned maximum time at ambient temperature }
     sides: paired
@@ -121,10 +121,10 @@ questions:
   - id: rt.homogeneity
     section: uo.ds_receipt_thaw
     parent: rt.mixing
-    prompt: Has post-thaw homogeneity been demonstrated for the target thaw and mixing method?
-    label: Post-thaw homogeneity (target)
+    prompt: Has post-thaw homogeneity been demonstrated for the RU thaw and mixing method?
+    label: Post-thaw homogeneity (RU)
     why: Homogeneity after thaw depends on the container, thaw rate and mixing method. Without it, samples taken for release or in-process testing may not represent the bulk.
-    triggerNote: Asked because the target thaw or mixing method differs from the source.
+    triggerNote: Asked because the RU thaw or mixing method differs from the SU.
     sides: target
     binds: uo.ds_receipt_thaw.study.thaw_homogeneity.status
     input: { type: choice, optionsFrom: evidenceAvailability }
@@ -138,7 +138,7 @@ questions:
     section: uo.ds_receipt_thaw
     prompt: Qualification status of the thaw system
     label: Thaw system qualification status
-    why: Equipment used for GMP manufacture must be qualified. A target thaw system that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    why: Equipment used for GMP manufacture must be qualified. An RU thaw system that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
     triggerNote: Asked because the drug substance is received frozen.
     tags: [m3]
     sides: paired
@@ -150,10 +150,10 @@ questions:
   - id: rt.thaw_range
     section: uo.ds_receipt_thaw
     parent: rt.thaw_qual
-    prompt: Qualified temperature range of the target thaw system
+    prompt: Qualified temperature range of the RU thaw system
     label: Thaw system qualified temperature range
     why: Thermal qualification (temperature mapping and heat-up performance) covers a stated range. A planned thaw temperature outside that range is not supported by the qualification.
-    triggerNote: Asked because the target thaw system is qualified or has a qualification planned.
+    triggerNote: Asked because the RU thaw system is qualified or has a qualification planned.
     tags: [m3]
     sides: target
     binds: uo.ds_receipt_thaw.equip.thaw_unit.qualifiedRange
@@ -164,7 +164,7 @@ questions:
     section: uo.ds_receipt_thaw
     prompt: Qualification status of the drug substance storage unit (freezer or cold room)
     label: Drug substance storage qualification status
-    why: Drug substance storage equipment must be qualified and mapped before GMP storage. A target unit that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    why: Drug substance storage equipment must be qualified and mapped before GMP storage. An RU unit that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
     tags: [m3]
     sides: paired
     sameAsSource: false
@@ -173,9 +173,9 @@ questions:
 
   - id: rt.procedures
     section: uo.ds_receipt_thaw
-    prompt: Status of target procedures for drug substance receipt and thaw
-    label: Target receipt and thaw procedures
-    why: Receipt, storage, thaw and line-clearance procedures must reflect the target equipment and limits before GMP manufacture.
+    prompt: Status of RU procedures for drug substance receipt and thaw
+    label: RU receipt and thaw procedures
+    why: Receipt, storage, thaw and line-clearance procedures must reflect the RU equipment and limits before GMP manufacture.
     sides: target
     binds: uo.ds_receipt_thaw.doc.procedures.status
     input: { type: choice, optionsFrom: procedureStatus }

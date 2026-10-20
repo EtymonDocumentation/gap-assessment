@@ -26,10 +26,10 @@ export function formatResolved(content: ContentBundle, q: Question | undefined, 
   if (r.status === "established") {
     if (r.value === undefined) return STATUS_TEXT.not_established;
     const text = formatValue(content, q, r.value, optionSet);
-    return r.sameAsSource ? `${text} (same as source)` : text;
+    return r.sameAsSource ? `${text} (same as SU)` : text;
   }
   if (r.status === "not_applicable") return r.justification ? `Not applicable: ${r.justification}` : STATUS_TEXT.not_applicable;
-  return r.sameAsSource && r.status === "unknown" ? `${STATUS_TEXT.unknown} (same as source)` : STATUS_TEXT[r.status];
+  return r.sameAsSource && r.status === "unknown" ? `${STATUS_TEXT.unknown} (same as SU)` : STATUS_TEXT[r.status];
 }
 
 const FIELD_SHORT: Record<ParameterField, string> = {

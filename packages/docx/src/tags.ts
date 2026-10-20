@@ -1,4 +1,4 @@
-import { DOCUMENT_SECTION_IDS, categoryLabel, formatResolved, stageWording, stagedFor, type Assessment, type ContentBundle, type DocModel } from "@gap/engine";
+import { DOCUMENT_SECTION_IDS, activityLabel, categoryLabel, formatResolved, stageWording, stagedFor, type Assessment, type ContentBundle, type DocModel } from "@gap/engine";
 import { resolveEntry, type Project } from "@gap/process-model";
 
 // ------------------------------------------------------------------ the data a template can use
@@ -65,12 +65,67 @@ function tableOf(doc: DocModel, sectionId: string): Table | undefined {
   return b && b.type === "table" ? { columns: b.columns, rows: b.rows } : undefined;
 }
 
-/** Rows of a section's table as objects: `fields` maps a tag field name to the table column it comes from. */
-function rowsAs<K extends string>(doc: DocModel, sectionId: string, fields: Record<K, string>): Record<K, string>[] {
+/**
+ * Rows of a section's table as objects: `fields` maps a tag field name to the table column it comes from. A field may list several column names
+ * (the one the table has is used), so documents worded "Source" / "Target" and documents worded "SU" / "RU" both fill the same tags.
+ */
+function rowsAs<K extends string>(doc: DocModel, sectionId: string, fields: Record<K, string | string[]>): Record<K, string>[] {
   const t = tableOf(doc, sectionId);
   if (!t) return [];
-  const idx = (Object.entries(fields) as [K, string][]).map(([k, col]) => [k, t.columns.indexOf(col)] as const);
+  const idx = (Object.entries(fields) as [K, string | string[]][]).map(([k, col]) => [k, Math.max(...[col].flat().map((c) => t.columns.indexOf(c)))] as const);
   return t.rows.map((r) => Object.fromEntries(idx.map(([k, i]) => [k, i < 0 ? "" : (r[i] ?? "")])) as Record<K, string>);
+}
+
+type Row = Record<string, string>;
+
+/** Rows of a section's table keyed by column header. */
+function recordsOf(doc: DocModel, sectionId: string): Row[] {
+  const t = tableOf(doc, sectionId);
+  return t ? t.rows.map((r) => Object.fromEntries(t.columns.map((c, i) => [c, r[i] ?? ""]))) : [];
+}
+
+/** The first of these columns that the row has, or undefined. */
+function pick(row: Row | undefined, ...names: string[]): string | undefined {
+  if (!row) return undefined;
+  const name = names.find((n) => Object.prototype.hasOwnProperty.call(row, n));
+  return name === undefined ? undefined : row[name];
+}
+
+const GAP_STATUS_LABEL: Record<string, string> = { open: "Open", in_progress: "In progress", closed: "Closed", accepted_no_action: "Accepted, no action" };
+
+/**
+ * One gap tag per row of the detailed gap table. The lean table (ID, Attribute, SU, RU, Gap, Severity, Actions, Notes) holds only some of the fields:
+ * rule, owner, status, regulatory note and verification come from the "Gap details" appendix (by gap ID), and what neither table shows comes from the
+ * assessment itself. An older document with the long table still fills every field from its own columns.
+ */
+function gapTags(content: ContentBundle, doc: DocModel, a: Assessment): GapTag[] {
+  const details = new Map(recordsOf(doc, "gap-details").map((r) => [r["ID"] ?? "", r]));
+  return recordsOf(doc, "gap-table").map((r) => {
+    const id = r["ID"] ?? "";
+    const d = details.get(id);
+    const g = a.gaps.find((x) => x.displayId === id);
+    const gapCell = pick(r, "Gap", "Category") ?? "";
+    const fallbackActivities = g ? g.activities.map((x) => activityLabel(content, x)).join("; ") || "—" : "";
+    return {
+      id,
+      section: pick(r, "Section") ?? g?.sectionTitle ?? "",
+      // The lean table's Attribute cell reads "<section> — <attribute>"; the tag holds the attribute alone.
+      attribute: g?.attribute ?? pick(r, "Attribute") ?? "",
+      source: pick(r, "SU", "Source") ?? g?.sourceDisplay ?? "",
+      target: pick(r, "RU", "Target") ?? g?.targetDisplay ?? "",
+      category: g ? categoryLabel(content, g.category) : gapCell,
+      detail: g ? g.detail : "",
+      why: pick(r, "Why it matters") ?? g?.rationale ?? "",
+      activities: pick(r, "Activities implied") ?? fallbackActivities,
+      severity: pick(r, "Severity") ?? "",
+      regulatory: pick(r, "Regulatory") ?? pick(d, "Regulatory") ?? g?.regulatoryNote ?? "—",
+      owner: pick(r, "Owner") ?? pick(d, "Owner") ?? g?.owner ?? "[unassigned]",
+      status: pick(r, "Status") ?? pick(d, "Status") ?? (g ? GAP_STATUS_LABEL[g.status] ?? g.status : ""),
+      rule: pick(r, "Rule") ?? pick(d, "Rule") ?? (g ? `${g.ruleId} v${g.ruleVersion}` : ""),
+      sourceVerification: pick(r, "Source verification") ?? pick(d, "SU verification", "Source verification") ?? "",
+      targetVerification: pick(r, "Target verification") ?? pick(d, "RU verification", "Target verification") ?? "",
+    };
+  });
 }
 
 function metaValue(doc: DocModel, label: string): string {
@@ -99,28 +154,7 @@ function siteText(project: Project, side: "source" | "target"): string {
 export function buildTagData(rawContent: ContentBundle, project: Project, a: Assessment, doc: DocModel): TagData {
   const content = stagedFor(rawContent, project);
   const stages = stageWording(project);
-  const gapRows = rowsAs(doc, "gap-table", {
-    id: "ID",
-    section: "Section",
-    attribute: "Attribute",
-    source: "Source",
-    target: "Target",
-    categoryCell: "Category",
-    why: "Why it matters",
-    activities: "Activities implied",
-    severity: "Severity",
-    regulatory: "Regulatory",
-    owner: "Owner",
-    status: "Status",
-    rule: "Rule",
-    sourceVerification: "Source verification",
-    targetVerification: "Target verification",
-  });
-  const gaps: GapTag[] = gapRows.map((r) => {
-    const g = a.gaps.find((x) => x.displayId === r.id);
-    const { categoryCell, ...rest } = r;
-    return { ...rest, category: g ? categoryLabel(content, g.category) : categoryCell, detail: g ? g.detail : "" };
-  });
+  const gaps = gapTags(content, doc, a);
   return {
     title: doc.title,
     banner: doc.banner,
@@ -151,17 +185,17 @@ export function buildTagData(rawContent: ContentBundle, project: Project, a: Ass
       gaps: "Implied by gaps",
       severity: "Severity",
       regulatory: "Regulatory",
-      sourceStudies: "Linked studies: source status",
-      targetStudies: "Linked studies: target status",
+      sourceStudies: ["Linked studies: SU status", "Linked studies: source status"],
+      targetStudies: ["Linked studies: RU status", "Linked studies: target status"],
       readiness: "Readiness",
     }),
     equipment: rowsAs(doc, "equipment-qualification", {
       uo: "Unit operation",
       equipment: "Equipment",
-      sourceQualification: "Source qualification",
-      targetQualification: "Target qualification",
-      qualifiedRange: "Qualified range (target)",
-      required: "Required by target process",
+      sourceQualification: ["SU qualification", "Source qualification"],
+      targetQualification: ["RU qualification", "Target qualification"],
+      qualifiedRange: ["Qualified range (RU)", "Qualified range (target)"],
+      required: ["Required by RU process", "Required by target process"],
       relatedGaps: "Related gaps",
     }),
     risks: rowsAs(doc, "risk", { rank: "Rank", id: "ID", attribute: "Attribute", category: "Category", severity: "Severity", regulatory: "Regulatory" }),
@@ -196,10 +230,10 @@ const TEXT_TAGS: [string, string, boolean?][] = [
   ["presentation", "Presentation."],
   ["transferType", "Type of transfer."],
   ["markets", "Markets."],
-  ["sourceSite", "Source site (name and line)."],
-  ["targetSite", "Target (receiving) site (name and line)."],
-  ["sourceStage", "Program stage of the source: Commercial (process validated), Clinical (GMP, not process validated), Development / engineering runs, or [not established]."],
-  ["targetStage", "Program stage of the target, with the same values as sourceStage."],
+  ["sourceSite", "Sending unit (SU) site (name and line)."],
+  ["targetSite", "Receiving unit (RU) site (name and line)."],
+  ["sourceStage", "Program stage of the sending unit (SU): Commercial (process validated), Clinical (GMP, not process validated), Development / engineering runs, or [not established]."],
+  ["targetStage", "Program stage of the receiving unit (RU), with the same values as sourceStage."],
   ["generated", "Date and time the document was generated (UTC)."],
   ["revision", "Revision line: \"Not yet issued\" or the latest issued revision and its status."],
   ["regulatoryStatement", "The statement under the gap table that regulatory consequences need review. The tool never decides a filing category; it only says \"Requires regulatory affairs assessment\"."],
@@ -219,8 +253,8 @@ const LOOP_TAGS: { tag: string; description: string; fields: { name: string; des
       f("id", "Gap ID, for example G-001."),
       f("section", "Process section."),
       f("attribute", "Attribute compared."),
-      f("source", "Source value."),
-      f("target", "Target value."),
+      f("source", "SU value (sending unit)."),
+      f("target", "RU value (receiving unit)."),
       f("category", "Category of the difference."),
       f("detail", "Explanation of the difference. The document shows category and detail together as \"<category>. <detail>\"."),
       f("why", "Why it matters."),
@@ -230,11 +264,11 @@ const LOOP_TAGS: { tag: string; description: string; fields: { name: string; des
       f("owner", "Owner, or \"[unassigned]\"."),
       f("status", "Status."),
       f("rule", "Comparison rule and version."),
-      f("sourceVerification", "Verification state of the source inputs."),
-      f("targetVerification", "Verification state of the target inputs."),
+      f("sourceVerification", "Verification state of the SU inputs."),
+      f("targetVerification", "Verification state of the RU inputs."),
     ],
   },
-  { tag: "openItems", description: "Open information items.", fields: [f("no", "Number."), f("section", "Section."), f("side", "Scoping, Source or Target."), f("question", "The question still to be answered."), f("status", "Status.")] },
+  { tag: "openItems", description: "Open information items.", fields: [f("no", "Number."), f("section", "Section."), f("side", "Scoping, SU or RU."), f("question", "The question still to be answered."), f("status", "Status.")] },
   {
     tag: "activities",
     description: "Validation plan activities.",
@@ -244,8 +278,8 @@ const LOOP_TAGS: { tag: string; description: string; fields: { name: string; des
       f("gaps", "Gaps that imply the activity."),
       f("severity", "Severity."),
       f("regulatory", "Regulatory note."),
-      f("sourceStudies", "Linked studies, source status."),
-      f("targetStudies", "Linked studies, target status."),
+      f("sourceStudies", "Linked studies, SU status."),
+      f("targetStudies", "Linked studies, RU status."),
       f("readiness", "Readiness."),
     ],
   },
@@ -255,17 +289,17 @@ const LOOP_TAGS: { tag: string; description: string; fields: { name: string; des
     fields: [
       f("uo", "Unit operation."),
       f("equipment", "Equipment."),
-      f("sourceQualification", "Source qualification."),
-      f("targetQualification", "Target qualification."),
-      f("qualifiedRange", "Qualified range (target)."),
-      f("required", "Required by the target process."),
+      f("sourceQualification", "SU qualification."),
+      f("targetQualification", "RU qualification."),
+      f("qualifiedRange", "Qualified range (RU)."),
+      f("required", "Required by the RU process."),
       f("relatedGaps", "Related gaps."),
     ],
   },
   { tag: "risks", description: "Risk ranking, highest first.", fields: [f("rank", "Rank."), f("id", "Gap ID."), f("attribute", "Attribute."), f("category", "Category."), f("severity", "Severity."), f("regulatory", "Regulatory (Yes or No).")] },
   {
     tag: "sources",
-    description: "Source register (Appendix A).",
+    description: "Source register appendix (empty when the appendix is left out of the document). Its letter depends on which optional sections are kept; use the sections tag for the current letters.",
     fields: [f("id", "Source ID."), f("type", "Type."), f("identifier", "Identifier, title, version."), f("responder", "Responder."), f("date", "Date."), f("state", "State."), f("citedBy", "Cited by.")],
   },
   { tag: "approvals", description: "Approval lines. The name, signature and date stay as placeholders: the tool has no electronic signature.", fields: [f("role", "Role."), f("name", "Name (placeholder)."), f("signature", "Signature (placeholder)."), f("date", "Date (placeholder).")] },
@@ -276,7 +310,7 @@ const LOOP_TAGS: { tag: string; description: string; fields: { name: string; des
     fields: [f("id", "Comment ID, for example C-001."), f("location", "Where in the document."), f("comment", "The comment."), f("by", "Author."), f("date", "Date."), f("status", "Open or Resolved."), f("responses", "Replies and resolutions.")],
   },
   { tag: "meta", description: "The document-details lines (project, generated, counts, verification).", fields: [f("label", "Line name."), f("value", "Line value.")] },
-  { tag: "sections", description: "Section numbers and titles (for a table of contents).", fields: [f("number", "Section number or \"Appendix A\"."), f("title", "Section title.")] },
+  { tag: "sections", description: "Section numbers and titles (for a table of contents).", fields: [f("number", "Section number, or \"Appendix\" and its letter. Letters follow the sections kept in the document, so they close up when optional appendices are left out."), f("title", "Section title.")] },
 ];
 
 /** Section id as used in a tag: hyphens become underscores. */

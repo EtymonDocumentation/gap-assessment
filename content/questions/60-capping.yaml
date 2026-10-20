@@ -29,10 +29,10 @@ questions:
   - id: cap.cci
     section: uo.capping
     parent: cap.principle
-    prompt: Is container closure integrity demonstrated for the target container, stopper, seal and capping process?
-    label: CCI for target configuration
+    prompt: Is container closure integrity demonstrated for the RU container, stopper, seal and capping process?
+    label: CCI for RU configuration
     why: CCI is specific to the container-closure combination and the capping process; changes to either require CCI evidence.
-    triggerNote: Asked because the capping equipment, seal or stopper differs from the source.
+    triggerNote: Asked because the capping equipment, seal or stopper differs from the SU.
     sides: target
     binds: uo.capping.study.cci.status
     input: { type: choice, optionsFrom: evidenceAvailability }
@@ -45,10 +45,10 @@ questions:
   - id: cap.rsf_correlation
     section: uo.capping
     parent: cap.principle
-    prompt: Has the residual seal force range been correlated with CCI for the target capping equipment?
-    label: RSF–CCI correlation (target)
+    prompt: Has the residual seal force range been correlated with CCI for the RU capping equipment?
+    label: RSF–CCI correlation (RU)
     why: An RSF range is meaningful only when correlated with CCI on the equipment that applies the seal.
-    triggerNote: Asked because the capping equipment, seal or stopper differs from the source.
+    triggerNote: Asked because the capping equipment, seal or stopper differs from the SU.
     sides: target
     binds: uo.capping.study.rsf_cci_correlation.status
     input: { type: choice, optionsFrom: evidenceAvailability }
@@ -58,7 +58,7 @@ questions:
     section: uo.capping
     prompt: Residual seal force (RSF)
     label: Residual seal force
-    why: RSF is an indicator of crimp quality and CCI; the target range is compared with the source {{validated|demonstrated}} range.
+    why: RSF is an indicator of crimp quality and CCI; the RU range is compared with the SU {{validated|demonstrated}} range.
     sides: paired
     binds: uo.capping.param.rsf
     input: { type: parameter, units: [N, lbf] }
@@ -97,10 +97,10 @@ questions:
     section: uo.capping
     prompt: Smallest leak size the CCI test method reliably detects (limit of detection)
     label: CCI method detection limit
-    why: The method must be sensitive enough for the maximum allowable leakage limit of the product. A less sensitive method at the target (a larger smallest detectable leak) does not support the same integrity claim.
+    why: The method must be sensitive enough for the maximum allowable leakage limit of the product. A less sensitive method at the RU (a larger smallest detectable leak) does not support the same integrity claim.
     help: Enter the {{validated|demonstrated}} leak size in micrometres (equivalent hole diameter).
     tags: [m3]
-    sideLabels: { source: "{{Validated|Demonstrated}} detection limit", target: Target method detection limit }
+    sideLabels: { source: "{{Validated|Demonstrated}} detection limit", target: RU method detection limit }
     sides: paired
     binds: uo.capping.study.cci.sensitivity
     input: { type: quantity, units: [µm, mm] }
@@ -108,10 +108,10 @@ questions:
   - id: cap.cci_method_validation
     section: uo.capping
     parent: cap.cci_method
-    prompt: Has the target CCI test method been validated for this container and closure (sensitivity, positive and negative controls, repeatability)?
-    label: CCI method validation (target)
+    prompt: Has the RU CCI test method been validated for this container and closure (sensitivity, positive and negative controls, repeatability)?
+    label: CCI method validation (RU)
     why: A CCI method must be shown fit for purpose with this container-closure system before its results can support the integrity claim.
-    triggerNote: Asked because the CCI test method differs from the source.
+    triggerNote: Asked because the CCI test method differs from the SU.
     tags: [m3]
     sides: target
     binds: uo.capping.study.cci_method_validation.status
@@ -120,10 +120,10 @@ questions:
 
   - id: cap.cci_lifecycle
     section: uo.capping
-    prompt: Is CCI demonstrated over shelf life and after shipping and storage stress (for example temperature cycling or vibration) for the target configuration?
-    label: CCI over shelf life and distribution (target)
+    prompt: Is CCI demonstrated over shelf life and after shipping and storage stress (for example temperature cycling or vibration) for the RU configuration?
+    label: CCI over shelf life and distribution (RU)
     why: Integrity at release does not show that the closure keeps its seal through storage temperature change and transport. Frozen or active-container shipping and a new container or seal can change that stress.
-    triggerNote: Asked because the container format, capping method or shipping configuration differs from the source.
+    triggerNote: Asked because the container format, capping method or shipping configuration differs from the SU.
     tags: [m3]
     sides: target
     binds: uo.capping.study.cci.lifecycle
@@ -140,7 +140,7 @@ questions:
     section: uo.capping
     prompt: Qualification status of the capping machine
     label: Capper qualification status
-    why: Equipment used for GMP manufacture must be qualified. A target capper that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    why: Equipment used for GMP manufacture must be qualified. An RU capper that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
     tags: [m3]
     sides: paired
     sameAsSource: false
@@ -149,9 +149,9 @@ questions:
 
   - id: cap.procedures
     section: uo.capping
-    prompt: Status of target procedures for capping
-    label: Target capping procedures
-    why: Capping set-up and inspection procedures must reflect the target equipment.
+    prompt: Status of RU procedures for capping
+    label: RU capping procedures
+    why: Capping set-up and inspection procedures must reflect the RU equipment.
     sides: target
     binds: uo.capping.doc.procedures.status
     input: { type: choice, optionsFrom: procedureStatus }

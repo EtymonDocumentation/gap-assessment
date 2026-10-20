@@ -283,6 +283,8 @@ export interface DocumentExport {
   revision?: number;
   fingerprint: string;
   changedSinceRevision: boolean;
+  /** Ids of the optional sections left out of this export (added in schema 1.5.0). Absent means none were left out. */
+  omittedSections?: string[];
 }
 
 /** Revision history, reviewer comments and export records (added in schema 1.3.0). */
@@ -290,6 +292,11 @@ export interface DocumentState {
   revisions: DocumentRevision[];
   comments: ReviewComment[];
   exports: DocumentExport[];
+  /**
+   * Ids of the optional document sections the user left out (added in schema 1.5.0). Absent or empty means the document
+   * includes everything. Only optional sections can be listed; the mandatory ones are always included.
+   */
+  omittedSections?: string[];
 }
 
 export interface Project {

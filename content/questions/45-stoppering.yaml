@@ -47,10 +47,10 @@ questions:
   - id: stop.machinability
     section: uo.stoppering
     parent: stop.preparation
-    prompt: Has the target stopper preparation and placement method been run on the target stoppering unit (machinability and compatibility with this product)?
-    label: Stopper machinability and compatibility (target)
-    why: Stopper behaviour on the machine (feeding, seating, sticking) and its compatibility with the product depend on the preparation, siliconization and placement method, so source data do not cover a change.
-    triggerNote: Asked because the target stopper preparation, siliconization or placement method differs from the source.
+    prompt: Has the RU stopper preparation and placement method been run on the RU stoppering unit (machinability and compatibility with this product)?
+    label: Stopper machinability and compatibility (RU)
+    why: Stopper behaviour on the machine (feeding, seating, sticking) and its compatibility with the product depend on the preparation, siliconization and placement method, so SU data do not cover a change.
+    triggerNote: Asked because the RU stopper preparation, siliconization or placement method differs from the SU.
     sides: target
     binds: uo.stoppering.study.stopper_machinability.status
     input: { type: choice, optionsFrom: evidenceAvailability }
@@ -73,10 +73,10 @@ questions:
   - id: stop.aps
     section: uo.stoppering
     parent: stop.open_time
-    prompt: What maximum partially stoppered time does the current aseptic process simulation (media fill) on the target line cover?
-    label: APS coverage of partially stoppered time (target line)
+    prompt: What maximum partially stoppered time does the current aseptic process simulation (media fill) on the RU line cover?
+    label: APS coverage of partially stoppered time (RU line)
     why: The media fill must include the longest planned time that vials are held open before freeze-drying or full stoppering. A longer time can fall outside current coverage.
-    triggerNote: Asked because the target maximum partially stoppered time is longer than the source.
+    triggerNote: Asked because the RU maximum partially stoppered time is longer than the SU.
     sides: target
     binds: uo.stoppering.study.aps.coverage
     input: { type: quantity, units: [h, min] }
@@ -105,7 +105,7 @@ questions:
     section: uo.stoppering
     prompt: Qualification status of the stoppering unit
     label: Stoppering unit qualification status
-    why: Equipment used for GMP manufacture must be qualified. A target stoppering unit that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    why: Equipment used for GMP manufacture must be qualified. An RU stoppering unit that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
     tags: [m3]
     sides: paired
     sameAsSource: false
@@ -114,9 +114,9 @@ questions:
 
   - id: stop.procedures
     section: uo.stoppering
-    prompt: Status of target procedures for stoppering
-    label: Target stoppering procedures
-    why: Stoppering set-up, stopper handling and rejection procedures must reflect the target equipment before GMP manufacture.
+    prompt: Status of RU procedures for stoppering
+    label: RU stoppering procedures
+    why: Stoppering set-up, stopper handling and rejection procedures must reflect the RU equipment before GMP manufacture.
     sides: target
     binds: uo.stoppering.doc.procedures.status
     input: { type: choice, optionsFrom: procedureStatus }

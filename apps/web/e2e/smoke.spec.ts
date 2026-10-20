@@ -96,10 +96,10 @@ test("interview: progress map jump, why-asked, paired and sequential order", asy
   await map.getByRole("link", { name: /^Pooling, compounding and dilution/ }).click();
   const prompt = page.locator("#q-prompt");
   const badge = page.locator(".question-card .side-badge");
-  await expect(badge).toHaveText(/^Source/);
+  await expect(badge).toHaveText(/^SU/);
   const firstPrompt = await prompt.textContent();
   await page.getByRole("link", { name: /Skip for now/ }).click();
-  await expect(badge).toHaveText(/^Target/);
+  await expect(badge).toHaveText(/^RU/);
   await expect(prompt).toHaveText(firstPrompt ?? "");
   await expect(page.locator(".source-ref")).toBeVisible();
 
@@ -111,11 +111,11 @@ test("interview: progress map jump, why-asked, paired and sequential order", asy
 
   // Sequential: the source pass continues with the next source question.
   await page.locator(".segmented label", { hasText: "Sequential" }).click();
-  await expect(page.locator("#mode-help")).toHaveText(/All source answers first/);
+  await expect(page.locator("#mode-help")).toHaveText(/All SU answers first/);
   await map.getByRole("link", { name: /^Pooling, compounding and dilution/ }).click();
-  await expect(badge).toHaveText(/^Source/);
+  await expect(badge).toHaveText(/^SU/);
   await page.getByRole("link", { name: /Skip for now/ }).click();
-  await expect(badge).toHaveText(/^Source/);
+  await expect(badge).toHaveText(/^SU/);
   await expect(prompt).not.toHaveText(firstPrompt ?? "");
 
   // Section summary.
@@ -126,11 +126,11 @@ test("interview: progress map jump, why-asked, paired and sequential order", asy
 test("branching: making the target pump the same closes its follow-ups and keeps them as inactive", async ({ page }) => {
   await loadDemo(page);
   await go(page, "#/interview?q=fill.accuracy%40target");
-  await expect(page.locator(".question-card .trigger")).toContainText("differs from the source");
+  await expect(page.locator(".question-card .trigger")).toContainText("differs from the SU");
 
   await go(page, "#/interview?q=fill.pump%40target");
   await expect(page.locator(".live-compare")).toContainText("Different principle");
-  await page.getByRole("button", { name: "Same as source" }).click();
+  await page.getByRole("button", { name: "Same as SU" }).click();
   await expect(page.locator(".interview-aside .notice")).toContainText("no longer apply");
 
   await go(page, "#/register");
@@ -279,7 +279,7 @@ for (const theme of ["light", "dark"] as const) {
     await expect(page.getByRole("dialog")).toBeHidden();
     // The verification and source-removal dialogs are checked too.
     await page.getByRole("searchbox", { name: "Filter by text or path" }).fill("Batch record system");
-    await page.getByRole("button", { name: "Verify Batch record system, source" }).click();
+    await page.getByRole("button", { name: "Verify Batch record system, SU" }).click();
     await expect(page.getByRole("dialog", { name: "Verify: Batch record system" })).toBeVisible();
     await expectAccessible(page, `${theme} verify dialog`);
     await expectNoHorizontalScroll(page, `${theme} verify dialog`);
@@ -287,7 +287,7 @@ for (const theme of ["light", "dark"] as const) {
     await expect(page.getByRole("dialog")).toBeHidden();
     await go(page, "#/sources");
     await page.getByRole("searchbox", { name: "Filter by text" }).fill("Filling pump operating principle");
-    await page.getByRole("button", { name: "Remove Interview answer: Filling pump operating principle [target]" }).click();
+    await page.getByRole("button", { name: "Remove Interview answer: Filling pump operating principle [RU]" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await expectAccessible(page, `${theme} remove source dialog`);
     await expectNoHorizontalScroll(page, `${theme} remove source dialog`);
@@ -346,10 +346,10 @@ test("builder: an inline edit changes the register", async ({ page }) => {
   await expect(target).toBeVisible();
   await target.click();
   await answerResponderIfAsked(page);
-  await page.getByRole("dialog").getByRole("button", { name: "Same as source" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Same as SU" }).click();
   await expect(page.getByRole("dialog")).toBeHidden();
   await expect(target).toBeFocused();
-  await expect(page.locator("main")).toContainText("Same as source");
+  await expect(page.locator("main")).toContainText("Same as SU");
 
   await go(page, "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
@@ -429,7 +429,7 @@ test("sources: the register lists sources; removing one shows the impact, then r
   await expect(table).toContainText("Unused"); // the registered document that no entry cites
 
   await page.getByRole("searchbox", { name: "Filter by text" }).fill("Filling pump operating principle");
-  const remove = page.getByRole("button", { name: "Remove Interview answer: Filling pump operating principle [target]" });
+  const remove = page.getByRole("button", { name: "Remove Interview answer: Filling pump operating principle [RU]" });
   await expect(remove).toBeVisible();
   await remove.click();
 
@@ -473,7 +473,7 @@ test("verification: verify in the builder, see it in the document, withdraw it b
   await expect(page.getByRole("heading", { level: 1, name: "Builder" })).toBeVisible();
   await page.getByRole("searchbox", { name: "Filter by text or path" }).fill("Batch record system");
 
-  await page.getByRole("button", { name: "Verify Batch record system, source" }).click();
+  await page.getByRole("button", { name: "Verify Batch record system, SU" }).click();
   const dialog = page.getByRole("dialog", { name: "Verify: Batch record system" });
   await dialog.getByLabel("Verifier name").fill("Pat Checker (fictional)");
   await dialog.getByLabel(/^Role/).fill("QA");
@@ -488,7 +488,7 @@ test("verification: verify in the builder, see it in the document, withdraw it b
   // Changing the value withdraws the verification.
   await go(page, "#/builder");
   await page.getByRole("searchbox", { name: "Filter by text or path" }).fill("Batch record system");
-  await page.getByRole("button", { name: "Edit Batch record system, source" }).click();
+  await page.getByRole("button", { name: "Edit Batch record system, SU" }).click();
   await answerResponderIfAsked(page);
   await page.getByRole("dialog").locator("label.choice-chip", { hasText: /^Electronic/ }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Save value" }).click();

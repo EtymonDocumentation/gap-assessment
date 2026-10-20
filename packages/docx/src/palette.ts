@@ -54,11 +54,15 @@ function categoryTint(text: string): string | undefined {
   return CATEGORY_TINTS.find((c) => c.match.test(t))?.fill ?? NEUTRAL_TINT;
 }
 
-/** The shading function for a table column, found by its header text (never by the values), or undefined for an ordinary column. */
+/**
+ * The shading function for a table column, found by its header text (never by the values), or undefined for an ordinary column.
+ * "Gap" is the column of the detailed gap table whose cell starts with the category label ("Outside SU range. ..."); "Category" is the plain
+ * category column of the risk ranking.
+ */
 export function tintForColumn(header: string): Tint | undefined {
   const h = header.trim().toLowerCase();
   if (h === "severity") return severityTint;
-  if (h === "category") return categoryTint;
+  if (h === "category" || h === "gap") return categoryTint;
   return undefined;
 }
 

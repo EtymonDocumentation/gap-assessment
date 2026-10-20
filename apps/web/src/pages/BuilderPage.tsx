@@ -19,6 +19,7 @@ import {
   renameCustomItem,
   renameCustomUnitOperation,
   setResponder,
+  sourceLabel,
   unitDimensions,
   type AnswerInput,
   type AttributeSide,
@@ -33,7 +34,7 @@ import { useAssessment, useContent, useStageWording, useStore } from "../store";
 import { QuestionInput, initialForm, toAnswer, type FormState } from "./question-inputs";
 
 type SideKey = "source" | "target" | "shared";
-const SIDE_NAME: Record<SideKey, string> = { source: "Source", target: "Target", shared: "Value" };
+const SIDE_NAME: Record<SideKey, string> = { source: "SU", target: "RU", shared: "Value" };
 
 interface EditTarget {
   attr: BuilderAttribute;
@@ -135,7 +136,7 @@ export function BuilderPage() {
           Builder
         </h1>
         <p className="muted">
-          Every attribute of the process model, source beside target, with its status, sources, verification state and revision. Edit a value in place,
+          Every attribute of the process model, SU beside RU, with its status, sources, verification state and revision. Edit a value in place,
           or add your own unit operations and items. Nothing is filled in by default: every value has a source.
         </p>
       </div>
@@ -217,8 +218,8 @@ export function BuilderPage() {
                   <thead>
                     <tr>
                       <th scope="col">Attribute</th>
-                      <th scope="col">{wording.sourceValidated ? "Source (validated)" : "Source (current)"}</th>
-                      <th scope="col">Target (planned)</th>
+                      <th scope="col">{wording.sourceValidated ? "SU (validated)" : "SU (current)"}</th>
+                      <th scope="col">RU (planned)</th>
                       <th scope="col">Comparison</th>
                     </tr>
                   </thead>
@@ -622,7 +623,7 @@ function Cell({
 }) {
   const statusClass = `status-${cell.status}`;
   const target: EditTarget = { attr, sideKey, cell };
-  const sideLabel = sideKey === "shared" ? "" : `, ${SIDE_NAME[sideKey].toLowerCase()}`;
+  const sideLabel = sideKey === "shared" ? "" : `, ${SIDE_NAME[sideKey]}`;
   const v = cell.verification;
   return (
     <div className="b-cell">
@@ -654,6 +655,11 @@ function Cell({
           </ul>
         )}
       </div>
+      {cell.hiddenSources > 0 && (
+        <div className="small muted">
+          {cell.hiddenSources} other {cell.hiddenSources === 1 ? "source is" : "sources are"} also recorded (shown in the Source register).
+        </div>
+      )}
       <div className="small">
         <VerificationBadge state={v.state} text={v.text} />
       </div>
@@ -871,7 +877,7 @@ function AttachDialog({
             <select value={sourceId} onChange={(e) => setSourceId(e.target.value)}>
               {options.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.label}
+                  {sourceLabel(s)}
                 </option>
               ))}
             </select>
@@ -1121,7 +1127,7 @@ function EditDialog({
           </button>
           {sameAllowed && (
             <button type="button" className="btn" onClick={() => submit({ kind: "same_as_source" })}>
-              Same as source
+              Same as SU
             </button>
           )}
           <button type="button" className="btn ghost" aria-expanded={naOpen} onClick={() => setNaOpen((o) => !o)}>
@@ -1242,7 +1248,7 @@ function AddItemDialog({
       open
       onOpenChange={(o) => !o && onClose()}
       title="Add a parameter, equipment, material or control"
-      description="The item is asked on both the source and the target side and compared like a built-in item."
+      description="The item is asked on both the sending unit (SU) and the receiving unit (RU) and compared like a built-in item."
       restoreFocus={restoreFocus}
     >
       <form

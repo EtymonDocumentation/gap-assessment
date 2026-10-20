@@ -1,6 +1,6 @@
 import type { Block, DocComment, DocModel, DocSection } from "@gap/engine";
 import { ACCENT, BANNER_COLOR, BORDER_COLOR, ON_ACCENT, ZEBRA_FILL, tintForColumn } from "./palette";
-import { BUILTIN_STYLE_ID, STYLE_NAME, StyleTable, styleXml, withBulletList, type StyleKey } from "./styles";
+import { BUILTIN_STYLE_ID, COMPACT_TABLE_HEADER_HALF_POINTS, STYLE_NAME, StyleTable, styleXml, withBulletList, type StyleKey } from "./styles";
 import { cleanXmlText, esc } from "./xml";
 
 export { BANNER_COLOR };
@@ -201,6 +201,8 @@ export class WriterCtx {
     this.numberingXml = init.numberingXml;
     this.bullet = init.bulletNumId;
     init.doc.comments.forEach((c, i) => {
+      // A comment with no section id has no anchor: it is never handed out, so it ends up in the closing note.
+      if (!c.sectionId) return;
       const section = init.doc.sections.find((s) => s.id === c.sectionId);
       const hasRow = !!(c.gapDisplayId && section && sectionHasCell(section, c.gapDisplayId));
       const map = hasRow ? this.gapComments : this.sectionComments;
@@ -424,6 +426,47 @@ export function columnWidths(columns: string[], rows: string[][], total: number,
   return widths;
 }
 
+// ------------------------------------------------------------------ preferred column proportions
+
+/**
+ * Relative column widths of the tool's own tables with a known set of columns, found by their header texts. Every column still gets at least the
+ * width its longest word needs (so no word breaks in the middle); the rest follows these proportions. Other tables are sized from their content.
+ */
+const COLUMN_WEIGHTS: { columns: string[]; weights: number[] }[] = [
+  // The lean detailed gap table: the Gap and Actions columns get the most room, ID and Severity the least, SU and RU in between.
+  { columns: ["ID", "Attribute", "SU", "RU", "Gap", "Severity", "Actions", "Notes"], weights: [7, 19, 17, 17, 36, 10, 29, 16] },
+  // The "Gap details" appendix: the regulatory note is the longest text.
+  { columns: ["ID", "Rule", "Owner", "Status", "Regulatory", "SU verification", "RU verification"], weights: [7, 24, 16, 10, 34, 21, 21] },
+];
+
+export function weightsFor(columns: string[]): number[] | undefined {
+  return COLUMN_WEIGHTS.find((w) => w.columns.length === columns.length && w.columns.every((c, i) => c === columns[i]))?.weights;
+}
+
+/**
+ * Widths that add up to `total`: no column is narrower than its minimum, the rest is shared in proportion to the weights.
+ * Returns undefined when the minimums alone do not fit (the caller then squeezes them with `columnWidths`).
+ */
+export function weightedWidths(min: number[], weights: number[], total: number): number[] | undefined {
+  const n = min.length;
+  if (n === 0 || weights.length !== n || min.reduce((a, b) => a + b, 0) > total) return undefined;
+  const pinned = new Set<number>();
+  for (let guard = 0; guard <= n; guard++) {
+    const free = [...Array(n).keys()].filter((i) => !pinned.has(i));
+    const room = total - [...pinned].reduce((a, i) => a + min[i]!, 0);
+    const wsum = free.reduce((a, i) => a + weights[i]!, 0);
+    const tooSmall = free.filter((i) => (room * weights[i]!) / wsum < min[i]!);
+    if (!tooSmall.length) {
+      const widths = Array.from({ length: n }, (_, i) => (pinned.has(i) ? min[i]! : Math.floor((room * weights[i]!) / wsum)));
+      const heaviest = free.reduce((best, i) => (weights[i]! > weights[best]! ? i : best), free[0] ?? 0);
+      widths[heaviest] = widths[heaviest]! + (total - widths.reduce((a, b) => a + b, 0));
+      return widths;
+    }
+    tooSmall.forEach((i) => pinned.add(i));
+  }
+  return undefined;
+}
+
 export interface TableOpts {
   /** First row is a repeating header row (default true). */
   headerRow?: boolean;
@@ -435,7 +478,19 @@ export interface TableOpts {
 }
 
 const CELL_MARGIN = '<w:tblCellMar><w:top w:w="40" w:type="dxa"/><w:left w:w="80" w:type="dxa"/><w:bottom w:w="40" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar>';
+/** Cell padding of the compact built-in look: 1.25 pt above and below, 3.5 pt at the sides. */
+const COMPACT_CELL_MARGIN = '<w:tblCellMar><w:top w:w="25" w:type="dxa"/><w:left w:w="70" w:type="dxa"/><w:bottom w:w="25" w:type="dxa"/><w:right w:w="70" w:type="dxa"/></w:tblCellMar>';
 const BORDER = (n: string, color = "808080") => `<w:${n} w:val="single" w:sz="4" w:space="0" w:color="${color}"/>`;
+
+/** Content-aware widths, or the tool's preferred proportions for a table whose columns are known (see COLUMN_WEIGHTS). */
+function autoWidths(cols: string[], rows: string[][], total: number, fontPt: number, boldFirst: boolean): number[] {
+  const weights = weightsFor(cols);
+  if (weights) {
+    const fitted = weightedWidths(columnNeeds(cols, rows, fontPt, boldFirst).min, weights, total);
+    if (fitted) return fitted;
+  }
+  return columnWidths(cols, rows, total, fontPt, boldFirst);
+}
 
 /** One table. A table with more than 8 columns is put in its own landscape section when the page is portrait. */
 export function tableXml(ctx: WriterCtx, columns: string[], rows: string[][], o: TableOpts = {}): string {
@@ -449,7 +504,7 @@ export function tableXml(ctx: WriterCtx, columns: string[], rows: string[][], o:
   const needsMin = canTurn ? columnNeeds(cols, rows, fontPt, boldFirst).min.reduce((a, b) => a + b, 0) : 0;
   const wide = canTurn && (ncols > 8 || needsMin > ctx.tableWidth(false) * 1.15);
   const total = ctx.tableWidth(ctx.page.startsLandscape || wide);
-  const widths = o.widths && o.widths.length === ncols && o.widths.reduce((a, b) => a + b, 0) === total ? o.widths : columnWidths(cols, rows, total, fontPt, boldFirst);
+  const widths = o.widths && o.widths.length === ncols && o.widths.reduce((a, b) => a + b, 0) === total ? o.widths : autoWidths(cols, rows, total, fontPt, boldFirst);
   const textStyle = ctx.style("tableText");
 
   // The upgraded built-in look: accent header with white bold text, zebra rows, and a tint (plus the text) in category and severity columns.
@@ -458,7 +513,7 @@ export function tableXml(ctx: WriterCtx, columns: string[], rows: string[][], o:
   const tints = styled ? cols.map(tintForColumn) : [];
   const cell = (text: string, w: number, opts: { head?: boolean; bold?: boolean; ids?: number[]; fill?: string }) => {
     const fill = opts.head ? headFill : opts.fill;
-    const rpr = { b: opts.head || opts.bold, ...(opts.head && styled ? { color: ON_ACCENT } : {}) };
+    const rpr = { b: opts.head || opts.bold, ...(opts.head && styled ? { color: ON_ACCENT, sz: COMPACT_TABLE_HEADER_HALF_POINTS } : {}) };
     return (
       `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${fill ? `<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/>` : ""}</w:tcPr>` +
       para(withCommentRanges(textRuns(text, rpr), opts.ids ?? []), { style: textStyle, keepNext: opts.head }) +
@@ -481,7 +536,7 @@ export function tableXml(ctx: WriterCtx, columns: string[], rows: string[][], o:
   const tbl =
     `<w:tbl><w:tblPr><w:tblStyle w:val="${esc(ctx.style("tableGrid"))}"/><w:tblW w:w="${total}" w:type="dxa"/>` +
     `<w:tblBorders>${BORDER("top", line)}${BORDER("left", line)}${BORDER("bottom", line)}${BORDER("right", line)}${BORDER("insideH", line)}${BORDER("insideV", line)}</w:tblBorders>` +
-    `<w:tblLayout w:type="fixed"/>${CELL_MARGIN}<w:tblLook w:val="04A0" w:firstRow="${header ? 1 : 0}" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:noHBand="0" w:noVBand="1"/></w:tblPr>` +
+    `<w:tblLayout w:type="fixed"/>${styled ? COMPACT_CELL_MARGIN : CELL_MARGIN}<w:tblLook w:val="04A0" w:firstRow="${header ? 1 : 0}" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:noHBand="0" w:noVBand="1"/></w:tblPr>` +
     `<w:tblGrid>${widths.map((w) => `<w:gridCol w:w="${w}"/>`).join("")}</w:tblGrid>${trs.join("")}</w:tbl>`;
   if (wide) {
     return para("", { sectPr: ctx.sectPrs!.portrait, spacing: { before: 0, after: 0 } }) + tbl + para("", { sectPr: ctx.sectPrs!.landscape, spacing: { before: 0, after: 0 } });

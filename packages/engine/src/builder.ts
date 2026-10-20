@@ -12,7 +12,7 @@ import { fieldLabel, type ContentBundle } from "./content";
 import type { Question, Section } from "./content-schema";
 import { stagedFor } from "./stage";
 import { CUSTOM_KIND_LABELS, isCustomQuestion, isCustomSection, recordedEntries } from "./custom";
-import { sourceShort } from "./labels";
+import { displaySources, displaySourceNames, sourceShort } from "./labels";
 import { cellVerification, type CellVerification } from "./verification";
 import { formatQuestionSide, formatResolved, questionLabel } from "./format";
 import { instanceRefs, type QuestionInstance } from "./sequencer";
@@ -34,8 +34,10 @@ export interface AttributeSide {
   sameAsSource: boolean;
   /** Unknown or not yet established: an open information item. */
   open: boolean;
-  /** Entries that hold a value here, with the source cited by each (for attaching and detaching). */
+  /** Sources shown for this value, documents first (see displaySources), with the entries that cite each (for attaching and detaching). */
   sourceLinks: { id: string; label: string; refs: string[] }[];
+  /** Sources that back the value but are not listed in sourceLinks because a document reference is shown instead. */
+  hiddenSources: number;
   verification: CellVerification;
   sources: string[];
   revision: number;
@@ -115,18 +117,18 @@ function sideOf(content: ContentBundle, project: Project, inst: QuestionInstance
   const entries = refs.map((r) => getEntry(project, r)).filter((e) => !!e);
   const ids = new Set(entries.flatMap((e) => e!.sourceIds));
   const same = resolved.length > 0 && resolved.every((r) => r.sameAsSource);
+  const cited = project.sources.filter((s) => ids.has(s.id));
   return {
     inst,
     refs,
     display: formatQuestionSide(content, project, inst.question, inst.side),
     status,
-    statusText: same && status === "established" ? "Same as source" : STATUS_TEXT[status],
+    statusText: same && status === "established" ? "Same as SU" : STATUS_TEXT[status],
     sameAsSource: same,
     open: resolved.some((r) => r.status === "unknown" || r.status === "not_established"),
-    sources: [...new Set(project.sources.filter((s) => ids.has(s.id)).map(sourceShort))],
-    sourceLinks: project.sources
-      .filter((s) => ids.has(s.id))
-      .map((s) => ({ id: s.id, label: sourceShort(s), refs: refs.filter((r) => getEntry(project, r)?.sourceIds.includes(s.id)) })),
+    sources: displaySourceNames(cited),
+    sourceLinks: displaySources(cited).map((s) => ({ id: s.id, label: sourceShort(s), refs: refs.filter((r) => getEntry(project, r)?.sourceIds.includes(s.id)) })),
+    hiddenSources: cited.length - displaySources(cited).length,
     verification: cellVerification(project, refs),
     revision: entries.reduce((m, e) => Math.max(m, e!.revision), 0),
   };
@@ -169,7 +171,7 @@ function inactiveRows(content: ContentBundle, project: Project, a: Assessment): 
       name,
       display: formatResolved(content, undefined, r, FIELD_OPTION_SET[field]),
       reason,
-      sources: [...new Set(project.sources.filter((s) => ids.has(s.id)).map(sourceShort))],
+      sources: displaySourceNames(project.sources.filter((s) => ids.has(s.id))),
       verification: cellVerification(project, [e.path]).text,
       revision: e.revision,
     });

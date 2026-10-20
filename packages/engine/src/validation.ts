@@ -251,8 +251,8 @@ export const PLAN_CSV_COLUMNS = [
   "Regulatory",
   "Readiness",
   "Linked studies",
-  "Source study status",
-  "Target study status",
+  "SU study status",
+  "RU study status",
   "Open gaps",
   "Open information items",
 ] as const;
@@ -369,12 +369,12 @@ function qualifiedRange(content: ContentBundle, project: Project, shown: Set<str
     const nor = resolveEntry(project, `${against.side}.${against.path}.nor`);
     const useNor = nor.status === "established" && nor.value !== undefined;
     r = useNor ? nor : resolveEntry(project, `${against.side}.${against.path}.setPoint`);
-    basis = `${against.side} ${useNor ? "NOR" : "set point"}`;
+    basis = `${against.side === "source" ? "SU" : "RU"} ${useNor ? "NOR" : "set point"}`;
     requiredRefs = [`${against.side}.${against.path}.${useNor ? "nor" : "setPoint"}`];
     refQ = content.questions.find((x) => x.binds === against.path);
   } else {
     r = resolveEntry(project, `${against.side}.${against.path}`);
-    basis = `${against.side} process value`;
+    basis = `${against.side === "source" ? "SU" : "RU"} process value`;
     requiredRefs = [`${against.side}.${against.path}`];
     refQ = questionFor(content, against.path);
   }
@@ -384,7 +384,7 @@ function qualifiedRange(content: ContentBundle, project: Project, shown: Set<str
   return result;
 }
 
-export const EQUIPMENT_CSV_COLUMNS = ["Unit operation", "Equipment", "Source qualification", "Target qualification", "Qualified range (target)", "Required by target process", "Gaps"] as const;
+export const EQUIPMENT_CSV_COLUMNS = ["Unit operation", "Equipment", "SU qualification", "RU qualification", "Qualified range (RU)", "Required by RU process", "Gaps"] as const;
 
 export function equipmentQualificationToCsv(rows: EquipmentRow[]): string {
   const data = rows.map((r) => [

@@ -22,6 +22,9 @@ import { inactiveEntries, instanceRefs, visibleInstances, type QuestionInstance 
 import { sourceValidated, stagedFor } from "./stage";
 import { isQuantity, isRange, valuesEqual } from "./values";
 
+/** The user-facing name of each side of the transfer: the sending unit (SU) and the receiving unit (RU). */
+const SIDE_WORD = { source: "SU", target: "RU" } as const;
+
 export const REGULATORY_NOTE = "Requires regulatory affairs assessment.";
 
 export interface ComparatorResult {
@@ -111,9 +114,9 @@ function info(...parts: [string, Resolved][]): ComparatorResult {
 function notApplicable(s: Resolved, t: Resolved): ComparatorResult | undefined {
   const sNA = s.status === "not_applicable";
   const tNA = t.status === "not_applicable";
-  if (sNA && tNA) return { category: "equivalent", detail: "Not applicable at source or target." };
-  if (sNA && est(t)) return { category: "new_requirement", detail: "Not applicable at source; present at target." };
-  if (tNA && est(s)) return { category: "removed_element", detail: "Present at source; not applicable at target." };
+  if (sNA && tNA) return { category: "equivalent", detail: "Not applicable at SU or RU." };
+  if (sNA && est(t)) return { category: "new_requirement", detail: "Not applicable at SU; present at RU." };
+  if (tNA && est(s)) return { category: "removed_element", detail: "Present at SU; not applicable at RU." };
   return undefined;
 }
 
@@ -136,9 +139,9 @@ function asRange(v: unknown): Range | undefined {
 function targetWindow(ctx: Ctx): { window?: Range; label: string } {
   const nor = ctx.get("target", "nor");
   const sp = ctx.get("target", "setPoint");
-  if (est(nor)) return { window: nor.value as Range, label: `target NOR ${formatRange(nor.value as Range)}` };
-  if (est(sp)) return { window: asRange(sp.value), label: `target set point ${formatQuantity(sp.value as Quantity)}` };
-  return { label: "target operating range" };
+  if (est(nor)) return { window: nor.value as Range, label: `RU NOR ${formatRange(nor.value as Range)}` };
+  if (est(sp)) return { window: asRange(sp.value), label: `RU set point ${formatQuantity(sp.value as Quantity)}` };
+  return { label: "RU operating range" };
 }
 
 /** "validated" for a commercial (process validated) source; "demonstrated" (actually run) for any other source stage. */
@@ -150,10 +153,10 @@ function rangeWord(ctx: Ctx): string {
 function sourceReference(ctx: Ctx): { range?: Range; label: string } {
   const word = rangeWord(ctx);
   const vr = ctx.get("source", "validatedRange");
-  if (est(vr)) return { range: vr.value as Range, label: `source ${word} range ${formatRange(vr.value as Range)}` };
+  if (est(vr)) return { range: vr.value as Range, label: `SU ${word} range ${formatRange(vr.value as Range)}` };
   const par = ctx.get("source", "par");
-  if (est(par)) return { range: par.value as Range, label: `source PAR ${formatRange(par.value as Range)}` };
-  return { label: `source PAR / ${word} range` };
+  if (est(par)) return { range: par.value as Range, label: `SU PAR ${formatRange(par.value as Range)}` };
+  return { label: `SU PAR / ${word} range` };
 }
 
 function paramEquivalent(ctx: Ctx): boolean {
@@ -170,11 +173,11 @@ function paramEquivalent(ctx: Ctx): boolean {
 
 function cmpRange(ctx: Ctx): ComparatorResult[] {
   const tw = targetWindow(ctx);
-  if (!tw.window) return [info(["Target set point", ctx.get("target", "setPoint")], ["target NOR", ctx.get("target", "nor")])];
-  if (paramEquivalent(ctx)) return [{ category: "equivalent", detail: "Target set point and NOR match the source." }];
+  if (!tw.window) return [info(["RU set point", ctx.get("target", "setPoint")], ["RU NOR", ctx.get("target", "nor")])];
+  if (paramEquivalent(ctx)) return [{ category: "equivalent", detail: "RU set point and NOR match the SU." }];
   const ref = sourceReference(ctx);
   if (!ref.range) {
-    return [info(["Source PAR", ctx.get("source", "par")])];
+    return [info(["SU PAR", ctx.get("source", "par")])];
   }
   return guardUnits(
     () => {
@@ -186,7 +189,7 @@ function cmpRange(ctx: Ctx): ComparatorResult[] {
           : { category: "outside_validated_range" as const, detail: `The ${tw.label} extends beyond the ${ref.label}.` },
       ];
     },
-    [{ category: "information_required", detail: "Source and target units are not comparable." }],
+    [{ category: "information_required", detail: "SU and RU units are not comparable." }],
   );
 }
 
@@ -199,25 +202,25 @@ function cmpScale(ctx: Ctx): ComparatorResult[] {
     const sSp = ctx.get("source", "setPoint");
     const tSp = ctx.get("target", "setPoint");
     const tw = targetWindow(ctx);
-    if (!tw.window) return [info(["Target set point", tSp], ["target NOR", ctx.get("target", "nor")])];
-    if (paramEquivalent(ctx)) return [{ category: "equivalent", detail: "Target nominal value and range match the source." }];
+    if (!tw.window) return [info(["RU set point", tSp], ["RU NOR", ctx.get("target", "nor")])];
+    if (paramEquivalent(ctx)) return [{ category: "equivalent", detail: "RU nominal value and range match the SU." }];
     const ref = sourceReference(ctx);
     return guardUnits(
       () => {
         if (ref.range && rangeWithin(tw.window!, ref.range)) {
           return [{ category: "within_validated_range" as const, detail: `The ${tw.label} lies within the ${ref.label}.` }];
         }
-        if (!est(sSp) || !est(tSp)) return [info(["Source nominal value", sSp], ["target nominal value", tSp])];
+        if (!est(sSp) || !est(tSp)) return [info(["SU nominal value", sSp], ["RU nominal value", tSp])];
         const ratio = quantityRatio(tSp.value as Quantity, sSp.value as Quantity);
         const beyond = ref.range ? `; outside the ${ref.label}` : "";
         return [{ category: "scale_change" as const, ratio, detail: `Nominal scale changes ${ratioText(ratio)} (${formatQuantity(sSp.value as Quantity)} to ${formatQuantity(tSp.value as Quantity)})${beyond}.` }];
       },
-      [{ category: "information_required", detail: "Source and target units are not comparable." }],
+      [{ category: "information_required", detail: "SU and RU units are not comparable." }],
     );
   }
   const s = ctx.get("source");
   const t = ctx.get("target");
-  if (!est(s) || !est(t)) return [info(["Source value", s], ["target value", t])];
+  if (!est(s) || !est(t)) return [info(["SU value", s], ["RU value", t])];
   if (valuesEqual(s.value, t.value)) return [{ category: "equivalent", detail: "Same capacity or scale." }];
   const qs = isQuantity(s.value) ? s.value : undefined;
   const qt = isQuantity(t.value) ? t.value : undefined;
@@ -227,62 +230,62 @@ function cmpScale(ctx: Ctx): ComparatorResult[] {
       const ratio = quantityRatio(qt, qs);
       return [{ category: "scale_change" as const, ratio, detail: `Scale changes ${ratioText(ratio)} (${formatQuantity(qs)} to ${formatQuantity(qt)}).` }];
     },
-    [{ category: "information_required", detail: "Source and target units are not comparable." }],
+    [{ category: "information_required", detail: "SU and RU units are not comparable." }],
   );
 }
 
 function cmpLimit(ctx: Ctx, upper: boolean): ComparatorResult[] {
   const s = ctx.get("source");
   const t = ctx.get("target");
-  if (!est(s) || !est(t)) return [info(["Source value", s], ["target value", t])];
+  if (!est(s) || !est(t)) return [info(["SU value", s], ["RU value", t])];
   const qs = s.value as Quantity;
   const qt = t.value as Quantity;
   return guardUnits(
     () => {
-      if (valuesEqual(qs, qt)) return [{ category: "equivalent" as const, detail: "Target limit equals the source limit." }];
+      if (valuesEqual(qs, qt)) return [{ category: "equivalent" as const, detail: "RU limit equals the SU limit." }];
       const r = quantityRatio(qt, qs);
       const tighter = upper ? r < 1 : r > 1;
       return tighter
-        ? [{ category: "within_validated_range" as const, detail: `Target ${formatQuantity(qt)} is within the source ${rangeWord(ctx)} ${upper ? "maximum" : "minimum"} of ${formatQuantity(qs)}.` }]
-        : [{ category: "outside_validated_range" as const, detail: `Target ${formatQuantity(qt)} exceeds the source ${rangeWord(ctx)} ${upper ? "maximum" : "minimum"} of ${formatQuantity(qs)}.` }];
+        ? [{ category: "within_validated_range" as const, detail: `RU ${formatQuantity(qt)} is within the SU ${rangeWord(ctx)} ${upper ? "maximum" : "minimum"} of ${formatQuantity(qs)}.` }]
+        : [{ category: "outside_validated_range" as const, detail: `RU ${formatQuantity(qt)} exceeds the SU ${rangeWord(ctx)} ${upper ? "maximum" : "minimum"} of ${formatQuantity(qs)}.` }];
     },
-    [{ category: "information_required", detail: "Source and target units are not comparable." }],
+    [{ category: "information_required", detail: "SU and RU units are not comparable." }],
   );
 }
 
 function cmpEqualOrDifferent(ctx: Ctx): ComparatorResult[] {
   const s = ctx.get("source");
   const t = ctx.get("target");
-  if (!est(s) || !est(t)) return [info(["Source value", s], ["target value", t])];
-  if (valuesEqual(s.value, t.value)) return [{ category: "equivalent", detail: "Source and target are the same." }];
-  return [{ category: ctx.rule.config.differentAs ?? "different_principle", detail: "Source and target differ." }];
+  if (!est(s) || !est(t)) return [info(["SU value", s], ["RU value", t])];
+  if (valuesEqual(s.value, t.value)) return [{ category: "equivalent", detail: "SU and RU are the same." }];
+  return [{ category: ctx.rule.config.differentAs ?? "different_principle", detail: "SU and RU differ." }];
 }
 
 function cmpPresence(ctx: Ctx): ComparatorResult[] {
   const s = ctx.get("source");
   const t = ctx.get("target");
-  if (!est(s) || !est(t)) return [info(["Source", s], ["target", t])];
+  if (!est(s) || !est(t)) return [info(["SU", s], ["RU", t])];
   const a = s.value === true;
   const b = t.value === true;
-  if (a && b) return [{ category: "equivalent", detail: "Present at source and target." }];
-  if (!a && !b) return [{ category: "equivalent", detail: "Not used at source or target." }];
-  if (a) return [{ category: "removed_element", detail: "Present at source; absent at target." }];
-  return [{ category: "new_requirement", detail: "Absent at source; present at target." }];
+  if (a && b) return [{ category: "equivalent", detail: "Present at SU and RU." }];
+  if (!a && !b) return [{ category: "equivalent", detail: "Not used at SU or RU." }];
+  if (a) return [{ category: "removed_element", detail: "Present at SU; absent at RU." }];
+  return [{ category: "new_requirement", detail: "Absent at SU; present at RU." }];
 }
 
 function cmpSet(ctx: Ctx): ComparatorResult[] {
   const s = ctx.get("source");
   const t = ctx.get("target");
-  if (!est(s) || !est(t)) return [info(["Source", s], ["target", t])];
+  if (!est(s) || !est(t)) return [info(["SU", s], ["RU", t])];
   const sa = new Set(s.value as string[]);
   const ta = new Set(t.value as string[]);
   const added = [...ta].filter((x) => !sa.has(x));
   const removed = [...sa].filter((x) => !ta.has(x));
-  if (!added.length && !removed.length) return [{ category: "equivalent", detail: "Same elements at source and target." }];
+  if (!added.length && !removed.length) return [{ category: "equivalent", detail: "Same elements at SU and RU." }];
   const label = (v: string) => optionLabel(ctx.content, ctx.q, v);
   return [
-    ...added.map((v) => ({ category: "new_requirement" as const, subKey: v, detail: `${label(v)}: present at target, absent at source.` })),
-    ...removed.map((v) => ({ category: "removed_element" as const, subKey: v, detail: `${label(v)}: present at source, absent at target.` })),
+    ...added.map((v) => ({ category: "new_requirement" as const, subKey: v, detail: `${label(v)}: present at RU, absent at SU.` })),
+    ...removed.map((v) => ({ category: "removed_element" as const, subKey: v, detail: `${label(v)}: present at SU, absent at RU.` })),
   ];
 }
 
@@ -300,7 +303,7 @@ function cmpCoverage(ctx: Ctx): ComparatorResult[] {
   }
   val.entryIds.forEach((id) => ctx.used.add(id));
   ctx.refs.add(val.ref);
-  if (!est(cov) || !est(val)) return [info([`Covered range (${coverageSide})`, cov], [`compared value (${against!.side})`, val])];
+  if (!est(cov) || !est(val)) return [info([`Covered range (${SIDE_WORD[coverageSide!]})`, cov], [`compared value (${SIDE_WORD[against!.side]})`, val])];
   const covRange = isQuantity(cov.value) ? { max: cov.value } : (cov.value as Range);
   const v = asRange(val.value)!;
   return guardUnits(
@@ -371,10 +374,10 @@ function ruleSeverity(ctx: Ctx, res: ComparatorResult): { severity: Severity; no
     const cls = resolveEntry(ctx.project, `source.${ctx.q.binds}.classification`);
     if (est(cls) && map[String(cls.value)]) {
       const label = ctx.content.catalog.optionSets.classification?.find((o) => o.value === cls.value)?.label ?? String(cls.value);
-      return { severity: map[String(cls.value)]!, note: `Parameter classified as ${label} at source.` };
+      return { severity: map[String(cls.value)]!, note: `Parameter classified as ${label} at SU.` };
     }
     const worst = (Object.values(map) as Severity[]).reduce((a, b) => (RANK[b] > RANK[a] ? b : a), "none" as Severity);
-    return { severity: worst, note: "Classification not established at source; the most conservative severity is applied." };
+    return { severity: worst, note: "Classification not established at SU; the most conservative severity is applied." };
   }
   return { severity: rule.severity };
 }
@@ -470,8 +473,8 @@ export function assess(raw: ContentBundle, project: Project): Assessment {
             ? "No difference identified."
             : res.category === "within_validated_range"
               ? validated
-                ? "The target is within the validated range or covered by existing validation; no additional validation activity is implied. The difference is recorded for completeness."
-                : "The target is within the range demonstrated at the source or covered by the source data; this difference alone implies no additional activity. It is recorded for completeness."
+                ? "The RU is within the validated range or covered by existing validation; no additional validation activity is implied. The difference is recorded for completeness."
+                : "The RU is within the range demonstrated at the SU or covered by the SU data; this difference alone implies no additional activity. It is recorded for completeness."
               : rule.why);
       // A one-sided coverage question shows the value it was checked against in the other column.
       const against = rule.comparator === "coverage" ? rule.config.against : undefined;

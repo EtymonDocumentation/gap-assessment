@@ -86,7 +86,7 @@ export function ValidationPage() {
     <div className="stack-lg">
       <h1>Validation</h1>
       <p className="lede muted">
-        What the differences in the gap register imply for validation, and how the target equipment is qualified. Everything here is derived from the answers; nothing is assumed.
+        What the differences in the gap register imply for validation, and how the receiving unit (RU) equipment is qualified. Everything here is derived from the answers; nothing is assumed.
       </p>
 
       <section className="stack" aria-labelledby="plan-h">
@@ -188,8 +188,8 @@ export function ValidationPage() {
                 <tr>
                   <th scope="col">Unit operation</th>
                   <th scope="col">Equipment</th>
-                  <th scope="col">Source status</th>
-                  <th scope="col">Target status</th>
+                  <th scope="col">SU status</th>
+                  <th scope="col">RU status</th>
                   <th scope="col">Qualified range vs required</th>
                   <th scope="col">Gaps</th>
                 </tr>
@@ -228,11 +228,11 @@ function PlanRowView({ r }: { r: PlanRow }) {
               <li key={`${s.uoKey}.${s.key}`}>
                 <strong>{s.label}</strong> <span className="small muted">({s.uoLabel})</span>
                 <div className="small">
-                  Source: {s.source.display} · Target: {s.target.display}
+                  SU: {s.source.display} · RU: {s.target.display}
                 </div>
                 {s.details.map((d) => (
                   <div className="small muted" key={d.label}>
-                    {d.label}: source {d.source.display}, target {d.target.display}
+                    {d.label}: SU {d.source.display}, RU {d.target.display}
                   </div>
                 ))}
               </li>
@@ -278,7 +278,7 @@ function EquipmentRowView({ e }: { e: EquipmentRow }) {
             {e.ranges.map((x) => (
               <li key={x.attribute}>
                 <strong>{x.attribute}</strong>
-                <div className="small">Qualified (target): {x.qualified.display}</div>
+                <div className="small">Qualified (RU): {x.qualified.display}</div>
                 <div className="small">{x.required ? `Required: ${x.required.display} (${x.required.basis})` : "Required: not derived from the rules"}</div>
               </li>
             ))}

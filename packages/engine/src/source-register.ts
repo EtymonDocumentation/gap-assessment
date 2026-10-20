@@ -14,7 +14,7 @@ import {
 import { assess, type Gap } from "./compare";
 import { categoryLabel, type ContentBundle } from "./content";
 import { effectiveStaged } from "./custom";
-import { sourceShort } from "./labels";
+import { sourceLabel, sourceShort } from "./labels";
 import { entryDisplay, entryLabel, type EntryLabel } from "./labels";
 import { activeRefs, visibleInstances } from "./sequencer";
 
@@ -74,7 +74,7 @@ export function sourceRegisterRows(content: ContentBundle, project: Project): So
     return {
       source,
       typeLabel: SOURCE_TYPE_LABELS[source.type],
-      title: source.docRef ? source.docRef.identifier : source.label,
+      title: source.docRef ? source.docRef.identifier : sourceLabel(source),
       detail: docDetail(source),
       responder: source.responder ? `${source.responder.name}${source.responder.role ? ` (${source.responder.role})` : ""}` : "—",
       date: source.date.slice(0, 10),
@@ -97,7 +97,7 @@ export function filterSourceRows(rows: SourceRow[], f: SourceFilter): SourceRow[
     if (f.type && f.type !== "all" && r.source.type !== f.type) return false;
     if (f.onlyUnused && r.state === "in_use") return false;
     if (!text) return true;
-    return [r.source.label, r.title, r.detail, r.responder, r.typeLabel, r.date, r.source.docRef?.identifier, r.source.docRef?.docType]
+    return [r.source.label, sourceLabel(r.source), r.title, r.detail, r.responder, r.typeLabel, r.date, r.source.docRef?.identifier, r.source.docRef?.docType]
       .filter(Boolean)
       .join(" ")
       .toLowerCase()

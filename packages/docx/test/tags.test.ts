@@ -1,4 +1,5 @@
 /// <reference types="node" />
+import { DOCUMENT_SECTION_IDS } from "@gap/engine";
 import PizZip from "pizzip";
 import { describe, expect, it, vi } from "vitest";
 import { TAG_REFERENCE, TemplateError, buildTagData, importTemplateFile, renderDocx, tagReferenceMarkdown } from "../src/index";
@@ -154,7 +155,8 @@ describe("tag reference", () => {
   it("lists every document section as a raw tag, plus {@body}", () => {
     const raw = TAG_REFERENCE.filter((t) => t.kind === "raw").map((t) => t.tag);
     expect(raw).toContain("body");
-    expect(raw.filter((t) => t.startsWith("section_")).length).toBe(17);
+    expect(raw.filter((t) => t.startsWith("section_")).length).toBe(DOCUMENT_SECTION_IDS.length);
+    expect(raw).toContain("section_gap_details");
   });
   it("renders as Markdown with the banner rule", () => {
     const md = tagReferenceMarkdown();

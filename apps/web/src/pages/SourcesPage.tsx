@@ -2,6 +2,7 @@ import {
   filterSourceRows,
   previewSourceRemoval,
   SOURCE_TYPE_LABELS,
+  sourceLabel,
   sourceRegisterRows,
   type SourceRow,
 } from "@gap/engine";
@@ -120,7 +121,7 @@ export function SourcesPage() {
                     <tr id={`source-${r.source.id}`}>
                       <td>{r.typeLabel}</td>
                       <th scope="row">
-                        {r.source.type === "document_reference" ? r.title : r.source.label}
+                        {r.source.type === "document_reference" ? r.title : sourceLabel(r.source)}
                         {r.state !== "in_use" && <span className={`tag state-${r.state}`}>{r.stateText}</span>}
                         {r.detail && <div className="small muted normal">{r.detail}</div>}
                       </th>
@@ -133,7 +134,7 @@ export function SourcesPage() {
                           className="btn small"
                           aria-expanded={open}
                           aria-controls={`cited-${r.source.id}`}
-                          aria-label={`${open ? "Hide" : "Show"} ${r.citing.length} ${r.citing.length === 1 ? "entry" : "entries"} citing ${r.source.label}`}
+                          aria-label={`${open ? "Hide" : "Show"} ${r.citing.length} ${r.citing.length === 1 ? "entry" : "entries"} citing ${sourceLabel(r.source)}`}
                           onClick={() => toggle(r.source.id)}
                         >
                           {open ? "Hide" : "Show"} {r.citing.length}
@@ -146,7 +147,7 @@ export function SourcesPage() {
                               type="button"
                               id={`edit-source-${r.source.id}`}
                               className="btn small"
-                              aria-label={`Edit ${r.source.label}`}
+                              aria-label={`Edit ${sourceLabel(r.source)}`}
                               onClick={() => {
                                 returnFocus.current = `edit-source-${r.source.id}`;
                                 setDialog({ kind: "edit", row: r });
@@ -159,7 +160,7 @@ export function SourcesPage() {
                             type="button"
                             id={`remove-source-${r.source.id}`}
                             className="btn small danger"
-                            aria-label={`Remove ${r.source.label}`}
+                            aria-label={`Remove ${sourceLabel(r.source)}`}
                             onClick={() => {
                               returnFocus.current = `remove-source-${r.source.id}`;
                               setDialog({ kind: "remove", row: r });
@@ -222,7 +223,7 @@ export function SourcesPage() {
           restoreFocus={restoreFocus}
           onClose={() => setDialog(null)}
           onSave={(patch) => {
-            const err = update((p, actor) => updateSource(p, dialog.row.source.id, patch, actor), `${dialog.row.source.label} updated`);
+            const err = update((p, actor) => updateSource(p, dialog.row.source.id, patch, actor), `${sourceLabel(dialog.row.source)} updated`);
             if (!err) setDialog(null);
             return err;
           }}
@@ -412,7 +413,7 @@ function RemoveDialog({
       open
       wide
       onOpenChange={(o) => !o && onClose()}
-      title={`Remove ${row.source.label}?`}
+      title={`Remove ${sourceLabel(row.source)}?`}
       description="Nothing is removed until you confirm. This is what will happen."
       restoreFocus={restoreFocus}
     >

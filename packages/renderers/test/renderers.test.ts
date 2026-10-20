@@ -84,14 +84,15 @@ describe("renderMarkdown", () => {
     for (const [k, v] of doc.meta) expect(md).toContain(`- **${k}:** ${v}`);
   });
 
-  it("numbers the sections 1 to 13 and the appendices A to D in order", () => {
+  it("numbers the sections 1 to 13 and the appendices A to E in order", () => {
     const headings = lines.filter((l) => l.startsWith("## "));
-    expect(headings).toHaveLength(17);
+    expect(headings).toHaveLength(18);
     headings.slice(0, 13).forEach((h, i) => expect(h.startsWith(`## ${i + 1}. `), h).toBe(true));
-    expect(headings[13]).toMatch(/^## Appendix A\. Source register$/);
-    expect(headings[14]).toMatch(/^## Appendix B\. Change log summary$/);
-    expect(headings[15]).toMatch(/^## Appendix C\. Revision history$/);
-    expect(headings[16]).toMatch(/^## Appendix D\. Reviewer comments$/);
+    expect(headings[13]).toMatch(/^## Appendix A\. Gap details$/);
+    expect(headings[14]).toMatch(/^## Appendix B\. Source register$/);
+    expect(headings[15]).toMatch(/^## Appendix C\. Change log summary$/);
+    expect(headings[16]).toMatch(/^## Appendix D\. Revision history$/);
+    expect(headings[17]).toMatch(/^## Appendix E. Reviewer comments$/);
     expect(headings).toEqual(doc.sections.map((s) => `## ${s.appendix ? "Appendix " : ""}${s.number}. ${s.title}`));
   });
 
@@ -188,9 +189,9 @@ describe("renderHtml", () => {
     expect(html).toContain(`<div class="footer">${BANNER}</div>`);
   });
 
-  it("numbers the sections 1 to 13 and the appendices A to D, each in its own section element", () => {
+  it("numbers the sections 1 to 13 and the appendices A to E, each in its own section element", () => {
     const h2 = [...html.matchAll(/<h2>(?:Appendix )?([0-9A-Z]+)\. ([^<]*)<\/h2>/g)];
-    expect(h2.map((m) => m[1])).toEqual(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "A", "B", "C", "D"]);
+    expect(h2.map((m) => m[1])).toEqual(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "A", "B", "C", "D", "E"]);
     for (const s of doc.sections) expect(html).toContain(`<section id="doc-${s.id}">`);
   });
 
@@ -322,8 +323,8 @@ const COL = (name: (typeof CSV_COLUMNS)[number]) => CSV_COLUMNS.indexOf(name);
 describe("gapsToCsv", () => {
   const csv = gapsToCsv(content, assessment.gaps, project);
 
-  it("has one header row plus one row per gap, 19 columns each, CRLF line endings and a final CRLF", () => {
-    expect(CSV_COLUMNS).toHaveLength(19);
+  it("has one header row plus one row per gap, 20 columns each, CRLF line endings and a final CRLF", () => {
+    expect(CSV_COLUMNS).toHaveLength(20);
     const rows = parseCsv(csv);
     expect(rows).toHaveLength(assessment.gaps.length + 1);
     for (const r of rows) expect(r).toHaveLength(CSV_COLUMNS.length);
@@ -376,7 +377,7 @@ describe("gapsToCsv", () => {
     ])("neutralises a cell starting with %s by prefixing an apostrophe", (_name, value) => {
       const g = withGap({ attribute: value, detail: value, sourceDisplay: value, targetDisplay: value, rationale: value, sectionTitle: value });
       const row = dataRow(g);
-      for (const col of ["Attribute", "Detail", "Source value", "Target value", "Why it matters", "Section"] as const) {
+      for (const col of ["Attribute", "Detail", "SU value", "RU value", "Why it matters", "Section"] as const) {
         expect(row[COL(col)], col).toBe(`'${value}`);
       }
     });
@@ -408,13 +409,13 @@ describe("gapsToCsv", () => {
       const row = dataRow(g);
       expect(row[COL("Detail")]).toBe("a=b, c+d, e-f, g@h");
       expect(row[COL("Attribute")]).toBe(" =leading space");
-      expect(row[COL("Source value")]).toBe("5 mm");
+      expect(row[COL("SU value")]).toBe("5 mm");
     });
 
     it("leaves a bare negative number as a number but guards negative text", () => {
       const row = dataRow(withGap({ sourceDisplay: "-20", targetDisplay: "-20 °C" }));
-      expect(row[COL("Source value")]).toBe("-20");
-      expect(row[COL("Target value")]).toBe("'-20 °C");
+      expect(row[COL("SU value")]).toBe("-20");
+      expect(row[COL("RU value")]).toBe("'-20 °C");
     });
 
     it("also neutralises the header-independent ID and rule columns", () => {
@@ -475,8 +476,8 @@ describe("gapsToCsv", () => {
       expect(rows.some((r) => r[COL("Regulatory")] === "Requires regulatory affairs assessment.")).toBe(true);
       for (const [i, g] of assessment.gaps.entries()) {
         const expected = (v: string) => (/^[=+\-@\t\r]/.test(v) ? `'${v}` : v);
-        expect(rows[i]![COL("Source value")]).toBe(expected(g.sourceDisplay));
-        expect(rows[i]![COL("Target value")]).toBe(expected(g.targetDisplay));
+        expect(rows[i]![COL("SU value")]).toBe(expected(g.sourceDisplay));
+        expect(rows[i]![COL("RU value")]).toBe(expected(g.targetDisplay));
       }
     });
   });
@@ -503,7 +504,7 @@ describe("validation plan and equipment qualification sections", () => {
     const md = renderMarkdown(doc);
     expect(md).toContain(`## ${plan.number}. Validation plan`);
     expect(md).toContain(`## ${equipment.number}. Equipment qualification comparison`);
-    expect(md).toContain("| Activity | Description | Implied by gaps | Severity | Regulatory | Linked studies: source status | Linked studies: target status | Readiness |");
+    expect(md).toContain("| Activity | Description | Implied by gaps | Severity | Regulatory | Linked studies: SU status | Linked studies: RU status | Readiness |");
     const table = plan.blocks.find((b) => b.type === "table");
     expect(table?.type === "table" && table.rows.length).toBeGreaterThan(0);
     if (table?.type === "table") {

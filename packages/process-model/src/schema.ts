@@ -168,8 +168,10 @@ export const documentStateSchema = z
         revision: z.number().int().positive().optional(),
         fingerprint: z.string(),
         changedSinceRevision: z.boolean(),
+        omittedSections: z.array(z.string()).optional(),
       }),
     ),
+    omittedSections: z.array(z.string()).optional(),
   })
   .superRefine((d, ctx) => {
     const nums = new Set<number>();
@@ -317,6 +319,13 @@ const MIGRATIONS: { from: string; to: string; migrate: (raw: Record<string, unkn
     from: "1.3.0",
     to: "1.4.0",
     migrate: (raw) => ({ ...raw, schemaVersion: "1.4.0" }),
+  },
+  // 1.4.0 -> 1.5.0: gap notes (GapOverlay.notes, optional, already part of the overlay) and the optional-section choice
+  // (document.omittedSections). Older projects have no notes and omit nothing: the document includes everything.
+  {
+    from: "1.4.0",
+    to: "1.5.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.5.0" }),
   },
 ];
 

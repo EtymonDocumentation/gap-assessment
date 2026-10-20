@@ -1,4 +1,4 @@
-import type { DocModel } from "@gap/engine";
+import { idWithTitle, type DocModel } from "@gap/engine";
 import type { TemplateRecord } from "@gap/process-model";
 import { BUILTIN_TEMPLATE_VERSION } from "./version";
 import { DOCUMENT_CLOSE, createBuiltin, documentOpen } from "./builtin";
@@ -65,7 +65,7 @@ function endMatter(ctx: WriterCtx, omitted: string[] = []): string {
   if (omitted.length) out += notePara(`The following tool content was left out by choice: ${omitted.join("; ")}.`);
   const orphans = ctx.unanchoredIndexes();
   if (orphans.length) {
-    const list = orphans.map((i) => `${ctx.doc.comments[i]!.id} (${ctx.doc.comments[i]!.anchorText})`).join("; ");
+    const list = orphans.map((i) => idWithTitle(ctx.doc.comments[i]!.id, ctx.doc.comments[i]!.anchorText)).join("; ");
     out += notePara(`Reviewer comments whose section is not in this document: ${list}.`, orphans);
     ctx.markAnchored(orphans);
   }
@@ -327,7 +327,7 @@ function renderTags(input: RenderDocxInput, record: TemplateRecord, warnings: st
   }
   const orphans = ctx.unanchoredIndexes();
   if (orphans.length) {
-    const list = orphans.map((i) => `${doc.comments[i]!.id} (${doc.comments[i]!.anchorText})`).join("; ");
+    const list = orphans.map((i) => idWithTitle(doc.comments[i]!.id, doc.comments[i]!.anchorText)).join("; ");
     post = notePara(`Reviewer comments that the template has no place for: ${list}.`, orphans);
     ctx.markAnchored(orphans);
     warnings.push(`${orphans.length} reviewer comment${orphans.length === 1 ? "" : "s"} could not be placed next to a section because the template has no {@body} or {@section_...} tag. ${orphans.length === 1 ? "It is" : "They are"} attached to a note at the end of the document.`);

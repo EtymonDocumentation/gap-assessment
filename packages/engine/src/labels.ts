@@ -8,12 +8,12 @@ import { formatResolved, questionLabel } from "./format";
 export interface EntryLabel {
   ref: string;
   side: "source" | "target" | "shared";
-  sideText: "Source" | "Target" | "Scoping";
+  sideText: "SU" | "RU" | "Scoping";
   sectionId?: string;
   sectionTitle: string;
   /** Question label, plus the field for parameter entries ("Mixing speed: Set point"). */
   attribute: string;
-  /** "Source: Compounding: Mixing speed: Set point". */
+  /** "SU: Compounding: Mixing speed: Set point". */
   text: string;
   question?: Question;
   /** The field name of the entry (for option-set formatting of parameter fields). */
@@ -54,7 +54,12 @@ export function entryDisplay(content: ContentBundle, project: Project, ref: stri
   return formatResolved(content, l.question, r, optionSet);
 }
 
-const SIDE_TEXT ={ source: "Source", target: "Target", shared: "Scoping" } as const;
+/** The user-facing name of a side: "SU" (sending unit), "RU" (receiving unit) or "Scoping". Stored keys stay source, target and shared. */
+export function sideName(side: string): string {
+  return side === "source" ? "SU" : side === "target" ? "RU" : side === "shared" ? "Scoping" : side;
+}
+
+const SIDE_TEXT = { source: "SU", target: "RU", shared: "Scoping" } as const;
 
 /** Describes a reference in words. Works for entries that no longer have a visible question (inactive values). */
 export function entryLabel(content: ContentBundle, project: Project, ref: string): EntryLabel {
@@ -100,10 +105,43 @@ function shortDate(iso: string): string {
   return iso.slice(0, 10);
 }
 
-/** Short name of a source for tables: the document identifier, or "Interview (responder, date)". */
+/**
+ * Text of a stored label or log entry as people read it: an older record may carry the side tags "[source]" and "[target]"; they are shown as
+ * "[SU]" and "[RU]". Display only: the stored text is never changed.
+ */
+export function displaySideTags(text: string): string {
+  return text.replace(/\[source\]/g, "[SU]").replace(/\[target\]/g, "[RU]");
+}
+
+/** The label of a stored source as shown to people (see displaySideTags). */
+export function sourceLabel(s: Pick<Source, "label">): string {
+  return displaySideTags(s.label);
+}
+
+/** "IDENTIFIER — Title": a dash, not brackets, because the title may itself contain parentheses. */
+export function idWithTitle(id: string, title?: string): string {
+  return title ? `${id} — ${title}` : id;
+}
+
+/** Short name of a source for tables: the document identifier with its title, or "Interview (responder, date)". */
 export function sourceShort(s: Source): string {
-  if (s.type === "document_reference" && s.docRef) return s.docRef.identifier;
+  if (s.type === "document_reference" && s.docRef) return idWithTitle(s.docRef.identifier, s.docRef.title);
   if (s.type === "interview_answer") return `Interview (${s.responder?.name ?? "unknown responder"}, ${shortDate(s.date)})`;
   if (s.type === "imported_file") return `Imported file ${s.file?.name ?? ""}`.trim();
-  return s.label;
+  return sourceLabel(s);
+}
+
+/**
+ * The sources to show next to a value: documents first. When at least one document reference backs the value, only the
+ * document references are shown; "Interview (name, date)" and the other kinds are shown only when no document backs it.
+ * This is a display rule only. The sources stay attached to the entry and are all listed in the source register.
+ */
+export function displaySources(sources: Source[]): Source[] {
+  const docs = sources.filter((s) => s.type === "document_reference" && s.docRef);
+  return docs.length ? docs : sources;
+}
+
+/** The short names of the sources to show for a value (see displaySources), without duplicates. */
+export function displaySourceNames(sources: Source[]): string[] {
+  return [...new Set(displaySources(sources).map(sourceShort))];
 }

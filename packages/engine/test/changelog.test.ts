@@ -54,7 +54,7 @@ describe("change log: every mutation leaves an event with before and after", () 
     const text = rows.map((r) => `${r.before} | ${r.after}`).join("\n");
     expect(text).toMatch(/Unknown/);
     expect(text).toMatch(/Not applicable: Not used in this fictional line/);
-    expect(text).toMatch(/same as source/i);
+    expect(text).toMatch(/same as SU/i);
     const first = view(p).find((r) => r.after.match(/Unknown/))!;
     expect(first.before).toBe("—");
   });

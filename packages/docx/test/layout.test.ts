@@ -1,7 +1,9 @@
 /// <reference types="node" />
 import { describe, expect, it, vi } from "vitest";
 import { importTemplateFile, renderDocx, suggestMapping, type RenderDocxInput } from "../src/index";
-import { columnNeeds, columnWidths } from "../src/writer";
+import type { DocModel } from "@gap/engine";
+import { columnNeeds, columnWidths, weightedWidths, weightsFor } from "../src/writer";
+import { DETAIL_COLUMNS, GAP_COLUMNS, contractModel, type ContractOptions } from "./contract-model";
 import { GENERATED_AT, buildModel, fixture } from "./fixtures";
 import { strictDocx, type StrictResult } from "./strict";
 
@@ -104,8 +106,8 @@ describe("content-aware column widths", () => {
     checkTables(await render("mapped", "brightwater-template.docx", true), [9360, 12960]);
     const builtin = await render("builtin");
     const tables = checkTables(builtin, [15138]);
-    const gap = tables.find((t) => t.columns.includes("Attribute") && t.columns.includes("Rule"))!;
-    expect(gap.columns.length).toBeGreaterThanOrEqual(15);
+    const gap = tables.find((t) => t.columns.includes("Attribute") && t.columns.includes("Gap"))!;
+    expect(gap.columns).toEqual(["ID", "Attribute", "SU", "RU", "Gap", "Severity", "Actions", "Notes"]);
     expect(gap.grid.reduce((a, b) => a + b, 0)).toBe(15138);
   });
 
@@ -163,6 +165,68 @@ describe("content-aware column widths", () => {
     const a = columnWidths(["A", "B", "C"], rows, 9000, 8);
     expect(a).toEqual(columnWidths(["A", "B", "C"], rows, 9000, 8));
     expect(a.reduce((x, y) => x + y, 0)).toBe(9000);
+  });
+});
+
+async function renderDoc(doc: DocModel): Promise<StrictResult> {
+  const out = await renderDocx({ doc, tagData: model.tagData, mode: "builtin", generatedAt: GENERATED_AT });
+  return strictDocx(out.bytes);
+}
+
+describe("the lean gap table and the Gap details appendix (built-in look)", () => {
+  const cases: [string, ContractOptions][] = [
+    ["a validated SU", {}],
+    ["a SU that is not process validated", { variant: "su" }],
+    ["an attribute name with a very long word", { extreme: true }],
+  ];
+
+  for (const [name, opts] of cases) {
+    it(`never breaks a word and fills the width: ${name}`, async () => {
+      const res = await renderDoc(contractModel(opts));
+      const tables = checkTables(res, [15138]);
+      const gap = tables.find((t) => t.columns.join("|") === GAP_COLUMNS.join("|"));
+      const details = tables.find((t) => t.columns.join("|") === DETAIL_COLUMNS.join("|"));
+      expect(gap, "gap table").toBeTruthy();
+      expect(details, "Gap details table").toBeTruthy();
+      expect(gap!.rows.length).toBe(8);
+      expect(details!.rows.map((r) => r[0])).toEqual(gap!.rows.map((r) => r[0]));
+    });
+  }
+
+  it("gives Gap and Actions the most room, ID and Severity the least, and SU and RU the middle", async () => {
+    const res = await renderDoc(contractModel());
+    const gap = parseTables(res).find((t) => t.columns.join("|") === GAP_COLUMNS.join("|"))!;
+    const w = (c: string) => gap.grid[gap.columns.indexOf(c)]!;
+    const others = ["ID", "Attribute", "SU", "RU", "Severity", "Notes"];
+    expect(w("Gap")).toBeGreaterThan(w("Actions"));
+    for (const c of others) expect(w("Actions"), c).toBeGreaterThan(w(c));
+    for (const c of ["Attribute", "SU", "RU", "Notes"]) expect(Math.max(w("ID"), w("Severity")), c).toBeLessThan(w(c));
+    expect(w("SU")).toBeGreaterThan(w("Severity"));
+    expect(Math.abs(w("SU") - w("RU"))).toBeLessThan(w("SU") * 0.2);
+    expect(w("Gap")).toBeGreaterThan(gap.tblW * 0.2);
+  });
+
+  it("gives the Gap details table a narrow ID and the most room to the regulatory note and the verification texts", async () => {
+    const res = await renderDoc(contractModel());
+    const t = parseTables(res).find((x) => x.columns.join("|") === DETAIL_COLUMNS.join("|"))!;
+    const w = (c: string) => t.grid[t.columns.indexOf(c)]!;
+    for (const c of DETAIL_COLUMNS.filter((x) => x !== "ID")) expect(w("ID"), c).toBeLessThan(w(c));
+    for (const c of ["Owner", "Status"]) expect(w("Regulatory"), c).toBeGreaterThan(w(c));
+    for (const c of ["Owner", "Status"]) expect(w("SU verification"), c).toBeGreaterThan(w(c));
+  });
+
+  it("weighted widths: minimums first, the rest by weight, and nothing when the minimums do not fit", () => {
+    const min = [500, 3000, 500];
+    const w = weightedWidths(min, [1, 1, 2], 9000)!;
+    expect(w.reduce((a, b) => a + b, 0)).toBe(9000);
+    expect(w[1]).toBe(3000);
+    expect(w[2]!).toBeGreaterThan(w[0]!);
+    w.forEach((x, i) => expect(x).toBeGreaterThanOrEqual(min[i]!));
+    expect(weightedWidths([5000, 5000], [1, 1], 9000)).toBeUndefined();
+    expect(weightedWidths([], [], 9000)).toBeUndefined();
+    expect(weightsFor(GAP_COLUMNS)).toHaveLength(8);
+    expect(weightsFor(DETAIL_COLUMNS)).toHaveLength(7);
+    expect(weightsFor(["ID", "Attribute"])).toBeUndefined();
   });
 });
 

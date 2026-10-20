@@ -20,10 +20,10 @@ questions:
   - id: lyo.aps_loading
     section: uo.lyophilization
     parent: lyo.loading
-    prompt: Does the current aseptic process simulation on the target line cover the target lyophilizer loading method and duration?
-    label: APS coverage of lyophilizer loading (target)
+    prompt: Does the current aseptic process simulation on the RU line cover the RU lyophilizer loading method and duration?
+    label: APS coverage of lyophilizer loading (RU)
     why: Loading is one of the longest open-container operations. The media fill must include the loading method, the longest planned loading time and the associated interventions.
-    triggerNote: Asked because the target loading method differs from the source or the target lyophilizer has a larger shelf area.
+    triggerNote: Asked because the RU loading method differs from the SU or the RU lyophilizer has a larger shelf area.
     sides: target
     binds: uo.lyophilization.study.aps_loading.status
     input: { type: choice, optionsFrom: validationCoverage }
@@ -44,10 +44,10 @@ questions:
   - id: lyo.cycle_verification
     section: uo.lyophilization
     parent: lyo.shelf_area
-    prompt: Has the lyophilization cycle been transferred and verified on the target lyophilizer (for example with an engineering or verification run)?
-    label: Cycle transfer and verification (target)
-    why: Heat transfer, chamber pressure control and condenser capacity differ between lyophilizers. A {{validated|source}} cycle cannot be assumed to give the same product temperature profile and residual moisture on a different machine or scale.
-    triggerNote: Asked because the target lyophilizer shelf area, loading system or nucleation method differs from the source.
+    prompt: Has the lyophilization cycle been transferred and verified on the RU lyophilizer (for example with an engineering or verification run)?
+    label: Cycle transfer and verification (RU)
+    why: Heat transfer, chamber pressure control and condenser capacity differ between lyophilizers. {{A validated|An SU}} cycle cannot be assumed to give the same product temperature profile and residual moisture on a different machine or scale.
+    triggerNote: Asked because the RU lyophilizer shelf area, loading system or nucleation method differs from the SU.
     sides: target
     binds: uo.lyophilization.study.cycle_verification.status
     input: { type: choice, optionsFrom: evidenceAvailability }
@@ -70,7 +70,7 @@ questions:
     section: uo.lyophilization
     prompt: Freezing shelf temperature
     label: Freezing shelf temperature
-    why: The freezing temperature and hold decide ice structure and whether the product is completely solidified before drying. Operating outside the {{validated|demonstrated}} range is not supported by the cycle development and {{PPQ|source run}} data.
+    why: The freezing temperature and hold decide ice structure and whether the product is completely solidified before drying. Operating outside the {{validated|demonstrated}} range is not supported by the cycle development and {{PPQ|SU run}} data.
     sides: paired
     binds: uo.lyophilization.param.freeze_shelf_temp
     input: { type: parameter, units: ["°C"] }
@@ -89,7 +89,7 @@ questions:
     prompt: Primary drying chamber pressure
     label: Primary drying chamber pressure
     why: Chamber pressure sets sublimation rate and heat transfer to the vial. It is normally a critical parameter and, together with shelf temperature, decides the product temperature during drying.
-    help: Source — set point and {{validated|demonstrated}} range in the units of the control system. Target — planned set point and operating range. Units are converted for the comparison.
+    help: SU — set point and {{validated|demonstrated}} range in the units of the control system. RU — planned set point and operating range. Units are converted for the comparison.
     sides: paired
     binds: uo.lyophilization.param.primary_pressure
     input: { type: parameter, units: [mbar, Pa, µbar, mTorr] }
@@ -107,7 +107,7 @@ questions:
     section: uo.lyophilization
     prompt: Secondary drying time
     label: Secondary drying time
-    why: Secondary drying time, with its temperature, determines residual moisture and exposure to heat. A shorter target time can leave moisture above the limit.
+    why: Secondary drying time, with its temperature, determines residual moisture and exposure to heat. A shorter RU time can leave moisture above the limit.
     sides: paired
     binds: uo.lyophilization.param.secondary_time
     input: { type: parameter, units: [h, min] }
@@ -172,7 +172,7 @@ questions:
     section: uo.lyophilization
     prompt: Qualification status of the lyophilizer
     label: Lyophilizer qualification status
-    why: Equipment used for GMP manufacture must be qualified. A target lyophilizer that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    why: Equipment used for GMP manufacture must be qualified. An RU lyophilizer that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
     tags: [m3]
     sides: paired
     sameAsSource: false
@@ -182,10 +182,10 @@ questions:
   - id: lyo.shelf_range
     section: uo.lyophilization
     parent: lyo.qual
-    prompt: Qualified shelf temperature range of the target lyophilizer
+    prompt: Qualified shelf temperature range of the RU lyophilizer
     label: Lyophilizer qualified shelf temperature range
     why: Shelf temperature uniformity is qualified over a stated range. Planned shelf temperatures outside that range are not supported by the qualification.
-    triggerNote: Asked because the target lyophilizer is qualified or has a qualification planned.
+    triggerNote: Asked because the RU lyophilizer is qualified or has a qualification planned.
     tags: [m3]
     sides: target
     binds: uo.lyophilization.equip.lyophilizer.qualifiedRange_shelf_temp
@@ -195,10 +195,10 @@ questions:
   - id: lyo.pressure_range
     section: uo.lyophilization
     parent: lyo.qual
-    prompt: Qualified chamber pressure range of the target lyophilizer
+    prompt: Qualified chamber pressure range of the RU lyophilizer
     label: Lyophilizer qualified pressure range
     why: Chamber pressure control is qualified over a stated range. Planned drying pressures outside that range are not supported by the qualification.
-    triggerNote: Asked because the target lyophilizer is qualified or has a qualification planned.
+    triggerNote: Asked because the RU lyophilizer is qualified or has a qualification planned.
     tags: [m3]
     sides: target
     binds: uo.lyophilization.equip.lyophilizer.qualifiedRange_pressure
@@ -209,7 +209,7 @@ questions:
     section: uo.lyophilization
     prompt: Qualification status of the loading system
     label: Loading system qualification status
-    why: An automatic loading system is part of the aseptic zone and must be qualified. A target system that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    why: An automatic loading system is part of the aseptic zone and must be qualified. An RU system that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
     tags: [m3]
     sides: paired
     sameAsSource: false
@@ -218,9 +218,9 @@ questions:
 
   - id: lyo.procedures
     section: uo.lyophilization
-    prompt: Status of target procedures for lyophilization
-    label: Target lyophilization procedures
-    why: Cycle recipes, loading, unloading and alarm-handling procedures must reflect the target lyophilizer before GMP manufacture.
+    prompt: Status of RU procedures for lyophilization
+    label: RU lyophilization procedures
+    why: Cycle recipes, loading, unloading and alarm-handling procedures must reflect the RU lyophilizer before GMP manufacture.
     sides: target
     binds: uo.lyophilization.doc.procedures.status
     input: { type: choice, optionsFrom: procedureStatus }

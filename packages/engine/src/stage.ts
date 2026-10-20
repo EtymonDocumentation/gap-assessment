@@ -144,13 +144,15 @@ export interface StageWording {
   sourceLabel: string;
   targetLabel: string;
   sourceValidated: boolean;
-  /** "Source — validated state" / "Source — current state". */
+  /** "SU — validated state" / "SU — current state". */
   sourceSideText: string;
   /** Column header of the source side in tables: "Validated state" / "Current state". */
   sourceStateColumn: string;
-  /** Heading of the source summary section. */
+  /** Heading of the SU summary section: "Sending unit program summary (current state)". */
   sourceSummaryHeading: string;
-  /** Short label of the parameter range recorded for the source: "Validated range" / "Demonstrated range". */
+  /** Heading of the RU summary section: "Receiving unit summary (planned state)". */
+  targetSummaryHeading: string;
+  /** Short label of the parameter range recorded for the SU: "Validated range" / "Demonstrated range". */
   rangeShort: string;
 }
 
@@ -163,9 +165,10 @@ export function stageWordingFor(source: ProgramStage | undefined, target: Progra
     sourceLabel: stageLabel(source),
     targetLabel: stageLabel(target),
     sourceValidated: validated,
-    sourceSideText: `Source — ${state}`,
+    sourceSideText: `SU — ${state}`,
     sourceStateColumn: validated ? "Validated state" : "Current state",
-    sourceSummaryHeading: `Source program summary (${state})`,
+    sourceSummaryHeading: `Sending unit program summary (${state})`,
+    targetSummaryHeading: "Receiving unit summary (planned state)",
     rangeShort: validated ? "Validated range" : "Demonstrated range",
   };
 }
@@ -180,9 +183,9 @@ export function stageWording(project: Project): StageWording {
 export interface StageBasis {
   /** One line naming both stages. */
   statement: string;
-  /** What the source stage means for evidence that can be leveraged. */
+  /** What the SU stage means for evidence that can be leveraged. */
   sourcePoint: string;
-  /** What the target stage means for the validation work expected. */
+  /** What the RU stage means for the validation work expected. */
   targetPoint: string;
   /** The reminder that these are expectations. */
   closing: string;
@@ -190,34 +193,34 @@ export interface StageBasis {
 
 const SOURCE_POINT: Record<ProgramStage | "none", string> = {
   commercial:
-    "The source process is validated. Existing PPQ, cleaning validation, media fill and qualification evidence can be leveraged where the gap table shows it covers the target condition.",
+    "The SU process is validated. Existing PPQ, cleaning validation, media fill and qualification evidence can be leveraged where the gap table shows it covers the RU condition.",
   clinical:
-    "The source is GMP clinical manufacture and is not process validated, so there is no source PPQ or process validation evidence to leverage. Aseptic process simulation (media fill) and qualification history at the source may exist and can be cited where documented.",
+    "The SU is GMP clinical manufacture and is not process validated, so there is no SU PPQ or process validation evidence to leverage. Aseptic process simulation (media fill) and qualification history at the SU may exist and can be cited where documented.",
   development:
-    "The source is development or engineering runs. There is no process validation and no GMP evidence to leverage; development data can inform the target work but do not replace GMP evidence.",
-  none: "The source program stage is not established, so no source validation evidence is assumed. Answer the program stage question to complete this basis.",
+    "The SU is development or engineering runs. There is no process validation and no GMP evidence to leverage; development data can inform the RU work but do not replace GMP evidence.",
+  none: "The SU program stage is not established, so no SU validation evidence is assumed. Answer the program stage question to complete this basis.",
 };
 
 function targetPoint(source: ProgramStage | undefined, target: ProgramStage | undefined): string {
   if (target === "commercial") {
     if (source === "commercial") {
-      return "A commercial target is expected to need PPQ at the target. Its extent depends on how much of the source PPQ evidence covers the target condition (see the coverage assessment).";
+      return "A commercial RU is expected to need PPQ at the RU. Its extent depends on how much of the SU PPQ evidence covers the RU condition (see the coverage assessment).";
     }
-    if (source) return "A commercial target is expected to need PPQ at the target. From a source that is not process validated this is typically a full PPQ.";
-    return "A commercial target is expected to need PPQ at the target. Its extent cannot be stated until the source stage is established.";
+    if (source) return "A commercial RU is expected to need PPQ at the RU. From an SU that is not process validated this is typically a full PPQ.";
+    return "A commercial RU is expected to need PPQ at the RU. Its extent cannot be stated until the SU stage is established.";
   }
   if (target === "clinical") {
-    return "A clinical target is held to phase-appropriate expectations: GMP manufacture and aseptic process simulation still apply, but full process validation (PPQ) is not expected.";
+    return "A clinical RU is held to phase-appropriate expectations: GMP manufacture and aseptic process simulation still apply, but full process validation (PPQ) is not expected.";
   }
   if (target === "development") {
-    return "A development target covers engineering or demonstration runs. They are not for GMP supply, so GMP validation activities are not expected.";
+    return "A development RU covers engineering or demonstration runs. They are not for GMP supply, so GMP validation activities are not expected.";
   }
-  return "The target program stage is not established, so the validation work expected at the target cannot be stated. Answer the program stage question to complete this basis.";
+  return "The RU program stage is not established, so the validation work expected at the RU cannot be stated. Answer the program stage question to complete this basis.";
 }
 
 export function stageBasis(w: StageWording): StageBasis {
   return {
-    statement: `Source program stage: ${w.sourceLabel}. Target program stage: ${w.targetLabel}.`,
+    statement: `Sending unit (SU) program stage: ${w.sourceLabel}. Receiving unit (RU) program stage: ${w.targetLabel}.`,
     sourcePoint: SOURCE_POINT[w.source ?? "none"],
     targetPoint: targetPoint(w.source, w.target),
     closing: "These are expectations to confirm with QA, not decisions. The activities below follow from the gaps in this assessment.",
@@ -235,27 +238,27 @@ export function activityStageNote(activityKey: string, w: StageWording): string 
       if (w.target === "commercial") {
         parts.push(
           w.source === "commercial"
-            ? "Expected at a commercial target; the extent depends on source PPQ coverage."
+            ? "Expected at a commercial RU; the extent depends on SU PPQ coverage."
             : w.source
-              ? "Expected at a commercial target; from a source that is not process validated this is typically a full PPQ."
-              : "Expected at a commercial target; the extent depends on the source stage, which is not established.",
+              ? "Expected at a commercial RU; from an SU that is not process validated this is typically a full PPQ."
+              : "Expected at a commercial RU; the extent depends on the SU stage, which is not established.",
         );
-      } else if (w.target === "clinical") parts.push("Full process validation (PPQ) is not expected at a clinical target; phase-appropriate evidence applies.");
+      } else if (w.target === "clinical") parts.push("Full process validation (PPQ) is not expected at a clinical RU; phase-appropriate evidence applies.");
       else if (w.target === "development") parts.push("PPQ is not expected for development or engineering runs.");
-      else parts.push("Whether PPQ is expected depends on the target program stage, which is not established.");
+      else parts.push("Whether PPQ is expected depends on the RU program stage, which is not established.");
       break;
     case "ppq_coverage_assessment":
-      if (w.source === "commercial") parts.push("The source PPQ can be assessed for coverage of the target condition.");
-      else if (w.source) parts.push("The source has no PPQ to assess for coverage; expect new target work instead.");
-      else parts.push("Whether source PPQ exists to assess depends on the source stage, which is not established.");
+      if (w.source === "commercial") parts.push("The SU PPQ can be assessed for coverage of the RU condition.");
+      else if (w.source) parts.push("The SU has no PPQ to assess for coverage; expect new RU work instead.");
+      else parts.push("Whether SU PPQ exists to assess depends on the SU stage, which is not established.");
       break;
     case "media_fill":
-      if (w.source === "clinical") parts.push("Media fill history at the clinical GMP source may exist and can be cited; the target media fill is still assessed on its own.");
+      if (w.source === "clinical") parts.push("Media fill history at the clinical GMP SU may exist and can be cited; the RU media fill is still assessed on its own.");
       else if (w.source === "development") parts.push("Development runs give no GMP media fill evidence to leverage.");
       if (w.target === "development") parts.push("A GMP media fill is not expected for engineering runs.");
       break;
     case "engineering_run":
-      if (w.target === "development") parts.push("For a development target the engineering or demonstration runs are the main deliverable and are not for GMP supply.");
+      if (w.target === "development") parts.push("For a development RU the engineering or demonstration runs are the main deliverable and are not for GMP supply.");
       break;
     default:
       break;

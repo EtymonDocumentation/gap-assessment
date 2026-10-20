@@ -89,10 +89,12 @@ describe("built-in look", () => {
   it("writes every gap row, and the wording 'Requires regulatory affairs assessment' and never a filing decision", async () => {
     const { res, text } = await render(model, "builtin");
     const gt = gapTable();
-    const rows = tableRows(res, ["ID", "Attribute", "Rule"])!;
+    const rows = tableRows(res, ["ID", "Attribute", "Gap"])!;
     expect(rows.length).toBe(gt.rows.length);
     expect(rows.map((r) => r[0])).toEqual(gt.rows.map((r) => r[0]));
     expect(text).toContain("Requires regulatory affairs assessment");
+    // In the Actions cell the sentence follows the action list after a semicolon, as in the Markdown and HTML documents.
+    expect(text).toContain("; Requires regulatory affairs assessment.");
     expect(text).not.toMatch(/\b(prior approval supplement|CBE-30|CBE-0|annual report|Type IB|Type II|Type IA)\b/i);
   });
 
@@ -116,8 +118,16 @@ describe("built-in look", () => {
 
   it("puts a table with more than 8 columns in a landscape section of its own when the page is portrait", async () => {
     const t = await templateOf("brightwater-template.docx");
-    const { res } = await render(model, "their_look", t);
-    // The gap table has 16 columns, so the portrait template gets at least one extra landscape section.
+    // The lean gap table has 8 columns; a table of 10 columns gets the landscape section.
+    const wide: Model = {
+      ...model,
+      doc: {
+        ...model.doc,
+        sections: [{ id: "purpose", number: "1", title: "Purpose", blocks: [{ type: "table", columns: Array.from({ length: 10 }, (_, i) => `Column ${i + 1}`), rows: [Array.from({ length: 10 }, (_, i) => `v${i}`)] }] }],
+        comments: [],
+      },
+    };
+    const { res } = await render(wide, "their_look", t);
     const doc = res.text("word/document.xml");
     expect((doc.match(/<w:sectPr/g) ?? []).length).toBeGreaterThanOrEqual(2);
     expect(doc).toMatch(/w:orient="landscape"/);
@@ -224,7 +234,7 @@ describe("their look", () => {
   it("writes every gap row", async () => {
     const t = await templateOf("brightwater-template.docx");
     const { res } = await render(model, "their_look", t);
-    expect(tableRows(res, ["ID", "Attribute", "Rule"])!.length).toBe(gapTable().rows.length);
+    expect(tableRows(res, ["ID", "Attribute", "Gap"])!.length).toBe(gapTable().rows.length);
   });
 
   it("refuses to run without a template", async () => {
@@ -267,7 +277,7 @@ describe("mapped to the template headings", () => {
     // Unmapped blocks are appended, nothing lost.
     expect(text).toContain("Additional content not mapped to a template heading");
     expect(out.omittedBlocks).toEqual([]);
-    expect(tableRows(res, ["ID", "Attribute", "Rule"])!.length).toBe(gapTable().rows.length);
+    expect(tableRows(res, ["ID", "Attribute", "Gap"])!.length).toBe(gapTable().rows.length);
     expect(out.templateRecord.mode).toBe("mapped");
     // A section appended at the end still has its own title.
     expect(text).toContain(titleOf("source-register").replace(/^Appendix [A-Z]\.\s*/, ""));
@@ -320,7 +330,7 @@ describe("mapped to the template headings", () => {
     expect(text).toMatch(/To be completed/i);
     expect(out.templateRecord.mode).toBe("mapped");
     expect(out.templateRecord.sha256).toBe(t.sha256);
-    expect(tableRows(res, ["ID", "Attribute", "Rule"])!.length).toBe(gapTable().rows.length);
+    expect(tableRows(res, ["ID", "Attribute", "Gap"])!.length).toBe(gapTable().rows.length);
   });
 });
 

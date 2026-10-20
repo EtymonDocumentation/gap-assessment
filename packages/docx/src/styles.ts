@@ -162,6 +162,9 @@ export const BUILTIN_STYLE_ID: Record<StyleKey, string> = {
 
 const HEADING_SIZE = [28, 24, 22, 20, 20, 20, 20, 20, 20];
 const HEADING_BEFORE = [360, 240, 200, 160, 160, 160, 160, 160, 160];
+/** Space before (and after) headings in the compact built-in look: the same sizes, a little less air. */
+const COMPACT_HEADING_BEFORE = [300, 200, 160, 140, 140, 140, 140, 140, 140];
+const COMPACT_HEADING_AFTER = 90;
 
 /** XML of one of the tool's styles. `basedOn` is the id of the template's Normal (or Normal Table) style. */
 export function styleXml(key: StyleKey, id: string, basedOn: string | undefined): string {
@@ -222,8 +225,21 @@ function accentStyleXml(key: StyleKey, id: string, basedOn: string): string {
   return (
     head +
     `<w:uiPriority w:val="9"/><w:qFormat/>` +
-    `<w:pPr><w:keepNext/><w:keepLines/>${rule}<w:spacing w:before="${HEADING_BEFORE[n - 1]}" w:after="120"/><w:outlineLvl w:val="${n - 1}"/></w:pPr>` +
+    `<w:pPr><w:keepNext/><w:keepLines/>${rule}<w:spacing w:before="${COMPACT_HEADING_BEFORE[n - 1]}" w:after="${COMPACT_HEADING_AFTER}"/><w:outlineLvl w:val="${n - 1}"/></w:pPr>` +
     `<w:rPr><w:b/><w:bCs/><w:color w:val="${color}"/><w:sz w:val="${HEADING_SIZE[n - 1]}"/><w:szCs w:val="${HEADING_SIZE[n - 1]}"/></w:rPr></w:style>`
+  );
+}
+
+/** Table text of the compact built-in look: 8 pt, single line spacing and no paragraph spacing (the cell margins give the air). */
+export const COMPACT_TABLE_TEXT_HALF_POINTS = 16;
+/** Header cells of the compact built-in look are a half-point larger than the body cells (8.5 pt, bold). */
+export const COMPACT_TABLE_HEADER_HALF_POINTS = 17;
+
+function compactTableTextXml(id: string, basedOn: string): string {
+  return (
+    `<w:style w:type="paragraph" w:styleId="${esc(id)}"><w:name w:val="${esc(STYLE_NAME.tableText)}"/><w:basedOn w:val="${esc(basedOn)}"/><w:qFormat/>` +
+    `<w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>` +
+    `<w:rPr><w:sz w:val="${COMPACT_TABLE_TEXT_HALF_POINTS}"/><w:szCs w:val="${COMPACT_TABLE_TEXT_HALF_POINTS}"/></w:rPr></w:style>`
   );
 }
 
@@ -250,12 +266,18 @@ function tocStylesXml(rightTab: number): string {
  */
 export function builtinStylesXml(upgraded = false, tocTab = 15138): string {
   const keys: StyleKey[] = ["title", "heading1", "heading2", "heading3", "heading4", "heading5", "heading6", "heading7", "heading8", "heading9", "listParagraph", "tableText", "header", "footer"];
-  const own = (k: StyleKey) => (upgraded && (k === "title" || k.startsWith("heading")) ? accentStyleXml(k, BUILTIN_STYLE_ID[k], "Normal") : styleXml(k, BUILTIN_STYLE_ID[k], "Normal"));
+  const own = (k: StyleKey) => {
+    if (upgraded && (k === "title" || k.startsWith("heading"))) return accentStyleXml(k, BUILTIN_STYLE_ID[k], "Normal");
+    if (upgraded && k === "tableText") return compactTableTextXml(BUILTIN_STYLE_ID[k], "Normal");
+    return styleXml(k, BUILTIN_STYLE_ID[k], "Normal");
+  };
+  // The compact look has slightly tighter body text (paragraph spacing 5 pt, line spacing 1.05) than the original (6 pt, 1.1).
+  const bodySpacing = upgraded ? `w:after="100" w:line="252"` : `w:after="120" w:line="264"`;
   return (
     XML_DECL +
     `<w:styles xmlns:w="${W_NS}">` +
     `<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="Arial" w:cs="Arial"/><w:sz w:val="20"/><w:szCs w:val="20"/><w:lang w:val="en-US" w:eastAsia="en-US" w:bidi="ar-SA"/></w:rPr></w:rPrDefault>` +
-    `<w:pPrDefault><w:pPr><w:spacing w:after="120" w:line="264" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>` +
+    `<w:pPrDefault><w:pPr><w:spacing ${bodySpacing} w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>` +
     `<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>` +
     `<w:style w:type="character" w:default="1" w:styleId="DefaultParagraphFont"><w:name w:val="Default Paragraph Font"/><w:uiPriority w:val="1"/><w:semiHidden/><w:unhideWhenUsed/></w:style>` +
     `<w:style w:type="table" w:default="1" w:styleId="TableNormal"><w:name w:val="Normal Table"/><w:uiPriority w:val="99"/><w:semiHidden/><w:unhideWhenUsed/><w:tblPr><w:tblInd w:w="0" w:type="dxa"/><w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:left w:w="108" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:right w:w="108" w:type="dxa"/></w:tblCellMar></w:tblPr></w:style>` +

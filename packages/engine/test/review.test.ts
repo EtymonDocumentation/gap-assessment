@@ -565,16 +565,17 @@ describe("the document: Revision line", () => {
   });
 });
 
-describe("the document: appendices C and D and the lists", () => {
+describe("the document: appendices after the gap details and the lists", () => {
   const sec = (d: DocModel, id: string) => d.sections.find((s) => s.id === id)!;
 
-  it("come after appendices A and B with letters C and D", () => {
+  it("come after the Gap details appendix, in order, with letters A to E", () => {
     const d = docOf(project());
     expect(d.sections.filter((s) => s.appendix).map((s) => [s.number, s.id, s.title])).toEqual([
-      ["A", "source-register", "Source register"],
-      ["B", "change-log-summary", "Change log summary"],
-      ["C", "revision-history", "Revision history"],
-      ["D", "reviewer-comments", "Reviewer comments"],
+      ["A", "gap-details", "Gap details"],
+      ["B", "source-register", "Source register"],
+      ["C", "change-log-summary", "Change log summary"],
+      ["D", "revision-history", "Revision history"],
+      ["E", "reviewer-comments", "Reviewer comments"],
     ]);
   });
 
@@ -633,8 +634,8 @@ describe("the document: appendices C and D and the lists", () => {
     expect(d.comments.map((c) => c.anchorText)).toEqual([
       `6. Detailed gap table, ${gap.displayId}`,
       "2. Scope",
-      "Appendix B. Change log summary",
-      "Appendix D. Reviewer comments",
+      "Appendix C. Change log summary",
+      "Appendix E. Reviewer comments",
     ]);
     expect(d.comments[0]).toMatchObject({ id: "C-001", sectionId: "gap-table", gapDisplayId: gap.displayId, status: "open" });
     expect(d.comments[1]!.gapDisplayId).toBeUndefined();
@@ -721,11 +722,11 @@ describe("the document: Change log summary leaves review events out", () => {
     expect(p.changeLog.length).toBe(p0.changeLog.length + 5);
   });
 
-  it("carries a note that says where they are listed", () => {
+  it("carries a note that says where they are listed, without fixed appendix letters", () => {
     const blocks = docOf(project()).sections.find((s) => s.id === "change-log-summary")!.blocks;
     expect(blocks.at(-1)).toEqual({ type: "note", text: content.templates.document.changeLogReviewNote });
-    expect(content.templates.document.changeLogReviewNote).toMatch(/Appendix C/);
-    expect(content.templates.document.changeLogReviewNote).toMatch(/Appendix D/);
+    expect(content.templates.document.changeLogReviewNote).toMatch(/Revision history and Reviewer comments appendices/);
+    expect(content.templates.document.changeLogReviewNote).not.toMatch(/Appendix [A-Z]/);
   });
 
   it("changeLogActionCounts counts them by default and skips them on request", () => {
@@ -809,7 +810,7 @@ describe("a project with a review survives a file round trip", () => {
 
   it("the project used here starts with an empty document block", () => {
     expect(project().document).toEqual({ revisions: [], comments: [], exports: [] });
-    expect(project().schemaVersion).toBe("1.4.0");
+    expect(project().schemaVersion).toBe("1.5.0");
     expect(ACTOR.name).toBeTruthy();
   });
 });

@@ -3,7 +3,7 @@
 > **Proof of concept. Not validated. Not for GMP use.**
 > All names, sites, part numbers and document IDs in this repository are fictional.
 
-The Gap Assessment Generator is the first module of a technology-transfer document suite for biologics sterile fill/finish. It compares a **source** process with a **target** site or line. Each side has a program stage (commercial, clinical or development), which sets the wording and the validation expectations. A guided, adaptive interview collects the information. The tool then classifies every difference into one of eight categories, builds a gap register and drafts a gap assessment document.
+The Gap Assessment Generator is the first module of a technology-transfer document suite for biologics sterile fill/finish. It compares a process at the **sending unit (SU)** with the same process at the **receiving unit (RU)**: a site or line. (In stored data and in the file format the two sides keep the names `source` and `target`; only the words people read changed.) Each side has a program stage (commercial, clinical or development), which sets the wording and the validation expectations. A guided, adaptive interview collects the information. The tool then classifies every difference into one of eight categories, builds a gap register and drafts a gap assessment document.
 
 Live site: `https://<your-github-user>.github.io/gap-assessment/` (after the deployment steps below).
 
@@ -31,18 +31,20 @@ Live site: `https://<your-github-user>.github.io/gap-assessment/` (after the dep
 
 - **Scoping first.** Questions on modality, dosage form, presentation, drug substance state, containment, markets and transfer type decide which unit operations and questions apply.
 - **Adaptive interview.** Choose between two entry orders:
-  - **Paired:** source then target, question by question, with a live comparison on each target card.
-  - **Sequential:** the whole source pass, then the target pass.
+  - **Paired:** SU then RU, question by question, with a live comparison on each RU card.
+  - **Sequential:** the whole SU pass, then the RU pass.
 
   Follow-up questions appear only when an earlier answer makes them relevant. For example, a changed filling pump principle brings up questions on fill accuracy, product impact and PPQ coverage.
 - **"Why is this asked?"** on every question, a progress map with per-side counts, and section summaries that can be confirmed.
-- **Side-by-side view** of source and target for every compared attribute, with a category marker that links to the register row.
+- **Side-by-side view** of SU and RU for every compared attribute, with a category marker that links to the register row.
 - **Validation.** A validation plan (one row per implied activity, with the gaps that imply it, linked study status on both sides and a derived readiness) and an equipment qualification comparison. Filter by readiness, severity or text. Export either table to CSV.
 - **Gap register.** Filter by category, severity, section, status or text. Sort the columns. Record an owner, a status, notes, or a severity change with a required justification. Export to CSV.
-- **Document.** The gap assessment draft is available as a live preview, as Markdown, and as print-ready HTML (print or save as PDF from the browser).
-- **Builder.** An editable view of every recorded value, source beside target, with status, sources, verification state and revision. Edit in place (Unknown, Not applicable with a reason, Same as source), filter by text, differences or open items, and add your own unit operations, parameters, equipment, materials and controls. They are stored in the project (`project.custom`, added in schema 1.1.0; older files migrate on load), asked and compared like built-in items, and marked Custom. Removing a custom definition keeps its values as inactive: listed in the Builder, excluded from comparison and the document.
+- **Gap notes.** Each difference can carry a free-text note. Add or edit it in the Notes column of the side-by-side view (or in the register). It is stored on the gap overlay (schema 1.5.0), written to the change log, included in the document's Notes column and in the CSV, and it counts as a change to the document content.
+- **Document.** The gap assessment draft is available as a live preview, as Markdown, as print-ready HTML (print or save as PDF from the browser) and as Word. The main gap table is kept lean (ID, Attribute, SU, RU, Gap, Severity, Actions, Notes). The rule, owner, status, regulatory wording and verification of each gap are in the **Gap details** appendix. Where a document backs a value, the document is shown as its source ("ID (title)") and the interview is named only when no document backs the value; the Source register appendix keeps every source.
+- **Sections to include.** On the Document page, untick any optional section to leave it out of the preview and of every download: Summary of differences by unit operation, Validation plan, Equipment qualification comparison, Risk ranking, Verification status, References, Approval, and the appendices Gap details, Source register, Change log summary, Revision history and Reviewer comments. Purpose, Scope, the SU and RU summaries, the Detailed gap table and Open information items are always included. Numbering and appendix letters close up, the document lists what was left out ("Sections omitted"), and each export record keeps the list. The choice is saved with the project (`project.document.omittedSections`). Reviewer comments anchored to an omitted section stay in the Reviewer comments appendix.
+- **Builder.** An editable view of every recorded value, SU beside RU, with status, sources, verification state and revision. Edit in place (Unknown, Not applicable with a reason, Same as SU), filter by text, differences or open items, and add your own unit operations, parameters, equipment, materials and controls. They are stored in the project (`project.custom`, added in schema 1.1.0; older files migrate on load), asked and compared like built-in items, and marked Custom. Removing a custom definition keeps its values as inactive: listed in the Builder, excluded from comparison and the document.
 - **Sources.** A register of every source: interview answers, user notes and document references, with who gave them, when, and which entries cite each one. Add or edit a document reference, attach a source to a value, or detach one. **Removing a source shows its consequences first** (every entry it supports, and which of them would be left with no source), then, once confirmed, those entries revert to *Not established*, the old value is kept only in the change log, and the gaps recompute. A source that nothing cites is listed as unused.
-- **Verification.** Every entry in the document is either *Unverified* or *Verified by* a named person, with role and date. Verify one value in the Builder, or every verifiable value in a section at once (the dialog lists what will be verified and what will be skipped, and why). Only established and not-applicable values can be verified; Unknown and Not established values cannot. Changing a value, its status, its justification or its "same as source" link withdraws the verification and the entry shows *Verification withdrawn* with the reason. A verification can also be withdrawn on purpose, with a required reason.
+- **Verification.** Every entry in the document is either *Unverified* or *Verified by* a named person, with role and date. Verify one value in the Builder, or every verifiable value in a section at once (the dialog lists what will be verified and what will be skipped, and why). Only established and not-applicable values can be verified; Unknown and Not established values cannot. Changing a value, its status, its justification or its "Same as SU" link withdraws the verification and the entry shows *Verification withdrawn* with the reason. A verification can also be withdrawn on purpose, with a required reason.
 - **Change log.** A page with every change in the project, newest first: who, when, what, and the value before and after. Filter by actor, action, section or text, and export the (filtered) log to CSV. Cells that start with a formula character are neutralised in the export.
 - **Word document (M5).** The Document page also makes a real `.docx` file, in the browser, with the same content as the preview. You can use the built-in layout, or a company Word or PDF template from a template library kept in this browser (see [Word templates](#word-templates)). Every download is written to an export history in the project, with the template, its version and a SHA-256 hash.
 - **Revisions and reviewer comments (M5).** Issue a numbered revision (Draft or Issued for review) with a summary and the name and role of whoever issued it. The document shows a revision history and says when the content has changed since the last revision. Reviewers' comments are anchored to a section (and, for some sections, to one gap), can be answered, resolved with a response, or reopened with a reason, and are listed in the document. A revision is **not** an approval or a signature.
@@ -61,7 +63,7 @@ M1 covers four unit operations:
 | **No fabricated or default values** | The engine never fills an answer. Catalog data supplies options (pick lists, units), never values. |
 | **Unknowns stay visible** | Every question offers "Unknown — to be confirmed". Unknowns become open information items and "Information required" rows. |
 | **Every value has a source** | Each value is an *entry* linked to at least one source: the interview answer (responder, role, date) plus any document cited. Removing a source strips it from every entry. Entries left without a source revert to "not established", and the gaps that relied on them are recomputed. |
-| **Verification is withdrawn when a value changes** | Verification stores a fingerprint of the value. If the value changes, including a source value that a "same as source" target follows, the entry shows "Verification withdrawn" until someone verifies it again. |
+| **Verification is withdrawn when a value changes** | Verification stores a fingerprint of the value. If the value changes, including an SU value that a "Same as SU" RU value follows, the entry shows "Verification withdrawn" until someone verifies it again. |
 | **No filing decisions** | Rows that may affect registered information say only *"Requires regulatory affairs assessment."* The tool never states a filing category. |
 | **Traceability** | Every register row cites the rule ID and rule version that produced it, plus the exact model entries it used. |
 
@@ -93,17 +95,17 @@ Other commands (run from the repository root):
 1. **Project page.** Load the demo, start a new project (title plus responder name and role), or import a project JSON file exported earlier.
 2. **Interview.** Answer each question or choose one of:
    - *Unknown — to be confirmed*
-   - *Same as source* (target side only)
+   - *Same as SU* (RU side only)
    - *Not applicable…* (a justification is required)
 
-   You can cite a supporting document on any answer. Use the progress map to jump between sections and **Review** to see a section summary.
+   You can cite supporting documents on any answer that has a value (open **Cite supporting documents**): tick documents already in the register and/or add a new reference ID with a title and document type. A cited document then appears as the source of the value instead of the interview. Use the progress map to jump between sections and **Review** to see a section summary.
 3. **Side by side.** Check the comparison row by row. Select a value to change it in the interview, or a marker to open the register row.
 4. **Gap register.** Work the differences: assign owners and statuses, and adjust severity with a justification. Equivalent rows are hidden by default; tick *Show equivalent* to see them.
 5. **Sources, verification and change log.**
    - *Sources:* review who said or wrote what, and remove a source if it turns out to be wrong. The impact dialog tells you which values would become *Not established* before you confirm.
    - *Builder:* verify a value (or a whole section) by entering the verifier's name and role. If the verifier is the person who recorded the value, the tool asks for an explicit confirmation ("I am verifying my own entry") and the document marks the entry "same person as recorder". Withdraw a verification with a reason, or edit the value, which withdraws it automatically.
    - *Change log:* check what changed, by whom, and from which value to which.
-6. **Document.** Download Markdown, HTML or Word, or print. Each entry shows its source and its verification status (Unverified, Verified by name and date, or Verification withdrawn). The document ends with a *Verification status* section and appendices: the source register, a summary of the change log, the revision history and the reviewer comments.
+6. **Document.** Download Markdown, HTML or Word, or print. Each entry shows its source (documents first) and its verification status (Unverified, Verified by name and date, or Verification withdrawn). The document ends with a *Verification status* section and appendices: the gap details (A), the source register (B), a summary of the change log (C), the revision history (D) and the reviewer comments (E). Appendix letters close up when you leave sections out under *Sections to include*.
    - *Word document:* choose one of four options (see [Word templates](#word-templates)), pick a template if the option needs one, and read the checks under *Before you download*. A problem there switches the button off. Warnings from the export are shown after the download.
    - *Revisions:* **Issue revision** asks for Draft or Issued for review, a summary, and your name and role. The page says which revision is current and whether the content has changed since.
    - *Reviewer comments:* filter by Open, Resolved or All. **Add comment** asks for the section (and, for the differences, gap table, risk and validation plan sections, optionally one gap). Reply, resolve (a response is required) or reopen (a reason is required) from each comment. Your name and role are remembered until you close the tab.
@@ -117,12 +119,12 @@ Your project is saved automatically in this browser only (IndexedDB). Use **Expo
 | Category | Meaning (in this tool) | Severity |
 |---|---|---|
 | Equivalent | Same value after unit conversion (exact match) | None |
-| Within validated range | Target range lies inside the source validated range, or the PAR if no validated range is recorded | Set by the rule outcome |
-| Outside validated range | Target range extends beyond the source validated range or PAR | Parameters: by class (CPP high, KPP medium, non-critical low) |
+| Within validated range (shown as "Within SU range" when the SU is not validated) | RU range lies inside the SU validated range, or the PAR if no validated range is recorded | Set by the rule outcome |
+| Outside validated range (shown as "Outside SU range" when the SU is not validated) | RU range extends beyond the SU validated range or PAR | Parameters: by class (CPP high, KPP medium, non-critical low) |
 | Different principle | A different equipment or operating principle, or a different design | Set per rule |
 | Scale change | Batch size, capacity or area changes | By the size of the change (batch size: medium below ×2, high at ×2 or more) |
-| New requirement | Something present at the target that the source does not have, or evidence still to be generated | Set per rule |
-| Removed element | Something present at the source that the target drops (for example a pre-use integrity test) | Set per rule |
+| New requirement | Something present at the RU that the SU does not have, or evidence still to be generated | Set per rule |
+| Removed element | Something present at the SU that the RU drops (for example a pre-use integrity test) | Set per rule |
 | Information required | Either side is unknown or not yet established | Set per rule |
 
 ### Program stage and wording
@@ -135,12 +137,12 @@ Each side answers one paired site question, **Program stage at this site** (`sit
 | `clinical` | Clinical (GMP, not process validated) |
 | `development` | Development / engineering runs |
 
-Source and target are independent, so all nine source-to-target pairs work (commercial to clinical included).
+The SU and the RU stages are independent, so all nine SU-to-RU pairs work (commercial to clinical included).
 
-- **Wording rule.** "Validated" wording is used only when the source stage is established as commercial. A clinical source, a development source and an unanswered source stage all use the non-validated wording: "Within source range" and "Outside source range", "Source program summary (current state)", "Demonstrated range (actually run)". The category keys (`within_validated_range`, `outside_validated_range`) never change, so stored data, the CSV keys and the rules stay the same. Only labels and texts change.
-- **How content adapts.** Content texts hold a variant as `{{validated wording|other wording}}`. The first variant is used for a commercial source, the second otherwise (it may be empty). All stage logic is in `packages/engine/src/stage.ts`. Keep markers out of question prompts and labels.
+- **Wording rule.** "Validated" wording is used only when the SU stage is established as commercial. A clinical SU, a development SU and an unanswered SU stage all use the non-validated wording: "Within SU range" and "Outside SU range", "SU program summary (current state)", "Demonstrated range (actually run)". The category keys (`within_validated_range`, `outside_validated_range`) never change, so stored data, the CSV keys and the rules stay the same. Only labels and texts change.
+- **How content adapts.** Content texts hold a variant as `{{validated wording|other wording}}`. The first variant is used for a commercial SU, the second otherwise (it may be empty). All stage logic is in `packages/engine/src/stage.ts`. Keep markers out of question prompts and labels.
 - **The stage is not compared as a gap.** A difference in stage has no meaning in the eight categories, so rule R-SITE-INFO treats it as informational. Its effect is on the wording, on the cover and the document control lines, and on the **Stage basis** at the top of the validation plan.
-- **Validation plan.** A source that is not commercial has no source PPQ or process validation evidence to leverage. A commercial target is expected to need PPQ (typically a full PPQ from a source that is not commercial). A clinical target is held to phase-appropriate expectations; a development target covers engineering runs that are not for GMP supply. Everything is phrased as an expectation to confirm with QA. The tool never decides a filing category.
+- **Validation plan.** An SU that is not commercial has no SU PPQ or process validation evidence to leverage. A commercial RU is expected to need PPQ (typically a full PPQ when the SU is not commercial). A clinical RU is held to phase-appropriate expectations; a development RU covers engineering runs that are not for GMP supply. Everything is phrased as an expectation to confirm with QA. The tool never decides a filing category.
 
 Severities come from the rules (`content/rules/rules.yaml`). Users can override a severity in the register, but only with a written justification; the original rule severity stays visible.
 
@@ -191,10 +193,10 @@ Every page has light and dark themes. The layout works from phone width up. Acce
 - **Project.**
   - schema version and the content versions used
   - settings
-  - scope, and source and target process models
+  - scope, and the SU and RU process models (stored as `source` and `target`)
   - sources and the answer log
   - gap overlays and an append-only change log
-  - `document`: the revisions, the reviewer comments (each with its replies, resolution and reopening) and the export history (schema 1.4.0; older files migrate on load)
+  - `document`: the revisions, the reviewer comments (each with its replies, resolution and reopening) and the export history, plus the optional sections the document leaves out (`omittedSections`, schema 1.5.0; older files migrate on load)
 - **Gaps are derived, never stored.** They are recomputed from the model on every change. Each gap has a stable key (`ruleId:path[#subKey]`). User decisions (owner, status, severity override, notes) are stored as *overlays* on that key, so they survive recomputation.
 - **Closed branches.** If an answer change makes a question irrelevant, its earlier answers are kept but marked inactive. They are excluded from comparison and from the document, and listed on the Model page.
 
@@ -227,7 +229,7 @@ All domain content lives in `content/` as YAML. Each file carries a semantic ver
 
 A small, typed expression language. It is safe to edit because nothing is evaluated as code.
 
-`all`, `any`, `not`, `eq`, `in`, `includes`, `answered`, `isUnknown`, `isTrue`, `uoPresent`, `changed` (source and target differ), `increased`, `decreased`, `ratioAbove`, `gt`, `gte`, `lt`, `lte` (comparisons are unit-aware).
+`all`, `any`, `not`, `eq`, `in`, `includes`, `answered`, `isUnknown`, `isTrue`, `uoPresent`, `changed` (SU and RU differ), `increased`, `decreased`, `ratioAbove`, `gt`, `gte`, `lt`, `lte` (comparisons are unit-aware).
 
 ```yaml
 showWhen: { changed: uo.aseptic_filling.equip.filler.operatingPrinciple }
@@ -304,15 +306,20 @@ The build uses relative asset paths (`base: "./"`) and a hash router, so it work
 - **In M3:**
   - validation study inputs (PPQ, APS, filter validation, hold times, cleaning, CCI, extractables and leachables, shipping)
   - a validation plan that links each gap to the validation activity it implies, with a readiness derived from the study statuses
-  - equipment qualification comparison (source and target status, target qualified range against the required process value)
+  - equipment qualification comparison (SU and RU status, RU qualified range against the required process value)
   - the Validation page, and the matching document sections
 - **In M4:**
   - the Sources page, with source removal that shows its impact and cascades (entries left without a source revert to Not established, the value is kept only in the change log, the gaps recompute)
   - attaching and detaching sources, and editing document references
   - verification: single and per-section, withdrawal with a reason, automatic withdrawal when a value changes, four-eyes confirmation for self-verification
   - the Change log page with filters and CSV export
-  - verification status for every entry in the document, a *Verification status* section, appendix A (source register) and appendix B (change log summary), and verification columns in the gap register CSV
+  - verification status for every entry in the document, a *Verification status* section, the source register and change log summary appendices (lettered A and B at the time; now B and C after the Gap details appendix), and verification columns in the gap register CSV
   - project schema 1.2.0 (older files migrate on load)
+- **In M5.2:**
+  - SU / RU wording everywhere people read it (web pages, interview prompts, content, the document, Word, CSV headers and this README). Stored data is unchanged: `source` / `target` paths, the `Side` type, rule ids, category keys and schema field names stay
+  - a lean gap table plus a Gap details appendix; notes per gap (schema 1.5.0, change-logged, in the fingerprint and the CSV)
+  - documents first: a value backed by a document shows the document ("ID (title)"), the interview only when no document backs it; the Interview cites documents per answer
+  - optional document sections ("Sections to include") and a slightly more compact layout
 - **In M5.1:**
   - the program stage per side (project schema 1.4.0; older projects get no stage value and show `[not established]` until it is answered), and stage-aware wording and validation expectations
 - **In M5:**

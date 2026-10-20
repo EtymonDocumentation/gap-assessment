@@ -62,37 +62,37 @@ test("a new project asks the program stage for each side, with no preselected op
 
   // Unanswered: Compare shows the stage as not established and the document says so too.
   await go(page, "#/compare");
-  await expect(page.getByTestId("stage-line")).toContainText("source [not established]; target [not established]");
+  await expect(page.getByTestId("stage-line")).toContainText("sending unit (SU) [not established]; receiving unit (RU) [not established]");
   await go(page, "#/document");
-  await expect(page.getByRole("heading", { name: "Source program summary (current state)" }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Sending unit program summary (current state)" }).first()).toBeVisible();
 });
 
 test("a clinical source: stage-aware labels on Compare, Register and the Document", async ({ page }) => {
   test.setTimeout(120_000); // five pages and four axe scans
   await loadDemo(page);
 
-  // Source: clinical. Target stays commercial.
+  // SU: clinical. RU stays commercial.
   await go(page, "#/interview?q=site.stage%40source");
   await expect(page.locator("#q-prompt")).toHaveText("Program stage at this site");
   await answerChoice(page, "Clinical (GMP, not process validated)");
 
   await go(page, "#/compare");
   await expect(page.getByRole("heading", { level: 1, name: "Side by side" })).toBeVisible();
-  await expect(page.getByTestId("stage-line")).toContainText("source Clinical (GMP, not process validated); target Commercial (process validated)");
-  await expect(page.getByRole("columnheader", { name: "Source (current)" }).first()).toBeVisible();
-  await expect(page.locator(".chip", { hasText: "Within source range" }).first()).toBeVisible();
-  await expect(page.locator(".chip", { hasText: "Outside source range" }).first()).toBeVisible();
+  await expect(page.getByTestId("stage-line")).toContainText("sending unit (SU) Clinical (GMP, not process validated); receiving unit (RU) Commercial (process validated)");
+  await expect(page.getByRole("columnheader", { name: "SU (current)" }).first()).toBeVisible();
+  await expect(page.locator(".chip", { hasText: "Within SU range" }).first()).toBeVisible();
+  await expect(page.locator(".chip", { hasText: "Outside SU range" }).first()).toBeVisible();
   await expect(page.locator(".chip", { hasText: "validated range" })).toHaveCount(0);
   await expectAccessible(page, "compare, clinical source");
   await expectNoHorizontalScroll(page, "compare, clinical source");
 
   await go(page, "#/register");
-  await expect(page.getByRole("list", { name: "Count by category" }).getByRole("button", { name: /^Outside source range\s+\d+$/ })).toBeVisible();
+  await expect(page.getByRole("list", { name: "Count by category" }).getByRole("button", { name: /^Outside SU range\s+\d+$/ })).toBeVisible();
   await expect(page.getByRole("list", { name: "Count by category" }).getByRole("button", { name: /validated range/ })).toHaveCount(0);
 
   await go(page, "#/document");
   await expect(page.getByRole("heading", { level: 1, name: "Document" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Source program summary (current state)" }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Sending unit program summary (current state)" }).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: /\(validated state\)/ })).toHaveCount(0);
   await expect(page.getByText(BANNER).first()).toBeVisible();
   await expectAccessible(page, "document, clinical source");
@@ -100,7 +100,7 @@ test("a clinical source: stage-aware labels on Compare, Register and the Documen
 
   await go(page, "#/validation");
   await expect(page.getByRole("heading", { level: 3, name: "Stage basis" })).toBeVisible();
-  await expect(page.locator("main")).toContainText("no source PPQ or process validation evidence to leverage");
+  await expect(page.locator("main")).toContainText("no SU PPQ or process validation evidence to leverage");
   await expect(page.locator("main")).toContainText("typically a full PPQ");
   await expectAccessible(page, "validation, clinical source");
   await expectNoHorizontalScroll(page, "validation, clinical source");
@@ -115,12 +115,12 @@ test("both stages answered in a new project show on Home and Compare, and the ba
   await answerChoice(page, "Clinical (GMP, not process validated)");
 
   await go(page, "#/compare");
-  await expect(page.getByTestId("stage-line")).toContainText("source Development / engineering runs; target Clinical (GMP, not process validated)");
+  await expect(page.getByTestId("stage-line")).toContainText("sending unit (SU) Development / engineering runs; receiving unit (RU) Clinical (GMP, not process validated)");
 
   await go(page, "#/");
   const card = page.locator("section.card", { hasText: "Open project" });
-  await expect(card).toContainText("Source: Development / engineering runs");
-  await expect(card).toContainText("Target: Clinical (GMP, not process validated)");
+  await expect(card).toContainText("Sending unit (SU): Development / engineering runs");
+  await expect(card).toContainText("Receiving unit (RU): Clinical (GMP, not process validated)");
   await expect(page.getByText(BANNER).first()).toBeVisible();
   await expectAccessible(page, "home with stages");
   await expectNoHorizontalScroll(page, "home with stages");
@@ -129,9 +129,9 @@ test("both stages answered in a new project show on Home and Compare, and the ba
 test("the demo (both sides commercial) keeps the validated wording", async ({ page }) => {
   await loadDemo(page);
   await go(page, "#/compare");
-  await expect(page.getByTestId("stage-line")).toContainText("source Commercial (process validated); target Commercial (process validated)");
+  await expect(page.getByTestId("stage-line")).toContainText("sending unit (SU) Commercial (process validated); receiving unit (RU) Commercial (process validated)");
   await expect(page.locator(".chip", { hasText: "Outside validated range" }).first()).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "Source (validated)" }).first()).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "SU (validated)" }).first()).toBeVisible();
   await go(page, "#/document");
-  await expect(page.getByRole("heading", { name: "Source program summary (validated state)" }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Sending unit program summary (validated state)" }).first()).toBeVisible();
 });

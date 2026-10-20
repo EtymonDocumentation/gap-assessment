@@ -65,6 +65,7 @@ const demoSchema = z.object({
       z.object({
         gapKey: z.string(),
         owner: z.string().optional(),
+        notes: z.string().optional(),
         status: z.enum(["open", "in_progress", "closed", "accepted_no_action"]).optional(),
         severityOverride: z.object({ value: z.enum(["high", "medium", "low", "none"]), justification: z.string() }).optional(),
       }),

@@ -89,7 +89,7 @@ rules:
     comparator: enum
     severity: high
     regulatory: true
-    why: The thaw method sets thaw rate, temperature gradients and cryoconcentration risk, which can affect aggregation and particles. A different method is a design change that source freeze-thaw data do not cover.
+    why: The thaw method sets thaw rate, temperature gradients and cryoconcentration risk, which can affect aggregation and particles. A different method is a design change that SU freeze-thaw data do not cover.
     activities: [freeze_thaw_study, product_quality_impact, equipment_qualification, engineering_run, procedure_update, training]
 
   - id: R-THAW-MIXING
@@ -98,7 +98,7 @@ rules:
     match: [uo.ds_receipt_thaw.equip.thaw_mixer.operatingPrinciple]
     comparator: enum
     severity: medium
-    why: Thawed drug substance is stratified, so the mixing method decides homogeneity and the shear and foaming the protein sees. A different method is not covered by the source mixing evidence.
+    why: Thawed drug substance is stratified, so the mixing method decides homogeneity and the shear and foaming the protein sees. A different method is not covered by the SU mixing evidence.
     activities: [mixing_study, product_quality_impact, equipment_qualification, procedure_update]
 
   - id: R-THAW-PARAM
@@ -110,11 +110,11 @@ rules:
     severityBy:
       classification: { CPP: high, KPP: medium, non_critical: low }
     regulatory: true
-    why: Thaw conditions outside the source proven acceptable range are not supported by the freeze-thaw evidence for the drug substance.
+    why: Thaw conditions outside the SU proven acceptable range are not supported by the freeze-thaw evidence for the drug substance.
     activities: [freeze_thaw_study, scientific_justification, engineering_run]
     outcomes:
       within_validated_range:
-        why: The target thaw conditions lie within the source proven acceptable range. Record the target range in procedures; no additional study is implied.
+        why: The RU thaw conditions lie within the SU proven acceptable range. Record the RU range in procedures; no additional study is implied.
         activities: [procedure_update]
 
   - id: R-THAW-AMBIENT-TIME
@@ -132,25 +132,25 @@ rules:
 
   - id: R-EV-FREEZE-THAW
     version: 1.0.0
-    title: Freeze-thaw evidence for target thaw method and container
+    title: Freeze-thaw evidence for RU thaw method and container
     match: [uo.ds_receipt_thaw.study.freeze_thaw.status]
     comparator: evidence
     config:
       map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
     severity: high
     regulatory: true
-    why: Product quality after thaw is not demonstrated for the target thaw method and container until freeze-thaw data exist.
+    why: Product quality after thaw is not demonstrated for the RU thaw method and container until freeze-thaw data exist.
     activities: [freeze_thaw_study, product_quality_impact]
 
   - id: R-EV-THAW-HOMOGENEITY
     version: 1.0.0
-    title: Post-thaw homogeneity at target
+    title: Post-thaw homogeneity at RU
     match: [uo.ds_receipt_thaw.study.thaw_homogeneity.status]
     comparator: evidence
     config:
       map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
     severity: medium
-    why: Homogeneity of the thawed bulk has not been demonstrated for the target thaw and mixing method.
+    why: Homogeneity of the thawed bulk has not been demonstrated for the RU thaw and mixing method.
     activities: [mixing_study]
 
   # ---- stand-alone stoppering
@@ -171,7 +171,7 @@ rules:
     comparator: enum
     severity: medium
     regulatory: true
-    why: Stopper preparation and siliconization affect particulates, sterilization history, machinability, stopper sticking and protein adsorption. Existing component data cover only the source configuration.
+    why: Stopper preparation and siliconization affect particulates, sterilization history, machinability, stopper sticking and protein adsorption. Existing component data cover only the SU configuration.
     activities: [engineering_run, cci_study, extractables_leachables]
 
   - id: R-STOPPERING-OPEN-TIME
@@ -198,13 +198,13 @@ rules:
 
   - id: R-EV-STOPPER-MACHINABILITY
     version: 1.0.0
-    title: Stopper machinability and compatibility at target
+    title: Stopper machinability and compatibility at RU
     match: [uo.stoppering.study.stopper_machinability.status]
     comparator: evidence
     config:
       map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
     severity: medium
-    why: Stopper feeding, seating and compatibility with the product have not been demonstrated on the target stoppering unit.
+    why: Stopper feeding, seating and compatibility with the product have not been demonstrated on the RU stoppering unit.
     activities: [engineering_run, cci_study]
 
   # ---- lyophilization
@@ -222,11 +222,11 @@ rules:
     severityBy:
       classification: { CPP: high, KPP: medium, non_critical: low }
     regulatory: true
-    why: Lyophilization cycle parameters determine product temperature, cake structure and residual moisture. Operating outside the source proven acceptable or {{validated|demonstrated}} range is not supported by the cycle development and {{PPQ|source run}} data.
+    why: Lyophilization cycle parameters determine product temperature, cake structure and residual moisture. Operating outside the SU proven acceptable or {{validated|demonstrated}} range is not supported by the cycle development and {{PPQ|SU run}} data.
     activities: [lyo_cycle_verification, scientific_justification, engineering_run, ppq_coverage_assessment]
     outcomes:
       within_validated_range:
-        why: The target cycle conditions lie within the source proven acceptable or {{validated|demonstrated}} range. Record the target cycle in the recipe and procedures; no additional {{validation|activity}} is implied.
+        why: The RU cycle conditions lie within the SU proven acceptable or {{validated|demonstrated}} range. Record the RU cycle in the recipe and procedures; no additional {{validation|activity}} is implied.
         activities: [procedure_update]
 
   - id: R-LYO-CYCLE-TIME
@@ -236,7 +236,7 @@ rules:
     comparator: upper_limit
     severity: high
     regulatory: true
-    why: A longer total cycle time extends the time vials spend in the chamber and is not supported by the {{validated|source}} cycle and the stability data.
+    why: A longer total cycle time extends the time vials spend in the chamber and is not supported by the {{validated|SU}} cycle and the stability data.
     activities: [lyo_cycle_verification, hold_time_study, ppq_coverage_assessment]
 
   - id: R-LYO-SHELF-AREA
@@ -250,7 +250,7 @@ rules:
         - { atLeast: 1, severity: medium }
     severity: medium
     regulatory: true
-    why: A different shelf area changes the maximum batch size and the heat and mass transfer of the cycle. The {{validated|source}} cycle cannot be assumed to perform the same way at another scale.
+    why: A different shelf area changes the maximum batch size and the heat and mass transfer of the cycle. The {{validated|SU}} cycle cannot be assumed to perform the same way at another scale.
     activities: [lyo_cycle_verification, engineering_run, equipment_qualification, ppq_coverage_assessment]
 
   - id: R-LYO-LOADING
@@ -273,7 +273,7 @@ rules:
     comparator: enum
     severity: medium
     regulatory: true
-    why: Nucleation control, the closure approach and the backfill gas change ice structure, drying behaviour or the vial headspace. They are part of the cycle design that was {{validated|run at the source}}.
+    why: Nucleation control, the closure approach and the backfill gas change ice structure, drying behaviour or the vial headspace. They are part of the cycle design that was {{validated|run at the SU}}.
     activities: [lyo_cycle_verification, cci_study, scientific_justification, procedure_update]
 
   - id: R-LYO-MOISTURE-LIMIT
@@ -288,14 +288,14 @@ rules:
 
   - id: R-EV-LYO-CYCLE
     version: 1.0.0
-    title: Cycle transfer and verification on target lyophilizer
+    title: Cycle transfer and verification on RU lyophilizer
     match: [uo.lyophilization.study.cycle_verification.status]
     comparator: evidence
     config:
       map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
     severity: high
     regulatory: true
-    why: The cycle has not been shown to give the {{validated|source}} product temperature profile and residual moisture on the target lyophilizer or scale.
+    why: The cycle has not been shown to give the {{validated|SU}} product temperature profile and residual moisture on the RU lyophilizer or scale.
     activities: [lyo_cycle_verification, engineering_run]
 
   - id: R-EV-LYO-APS-LOADING
@@ -307,7 +307,7 @@ rules:
       map: { covered: within_validated_range, bridging_required: outside_validated_range, not_covered: outside_validated_range }
     severity: high
     regulatory: true
-    why: The aseptic process simulation does not demonstrate the target loading method and duration until it is covered.
+    why: The aseptic process simulation does not demonstrate the RU loading method and duration until it is covered.
     activities: [media_fill]
 
   # ---- visual inspection
@@ -318,7 +318,7 @@ rules:
     comparator: enum
     severity: high
     regulatory: true
-    why: Manual, semi-automated and automated inspection detect defects by different principles with different detection performance. A different method needs its own qualification and is not covered by the source one.
+    why: Manual, semi-automated and automated inspection detect defects by different principles with different detection performance. A different method needs its own qualification and is not covered by the SU one.
     activities: [avi_qualification, inspector_qualification, equipment_qualification, csv_assessment, procedure_update, training]
 
   - id: R-VI-DEFECT-LIBRARY
@@ -341,25 +341,25 @@ rules:
 
   - id: R-EV-VI-AVI
     version: 1.0.0
-    title: Automated inspection qualification at target
+    title: Automated inspection qualification at RU
     match: [uo.visual_inspection.study.avi_qualification.status]
     comparator: evidence
     config:
       map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
     severity: high
     regulatory: true
-    why: Detection performance of the target automated or semi-automated inspection has not been demonstrated against a defect kit.
+    why: Detection performance of the RU automated or semi-automated inspection has not been demonstrated against a defect kit.
     activities: [avi_qualification, equipment_qualification]
 
   - id: R-EV-VI-INSPECTOR
     version: 1.0.0
-    title: Inspector qualification at target
+    title: Inspector qualification at RU
     match: [uo.visual_inspection.study.inspector_qualification.status]
     comparator: evidence
     config:
       map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
     severity: medium
-    why: Target inspectors are not qualified for routine manual inspection until qualification and requalification are in place.
+    why: RU inspectors are not qualified for routine manual inspection until qualification and requalification are in place.
     activities: [inspector_qualification, training]
 
   # ---- labeling and packaging
@@ -394,18 +394,18 @@ rules:
 
   - id: R-EV-SERIALIZATION
     version: 1.0.0
-    title: Serialization verification at target
+    title: Serialization verification at RU
     match: [uo.labeling_packaging.study.serialization_verification.status]
     comparator: evidence
     config:
       map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
     severity: medium
-    why: Serialization and aggregation have not been verified for the target level and markets.
+    why: Serialization and aggregation have not been verified for the RU level and markets.
     activities: [serialization_verification, csv_assessment]
 
   - id: R-EV-TIME-OUT
     version: 1.0.0
-    title: Time-out-of-refrigeration evidence at target
+    title: Time-out-of-refrigeration evidence at RU
     match: [uo.labeling_packaging.study.tor_stability.status]
     comparator: evidence
     config:
@@ -467,25 +467,25 @@ rules:
 
   - id: R-EV-STABILITY
     version: 1.0.0
-    title: Stability support for target storage condition
+    title: Stability support for RU storage condition
     match: [uo.storage_shipping.study.stability_support.status]
     comparator: evidence
     config:
       map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
     severity: high
     regulatory: true
-    why: Stability data do not yet support the target storage condition for the full shelf life.
+    why: Stability data do not yet support the RU storage condition for the full shelf life.
     activities: [stability_assessment]
 
   - id: R-EV-SHIPPING
     version: 1.0.0
-    title: Shipping qualification at target
+    title: Shipping qualification at RU
     match: [uo.storage_shipping.study.shipping_validation.status]
     comparator: evidence
     config:
       map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
     severity: high
-    why: The target shipping configuration and lane are not qualified until shipping qualification is available.
+    why: The RU shipping configuration and lane are not qualified until shipping qualification is available.
     activities: [shipping_validation]
 
   # ------------------------------------------------------------------ scale
@@ -500,11 +500,11 @@ rules:
         - { atLeast: 1, severity: medium }
     severity: medium
     regulatory: true
-    why: A batch size outside the {{validated|demonstrated}} range affects mixing, hold times, filter loading, filling duration and APS coverage, and is outside the scale demonstrated {{in PPQ|at the source}}.
+    why: A batch size outside the {{validated|demonstrated}} range affects mixing, hold times, filter loading, filling duration and APS coverage, and is outside the scale demonstrated {{in PPQ|at the SU}}.
     activities: [mixing_study, hold_time_study, filter_sizing, media_fill, engineering_run, ppq_coverage_assessment]
     outcomes:
       within_validated_range:
-        why: The target batch size lies within the batch size range covered by the source validation.
+        why: The RU batch size lies within the batch size range covered by the SU validation.
 
   - id: R-EQUIP-CAPACITY
     version: 1.0.0
@@ -576,29 +576,29 @@ rules:
     severityBy:
       classification: { CPP: high, KPP: medium, non_critical: low }
     regulatory: true
-    why: Operating outside the source PAR or {{validated|demonstrated}} range is not supported by {{existing process validation data|the source process data}}.
+    why: Operating outside the SU PAR or {{validated|demonstrated}} range is not supported by {{existing process validation data|the SU process data}}.
     activities: [scientific_justification, engineering_run, ppq_coverage_assessment]
     outcomes:
       within_validated_range:
-        why: The target operating range lies within the source PAR or {{validated|demonstrated}} range. Record the target range in procedures; no additional {{validation|activity}} is implied.
+        why: The RU operating range lies within the SU PAR or {{validated|demonstrated}} range. Record the RU range in procedures; no additional {{validation|activity}} is implied.
         activities: [procedure_update]
 
   # ------------------------------------------------------------------ coverage (source state)
   - id: R-MIXING-COVERAGE
     version: 1.0.0
-    title: Mixing study coverage of target batch size
+    title: Mixing study coverage of RU batch size
     match: [uo.compounding.study.mixing.coverage]
     comparator: coverage
     config:
       coverageSide: source
       against: { side: target, path: uo.compounding.param.batch_size }
     severity: high
-    why: Homogeneity has been demonstrated only over the volumes studied; the target batch size must fall within that coverage.
+    why: Homogeneity has been demonstrated only over the volumes studied; the RU batch size must fall within that coverage.
     activities: [mixing_study]
 
   - id: R-APS-COVERAGE
     version: 1.0.0
-    title: APS duration coverage on target line
+    title: APS duration coverage on RU line
     match: [uo.aseptic_filling.study.aps.coverage]
     comparator: coverage
     config:
@@ -616,7 +616,7 @@ rules:
     comparator: enum
     severity: high
     regulatory: true
-    why: The filling principle affects fill accuracy, shear and particle formation, and is part of the process demonstrated {{in PPQ|at the source}}. A different principle is a design change.
+    why: The filling principle affects fill accuracy, shear and particle formation, and is part of the process demonstrated {{in PPQ|at the SU}}. A different principle is a design change.
     activities: [engineering_run, fill_accuracy_study, product_quality_impact, comparability_assessment, equipment_qualification, ppq, procedure_update, training]
 
   - id: R-MIXER
@@ -626,7 +626,7 @@ rules:
     comparator: enum
     severity: medium
     regulatory: true
-    why: A different mixing principle changes shear, foaming and homogeneity, and is not covered by the source mixing study.
+    why: A different mixing principle changes shear, foaming and homogeneity, and is not covered by the SU mixing study.
     activities: [mixing_study, product_quality_impact, equipment_qualification, procedure_update]
 
   - id: R-VESSEL-TYPE
@@ -755,7 +755,7 @@ rules:
       new_requirement:
         severity: low
         regulatory: false
-        why: An additional in-process control requires a method, procedure and training at the target.
+        why: An additional in-process control requires a method, procedure and training at the RU.
         activities: [procedure_update, training]
 
   - id: R-IPC-FREQ
@@ -770,63 +770,63 @@ rules:
   # ------------------------------------------------------------------ evidence (target-side follow-ups)
   - id: R-EV-MIXING
     version: 1.0.0
-    title: Mixing effectiveness at target
+    title: Mixing effectiveness at RU
     match: [uo.compounding.study.mixing.status]
     comparator: evidence
     config:
       map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
     severity: high
-    why: Homogeneity has not been demonstrated for the target mixing configuration.
+    why: Homogeneity has not been demonstrated for the RU mixing configuration.
     activities: [mixing_study]
 
   - id: R-EV-BRET
     version: 1.0.0
-    title: Bacterial retention validation for target filter
+    title: Bacterial retention validation for RU filter
     match: [uo.sterile_filtration.study.bacterial_retention.status]
     comparator: evidence
     config:
       map: { covered: within_validated_range, bridging_required: outside_validated_range, not_covered: outside_validated_range }
     severity: high
     regulatory: true
-    why: Sterilizing filtration is not validated for the target filter with this product until bacterial retention is demonstrated.
+    why: Sterilizing filtration is not validated for the RU filter with this product until bacterial retention is demonstrated.
     activities: [filter_bacterial_retention]
 
   - id: R-EV-COMPAT
     version: 1.0.0
-    title: Filter compatibility for target filter
+    title: Filter compatibility for RU filter
     match: [uo.sterile_filtration.study.filter_compatibility.status]
     comparator: evidence
     config:
       map: { covered: within_validated_range, bridging_required: outside_validated_range, not_covered: outside_validated_range }
     severity: medium
-    why: Chemical compatibility of the target filter with the formulation is not established.
+    why: Chemical compatibility of the RU filter with the formulation is not established.
     activities: [filter_compatibility]
 
   - id: R-EV-EXTRACTABLES
     version: 1.0.0
-    title: Extractables data for target filter
+    title: Extractables data for RU filter
     match: [uo.sterile_filtration.study.filter_extractables.status]
     comparator: evidence
     config:
       map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
     severity: medium
-    why: Extractables data for the target filter are needed for the product leachables assessment.
+    why: Extractables data for the RU filter are needed for the product leachables assessment.
     activities: [extractables_leachables]
 
   - id: R-EV-SIZING
     version: 1.0.0
-    title: Filter sizing for target batch volume
+    title: Filter sizing for RU batch volume
     match: [uo.sterile_filtration.study.filter_sizing.status]
     comparator: evidence
     config:
       map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
     severity: medium
-    why: Filter capacity for the target batch volume has not been confirmed.
+    why: Filter capacity for the RU batch volume has not been confirmed.
     activities: [filter_sizing]
 
   - id: R-EV-SUA-EL
     version: 1.0.0
-    title: E&L assessment for target single-use assembly
+    title: E&L assessment for RU single-use assembly
     match: [uo.sterile_filtration.study.sua_el.status]
     comparator: evidence
     config:
@@ -838,73 +838,73 @@ rules:
 
   - id: R-EV-FILL-ACCURACY
     version: 1.0.0
-    title: Fill accuracy of target pump
+    title: Fill accuracy of RU pump
     match: [uo.aseptic_filling.study.fill_accuracy.status]
     comparator: evidence
     config:
       map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
     severity: high
-    why: Fill accuracy and precision of the target pump with this product have not been demonstrated.
+    why: Fill accuracy and precision of the RU pump with this product have not been demonstrated.
     activities: [fill_accuracy_study, engineering_run]
 
   - id: R-EV-PUMP-IMPACT
     version: 1.0.0
-    title: Product-quality impact of target pump
+    title: Product-quality impact of RU pump
     match: [uo.aseptic_filling.study.pump_product_impact.status]
     comparator: evidence
     config:
       map: { no_impact: within_validated_range, impact: outside_validated_range, not_assessed: outside_validated_range }
     severity: high
     regulatory: true
-    why: The effect of the target pump on product quality (shear, particles, aggregation) is not established.
+    why: The effect of the RU pump on product quality (shear, particles, aggregation) is not established.
     activities: [product_quality_impact, comparability_assessment]
 
   - id: R-EV-PPQ
     version: 1.0.0
-    title: PPQ coverage of target filling principle
+    title: PPQ coverage of RU filling principle
     match: [uo.aseptic_filling.study.ppq.status]
     comparator: evidence
     config:
       map: { covered: within_validated_range, bridging_required: outside_validated_range, not_covered: outside_validated_range }
     severity: high
     regulatory: true
-    why: Existing PPQ does not demonstrate the process with the target filling principle.
+    why: Existing PPQ does not demonstrate the process with the RU filling principle.
     activities: [ppq]
 
   - id: R-EV-CCI
     version: 1.0.0
-    title: CCI for target configuration
+    title: CCI for RU configuration
     match: [uo.capping.study.cci.status]
     comparator: evidence
     config:
       map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
     severity: high
     regulatory: true
-    why: Container closure integrity has not been demonstrated for the target container-closure system and capping process.
+    why: Container closure integrity has not been demonstrated for the RU container-closure system and capping process.
     activities: [cci_study]
 
   - id: R-EV-RSF
     version: 1.0.0
-    title: RSF–CCI correlation at target
+    title: RSF–CCI correlation at RU
     match: [uo.capping.study.rsf_cci_correlation.status]
     comparator: evidence
     config:
       map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
     severity: medium
-    why: The RSF range has not been correlated with CCI on the target capping equipment.
+    why: The RSF range has not been correlated with CCI on the RU capping equipment.
     activities: [rsf_study]
 
   # ------------------------------------------------------------------ procedures
   - id: R-PROCEDURES
     version: 1.1.0
-    title: Target procedures
+    title: RU procedures
     match: [uo.*.doc.procedures.status]
     comparator: evidence
     config:
       # Updating an existing procedure is an action to complete, not a change of operating principle.
       map: { in_place: equivalent, update_required: new_requirement, new_required: new_requirement }
     severity: low
-    why: Procedures and batch record instructions must reflect the target process before GMP manufacture.
+    why: Procedures and batch record instructions must reflect the RU process before GMP manufacture.
     activities: [procedure_update, training]
 
   # ================================================================== milestone 3: validation studies and equipment qualification
@@ -914,17 +914,17 @@ rules:
   # ---- process performance qualification
   - id: R-PPQ-STRATEGY
     version: 1.0.0
-    title: PPQ approach at target
+    title: PPQ approach at RU
     match: [uo.aseptic_filling.study.ppq.strategy]
     comparator: evidence
     config:
       map: { full_ppq: new_requirement, reduced_bridging: outside_validated_range, source_data_leveraged: within_validated_range, not_decided: information_required }
     severity: high
-    why: The PPQ approach decides what is demonstrated at the target. New batches are needed for a full PPQ; a bridging approach needs a justified gap analysis; leveraging source data needs a documented rationale that the source PPQ covers the target conditions.
+    why: The PPQ approach decides what is demonstrated at the RU. New batches are needed for a full PPQ; a bridging approach needs a justified gap analysis; leveraging SU data needs a documented rationale that the SU PPQ covers the RU conditions.
     activities: [ppq, ppq_coverage_assessment, risk_assessment_update]
     outcomes:
       within_validated_range:
-        why: Source PPQ data are judged to cover the target. The coverage rationale must be documented and approved.
+        why: SU PPQ data are judged to cover the RU. The coverage rationale must be documented and approved.
         activities: [ppq_coverage_assessment]
 
   - id: R-PPQ-BATCHES
@@ -942,7 +942,7 @@ rules:
     match: [uo.aseptic_filling.study.aps.initialRuns]
     comparator: lower_limit
     severity: medium
-    why: Initial qualification of an aseptic line is shown by several consecutive successful simulations. Fewer runs at the target than in the source programme weaken that demonstration.
+    why: Initial qualification of an aseptic line is shown by several consecutive successful simulations. Fewer runs at the RU than in the SU programme weaken that demonstration.
     activities: [media_fill, risk_assessment_update]
 
   - id: R-APS-INTERVENTIONS
@@ -951,19 +951,19 @@ rules:
     match: [uo.aseptic_filling.param.max_interventions.max]
     comparator: upper_limit
     severity: medium
-    why: The simulation must include the worst-case interventions allowed in routine manufacture. More allowed interventions at the target than were simulated at the source are not covered.
+    why: The simulation must include the worst-case interventions allowed in routine manufacture. More allowed interventions at the RU than were simulated at the SU are not covered.
     activities: [media_fill, risk_assessment_update, procedure_update]
 
   - id: R-EV-APS-SCOPE
     version: 1.0.0
-    title: APS coverage of target container, closure and filling principle
+    title: APS coverage of RU container, closure and filling principle
     match: [uo.aseptic_filling.study.aps.status]
     comparator: evidence
     config:
       map: { covered: within_validated_range, bridging_required: outside_validated_range, not_covered: outside_validated_range }
     severity: high
     regulatory: true
-    why: The simulation is valid for the line, container and closure configuration it represents. The target configuration is not demonstrated until a simulation covers it.
+    why: The simulation is valid for the line, container and closure configuration it represents. The RU configuration is not demonstrated until a simulation covers it.
     activities: [media_fill]
 
   # ---- hold times
@@ -1042,14 +1042,14 @@ rules:
 
   - id: R-EV-CONTAINER-EL
     version: 1.0.0
-    title: Container closure E&L data for target components
+    title: Container closure E&L data for RU components
     match: [uo.aseptic_filling.study.container_el.status]
     comparator: evidence
     config:
       map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
     severity: high
     regulatory: true
-    why: Extractables and leachables from the target glass, stopper and coatings have not been assessed for this product over shelf life.
+    why: Extractables and leachables from the RU glass, stopper and coatings have not been assessed for this product over shelf life.
     activities: [extractables_leachables, stability_assessment]
 
   # ---- cleaning
@@ -1060,18 +1060,18 @@ rules:
     comparator: enum
     severity: medium
     regulatory: true
-    why: A different holding vessel type changes product-contact materials and moves the cleaning or single-use E&L burden. Hold time data collected in the source vessel do not carry over.
+    why: A different holding vessel type changes product-contact materials and moves the cleaning or single-use E&L burden. Hold time data collected in the SU vessel do not carry over.
     activities: [extractables_leachables, cleaning_validation, hold_time_study, equipment_qualification, risk_assessment_update]
 
   - id: R-EV-CLEANING
     version: 1.0.0
-    title: Cleaning validation of target reusable equipment
+    title: Cleaning validation of RU reusable equipment
     match: [uo.*.study.cleaning.status]
     comparator: evidence
     config:
       map: { covered: within_validated_range, bridging_required: outside_validated_range, not_covered: outside_validated_range }
     severity: high
-    why: Reusable product-contact equipment at the target must be shown to be cleaned to acceptable residue and microbial limits for this product.
+    why: Reusable product-contact equipment at the RU must be shown to be cleaned to acceptable residue and microbial limits for this product.
     activities: [cleaning_validation]
 
   - id: R-CLEAN-WORST-CASE
@@ -1099,14 +1099,14 @@ rules:
   # ---- filter validation
   - id: R-EV-BRET-CONDITIONS
     version: 1.0.0
-    title: Bacterial retention test conditions cover target worst case
+    title: Bacterial retention test conditions cover RU worst case
     match: [uo.sterile_filtration.study.bacterial_retention.conditions]
     comparator: evidence
     config:
       map: { covered: within_validated_range, bridging_required: outside_validated_range, not_covered: outside_validated_range }
     severity: high
     regulatory: true
-    why: Bacterial retention is valid only for the pressure, temperature, flow and time tested. More demanding target conditions are not demonstrated by the existing study.
+    why: Bacterial retention is valid only for the pressure, temperature, flow and time tested. More demanding RU conditions are not demonstrated by the existing study.
     activities: [filter_bacterial_retention]
 
   - id: R-INTEGRITY-METHOD
@@ -1120,13 +1120,13 @@ rules:
 
   - id: R-EV-INTEGRITY-VALIDATION
     version: 1.0.0
-    title: Product-wet integrity specification for target filter
+    title: Product-wet integrity specification for RU filter
     match: [uo.sterile_filtration.study.integrity_validation.status]
     comparator: evidence
     config:
       map: { covered: within_validated_range, bridging_required: outside_validated_range, not_covered: outside_validated_range }
     severity: medium
-    why: The product-wet integrity limit must be established for the target filter and method before the test can release filtered bulk.
+    why: The product-wet integrity limit must be established for the RU filter and method before the test can release filtered bulk.
     activities: [filter_integrity_validation]
 
   # ---- container closure integrity
@@ -1147,12 +1147,12 @@ rules:
     comparator: upper_limit
     severity: high
     regulatory: true
-    why: A larger smallest detectable leak means the target method is less sensitive than the {{validated|source}} one, so it does not support the same integrity claim.
+    why: A larger smallest detectable leak means the RU method is less sensitive than the {{validated|SU}} one, so it does not support the same integrity claim.
     activities: [cci_method_validation, cci_study, scientific_justification]
 
   - id: R-EV-CCI-METHOD-VALIDATION
     version: 1.0.0
-    title: Validation of target CCI method
+    title: Validation of RU CCI method
     match: [uo.capping.study.cci_method_validation.status]
     comparator: evidence
     config:
@@ -1170,7 +1170,7 @@ rules:
       map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
     severity: high
     regulatory: true
-    why: Integrity at release does not show that the seal is kept through storage and transport. Shelf-life and distribution stress data are needed for the target configuration.
+    why: Integrity at release does not show that the seal is kept through storage and transport. Shelf-life and distribution stress data are needed for the RU configuration.
     activities: [cci_study, stability_assessment]
 
   # ---- shipping validation
@@ -1184,7 +1184,7 @@ rules:
     activities: [shipping_validation, risk_assessment_update]
     outcomes:
       removed_element:
-        why: A transport mode used at the source is not used at the target. Confirm the qualification still covers the remaining modes.
+        why: A transport mode used at the SU is not used at the RU. Confirm the qualification still covers the remaining modes.
         activities: [risk_assessment_update]
 
   - id: R-SHIP-SCOPE
@@ -1218,7 +1218,7 @@ rules:
     config:
       differentAs: new_requirement
     severity: medium
-    why: Equipment must be qualified for its intended use before GMP manufacture. A target qualification status that differs from the source (not qualified, planned or at an earlier stage) is a qualification requirement for the transfer.
+    why: Equipment must be qualified for its intended use before GMP manufacture. An RU qualification status that differs from the SU (not qualified, planned or at an earlier stage) is a qualification requirement for the transfer.
     activities: [equipment_qualification, risk_assessment_update]
 
   - id: R-EQ-RANGE-FILLER-SPEED

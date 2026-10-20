@@ -152,8 +152,8 @@ export function RegisterPage() {
                   {sortBtn("id", "ID")}
                 </th>
                 <th scope="col">Attribute</th>
-                <th scope="col">Source</th>
-                <th scope="col">Target</th>
+                <th scope="col">SU</th>
+                <th scope="col">RU</th>
                 <th scope="col" aria-sort={ariaSort("category")}>
                   {sortBtn("category", "Category")}
                 </th>
@@ -238,7 +238,7 @@ function GapRow({ g, open, onToggle }: { g: Gap; open: boolean; onToggle: () => 
                   {g.activities.length ? g.activities.map((x) => activityLabel(content, x)).join("; ") : "None"}
                 </p>
                 <p className="small muted">
-                  Rule {g.ruleId} v{g.ruleVersion} ({g.ruleTitle}) · comparator {g.comparator} · rule severity {SEVERITY_TEXT[g.ruleSeverity]}
+                  Rule {g.ruleId} v{g.ruleVersion} — {g.ruleTitle} · comparator {g.comparator} · rule severity {SEVERITY_TEXT[g.ruleSeverity]}
                   {g.severityNote ? ` · ${g.severityNote}` : ""}
                 </p>
                 <p className="small muted">

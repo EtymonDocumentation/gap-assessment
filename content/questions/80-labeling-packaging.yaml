@@ -43,10 +43,10 @@ questions:
   - id: lp.serialization_verification
     section: uo.labeling_packaging
     parent: lp.serialization
-    prompt: Has serialization and aggregation been verified at the target (code quality, data transfer and reporting)?
-    label: Serialization verification (target)
+    prompt: Has serialization and aggregation been verified at the RU (code quality, data transfer and reporting)?
+    label: Serialization verification (RU)
     why: Serialization is a computerized, data-driven process. A different level or system needs verification of code quality, aggregation logic and data exchange for the supplied markets.
-    triggerNote: Asked because the target serialization level differs from the source.
+    triggerNote: Asked because the RU serialization level differs from the SU.
     sides: target
     binds: uo.labeling_packaging.study.serialization_verification.status
     input: { type: choice, optionsFrom: evidenceAvailability }
@@ -74,10 +74,10 @@ questions:
   - id: lp.tor_evidence
     section: uo.labeling_packaging
     parent: lp.time_out
-    prompt: Do available stability or in-use data support the target maximum time out of refrigeration?
-    label: Time-out-of-refrigeration evidence (target)
+    prompt: Do available stability or in-use data support the RU maximum time out of refrigeration?
+    label: Time-out-of-refrigeration evidence (RU)
     why: A longer time out of refrigeration is acceptable only where stability data or a documented assessment cover the temperature and total time the product experiences.
-    triggerNote: Asked because the target maximum time out of refrigeration is longer than the source.
+    triggerNote: Asked because the RU maximum time out of refrigeration is longer than the SU.
     sides: target
     binds: uo.labeling_packaging.study.tor_stability.status
     input: { type: choice, optionsFrom: evidenceAvailability }
@@ -106,7 +106,7 @@ questions:
     section: uo.labeling_packaging
     prompt: Qualification status of the labeling machine
     label: Labeler qualification status
-    why: Equipment used for GMP manufacture must be qualified. A target labeler that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    why: Equipment used for GMP manufacture must be qualified. An RU labeler that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
     tags: [m3]
     sides: paired
     sameAsSource: false
@@ -116,10 +116,10 @@ questions:
   - id: lp.labeler_range
     section: uo.labeling_packaging
     parent: lp.labeler_qual
-    prompt: Qualified speed range of the target labeling machine
+    prompt: Qualified speed range of the RU labeling machine
     label: Labeler qualified speed range
     why: Label application and print verification are qualified over a stated speed range. Planned speeds outside that range are not supported by the qualification.
-    triggerNote: Asked because the target labeler is qualified or has a qualification planned.
+    triggerNote: Asked because the RU labeler is qualified or has a qualification planned.
     tags: [m3]
     sides: target
     binds: uo.labeling_packaging.equip.labeler.qualifiedRange
@@ -130,7 +130,7 @@ questions:
     section: uo.labeling_packaging
     prompt: Qualification status of the serialization and aggregation system
     label: Serialization system qualification status
-    why: The serialization system is a computerized system that is validated and qualified together with its equipment. A target system that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    why: The serialization system is a computerized system that is validated and qualified together with its equipment. An RU system that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
     tags: [m3]
     sides: paired
     sameAsSource: false
@@ -139,9 +139,9 @@ questions:
 
   - id: lp.procedures
     section: uo.labeling_packaging
-    prompt: Status of target procedures for labeling and packaging
-    label: Target labeling and packaging procedures
-    why: Line clearance, label control, pack-out and serialization procedures must reflect the target line and markets before GMP manufacture.
+    prompt: Status of RU procedures for labeling and packaging
+    label: RU labeling and packaging procedures
+    why: Line clearance, label control, pack-out and serialization procedures must reflect the RU line and markets before GMP manufacture.
     sides: target
     binds: uo.labeling_packaging.doc.procedures.status
     input: { type: choice, optionsFrom: procedureStatus }

@@ -13,6 +13,14 @@ export const NO_SIGNATURE_TEXT =
 export const TOC_PLACEHOLDER = "Table of contents. Word fills this in when the document is opened; if it stays empty, right-click here and choose Update Field.";
 export const TOC_INSTRUCTION = 'TOC \\o "1-3" \\h \\z \\u';
 
+/** Labels of the cover facts that name the two sites (data keys stay source and target; only the wording is SU and RU). */
+export const COVER_LABELS = {
+  suSite: "Sending unit (SU) site",
+  suStage: "Sending unit (SU) program stage",
+  ruSite: "Receiving unit (RU) site",
+  ruStage: "Receiving unit (RU) program stage",
+} as const;
+
 function metaValue(doc: DocModel, label: string): string {
   return doc.meta.find(([k]) => k === label)?.[1] ?? "";
 }
@@ -68,15 +76,16 @@ export function coverXml(ctx: WriterCtx): string {
   const facts: [string, string][] = [
     ["Program", c.program],
     ["Product", c.product],
-    ["Source site", c.sourceSite],
-    ["Source program stage", c.sourceStage],
-    ["Target site", c.targetSite],
-    ["Target program stage", c.targetStage],
+    // The cover spells the two terms out once; the tables in the rest of the document use the short forms SU and RU.
+    [COVER_LABELS.suSite, c.sourceSite],
+    [COVER_LABELS.suStage, c.sourceStage],
+    [COVER_LABELS.ruSite, c.targetSite],
+    [COVER_LABELS.ruStage, c.targetStage],
     ["Revision", metaValue(d, "Revision") || NOT_RECORDED],
     ["Status", d.status],
     ["Generated", metaValue(d, "Generated") || NOT_RECORDED],
   ];
-  return banner + title + factsTable(ctx, facts, { sz: 22, labelWidth: 3800, pad: 90 });
+  return banner + title + factsTable(ctx, facts, { sz: 22, labelWidth: 4900, pad: 80 });
 }
 
 /** The table of contents: a real TOC field (headings 1 to 3) with a short placeholder; settings.xml asks Word to update it on open. */

@@ -65,10 +65,10 @@ questions:
   - id: filt.bret
     section: uo.sterile_filtration
     parent: filt.part
-    prompt: Does existing bacterial retention validation cover the target filter with this product under the target process conditions?
-    label: Bacterial retention coverage (target filter)
+    prompt: Does existing bacterial retention validation cover the RU filter with this product under the RU process conditions?
+    label: Bacterial retention coverage (RU filter)
     why: Bacterial retention must be demonstrated for the specific filter, product and worst-case process conditions.
-    triggerNote: Asked because the target sterilizing filter differs from the source.
+    triggerNote: Asked because the RU sterilizing filter differs from the SU.
     sides: target
     binds: uo.sterile_filtration.study.bacterial_retention.status
     input: { type: choice, optionsFrom: validationCoverage }
@@ -82,10 +82,10 @@ questions:
   - id: filt.compat
     section: uo.sterile_filtration
     parent: filt.part
-    prompt: Does existing chemical compatibility data cover the target filter with this product?
-    label: Filter compatibility coverage (target filter)
+    prompt: Does existing chemical compatibility data cover the RU filter with this product?
+    label: Filter compatibility coverage (RU filter)
     why: Compatibility of the filter with the formulation must be shown for the specific membrane and device.
-    triggerNote: Asked because the target sterilizing filter differs from the source.
+    triggerNote: Asked because the RU sterilizing filter differs from the SU.
     sides: target
     binds: uo.sterile_filtration.study.filter_compatibility.status
     input: { type: choice, optionsFrom: validationCoverage }
@@ -94,10 +94,10 @@ questions:
   - id: filt.extractables
     section: uo.sterile_filtration
     parent: filt.part
-    prompt: Are extractables data available for the target filter under the target process conditions?
-    label: Filter extractables data (target filter)
+    prompt: Are extractables data available for the RU filter under the RU process conditions?
+    label: Filter extractables data (RU filter)
     why: Extractables profiles differ between membranes and devices and feed the product leachables assessment.
-    triggerNote: Asked because the target sterilizing filter differs from the source.
+    triggerNote: Asked because the RU sterilizing filter differs from the SU.
     sides: target
     binds: uo.sterile_filtration.study.filter_extractables.status
     input: { type: choice, optionsFrom: evidenceAvailability }
@@ -115,10 +115,10 @@ questions:
   - id: filt.sizing
     section: uo.sterile_filtration
     parent: filt.area
-    prompt: Has filter sizing (throughput or Vmax) been confirmed for the target batch volume?
-    label: Filter sizing for target batch volume
-    why: A larger batch can exceed the {{validated|demonstrated}} filter loading; sizing must be confirmed for the target volume and filter area.
-    triggerNote: Asked because the target batch size is larger than the source.
+    prompt: Has filter sizing (throughput or Vmax) been confirmed for the RU batch volume?
+    label: Filter sizing for RU batch volume
+    why: A larger batch can exceed the {{validated|demonstrated}} filter loading; sizing must be confirmed for the RU volume and filter area.
+    triggerNote: Asked because the RU batch size is larger than the SU.
     sides: target
     binds: uo.sterile_filtration.study.filter_sizing.status
     input: { type: choice, optionsFrom: evidenceAvailability }
@@ -147,10 +147,10 @@ questions:
   - id: filt.sua_el
     section: uo.sterile_filtration
     parent: filt.sua
-    prompt: Is an extractables/leachables assessment available for the target single-use assembly in contact with this product?
+    prompt: Is an extractables/leachables assessment available for the RU single-use assembly in contact with this product?
     label: Single-use assembly E&L assessment
     why: New product-contact polymers can introduce leachables; an E&L assessment is expected before use in GMP manufacture.
-    triggerNote: Asked because a single-use assembly is new at the target.
+    triggerNote: Asked because a single-use assembly is new at the RU.
     sides: target
     binds: uo.sterile_filtration.study.sua_el.status
     input: { type: choice, optionsFrom: evidenceAvailability }
@@ -182,7 +182,7 @@ questions:
     section: uo.sterile_filtration
     prompt: Pre-filtration bioburden limit
     label: Pre-filtration bioburden limit
-    why: The bioburden limit is tied to the bacterial retention challenge level; a higher target limit is outside the {{validated|demonstrated}} basis.
+    why: The bioburden limit is tied to the bacterial retention challenge level; a higher RU limit is outside the {{validated|demonstrated}} basis.
     sides: paired
     binds: uo.sterile_filtration.ipc.bioburden.limit
     input: { type: quantity, units: [CFU/100 mL, CFU/mL] }
@@ -191,10 +191,10 @@ questions:
   # ---- filter validation (extension of bacterial retention)
   - id: filt.bret_conditions
     section: uo.sterile_filtration
-    prompt: Do the test conditions of the bacterial retention study (differential pressure, temperature, flow and filtration time) cover the target worst case?
-    label: Bacterial retention test conditions (target)
-    why: Bacterial retention is demonstrated under worst-case conditions of the process. A higher pressure, larger volume or longer filtration time at the target can fall outside the conditions tested.
-    triggerNote: Asked because the target filter, differential pressure or batch size differs from the source.
+    prompt: Do the test conditions of the bacterial retention study (differential pressure, temperature, flow and filtration time) cover the RU worst case?
+    label: Bacterial retention test conditions (RU)
+    why: Bacterial retention is demonstrated under worst-case conditions of the process. A higher pressure, larger volume or longer filtration time at the RU can fall outside the conditions tested.
+    triggerNote: Asked because the RU filter, differential pressure or batch size differs from the SU.
     tags: [m3]
     sides: target
     binds: uo.sterile_filtration.study.bacterial_retention.conditions
@@ -218,10 +218,10 @@ questions:
   - id: filt.integrity_validation
     section: uo.sterile_filtration
     parent: filt.integrity_method
-    prompt: Has the product-wet integrity test specification been established for the target filter and test method with this product?
-    label: Product-wet integrity specification (target)
-    why: The integrity limit for the product-wet filter can differ from the water-wet limit because of product surface tension and viscosity. It must be established with the target filter and method.
-    triggerNote: Asked because the target filter or integrity test method differs from the source.
+    prompt: Has the product-wet integrity test specification been established for the RU filter and test method with this product?
+    label: Product-wet integrity specification (RU)
+    why: The integrity limit for the product-wet filter can differ from the water-wet limit because of product surface tension and viscosity. It must be established with the RU filter and method.
+    triggerNote: Asked because the RU filter or integrity test method differs from the SU.
     tags: [m3]
     sides: target
     binds: uo.sterile_filtration.study.integrity_validation.status
@@ -235,10 +235,10 @@ questions:
   - id: filt.sua_el_source
     section: uo.sterile_filtration
     parent: filt.sua_el
-    prompt: What is the source of the extractables and leachables data for the target single-use assembly?
+    prompt: What is the source of the extractables and leachables data for the RU single-use assembly?
     label: Single-use assembly E&L data source
     why: Supplier extractables data describe model solvents and generic conditions. Product-specific conditions (formulation, temperature, contact time and surface area) decide whether a leachables risk remains.
-    triggerNote: Asked because a single-use assembly is new at the target.
+    triggerNote: Asked because a single-use assembly is new at the RU.
     tags: [m3]
     sides: target
     binds: uo.sterile_filtration.study.sua_el.dataSource
@@ -252,10 +252,10 @@ questions:
   - id: filt.sua_el_risk
     section: uo.sterile_filtration
     parent: filt.sua_el
-    prompt: What is the outcome of the leachables risk assessment for the target single-use assembly with this product?
+    prompt: What is the outcome of the leachables risk assessment for the RU single-use assembly with this product?
     label: Single-use assembly leachables risk outcome
     why: A toxicological assessment compares worst-case leachables with the safety threshold for the route of administration. A leachable above the threshold needs a product-specific study or a mitigation.
-    triggerNote: Asked because a single-use assembly is new at the target.
+    triggerNote: Asked because a single-use assembly is new at the RU.
     tags: [m3]
     sides: target
     binds: uo.sterile_filtration.study.sua_el.riskOutcome
@@ -276,9 +276,9 @@ questions:
 
   - id: filt.procedures
     section: uo.sterile_filtration
-    prompt: Status of target procedures for filtration
-    label: Target filtration procedures
-    why: Filtration and integrity-test procedures must reflect the target filter train and equipment.
+    prompt: Status of RU procedures for filtration
+    label: RU filtration procedures
+    why: Filtration and integrity-test procedures must reflect the RU filter train and equipment.
     sides: target
     binds: uo.sterile_filtration.doc.procedures.status
     input: { type: choice, optionsFrom: procedureStatus }
