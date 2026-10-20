@@ -1,0 +1,70 @@
+# Fixed wording for the generated gap assessment document.
+# Placeholders: {program} {modality} {dosageForm} {presentation} {transferType}
+# {markets} {sourceSite} {targetSite} {date}. Unknown values appear as written
+# by the engine (for example "Unknown — to be confirmed"); nothing is invented.
+templates:
+  id: gap-assessment-document
+  version: 1.0.0
+
+document:
+  title: "Gap assessment: {program} — {sourceSite} to {targetSite}"
+  banner: Proof of concept. Not validated. Not for GMP use.
+  purpose: >-
+    This document compares the validated manufacturing process for {program} at
+    {sourceSite} (source) with the planned process at {targetSite} (target). It
+    identifies differences, classifies each difference, lists the activities
+    implied before the target process can be considered validated, and records
+    information that is still missing. It is a draft generated from structured
+    interview answers and must be reviewed and approved before use.
+  scope: >-
+    Product: {program} ({modality}; {dosageForm}; {presentation}). Transfer type:
+    {transferType}. Intended markets: {markets}. The assessment covers the unit
+    operations listed below for both sites. Unit operations outside this list are
+    not assessed in this version.
+  sourceSummaryIntro: >-
+    The source process as validated, as recorded in the interview. Each value shows
+    its source and verification state. Values marked "Unknown — to be confirmed" or
+    "Not established" are open information items.
+  targetSummaryIntro: >-
+    The planned target process, as recorded in the interview. Values marked "same as
+    source" were asserted by the responder to match the source and follow the source
+    value.
+  differencesIntro: >-
+    Every recorded attribute was compared between source and target using the
+    versioned comparison rules listed under References. Differences are grouped by
+    unit operation. Attributes found equivalent are counted but not listed individually.
+  gapTableIntro: >-
+    One row per difference or information gap. The rule identifier and version show
+    which comparison rule produced the classification. Severity reflects the rule
+    unless adjusted, in which case the adjustment and its justification are shown.
+  activitiesIntro: >-
+    Activities implied by the differences above, with the gaps that drive each. The
+    list is a starting point for the transfer plan; it does not replace a documented
+    risk assessment.
+  openItemsIntro: >-
+    Information that is unknown or not established. Each item must be resolved before
+    the related comparison can be completed. Until then the comparison is classified
+    as "Information required".
+  riskIntro: >-
+    Gaps ranked by severity (high, medium, low), then by unit operation sequence.
+    Ranking is by rule severity only; no likelihood or detectability scoring is applied.
+  referencesIntro: >-
+    Documents cited by the responders, interview sessions, and the versions of the
+    content (catalog, question bank, comparison rules, templates) used to generate
+    this draft. All document identifiers in the demonstration project are fictional.
+  approvalIntro: >-
+    Approval placeholders. This proof-of-concept tool does not capture electronic
+    signatures and responder names are free text; the document is not attributable
+    in a GMP sense.
+  approvalRoles:
+    - Author (MSAT)
+    - Process owner, target site
+    - Quality assurance
+    - Regulatory affairs
+  regulatoryStatement: >-
+    Rows marked "Requires regulatory affairs assessment" may affect registered
+    information. This tool does not determine the regulatory filing category of any
+    change; that decision belongs to regulatory affairs.
+  verificationStatement: >-
+    Values are unverified unless shown as verified. Verification is withdrawn
+    automatically when a verified value changes.

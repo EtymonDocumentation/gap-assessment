@@ -1,0 +1,311 @@
+# Catalog: unit operations, option lists, activities and categories.
+# Editable without code changes. Bump catalog.version on any change.
+catalog:
+  id: fill-finish-catalog
+  version: 1.0.0
+
+unitOperations:
+  - key: ds_receipt_thaw
+    label: Drug substance receipt and thaw
+    sequence: 10
+    milestone: 2
+    description: Receipt, storage and (where frozen) thawing of drug substance before compounding.
+  - key: compounding
+    label: Pooling, compounding and dilution
+    sequence: 20
+    milestone: 1
+    description: Pooling of drug substance containers, dilution and formulation to the final bulk.
+    items:
+      - { coll: param, key: batch_size, label: Batch size (formulated bulk) }
+      - { coll: param, key: mixing_speed, label: Mixing speed }
+      - { coll: param, key: mixing_time, label: Mixing time }
+      - { coll: param, key: temperature, label: Compounding temperature }
+      - { coll: param, key: max_hold_time, label: Formulated bulk hold time }
+      - { coll: equip, key: vessel, label: Compounding vessel }
+      - { coll: equip, key: mixer, label: Mixer }
+      - { coll: ipc, key: panel, label: Compounding in-process controls }
+      - { coll: study, key: mixing, label: Mixing study }
+      - { coll: doc, key: procedures, label: Compounding procedures }
+  - key: sterile_filtration
+    label: Bioburden reduction and sterile filtration
+    sequence: 30
+    milestone: 1
+    description: Bioburden-reduction and sterilizing-grade filtration of the formulated bulk.
+    items:
+      - { coll: param, key: differential_pressure, label: Filtration differential pressure }
+      - { coll: param, key: max_filtration_time, label: Filtration duration }
+      - { coll: mat, key: prefilter, label: Bioburden-reduction filter }
+      - { coll: mat, key: redundant_filter, label: Redundant sterilizing filter }
+      - { coll: mat, key: sterilizing_filter, label: Sterilizing-grade filter }
+      - { coll: mat, key: sua, label: Single-use filtration assembly }
+      - { coll: ipc, key: integrity, label: Filter integrity testing }
+      - { coll: ipc, key: bioburden, label: Pre-filtration bioburden }
+      - { coll: study, key: bacterial_retention, label: Bacterial retention validation }
+      - { coll: study, key: filter_compatibility, label: Filter compatibility }
+      - { coll: study, key: filter_extractables, label: Filter extractables }
+      - { coll: study, key: sua_el, label: Single-use assembly E&L }
+      - { coll: study, key: filter_sizing, label: Filter sizing }
+      - { coll: doc, key: procedures, label: Filtration procedures }
+  - key: aseptic_filling
+    label: Aseptic filling and stoppering
+    sequence: 40
+    milestone: 1
+    description: Aseptic filling of the sterile bulk into the primary container and stopper placement.
+    items:
+      - { coll: param, key: fill_volume, label: Fill volume }
+      - { coll: param, key: line_speed, label: Filling line speed }
+      - { coll: param, key: max_fill_duration, label: Filling duration }
+      - { coll: equip, key: filler, label: Filling machine }
+      - { coll: mat, key: container, label: Primary container }
+      - { coll: mat, key: stopper, label: Stopper }
+      - { coll: ipc, key: fill_check, label: Fill weight check }
+      - { coll: study, key: fill_accuracy, label: Fill accuracy study }
+      - { coll: study, key: pump_product_impact, label: Pump product-quality impact assessment }
+      - { coll: study, key: ppq, label: Process performance qualification }
+      - { coll: study, key: aps, label: Aseptic process simulation (media fill) }
+      - { coll: doc, key: procedures, label: Filling procedures }
+  - key: stoppering
+    label: Stoppering (stand-alone)
+    sequence: 45
+    milestone: 2
+    description: Stopper placement where performed as a separate operation (for example, partial stoppering before lyophilization).
+  - key: lyophilization
+    label: Lyophilization
+    sequence: 50
+    milestone: 2
+    description: Freeze-drying, including loading, cycle and stoppering under vacuum.
+    applicableWhen: { eq: [scope.dosage_form, lyophilized] }
+  - key: capping
+    label: Capping and crimping
+    sequence: 60
+    milestone: 1
+    description: Application and crimping of the aluminium seal over the stopper.
+    applicableWhen: { eq: [scope.presentation, vial] }
+    items:
+      - { coll: param, key: rsf, label: Residual seal force }
+      - { coll: equip, key: capper, label: Capping machine }
+      - { coll: mat, key: seal, label: Aluminium seal }
+      - { coll: ipc, key: panel, label: Capping in-process controls }
+      - { coll: study, key: cci, label: Container closure integrity }
+      - { coll: study, key: rsf_cci_correlation, label: RSF–CCI correlation }
+      - { coll: doc, key: procedures, label: Capping procedures }
+  - key: visual_inspection
+    label: Visual inspection
+    sequence: 70
+    milestone: 2
+    description: 100% visual inspection (manual, semi-automated or automated) and AQL.
+  - key: labeling_packaging
+    label: Labeling and packaging
+    sequence: 80
+    milestone: 2
+    description: Labeling, serialization and secondary packaging.
+  - key: storage_shipping
+    label: Storage and shipping
+    sequence: 90
+    milestone: 2
+    description: Finished-product storage and distribution, including shipping validation.
+
+fieldLabels:
+  presence: Performed / used
+  present: Used
+  classification: Classification
+  setPoint: Set point
+  nor: Normal operating range (NOR)
+  par: Proven acceptable range (PAR)
+  validatedRange: Validated range
+  rangeBasis: Basis for range
+  max: Maximum
+  type: Type
+  operatingPrinciple: Operating principle
+  capacity: Capacity / scale
+  productContactMaterials: Product-contact materials
+  technology: Single-use or stainless
+  qualificationStatus: Qualification status
+  description: Description
+  supplier: Supplier
+  partNumber: Part number
+  materialOfConstruction: Material of construction
+  poreRating: Pore rating
+  area: Effective filtration area
+  format: Format
+  tests: Tests
+  frequency: Frequency
+  limit: Limit
+  status: Status
+  coverage: Covered range
+  name: Name
+  line: Line
+  barrier: Barrier technology
+  backgroundGrade: Background grade
+  containment: Containment approach
+  batchRecordSystem: Batch record system
+
+optionSets:
+  classification:
+    - { value: CPP, label: CPP (critical process parameter) }
+    - { value: KPP, label: KPP (key process parameter) }
+    - { value: non_critical, label: Non-critical }
+  rangeBasis:
+    - { value: PPQ, label: PPQ }
+    - { value: characterization, label: Characterization study }
+    - { value: development_report, label: Development report }
+    - { value: other, label: Other documented basis }
+  modality:
+    - { value: mab, label: Monoclonal antibody }
+    - { value: fusion_protein, label: Fusion protein }
+    - { value: adc, label: Antibody-drug conjugate }
+    - { value: enzyme, label: Enzyme or other therapeutic protein }
+    - { value: vaccine, label: Vaccine }
+    - { value: other, label: Other biologic }
+  dosageForm:
+    - { value: liquid, label: Liquid solution }
+    - { value: lyophilized, label: Lyophilized powder }
+    - { value: suspension, label: Suspension }
+  presentation:
+    - { value: vial, label: Vial }
+    - { value: prefilled_syringe, label: Prefilled syringe }
+    - { value: cartridge, label: Cartridge }
+  dsState:
+    - { value: liquid, label: Liquid (refrigerated) }
+    - { value: frozen, label: Frozen }
+  containment:
+    - { value: standard, label: Standard (no special containment) }
+    - { value: high_potency, label: High potency / cytotoxic (containment required) }
+  markets:
+    - { value: us, label: United States }
+    - { value: eu, label: European Union }
+    - { value: uk, label: United Kingdom }
+    - { value: jp, label: Japan }
+    - { value: ca, label: Canada }
+    - { value: row, label: Other markets }
+  transferType:
+    - { value: site_to_site, label: Site to site }
+    - { value: line_to_line, label: Line to line (same site) }
+    - { value: scale_change, label: Scale change (same line) }
+  fillingBarrier:
+    - { value: isolator, label: Isolator }
+    - { value: closed_rabs, label: Closed RABS }
+    - { value: open_rabs, label: Open RABS }
+    - { value: conventional, label: Conventional cleanroom (no barrier) }
+  backgroundGrade:
+    - { value: B, label: Grade B }
+    - { value: C, label: Grade C }
+    - { value: D, label: Grade D }
+  containmentApproach:
+    - { value: negative_pressure_isolator, label: Negative-pressure isolator }
+    - { value: positive_pressure_isolator_with_controls, label: Positive-pressure isolator with containment controls }
+    - { value: rabs_with_controls, label: RABS with containment controls }
+  batchRecordSystem:
+    - { value: paper, label: Paper batch record }
+    - { value: electronic, label: Electronic batch record (MES) }
+    - { value: hybrid, label: Hybrid (paper with electronic elements) }
+  vesselType:
+    - { value: stainless_tank, label: Stainless-steel tank }
+    - { value: single_use_bag, label: Single-use mixing bag }
+    - { value: glass, label: Glass vessel }
+  mixerPrinciple:
+    - { value: top_entry_impeller, label: Top-entry impeller }
+    - { value: bottom_magnetic_impeller, label: Bottom-mounted magnetic impeller }
+    - { value: single_use_impeller, label: Single-use bag impeller }
+    - { value: rocking, label: Rocking / wave }
+    - { value: recirculation, label: Recirculation loop }
+  compoundingIpc:
+    - { value: bioburden, label: Bioburden }
+    - { value: ph, label: pH }
+    - { value: osmolality, label: Osmolality }
+    - { value: protein_concentration, label: Protein concentration }
+    - { value: appearance, label: Appearance }
+    - { value: density, label: Density }
+  membrane:
+    - { value: pes, label: Polyethersulfone (PES) }
+    - { value: pvdf, label: Polyvinylidene fluoride (PVDF) }
+    - { value: nylon, label: Nylon }
+    - { value: other, label: Other }
+  poreRating:
+    - { value: "0.1", label: 0.1 µm }
+    - { value: "0.2", label: 0.2 µm }
+    - { value: "0.22", label: 0.22 µm }
+  integrityTests:
+    - { value: pupsit, label: Pre-use post-sterilization integrity test (PUPSIT) }
+    - { value: pre_use_pre_sterilization, label: Pre-use pre-sterilization integrity test }
+    - { value: post_use, label: Post-use integrity test }
+  fillingPrinciple:
+    - { value: rotary_piston, label: Rotary piston pump }
+    - { value: peristaltic, label: Peristaltic pump }
+    - { value: time_pressure, label: Time-pressure filling }
+    - { value: rolling_diaphragm, label: Rolling diaphragm pump }
+  fillCheck:
+    - { value: inline_100, label: 100% in-line weight check }
+    - { value: statistical, label: Statistical in-process weight checks }
+    - { value: start_end, label: Start and end of filling only }
+  containerFormat:
+    - { value: 2R, label: 2R vial }
+    - { value: 6R, label: 6R vial }
+    - { value: 10R, label: 10R vial }
+    - { value: 20R, label: 20R vial }
+    - { value: other, label: Other format }
+  cappingPrinciple:
+    - { value: single_head_roller, label: Single-head roller capper }
+    - { value: multi_head_roller, label: Multi-head rotary roller capper }
+    - { value: rail_crimp, label: Rail (skirt) crimper }
+    - { value: other, label: Other }
+  cappingEnvironment:
+    - { value: grade_a_air_supply, label: Grade A air supply }
+    - { value: within_isolator, label: Within isolator (Grade A) }
+    - { value: outside_with_protection, label: Outside the aseptic zone with protection }
+  capIpc:
+    - { value: rsf_testing, label: Residual seal force testing }
+    - { value: crimp_visual, label: Visual crimp inspection }
+    - { value: camera_inspection, label: Automated camera crimp inspection }
+    - { value: cci_sampling, label: CCI sampling }
+  evidenceAvailability:
+    - { value: available, label: Available and applicable }
+    - { value: planned, label: "Planned, not yet available" }
+    - { value: not_planned, label: Not available and not planned }
+  validationCoverage:
+    - { value: covered, label: Covered by existing validation }
+    - { value: bridging_required, label: Partially covered; bridging study required }
+    - { value: not_covered, label: Not covered }
+  procedureStatus:
+    - { value: in_place, label: In place and equivalent }
+    - { value: update_required, label: Exist; update required }
+    - { value: new_required, label: New procedures required }
+  impactAssessment:
+    - { value: no_impact, label: Assessed; no impact on product quality }
+    - { value: impact, label: Assessed; impact identified }
+    - { value: not_assessed, label: Not assessed }
+
+activities:
+  - { key: information_gathering, label: Information gathering, description: Establish the missing source or target information before the comparison can be completed. }
+  - { key: risk_assessment_update, label: Risk assessment update, description: Update the process or contamination control risk assessment for the change. }
+  - { key: engineering_run, label: Engineering run, description: Non-GMP run at the target to confirm equipment and process performance before PPQ. }
+  - { key: scientific_justification, label: Scientific justification or characterization, description: Document a scientific rationale or perform characterization work to support the target range. }
+  - { key: comparability_assessment, label: Comparability assessment, description: Assess product comparability between source and target processes. }
+  - { key: ppq, label: Process performance qualification, description: PPQ at the target covering the changed element. }
+  - { key: ppq_coverage_assessment, label: PPQ coverage assessment, description: Determine whether existing PPQ data cover the target condition or whether additional PPQ is needed. }
+  - { key: mixing_study, label: Mixing study, description: Demonstrate homogeneity at the target batch volume and mixing configuration. }
+  - { key: hold_time_study, label: Hold time study, description: Establish or extend the validated hold time for the target condition. }
+  - { key: filter_bacterial_retention, label: Filter validation (bacterial retention), description: Bacterial retention validation for the target filter with product under worst-case conditions. }
+  - { key: filter_compatibility, label: Filter compatibility study, description: Chemical compatibility of the target filter with the product. }
+  - { key: extractables_leachables, label: Extractables and leachables assessment, description: E&L assessment of the target product-contact materials. }
+  - { key: filter_sizing, label: Filter sizing confirmation, description: Confirm filter area and throughput for the target batch volume. }
+  - { key: fill_accuracy_study, label: Fill accuracy study, description: Demonstrate fill accuracy and precision of the target filling system with product or a justified surrogate. }
+  - { key: product_quality_impact, label: Product-quality impact assessment, description: "Assess shear and other stress effects of the target equipment on product quality (for example, subvisible particles, aggregation)." }
+  - { key: media_fill, label: Aseptic process simulation (media fill), description: "Media fill covering the target line, duration, container format and interventions." }
+  - { key: equipment_qualification, label: Equipment qualification, description: IQ/OQ/PQ of target equipment. }
+  - { key: cci_study, label: Container closure integrity study, description: "CCI demonstration for the target container, closure, seal and capping process." }
+  - { key: rsf_study, label: Residual seal force study, description: Establish the RSF range for the target capping equipment and correlate it with CCI. }
+  - { key: environmental_monitoring_assessment, label: Environmental monitoring assessment, description: Assess the environmental monitoring programme for the target barrier and room classification. }
+  - { key: csv_assessment, label: Computerized system assessment, description: Assess validation status and data flows of the target computerized systems. }
+  - { key: procedure_update, label: Procedure update, description: Create or update procedures and batch record instructions at the target. }
+  - { key: training, label: Training, description: Train target personnel on the changed or new procedures. }
+
+categories:
+  - { key: equivalent, label: Equivalent, description: Source and target are the same. }
+  - { key: within_validated_range, label: Within validated range, description: "Target differs but lies within the source PAR or validated range, or is covered by existing validation." }
+  - { key: outside_validated_range, label: Outside validated range, description: "Target lies outside the source PAR or validated range, or is not covered by existing validation." }
+  - { key: different_principle, label: Different operating principle or design, description: "Equipment, component or design differs in kind rather than in value." }
+  - { key: scale_change, label: Scale change, description: Batch size or equipment capacity differs. }
+  - { key: new_requirement, label: New requirement, description: "Present at target, absent from source." }
+  - { key: removed_element, label: Removed element, description: "Present at source, absent from target." }
+  - { key: information_required, label: Information required, description: The source or target value is unknown or not established. }

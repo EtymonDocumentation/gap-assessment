@@ -1,0 +1,229 @@
+# FICTIONAL demonstration project. ARX-217, the sites, suppliers, part numbers,
+# people and document identifiers are invented. Any resemblance to a real
+# product, site or document is coincidental.
+#
+# Answers are replayed through the normal interview code path, so every value
+# carries an interview source, responder and date exactly as a user's would.
+# The scenario deliberately exercises all eight comparison categories.
+demo:
+  id: arx-217
+  title: "ARX-217 transfer: Site North Line 2 to Site South Line 4 (fictional demo)"
+  version: 1.0.0
+
+responder: { name: Alex Example (fictional), role: MSAT engineer }
+date: "2026-10-01T09:00:00.000Z"
+entrySequence: paired
+
+documents:
+  - { identifier: DEMO-PPQ-217-01, docType: PPQ report, title: ARX-217 PPQ summary report (fictional), version: "1.0" }
+  - { identifier: DEMO-MIX-217-03, docType: Study report, title: ARX-217 mixing study (fictional), version: "2.0" }
+  - { identifier: DEMO-HT-217-02, docType: Study report, title: ARX-217 bulk hold time study (fictional), version: "1.0" }
+  - { identifier: DEMO-FV-217-05, docType: Study report, title: Sterilizing filter validation for ARX-217 (fictional), version: "1.1" }
+  - { identifier: DEMO-APS-S4-26, docType: APS report, title: Site South Line 4 media fill summary (fictional), version: "1.0" }
+  - { identifier: DEMO-CPV-217-01, docType: Process description, title: ARX-217 process parameter table (fictional), version: "3.0" }
+
+answers:
+  # ---------------------------------------------------------------- scoping
+  - { q: scope.program, side: shared, value: ARX-217 }
+  - { q: scope.modality, side: shared, value: mab }
+  - { q: scope.dosage_form, side: shared, value: liquid }
+  - { q: scope.presentation, side: shared, value: vial }
+  - { q: scope.ds_state, side: shared, value: liquid }
+  - { q: scope.containment, side: shared, value: standard }
+  - { q: scope.markets, side: shared, value: [us, eu] }
+  - { q: scope.transfer_type, side: shared, value: site_to_site }
+
+  # ---------------------------------------------------------------- site
+  - { q: site.name, side: source, value: Site North (fictional) }
+  - { q: site.name, side: target, value: Site South (fictional) }
+  - { q: site.line, side: source, value: Line 2 }
+  - { q: site.line, side: target, value: Line 4 }
+  - { q: site.barrier, side: source, value: isolator }
+  - { q: site.barrier, side: target, same: true }                    # equivalent
+  - { q: site.background_grade, side: source, value: D }
+  - { q: site.background_grade, side: target, value: D }
+  - { q: site.batch_record, side: source, value: paper }
+  - { q: site.batch_record, side: target, value: electronic }        # different principle
+
+  # ---------------------------------------------------------------- compounding
+  - { q: comp.presence, side: source, value: yes }
+  - { q: comp.presence, side: target, value: yes }
+  - q: comp.batch_size                                               # scale change 60 L -> 150 L
+    side: source
+    docs: [DEMO-PPQ-217-01]
+    fields:
+      setPoint: { value: 60, unit: L }
+      par: { min: { value: 40, unit: L }, max: { value: 60, unit: L } }
+      rangeBasis: PPQ
+  - q: comp.batch_size
+    side: target
+    fields:
+      setPoint: { value: 150, unit: L }
+      nor: { min: { value: 120, unit: L }, max: { value: 150, unit: L } }
+  - { q: comp.mixing_coverage, side: source, value: { min: { value: 20, unit: L }, max: { value: 80, unit: L } }, docs: [DEMO-MIX-217-03] }   # outside
+  - { q: comp.hold_time, side: source, value: { value: 24, unit: h }, docs: [DEMO-HT-217-02] }
+  - { q: comp.hold_time, side: target, value: { value: 36, unit: h } }                                           # outside
+  - { q: comp.vessel_type, side: source, value: stainless_tank }
+  - { q: comp.vessel_type, side: target, value: single_use_bag }
+  - { q: comp.vessel_capacity, side: source, value: { value: 100, unit: L } }
+  - { q: comp.vessel_capacity, side: target, value: { value: 200, unit: L } }
+  - { q: comp.mixer, side: source, value: top_entry_impeller }
+  - { q: comp.mixer, side: target, value: single_use_impeller }
+  - { q: comp.mixing_demonstrated, side: target, value: planned }
+  - q: comp.mixing_speed                                             # within validated range
+    side: source
+    docs: [DEMO-CPV-217-01]
+    fields:
+      classification: KPP
+      setPoint: { value: 150, unit: rpm }
+      nor: { min: { value: 120, unit: rpm }, max: { value: 180, unit: rpm } }
+      par: { min: { value: 100, unit: rpm }, max: { value: 200, unit: rpm } }
+      rangeBasis: characterization
+  - q: comp.mixing_speed
+    side: target
+    fields:
+      setPoint: { value: 140, unit: rpm }
+      nor: { min: { value: 110, unit: rpm }, max: { value: 170, unit: rpm } }
+  - q: comp.mixing_time
+    side: source
+    docs: [DEMO-CPV-217-01]
+    fields:
+      classification: KPP
+      setPoint: { value: 30, unit: min }
+      nor: { min: { value: 25, unit: min }, max: { value: 35, unit: min } }
+      par: { min: { value: 20, unit: min }, max: { value: 45, unit: min } }
+      rangeBasis: characterization
+  - { q: comp.mixing_time, side: target, same: true }
+  - q: comp.temperature
+    side: source
+    docs: [DEMO-CPV-217-01]
+    fields:
+      classification: non_critical
+      setPoint: { value: 20, unit: "°C" }
+      nor: { min: { value: 18, unit: "°C" }, max: { value: 22, unit: "°C" } }
+      par: { min: { value: 15, unit: "°C" }, max: { value: 25, unit: "°C" } }
+      rangeBasis: development_report
+  - q: comp.temperature
+    side: target
+    fields:
+      setPoint: { value: 20, unit: "°C" }
+      nor: { min: { value: 18, unit: "°C" }, max: { value: 22, unit: "°C" } }
+  - { q: comp.ipc, side: source, value: [bioburden, ph, osmolality, protein_concentration] }
+  - { q: comp.ipc, side: target, same: true }
+  - { q: comp.procedures, side: target, value: update_required }
+
+  # ---------------------------------------------------------------- sterile filtration
+  - { q: filt.presence, side: source, value: yes }
+  - { q: filt.presence, side: target, value: yes }
+  - { q: filt.prefilter, side: source, value: yes }
+  - { q: filt.prefilter, side: target, value: yes }
+  - { q: filt.redundant, side: source, value: no }
+  - { q: filt.redundant, side: target, value: no }
+  - { q: filt.membrane, side: source, value: pes, docs: [DEMO-FV-217-05] }
+  - { q: filt.membrane, side: target, same: true }
+  - { q: filt.pore, side: source, value: "0.2", docs: [DEMO-FV-217-05] }
+  - { q: filt.pore, side: target, same: true }
+  - { q: filt.supplier, side: source, value: Filter Vendor A (fictional) }
+  - { q: filt.supplier, side: target, same: true }
+  - { q: filt.part, side: source, value: FLT-0001-DEMO }
+  - { q: filt.part, side: target, same: true }
+  - { q: filt.area, side: source, value: { value: 0.1, unit: "m²" } }
+  - { q: filt.area, side: target, value: { value: 0.2, unit: "m²" } }
+  - { q: filt.sizing, side: target, value: planned }
+  - { q: filt.sua, side: source, value: no }
+  - { q: filt.sua, side: target, value: yes }                        # new requirement
+  - { q: filt.sua_supplier, side: target, value: SU Vendor B (fictional) }
+  - { q: filt.sua_el, side: target, value: planned }
+  - q: filt.pressure
+    side: source
+    docs: [DEMO-FV-217-05]
+    fields:
+      classification: KPP
+      setPoint: { value: 1.5, unit: bar }
+      nor: { min: { value: 1.0, unit: bar }, max: { value: 2.0, unit: bar } }
+      par: { min: { value: 0.5, unit: bar }, max: { value: 2.5, unit: bar } }
+      rangeBasis: characterization
+  - { q: filt.pressure, side: target, same: true }
+  - { q: filt.integrity, side: source, value: [pupsit, post_use] }
+  - { q: filt.integrity, side: target, value: [post_use] }            # removed element (PUPSIT)
+  - { q: filt.bioburden_limit, side: source, value: { value: 10, unit: CFU/100 mL } }
+  - { q: filt.bioburden_limit, side: target, value: { value: 10, unit: CFU/100 mL } }
+  - { q: filt.procedures, side: target, value: update_required }
+
+  # ---------------------------------------------------------------- aseptic filling
+  - { q: fill.presence, side: source, value: yes }
+  - { q: fill.presence, side: target, value: yes }
+  - { q: fill.pump, side: source, value: rotary_piston }
+  - { q: fill.pump, side: target, value: peristaltic }                # different principle
+  - { q: fill.accuracy, side: target, value: planned }
+  - { q: fill.shear, side: target, value: not_assessed }
+  - { q: fill.ppq, side: target, value: not_covered }
+  - q: fill.volume
+    side: source
+    docs: [DEMO-PPQ-217-01]
+    fields:
+      classification: CPP
+      setPoint: { value: 1.2, unit: mL }
+      nor: { min: { value: 1.18, unit: mL }, max: { value: 1.22, unit: mL } }
+      par: { min: { value: 1.15, unit: mL }, max: { value: 1.25, unit: mL } }
+      rangeBasis: PPQ
+  - q: fill.volume
+    side: target
+    fields:
+      setPoint: { value: 1200, unit: µL }                            # same value, different unit
+      nor: { min: { value: 1180, unit: µL }, max: { value: 1220, unit: µL } }
+  - q: fill.speed
+    side: source
+    docs: [DEMO-PPQ-217-01]
+    fields:
+      classification: KPP
+      setPoint: { value: 200, unit: units/min }
+      nor: { min: { value: 180, unit: units/min }, max: { value: 220, unit: units/min } }
+      par: { min: { value: 150, unit: units/min }, max: { value: 240, unit: units/min } }
+      rangeBasis: PPQ
+  - q: fill.speed
+    side: target
+    fields:
+      setPoint: { value: 300, unit: units/min }
+      nor: { min: { value: 280, unit: units/min }, max: { value: 320, unit: units/min } }
+  - { q: fill.duration, side: source, value: { value: 30, unit: h }, docs: [DEMO-PPQ-217-01] }
+  - { q: fill.duration, side: target, value: { value: 48, unit: h } }
+  - { q: fill.aps, side: target, value: { value: 36, unit: h }, docs: [DEMO-APS-S4-26] }
+  - { q: fill.check, side: source, value: inline_100 }
+  - { q: fill.check, side: target, value: statistical }
+  - { q: fill.container, side: source, value: 2R }
+  - { q: fill.container, side: target, same: true }
+  - { q: fill.container_supplier, side: source, value: Glass Vendor C (fictional) }
+  - { q: fill.container_supplier, side: target, same: true }
+  - { q: fill.stopper, side: source, value: "Stopper Vendor D, STP-20-DEMO" }
+  - { q: fill.stopper, side: target, same: true }
+  - { q: fill.procedures, side: target, value: update_required }
+
+  # ---------------------------------------------------------------- capping
+  - { q: cap.presence, side: source, value: yes }
+  - { q: cap.presence, side: target, value: yes }
+  - { q: cap.principle, side: source, value: single_head_roller }
+  - { q: cap.principle, side: target, value: multi_head_roller }
+  - { q: cap.seal, side: source, value: "Seal Vendor E, SEAL-20-DEMO" }
+  - { q: cap.seal, side: target, same: true }
+  - { q: cap.cci, side: target, value: planned }
+  - { q: cap.rsf_correlation, side: target, unknown: true }           # information required
+  - q: cap.rsf
+    side: source
+    fields:
+      classification: KPP
+      setPoint: { value: 70, unit: N }
+      nor: { min: { value: 50, unit: N }, max: { value: 90, unit: N } }
+      par: { min: { value: 40, unit: N }, max: { value: 100, unit: N } }
+      rangeBasis: characterization
+  - { q: cap.rsf, side: target, unknown: true }                       # information required
+  - { q: cap.environment, side: source, value: grade_a_air_supply }
+  - { q: cap.environment, side: target, same: true }
+  - { q: cap.ipc, side: source, value: [rsf_testing, crimp_visual] }
+  - { q: cap.ipc, side: target, value: [rsf_testing, camera_inspection] }
+  - { q: cap.procedures, side: target, value: new_required }
+
+overlays:
+  - gapKey: R-FILL-PUMP:uo.aseptic_filling.equip.filler.operatingPrinciple
+    owner: MSAT lead (fictional)
+    status: in_progress

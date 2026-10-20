@@ -1,0 +1,91 @@
+questions:
+  - id: cap.presence
+    section: uo.capping
+    prompt: Is capping and crimping performed at this site?
+    label: Capping performed
+    why: Establishes whether the unit operation exists at each site.
+    sides: paired
+    binds: uo.capping.presence
+    input: { type: yes_no }
+
+  - id: cap.principle
+    section: uo.capping
+    prompt: Capping machine operating principle
+    label: Capping principle
+    why: The capping mechanism determines how seal force is applied and therefore container closure integrity; a change is a design change.
+    sides: paired
+    binds: uo.capping.equip.capper.operatingPrinciple
+    input: { type: choice, optionsFrom: cappingPrinciple }
+
+  - id: cap.seal
+    section: uo.capping
+    prompt: Aluminium seal supplier and part number
+    label: Aluminium seal
+    why: Seal dimensions and material affect crimp quality and CCI for the container-closure system.
+    sides: paired
+    binds: uo.capping.mat.seal.partNumber
+    input: { type: text, placeholder: "e.g. Seal Vendor E, SEAL-20-DEMO" }
+
+  - id: cap.cci
+    section: uo.capping
+    parent: cap.principle
+    prompt: Is container closure integrity demonstrated for the target container, stopper, seal and capping process?
+    label: CCI for target configuration
+    why: CCI is specific to the container-closure combination and the capping process; changes to either require CCI evidence.
+    triggerNote: Asked because the capping equipment, seal or stopper differs from the source.
+    sides: target
+    binds: uo.capping.study.cci.status
+    input: { type: choice, optionsFrom: evidenceAvailability }
+    showWhen: &closureChanged
+      any:
+        - { changed: uo.capping.equip.capper.operatingPrinciple }
+        - { changed: uo.capping.mat.seal.partNumber }
+        - { changed: uo.aseptic_filling.mat.stopper.partNumber }
+
+  - id: cap.rsf_correlation
+    section: uo.capping
+    parent: cap.principle
+    prompt: Has the residual seal force range been correlated with CCI for the target capping equipment?
+    label: RSF–CCI correlation (target)
+    why: An RSF range is meaningful only when correlated with CCI on the equipment that applies the seal.
+    triggerNote: Asked because the capping equipment, seal or stopper differs from the source.
+    sides: target
+    binds: uo.capping.study.rsf_cci_correlation.status
+    input: { type: choice, optionsFrom: evidenceAvailability }
+    showWhen: *closureChanged
+
+  - id: cap.rsf
+    section: uo.capping
+    prompt: Residual seal force (RSF)
+    label: Residual seal force
+    why: RSF is an indicator of crimp quality and CCI; the target range is compared with the source validated range.
+    sides: paired
+    binds: uo.capping.param.rsf
+    input: { type: parameter, units: [N, lbf] }
+
+  - id: cap.environment
+    section: uo.capping
+    prompt: Capping environment
+    label: Capping environment
+    why: EU GMP Annex 1 sets expectations for protecting stoppered vials until crimped; the capping environment is part of the contamination control strategy.
+    sides: paired
+    binds: uo.capping.equip.capper.type
+    input: { type: choice, optionsFrom: cappingEnvironment }
+
+  - id: cap.ipc
+    section: uo.capping
+    prompt: Which in-process controls are performed at capping?
+    label: Capping in-process controls
+    why: Crimp inspection and RSF testing detect defective seals; removing a control changes the control strategy.
+    sides: paired
+    binds: uo.capping.ipc.panel.tests
+    input: { type: multi_choice, optionsFrom: capIpc }
+
+  - id: cap.procedures
+    section: uo.capping
+    prompt: Status of target procedures for capping
+    label: Target capping procedures
+    why: Capping set-up and inspection procedures must reflect the target equipment.
+    sides: target
+    binds: uo.capping.doc.procedures.status
+    input: { type: choice, optionsFrom: procedureStatus }

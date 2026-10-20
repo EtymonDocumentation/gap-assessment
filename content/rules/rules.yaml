@@ -1,0 +1,485 @@
+# Comparison rules. The first rule whose match glob fits a question's binds
+# path is used ("*" = one path segment), so specific rules come first.
+# The comparator decides the category; the rule supplies rationale,
+# implied activities, severity and whether regulatory affairs assessment is
+# flagged. Regulatory wording is fixed: "Requires regulatory affairs assessment."
+ruleset:
+  id: gap-core-rules
+  version: 1.0.0
+
+rules:
+  # ------------------------------------------------------------------ site
+  - id: R-SITE-INFO
+    version: 1.0.0
+    title: Site identification (informational)
+    match: [site.name, site.line]
+    comparator: informational
+    severity: none
+    why: Identification only; not compared.
+
+  - id: R-SITE-BARRIER
+    version: 1.0.0
+    title: Aseptic barrier technology
+    match: [site.barrier]
+    comparator: enum
+    severity: high
+    regulatory: true
+    why: The barrier design is central to the contamination control strategy. A different barrier changes interventions, APS design, environmental monitoring and operator practices.
+    activities: [risk_assessment_update, media_fill, environmental_monitoring_assessment, equipment_qualification, procedure_update, training]
+
+  - id: R-SITE-GRADE
+    version: 1.0.0
+    title: Background cleanroom grade
+    match: [site.backgroundGrade]
+    comparator: enum
+    severity: medium
+    regulatory: true
+    why: The background grade is part of the facility design basis and determines monitoring limits and gowning.
+    activities: [environmental_monitoring_assessment, risk_assessment_update, procedure_update]
+
+  - id: R-SITE-CONTAINMENT
+    version: 1.0.0
+    title: Containment approach
+    match: [site.containment]
+    comparator: enum
+    severity: medium
+    why: A different containment approach changes operator protection and how it is reconciled with aseptic requirements.
+    activities: [risk_assessment_update, procedure_update, training]
+
+  - id: R-SITE-BRS
+    version: 1.0.0
+    title: Batch record system
+    match: [site.batchRecordSystem]
+    comparator: enum
+    severity: medium
+    why: A different batch record system changes data capture, review and data integrity controls for the process.
+    activities: [csv_assessment, procedure_update, training]
+
+  # ------------------------------------------------------------------ unit operation presence
+  - id: R-UO-PRESENCE
+    version: 1.0.0
+    title: Unit operation presence
+    match: [uo.*.presence]
+    comparator: presence
+    severity: high
+    regulatory: true
+    why: Adding or removing a unit operation changes the process flow covered by the validated state.
+    activities: [risk_assessment_update, ppq_coverage_assessment, procedure_update, training]
+
+  # ------------------------------------------------------------------ scale
+  - id: R-BATCH-SIZE
+    version: 1.0.0
+    title: Batch size
+    match: [uo.compounding.param.batch_size]
+    comparator: scale
+    config:
+      ratioSeverity:
+        - { atLeast: 2, severity: high }
+        - { atLeast: 1, severity: medium }
+    severity: medium
+    regulatory: true
+    why: A batch size outside the validated range affects mixing, hold times, filter loading, filling duration and APS coverage, and is outside the scale demonstrated in PPQ.
+    activities: [mixing_study, hold_time_study, filter_sizing, media_fill, engineering_run, ppq_coverage_assessment]
+    outcomes:
+      within_validated_range:
+        why: The target batch size lies within the batch size range covered by the source validation.
+
+  - id: R-EQUIP-CAPACITY
+    version: 1.0.0
+    title: Equipment capacity
+    match: [uo.*.equip.*.capacity]
+    comparator: scale
+    config:
+      ratioSeverity:
+        - { atLeast: 2, severity: medium }
+        - { atLeast: 1, severity: low }
+    severity: low
+    why: Equipment scale affects minimum and maximum working volumes, mixing and heat transfer.
+    activities: [mixing_study, equipment_qualification]
+
+  - id: R-FILTER-AREA
+    version: 1.0.0
+    title: Sterilizing filter area
+    match: [uo.sterile_filtration.mat.sterilizing_filter.area]
+    comparator: scale
+    config:
+      ratioSeverity:
+        - { atLeast: 2, severity: medium }
+        - { atLeast: 1, severity: low }
+    severity: low
+    why: Filter area relative to batch volume determines filter loading and filtration time.
+    activities: [filter_sizing]
+
+  # ------------------------------------------------------------------ limits
+  - id: R-HOLD-TIME
+    version: 1.0.0
+    title: Hold time (maximum)
+    match: [uo.*.param.max_hold_time.max]
+    comparator: upper_limit
+    severity: high
+    regulatory: true
+    why: Holding the bulk longer than the validated time is not supported by stability and microbial hold data.
+    activities: [hold_time_study]
+    outcomes:
+      within_validated_range:
+        why: The planned maximum hold time is within the validated hold time.
+
+  - id: R-FILL-DURATION
+    version: 1.0.0
+    title: Filling duration (maximum)
+    match: [uo.aseptic_filling.param.max_fill_duration.max]
+    comparator: upper_limit
+    severity: high
+    regulatory: true
+    why: A longer filling duration extends product exposure and room-temperature hold and must be covered by the APS and process validation.
+    activities: [media_fill, hold_time_study, ppq_coverage_assessment]
+
+  - id: R-BIOBURDEN-LIMIT
+    version: 1.0.0
+    title: Pre-filtration bioburden limit
+    match: [uo.*.ipc.*.limit]
+    comparator: upper_limit
+    severity: high
+    regulatory: true
+    why: The bioburden limit must remain within the challenge level demonstrated in bacterial retention validation.
+    activities: [filter_bacterial_retention, risk_assessment_update]
+
+  # ------------------------------------------------------------------ parameters (generic; keep after specific parameter rules)
+  - id: R-PARAM-RANGE
+    version: 1.0.0
+    title: Process parameter range
+    match: [uo.*.param.*]
+    comparator: range
+    severity: medium
+    severityBy:
+      classification: { CPP: high, KPP: medium, non_critical: low }
+    regulatory: true
+    why: Operating outside the source PAR or validated range is not supported by existing process validation data.
+    activities: [scientific_justification, engineering_run, ppq_coverage_assessment]
+    outcomes:
+      within_validated_range:
+        why: The target operating range lies within the source PAR or validated range. Record the target range in procedures; no additional validation is implied.
+        activities: [procedure_update]
+
+  # ------------------------------------------------------------------ coverage (validated state)
+  - id: R-MIXING-COVERAGE
+    version: 1.0.0
+    title: Mixing study coverage of target batch size
+    match: [uo.compounding.study.mixing.coverage]
+    comparator: coverage
+    config:
+      coverageSide: source
+      against: { side: target, path: uo.compounding.param.batch_size }
+    severity: high
+    why: Homogeneity has been demonstrated only over the volumes studied; the target batch size must fall within that coverage.
+    activities: [mixing_study]
+
+  - id: R-APS-COVERAGE
+    version: 1.0.0
+    title: APS duration coverage on target line
+    match: [uo.aseptic_filling.study.aps.coverage]
+    comparator: coverage
+    config:
+      coverageSide: target
+      against: { side: target, path: uo.aseptic_filling.param.max_fill_duration.max }
+    severity: high
+    why: Aseptic process simulation must cover the maximum planned filling duration on the line used.
+    activities: [media_fill]
+
+  # ------------------------------------------------------------------ equipment principle / design
+  - id: R-FILL-PUMP
+    version: 1.0.0
+    title: Filling pump operating principle
+    match: [uo.aseptic_filling.equip.filler.operatingPrinciple]
+    comparator: enum
+    severity: high
+    regulatory: true
+    why: The filling principle affects fill accuracy, shear and particle formation, and is part of the process demonstrated in PPQ. A different principle is a design change.
+    activities: [engineering_run, fill_accuracy_study, product_quality_impact, comparability_assessment, equipment_qualification, ppq, procedure_update, training]
+
+  - id: R-MIXER
+    version: 1.0.0
+    title: Mixer operating principle
+    match: [uo.compounding.equip.mixer.operatingPrinciple]
+    comparator: enum
+    severity: medium
+    regulatory: true
+    why: A different mixing principle changes shear, foaming and homogeneity, and is not covered by the source mixing study.
+    activities: [mixing_study, product_quality_impact, equipment_qualification, procedure_update]
+
+  - id: R-VESSEL-TYPE
+    version: 1.0.0
+    title: Compounding vessel type
+    match: [uo.compounding.equip.vessel.type]
+    comparator: enum
+    severity: medium
+    regulatory: true
+    why: A different vessel type changes product-contact materials and mixing geometry.
+    activities: [mixing_study, extractables_leachables, equipment_qualification]
+
+  - id: R-CAPPER
+    version: 1.0.0
+    title: Capping machine operating principle
+    match: [uo.capping.equip.capper.operatingPrinciple]
+    comparator: enum
+    severity: high
+    regulatory: true
+    why: The capping mechanism determines seal force application and therefore container closure integrity.
+    activities: [cci_study, rsf_study, equipment_qualification, procedure_update, training]
+
+  - id: R-CAP-ENV
+    version: 1.0.0
+    title: Capping environment
+    match: [uo.capping.equip.capper.type]
+    comparator: enum
+    severity: medium
+    why: The protection of stoppered, uncrimped vials is part of the contamination control strategy.
+    activities: [risk_assessment_update, environmental_monitoring_assessment, procedure_update]
+
+  # ------------------------------------------------------------------ materials and components
+  - id: R-SUA-SUPPLIER
+    version: 1.0.0
+    title: Single-use assembly supplier (informational)
+    match: [uo.sterile_filtration.mat.sua.supplier]
+    comparator: informational
+    severity: none
+    why: Recorded for the E&L assessment; the presence comparison and E&L question carry the gap.
+
+  - id: R-SUA-PRESENCE
+    version: 1.0.0
+    title: Single-use filtration assembly
+    match: [uo.sterile_filtration.mat.sua.present]
+    comparator: presence
+    severity: medium
+    regulatory: true
+    why: A single-use assembly introduces new product-contact polymers and connections that require E&L and compatibility assessment.
+    activities: [extractables_leachables, filter_compatibility, procedure_update, training]
+    outcomes:
+      removed_element:
+        why: Replacing a single-use assembly with reusable equipment introduces cleaning and sterilization requirements.
+        activities: [equipment_qualification, procedure_update, training]
+
+  - id: R-FILTER-TRAIN
+    version: 1.0.0
+    title: Filtration train element
+    match: [uo.sterile_filtration.mat.*.present]
+    comparator: presence
+    severity: high
+    regulatory: true
+    why: The filtration train is part of the validated sterilization design; adding or removing a filter changes it.
+    activities: [filter_bacterial_retention, risk_assessment_update, procedure_update]
+
+  - id: R-FILTER-DESIGN
+    version: 1.0.0
+    title: Sterilizing filter design
+    match:
+      - uo.sterile_filtration.mat.sterilizing_filter.materialOfConstruction
+      - uo.sterile_filtration.mat.sterilizing_filter.poreRating
+      - uo.sterile_filtration.mat.sterilizing_filter.supplier
+      - uo.sterile_filtration.mat.sterilizing_filter.partNumber
+    comparator: text
+    severity: high
+    regulatory: true
+    why: Sterilizing filter validation (bacterial retention, compatibility, extractables) is specific to the membrane and device.
+    activities: [filter_bacterial_retention, filter_compatibility, extractables_leachables, procedure_update]
+
+  - id: R-CONTAINER-FORMAT
+    version: 1.0.0
+    title: Primary container format
+    match: [uo.aseptic_filling.mat.container.format]
+    comparator: enum
+    severity: high
+    regulatory: true
+    why: The container format is part of the registered presentation and of the validated filling, stoppering and CCI configuration.
+    activities: [cci_study, equipment_qualification, media_fill, ppq]
+
+  - id: R-COMPONENT
+    version: 1.0.0
+    title: Primary packaging component
+    match: [uo.*.mat.*.supplier, uo.*.mat.*.partNumber]
+    comparator: text
+    severity: medium
+    regulatory: true
+    why: A different component supplier or part can change dimensions and materials, affecting machinability, CCI and E&L.
+    activities: [cci_study, extractables_leachables, engineering_run]
+
+  # ------------------------------------------------------------------ in-process controls
+  - id: R-INTEGRITY-TESTS
+    version: 1.0.0
+    title: Filter integrity testing
+    match: [uo.sterile_filtration.ipc.integrity.tests]
+    comparator: set
+    severity: high
+    regulatory: true
+    why: Filter integrity testing confirms the sterilizing filter performed as validated. Removing a test requires a documented risk assessment against EU GMP Annex 1 and other applicable expectations.
+    activities: [risk_assessment_update, procedure_update, training]
+    outcomes:
+      new_requirement:
+        severity: low
+        regulatory: false
+        why: An additional integrity test strengthens the control strategy; procedures and training are needed.
+        activities: [procedure_update, training]
+
+  - id: R-IPC-SET
+    version: 1.0.0
+    title: In-process control panel
+    match: [uo.*.ipc.*.tests]
+    comparator: set
+    severity: medium
+    regulatory: true
+    why: Removing an in-process control changes the control strategy demonstrated in validation.
+    activities: [risk_assessment_update, procedure_update, training]
+    outcomes:
+      new_requirement:
+        severity: low
+        regulatory: false
+        why: An additional in-process control requires a method, procedure and training at the target.
+        activities: [procedure_update, training]
+
+  - id: R-IPC-FREQ
+    version: 1.0.0
+    title: In-process control approach
+    match: [uo.*.ipc.*.frequency]
+    comparator: enum
+    severity: medium
+    why: A different in-process control approach changes sampling, alarm handling and batch record content.
+    activities: [equipment_qualification, procedure_update, training]
+
+  # ------------------------------------------------------------------ evidence (target-side follow-ups)
+  - id: R-EV-MIXING
+    version: 1.0.0
+    title: Mixing effectiveness at target
+    match: [uo.compounding.study.mixing.status]
+    comparator: evidence
+    config:
+      map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
+    severity: high
+    why: Homogeneity has not been demonstrated for the target mixing configuration.
+    activities: [mixing_study]
+
+  - id: R-EV-BRET
+    version: 1.0.0
+    title: Bacterial retention validation for target filter
+    match: [uo.sterile_filtration.study.bacterial_retention.status]
+    comparator: evidence
+    config:
+      map: { covered: within_validated_range, bridging_required: outside_validated_range, not_covered: outside_validated_range }
+    severity: high
+    regulatory: true
+    why: Sterilizing filtration is not validated for the target filter with this product until bacterial retention is demonstrated.
+    activities: [filter_bacterial_retention]
+
+  - id: R-EV-COMPAT
+    version: 1.0.0
+    title: Filter compatibility for target filter
+    match: [uo.sterile_filtration.study.filter_compatibility.status]
+    comparator: evidence
+    config:
+      map: { covered: within_validated_range, bridging_required: outside_validated_range, not_covered: outside_validated_range }
+    severity: medium
+    why: Chemical compatibility of the target filter with the formulation is not established.
+    activities: [filter_compatibility]
+
+  - id: R-EV-EXTRACTABLES
+    version: 1.0.0
+    title: Extractables data for target filter
+    match: [uo.sterile_filtration.study.filter_extractables.status]
+    comparator: evidence
+    config:
+      map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
+    severity: medium
+    why: Extractables data for the target filter are needed for the product leachables assessment.
+    activities: [extractables_leachables]
+
+  - id: R-EV-SIZING
+    version: 1.0.0
+    title: Filter sizing for target batch volume
+    match: [uo.sterile_filtration.study.filter_sizing.status]
+    comparator: evidence
+    config:
+      map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
+    severity: medium
+    why: Filter capacity for the target batch volume has not been confirmed.
+    activities: [filter_sizing]
+
+  - id: R-EV-SUA-EL
+    version: 1.0.0
+    title: E&L assessment for target single-use assembly
+    match: [uo.sterile_filtration.study.sua_el.status]
+    comparator: evidence
+    config:
+      map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
+    severity: high
+    regulatory: true
+    why: Leachables from new product-contact polymers have not been assessed for this product.
+    activities: [extractables_leachables]
+
+  - id: R-EV-FILL-ACCURACY
+    version: 1.0.0
+    title: Fill accuracy of target pump
+    match: [uo.aseptic_filling.study.fill_accuracy.status]
+    comparator: evidence
+    config:
+      map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
+    severity: high
+    why: Fill accuracy and precision of the target pump with this product have not been demonstrated.
+    activities: [fill_accuracy_study, engineering_run]
+
+  - id: R-EV-PUMP-IMPACT
+    version: 1.0.0
+    title: Product-quality impact of target pump
+    match: [uo.aseptic_filling.study.pump_product_impact.status]
+    comparator: evidence
+    config:
+      map: { no_impact: within_validated_range, impact: outside_validated_range, not_assessed: outside_validated_range }
+    severity: high
+    regulatory: true
+    why: The effect of the target pump on product quality (shear, particles, aggregation) is not established.
+    activities: [product_quality_impact, comparability_assessment]
+
+  - id: R-EV-PPQ
+    version: 1.0.0
+    title: PPQ coverage of target filling principle
+    match: [uo.aseptic_filling.study.ppq.status]
+    comparator: evidence
+    config:
+      map: { covered: within_validated_range, bridging_required: outside_validated_range, not_covered: outside_validated_range }
+    severity: high
+    regulatory: true
+    why: Existing PPQ does not demonstrate the process with the target filling principle.
+    activities: [ppq]
+
+  - id: R-EV-CCI
+    version: 1.0.0
+    title: CCI for target configuration
+    match: [uo.capping.study.cci.status]
+    comparator: evidence
+    config:
+      map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
+    severity: high
+    regulatory: true
+    why: Container closure integrity has not been demonstrated for the target container-closure system and capping process.
+    activities: [cci_study]
+
+  - id: R-EV-RSF
+    version: 1.0.0
+    title: RSF–CCI correlation at target
+    match: [uo.capping.study.rsf_cci_correlation.status]
+    comparator: evidence
+    config:
+      map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
+    severity: medium
+    why: The RSF range has not been correlated with CCI on the target capping equipment.
+    activities: [rsf_study]
+
+  # ------------------------------------------------------------------ procedures
+  - id: R-PROCEDURES
+    version: 1.0.0
+    title: Target procedures
+    match: [uo.*.doc.procedures.status]
+    comparator: evidence
+    config:
+      map: { in_place: equivalent, update_required: different_principle, new_required: new_requirement }
+    severity: low
+    why: Procedures and batch record instructions must reflect the target process before GMP manufacture.
+    activities: [procedure_update, training]

@@ -1,0 +1,208 @@
+/**
+ * Shared process data model.
+ *
+ * This package is deliberately free of gap-assessment logic so that the
+ * future TRD and MBR generators can read the same ProcessModel, Entry and
+ * Source structures without restructuring.
+ */
+
+export type Side = "source" | "target";
+
+/** Every attribute value lives in an Entry; there are no bare values in the model. */
+export type EntryStatus =
+  /** A value exists and is supported by at least one live source. */
+  | "established"
+  /** The user answered "Unknown / to be confirmed". Becomes an open information item. */
+  | "unknown"
+  /** The user stated the attribute does not apply (justification required). */
+  | "not_applicable"
+  /** Nothing has been recorded, or the supporting source was removed. */
+  | "not_established";
+
+export interface Quantity {
+  value: number;
+  unit: string;
+}
+
+/** Inclusive range. A missing bound means the range is open on that side. */
+export interface Range {
+  min?: Quantity;
+  max?: Quantity;
+}
+
+export type EntryValue = string | number | boolean | string[] | Quantity | Range;
+
+export interface Verification {
+  by: string;
+  at: string;
+  /** Fingerprint of the resolved status and value at the time of verification. */
+  fingerprint: string;
+}
+
+export interface Entry<T extends EntryValue = EntryValue> {
+  id: string;
+  /** Full reference, e.g. "source.uo.aseptic_filling.equip.filler.operatingPrinciple" or "scope.modality". */
+  path: string;
+  status: EntryStatus;
+  /** Present only when status is "established" and sameAsSource is not set. */
+  value?: T;
+  /** Target only: the user asserted the target equals the source. Resolves live to the source entry. */
+  sameAsSource?: boolean;
+  /** Required when status is "not_applicable". */
+  justification?: string;
+  /** Sources supporting this entry. An established entry with no sources reverts to not_established. */
+  sourceIds: string[];
+  recordedBy: string;
+  recordedAt: string;
+  revision: number;
+  /** Verification is valid only while its fingerprint matches the current resolved value. */
+  verification?: Verification;
+}
+
+export type SourceType =
+  | "interview_answer"
+  | "user_entry"
+  | "imported_file"
+  | "catalog_rule"
+  | "document_reference"
+  /** Reserved for a future backend document-extraction service. Never written by the PoC. */
+  | "ai_extraction"
+  /** Reserved for a future backend author-interview assistant. Never written by the PoC. */
+  | "ai_suggestion";
+
+export interface DocRef {
+  docType: string;
+  identifier: string;
+  title?: string;
+  version?: string;
+}
+
+export interface Source {
+  id: string;
+  type: SourceType;
+  label: string;
+  responder?: { name: string; role?: string };
+  date: string;
+  file?: { name: string; sha256: string };
+  docRef?: DocRef;
+  /** Set when an answer is re-answered; the superseded source no longer supports any entry. */
+  supersededBy?: string;
+}
+
+/**
+ * A structural item inside a unit operation (a parameter, piece of equipment,
+ * material, in-process control, study or document). Field names are defined
+ * by the catalog, which keeps custom parameters and custom unit operations
+ * possible without code changes.
+ */
+export interface ModelItem {
+  key: string;
+  label: string;
+  custom?: boolean;
+  fields: Record<string, Entry>;
+}
+
+export type CollectionKind = "param" | "equip" | "mat" | "ipc" | "study" | "doc";
+
+export const COLLECTION_KINDS: readonly CollectionKind[] = ["param", "equip", "mat", "ipc", "study", "doc"];
+
+export const COLLECTION_LABELS: Record<CollectionKind, string> = {
+  param: "Process parameters",
+  equip: "Equipment",
+  mat: "Materials and components",
+  ipc: "In-process controls and sampling",
+  study: "Validation and supporting studies",
+  doc: "Procedures, systems and training",
+};
+
+export interface UnitOperation {
+  key: string;
+  label: string;
+  custom?: boolean;
+  sequence: number;
+  /** Unit-operation level fields, e.g. "presence". */
+  fields: Record<string, Entry>;
+  collections: Record<CollectionKind, Record<string, ModelItem>>;
+}
+
+export interface ProcessModel {
+  side: Side;
+  site: { fields: Record<string, Entry> };
+  unitOperations: Record<string, UnitOperation>;
+}
+
+/** Interview log record. The entries it wrote carry its sourceId. */
+export interface AnswerRecord {
+  id: string;
+  questionId: string;
+  side: Side | "shared";
+  /** "value" | "unknown" | "same_as_source" | "not_applicable" | "composite" */
+  kind: string;
+  raw: unknown;
+  sourceId: string;
+  by: string;
+  at: string;
+}
+
+export type GapStatus = "open" | "in_progress" | "closed" | "accepted_no_action";
+export type Severity = "high" | "medium" | "low" | "none";
+
+export interface GapOverlay {
+  gapKey: string;
+  severityOverride?: { value: Severity; justification: string; by: string; at: string };
+  owner?: string;
+  status: GapStatus;
+  notes?: string;
+  updatedBy?: string;
+  updatedAt?: string;
+}
+
+export interface ChangeEvent {
+  at: string;
+  by: string;
+  action: string;
+  path?: string;
+  detail?: string;
+  before?: unknown;
+  after?: unknown;
+}
+
+export interface SectionConfirmation {
+  sectionId: string;
+  side: Side | "shared" | "both";
+  by: string;
+  at: string;
+}
+
+export interface Project {
+  schemaVersion: string;
+  meta: {
+    id: string;
+    title: string;
+    createdAt: string;
+    createdBy: string;
+    /** True for the bundled fictional demonstration project. */
+    demo?: boolean;
+  };
+  /** Versions of the content (catalog, questions, rules, templates) the project was built with. */
+  contentRefs: { catalog: string; questions: string; rules: string; templates: string };
+  settings: { entrySequence: "paired" | "sequential" };
+  interview: {
+    responder?: { name: string; role?: string };
+    confirmations: SectionConfirmation[];
+  };
+  /** Shared scoping answers (not compared). */
+  scope: Record<string, Entry>;
+  processes: { source: ProcessModel; target: ProcessModel };
+  sources: Source[];
+  answers: AnswerRecord[];
+  gapOverlays: GapOverlay[];
+  changeLog: ChangeEvent[];
+}
+
+/** Who is acting and when. Passed explicitly so engine functions stay pure and testable. */
+export interface Actor {
+  name: string;
+  role?: string;
+  at: string;
+}

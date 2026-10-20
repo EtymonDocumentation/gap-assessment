@@ -1,0 +1,135 @@
+questions:
+  - id: comp.presence
+    section: uo.compounding
+    prompt: Is pooling, compounding or dilution performed at this site?
+    label: Compounding performed
+    why: Establishes whether the unit operation exists at each site. A step present at only one site is a new or removed element.
+    sides: paired
+    binds: uo.compounding.presence
+    input: { type: yes_no }
+
+  - id: comp.batch_size
+    section: uo.compounding
+    prompt: Batch size (formulated bulk volume)
+    label: Batch size
+    why: Batch size drives mixing, hold time, filter sizing and filling duration. A change outside the validated batch size range is a scale change for the validated state.
+    help: Source — nominal batch size and the batch size range covered by PPQ. Target — planned nominal batch size and planned range.
+    sides: paired
+    binds: uo.compounding.param.batch_size
+    input:
+      type: parameter
+      units: [L, mL]
+      sourceFields: [setPoint, par, rangeBasis]
+      targetFields: [setPoint, nor]
+
+  - id: comp.mixing_coverage
+    section: uo.compounding
+    parent: comp.batch_size
+    prompt: What batch volume range does the source mixing study cover?
+    label: Mixing study coverage
+    why: Homogeneity is demonstrated only over the volumes studied. A larger batch may need a new or extended mixing study.
+    triggerNote: Asked because the target batch size is larger than the source.
+    sides: source
+    binds: uo.compounding.study.mixing.coverage
+    input: { type: range, units: [L, mL] }
+    showWhen: { increased: uo.compounding.param.batch_size.setPoint }
+
+  - id: comp.hold_time
+    section: uo.compounding
+    parent: comp.batch_size
+    prompt: Maximum hold time of the formulated bulk before filtration
+    label: Bulk hold time (maximum)
+    why: Larger batches usually take longer to compound and filter. The target maximum must stay within the validated hold time, or a hold time study is needed.
+    triggerNote: Asked because the target batch size is larger than the source.
+    sideLabels: { source: Validated maximum hold time, target: Planned maximum hold time }
+    sides: paired
+    binds: uo.compounding.param.max_hold_time.max
+    input: { type: quantity, units: [h, min, d] }
+    showWhen: { increased: uo.compounding.param.batch_size.setPoint }
+
+  - id: comp.vessel_type
+    section: uo.compounding
+    prompt: Compounding vessel type
+    label: Vessel type
+    why: Vessel material and construction affect product contact, mixing behaviour and cleaning or single-use E&L requirements.
+    sides: paired
+    binds: uo.compounding.equip.vessel.type
+    input: { type: choice, optionsFrom: vesselType }
+
+  - id: comp.vessel_capacity
+    section: uo.compounding
+    prompt: Compounding vessel working capacity
+    label: Vessel working capacity
+    why: Vessel capacity relative to batch volume affects mixing efficiency, minimum stir volume and heat transfer.
+    sides: paired
+    binds: uo.compounding.equip.vessel.capacity
+    input: { type: quantity, units: [L, mL] }
+
+  - id: comp.mixer
+    section: uo.compounding
+    prompt: Mixer operating principle
+    label: Mixer principle
+    why: Mixing principle determines shear, foaming and homogeneity; a change is a design change rather than a parameter adjustment.
+    sides: paired
+    binds: uo.compounding.equip.mixer.operatingPrinciple
+    input: { type: choice, optionsFrom: mixerPrinciple }
+
+  - id: comp.mixing_demonstrated
+    section: uo.compounding
+    parent: comp.mixer
+    prompt: Has mixing effectiveness (homogeneity) been demonstrated for the target vessel and mixer at the planned batch volume?
+    label: Target mixing effectiveness data
+    why: Source mixing data do not transfer to a different mixer or vessel design; homogeneity must be demonstrated for the target configuration.
+    triggerNote: Asked because the target mixer or vessel differs from the source.
+    sides: target
+    binds: uo.compounding.study.mixing.status
+    input: { type: choice, optionsFrom: evidenceAvailability }
+    showWhen:
+      any:
+        - { changed: uo.compounding.equip.mixer.operatingPrinciple }
+        - { changed: uo.compounding.equip.vessel.type }
+
+  - id: comp.mixing_speed
+    section: uo.compounding
+    prompt: Mixing speed
+    label: Mixing speed
+    why: Mixing speed affects homogeneity and shear stress on the protein. The target operating range is compared with the source proven acceptable range.
+    sides: paired
+    binds: uo.compounding.param.mixing_speed
+    input: { type: parameter, units: [rpm] }
+
+  - id: comp.mixing_time
+    section: uo.compounding
+    prompt: Mixing time
+    label: Mixing time
+    why: Mixing time must be sufficient for homogeneity without excessive exposure to shear or air-liquid interface.
+    sides: paired
+    binds: uo.compounding.param.mixing_time
+    input: { type: parameter, units: [min, h] }
+
+  - id: comp.temperature
+    section: uo.compounding
+    prompt: Compounding temperature
+    label: Compounding temperature
+    why: Product temperature during compounding affects stability; the target range is compared with the source validated range.
+    sides: paired
+    binds: uo.compounding.param.temperature
+    input: { type: parameter, units: ["°C"] }
+
+  - id: comp.ipc
+    section: uo.compounding
+    prompt: Which in-process controls are performed on the formulated bulk?
+    label: Compounding in-process controls
+    why: In-process controls confirm the bulk meets requirements before filtration. Removing a control, or adding one, changes the control strategy.
+    sides: paired
+    binds: uo.compounding.ipc.panel.tests
+    input: { type: multi_choice, optionsFrom: compoundingIpc }
+
+  - id: comp.procedures
+    section: uo.compounding
+    prompt: Status of target procedures for compounding
+    label: Target compounding procedures
+    why: Procedures and batch record instructions must reflect the target equipment and parameters before GMP manufacture.
+    sides: target
+    binds: uo.compounding.doc.procedures.status
+    input: { type: choice, optionsFrom: procedureStatus }

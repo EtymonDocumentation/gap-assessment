@@ -1,0 +1,142 @@
+questions:
+  - id: fill.presence
+    section: uo.aseptic_filling
+    prompt: Is aseptic filling performed at this site?
+    label: Aseptic filling performed
+    why: Establishes whether the unit operation exists at each site.
+    sides: paired
+    binds: uo.aseptic_filling.presence
+    input: { type: yes_no }
+
+  - id: fill.pump
+    section: uo.aseptic_filling
+    prompt: Filling pump operating principle
+    label: Filling pump principle
+    why: The pump principle affects fill accuracy, shear on the protein and the PPQ and APS evidence base. A change is a design change, not a parameter adjustment.
+    sides: paired
+    binds: uo.aseptic_filling.equip.filler.operatingPrinciple
+    input: { type: choice, optionsFrom: fillingPrinciple }
+
+  - id: fill.accuracy
+    section: uo.aseptic_filling
+    parent: fill.pump
+    prompt: Is fill accuracy and precision data available for the target pump with this product or a justified surrogate?
+    label: Fill accuracy data (target pump)
+    why: Fill accuracy depends on the pump principle and product viscosity; source data do not demonstrate the target pump's performance.
+    triggerNote: Asked because the target filling pump principle differs from the source.
+    sides: target
+    binds: uo.aseptic_filling.study.fill_accuracy.status
+    input: { type: choice, optionsFrom: evidenceAvailability }
+    showWhen: &pumpChanged { changed: uo.aseptic_filling.equip.filler.operatingPrinciple }
+
+  - id: fill.shear
+    section: uo.aseptic_filling
+    parent: fill.pump
+    prompt: Has the product-quality impact of the target pump (for example shear, subvisible particles, aggregation) been assessed with this product?
+    label: Pump product-quality impact (target pump)
+    why: Different pump mechanisms apply different shear and stress to proteins, which can affect particles and aggregation.
+    triggerNote: Asked because the target filling pump principle differs from the source.
+    sides: target
+    binds: uo.aseptic_filling.study.pump_product_impact.status
+    input: { type: choice, optionsFrom: impactAssessment }
+    showWhen: *pumpChanged
+
+  - id: fill.ppq
+    section: uo.aseptic_filling
+    parent: fill.pump
+    prompt: Is filling with the target pump principle covered by existing PPQ data for this product?
+    label: PPQ coverage of target pump
+    why: PPQ demonstrates the commercial process as designed; a different filling principle is normally outside the existing PPQ.
+    triggerNote: Asked because the target filling pump principle differs from the source.
+    sides: target
+    binds: uo.aseptic_filling.study.ppq.status
+    input: { type: choice, optionsFrom: validationCoverage }
+    showWhen: *pumpChanged
+
+  - id: fill.volume
+    section: uo.aseptic_filling
+    prompt: Fill volume
+    label: Fill volume
+    why: Fill volume determines deliverable volume and is normally a critical parameter; the target range is compared with the source validated range.
+    sides: paired
+    binds: uo.aseptic_filling.param.fill_volume
+    input: { type: parameter, units: [mL, µL] }
+
+  - id: fill.speed
+    section: uo.aseptic_filling
+    prompt: Filling line speed
+    label: Line speed
+    why: Line speed affects fill accuracy, stoppering performance and exposure time; operating above the validated speed is outside the validated range.
+    sides: paired
+    binds: uo.aseptic_filling.param.line_speed
+    input: { type: parameter, units: [units/min, units/h] }
+
+  - id: fill.duration
+    section: uo.aseptic_filling
+    prompt: Maximum filling duration per batch
+    label: Filling duration (maximum)
+    why: Maximum filling duration must stay within the validated duration and within what the aseptic process simulation covers.
+    sideLabels: { source: Validated maximum filling duration, target: Planned maximum filling duration }
+    sides: paired
+    binds: uo.aseptic_filling.param.max_fill_duration.max
+    input: { type: quantity, units: [h, min] }
+
+  - id: fill.aps
+    section: uo.aseptic_filling
+    parent: fill.duration
+    prompt: What maximum filling duration does the current aseptic process simulation (media fill) on the target line cover?
+    label: APS duration coverage (target line)
+    why: The APS must cover the longest planned filling duration on the line actually used. Longer batches can fall outside current media fill coverage.
+    triggerNote: Asked because the target batch size or filling duration is larger than the source.
+    sides: target
+    binds: uo.aseptic_filling.study.aps.coverage
+    input: { type: quantity, units: [h, min] }
+    showWhen:
+      any:
+        - { increased: uo.aseptic_filling.param.max_fill_duration.max }
+        - { increased: uo.compounding.param.batch_size.setPoint }
+
+  - id: fill.check
+    section: uo.aseptic_filling
+    prompt: How is fill weight checked during filling?
+    label: Fill weight check
+    why: The fill weight control approach is part of the control strategy; a change alters sampling, alarms and batch record content.
+    sides: paired
+    binds: uo.aseptic_filling.ipc.fill_check.frequency
+    input: { type: choice, optionsFrom: fillCheck }
+
+  - id: fill.container
+    section: uo.aseptic_filling
+    prompt: Primary container format
+    label: Container format
+    why: The container format is part of the registered presentation and of the validated filling, stoppering and CCI configuration.
+    sides: paired
+    binds: uo.aseptic_filling.mat.container.format
+    input: { type: choice, optionsFrom: containerFormat }
+
+  - id: fill.container_supplier
+    section: uo.aseptic_filling
+    prompt: Primary container supplier
+    label: Container supplier
+    why: A different container supplier can change dimensions, glass type and surface treatment, which affect machinability, CCI and E&L.
+    sides: paired
+    binds: uo.aseptic_filling.mat.container.supplier
+    input: { type: text, placeholder: e.g. Glass Vendor C (fictional) }
+
+  - id: fill.stopper
+    section: uo.aseptic_filling
+    prompt: Stopper supplier and part number
+    label: Stopper
+    why: The stopper is a product-contact component; a change affects CCI, E&L and machinability.
+    sides: paired
+    binds: uo.aseptic_filling.mat.stopper.partNumber
+    input: { type: text, placeholder: "e.g. Stopper Vendor D, STP-20-DEMO" }
+
+  - id: fill.procedures
+    section: uo.aseptic_filling
+    prompt: Status of target procedures for aseptic filling
+    label: Target filling procedures
+    why: Filling, intervention and line-clearance procedures must reflect the target line before GMP manufacture.
+    sides: target
+    binds: uo.aseptic_filling.doc.procedures.status
+    input: { type: choice, optionsFrom: procedureStatus }

@@ -1,0 +1,37 @@
+{
+  "name": "gap-assessment",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Gap Assessment Generator (proof of concept) - biologics fill/finish technology transfer",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "content",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @gap/web",
+    "build": "npm run build -w @gap/web",
+    "preview": "npm run preview -w @gap/web",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "validate:content": "vitest run content",
+    "e2e": "npm run e2e -w @gap/web",
+    "ci": "npm run typecheck && npm test && npm run build"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@playwright/test": "^1.64.1",
+    "@rollup/plugin-yaml": "^5.0.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
+  }
+}
