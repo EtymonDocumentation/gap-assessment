@@ -1,0 +1,143 @@
+questions:
+  - id: rt.presence
+    section: uo.ds_receipt_thaw
+    prompt: Is drug substance receipt and storage (and thaw, where frozen) performed at this site?
+    label: Receipt and thaw performed
+    why: Establishes whether the unit operation exists at each site. A site that receives drug substance ready for compounding has no receipt or thaw step of its own, which changes where the validated hold and thaw controls sit.
+    sides: paired
+    binds: uo.ds_receipt_thaw.presence
+    input: { type: yes_no }
+
+  - id: rt.container
+    section: uo.ds_receipt_thaw
+    prompt: Drug substance container type
+    label: Drug substance container
+    why: The container closure system determines freezing and thawing rates, extractables and leachables exposure, shipping robustness and the drug substance stability data. A different container type is a design change, not a parameter change.
+    sides: paired
+    binds: uo.ds_receipt_thaw.mat.ds_container.type
+    input: { type: choice, optionsFrom: dsContainer }
+
+  - id: rt.storage_temp
+    section: uo.ds_receipt_thaw
+    prompt: Drug substance storage temperature before use
+    label: Drug substance storage temperature
+    why: The storage temperature is the condition supported by drug substance stability data. A target range wider than the validated one is not covered by those data.
+    help: Source — the storage temperature and the range supported by drug substance stability data. Target — the planned storage set point and range.
+    sides: paired
+    binds: uo.ds_receipt_thaw.param.storage_temperature
+    input: { type: parameter, units: ["°C"] }
+
+  - id: rt.transfer_bag
+    section: uo.ds_receipt_thaw
+    prompt: Is drug substance transferred into single-use bags (for thaw, pooling or hold) before compounding?
+    label: Single-use transfer bag used
+    why: A single-use bag adds a product-contact polymer, welds or connectors, and a hold step that needs extractables, leachables and compatibility assessment.
+    sides: paired
+    binds: uo.ds_receipt_thaw.mat.transfer_bag.present
+    input: { type: yes_no }
+
+  - id: rt.thaw_principle
+    section: uo.ds_receipt_thaw
+    prompt: Thaw system operating principle
+    label: Thaw principle
+    why: The thaw method sets the thaw rate, temperature gradient and cryoconcentration risk. Protein quality (aggregation, subvisible particles) can depend on it, so a change is a design change that needs freeze-thaw evidence.
+    triggerNote: Asked because the drug substance is received frozen.
+    sides: paired
+    binds: uo.ds_receipt_thaw.equip.thaw_unit.operatingPrinciple
+    input: { type: choice, optionsFrom: thawPrinciple }
+    showWhen: &frozen { eq: [scope.ds_state, frozen] }
+
+  - id: rt.freeze_thaw
+    section: uo.ds_receipt_thaw
+    parent: rt.thaw_principle
+    prompt: Is freeze-thaw or thaw study data available for the target thaw method and drug substance container with this product?
+    label: Freeze-thaw and thaw study (target)
+    why: Thaw rate and container geometry change the exposure to cryoconcentration and temperature gradients. Source freeze-thaw data support only the source thaw method and container.
+    triggerNote: Asked because the target thaw method or drug substance container differs from the source.
+    sides: target
+    binds: uo.ds_receipt_thaw.study.freeze_thaw.status
+    input: { type: choice, optionsFrom: evidenceAvailability }
+    showWhen:
+      any:
+        - { changed: uo.ds_receipt_thaw.equip.thaw_unit.operatingPrinciple }
+        - { changed: uo.ds_receipt_thaw.mat.ds_container.type }
+
+  - id: rt.thaw_capacity
+    section: uo.ds_receipt_thaw
+    prompt: Maximum drug substance load per thaw cycle
+    label: Thaw system capacity
+    why: The load per thaw cycle affects thaw time, temperature uniformity and how many containers are thawed together for one batch.
+    triggerNote: Asked because the drug substance is received frozen.
+    sides: paired
+    binds: uo.ds_receipt_thaw.equip.thaw_unit.capacity
+    input: { type: quantity, units: [L, mL] }
+    showWhen: *frozen
+
+  - id: rt.thaw_temp
+    section: uo.ds_receipt_thaw
+    prompt: Thaw temperature (thaw medium or chamber set point)
+    label: Thaw temperature
+    why: The thaw temperature sets the thaw rate and the maximum product temperature. A higher temperature than validated can cause local warming and degradation.
+    triggerNote: Asked because the drug substance is received frozen.
+    sides: paired
+    binds: uo.ds_receipt_thaw.param.thaw_temperature
+    input: { type: parameter, units: ["°C"] }
+    showWhen: *frozen
+
+  - id: rt.thaw_duration
+    section: uo.ds_receipt_thaw
+    prompt: Thaw duration
+    label: Thaw duration
+    why: Thaw duration is the time the product spends between frozen and fully thawed. Longer times extend exposure in the partially frozen state, where cryoconcentration is greatest.
+    triggerNote: Asked because the drug substance is received frozen.
+    sides: paired
+    binds: uo.ds_receipt_thaw.param.thaw_duration
+    input: { type: parameter, units: [h, min] }
+    showWhen: *frozen
+
+  - id: rt.ambient_time
+    section: uo.ds_receipt_thaw
+    prompt: Maximum time at ambient temperature after thaw, before compounding
+    label: Maximum ambient time after thaw
+    why: Time at room temperature after thaw is limited by drug substance stability and bioburden control. The target maximum must stay within the validated time.
+    triggerNote: Asked because the drug substance is received frozen.
+    sideLabels: { source: Validated maximum time at ambient temperature, target: Planned maximum time at ambient temperature }
+    sides: paired
+    binds: uo.ds_receipt_thaw.param.max_ambient_time.max
+    input: { type: quantity, units: [h, min] }
+    showWhen: *frozen
+
+  - id: rt.mixing
+    section: uo.ds_receipt_thaw
+    prompt: How is thawed drug substance mixed before sampling or pooling?
+    label: Post-thaw mixing
+    why: Thawed drug substance is concentration-stratified. The mixing method and its energy input decide whether the bulk is homogeneous and how much shear and foaming the protein sees.
+    triggerNote: Asked because the drug substance is received frozen.
+    sides: paired
+    binds: uo.ds_receipt_thaw.equip.thaw_mixer.operatingPrinciple
+    input: { type: choice, optionsFrom: postThawMixing }
+    showWhen: *frozen
+
+  - id: rt.homogeneity
+    section: uo.ds_receipt_thaw
+    parent: rt.mixing
+    prompt: Has post-thaw homogeneity been demonstrated for the target thaw and mixing method?
+    label: Post-thaw homogeneity (target)
+    why: Homogeneity after thaw depends on the container, thaw rate and mixing method. Without it, samples taken for release or in-process testing may not represent the bulk.
+    triggerNote: Asked because the target thaw or mixing method differs from the source.
+    sides: target
+    binds: uo.ds_receipt_thaw.study.thaw_homogeneity.status
+    input: { type: choice, optionsFrom: evidenceAvailability }
+    showWhen:
+      any:
+        - { changed: uo.ds_receipt_thaw.equip.thaw_mixer.operatingPrinciple }
+        - { changed: uo.ds_receipt_thaw.equip.thaw_unit.operatingPrinciple }
+
+  - id: rt.procedures
+    section: uo.ds_receipt_thaw
+    prompt: Status of target procedures for drug substance receipt and thaw
+    label: Target receipt and thaw procedures
+    why: Receipt, storage, thaw and line-clearance procedures must reflect the target equipment and limits before GMP manufacture.
+    sides: target
+    binds: uo.ds_receipt_thaw.doc.procedures.status
+    input: { type: choice, optionsFrom: procedureStatus }

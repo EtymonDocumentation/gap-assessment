@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { SCHEMA_VERSION } from "./entries";
+import { isValidCustomKey } from "./custom";
 import type { Project } from "./types";
 
 const quantity = z.object({ value: z.number().finite(), unit: z.string().min(1) });
@@ -63,6 +64,49 @@ const processModel = (side: "source" | "target") =>
 
 const severity = z.enum(["high", "medium", "low", "none"]);
 
+const customKey = z.string().refine(isValidCustomKey, "must be a custom key: x_ followed by lowercase letters, digits and underscores");
+
+export const customSchema = z
+  .object({
+    unitOperations: z.array(
+      z.object({
+        key: customKey,
+        label: z.string().trim().min(1),
+        sequence: z.number().finite(),
+        description: z.string().optional(),
+        createdBy: z.string(),
+        createdAt: z.string(),
+      }),
+    ),
+    items: z.array(
+      z.object({
+        uo: z.string().min(1),
+        coll: z.enum(["param", "equip", "mat", "ipc"]),
+        key: customKey,
+        label: z.string().trim().min(1),
+        dimension: z.string().min(1).optional(),
+        why: z.string().optional(),
+        createdBy: z.string(),
+        createdAt: z.string(),
+      }),
+    ),
+  })
+  .superRefine((c, ctx) => {
+    const uos = new Set<string>();
+    for (const u of c.unitOperations) {
+      if (uos.has(u.key)) ctx.addIssue({ code: "custom", message: `Duplicate custom unit operation ${u.key}` });
+      uos.add(u.key);
+    }
+    const seen = new Set<string>();
+    for (const i of c.items) {
+      const id = `${i.uo}.${i.coll}.${i.key}`;
+      if (seen.has(id)) ctx.addIssue({ code: "custom", message: `Duplicate custom item ${id}` });
+      seen.add(id);
+      if (i.uo.startsWith("x_") && !uos.has(i.uo)) ctx.addIssue({ code: "custom", message: `Custom item ${id} belongs to an undefined custom unit operation` });
+      if (i.coll === "param" && !i.dimension) ctx.addIssue({ code: "custom", message: `Custom parameter ${id} needs a unit dimension` });
+    }
+  });
+
 export const projectSchema = z.object({
   schemaVersion: z.string(),
   meta: z.object({
@@ -82,6 +126,7 @@ export const projectSchema = z.object({
   }),
   scope: fields,
   processes: z.object({ source: processModel("source"), target: processModel("target") }),
+  custom: customSchema,
   sources: z.array(
     z.object({
       id: z.string(),
@@ -144,7 +189,12 @@ export const projectSchema = z.object({
 
 /** Ordered migrations from older schema versions. Each takes and returns raw JSON. */
 const MIGRATIONS: { from: string; to: string; migrate: (raw: Record<string, unknown>) => Record<string, unknown> }[] = [
-  // First schema version; no migrations yet. Add { from: "1.0.0", to: "1.1.0", migrate } entries here.
+  // 1.0.0 -> 1.1.0: custom unit operations and items. Older projects have none.
+  {
+    from: "1.0.0",
+    to: "1.1.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.1.0", custom: raw.custom ?? { unitOperations: [], items: [] } }),
+  },
 ];
 
 export class ImportError extends Error {

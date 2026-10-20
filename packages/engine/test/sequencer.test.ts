@@ -50,12 +50,20 @@ describe("empty project", () => {
       "site.background_grade@target",
       "site.batch_record@source",
       "site.batch_record@target",
+      "rt.presence@source",
+      "rt.presence@target",
       "comp.presence@source",
       "comp.presence@target",
       "filt.presence@source",
       "filt.presence@target",
       "fill.presence@source",
       "fill.presence@target",
+      "vi.presence@source",
+      "vi.presence@target",
+      "lp.presence@source",
+      "lp.presence@target",
+      "ss.presence@source",
+      "ss.presence@target",
     ]);
   });
 
@@ -374,7 +382,7 @@ describe("nextInstance", () => {
     // From the last key (unanswered) it is returned; once answered, the search wraps to the earliest unanswered.
     const last = list[list.length - 1]!;
     expect(nextInstance(list, p, last.key)?.key).toBe(last.key);
-    p = v(p, "fill.presence", "target", "yes");
+    p = v(p, "ss.presence", "target", "yes");
     expect(nextInstance(list, p, last.key)?.key).toBe("scope.dosage_form@shared");
     // Unknown key falls back to the start.
     expect(nextInstance(list, p, "no.such@key")?.key).toBe("scope.dosage_form@shared");
@@ -417,8 +425,18 @@ describe("progress", () => {
     expect(site.total).toBe(10);
     expect(site.bySide.source).toEqual({ total: 5, answered: 1 });
     expect(site.bySide.target).toEqual({ total: 5, answered: 0 });
-    // The capping section is not applicable on an empty project.
-    expect(prog.map((s) => s.section.id)).toEqual(["scoping", "site", "uo.compounding", "uo.sterile_filtration", "uo.aseptic_filling"]);
+    // Capping, stoppering and lyophilization are not applicable on an empty project (vial presentation and lyophilized product are not yet known).
+    expect(prog.map((s) => s.section.id)).toEqual([
+      "scoping",
+      "site",
+      "uo.ds_receipt_thaw",
+      "uo.compounding",
+      "uo.sterile_filtration",
+      "uo.aseptic_filling",
+      "uo.visual_inspection",
+      "uo.labeling_packaging",
+      "uo.storage_shipping",
+    ]);
   });
 
   it("reports section confirmation", () => {

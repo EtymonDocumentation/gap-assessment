@@ -1,0 +1,102 @@
+questions:
+  - id: vi.presence
+    section: uo.visual_inspection
+    prompt: Is 100% visual inspection of filled containers performed at this site?
+    label: Visual inspection performed
+    why: Establishes whether the unit operation exists at each site. Inspection that moves to another site or to a contract partner changes who holds the validated state and the qualification evidence.
+    sides: paired
+    binds: uo.visual_inspection.presence
+    input: { type: yes_no }
+
+  - id: vi.method
+    section: uo.visual_inspection
+    prompt: Inspection method
+    label: Inspection method
+    why: Manual, semi-automated and automated inspection detect defects by different principles, with different detection probability and false-reject behaviour. A change of method is a change in principle that needs its own qualification, not a parameter adjustment.
+    sides: paired
+    binds: uo.visual_inspection.equip.inspection.operatingPrinciple
+    input: { type: choice, optionsFrom: inspectionMethod }
+
+  - id: vi.avi_qualification
+    section: uo.visual_inspection
+    parent: vi.method
+    prompt: Is a qualification of the target automated or semi-automated inspection (detection performance against a defect kit, for example a Knapp-style study) available?
+    label: Automated inspection qualification (target)
+    why: Automated inspection must be shown to detect defects at least as well as the validated manual process, using a defect kit with known defect types and sizes. A new or changed system has no such evidence until it is qualified.
+    triggerNote: Asked because the target inspection method differs from the source and is semi-automated or automated.
+    sides: target
+    binds: uo.visual_inspection.study.avi_qualification.status
+    input: { type: choice, optionsFrom: evidenceAvailability }
+    showWhen:
+      all:
+        - { changed: uo.visual_inspection.equip.inspection.operatingPrinciple }
+        - { in: [target.uo.visual_inspection.equip.inspection.operatingPrinciple, [semi_automated, automated]] }
+
+  - id: vi.inspector_qualification
+    section: uo.visual_inspection
+    parent: vi.method
+    prompt: Is a qualification programme for the target manual inspectors in place (initial qualification and requalification against the defect library)?
+    label: Inspector qualification (target)
+    why: Manual inspection performance depends on trained and periodically requalified inspectors. A new site or a move to manual or semi-automated inspection needs documented qualification before routine use.
+    triggerNote: Asked because the target inspection method differs from the source and uses human inspectors.
+    sides: target
+    binds: uo.visual_inspection.study.inspector_qualification.status
+    input: { type: choice, optionsFrom: evidenceAvailability }
+    showWhen:
+      all:
+        - { changed: uo.visual_inspection.equip.inspection.operatingPrinciple }
+        - { in: [target.uo.visual_inspection.equip.inspection.operatingPrinciple, [manual, semi_automated]] }
+
+  - id: vi.rate
+    section: uo.visual_inspection
+    prompt: Inspection rate
+    label: Inspection rate
+    why: Inspection speed affects the time each container is examined and the detection probability. An inspection rate above the one covered by qualification and validation is not supported.
+    sides: paired
+    binds: uo.visual_inspection.param.inspection_rate
+    input: { type: parameter, units: [units/min, units/h] }
+
+  - id: vi.defects
+    section: uo.visual_inspection
+    prompt: Which defect classes are inspected for?
+    label: Defect classes inspected
+    why: The defect classes are part of the control strategy. A class that is no longer inspected for (for example particulates) needs a documented risk assessment.
+    sides: paired
+    binds: uo.visual_inspection.ipc.defects.tests
+    input: { type: multi_choice, optionsFrom: visualDefects }
+
+  - id: vi.aql
+    section: uo.visual_inspection
+    prompt: AQL sampling plan for the post-inspection check
+    label: AQL sampling plan
+    why: The AQL inspection of accepted containers confirms the residual defect level after 100% inspection. A different plan changes the sample size and acceptance numbers behind the batch disposition.
+    sides: paired
+    binds: uo.visual_inspection.ipc.aql.frequency
+    input: { type: choice, optionsFrom: aqlPlan }
+
+  - id: vi.reject_limit
+    section: uo.visual_inspection
+    prompt: Reject rate alert limit (percent of containers rejected per batch)
+    label: Reject rate alert limit
+    why: The alert limit triggers investigation of an unusual reject rate, which can signal a process deviation upstream. A higher limit lets more rejects pass without investigation.
+    sides: paired
+    binds: uo.visual_inspection.ipc.reject_rate.limit
+    input: { type: quantity, units: ["%"] }
+
+  - id: vi.defect_library
+    section: uo.visual_inspection
+    prompt: Defect library or kit used to qualify inspection
+    label: Defect library or kit
+    why: The qualification of inspectors and automated systems is only as good as the defect set it is based on. A different set of defects can shift the detection performance that was demonstrated.
+    sides: paired
+    binds: uo.visual_inspection.mat.defect_library.type
+    input: { type: choice, optionsFrom: defectLibrary }
+
+  - id: vi.procedures
+    section: uo.visual_inspection
+    prompt: Status of target procedures for visual inspection
+    label: Target inspection procedures
+    why: Inspection, re-inspection, AQL and reject-handling procedures must reflect the target method and equipment before GMP manufacture.
+    sides: target
+    binds: uo.visual_inspection.doc.procedures.status
+    input: { type: choice, optionsFrom: procedureStatus }

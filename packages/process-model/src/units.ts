@@ -42,6 +42,9 @@ export const UNITS: readonly UnitDef[] = [
   U("bar", "bar", "pressure", 1),
   U("kPa", "kilopascal", "pressure", 0.01),
   U("psi", "pound per square inch", "pressure", 0.0689475729),
+  U("Pa", "pascal", "pressure", 0.00001),
+  U("µbar", "microbar", "pressure", 0.000001),
+  U("mTorr", "millitorr", "pressure", 0.00000133322),
   // flow (base mL/min)
   U("mL/min", "millilitre per minute", "flow", 1),
   U("L/min", "litre per minute", "flow", 1000),

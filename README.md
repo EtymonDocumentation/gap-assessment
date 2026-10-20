@@ -37,7 +37,7 @@ Live site: `https://<your-github-user>.github.io/gap-assessment/` (after the dep
 - **Side-by-side view** of source and target for every compared attribute, with a category marker that links to the register row.
 - **Gap register.** Filter by category, severity, section, status or text. Sort the columns. Record an owner, a status, notes, or a severity change with a required justification. Export to CSV.
 - **Document.** The gap assessment draft is available as a live preview, as Markdown, and as print-ready HTML (print or save as PDF from the browser).
-- **Model view.** A read-only list of every recorded value, with its status, sources, verification state and revision.
+- **Builder.** An editable view of every recorded value, source beside target, with status, sources, verification state and revision. Edit in place (Unknown, Not applicable with a reason, Same as source), filter by text, differences or open items, and add your own unit operations, parameters, equipment, materials and controls. They are stored in the project (`project.custom`, schema 1.1.0; older files migrate on load), asked and compared like built-in items, and marked Custom. Removing a custom definition keeps its values as inactive: listed in the Builder, excluded from comparison and the document.
 - **One-click demo.** ARX-217 is a fictional liquid mAb in 2R vials moving from Site North (Line 2) to Site South (Line 4). It produces every one of the eight categories.
 
 M1 covers four unit operations:
@@ -258,9 +258,11 @@ The build uses relative asset paths (`base: "./"`) and a hash router, so it work
   - scoping, site, and four unit operations
   - all eight categories, the register, side-by-side view and document (Markdown and HTML)
   - the demo, unit tests, smoke tests and CI/CD
+- **In M2:**
+  - six more unit operations: drug substance receipt and thaw (frozen DS only), stoppering and lyophilization (lyophilized products only), visual inspection, labeling and packaging, storage and shipping
+  - custom unit operations and custom parameters, equipment, materials and controls
+  - the editable Builder
 - **Not yet:**
-  - other unit operations (for example inspection and lyophilization)
-  - an editable model builder (M2)
   - full validation-study depth and equipment qualification comparison (M3)
   - a source-register UI (M4; the cascade engine and its tests are already in place)
   - DOCX export (M5)

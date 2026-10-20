@@ -1,6 +1,7 @@
 import {
   applyAnswer,
   confirmSection,
+  isCustomQuestion,
   formatQuestionSide,
   isAnswered,
   nextInstance,
@@ -18,16 +19,17 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CategoryChip, Modal, ResponderForm, SeverityBadge } from "../components";
 import { SIDE_TEXT } from "../lib";
 import { href, navigate } from "../router";
-import { content, useAssessment, useStore } from "../store";
+import { useAssessment, useContent, useStore } from "../store";
 import { QuestionInput, initialForm, toAnswer, type FormState } from "./question-inputs";
 
 export function InterviewPage({ params }: { params: URLSearchParams }) {
   const project = useStore((s) => s.project)!;
+  const content = useContent();
   const update = useStore((s) => s.update);
   const a = useAssessment()!;
   const mode = project.settings.entrySequence;
-  const instances = useMemo(() => visibleInstances(content, project, mode), [project, mode]);
-  const prog = useMemo(() => progress(content, project, instances), [project, instances]);
+  const instances = useMemo(() => visibleInstances(content, project, mode), [content, project, mode]);
+  const prog = useMemo(() => progress(content, project, instances), [content, project, instances]);
   const [editingResponder, setEditingResponder] = useState(false);
 
   const summaryId = params.get("summary");
@@ -85,7 +87,7 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
         {a.inactive.length > 0 && (
           <p className="notice small">
             {a.inactive.length} earlier answer{a.inactive.length === 1 ? "" : "s"} belong to questions that no longer apply. They are kept but
-            excluded. <a href={href("/model")}>View in Model</a>
+            excluded. <a href={href("/builder")}>View in Builder</a>
           </p>
         )}
       </aside>
@@ -187,6 +189,7 @@ function QuestionCard({
   onSave: (input: AnswerInput, docRefs: DocRef[]) => string | null;
 }) {
   const project = useStore((s) => s.project)!;
+  const content = useContent();
   const a = useAssessment()!;
   const q = inst.question;
   const [form, setForm] = useState<FormState>(() => initialForm(content, project, inst));
@@ -221,6 +224,7 @@ function QuestionCard({
       <div className="q-meta">
         <span className="small muted">{inst.section.title}</span>
         <span className={`side-badge side-${side}`}>{SIDE_TEXT[side]}</span>
+        {isCustomQuestion(q) && <span className="tag tag-custom">Custom item</span>}
         {answered && <span className="tag">Answered</span>}
       </div>
       {inst.depth > 0 && q.triggerNote && <p className="trigger">↳ {q.triggerNote}</p>}
@@ -334,6 +338,7 @@ function QuestionCard({
 
 function SectionSummary({ sectionId, instances, thenKey }: { sectionId: string; instances: QuestionInstance[]; thenKey: string | null }) {
   const project = useStore((s) => s.project)!;
+  const content = useContent();
   const update = useStore((s) => s.update);
   const a = useAssessment()!;
   const all = sectionId === "all";

@@ -2,11 +2,12 @@ import { buildDocument } from "@gap/engine";
 import { DOCUMENT_CSS, renderHtml, renderHtmlBody, renderMarkdown } from "@gap/renderers";
 import { useMemo, useState } from "react";
 import { download, slug, today } from "../lib";
-import { content, useAssessment, useStore } from "../store";
+import { useAssessment, useContent, useStore } from "../store";
 
 /** Live preview of the generated document, with Markdown and print-ready HTML downloads. */
 export function DocumentPage() {
   const project = useStore((s) => s.project)!;
+  const content = useContent();
   const a = useAssessment()!;
   // Generation time is fixed when the page opens so the preview and downloads match.
   const [generatedAt] = useState(() => new Date().toISOString());

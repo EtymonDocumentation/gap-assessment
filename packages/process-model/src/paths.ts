@@ -75,6 +75,10 @@ export interface LabelResolver {
   uoLabel(uo: string): string;
   uoSequence(uo: string): number;
   itemLabel(uo: string, coll: CollectionKind, item: string): string;
+  /** True when the unit operation is user-defined. */
+  uoCustom?(uo: string): boolean;
+  /** True when the item is user-defined. */
+  itemCustom?(uo: string, coll: CollectionKind, item: string): boolean;
 }
 
 export const KEY_LABELS: LabelResolver = {
@@ -91,6 +95,7 @@ export function ensureUnitOperation(model: ProcessModel, uo: string, labels: Lab
   let u = model.unitOperations[uo];
   if (!u) {
     u = { key: uo, label: labels.uoLabel(uo), sequence: labels.uoSequence(uo), fields: {}, collections: emptyCollections() };
+    if (labels.uoCustom?.(uo)) u.custom = true;
     model.unitOperations[uo] = u;
   }
   return u;
@@ -117,6 +122,7 @@ export function putEntry(project: Project, entry: Entry, labels: LabelResolver =
   let item = coll[p.item];
   if (!item) {
     item = { key: p.item, label: labels.itemLabel(p.uo, p.coll, p.item), fields: {} };
+    if (labels.itemCustom?.(p.uo, p.coll, p.item)) item.custom = true;
     coll[p.item] = item;
   }
   item.fields[p.field] = entry;

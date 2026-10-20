@@ -39,18 +39,31 @@ export function Modal({
   title,
   description,
   children,
+  restoreFocus,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   title: string;
   description?: string;
   children: ReactNode;
+  /** Returns the element that should get focus when the dialog closes (default: the previously focused element). */
+  restoreFocus?: () => HTMLElement | null;
 }) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay" />
-        <Dialog.Content className="dialog" aria-describedby={description ? "dialog-desc" : undefined}>
+        <Dialog.Content
+          className="dialog"
+          aria-describedby={description ? "dialog-desc" : undefined}
+          onCloseAutoFocus={(e) => {
+            const el = restoreFocus?.();
+            if (el) {
+              e.preventDefault();
+              el.focus();
+            }
+          }}
+        >
           <Dialog.Title className="dialog-title">{title}</Dialog.Title>
           {description && (
             <Dialog.Description id="dialog-desc" className="muted">

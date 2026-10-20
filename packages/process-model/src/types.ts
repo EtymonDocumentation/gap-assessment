@@ -174,6 +174,43 @@ export interface SectionConfirmation {
   at: string;
 }
 
+/** Collections a user can add custom items to. */
+export type CustomItemKind = "param" | "equip" | "mat" | "ipc";
+
+export const CUSTOM_ITEM_KINDS: readonly CustomItemKind[] = ["param", "equip", "mat", "ipc"];
+
+/** A unit operation defined by the user. Its key always starts with "x_". */
+export interface CustomUnitOperation {
+  key: string;
+  label: string;
+  /** Position among the unit operations (the catalog uses 10, 20, 30...). */
+  sequence: number;
+  description?: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+/** A parameter, equipment, material or in-process control defined by the user on any unit operation. */
+export interface CustomItem {
+  /** Unit operation key: a catalog key or the key of a custom unit operation. */
+  uo: string;
+  coll: CustomItemKind;
+  /** Always starts with "x_". Unique within its unit operation. */
+  key: string;
+  label: string;
+  /** Unit dimension from the units table. Required for parameters; for equipment it enables a capacity question. */
+  dimension?: string;
+  /** Why the item matters (shown as "Why is this asked?"). */
+  why?: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface CustomDefinitions {
+  unitOperations: CustomUnitOperation[];
+  items: CustomItem[];
+}
+
 export interface Project {
   schemaVersion: string;
   meta: {
@@ -194,6 +231,8 @@ export interface Project {
   /** Shared scoping answers (not compared). */
   scope: Record<string, Entry>;
   processes: { source: ProcessModel; target: ProcessModel };
+  /** User-defined unit operations and items. Values recorded against them live in `processes` like any other entry. */
+  custom: CustomDefinitions;
   sources: Source[];
   answers: AnswerRecord[];
   gapOverlays: GapOverlay[];

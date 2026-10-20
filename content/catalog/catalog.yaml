@@ -2,7 +2,7 @@
 # Editable without code changes. Bump catalog.version on any change.
 catalog:
   id: fill-finish-catalog
-  version: 1.0.0
+  version: 1.1.0
 
 unitOperations:
   - key: ds_receipt_thaw
@@ -10,6 +10,18 @@ unitOperations:
     sequence: 10
     milestone: 2
     description: Receipt, storage and (where frozen) thawing of drug substance before compounding.
+    items:
+      - { coll: param, key: storage_temperature, label: Drug substance storage temperature }
+      - { coll: param, key: thaw_temperature, label: Thaw temperature }
+      - { coll: param, key: thaw_duration, label: Thaw duration }
+      - { coll: param, key: max_ambient_time, label: Maximum time at ambient temperature after thaw }
+      - { coll: equip, key: thaw_unit, label: Thaw system }
+      - { coll: equip, key: thaw_mixer, label: Post-thaw mixing }
+      - { coll: mat, key: ds_container, label: Drug substance container }
+      - { coll: mat, key: transfer_bag, label: Single-use transfer bag }
+      - { coll: study, key: freeze_thaw, label: Freeze-thaw and thaw study }
+      - { coll: study, key: thaw_homogeneity, label: Post-thaw homogeneity study }
+      - { coll: doc, key: procedures, label: Receipt and thaw procedures }
   - key: compounding
     label: Pooling, compounding and dilution
     sequence: 20
@@ -69,12 +81,36 @@ unitOperations:
     sequence: 45
     milestone: 2
     description: Stopper placement where performed as a separate operation (for example, partial stoppering before lyophilization).
+    applicableWhen: { eq: [scope.dosage_form, lyophilized] }
+    items:
+      - { coll: param, key: max_open_time, label: Maximum time vials remain partially stoppered }
+      - { coll: equip, key: stoppering_unit, label: Stoppering unit }
+      - { coll: mat, key: stopper, label: Stopper (stand-alone stoppering) }
+      - { coll: ipc, key: placement_check, label: Stopper placement check }
+      - { coll: study, key: aps, label: Aseptic process simulation (media fill) }
+      - { coll: study, key: stopper_machinability, label: Stopper machinability and compatibility }
+      - { coll: doc, key: procedures, label: Stoppering procedures }
   - key: lyophilization
     label: Lyophilization
     sequence: 50
     milestone: 2
     description: Freeze-drying, including loading, cycle and stoppering under vacuum.
     applicableWhen: { eq: [scope.dosage_form, lyophilized] }
+    items:
+      - { coll: param, key: freeze_shelf_temp, label: Freezing shelf temperature }
+      - { coll: param, key: primary_shelf_temp, label: Primary drying shelf temperature }
+      - { coll: param, key: primary_pressure, label: Primary drying chamber pressure }
+      - { coll: param, key: secondary_shelf_temp, label: Secondary drying shelf temperature }
+      - { coll: param, key: secondary_time, label: Secondary drying time }
+      - { coll: param, key: total_cycle_time, label: Total cycle time }
+      - { coll: equip, key: lyophilizer, label: Lyophilizer }
+      - { coll: equip, key: loading_system, label: Loading system }
+      - { coll: mat, key: backfill_gas, label: Backfill gas }
+      - { coll: ipc, key: residual_moisture, label: Residual moisture }
+      - { coll: ipc, key: cycle_monitoring, label: Cycle monitoring }
+      - { coll: study, key: cycle_verification, label: Lyophilization cycle verification }
+      - { coll: study, key: aps_loading, label: APS coverage of lyophilizer loading }
+      - { coll: doc, key: procedures, label: Lyophilization procedures }
   - key: capping
     label: Capping and crimping
     sequence: 60
@@ -94,16 +130,49 @@ unitOperations:
     sequence: 70
     milestone: 2
     description: 100% visual inspection (manual, semi-automated or automated) and AQL.
+    items:
+      - { coll: param, key: inspection_rate, label: Inspection rate }
+      - { coll: equip, key: inspection, label: Inspection method }
+      - { coll: mat, key: defect_library, label: Defect library or kit }
+      - { coll: ipc, key: aql, label: AQL sampling }
+      - { coll: ipc, key: reject_rate, label: Reject rate monitoring }
+      - { coll: ipc, key: defects, label: Defect classes inspected }
+      - { coll: study, key: avi_qualification, label: Automated inspection qualification }
+      - { coll: study, key: inspector_qualification, label: Inspector qualification }
+      - { coll: doc, key: procedures, label: Inspection procedures }
   - key: labeling_packaging
     label: Labeling and packaging
     sequence: 80
     milestone: 2
     description: Labeling, serialization and secondary packaging.
+    items:
+      - { coll: param, key: labeling_speed, label: Labeling speed }
+      - { coll: param, key: max_time_out_of_refrigeration, label: Maximum time out of refrigeration during packaging }
+      - { coll: equip, key: labeler, label: Labeling machine }
+      - { coll: equip, key: serialization, label: Serialization and aggregation }
+      - { coll: mat, key: secondary_pack, label: Secondary packaging }
+      - { coll: ipc, key: label_reconciliation, label: Label reconciliation }
+      - { coll: ipc, key: label_checks, label: Label and print checks }
+      - { coll: study, key: serialization_verification, label: Serialization verification }
+      - { coll: study, key: tor_stability, label: Time-out-of-refrigeration evidence }
+      - { coll: doc, key: procedures, label: Labeling and packaging procedures }
   - key: storage_shipping
     label: Storage and shipping
     sequence: 90
     milestone: 2
     description: Finished-product storage and distribution, including shipping validation.
+    items:
+      - { coll: param, key: max_transit_time, label: Maximum transit time }
+      - { coll: param, key: excursion_allowance, label: Temperature excursion allowance }
+      - { coll: equip, key: storage_unit, label: Storage equipment }
+      - { coll: equip, key: shipper, label: Shipping configuration }
+      - { coll: mat, key: drug_product, label: Finished product storage }
+      - { coll: ipc, key: storage_monitoring, label: Storage temperature monitoring }
+      - { coll: ipc, key: shipping_monitoring, label: Shipping temperature monitoring }
+      - { coll: study, key: shipping_validation, label: Shipping lane qualification }
+      - { coll: study, key: stability_support, label: Stability support for storage condition }
+      - { coll: doc, key: shipping_lane, label: Primary shipping lane }
+      - { coll: doc, key: procedures, label: Storage and shipping procedures }
 
 fieldLabels:
   presence: Performed / used
@@ -139,6 +208,11 @@ fieldLabels:
   backgroundGrade: Background grade
   containment: Containment approach
   batchRecordSystem: Batch record system
+  closure: Closure approach
+  nucleation: Freezing nucleation
+  storageCondition: Storage condition
+  siliconization: Stopper siliconization
+  route: Route
 
 optionSets:
   classification:
@@ -274,6 +348,131 @@ optionSets:
     - { value: no_impact, label: Assessed; no impact on product quality }
     - { value: impact, label: Assessed; impact identified }
     - { value: not_assessed, label: Not assessed }
+  # ---- milestone 2: receipt and thaw
+  dsContainer:
+    - { value: rigid_bottle, label: Rigid bottle (for example HDPE or PETG) }
+    - { value: single_use_bag, label: Single-use bag }
+    - { value: stainless_tote, label: Stainless-steel tote or tank }
+    - { value: cryovessel, label: Cryovessel (frozen bulk) }
+  thawPrinciple:
+    - { value: controlled_rate, label: Controlled-rate thaw system (plate or jacketed) }
+    - { value: forced_air, label: Forced-air thaw cabinet }
+    - { value: water_bath, label: Circulating water bath }
+    - { value: ambient, label: Ambient thaw (no equipment) }
+  postThawMixing:
+    - { value: none, label: No mixing after thaw }
+    - { value: manual_inversion, label: Manual inversion or swirl }
+    - { value: rocking, label: Rocking platform }
+    - { value: impeller, label: Impeller in a vessel }
+    - { value: recirculation, label: Recirculation loop }
+  # ---- milestone 2: stand-alone stoppering
+  stopperingMode:
+    - { value: partial, label: Partial insertion (vent open; for lyophilization) }
+    - { value: full, label: Full insertion }
+  stopperPlacement:
+    - { value: mechanical_plunger, label: Mechanical plunger insertion }
+    - { value: vacuum_placement, label: Vacuum (under reduced pressure) placement }
+  stopperPreparation:
+    - { value: rtu_gamma, label: Ready-to-use; supplier gamma-sterilized }
+    - { value: rtu_steam, label: Ready-to-use; supplier steam-sterilized }
+    - { value: site_processed, label: "Washed, siliconized and sterilized at the site" }
+  stopperSiliconization:
+    - { value: siliconized, label: Siliconized }
+    - { value: low_silicone, label: Low-silicone or reduced-silicone }
+    - { value: coated, label: Fluoropolymer-coated (no silicone) }
+  stopperCheck:
+    - { value: height_measurement, label: Stopper height or protrusion measurement }
+    - { value: camera_position, label: Camera check of stopper position }
+    - { value: manual_visual, label: Manual visual check }
+  # ---- milestone 2: lyophilization
+  lyoLoading:
+    - { value: manual, label: Manual loading (operator inside the barrier) }
+    - { value: als, label: Automatic loading system (ALS) }
+    - { value: tray_pre_loaded, label: Pre-loaded trays or bottomless trays }
+  lyoNucleation:
+    - { value: none, label: Uncontrolled nucleation }
+    - { value: vacuum_induced, label: Vacuum-induced surface freezing }
+    - { value: pressure_depression, label: Controlled nucleation by pressure depression }
+    - { value: ice_fog, label: Ice-fog nucleation }
+  lyoClosure:
+    - { value: under_vacuum, label: Stoppering under vacuum }
+    - { value: after_backfill, label: Stoppering after backfill to partial pressure }
+  backfillGas:
+    - { value: nitrogen, label: Filtered nitrogen }
+    - { value: air, label: Filtered air }
+    - { value: other, label: Other gas }
+  lyoResidualMoisture:
+    - { value: karl_fischer, label: Karl Fischer titration }
+    - { value: nir, label: Near-infrared (NIR) spectroscopy }
+    - { value: loss_on_drying, label: Loss on drying }
+  lyoMonitoring:
+    - { value: product_probes, label: Product temperature probes }
+    - { value: pirani_capacitance, label: Pirani versus capacitance manometer comparison }
+    - { value: pressure_rise, label: Manometric temperature or pressure-rise test }
+    - { value: shelf_condenser, label: Shelf-fluid and condenser monitoring }
+  # ---- milestone 2: visual inspection
+  inspectionMethod:
+    - { value: manual, label: Manual visual inspection }
+    - { value: semi_automated, label: Semi-automated (machine handling; human inspection) }
+    - { value: automated, label: Automated visual inspection (AVI) }
+  defectLibrary:
+    - { value: site_library, label: Site-created defect library }
+    - { value: vendor_kit, label: Commercial defect kit }
+    - { value: product_specific, label: Product-specific set (from retained rejects) }
+  aqlPlan:
+    - { value: iso2859_standard, label: "Standard plan (critical 0.065, major 0.25, minor 0.65)" }
+    - { value: iso2859_tightened, label: Tightened plan }
+    - { value: other_plan, label: Other documented plan }
+  visualDefects:
+    - { value: particulates, label: Particulates and foreign matter }
+    - { value: container_defects, label: Container defects (cracks or chips) }
+    - { value: closure_defects, label: Closure defects (stopper or crimp) }
+    - { value: fill_level, label: Fill level }
+    - { value: cake_appearance, label: Cake appearance (lyophilized) }
+  # ---- milestone 2: labeling and packaging
+  labelingPrinciple:
+    - { value: pressure_sensitive, label: Pressure-sensitive (self-adhesive) labels }
+    - { value: wet_glue, label: Wet-glue labels }
+    - { value: shrink_sleeve, label: Shrink sleeve }
+    - { value: direct_print, label: Direct print }
+  serializationLevel:
+    - { value: none, label: No serialization }
+    - { value: unit_serialization, label: Unit-level serialization }
+    - { value: serialization_aggregation, label: Serialization with aggregation }
+  packConfig:
+    - { value: single_unit_carton, label: Single-unit carton }
+    - { value: multi_unit_carton, label: Multi-unit carton }
+    - { value: tray_pack, label: Tray pack or kit }
+  labelReconciliation:
+    - { value: full_reconciliation, label: 100% reconciliation of issued; used and destroyed labels }
+    - { value: vision_verification, label: Automated vision verification only }
+    - { value: line_clearance, label: Line clearance only }
+  labelChecks:
+    - { value: presence_position, label: Label presence and position }
+    - { value: print_legibility, label: Lot and expiry print legibility }
+    - { value: barcode_verification, label: Barcode or 2D code grade verification }
+  # ---- milestone 2: storage and shipping
+  storageCondition:
+    - { value: refrigerated, label: Refrigerated (2 to 8 °C) }
+    - { value: frozen_20, label: Frozen (-20 °C) }
+    - { value: frozen_70, label: Ultra-cold (-70 °C) }
+    - { value: room_temperature, label: Controlled room temperature }
+  storageEquipment:
+    - { value: walk_in_cold_room, label: Walk-in cold room }
+    - { value: reach_in_units, label: Reach-in refrigerators or freezers }
+    - { value: automated_cold_storage, label: Automated cold storage }
+  storageMonitoring:
+    - { value: continuous_alarmed, label: Continuous monitoring with alarms }
+    - { value: manual_readings, label: Manual readings }
+    - { value: mapped_and_qualified, label: Temperature mapping and qualification }
+  shippingConfig:
+    - { value: passive_insulated, label: Passive insulated shipper with coolant }
+    - { value: active_container, label: Active temperature-controlled container }
+    - { value: refrigerated_truck, label: Refrigerated truck or reefer }
+  shippingMonitoring:
+    - { value: data_logger, label: Single-use temperature data logger }
+    - { value: real_time, label: Real-time telemetry }
+    - { value: indicator, label: Temperature indicator }
 
 activities:
   - { key: information_gathering, label: Information gathering, description: Establish the missing source or target information before the comparison can be completed. }
@@ -299,6 +498,14 @@ activities:
   - { key: csv_assessment, label: Computerized system assessment, description: Assess validation status and data flows of the target computerized systems. }
   - { key: procedure_update, label: Procedure update, description: Create or update procedures and batch record instructions at the target. }
   - { key: training, label: Training, description: Train target personnel on the changed or new procedures. }
+  - { key: freeze_thaw_study, label: Freeze-thaw and thaw study, description: "Demonstrate that the target container, freezer and thaw method give acceptable product quality (for example, no aggregation or concentration gradient) across the validated freeze-thaw conditions." }
+  - { key: lyo_cycle_verification, label: Lyophilization cycle verification, description: "Run and verify the lyophilization cycle at the target (shelf mapping, product temperature, residual moisture, cake appearance) to show the cycle performs as validated." }
+  - { key: avi_qualification, label: Automated inspection qualification, description: "Qualify the automated inspection system against a defect kit (detection probability compared with manual inspection, for example a Knapp-style study) and set the rejection criteria." }
+  - { key: inspector_qualification, label: Inspector qualification, description: "Qualify and periodically requalify manual inspectors against the defect library, with documented acceptance criteria." }
+  - { key: shipping_validation, label: Shipping validation, description: "Qualify the shipping configuration and lane (thermal performance over the worst-case transit time and seasonal profiles)." }
+  - { key: serialization_verification, label: Serialization verification, description: "Verify serialization and aggregation (code quality, data transfer and reporting) for the target markets." }
+  - { key: stability_assessment, label: Stability assessment, description: "Assess whether available stability data support the target storage condition, time out of refrigeration or excursion allowance." }
+  - { key: temperature_mapping, label: Temperature mapping, description: Map and qualify storage areas and monitoring points for the target storage condition. }
 
 categories:
   - { key: equivalent, label: Equivalent, description: Source and target are the same. }

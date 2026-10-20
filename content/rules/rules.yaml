@@ -5,7 +5,7 @@
 # flagged. Regulatory wording is fixed: "Requires regulatory affairs assessment."
 ruleset:
   id: gap-core-rules
-  version: 1.0.0
+  version: 1.1.0
 
 rules:
   # ------------------------------------------------------------------ site
@@ -65,6 +65,427 @@ rules:
     regulatory: true
     why: Adding or removing a unit operation changes the process flow covered by the validated state.
     activities: [risk_assessment_update, ppq_coverage_assessment, procedure_update, training]
+
+  # ================================================================== milestone 2 unit operations
+  # Specific rules for the milestone 2 unit operations. They sit ahead of the generic
+  # parameter, capacity, limit and in-process rules below so the first match is the specific one.
+
+  # ---- drug substance receipt and thaw
+  - id: R-DS-CONTAINER
+    version: 1.0.0
+    title: Drug substance container type
+    match: [uo.ds_receipt_thaw.mat.ds_container.type]
+    comparator: enum
+    severity: high
+    regulatory: true
+    why: The drug substance container closure system determines freeze and thaw behaviour, extractables and leachables exposure and the stability data that support storage. A different container type is a design change.
+    activities: [extractables_leachables, freeze_thaw_study, risk_assessment_update, procedure_update, training]
+
+  - id: R-THAW-PRINCIPLE
+    version: 1.0.0
+    title: Thaw system operating principle
+    match: [uo.ds_receipt_thaw.equip.thaw_unit.operatingPrinciple]
+    comparator: enum
+    severity: high
+    regulatory: true
+    why: The thaw method sets thaw rate, temperature gradients and cryoconcentration risk, which can affect aggregation and particles. A different method is a design change that source freeze-thaw data do not cover.
+    activities: [freeze_thaw_study, product_quality_impact, equipment_qualification, engineering_run, procedure_update, training]
+
+  - id: R-THAW-MIXING
+    version: 1.0.0
+    title: Post-thaw mixing method
+    match: [uo.ds_receipt_thaw.equip.thaw_mixer.operatingPrinciple]
+    comparator: enum
+    severity: medium
+    why: Thawed drug substance is stratified, so the mixing method decides homogeneity and the shear and foaming the protein sees. A different method is not covered by the source mixing evidence.
+    activities: [mixing_study, product_quality_impact, equipment_qualification, procedure_update]
+
+  - id: R-THAW-PARAM
+    version: 1.0.0
+    title: Thaw parameter range
+    match: [uo.ds_receipt_thaw.param.thaw_temperature, uo.ds_receipt_thaw.param.thaw_duration]
+    comparator: range
+    severity: medium
+    severityBy:
+      classification: { CPP: high, KPP: medium, non_critical: low }
+    regulatory: true
+    why: Thaw conditions outside the source proven acceptable range are not supported by the freeze-thaw evidence for the drug substance.
+    activities: [freeze_thaw_study, scientific_justification, engineering_run]
+    outcomes:
+      within_validated_range:
+        why: The target thaw conditions lie within the source proven acceptable range. Record the target range in procedures; no additional study is implied.
+        activities: [procedure_update]
+
+  - id: R-THAW-AMBIENT-TIME
+    version: 1.0.0
+    title: Maximum time at ambient temperature after thaw
+    match: [uo.ds_receipt_thaw.param.max_ambient_time.max]
+    comparator: upper_limit
+    severity: high
+    regulatory: true
+    why: Holding thawed drug substance at ambient temperature for longer than the validated time is not supported by stability and microbial hold data.
+    activities: [hold_time_study, risk_assessment_update]
+    outcomes:
+      within_validated_range:
+        why: The planned maximum time at ambient temperature is within the validated time.
+
+  - id: R-EV-FREEZE-THAW
+    version: 1.0.0
+    title: Freeze-thaw evidence for target thaw method and container
+    match: [uo.ds_receipt_thaw.study.freeze_thaw.status]
+    comparator: evidence
+    config:
+      map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
+    severity: high
+    regulatory: true
+    why: Product quality after thaw is not demonstrated for the target thaw method and container until freeze-thaw data exist.
+    activities: [freeze_thaw_study, product_quality_impact]
+
+  - id: R-EV-THAW-HOMOGENEITY
+    version: 1.0.0
+    title: Post-thaw homogeneity at target
+    match: [uo.ds_receipt_thaw.study.thaw_homogeneity.status]
+    comparator: evidence
+    config:
+      map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
+    severity: medium
+    why: Homogeneity of the thawed bulk has not been demonstrated for the target thaw and mixing method.
+    activities: [mixing_study]
+
+  # ---- stand-alone stoppering
+  - id: R-STOPPERING-METHOD
+    version: 1.0.0
+    title: Stoppering mode or placement principle
+    match: [uo.stoppering.equip.stoppering_unit.type, uo.stoppering.equip.stoppering_unit.operatingPrinciple]
+    comparator: enum
+    severity: high
+    regulatory: true
+    why: The stoppering mode and placement principle decide vent geometry, stopper seating, particle generation and the exposure the aseptic process simulation must cover. A change is a design change.
+    activities: [engineering_run, media_fill, cci_study, equipment_qualification, procedure_update, training]
+
+  - id: R-STOPPER-PREP
+    version: 1.0.0
+    title: Stopper preparation or siliconization
+    match: [uo.stoppering.mat.stopper.type, uo.stoppering.mat.stopper.siliconization]
+    comparator: enum
+    severity: medium
+    regulatory: true
+    why: Stopper preparation and siliconization affect particulates, sterilization history, machinability, stopper sticking and protein adsorption. Existing component data cover only the source configuration.
+    activities: [engineering_run, cci_study, extractables_leachables]
+
+  - id: R-STOPPERING-OPEN-TIME
+    version: 1.0.0
+    title: Maximum partially stoppered time
+    match: [uo.stoppering.param.max_open_time.max]
+    comparator: upper_limit
+    severity: high
+    regulatory: true
+    why: A longer time with vials partially stoppered extends exposure in the aseptic zone and must be covered by the media fill and the process validation.
+    activities: [media_fill, risk_assessment_update, ppq_coverage_assessment]
+
+  - id: R-APS-OPEN-TIME-COVERAGE
+    version: 1.0.0
+    title: APS coverage of partially stoppered time
+    match: [uo.stoppering.study.aps.coverage]
+    comparator: coverage
+    config:
+      coverageSide: target
+      against: { side: target, path: uo.stoppering.param.max_open_time.max }
+    severity: high
+    why: The aseptic process simulation must cover the longest planned time that vials are partially stoppered on the line used.
+    activities: [media_fill]
+
+  - id: R-EV-STOPPER-MACHINABILITY
+    version: 1.0.0
+    title: Stopper machinability and compatibility at target
+    match: [uo.stoppering.study.stopper_machinability.status]
+    comparator: evidence
+    config:
+      map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
+    severity: medium
+    why: Stopper feeding, seating and compatibility with the product have not been demonstrated on the target stoppering unit.
+    activities: [engineering_run, cci_study]
+
+  # ---- lyophilization
+  - id: R-LYO-CYCLE-PARAM
+    version: 1.0.0
+    title: Lyophilization cycle parameter range
+    match:
+      - uo.lyophilization.param.freeze_shelf_temp
+      - uo.lyophilization.param.primary_shelf_temp
+      - uo.lyophilization.param.primary_pressure
+      - uo.lyophilization.param.secondary_shelf_temp
+      - uo.lyophilization.param.secondary_time
+    comparator: range
+    severity: medium
+    severityBy:
+      classification: { CPP: high, KPP: medium, non_critical: low }
+    regulatory: true
+    why: Lyophilization cycle parameters determine product temperature, cake structure and residual moisture. Operating outside the source proven acceptable or validated range is not supported by the cycle development and PPQ data.
+    activities: [lyo_cycle_verification, scientific_justification, engineering_run, ppq_coverage_assessment]
+    outcomes:
+      within_validated_range:
+        why: The target cycle conditions lie within the source proven acceptable or validated range. Record the target cycle in the recipe and procedures; no additional validation is implied.
+        activities: [procedure_update]
+
+  - id: R-LYO-CYCLE-TIME
+    version: 1.0.0
+    title: Lyophilization total cycle time (maximum)
+    match: [uo.lyophilization.param.total_cycle_time.max]
+    comparator: upper_limit
+    severity: high
+    regulatory: true
+    why: A longer total cycle time extends the time vials spend in the chamber and is not supported by the validated cycle and the stability data.
+    activities: [lyo_cycle_verification, hold_time_study, ppq_coverage_assessment]
+
+  - id: R-LYO-SHELF-AREA
+    version: 1.0.0
+    title: Lyophilizer shelf area
+    match: [uo.lyophilization.equip.lyophilizer.capacity]
+    comparator: scale
+    config:
+      ratioSeverity:
+        - { atLeast: 2, severity: high }
+        - { atLeast: 1, severity: medium }
+    severity: medium
+    regulatory: true
+    why: A different shelf area changes the maximum batch size and the heat and mass transfer of the cycle. The validated cycle cannot be assumed to perform the same way at another scale.
+    activities: [lyo_cycle_verification, engineering_run, equipment_qualification, ppq_coverage_assessment]
+
+  - id: R-LYO-LOADING
+    version: 1.0.0
+    title: Lyophilizer loading method
+    match: [uo.lyophilization.equip.loading_system.operatingPrinciple]
+    comparator: enum
+    severity: high
+    regulatory: true
+    why: Manual and automatic loading differ in operator interventions, exposure time and vial handling, and must be represented in the aseptic process simulation. A different loading method is a design change.
+    activities: [media_fill, risk_assessment_update, equipment_qualification, procedure_update, training]
+
+  - id: R-LYO-FEATURES
+    version: 1.0.0
+    title: Lyophilization cycle design features
+    match:
+      - uo.lyophilization.equip.lyophilizer.nucleation
+      - uo.lyophilization.equip.lyophilizer.closure
+      - uo.lyophilization.mat.backfill_gas.type
+    comparator: enum
+    severity: medium
+    regulatory: true
+    why: Nucleation control, the closure approach and the backfill gas change ice structure, drying behaviour or the vial headspace. They are part of the cycle design that was validated.
+    activities: [lyo_cycle_verification, cci_study, scientific_justification, procedure_update]
+
+  - id: R-LYO-MOISTURE-LIMIT
+    version: 1.0.0
+    title: Residual moisture limit
+    match: [uo.lyophilization.ipc.residual_moisture.limit]
+    comparator: upper_limit
+    severity: high
+    regulatory: true
+    why: The residual moisture limit is tied to the stability data for the lyophilized product. A higher limit is outside the supported stability basis.
+    activities: [scientific_justification, stability_assessment, risk_assessment_update]
+
+  - id: R-EV-LYO-CYCLE
+    version: 1.0.0
+    title: Cycle transfer and verification on target lyophilizer
+    match: [uo.lyophilization.study.cycle_verification.status]
+    comparator: evidence
+    config:
+      map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
+    severity: high
+    regulatory: true
+    why: The cycle has not been shown to give the validated product temperature profile and residual moisture on the target lyophilizer or scale.
+    activities: [lyo_cycle_verification, engineering_run]
+
+  - id: R-EV-LYO-APS-LOADING
+    version: 1.0.0
+    title: APS coverage of lyophilizer loading
+    match: [uo.lyophilization.study.aps_loading.status]
+    comparator: evidence
+    config:
+      map: { covered: within_validated_range, bridging_required: outside_validated_range, not_covered: outside_validated_range }
+    severity: high
+    regulatory: true
+    why: The aseptic process simulation does not demonstrate the target loading method and duration until it is covered.
+    activities: [media_fill]
+
+  # ---- visual inspection
+  - id: R-VI-METHOD
+    version: 1.0.0
+    title: Visual inspection method
+    match: [uo.visual_inspection.equip.inspection.operatingPrinciple]
+    comparator: enum
+    severity: high
+    regulatory: true
+    why: Manual, semi-automated and automated inspection detect defects by different principles with different detection performance. A different method needs its own qualification and is not covered by the source one.
+    activities: [avi_qualification, inspector_qualification, equipment_qualification, csv_assessment, procedure_update, training]
+
+  - id: R-VI-DEFECT-LIBRARY
+    version: 1.0.0
+    title: Defect library or kit
+    match: [uo.visual_inspection.mat.defect_library.type]
+    comparator: enum
+    severity: medium
+    why: Inspector and system qualification depends on the defect set used. A different set can shift the detection performance demonstrated.
+    activities: [inspector_qualification, avi_qualification, procedure_update]
+
+  - id: R-VI-REJECT-LIMIT
+    version: 1.0.0
+    title: Reject rate alert limit
+    match: [uo.visual_inspection.ipc.reject_rate.limit]
+    comparator: upper_limit
+    severity: medium
+    why: A higher reject-rate alert limit lets more rejects pass without investigation, which weakens the signal for upstream process deviations.
+    activities: [risk_assessment_update, procedure_update]
+
+  - id: R-EV-VI-AVI
+    version: 1.0.0
+    title: Automated inspection qualification at target
+    match: [uo.visual_inspection.study.avi_qualification.status]
+    comparator: evidence
+    config:
+      map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
+    severity: high
+    regulatory: true
+    why: Detection performance of the target automated or semi-automated inspection has not been demonstrated against a defect kit.
+    activities: [avi_qualification, equipment_qualification]
+
+  - id: R-EV-VI-INSPECTOR
+    version: 1.0.0
+    title: Inspector qualification at target
+    match: [uo.visual_inspection.study.inspector_qualification.status]
+    comparator: evidence
+    config:
+      map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
+    severity: medium
+    why: Target inspectors are not qualified for routine manual inspection until qualification and requalification are in place.
+    activities: [inspector_qualification, training]
+
+  # ---- labeling and packaging
+  - id: R-SERIALIZATION
+    version: 1.0.0
+    title: Serialization and aggregation level
+    match: [uo.labeling_packaging.equip.serialization.type]
+    comparator: enum
+    severity: medium
+    why: A different serialization or aggregation level changes code generation, data exchange and reporting for the supplied markets.
+    activities: [serialization_verification, csv_assessment, procedure_update, training]
+
+  - id: R-PACK-CONFIG
+    version: 1.0.0
+    title: Secondary packaging configuration
+    match: [uo.labeling_packaging.mat.secondary_pack.format]
+    comparator: enum
+    severity: medium
+    regulatory: true
+    why: The secondary packaging configuration can be part of the registered presentation and changes thermal behaviour in distribution and pack-out procedures.
+    activities: [shipping_validation, risk_assessment_update, procedure_update, training]
+
+  - id: R-PACK-TIME-OUT
+    version: 1.0.0
+    title: Maximum time out of refrigeration during packaging
+    match: [uo.labeling_packaging.param.max_time_out_of_refrigeration.max]
+    comparator: upper_limit
+    severity: high
+    regulatory: true
+    why: Product is warmed during labeling and packaging. A longer time out of refrigeration is not supported unless stability data cover it.
+    activities: [stability_assessment, hold_time_study]
+
+  - id: R-EV-SERIALIZATION
+    version: 1.0.0
+    title: Serialization verification at target
+    match: [uo.labeling_packaging.study.serialization_verification.status]
+    comparator: evidence
+    config:
+      map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
+    severity: medium
+    why: Serialization and aggregation have not been verified for the target level and markets.
+    activities: [serialization_verification, csv_assessment]
+
+  - id: R-EV-TIME-OUT
+    version: 1.0.0
+    title: Time-out-of-refrigeration evidence at target
+    match: [uo.labeling_packaging.study.tor_stability.status]
+    comparator: evidence
+    config:
+      map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
+    severity: high
+    regulatory: true
+    why: Stability data do not yet support the longer planned time out of refrigeration.
+    activities: [stability_assessment, hold_time_study]
+
+  # ---- storage and shipping
+  - id: R-STORAGE-CONDITION
+    version: 1.0.0
+    title: Finished-product storage condition
+    match: [uo.storage_shipping.mat.drug_product.storageCondition]
+    comparator: enum
+    severity: high
+    regulatory: true
+    why: The storage condition is the one supported by the stability data and normally appears in the registered product information. A different condition is not covered by those data.
+    activities: [stability_assessment, temperature_mapping, shipping_validation, risk_assessment_update, procedure_update]
+
+  - id: R-SHIP-CONFIG
+    version: 1.0.0
+    title: Shipping configuration
+    match: [uo.storage_shipping.equip.shipper.operatingPrinciple]
+    comparator: enum
+    severity: high
+    why: Passive, active and refrigerated-vehicle shipments protect the product by different mechanisms and have different qualified durations. A change of configuration needs its own qualification.
+    activities: [shipping_validation, risk_assessment_update, procedure_update, training]
+
+  - id: R-SHIP-LANE
+    version: 1.0.0
+    title: Primary shipping lane
+    match: [uo.storage_shipping.doc.shipping_lane.name]
+    comparator: text
+    config:
+      differentAs: new_requirement
+    severity: medium
+    why: Thermal qualification is specific to the lane (route, transit time, handling and climate). A new lane needs qualification evidence of its own.
+    activities: [shipping_validation, risk_assessment_update]
+
+  - id: R-SHIP-TRANSIT
+    version: 1.0.0
+    title: Maximum transit time
+    match: [uo.storage_shipping.param.max_transit_time.max]
+    comparator: upper_limit
+    severity: high
+    why: A transit time longer than the qualified duration of the shipping configuration is not supported by the shipping qualification.
+    activities: [shipping_validation, stability_assessment]
+
+  - id: R-SHIP-EXCURSION
+    version: 1.0.0
+    title: Temperature excursion allowance
+    match: [uo.storage_shipping.param.excursion_allowance.max]
+    comparator: upper_limit
+    severity: high
+    regulatory: true
+    why: The excursion allowance comes from stability data. A longer allowance than the supported one is not covered by those data.
+    activities: [stability_assessment, risk_assessment_update]
+
+  - id: R-EV-STABILITY
+    version: 1.0.0
+    title: Stability support for target storage condition
+    match: [uo.storage_shipping.study.stability_support.status]
+    comparator: evidence
+    config:
+      map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
+    severity: high
+    regulatory: true
+    why: Stability data do not yet support the target storage condition for the full shelf life.
+    activities: [stability_assessment]
+
+  - id: R-EV-SHIPPING
+    version: 1.0.0
+    title: Shipping qualification at target
+    match: [uo.storage_shipping.study.shipping_validation.status]
+    comparator: evidence
+    config:
+      map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
+    severity: high
+    why: The target shipping configuration and lane are not qualified until shipping qualification is available.
+    activities: [shipping_validation]
 
   # ------------------------------------------------------------------ scale
   - id: R-BATCH-SIZE
@@ -483,3 +904,32 @@ rules:
     severity: low
     why: Procedures and batch record instructions must reflect the target process before GMP manufacture.
     activities: [procedure_update, training]
+
+  # ------------------------------------------------------------------ generic fallbacks (custom and catalog items)
+  # Placed last so every specific rule above wins. Custom items use keys starting with x_.
+  - id: R-GEN-EQUIP-PRINCIPLE
+    version: 1.0.0
+    title: Equipment operating principle
+    match: [uo.*.equip.*.operatingPrinciple]
+    comparator: text
+    severity: medium
+    why: A different operating principle changes how the step performs and how it was qualified and validated.
+    activities: [equipment_qualification, risk_assessment_update, procedure_update]
+
+  - id: R-GEN-MAT-PRESENCE
+    version: 1.0.0
+    title: Material or component used
+    match: [uo.*.mat.*.present]
+    comparator: presence
+    severity: medium
+    why: Adding or removing a product-contact material or component changes the materials basis of the validated process.
+    activities: [extractables_leachables, risk_assessment_update, procedure_update]
+
+  - id: R-GEN-IPC-DESCRIPTION
+    version: 1.0.0
+    title: In-process control
+    match: [uo.*.ipc.*.description]
+    comparator: text
+    severity: medium
+    why: A different in-process control changes how the step is monitored and released.
+    activities: [risk_assessment_update, procedure_update]

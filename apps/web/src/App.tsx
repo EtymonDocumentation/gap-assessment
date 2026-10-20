@@ -3,7 +3,7 @@ import { ComparePage } from "./pages/ComparePage";
 import { DocumentPage } from "./pages/DocumentPage";
 import { HomePage } from "./pages/HomePage";
 import { InterviewPage } from "./pages/InterviewPage";
-import { ModelPage } from "./pages/ModelPage";
+import { BuilderPage } from "./pages/BuilderPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { href, useRoute } from "./router";
 import { useStore } from "./store";
@@ -14,7 +14,7 @@ const NAV = [
   { path: "/compare", label: "Side by side" },
   { path: "/register", label: "Gap register" },
   { path: "/document", label: "Document" },
-  { path: "/model", label: "Model" },
+  { path: "/builder", label: "Builder" },
 ] as const;
 
 type Theme = "system" | "light" | "dark";
@@ -65,7 +65,7 @@ export function App() {
   else if (route.path === "/compare") page = <ComparePage />;
   else if (route.path === "/register") page = <RegisterPage />;
   else if (route.path === "/document") page = <DocumentPage />;
-  else if (route.path === "/model") page = <ModelPage />;
+  else if (route.path === "/builder" || route.path === "/model") page = <BuilderPage />;
   else page = <HomePage />;
 
   return (
@@ -89,7 +89,7 @@ export function App() {
           <ul className="nav">
             {NAV.map((n) => (
               <li key={n.path}>
-                <a href={href(n.path)} aria-current={route.path === n.path ? "page" : undefined}>
+                <a href={href(n.path)} aria-current={route.path === n.path || (n.path === "/builder" && route.path === "/model") ? "page" : undefined}>
                   {n.label}
                 </a>
               </li>

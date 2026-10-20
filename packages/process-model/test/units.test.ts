@@ -65,6 +65,13 @@ describe("convert", () => {
     expect(convert(q(14.5038, "psi"), "bar").value).toBeCloseTo(1, 4);
   });
 
+  it("converts the vacuum units used for lyophilization", () => {
+    expect(convert(q(100, "Pa"), "mbar").value).toBeCloseTo(1, 9);
+    expect(convert(q(100, "µbar"), "mbar").value).toBeCloseTo(0.1, 9);
+    expect(convert(q(750.062, "mTorr"), "mbar").value).toBeCloseTo(1, 3);
+    expect(convert(q(0.1, "mbar"), "Pa").value).toBeCloseTo(10, 9);
+  });
+
   it("converts area, mass, flow, speed and force", () => {
     expect(convert(q(1, "m²"), "cm²")).toEqual(q(10000, "cm²"));
     expect(convert(q(2500, "cm²"), "m²")).toEqual(q(0.25, "m²"));

@@ -1,0 +1,111 @@
+questions:
+  - id: lp.presence
+    section: uo.labeling_packaging
+    prompt: Are labeling and secondary packaging performed at this site?
+    label: Labeling and packaging performed
+    why: Establishes whether the unit operation exists at each site. A site that stops at the filled, inspected container leaves labeling and packaging to another site, which changes who holds the controls below.
+    sides: paired
+    binds: uo.labeling_packaging.presence
+    input: { type: yes_no }
+
+  - id: lp.labeler
+    section: uo.labeling_packaging
+    prompt: Label application method
+    label: Label application method
+    why: The application method affects label adhesion, wrinkling and legibility on the container, and the line controls for label presence and position. A change is a change in design of the step.
+    sides: paired
+    binds: uo.labeling_packaging.equip.labeler.operatingPrinciple
+    input: { type: choice, optionsFrom: labelingPrinciple }
+
+  - id: lp.speed
+    section: uo.labeling_packaging
+    prompt: Labeling speed
+    label: Labeling speed
+    why: Line speed affects label placement accuracy and print quality. A speed above the validated range is not covered by the line qualification.
+    sides: paired
+    binds: uo.labeling_packaging.param.labeling_speed
+    input: { type: parameter, units: [units/min, units/h] }
+
+  - id: lp.serialization
+    section: uo.labeling_packaging
+    prompt: Serialization and aggregation level
+    label: Serialization and aggregation
+    why: Serialization and aggregation requirements depend on the supplied markets, for example for the United States and the European Union. The level and the data flow to the serialization system must be in place before release for those markets.
+    triggerNote: Asked because the product supplies the United States or European Union market.
+    sides: paired
+    binds: uo.labeling_packaging.equip.serialization.type
+    input: { type: choice, optionsFrom: serializationLevel }
+    showWhen:
+      any:
+        - { includes: [scope.markets, us] }
+        - { includes: [scope.markets, eu] }
+
+  - id: lp.serialization_verification
+    section: uo.labeling_packaging
+    parent: lp.serialization
+    prompt: Has serialization and aggregation been verified at the target (code quality, data transfer and reporting)?
+    label: Serialization verification (target)
+    why: Serialization is a computerized, data-driven process. A different level or system needs verification of code quality, aggregation logic and data exchange for the supplied markets.
+    triggerNote: Asked because the target serialization level differs from the source.
+    sides: target
+    binds: uo.labeling_packaging.study.serialization_verification.status
+    input: { type: choice, optionsFrom: evidenceAvailability }
+    showWhen: { changed: uo.labeling_packaging.equip.serialization.type }
+
+  - id: lp.pack_config
+    section: uo.labeling_packaging
+    prompt: Secondary packaging configuration
+    label: Secondary packaging configuration
+    why: The secondary pack protects the product from light and from temperature change in distribution, and its configuration can be part of the registered presentation. A different configuration changes shipping thermal behaviour and pack-out procedures.
+    sides: paired
+    binds: uo.labeling_packaging.mat.secondary_pack.format
+    input: { type: choice, optionsFrom: packConfig }
+
+  - id: lp.time_out
+    section: uo.labeling_packaging
+    prompt: Maximum time out of refrigeration during labeling and packaging
+    label: Maximum time out of refrigeration
+    why: Refrigerated product is warmed during labeling and packaging. The time out of refrigeration must stay within what the stability data support.
+    sideLabels: { source: Validated maximum time out of refrigeration, target: Planned maximum time out of refrigeration }
+    sides: paired
+    binds: uo.labeling_packaging.param.max_time_out_of_refrigeration.max
+    input: { type: quantity, units: [h, min] }
+
+  - id: lp.tor_evidence
+    section: uo.labeling_packaging
+    parent: lp.time_out
+    prompt: Do available stability or in-use data support the target maximum time out of refrigeration?
+    label: Time-out-of-refrigeration evidence (target)
+    why: A longer time out of refrigeration is acceptable only where stability data or a documented assessment cover the temperature and total time the product experiences.
+    triggerNote: Asked because the target maximum time out of refrigeration is longer than the source.
+    sides: target
+    binds: uo.labeling_packaging.study.tor_stability.status
+    input: { type: choice, optionsFrom: evidenceAvailability }
+    showWhen: { increased: uo.labeling_packaging.param.max_time_out_of_refrigeration.max }
+
+  - id: lp.reconciliation
+    section: uo.labeling_packaging
+    prompt: How are labels reconciled?
+    label: Label reconciliation
+    why: Label reconciliation prevents mix-ups between products and batches, which is among the highest-risk failures in packaging. A weaker approach changes the control strategy.
+    sides: paired
+    binds: uo.labeling_packaging.ipc.label_reconciliation.frequency
+    input: { type: choice, optionsFrom: labelReconciliation }
+
+  - id: lp.label_checks
+    section: uo.labeling_packaging
+    prompt: Which label and print checks are performed on the line?
+    label: Label and print checks
+    why: Online checks confirm that the correct label is on the container and that the lot and expiry data are legible. Removing a check changes the control strategy.
+    sides: paired
+    binds: uo.labeling_packaging.ipc.label_checks.tests
+    input: { type: multi_choice, optionsFrom: labelChecks }
+
+  - id: lp.procedures
+    section: uo.labeling_packaging
+    prompt: Status of target procedures for labeling and packaging
+    label: Target labeling and packaging procedures
+    why: Line clearance, label control, pack-out and serialization procedures must reflect the target line and markets before GMP manufacture.
+    sides: target
+    binds: uo.labeling_packaging.doc.procedures.status
+    input: { type: choice, optionsFrom: procedureStatus }

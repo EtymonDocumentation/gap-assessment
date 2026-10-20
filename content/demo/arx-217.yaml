@@ -8,7 +8,7 @@
 demo:
   id: arx-217
   title: "ARX-217 transfer: Site North Line 2 to Site South Line 4 (fictional demo)"
-  version: 1.0.0
+  version: 1.1.0
 
 responder: { name: Alex Example (fictional), role: MSAT engineer }
 date: "2026-10-01T09:00:00.000Z"
@@ -21,6 +21,8 @@ documents:
   - { identifier: DEMO-FV-217-05, docType: Study report, title: Sterilizing filter validation for ARX-217 (fictional), version: "1.1" }
   - { identifier: DEMO-APS-S4-26, docType: APS report, title: Site South Line 4 media fill summary (fictional), version: "1.0" }
   - { identifier: DEMO-CPV-217-01, docType: Process description, title: ARX-217 process parameter table (fictional), version: "3.0" }
+  - { identifier: DEMO-VI-217-02, docType: Qualification report, title: ARX-217 manual visual inspection qualification (fictional), version: "1.0" }
+  - { identifier: DEMO-SHIP-217-01, docType: Qualification report, title: ARX-217 passive shipper lane qualification (fictional), version: "1.0" }
 
 answers:
   # ---------------------------------------------------------------- scoping
@@ -222,6 +224,111 @@ answers:
   - { q: cap.ipc, side: source, value: [rsf_testing, crimp_visual] }
   - { q: cap.ipc, side: target, value: [rsf_testing, camera_inspection] }
   - { q: cap.procedures, side: target, value: new_required }
+
+
+  # ---------------------------------------------------------------- drug substance receipt and thaw
+  # The drug substance is liquid, so the thaw system, ambient-time, mixing and homogeneity questions stay hidden.
+  - { q: rt.presence, side: source, value: yes }
+  - { q: rt.presence, side: target, value: yes }
+  - { q: rt.container, side: source, value: rigid_bottle }
+  - { q: rt.container, side: target, value: single_use_bag }
+  - q: rt.storage_temp                                               # equivalent
+    side: source
+    docs: [DEMO-PPQ-217-01]
+    fields:
+      classification: KPP
+      setPoint: { value: 5, unit: "°C" }
+      nor: { min: { value: 2, unit: "°C" }, max: { value: 8, unit: "°C" } }
+      par: { min: { value: 2, unit: "°C" }, max: { value: 8, unit: "°C" } }
+      rangeBasis: development_report
+  - { q: rt.storage_temp, side: target, same: true }
+  - { q: rt.transfer_bag, side: source, value: no }
+  - { q: rt.transfer_bag, side: target, value: yes }                 # new requirement
+  - { q: rt.procedures, side: target, value: update_required }
+
+  # ---------------------------------------------------------------- visual inspection
+  - { q: vi.presence, side: source, value: yes }
+  - { q: vi.presence, side: target, value: yes }
+  - { q: vi.method, side: source, value: manual }
+  - { q: vi.method, side: target, value: automated }                 # different principle
+  - { q: vi.avi_qualification, side: target, value: planned }
+  - q: vi.rate                                                       # outside validated range
+    side: source
+    docs: [DEMO-VI-217-02]
+    fields:
+      classification: KPP
+      setPoint: { value: 20, unit: units/min }
+      nor: { min: { value: 18, unit: units/min }, max: { value: 22, unit: units/min } }
+      par: { min: { value: 15, unit: units/min }, max: { value: 25, unit: units/min } }
+      rangeBasis: other
+  - q: vi.rate
+    side: target
+    fields:
+      setPoint: { value: 200, unit: units/min }
+      nor: { min: { value: 180, unit: units/min }, max: { value: 220, unit: units/min } }
+  - { q: vi.defects, side: source, value: [particulates, container_defects, closure_defects, fill_level] }
+  - { q: vi.defects, side: target, same: true }
+  - { q: vi.aql, side: source, value: iso2859_standard }
+  - { q: vi.aql, side: target, same: true }
+  - { q: vi.reject_limit, side: source, value: { value: 2, unit: "%" } }
+  - { q: vi.reject_limit, side: target, same: true }
+  - { q: vi.defect_library, side: source, value: site_library, docs: [DEMO-VI-217-02] }
+  - { q: vi.defect_library, side: target, value: vendor_kit }
+  - { q: vi.procedures, side: target, value: new_required }
+
+  # ---------------------------------------------------------------- labeling and packaging
+  - { q: lp.presence, side: source, value: yes }
+  - { q: lp.presence, side: target, value: yes }
+  - { q: lp.labeler, side: source, value: pressure_sensitive }
+  - { q: lp.labeler, side: target, same: true }
+  - q: lp.speed                                                      # within validated range
+    side: source
+    fields:
+      classification: non_critical
+      setPoint: { value: 150, unit: units/min }
+      nor: { min: { value: 130, unit: units/min }, max: { value: 170, unit: units/min } }
+      par: { min: { value: 100, unit: units/min }, max: { value: 200, unit: units/min } }
+      rangeBasis: other
+  - q: lp.speed
+    side: target
+    fields:
+      setPoint: { value: 160, unit: units/min }
+      nor: { min: { value: 140, unit: units/min }, max: { value: 180, unit: units/min } }
+  - { q: lp.serialization, side: source, value: unit_serialization }
+  - { q: lp.serialization, side: target, value: serialization_aggregation }
+  - { q: lp.serialization_verification, side: target, value: planned }
+  - { q: lp.pack_config, side: source, value: single_unit_carton }
+  - { q: lp.pack_config, side: target, same: true }
+  - { q: lp.time_out, side: source, value: { value: 4, unit: h } }
+  - { q: lp.time_out, side: target, value: { value: 6, unit: h } }   # outside validated range
+  - { q: lp.tor_evidence, side: target, value: planned }
+  - { q: lp.reconciliation, side: source, value: full_reconciliation }
+  - { q: lp.reconciliation, side: target, same: true }
+  - { q: lp.label_checks, side: source, value: [presence_position, print_legibility] }
+  - { q: lp.label_checks, side: target, value: [presence_position, print_legibility, barcode_verification] }
+  - { q: lp.procedures, side: target, value: update_required }
+
+  # ---------------------------------------------------------------- storage and shipping
+  - { q: ss.presence, side: source, value: yes }
+  - { q: ss.presence, side: target, value: yes }
+  - { q: ss.condition, side: source, value: refrigerated }
+  - { q: ss.condition, side: target, same: true }                    # storage unchanged
+  - { q: ss.storage_unit, side: source, value: walk_in_cold_room }
+  - { q: ss.storage_unit, side: target, same: true }
+  - { q: ss.storage_monitoring, side: source, value: [continuous_alarmed, mapped_and_qualified] }
+  - { q: ss.storage_monitoring, side: target, same: true }
+  - { q: ss.shipper, side: source, value: passive_insulated }
+  - { q: ss.shipper, side: target, value: active_container }
+  - { q: ss.lane, side: source, value: Site North to Distribution Hub 1 (fictional), docs: [DEMO-SHIP-217-01] }
+  - { q: ss.lane, side: target, value: Site South to Distribution Hub 2 (fictional) }
+  - { q: ss.shipping_validation, side: target, value: planned }
+  - { q: ss.transit, side: source, value: { value: 48, unit: h }, docs: [DEMO-SHIP-217-01] }
+  - { q: ss.transit, side: target, value: { value: 72, unit: h } }
+  - { q: ss.excursion, side: source, value: { value: 24, unit: h } }
+  - { q: ss.excursion, side: target, same: true }
+  - { q: ss.shipping_monitoring, side: source, value: [data_logger] }
+  - { q: ss.shipping_monitoring, side: target, value: [data_logger, real_time] }
+  - { q: ss.procedures, side: target, value: new_required }
 
 overlays:
   - gapKey: R-FILL-PUMP:uo.aseptic_filling.equip.filler.operatingPrinciple

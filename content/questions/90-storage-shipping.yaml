@@ -1,0 +1,119 @@
+questions:
+  - id: ss.presence
+    section: uo.storage_shipping
+    prompt: Is finished-product storage and distribution handled at this site?
+    label: Storage and shipping performed
+    why: Establishes whether the unit operation exists at each site. If storage or shipping moves to another site or a logistics partner, the validated storage and shipping controls move with it.
+    sides: paired
+    binds: uo.storage_shipping.presence
+    input: { type: yes_no }
+
+  - id: ss.condition
+    section: uo.storage_shipping
+    prompt: Labeled storage condition of the finished product
+    label: Storage condition
+    why: The storage condition is the one supported by the stability data and normally appears in the registered product information. A different condition is not covered by those data.
+    sides: paired
+    binds: uo.storage_shipping.mat.drug_product.storageCondition
+    input: { type: choice, optionsFrom: storageCondition }
+
+  - id: ss.stability
+    section: uo.storage_shipping
+    parent: ss.condition
+    prompt: Do available stability data support the target storage condition for the full shelf life?
+    label: Stability support for storage condition (target)
+    why: A different storage condition needs its own stability data (real-time and accelerated), because degradation pathways and rates change with temperature.
+    triggerNote: Asked because the target storage condition differs from the source.
+    sides: target
+    binds: uo.storage_shipping.study.stability_support.status
+    input: { type: choice, optionsFrom: evidenceAvailability }
+    showWhen: { changed: uo.storage_shipping.mat.drug_product.storageCondition }
+
+  - id: ss.storage_unit
+    section: uo.storage_shipping
+    prompt: Storage equipment type
+    label: Storage equipment
+    why: Cold rooms, reach-in units and automated storage differ in temperature uniformity, recovery after door opening and alarm behaviour. Mapping and qualification are specific to the equipment.
+    sides: paired
+    binds: uo.storage_shipping.equip.storage_unit.operatingPrinciple
+    input: { type: choice, optionsFrom: storageEquipment }
+
+  - id: ss.storage_monitoring
+    section: uo.storage_shipping
+    prompt: How is storage temperature monitored?
+    label: Storage temperature monitoring
+    why: Continuous monitoring, alarms and a qualified (mapped) set-up detect excursions that can affect product quality. Removing a measure weakens the control of stored product.
+    sides: paired
+    binds: uo.storage_shipping.ipc.storage_monitoring.tests
+    input: { type: multi_choice, optionsFrom: storageMonitoring }
+
+  - id: ss.shipper
+    section: uo.storage_shipping
+    prompt: Shipping configuration
+    label: Shipping configuration
+    why: Passive, active and refrigerated-vehicle shipments protect the product by different mechanisms and have different qualified durations. A change of configuration is a change in principle that needs its own qualification.
+    sides: paired
+    binds: uo.storage_shipping.equip.shipper.operatingPrinciple
+    input: { type: choice, optionsFrom: shippingConfig }
+
+  - id: ss.lane
+    section: uo.storage_shipping
+    prompt: Primary shipping lane (origin and destination)
+    label: Primary shipping lane
+    why: Thermal qualification is specific to the lane, because transit time, handling and climate differ by route. A new lane has no qualification evidence yet.
+    sides: paired
+    binds: uo.storage_shipping.doc.shipping_lane.name
+    input: { type: text, placeholder: e.g. Site North to Distribution Hub 1 (fictional) }
+
+  - id: ss.shipping_validation
+    section: uo.storage_shipping
+    parent: ss.shipper
+    prompt: Is shipping qualification available for the target shipping configuration and lane (worst-case transit time and seasonal profiles)?
+    label: Shipping lane qualification (target)
+    why: Shipping qualification shows that the configuration holds the labeled temperature for the longest planned transit under summer and winter profiles. Without it the lane is not qualified.
+    triggerNote: Asked because the target shipping configuration or lane differs from the source.
+    sides: target
+    binds: uo.storage_shipping.study.shipping_validation.status
+    input: { type: choice, optionsFrom: evidenceAvailability }
+    showWhen:
+      any:
+        - { changed: uo.storage_shipping.equip.shipper.operatingPrinciple }
+        - { changed: uo.storage_shipping.doc.shipping_lane.name }
+
+  - id: ss.transit
+    section: uo.storage_shipping
+    prompt: Maximum transit time
+    label: Maximum transit time
+    why: The maximum transit time is the duration for which the shipping configuration was qualified. A longer planned time is not covered by that qualification.
+    sideLabels: { source: Qualified maximum transit time, target: Planned maximum transit time }
+    sides: paired
+    binds: uo.storage_shipping.param.max_transit_time.max
+    input: { type: quantity, units: [h, d] }
+
+  - id: ss.excursion
+    section: uo.storage_shipping
+    prompt: Temperature excursion allowance (maximum cumulative time outside the labeled storage condition)
+    label: Temperature excursion allowance
+    why: The allowance defines how long product may be outside its labeled condition during distribution and still be released. It is derived from stability data, so a longer allowance needs data to support it.
+    sideLabels: { source: Supported excursion allowance, target: Planned excursion allowance }
+    sides: paired
+    binds: uo.storage_shipping.param.excursion_allowance.max
+    input: { type: quantity, units: [h, d] }
+
+  - id: ss.shipping_monitoring
+    section: uo.storage_shipping
+    prompt: How is shipment temperature monitored?
+    label: Shipping temperature monitoring
+    why: Data loggers and real-time telemetry give the evidence used to release shipments after a deviation. A change in monitoring changes the available evidence and the decision process.
+    sides: paired
+    binds: uo.storage_shipping.ipc.shipping_monitoring.tests
+    input: { type: multi_choice, optionsFrom: shippingMonitoring }
+
+  - id: ss.procedures
+    section: uo.storage_shipping
+    prompt: Status of target procedures for storage and shipping
+    label: Target storage and shipping procedures
+    why: Storage, pack-out, shipping and excursion-handling procedures must reflect the target set-up before GMP distribution.
+    sides: target
+    binds: uo.storage_shipping.doc.procedures.status
+    input: { type: choice, optionsFrom: procedureStatus }

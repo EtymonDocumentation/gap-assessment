@@ -3,15 +3,21 @@
 # "Unknown / to be confirmed" is added to every question by the engine.
 bank:
   id: gap-core
-  version: 1.0.0
+  version: 1.1.0
 
 sections:
   - { id: scoping, title: Scoping, kind: scoping, order: 0, intro: These answers decide which unit operations and questions apply. They are shared by source and target. }
-  - { id: site, title: Site and facility, kind: site, order: 10, intro: "Facility, aseptic barrier and systems at the source and target." }
+  - { id: site, title: Site and facility, kind: site, order: 5, intro: "Facility, aseptic barrier and systems at the source and target." }
+  - { id: uo.ds_receipt_thaw, title: Drug substance receipt and thaw, kind: uo, uo: ds_receipt_thaw, order: 10 }
   - { id: uo.compounding, title: "Pooling, compounding and dilution", kind: uo, uo: compounding, order: 20 }
   - { id: uo.sterile_filtration, title: Bioburden reduction and sterile filtration, kind: uo, uo: sterile_filtration, order: 30 }
   - { id: uo.aseptic_filling, title: Aseptic filling and stoppering, kind: uo, uo: aseptic_filling, order: 40 }
+  - { id: uo.stoppering, title: Stoppering (stand-alone), kind: uo, uo: stoppering, order: 45 }
+  - { id: uo.lyophilization, title: Lyophilization, kind: uo, uo: lyophilization, order: 50 }
   - { id: uo.capping, title: Capping and crimping, kind: uo, uo: capping, order: 60 }
+  - { id: uo.visual_inspection, title: Visual inspection, kind: uo, uo: visual_inspection, order: 70 }
+  - { id: uo.labeling_packaging, title: Labeling and packaging, kind: uo, uo: labeling_packaging, order: 80 }
+  - { id: uo.storage_shipping, title: Storage and shipping, kind: uo, uo: storage_shipping, order: 90 }
 
 questions:
   # ------------------------------------------------------------------ scoping
@@ -37,7 +43,7 @@ questions:
     section: scoping
     prompt: What is the dosage form?
     label: Dosage form
-    why: The dosage form decides whether lyophilization applies and which filling and closure questions are relevant.
+    why: The dosage form decides whether lyophilization and stand-alone stoppering apply (lyophilized product) and which filling and closure questions are relevant.
     sides: shared
     binds: scope.dosage_form
     input: { type: choice, optionsFrom: dosageForm }
@@ -55,7 +61,7 @@ questions:
     section: scoping
     prompt: In what physical state is the drug substance received?
     label: Drug substance state
-    why: Frozen drug substance adds thaw, mixing and freeze-thaw validation considerations (covered in a later milestone).
+    why: Frozen drug substance adds thaw equipment, thaw parameters, post-thaw mixing and freeze-thaw evidence questions to the receipt and thaw section. Liquid (refrigerated) drug substance skips them.
     sides: shared
     binds: scope.ds_state
     input: { type: choice, optionsFrom: dsState }

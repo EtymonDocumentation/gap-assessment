@@ -1,10 +1,10 @@
-import { activityLabel, CATEGORIES, gapsToCsv, SEVERITY_RANK, setGapOverlay, type Category, type Gap } from "@gap/engine";
+import { activityLabel, CATEGORIES, gapsToCsv, SEVERITY_RANK, setGapOverlay, type Category, type ContentBundle, type Gap } from "@gap/engine";
 import { verificationState, type GapStatus, type Severity } from "@gap/process-model";
 import { useEffect, useMemo, useState } from "react";
 import { CategoryChip, Empty, RegulatoryFlag, SeverityBadge } from "../components";
 import { CATEGORY_SHORT, download, SEVERITY_TEXT, slug, today } from "../lib";
 import { href } from "../router";
-import { content, useAssessment, useStore } from "../store";
+import { useAssessment, useContent, useStore } from "../store";
 
 type SortKey = "id" | "severity" | "category" | "section" | "status";
 
@@ -12,6 +12,7 @@ const STATUS_TEXT: Record<GapStatus, string> = { open: "Open", in_progress: "In 
 
 export function RegisterPage() {
   const project = useStore((s) => s.project)!;
+  const content = useContent();
   const a = useAssessment()!;
   const focusKey = new URLSearchParams(window.location.hash.split("?")[1] ?? "").get("gap");
   const [showEqual, setShowEqual] = useState(false);
@@ -179,7 +180,7 @@ export function RegisterPage() {
   );
 }
 
-function interviewKey(questionId: string): string {
+function interviewKey(content: ContentBundle, questionId: string): string {
   const q = content.questionById.get(questionId);
   const side = !q ? "target" : q.sides === "paired" ? "target" : q.sides;
   return `${questionId}@${side}`;
@@ -187,6 +188,7 @@ function interviewKey(questionId: string): string {
 
 function GapRow({ g, open, onToggle }: { g: Gap; open: boolean; onToggle: () => void }) {
   const project = useStore((s) => s.project)!;
+  const content = useContent();
   const detailId = `gap-detail-${g.displayId}`;
   const verified = g.inputRefs.filter((r) => verificationState(project, r).state === "verified").length;
   return (
@@ -241,7 +243,7 @@ function GapRow({ g, open, onToggle }: { g: Gap; open: boolean; onToggle: () => 
                 </p>
                 <p className="small muted">
                   Inputs: {g.inputRefs.join(", ")} · {verified ? `${verified} of ${g.inputRefs.length} verified` : "Unverified"} ·{" "}
-                  <a href={href("/interview", { q: interviewKey(g.questionId) })}>Open in interview</a>
+                  <a href={href("/interview", { q: interviewKey(content, g.questionId) })}>Open in interview</a>
                 </p>
               </div>
               <OverlayEditor g={g} />

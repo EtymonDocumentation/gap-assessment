@@ -63,7 +63,7 @@ export function verificationText(project: Project, refs: string[]): string {
   return "Unverified";
 }
 
-function sourceShort(s: Source): string {
+export function sourceShort(s: Source): string {
   if (s.type === "document_reference" && s.docRef) return s.docRef.identifier;
   if (s.type === "interview_answer") return `Interview (${s.responder?.name ?? "unknown responder"}, ${shortDate(s.date)})`;
   if (s.type === "imported_file") return `Imported file ${s.file?.name ?? ""}`.trim();

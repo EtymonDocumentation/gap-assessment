@@ -1,0 +1,177 @@
+questions:
+  - id: lyo.presence
+    section: uo.lyophilization
+    prompt: Is lyophilization (freeze-drying) performed at this site?
+    label: Lyophilization performed
+    why: Establishes whether the unit operation exists at each site. A lyophilization step present at only one site is a new or removed element of the process.
+    sides: paired
+    binds: uo.lyophilization.presence
+    input: { type: yes_no }
+
+  - id: lyo.loading
+    section: uo.lyophilization
+    prompt: How are vials loaded into the lyophilizer?
+    label: Loading method
+    why: Manual and automatic loading differ in operator interventions, exposure time and vial handling. The loading method must be represented in the aseptic process simulation, and a change is a design change.
+    sides: paired
+    binds: uo.lyophilization.equip.loading_system.operatingPrinciple
+    input: { type: choice, optionsFrom: lyoLoading }
+
+  - id: lyo.aps_loading
+    section: uo.lyophilization
+    parent: lyo.loading
+    prompt: Does the current aseptic process simulation on the target line cover the target lyophilizer loading method and duration?
+    label: APS coverage of lyophilizer loading (target)
+    why: Loading is one of the longest open-container operations. The media fill must include the loading method, the longest planned loading time and the associated interventions.
+    triggerNote: Asked because the target loading method differs from the source or the target lyophilizer has a larger shelf area.
+    sides: target
+    binds: uo.lyophilization.study.aps_loading.status
+    input: { type: choice, optionsFrom: validationCoverage }
+    showWhen:
+      any:
+        - { changed: uo.lyophilization.equip.loading_system.operatingPrinciple }
+        - { increased: uo.lyophilization.equip.lyophilizer.capacity }
+
+  - id: lyo.shelf_area
+    section: uo.lyophilization
+    prompt: Lyophilizer total usable shelf area
+    label: Lyophilizer shelf area
+    why: Shelf area sets the maximum batch size and the heat and mass transfer behaviour of the cycle. A different shelf area is a scale change, and a larger one usually needs cycle re-verification.
+    sides: paired
+    binds: uo.lyophilization.equip.lyophilizer.capacity
+    input: { type: quantity, units: ["m²", "cm²"] }
+
+  - id: lyo.cycle_verification
+    section: uo.lyophilization
+    parent: lyo.shelf_area
+    prompt: Has the lyophilization cycle been transferred and verified on the target lyophilizer (for example with an engineering or verification run)?
+    label: Cycle transfer and verification (target)
+    why: Heat transfer, chamber pressure control and condenser capacity differ between lyophilizers. A validated cycle cannot be assumed to give the same product temperature profile and residual moisture on a different machine or scale.
+    triggerNote: Asked because the target lyophilizer shelf area, loading system or nucleation method differs from the source.
+    sides: target
+    binds: uo.lyophilization.study.cycle_verification.status
+    input: { type: choice, optionsFrom: evidenceAvailability }
+    showWhen:
+      any:
+        - { changed: uo.lyophilization.equip.lyophilizer.capacity }
+        - { changed: uo.lyophilization.equip.loading_system.operatingPrinciple }
+        - { changed: uo.lyophilization.equip.lyophilizer.nucleation }
+
+  - id: lyo.nucleation
+    section: uo.lyophilization
+    prompt: How is ice nucleation controlled during freezing?
+    label: Freezing nucleation
+    why: Controlled nucleation narrows the spread in ice crystal size between vials and so the spread in drying time and cake appearance. Switching between controlled and uncontrolled nucleation changes the cycle design.
+    sides: paired
+    binds: uo.lyophilization.equip.lyophilizer.nucleation
+    input: { type: choice, optionsFrom: lyoNucleation }
+
+  - id: lyo.freeze_temp
+    section: uo.lyophilization
+    prompt: Freezing shelf temperature
+    label: Freezing shelf temperature
+    why: The freezing temperature and hold decide ice structure and whether the product is completely solidified before drying. Operating outside the validated range is not supported by the cycle development and PPQ data.
+    sides: paired
+    binds: uo.lyophilization.param.freeze_shelf_temp
+    input: { type: parameter, units: ["°C"] }
+
+  - id: lyo.primary_temp
+    section: uo.lyophilization
+    prompt: Primary drying shelf temperature
+    label: Primary drying shelf temperature
+    why: Shelf temperature drives sublimation. Product temperature must stay below the collapse temperature, so a higher shelf temperature than validated risks cake collapse.
+    sides: paired
+    binds: uo.lyophilization.param.primary_shelf_temp
+    input: { type: parameter, units: ["°C"] }
+
+  - id: lyo.primary_pressure
+    section: uo.lyophilization
+    prompt: Primary drying chamber pressure
+    label: Primary drying chamber pressure
+    why: Chamber pressure sets sublimation rate and heat transfer to the vial. It is normally a critical parameter and, together with shelf temperature, decides the product temperature during drying.
+    help: Source — set point and validated range in the units of the control system. Target — planned set point and operating range. Units are converted for the comparison.
+    sides: paired
+    binds: uo.lyophilization.param.primary_pressure
+    input: { type: parameter, units: [mbar, Pa, µbar, mTorr] }
+
+  - id: lyo.secondary_temp
+    section: uo.lyophilization
+    prompt: Secondary drying shelf temperature
+    label: Secondary drying shelf temperature
+    why: Secondary drying removes bound water and sets the residual moisture. Too high a temperature degrades the protein; too low leaves moisture above the limit.
+    sides: paired
+    binds: uo.lyophilization.param.secondary_shelf_temp
+    input: { type: parameter, units: ["°C"] }
+
+  - id: lyo.secondary_time
+    section: uo.lyophilization
+    prompt: Secondary drying time
+    label: Secondary drying time
+    why: Secondary drying time, with its temperature, determines residual moisture and exposure to heat. A shorter target time can leave moisture above the limit.
+    sides: paired
+    binds: uo.lyophilization.param.secondary_time
+    input: { type: parameter, units: [h, min] }
+
+  - id: lyo.cycle_time
+    section: uo.lyophilization
+    prompt: Maximum total lyophilization cycle time
+    label: Total cycle time (maximum)
+    why: The total cycle time covers the whole time that vials spend in the chamber, including freezing, drying and any hold. It must stay within the validated maximum, because longer times are not supported by stability and process data.
+    sideLabels: { source: Validated maximum total cycle time, target: Planned maximum total cycle time }
+    sides: paired
+    binds: uo.lyophilization.param.total_cycle_time.max
+    input: { type: quantity, units: [h, min] }
+
+  - id: lyo.closure
+    section: uo.lyophilization
+    prompt: How are vials stoppered at the end of the cycle?
+    label: Stoppering at end of cycle
+    why: Stoppering under vacuum or after backfill sets the headspace pressure and gas of the vial. It affects container closure integrity, reconstitution behaviour and oxidation risk.
+    sides: paired
+    binds: uo.lyophilization.equip.lyophilizer.closure
+    input: { type: choice, optionsFrom: lyoClosure }
+
+  - id: lyo.backfill_gas
+    section: uo.lyophilization
+    prompt: Backfill gas
+    label: Backfill gas
+    why: The backfill gas defines the vial headspace. A different gas (for example air instead of nitrogen) changes oxidation risk and must be supported by stability data.
+    sides: paired
+    binds: uo.lyophilization.mat.backfill_gas.type
+    input: { type: choice, optionsFrom: backfillGas }
+
+  - id: lyo.moisture_method
+    section: uo.lyophilization
+    prompt: Which methods are used to measure residual moisture?
+    label: Residual moisture methods
+    why: Residual moisture is a key quality attribute for stability of the lyophilized cake. A different method needs its own validation and a bridge to the historical results.
+    sides: paired
+    binds: uo.lyophilization.ipc.residual_moisture.tests
+    input: { type: multi_choice, optionsFrom: lyoResidualMoisture }
+
+  - id: lyo.moisture_limit
+    section: uo.lyophilization
+    prompt: Residual moisture limit
+    label: Residual moisture limit
+    why: The moisture limit is tied to the stability data for the lyophilized product. A higher limit than the validated one is outside the supported stability basis.
+    sides: paired
+    binds: uo.lyophilization.ipc.residual_moisture.limit
+    input: { type: quantity, units: ["%"] }
+
+  - id: lyo.monitoring
+    section: uo.lyophilization
+    prompt: Which in-cycle measurements are used to monitor the cycle?
+    label: Cycle monitoring
+    why: Product temperature probes, the Pirani versus capacitance manometer comparison and pressure-rise tests show the end of primary drying and whether the product stayed below its collapse temperature. Removing one changes the control strategy.
+    sides: paired
+    binds: uo.lyophilization.ipc.cycle_monitoring.tests
+    input: { type: multi_choice, optionsFrom: lyoMonitoring }
+
+  - id: lyo.procedures
+    section: uo.lyophilization
+    prompt: Status of target procedures for lyophilization
+    label: Target lyophilization procedures
+    why: Cycle recipes, loading, unloading and alarm-handling procedures must reflect the target lyophilizer before GMP manufacture.
+    sides: target
+    binds: uo.lyophilization.doc.procedures.status
+    input: { type: choice, optionsFrom: procedureStatus }

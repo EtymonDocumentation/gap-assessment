@@ -2,11 +2,12 @@ import { formatQuestionSide, questionLabel, sidesOf, type Gap } from "@gap/engin
 import { useState } from "react";
 import { CategoryChip, Empty, RegulatoryFlag, SeverityBadge } from "../components";
 import { href } from "../router";
-import { content, useAssessment, useStore } from "../store";
+import { useAssessment, useContent, useStore } from "../store";
 
 /** Source and target side by side, per section, with a comparison marker on each row. */
 export function ComparePage() {
   const project = useStore((s) => s.project)!;
+  const content = useContent();
   const a = useAssessment()!;
   const [hideEqual, setHideEqual] = useState(false);
 

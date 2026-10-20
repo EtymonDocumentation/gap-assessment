@@ -1,0 +1,110 @@
+questions:
+  - id: stop.presence
+    section: uo.stoppering
+    prompt: Is stand-alone stoppering (a separate operation after filling, for example partial stoppering before lyophilization) performed at this site?
+    label: Stand-alone stoppering performed
+    why: Establishes whether stoppering is a separate step at each site. For a lyophilized product, partial stoppering at or after filling and full stoppering in the lyophilizer are separate steps, and a step present at only one site changes the validated flow.
+    sides: paired
+    binds: uo.stoppering.presence
+    input: { type: yes_no }
+
+  - id: stop.mode
+    section: uo.stoppering
+    prompt: Stoppering mode
+    label: Stoppering mode
+    why: Partial insertion leaves the vial vented for freeze-drying; full insertion seals it. The mode decides the vent geometry, how long the product is exposed and what the aseptic process simulation must cover.
+    sides: paired
+    binds: uo.stoppering.equip.stoppering_unit.type
+    input: { type: choice, optionsFrom: stopperingMode }
+
+  - id: stop.principle
+    section: uo.stoppering
+    prompt: How are stoppers placed?
+    label: Stopper placement principle
+    why: Mechanical and vacuum placement apply different forces and have different particle generation, stopper seating and gas headspace behaviour. A change is a design change.
+    sides: paired
+    binds: uo.stoppering.equip.stoppering_unit.operatingPrinciple
+    input: { type: choice, optionsFrom: stopperPlacement }
+
+  - id: stop.preparation
+    section: uo.stoppering
+    prompt: Stopper type and preparation
+    label: Stopper preparation
+    why: Ready-to-use stoppers and stoppers processed on site differ in particulates, endotoxin control and sterilization history. The preparation route is part of the validated component supply.
+    sides: paired
+    binds: uo.stoppering.mat.stopper.type
+    input: { type: choice, optionsFrom: stopperPreparation }
+
+  - id: stop.siliconization
+    section: uo.stoppering
+    prompt: Stopper siliconization
+    label: Stopper siliconization
+    why: Silicone level and coating affect machinability, stopper sticking in the lyophilizer, subvisible particles and protein adsorption at the stopper surface.
+    sides: paired
+    binds: uo.stoppering.mat.stopper.siliconization
+    input: { type: choice, optionsFrom: stopperSiliconization }
+
+  - id: stop.machinability
+    section: uo.stoppering
+    parent: stop.preparation
+    prompt: Has the target stopper preparation and placement method been run on the target stoppering unit (machinability and compatibility with this product)?
+    label: Stopper machinability and compatibility (target)
+    why: Stopper behaviour on the machine (feeding, seating, sticking) and its compatibility with the product depend on the preparation, siliconization and placement method, so source data do not cover a change.
+    triggerNote: Asked because the target stopper preparation, siliconization or placement method differs from the source.
+    sides: target
+    binds: uo.stoppering.study.stopper_machinability.status
+    input: { type: choice, optionsFrom: evidenceAvailability }
+    showWhen:
+      any:
+        - { changed: uo.stoppering.mat.stopper.type }
+        - { changed: uo.stoppering.mat.stopper.siliconization }
+        - { changed: uo.stoppering.equip.stoppering_unit.operatingPrinciple }
+
+  - id: stop.open_time
+    section: uo.stoppering
+    prompt: Maximum time vials remain partially stoppered (open) before lyophilization or full stoppering
+    label: Maximum partially stoppered time
+    why: While vials are partially stoppered the product is exposed to the Grade A environment. The time must stay within the validated value and within what the aseptic process simulation covers.
+    sideLabels: { source: Validated maximum partially stoppered time, target: Planned maximum partially stoppered time }
+    sides: paired
+    binds: uo.stoppering.param.max_open_time.max
+    input: { type: quantity, units: [h, min] }
+
+  - id: stop.aps
+    section: uo.stoppering
+    parent: stop.open_time
+    prompt: What maximum partially stoppered time does the current aseptic process simulation (media fill) on the target line cover?
+    label: APS coverage of partially stoppered time (target line)
+    why: The media fill must include the longest planned time that vials are held open before freeze-drying or full stoppering. A longer time can fall outside current coverage.
+    triggerNote: Asked because the target maximum partially stoppered time is longer than the source.
+    sides: target
+    binds: uo.stoppering.study.aps.coverage
+    input: { type: quantity, units: [h, min] }
+    showWhen: { increased: uo.stoppering.param.max_open_time.max }
+
+  - id: stop.placement_ipc
+    section: uo.stoppering
+    prompt: Which in-process checks confirm stopper placement?
+    label: Stopper placement checks
+    why: Stopper position is critical for lyophilized vials, because a partially inserted stopper must stay vented until the cycle ends and a fully inserted one must seal. Removing a check changes the control strategy.
+    sides: paired
+    binds: uo.stoppering.ipc.placement_check.tests
+    input: { type: multi_choice, optionsFrom: stopperCheck }
+
+  - id: stop.placement_description
+    section: uo.stoppering
+    prompt: Describe the stopper placement acceptance criterion (method and limit)
+    label: Stopper placement acceptance criterion
+    why: The method and limit for stopper position (for example height tolerance) define what a rejected vial is. A different criterion changes which vials pass and how the check was validated.
+    sides: paired
+    binds: uo.stoppering.ipc.placement_check.description
+    input: { type: text, placeholder: "e.g. Stopper height within a stated tolerance (fictional)" }
+
+  - id: stop.procedures
+    section: uo.stoppering
+    prompt: Status of target procedures for stoppering
+    label: Target stoppering procedures
+    why: Stoppering set-up, stopper handling and rejection procedures must reflect the target equipment before GMP manufacture.
+    sides: target
+    binds: uo.stoppering.doc.procedures.status
+    input: { type: choice, optionsFrom: procedureStatus }

@@ -1,4 +1,4 @@
-import { isValidContentPath, pathMatches, unitDef, type CollectionKind, type LabelResolver } from "@gap/process-model";
+import { isCustomKey, isValidContentPath, pathMatches, unitDef, type CollectionKind, type LabelResolver } from "@gap/process-model";
 import {
   catalogSchema,
   questionFileSchema,
@@ -23,6 +23,8 @@ export interface ContentBundle {
   versions: { catalog: string; questions: string; rules: string; templates: string };
   questionById: Map<string, Question>;
   sectionById: Map<string, Section>;
+  /** Set only on bundles made by effectiveContent(): the loaded bundle they were derived from. */
+  effectiveOf?: ContentBundle;
 }
 
 export class ContentError extends Error {
@@ -281,6 +283,8 @@ export function labelResolver(content: ContentBundle): LabelResolver {
     uoSequence: (uo) => uos.get(uo)?.sequence ?? 999,
     itemLabel: (uo: string, coll: CollectionKind, item: string) =>
       uos.get(uo)?.items.find((i) => i.coll === coll && i.key === item)?.label ?? item.replace(/_/g, " "),
+    uoCustom: (uo) => isCustomKey(uo),
+    itemCustom: (_uo, _coll, item) => isCustomKey(item),
   };
 }
 

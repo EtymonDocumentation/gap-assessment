@@ -1,4 +1,4 @@
-import { assess, buildDemoProject, type Assessment } from "@gap/engine";
+import { assess, buildDemoProject, effectiveContent, type Assessment, type ContentBundle } from "@gap/engine";
 import { emptyProject, parseProject, type Actor, type Project } from "@gap/process-model";
 import { del, get, set } from "idb-keyval";
 import { useMemo } from "react";
@@ -91,10 +91,18 @@ export const useStore = create<State>((setState, getState) => ({
   },
 }));
 
+/** The content bundle with the project's custom unit operations and items added. Use this everywhere instead of the base `content`. */
+export function useContent(): ContentBundle {
+  const custom = useStore((s) => s.project?.custom);
+  const project = useStore.getState().project;
+  return useMemo(() => (project ? effectiveContent(content, project) : content), [custom]); // eslint-disable-line react-hooks/exhaustive-deps
+}
+
 /** Recomputed gap assessment for the open project (memoized on project identity). */
 export function useAssessment(): Assessment | null {
   const project = useStore((s) => s.project);
-  return useMemo(() => (project ? assess(content, project) : null), [project]);
+  const eff = useContent();
+  return useMemo(() => (project ? assess(eff, project) : null), [project, eff]);
 }
 
 export { content };

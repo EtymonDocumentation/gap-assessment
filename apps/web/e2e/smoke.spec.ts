@@ -170,9 +170,10 @@ test("new project: responder, scoping answers, unknown and not-applicable handli
 
   await expect(page.locator(".interview-aside")).toContainText("3 of");
 
-  await go(page, "#/model");
-  await expect(page.getByRole("table")).toContainText("SMOKE-1");
-  await expect(page.getByRole("table")).toContainText("Unknown");
+  await go(page, "#/builder");
+  await expect(page.getByRole("heading", { level: 1, name: "Builder" })).toBeVisible();
+  await expect(page.locator("main")).toContainText("SMOKE-1");
+  await expect(page.locator("main")).toContainText("Unknown");
 });
 
 test("side by side markers link to the register row", async ({ page }) => {
@@ -206,10 +207,11 @@ test("document preview and downloads", async ({ page }) => {
 
 for (const theme of ["light", "dark"] as const) {
   test(`accessibility and layout, ${theme} theme`, async ({ page }) => {
+    test.setTimeout(120_000); // the demo now has more rows to check on each page
     await loadDemo(page);
     await page.getByLabel("Colour theme").selectOption(theme);
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
-    const routes = ["#/", "#/interview?q=fill.pump%40target", "#/interview?summary=uo.aseptic_filling", "#/compare", "#/register", "#/document", "#/model"];
+    const routes = ["#/", "#/interview?q=fill.pump%40target", "#/interview?summary=uo.aseptic_filling", "#/compare", "#/register", "#/document", "#/builder"];
     for (const r of routes) {
       await go(page, r);
       await expect(page.locator("main h1").first()).toBeVisible();
@@ -220,9 +222,129 @@ for (const theme of ["light", "dark"] as const) {
     await go(page, "#/register");
     await page.locator("table.register tbody tr").first().getByRole("button", { name: /^Details/ }).click();
     await expectAccessible(page, `${theme} register details`);
+    // The builder dialogs are checked too.
+    await go(page, "#/builder");
+    await page.getByRole("button", { name: "Add unit operation" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expectAccessible(page, `${theme} builder add dialog`);
+    await expectNoHorizontalScroll(page, `${theme} builder add dialog`);
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toBeHidden();
     await go(page, "#/");
     await page.getByRole("button", { name: "Close and delete…" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await expectAccessible(page, `${theme} dialog`);
   });
 }
+
+/** Fills in the "who is making this change" dialog when the project has no responder yet. */
+async function answerResponderIfAsked(page: Page) {
+  const ask = page.getByRole("dialog", { name: "Who is making this change?" });
+  if (await ask.isVisible().catch(() => false)) {
+    await ask.getByLabel("Responder name").fill("Test Person (fictional)");
+    await ask.getByRole("button", { name: /Save responder/ }).click();
+  }
+}
+
+const edit = (page: Page, id: string, side: "source" | "target") => page.locator(`[id="edit-${id}-${side}"]`);
+
+async function setParameter(page: Page, id: string, side: "source" | "target", v: { set: string; nor: [string, string]; par?: [string, string] }) {
+  await edit(page, id, side).click();
+  await answerResponderIfAsked(page);
+  const dialog = page.getByRole("dialog");
+  if (side === "source") {
+    await dialog.locator("label.choice-chip", { hasText: /^CPP/ }).click();
+    await dialog.locator("label.choice-chip", { hasText: /^PPQ$/ }).click();
+  }
+  await dialog.getByLabel("Set point value").fill(v.set);
+  await dialog.getByLabel("Normal operating range (NOR) minimum").fill(v.nor[0]);
+  await dialog.getByLabel("Normal operating range (NOR) maximum").fill(v.nor[1]);
+  if (v.par) {
+    await dialog.getByLabel("Proven acceptable range (PAR) minimum").fill(v.par[0]);
+    await dialog.getByLabel("Proven acceptable range (PAR) maximum").fill(v.par[1]);
+  }
+  await dialog.getByRole("button", { name: "Save value" }).click();
+  await expect(page.getByRole("dialog")).toBeHidden();
+}
+
+test("builder: an inline edit changes the register", async ({ page }) => {
+  await loadDemo(page);
+  const count = async () => {
+    const btn = page.getByRole("list", { name: "Count by category" }).getByRole("button", { name: /^Different principle\s+\d+$/ });
+    return Number((await btn.locator(".count").textContent()) ?? "0");
+  };
+  const before = await count();
+  expect(before).toBeGreaterThan(0);
+
+  await go(page, "#/builder");
+  await expect(page.getByRole("heading", { level: 1, name: "Builder" })).toBeVisible();
+  await page.getByRole("searchbox", { name: "Filter by text or path" }).fill("pump");
+  const target = edit(page, "fill.pump", "target");
+  await expect(target).toBeVisible();
+  await target.click();
+  await answerResponderIfAsked(page);
+  await page.getByRole("dialog").getByRole("button", { name: "Same as source" }).click();
+  await expect(page.getByRole("dialog")).toBeHidden();
+  await expect(target).toBeFocused();
+  await expect(page.locator("main")).toContainText("Same as source");
+
+  await go(page, "#/register");
+  await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
+  expect(await count()).toBe(before - 1);
+});
+
+test("builder: custom unit operation and parameter appear in the register, and removal keeps the values as inactive", async ({ page }) => {
+  await loadDemo(page);
+  await go(page, "#/builder");
+  await page.getByRole("button", { name: "Add unit operation" }).click();
+  await answerResponderIfAsked(page);
+  let dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Name").fill("Visual check (fictional)");
+  await dialog.getByRole("button", { name: "Add unit operation" }).click();
+  await expect(page.getByRole("dialog")).toBeHidden();
+  const heading = page.getByRole("heading", { level: 2, name: /Visual check \(fictional\)/ });
+  await expect(heading).toBeVisible();
+  await expect(heading).toBeFocused();
+  await expect(heading).toContainText("Custom unit operation");
+
+  await page.getByRole("button", { name: "Add parameter, equipment, material or control" }).click();
+  dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Unit operation").selectOption({ label: "Visual check (fictional)" });
+  await dialog.getByLabel("Name").fill("Hold temperature (fictional)");
+  await dialog.getByLabel("Unit dimension").selectOption("temperature");
+  await dialog.getByLabel(/Why is this asked/).fill("Fictional custom parameter for the smoke test.");
+  await dialog.getByRole("button", { name: "Add item" }).click();
+  await expect(page.getByRole("dialog")).toBeHidden();
+
+  const uo = "x.x_visual_check_fictional";
+  for (const side of ["source", "target"] as const) {
+    await edit(page, `${uo}.presence`, side).click();
+    await page.getByRole("dialog").locator("label.choice-chip", { hasText: /^Yes$/ }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Save value" }).click();
+    await expect(page.getByRole("dialog")).toBeHidden();
+  }
+  const param = `${uo}.param.x_hold_temperature_fictional`;
+  await expect(page.locator("main")).toContainText("Hold temperature (fictional)");
+  await expect(page.locator("main")).toContainText("Custom");
+  await setParameter(page, param, "source", { set: "20", nor: ["18", "22"], par: ["10", "30"] });
+  await setParameter(page, param, "target", { set: "35", nor: ["32", "38"] });
+
+  await go(page, "#/register");
+  const row = page.locator("table.register tbody tr", { hasText: "Hold temperature (fictional)" });
+  await expect(row.first()).toBeVisible();
+  await expect(row.first()).toContainText("Outside validated range");
+
+  await go(page, "#/builder");
+  await page.getByRole("button", { name: "Remove Visual check (fictional)" }).click();
+  await expect(page.getByRole("dialog")).toContainText("become inactive");
+  await page.getByRole("dialog").getByRole("button", { name: "Remove and keep values as inactive" }).click();
+  await expect(page.getByRole("dialog")).toBeHidden();
+  const inactive = page.getByRole("region", { name: "Inactive values table" });
+  await expect(inactive).toContainText("Hold temperature (fictional)");
+  await expect(inactive).toContainText("20");
+  await expect(page.getByRole("heading", { level: 2, name: /Visual check \(fictional\)/ })).toHaveCount(0);
+
+  await go(page, "#/register");
+  await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
+  await expect(page.locator("table.register")).not.toContainText("Hold temperature (fictional)");
+});

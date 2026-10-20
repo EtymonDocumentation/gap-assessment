@@ -1050,3 +1050,74 @@ table.data tr.inactive {
     padding: 0;
   }
 }
+
+/* ---------------------------------------------------------------- builder */
+
+.builder-table th[scope="row"] {
+  min-width: 11rem;
+  font-weight: 600;
+}
+.builder-table th.indent {
+  padding-left: 22px;
+  font-weight: 500;
+}
+.b-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 12rem;
+}
+.b-value {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.b-cell .btn.small {
+  margin-top: 4px;
+}
+.tag-custom {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+.tag.status {
+  margin-left: 0;
+}
+.tag.status-established {
+  border-color: var(--ok);
+}
+.tag.status-unknown,
+.tag.status-not_established,
+.tag.status-partial {
+  border-style: dashed;
+  border-color: var(--c-info);
+}
+.tag.status-not_applicable {
+  border-style: dotted;
+}
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+}
+.check input {
+  min-height: 0;
+  width: 18px;
+  height: 18px;
+}
+.filter-count {
+  margin: 0;
+  align-self: center;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.builder-section h2 {
+  font-size: 1.1rem;
+}
+.builder-section h2 .tag {
+  margin-left: 10px;
+}

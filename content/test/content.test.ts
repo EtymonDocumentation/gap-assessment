@@ -64,7 +64,7 @@ function nullPaths(value: unknown, path = "$", out: string[] = []): string[] {
 
 describe("shipped content builds", () => {
   it("builds without error and reports its versions", () => {
-    expect(content.versions).toEqual({ catalog: "1.0.0", questions: "1.0.0", rules: "1.0.0", templates: "1.0.0" });
+    expect(content.versions).toEqual({ catalog: "1.1.0", questions: "1.1.0", rules: "1.1.0", templates: "1.0.0" });
     for (const v of Object.values(content.versions)) expect(v).toMatch(/^\d+\.\d+\.\d+$/);
   });
 
@@ -461,9 +461,9 @@ describe("buildContent reports specific problems", () => {
 
   it("a question with no matching rule", () => {
     const problems = problemsOf((raw) => {
-      findRuleRaw(raw, "R-FILL-PUMP").match = ["uo.aseptic_filling.equip.somewhere.else"];
+      findRuleRaw(raw, "R-VESSEL-TYPE").match = ["uo.compounding.equip.vessel.somewhere_else"];
     });
-    expect(problems).toEqual(['question fill.pump: no comparison rule matches "uo.aseptic_filling.equip.filler.operatingPrinciple"']);
+    expect(problems).toEqual(['question comp.vessel_type: no comparison rule matches "uo.compounding.equip.vessel.type"']);
   });
 
   it("bad references in a showWhen condition", () => {
