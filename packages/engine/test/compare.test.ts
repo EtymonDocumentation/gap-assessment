@@ -708,12 +708,12 @@ describe("evidence comparator (target-side answer mapped to a category)", () => 
     expect(categoryOf(v(filterChanged(), "filt.bret", "target", "not_covered"), BRET)).toBe("outside_validated_range");
   });
 
-  it("procedures map to equivalent, different_principle and new_requirement", () => {
+  it("procedures map to equivalent, or new_requirement for both update and new (the target value tells them apart)", () => {
     expect(categoryOf(v(base(), "comp.procedures", "target", "in_place"), COMP_PROC)).toBe("equivalent");
     const upd = gap(run(v(base(), "comp.procedures", "target", "update_required")), COMP_PROC);
-    expect(upd).toMatchObject({ category: "different_principle", severity: "low", activities: ["procedure_update", "training"] });
+    expect(upd).toMatchObject({ category: "new_requirement", severity: "low", activities: ["procedure_update", "training"], targetDisplay: "Exist; update required" });
     expect(upd.regulatoryNote).toBeUndefined();
-    expect(gap(run(v(base(), "comp.procedures", "target", "new_required")), COMP_PROC)).toMatchObject({ category: "new_requirement", severity: "low" });
+    expect(gap(run(v(base(), "comp.procedures", "target", "new_required")), COMP_PROC)).toMatchObject({ category: "new_requirement", severity: "low", targetDisplay: "New procedures required" });
   });
 
   it("is a target-only row: the source column is a dash", () => {

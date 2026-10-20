@@ -895,12 +895,13 @@ rules:
 
   # ------------------------------------------------------------------ procedures
   - id: R-PROCEDURES
-    version: 1.0.0
+    version: 1.1.0
     title: Target procedures
     match: [uo.*.doc.procedures.status]
     comparator: evidence
     config:
-      map: { in_place: equivalent, update_required: different_principle, new_required: new_requirement }
+      # Updating an existing procedure is an action to complete, not a change of operating principle.
+      map: { in_place: equivalent, update_required: new_requirement, new_required: new_requirement }
     severity: low
     why: Procedures and batch record instructions must reflect the target process before GMP manufacture.
     activities: [procedure_update, training]
