@@ -38,9 +38,19 @@ document:
     which comparison rule produced the classification. Severity reflects the rule
     unless adjusted, in which case the adjustment and its justification are shown.
   activitiesIntro: >-
-    Activities implied by the differences above, with the gaps that drive each. The
-    list is a starting point for the transfer plan; it does not replace a documented
-    risk assessment.
+    Validation and data activities implied by the differences above, with the gaps
+    that drive each, most severe first. Where a study provides evidence for an
+    activity, its source and target status are shown, and the readiness column
+    summarises the target status: evidence available, planned, not planned,
+    bridging or action required, or information required (the status is unknown or
+    not established). Activities whose gaps are closed or accepted in the register
+    remain listed with that status. The list is a starting point for the transfer
+    plan; it does not replace a documented risk assessment.
+  equipmentQualificationIntro: >-
+    Qualification status of the equipment at each site, and the range the target
+    equipment is qualified for compared with the range the target process needs.
+    Unknown or missing values are shown as such; none is assumed. Related gaps are
+    the differences recorded for the same equipment.
   openItemsIntro: >-
     Information that is unknown or not established. Each item must be resolved before
     the related comparison can be completed. Until then the comparison is classified

@@ -1121,3 +1121,66 @@ table.data tr.inactive {
 .builder-section h2 .tag {
   margin-left: 10px;
 }
+
+/* ---------------------------------------------------------------- validation */
+
+.ready {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.ready-icon {
+  font-weight: 700;
+}
+.ready-evidence_available {
+  border-color: var(--ok);
+}
+.ready-evidence_available .ready-icon {
+  color: var(--ok);
+}
+.ready-planned,
+.ready-bridging_required {
+  border-color: var(--c-scale);
+}
+.ready-planned .ready-icon,
+.ready-bridging_required .ready-icon {
+  color: var(--c-scale);
+}
+.ready-not_planned {
+  border-color: var(--c-outside);
+}
+.ready-not_planned .ready-icon {
+  color: var(--c-outside);
+}
+.ready-information_required {
+  border-style: dashed;
+  border-color: var(--c-info);
+}
+.ready-information_required .ready-icon {
+  color: var(--c-info);
+}
+.ready-no_study {
+  border-style: dotted;
+}
+.link-list li {
+  margin-bottom: 4px;
+}
+.link-list {
+  list-style: none;
+  padding-left: 0;
+}
+table.data th.normal,
+table.data tbody th[scope="row"] .normal {
+  font-weight: 400;
+}
+table.validation-plan td,
+table.equipment-qualification td {
+  min-width: 9rem;
+}

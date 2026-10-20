@@ -125,6 +125,96 @@ questions:
     binds: uo.compounding.ipc.panel.tests
     input: { type: multi_choice, optionsFrom: compoundingIpc }
 
+  # ================================================================== milestone 3: validation studies
+  # ---- hold time study (formulated bulk)
+  - id: comp.hold_cov
+    section: uo.compounding
+    parent: comp.hold_time
+    prompt: What maximum hold duration do the hold time study data cover at the target conditions (vessel, temperature, container)?
+    label: Bulk hold study coverage (target)
+    why: Hold-time data are specific to the vessel, temperature and product conditions studied. The longest planned hold must be covered by that study.
+    triggerNote: Asked because the planned maximum hold time is longer than the source.
+    tags: [m3]
+    sides: target
+    binds: uo.compounding.study.hold_time.coverage
+    input: { type: quantity, units: [h, min, d] }
+    showWhen: &holdIncreased { increased: uo.compounding.param.max_hold_time.max }
+
+  - id: comp.hold_basis
+    section: uo.compounding
+    parent: comp.hold_time
+    prompt: What endpoints does the hold time study use to support the planned hold?
+    label: Bulk hold study basis
+    why: A hold time claim needs chemical, physical (for example particles and aggregation) and microbial evidence. A study with only some endpoints supports only part of the claim.
+    triggerNote: Asked because the planned maximum hold time is longer than the source.
+    tags: [m3]
+    sides: target
+    binds: uo.compounding.study.hold_time.basis
+    input: { type: choice, optionsFrom: holdBasis }
+    showWhen: *holdIncreased
+
+  # ---- cleaning validation (reusable vessel)
+  - id: comp.cleaning
+    section: uo.compounding
+    prompt: Is cleaning validation complete for the target reusable compounding vessel and product-contact parts?
+    label: Cleaning validation coverage (compounding equipment)
+    why: A reusable stainless or glass vessel at the target must have validated cleaning for this product (limits, worst-case location, hold times) before GMP use.
+    triggerNote: Asked because the target compounding vessel is reusable (stainless steel or glass).
+    tags: [m3]
+    sides: target
+    binds: uo.compounding.study.cleaning.status
+    input: { type: choice, optionsFrom: validationCoverage }
+    showWhen: { in: [target.uo.compounding.equip.vessel.type, [stainless_tank, glass]] }
+
+  # ---- equipment qualification
+  - id: comp.vessel_qual
+    section: uo.compounding
+    prompt: Qualification status of the compounding vessel
+    label: Vessel qualification status
+    why: Equipment used for GMP manufacture must be qualified. A target vessel that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    tags: [m3]
+    sides: paired
+    sameAsSource: false
+    binds: uo.compounding.equip.vessel.qualificationStatus
+    input: { type: choice, optionsFrom: equipQualification }
+
+  - id: comp.vessel_range
+    section: uo.compounding
+    parent: comp.vessel_qual
+    prompt: Qualified working volume range of the target compounding vessel
+    label: Vessel qualified working volume
+    why: Qualification (for example mixing and temperature uniformity) covers a stated working volume range. A planned batch volume outside that range is not supported by the qualification.
+    triggerNote: Asked because the target vessel is qualified or has a qualification planned.
+    tags: [m3]
+    sides: target
+    binds: uo.compounding.equip.vessel.qualifiedRange
+    input: { type: range, units: [L, mL] }
+    showWhen: { in: [target.uo.compounding.equip.vessel.qualificationStatus, [planned, iq_complete, oq_complete, pq_complete, requalification_due]] }
+
+  - id: comp.mixer_qual
+    section: uo.compounding
+    prompt: Qualification status of the mixer
+    label: Mixer qualification status
+    why: Equipment used for GMP manufacture must be qualified. A target mixer that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    tags: [m3]
+    sides: paired
+    sameAsSource: false
+    binds: uo.compounding.equip.mixer.qualificationStatus
+    input: { type: choice, optionsFrom: equipQualification }
+
+  - id: comp.mixer_range
+    section: uo.compounding
+    parent: comp.mixer_qual
+    prompt: Qualified speed range of the target mixer
+    label: Mixer qualified speed range
+    why: Mixer qualification covers a defined speed range. Planned mixing speeds outside that range are not supported by the qualification.
+    triggerNote: Asked because the target mixer is qualified or has a qualification planned.
+    tags: [m3]
+    sides: target
+    binds: uo.compounding.equip.mixer.qualifiedRange
+    input: { type: range, units: [rpm] }
+    showWhen: { in: [target.uo.compounding.equip.mixer.qualificationStatus, [planned, iq_complete, oq_complete, pq_complete, requalification_due]] }
+
   - id: comp.procedures
     section: uo.compounding
     prompt: Status of target procedures for compounding

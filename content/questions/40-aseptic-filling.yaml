@@ -132,6 +132,218 @@ questions:
     binds: uo.aseptic_filling.mat.stopper.partNumber
     input: { type: text, placeholder: "e.g. Stopper Vendor D, STP-20-DEMO" }
 
+  # ================================================================== milestone 3: validation studies
+  # ---- process performance qualification (PPQ)
+  - id: fill.ppq_strategy
+    section: uo.aseptic_filling
+    prompt: What PPQ approach is planned at the target for this change?
+    label: PPQ approach at target
+    why: The PPQ approach (full, reduced or leveraged from the source) decides how many batches are needed and what the validation plan must contain. It must be justified when source data are leveraged.
+    triggerNote: Asked because the target filling principle, batch size or container format differs from the source.
+    tags: [m3]
+    sides: target
+    binds: uo.aseptic_filling.study.ppq.strategy
+    input: { type: choice, optionsFrom: ppqStrategy }
+    showWhen: &ppqNeeded
+      any:
+        - { changed: uo.aseptic_filling.equip.filler.operatingPrinciple }
+        - { increased: uo.compounding.param.batch_size.setPoint }
+        - { changed: uo.aseptic_filling.mat.container.format }
+
+  - id: fill.ppq_batches
+    section: uo.aseptic_filling
+    parent: fill.ppq_strategy
+    prompt: How many PPQ batches are planned at the target?
+    label: Planned PPQ batches
+    why: The number of PPQ batches is part of the validation plan and must be justified by process variability and risk. It is recorded so the validation plan can be sized.
+    tags: [m3]
+    sides: target
+    binds: uo.aseptic_filling.study.ppq.batches
+    input: { type: quantity, units: [count] }
+    showWhen: { in: [target.uo.aseptic_filling.study.ppq.strategy, [full_ppq, reduced_bridging]] }
+
+  # ---- aseptic process simulation (APS)
+  - id: fill.aps_runs
+    section: uo.aseptic_filling
+    prompt: Number of consecutive media fill runs in the initial aseptic process simulation on the line
+    label: APS initial runs
+    why: Initial qualification of an aseptic line is normally shown by repeated successful simulations (EU GMP Annex 1 expects at least three consecutive runs). The number of initial runs sets the target APS programme.
+    tags: [m3]
+    sideLabels: { source: Initial runs performed, target: Initial runs planned }
+    sides: paired
+    binds: uo.aseptic_filling.study.aps.initialRuns
+    input: { type: quantity, units: [count] }
+
+  - id: fill.aps_interventions
+    section: uo.aseptic_filling
+    prompt: Maximum number of interventions per batch that the aseptic process simulation represents
+    label: Maximum interventions simulated
+    why: The simulation must include the worst-case number and type of interventions allowed in routine manufacture; a higher number at the target is not covered by the source simulation.
+    tags: [m3]
+    sideLabels: { source: Maximum interventions simulated, target: Maximum interventions planned }
+    sides: paired
+    binds: uo.aseptic_filling.param.max_interventions.max
+    input: { type: quantity, units: [count] }
+
+  - id: fill.aps_scope
+    section: uo.aseptic_filling
+    prompt: Does the aseptic process simulation on the target line cover the target container format, closure, filling principle and intervention set?
+    label: APS scope coverage (target line)
+    why: A simulation is valid for the line, container and closure configuration it represents. A different filling principle, container or stopper is normally not covered by a simulation of the source configuration.
+    triggerNote: Asked because the filling principle, container format or stopper differs from the source.
+    tags: [m3]
+    sides: target
+    binds: uo.aseptic_filling.study.aps.status
+    input: { type: choice, optionsFrom: validationCoverage }
+    showWhen:
+      any:
+        - { changed: uo.aseptic_filling.equip.filler.operatingPrinciple }
+        - { changed: uo.aseptic_filling.mat.container.format }
+        - { changed: uo.aseptic_filling.mat.stopper.partNumber }
+
+  # ---- hold times (filtered bulk)
+  - id: fill.filtered_hold
+    section: uo.aseptic_filling
+    prompt: Maximum hold time of the filtered (sterile) bulk before and during filling
+    label: Filtered bulk hold time (maximum)
+    why: Sterile bulk waiting in the holding vessel is exposed to chemical, physical and microbial risk. The planned maximum must stay within the validated hold time.
+    tags: [m3]
+    sideLabels: { source: Validated maximum filtered bulk hold, target: Planned maximum filtered bulk hold }
+    sides: paired
+    binds: uo.aseptic_filling.param.max_filtered_hold.max
+    input: { type: quantity, units: [h, min, d] }
+
+  - id: fill.filtered_hold_cov
+    section: uo.aseptic_filling
+    parent: fill.filtered_hold
+    prompt: What maximum filtered bulk hold duration do the hold time study data cover at the target conditions (vessel, temperature, container)?
+    label: Filtered bulk hold study coverage (target)
+    why: Hold-time data are specific to the vessel, temperature and product conditions studied. The longest planned hold must be covered by that study.
+    triggerNote: Asked because the planned filtered bulk hold is longer than the source.
+    tags: [m3]
+    sides: target
+    binds: uo.aseptic_filling.study.filtered_hold.coverage
+    input: { type: quantity, units: [h, min, d] }
+    showWhen: { increased: uo.aseptic_filling.param.max_filtered_hold.max }
+
+  # ---- extractables and leachables of the container closure
+  - id: fill.container_el
+    section: uo.aseptic_filling
+    prompt: Are extractables and leachables data available for the target primary container and stopper with this product?
+    label: Container closure E&L data (target)
+    why: Glass, stopper elastomer and coatings can release extractables into the product over shelf life. A different supplier, format or part is not covered by the source E&L data.
+    triggerNote: Asked because the container format, container supplier or stopper differs from the source.
+    tags: [m3]
+    sides: target
+    binds: uo.aseptic_filling.study.container_el.status
+    input: { type: choice, optionsFrom: evidenceAvailability }
+    showWhen:
+      any:
+        - { changed: uo.aseptic_filling.mat.container.format }
+        - { changed: uo.aseptic_filling.mat.container.supplier }
+        - { changed: uo.aseptic_filling.mat.stopper.partNumber }
+
+  # ---- cleaning validation (reusable product-contact equipment)
+  - id: fill.bulk_vessel
+    section: uo.aseptic_filling
+    prompt: Sterile bulk holding vessel type
+    label: Bulk holding vessel type
+    why: A stainless-steel or glass holding vessel is reusable, so cleaning and sterilization must be validated. A single-use bag instead brings extractables and leachables and integrity considerations.
+    tags: [m3]
+    sides: paired
+    binds: uo.aseptic_filling.equip.bulk_vessel.type
+    input: { type: choice, optionsFrom: vesselType }
+
+  - id: fill.cleaning
+    section: uo.aseptic_filling
+    prompt: Is cleaning validation complete for the target reusable product-contact equipment (filling parts and holding vessel)?
+    label: Cleaning validation coverage (filling equipment)
+    why: Reusable product-contact equipment at the target must have validated cleaning for this product, with acceptance limits and hold times, before GMP use.
+    triggerNote: Asked because the target uses reusable product-contact equipment (stainless or glass vessel, or a reusable pump).
+    tags: [m3]
+    sides: target
+    binds: uo.aseptic_filling.study.cleaning.status
+    input: { type: choice, optionsFrom: validationCoverage }
+    showWhen: &reusableContact
+      any:
+        - { in: [target.uo.aseptic_filling.equip.bulk_vessel.type, [stainless_tank, glass]] }
+        - { in: [target.uo.aseptic_filling.equip.filler.operatingPrinciple, [rotary_piston, time_pressure]] }
+
+  - id: fill.cleaning_worst
+    section: uo.aseptic_filling
+    parent: fill.cleaning
+    prompt: How is the worst case chosen for cleaning validation of the target equipment?
+    label: Cleaning worst-case approach
+    why: Cleaning validation is performed at the worst-case soil and location (hardest-to-clean product, lowest-flow or dead-leg location). A documented worst-case rationale is the basis for the studied conditions.
+    triggerNote: Asked because the target uses reusable product-contact equipment.
+    tags: [m3]
+    sides: target
+    binds: uo.aseptic_filling.study.cleaning.worstCase
+    input: { type: choice, optionsFrom: cleanWorstCase }
+    showWhen: *reusableContact
+
+  - id: fill.cleaning_carryover
+    section: uo.aseptic_filling
+    parent: fill.cleaning
+    prompt: What acceptance limits apply to carryover after cleaning?
+    label: Cleaning carryover limits
+    why: Carryover limits should be health-based and scientifically justified, together with residue, bioburden and endotoxin limits. Visual and rinse criteria alone do not demonstrate limits for potent or sensitising residues.
+    triggerNote: Asked because the target uses reusable product-contact equipment.
+    tags: [m3]
+    sides: target
+    binds: uo.aseptic_filling.study.cleaning.carryover
+    input: { type: choice, optionsFrom: cleanCarryover }
+    showWhen: *reusableContact
+
+  # ---- equipment qualification
+  - id: fill.filler_qual
+    section: uo.aseptic_filling
+    prompt: Qualification status of the filling machine
+    label: Filler qualification status
+    why: Equipment used for GMP manufacture must be qualified. A target filler that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    tags: [m3]
+    sides: paired
+    sameAsSource: false
+    binds: uo.aseptic_filling.equip.filler.qualificationStatus
+    input: { type: choice, optionsFrom: equipQualification }
+
+  - id: fill.filler_speed_range
+    section: uo.aseptic_filling
+    parent: fill.filler_qual
+    prompt: Qualified speed range of the target filling machine
+    label: Filler qualified speed range
+    why: Operational qualification covers a defined speed range. Planned line speeds outside that range are not supported by the qualification.
+    triggerNote: Asked because the target filler is qualified or has a qualification planned.
+    tags: [m3]
+    sides: target
+    binds: uo.aseptic_filling.equip.filler.qualifiedRange_speed
+    input: { type: range, units: [units/min, units/h] }
+    showWhen: &fillerQualified { in: [target.uo.aseptic_filling.equip.filler.qualificationStatus, [planned, iq_complete, oq_complete, pq_complete, requalification_due]] }
+
+  - id: fill.filler_volume_range
+    section: uo.aseptic_filling
+    parent: fill.filler_qual
+    prompt: Qualified fill volume range of the target filling machine
+    label: Filler qualified volume range
+    why: Dosing accuracy is qualified over a stated volume range. Fill volumes outside that range are not supported by the qualification.
+    triggerNote: Asked because the target filler is qualified or has a qualification planned.
+    tags: [m3]
+    sides: target
+    binds: uo.aseptic_filling.equip.filler.qualifiedRange_volume
+    input: { type: range, units: [mL, µL] }
+    showWhen: *fillerQualified
+
+  - id: fill.bulk_vessel_qual
+    section: uo.aseptic_filling
+    prompt: Qualification status of the sterile bulk holding vessel
+    label: Bulk holding vessel qualification status
+    why: The holding vessel and its connections are part of the aseptic fluid path and must be qualified (and, where reusable, sterilization-validated) before GMP use.
+    tags: [m3]
+    sides: paired
+    sameAsSource: false
+    binds: uo.aseptic_filling.equip.bulk_vessel.qualificationStatus
+    input: { type: choice, optionsFrom: equipQualification }
+
   - id: fill.procedures
     section: uo.aseptic_filling
     prompt: Status of target procedures for aseptic filling

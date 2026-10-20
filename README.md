@@ -35,6 +35,7 @@ Live site: `https://<your-github-user>.github.io/gap-assessment/` (after the dep
   Follow-up questions appear only when an earlier answer makes them relevant. For example, a changed filling pump principle brings up questions on fill accuracy, product impact and PPQ coverage.
 - **"Why is this asked?"** on every question, a progress map with per-side counts, and section summaries that can be confirmed.
 - **Side-by-side view** of source and target for every compared attribute, with a category marker that links to the register row.
+- **Validation.** A validation plan (one row per implied activity, with the gaps that imply it, linked study status on both sides and a derived readiness) and an equipment qualification comparison. Filter by readiness, severity or text. Export either table to CSV.
 - **Gap register.** Filter by category, severity, section, status or text. Sort the columns. Record an owner, a status, notes, or a severity change with a required justification. Export to CSV.
 - **Document.** The gap assessment draft is available as a live preview, as Markdown, and as print-ready HTML (print or save as PDF from the browser).
 - **Builder.** An editable view of every recorded value, source beside target, with status, sources, verification state and revision. Edit in place (Unknown, Not applicable with a reason, Same as source), filter by text, differences or open items, and add your own unit operations, parameters, equipment, materials and controls. They are stored in the project (`project.custom`, schema 1.1.0; older files migrate on load), asked and compared like built-in items, and marked Custom. Removing a custom definition keeps its values as inactive: listed in the Builder, excluded from comparison and the document.
@@ -262,8 +263,12 @@ The build uses relative asset paths (`base: "./"`) and a hash router, so it work
   - six more unit operations: drug substance receipt and thaw (frozen DS only), stoppering and lyophilization (lyophilized products only), visual inspection, labeling and packaging, storage and shipping
   - custom unit operations and custom parameters, equipment, materials and controls
   - the editable Builder
+- **In M3:**
+  - validation study inputs (PPQ, APS, filter validation, hold times, cleaning, CCI, extractables and leachables, shipping)
+  - a validation plan that links each gap to the validation activity it implies, with a readiness derived from the study statuses
+  - equipment qualification comparison (source and target status, target qualified range against the required process value)
+  - the Validation page, and the matching document sections
 - **Not yet:**
-  - full validation-study depth and equipment qualification comparison (M3)
   - a source-register UI (M4; the cascade engine and its tests are already in place)
   - DOCX export (M5)
   - TRD seed export and packaging of the model (M6)

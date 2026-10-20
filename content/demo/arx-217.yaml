@@ -5,10 +5,13 @@
 # Answers are replayed through the normal interview code path, so every value
 # carries an interview source, responder and date exactly as a user's would.
 # The scenario deliberately exercises all eight comparison categories.
+# Milestone 3 additions: the product is a liquid, so the lyophilizer and stand-alone stoppering
+# are not applicable and their questions stay hidden; validation study and equipment
+# qualification answers are marked "milestone 3" below.
 demo:
   id: arx-217
   title: "ARX-217 transfer: Site North Line 2 to Site South Line 4 (fictional demo)"
-  version: 1.1.0
+  version: 1.2.0
 
 responder: { name: Alex Example (fictional), role: MSAT engineer }
 date: "2026-10-01T09:00:00.000Z"
@@ -65,6 +68,8 @@ answers:
   - { q: comp.mixing_coverage, side: source, value: { min: { value: 20, unit: L }, max: { value: 80, unit: L } }, docs: [DEMO-MIX-217-03] }   # outside
   - { q: comp.hold_time, side: source, value: { value: 24, unit: h }, docs: [DEMO-HT-217-02] }
   - { q: comp.hold_time, side: target, value: { value: 36, unit: h } }                                           # outside
+  - { q: comp.hold_cov, side: target, value: { value: 24, unit: h }, docs: [DEMO-HT-217-02] }                    # milestone 3: hold study covers 24 h only (outside)
+  - { q: comp.hold_basis, side: target, value: partial_study }                                                   # milestone 3: microbial endpoint only
   - { q: comp.vessel_type, side: source, value: stainless_tank }
   - { q: comp.vessel_type, side: target, value: single_use_bag }
   - { q: comp.vessel_capacity, side: source, value: { value: 100, unit: L } }
@@ -112,6 +117,13 @@ answers:
       nor: { min: { value: 18, unit: "°C" }, max: { value: 22, unit: "°C" } }
   - { q: comp.ipc, side: source, value: [bioburden, ph, osmolality, protein_concentration] }
   - { q: comp.ipc, side: target, same: true }
+  # milestone 3: equipment qualification (cleaning questions stay hidden: the target vessel is single-use)
+  - { q: comp.vessel_qual, side: source, value: pq_complete }
+  - { q: comp.vessel_qual, side: target, value: oq_complete }                                                    # new requirement (PQ outstanding)
+  - { q: comp.vessel_range, side: target, value: { min: { value: 100, unit: L }, max: { value: 200, unit: L } } }   # covers 120-150 L
+  - { q: comp.mixer_qual, side: source, value: pq_complete }
+  - { q: comp.mixer_qual, side: target, value: pq_complete }                                                     # equivalent
+  - { q: comp.mixer_range, side: target, value: { min: { value: 100, unit: rpm }, max: { value: 200, unit: rpm } } }
   - { q: comp.procedures, side: target, value: update_required }
 
   # ---------------------------------------------------------------- sterile filtration
@@ -136,6 +148,9 @@ answers:
   - { q: filt.sua, side: target, value: yes }                        # new requirement
   - { q: filt.sua_supplier, side: target, value: SU Vendor B (fictional) }
   - { q: filt.sua_el, side: target, value: planned }
+  - { q: filt.sua_el_source, side: target, value: supplier_data }    # milestone 3: supplier data only
+  - { q: filt.sua_el_risk, side: target, value: below_threshold }
+  - { q: filt.bret_conditions, side: target, value: bridging_required }   # milestone 3: larger batch means longer filtration
   - q: filt.pressure
     side: source
     docs: [DEMO-FV-217-05]
@@ -150,6 +165,10 @@ answers:
   - { q: filt.integrity, side: target, value: [post_use] }            # removed element (PUPSIT)
   - { q: filt.bioburden_limit, side: source, value: { value: 10, unit: CFU/100 mL } }
   - { q: filt.bioburden_limit, side: target, value: { value: 10, unit: CFU/100 mL } }
+  - { q: filt.integrity_method, side: source, value: bubble_point }
+  - { q: filt.integrity_method, side: target, same: true }
+  - { q: filt.tester_qual, side: source, value: pq_complete }
+  - { q: filt.tester_qual, side: target, value: pq_complete }
   - { q: filt.procedures, side: target, value: update_required }
 
   # ---------------------------------------------------------------- aseptic filling
@@ -199,6 +218,29 @@ answers:
   - { q: fill.container_supplier, side: target, same: true }
   - { q: fill.stopper, side: source, value: "Stopper Vendor D, STP-20-DEMO" }
   - { q: fill.stopper, side: target, same: true }
+  # milestone 3: validation studies. The container, supplier and stopper are unchanged, so the container E&L question stays hidden.
+  - { q: fill.ppq_strategy, side: target, value: reduced_bridging }
+  - { q: fill.ppq_batches, side: target, value: { value: 3, unit: count } }
+  - { q: fill.aps_runs, side: source, value: { value: 2, unit: count }, docs: [DEMO-APS-S4-26] }
+  - { q: fill.aps_runs, side: target, value: { value: 3, unit: count } }                                         # within (more initial runs planned)
+  - { q: fill.aps_interventions, side: source, value: { value: 12, unit: count } }
+  - { q: fill.aps_interventions, side: target, value: { value: 16, unit: count } }                               # outside
+  - { q: fill.aps_scope, side: target, value: bridging_required }
+  - { q: fill.filtered_hold, side: source, value: { value: 12, unit: h }, docs: [DEMO-HT-217-02] }
+  - { q: fill.filtered_hold, side: target, value: { value: 18, unit: h } }                                       # outside
+  - { q: fill.filtered_hold_cov, side: target, value: { value: 12, unit: h }, docs: [DEMO-HT-217-02] }           # outside coverage
+  - { q: fill.bulk_vessel, side: source, value: stainless_tank }
+  - { q: fill.bulk_vessel, side: target, same: true }
+  - { q: fill.cleaning, side: target, value: bridging_required }
+  - { q: fill.cleaning_worst, side: target, value: matrix_worst_case }
+  - { q: fill.cleaning_carryover, side: target, value: visual_rinse_only }
+  # milestone 3: equipment qualification. The planned filler qualification covers the planned speed and volume.
+  - { q: fill.filler_qual, side: source, value: pq_complete, docs: [DEMO-PPQ-217-01] }
+  - { q: fill.filler_qual, side: target, value: planned }                                                        # new requirement
+  - { q: fill.filler_speed_range, side: target, value: { min: { value: 250, unit: units/min }, max: { value: 350, unit: units/min } } }   # covers 280-320
+  - { q: fill.filler_volume_range, side: target, value: { min: { value: 0.8, unit: mL }, max: { value: 2, unit: mL } } }                 # covers 1180-1220 µL
+  - { q: fill.bulk_vessel_qual, side: source, value: pq_complete }
+  - { q: fill.bulk_vessel_qual, side: target, value: oq_complete }
   - { q: fill.procedures, side: target, value: update_required }
 
   # ---------------------------------------------------------------- capping
@@ -223,6 +265,15 @@ answers:
   - { q: cap.environment, side: target, same: true }
   - { q: cap.ipc, side: source, value: [rsf_testing, crimp_visual] }
   - { q: cap.ipc, side: target, value: [rsf_testing, camera_inspection] }
+  # milestone 3: container closure integrity method (dye ingress at the source, HVLD at the target)
+  - { q: cap.cci_method, side: source, value: dye_ingress }
+  - { q: cap.cci_method, side: target, value: hvld }                  # different principle
+  - { q: cap.cci_sensitivity, side: source, value: { value: 10, unit: µm } }
+  - { q: cap.cci_sensitivity, side: target, value: { value: 5, unit: µm } }
+  - { q: cap.cci_method_validation, side: target, value: bridging_required }
+  - { q: cap.cci_lifecycle, side: target, value: planned }
+  - { q: cap.capper_qual, side: source, value: pq_complete }
+  - { q: cap.capper_qual, side: target, value: iq_complete }
   - { q: cap.procedures, side: target, value: new_required }
 
 
@@ -244,6 +295,9 @@ answers:
   - { q: rt.storage_temp, side: target, same: true }
   - { q: rt.transfer_bag, side: source, value: no }
   - { q: rt.transfer_bag, side: target, value: yes }                 # new requirement
+  # milestone 3: the thaw system qualification questions stay hidden (liquid drug substance); storage is asked
+  - { q: rt.storage_qual, side: source, value: pq_complete }
+  - { q: rt.storage_qual, side: target, value: pq_complete }
   - { q: rt.procedures, side: target, value: update_required }
 
   # ---------------------------------------------------------------- visual inspection
@@ -274,6 +328,9 @@ answers:
   - { q: vi.reject_limit, side: target, same: true }
   - { q: vi.defect_library, side: source, value: site_library, docs: [DEMO-VI-217-02] }
   - { q: vi.defect_library, side: target, value: vendor_kit }
+  - { q: vi.qual, side: source, value: pq_complete }
+  - { q: vi.qual, side: target, value: planned }                      # new requirement
+  - { q: vi.rate_range, side: target, value: { min: { value: 100, unit: units/min }, max: { value: 250, unit: units/min } } }
   - { q: vi.procedures, side: target, value: new_required }
 
   # ---------------------------------------------------------------- labeling and packaging
@@ -306,6 +363,11 @@ answers:
   - { q: lp.reconciliation, side: target, same: true }
   - { q: lp.label_checks, side: source, value: [presence_position, print_legibility] }
   - { q: lp.label_checks, side: target, value: [presence_position, print_legibility, barcode_verification] }
+  - { q: lp.labeler_qual, side: source, value: pq_complete }
+  - { q: lp.labeler_qual, side: target, value: pq_complete }
+  - { q: lp.labeler_range, side: target, value: { min: { value: 100, unit: units/min }, max: { value: 200, unit: units/min } } }
+  - { q: lp.serialization_qual, side: source, value: pq_complete }
+  - { q: lp.serialization_qual, side: target, value: iq_complete }
   - { q: lp.procedures, side: target, value: update_required }
 
   # ---------------------------------------------------------------- storage and shipping
@@ -328,6 +390,15 @@ answers:
   - { q: ss.excursion, side: target, same: true }
   - { q: ss.shipping_monitoring, side: source, value: [data_logger] }
   - { q: ss.shipping_monitoring, side: target, value: [data_logger, real_time] }
+  - { q: ss.modes, side: source, value: [road] }
+  - { q: ss.modes, side: target, value: [road, air] }                 # new requirement (air)
+  - { q: ss.ship_scope, side: target, value: operational_only }
+  - { q: ss.ship_profiles, side: target, value: single_season }
+  - { q: ss.storage_qual, side: source, value: pq_complete }
+  - { q: ss.storage_qual, side: target, value: pq_complete }
+  - { q: ss.shipper_qual, side: source, value: pq_complete, docs: [DEMO-SHIP-217-01] }
+  - { q: ss.shipper_qual, side: target, value: oq_complete }
+  - { q: ss.shipper_range, side: target, value: { min: { value: 12, unit: h }, max: { value: 60, unit: h } } }   # does not cover the planned 72 h (outside)
   - { q: ss.procedures, side: target, value: new_required }
 
 overlays:

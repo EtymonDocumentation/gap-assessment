@@ -92,6 +92,31 @@ questions:
     binds: uo.visual_inspection.mat.defect_library.type
     input: { type: choice, optionsFrom: defectLibrary }
 
+  # ================================================================== milestone 3: equipment qualification
+  - id: vi.qual
+    section: uo.visual_inspection
+    prompt: Qualification status of the inspection equipment
+    label: Inspection equipment qualification status
+    why: Inspection equipment (inspection booth or automated inspection machine) must be qualified. A target system that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    tags: [m3]
+    sides: paired
+    sameAsSource: false
+    binds: uo.visual_inspection.equip.inspection.qualificationStatus
+    input: { type: choice, optionsFrom: equipQualification }
+
+  - id: vi.rate_range
+    section: uo.visual_inspection
+    parent: vi.qual
+    prompt: Qualified inspection rate range of the target inspection equipment
+    label: Inspection equipment qualified rate range
+    why: Detection performance is qualified at a stated inspection rate. Planned rates above that range are not supported by the qualification.
+    triggerNote: Asked because the target inspection equipment is qualified or has a qualification planned.
+    tags: [m3]
+    sides: target
+    binds: uo.visual_inspection.equip.inspection.qualifiedRange
+    input: { type: range, units: [units/min, units/h] }
+    showWhen: { in: [target.uo.visual_inspection.equip.inspection.qualificationStatus, [planned, iq_complete, oq_complete, pq_complete, requalification_due]] }
+
   - id: vi.procedures
     section: uo.visual_inspection
     prompt: Status of target procedures for visual inspection

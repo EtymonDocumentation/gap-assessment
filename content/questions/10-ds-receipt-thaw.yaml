@@ -133,6 +133,44 @@ questions:
         - { changed: uo.ds_receipt_thaw.equip.thaw_mixer.operatingPrinciple }
         - { changed: uo.ds_receipt_thaw.equip.thaw_unit.operatingPrinciple }
 
+  # ================================================================== milestone 3: equipment qualification
+  - id: rt.thaw_qual
+    section: uo.ds_receipt_thaw
+    prompt: Qualification status of the thaw system
+    label: Thaw system qualification status
+    why: Equipment used for GMP manufacture must be qualified. A target thaw system that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    triggerNote: Asked because the drug substance is received frozen.
+    tags: [m3]
+    sides: paired
+    sameAsSource: false
+    binds: uo.ds_receipt_thaw.equip.thaw_unit.qualificationStatus
+    input: { type: choice, optionsFrom: equipQualification }
+    showWhen: *frozen
+
+  - id: rt.thaw_range
+    section: uo.ds_receipt_thaw
+    parent: rt.thaw_qual
+    prompt: Qualified temperature range of the target thaw system
+    label: Thaw system qualified temperature range
+    why: Thermal qualification (temperature mapping and heat-up performance) covers a stated range. A planned thaw temperature outside that range is not supported by the qualification.
+    triggerNote: Asked because the target thaw system is qualified or has a qualification planned.
+    tags: [m3]
+    sides: target
+    binds: uo.ds_receipt_thaw.equip.thaw_unit.qualifiedRange
+    input: { type: range, units: ["°C"] }
+    showWhen: { in: [target.uo.ds_receipt_thaw.equip.thaw_unit.qualificationStatus, [planned, iq_complete, oq_complete, pq_complete, requalification_due]] }
+
+  - id: rt.storage_qual
+    section: uo.ds_receipt_thaw
+    prompt: Qualification status of the drug substance storage unit (freezer or cold room)
+    label: Drug substance storage qualification status
+    why: Drug substance storage equipment must be qualified and mapped before GMP storage. A target unit that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    tags: [m3]
+    sides: paired
+    sameAsSource: false
+    binds: uo.ds_receipt_thaw.equip.ds_storage.qualificationStatus
+    input: { type: choice, optionsFrom: equipQualification }
+
   - id: rt.procedures
     section: uo.ds_receipt_thaw
     prompt: Status of target procedures for drug substance receipt and thaw

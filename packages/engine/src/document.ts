@@ -1,5 +1,6 @@
 import { getEntry, resolveEntry, verificationState, type Project, type Source } from "@gap/process-model";
 import { activityLabel, categoryLabel, type ContentBundle } from "./content";
+import { buildEquipmentQualification, buildValidationPlan, type PlanRow } from "./validation";
 import { CATEGORIES } from "./content-schema";
 import type { Assessment, Gap } from "./compare";
 import { riskRanked } from "./compare";
@@ -177,16 +178,46 @@ export function buildDocument(content: ContentBundle, project: Project, a: Asses
     { type: "note", text: t.regulatoryStatement },
   ]);
 
-  const actMap = new Map<string, string[]>();
-  for (const g of diffs) for (const act of g.activities) actMap.set(act, [...(actMap.get(act) ?? []), g.displayId]);
-  const actOrder = content.catalog.activities.map((x) => x.key).filter((k) => actMap.has(k));
-  add("activities", "Validation and data activities required", [
+  const plan = buildValidationPlan(content, project, a);
+  const gapIds = (r: PlanRow) => r.gaps.map((g) => (g.status === "open" ? g.displayId : `${g.displayId} (${STATUS_LABEL[g.status]})`)).join(", ");
+  const studyCell = (r: PlanRow, side: "source" | "target") =>
+    r.studies.length ? r.studies.map((s) => `${s.label} (${s.uoLabel}): ${s[side].display}`).join("; ") : "—";
+  add("validation-plan", "Validation plan", [
     { type: "paragraph", text: fill(t.activitiesIntro, vars) },
     {
       type: "table",
-      columns: ["Activity", "Description", "Related gaps"],
-      rows: actOrder.map((k) => [activityLabel(content, k), content.catalog.activities.find((x) => x.key === k)!.description, actMap.get(k)!.join(", ")]),
+      columns: ["Activity", "Description", "Implied by gaps", "Severity", "Regulatory", "Linked studies: source status", "Linked studies: target status", "Readiness"],
+      rows: plan.map((r) => [
+        r.label,
+        r.description,
+        gapIds(r),
+        SEVERITY_TEXT[r.severity],
+        r.regulatoryNote ?? "—",
+        studyCell(r, "source"),
+        studyCell(r, "target"),
+        r.readinessLabel,
+      ]),
     },
+  ]);
+
+  const equipment = buildEquipmentQualification(content, project, a);
+  add("equipment-qualification", "Equipment qualification comparison", [
+    { type: "paragraph", text: fill(t.equipmentQualificationIntro, vars) },
+    equipment.length
+      ? {
+          type: "table",
+          columns: ["Unit operation", "Equipment", "Source qualification", "Target qualification", "Qualified range (target)", "Required by target process", "Related gaps"],
+          rows: equipment.map((e) => [
+            e.uoLabel,
+            e.equipLabel,
+            e.source.display,
+            e.target.display,
+            e.ranges.map((x) => `${x.attribute}: ${x.qualified.display}`).join("; ") || "—",
+            e.ranges.map((x) => (x.required ? `${x.attribute}: ${x.required.display} (${x.required.basis})` : `${x.attribute}: not derived`)).join("; ") || "—",
+            e.gaps.map((g) => `${g.displayId} (${categoryLabel(content, g.category)})`).join(", ") || "—",
+          ]),
+        }
+      : { type: "paragraph", text: "No equipment qualification information has been recorded." },
   ]);
 
   add("open-items", "Open information items", [

@@ -81,6 +81,72 @@ questions:
     binds: uo.capping.ipc.panel.tests
     input: { type: multi_choice, optionsFrom: capIpc }
 
+  # ================================================================== milestone 3: validation studies
+  # ---- container closure integrity (CCI)
+  - id: cap.cci_method
+    section: uo.capping
+    prompt: Container closure integrity test method used for validation and routine testing
+    label: CCI test method
+    why: Deterministic physical methods (helium leak, HVLD, vacuum or pressure decay) and probabilistic methods (dye or microbial ingress) detect leaks by different principles and with different sensitivity. A change of method is a change in principle.
+    tags: [m3]
+    sides: paired
+    binds: uo.capping.study.cci.method
+    input: { type: choice, optionsFrom: cciMethod }
+
+  - id: cap.cci_sensitivity
+    section: uo.capping
+    prompt: Smallest leak size the CCI test method reliably detects (limit of detection)
+    label: CCI method detection limit
+    why: The method must be sensitive enough for the maximum allowable leakage limit of the product. A less sensitive method at the target (a larger smallest detectable leak) does not support the same integrity claim.
+    help: Enter the validated leak size in micrometres (equivalent hole diameter).
+    tags: [m3]
+    sideLabels: { source: Validated detection limit, target: Target method detection limit }
+    sides: paired
+    binds: uo.capping.study.cci.sensitivity
+    input: { type: quantity, units: [µm, mm] }
+
+  - id: cap.cci_method_validation
+    section: uo.capping
+    parent: cap.cci_method
+    prompt: Has the target CCI test method been validated for this container and closure (sensitivity, positive and negative controls, repeatability)?
+    label: CCI method validation (target)
+    why: A CCI method must be shown fit for purpose with this container-closure system before its results can support the integrity claim.
+    triggerNote: Asked because the CCI test method differs from the source.
+    tags: [m3]
+    sides: target
+    binds: uo.capping.study.cci_method_validation.status
+    input: { type: choice, optionsFrom: validationCoverage }
+    showWhen: { changed: uo.capping.study.cci.method }
+
+  - id: cap.cci_lifecycle
+    section: uo.capping
+    prompt: Is CCI demonstrated over shelf life and after shipping and storage stress (for example temperature cycling or vibration) for the target configuration?
+    label: CCI over shelf life and distribution (target)
+    why: Integrity at release does not show that the closure keeps its seal through storage temperature change and transport. Frozen or active-container shipping and a new container or seal can change that stress.
+    triggerNote: Asked because the container format, capping method or shipping configuration differs from the source.
+    tags: [m3]
+    sides: target
+    binds: uo.capping.study.cci.lifecycle
+    input: { type: choice, optionsFrom: evidenceAvailability }
+    showWhen:
+      any:
+        - { changed: uo.aseptic_filling.mat.container.format }
+        - { changed: uo.capping.study.cci.method }
+        - { changed: uo.storage_shipping.equip.shipper.operatingPrinciple }
+        - { changed: uo.capping.equip.capper.operatingPrinciple }
+
+  # ---- equipment qualification
+  - id: cap.capper_qual
+    section: uo.capping
+    prompt: Qualification status of the capping machine
+    label: Capper qualification status
+    why: Equipment used for GMP manufacture must be qualified. A target capper that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    tags: [m3]
+    sides: paired
+    sameAsSource: false
+    binds: uo.capping.equip.capper.qualificationStatus
+    input: { type: choice, optionsFrom: equipQualification }
+
   - id: cap.procedures
     section: uo.capping
     prompt: Status of target procedures for capping

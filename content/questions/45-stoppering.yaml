@@ -100,6 +100,18 @@ questions:
     binds: uo.stoppering.ipc.placement_check.description
     input: { type: text, placeholder: "e.g. Stopper height within a stated tolerance (fictional)" }
 
+  # ================================================================== milestone 3: equipment qualification
+  - id: stop.unit_qual
+    section: uo.stoppering
+    prompt: Qualification status of the stoppering unit
+    label: Stoppering unit qualification status
+    why: Equipment used for GMP manufacture must be qualified. A target stoppering unit that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    tags: [m3]
+    sides: paired
+    sameAsSource: false
+    binds: uo.stoppering.equip.stoppering_unit.qualificationStatus
+    input: { type: choice, optionsFrom: equipQualification }
+
   - id: stop.procedures
     section: uo.stoppering
     prompt: Status of target procedures for stoppering

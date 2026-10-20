@@ -63,9 +63,9 @@ describe("renderMarkdown", () => {
     for (const [k, v] of doc.meta) expect(md).toContain(`- **${k}:** ${v}`);
   });
 
-  it("numbers the section headings 1 to 11 in order", () => {
+  it("numbers the section headings 1 to 12 in order", () => {
     const headings = lines.filter((l) => l.startsWith("## "));
-    expect(headings).toHaveLength(11);
+    expect(headings).toHaveLength(12);
     headings.forEach((h, i) => expect(h.startsWith(`## ${i + 1}. `), h).toBe(true));
     expect(headings).toEqual(doc.sections.map((s) => `## ${s.number}. ${s.title}`));
   });
@@ -163,9 +163,9 @@ describe("renderHtml", () => {
     expect(html).toContain(`<div class="footer">${BANNER}</div>`);
   });
 
-  it("numbers the section headings 1 to 11 in order, each in its own section element", () => {
+  it("numbers the section headings 1 to 12 in order, each in its own section element", () => {
     const h2 = [...html.matchAll(/<h2>(\d+)\. ([^<]*)<\/h2>/g)];
-    expect(h2.map((m) => m[1])).toEqual(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"]);
+    expect(h2.map((m) => m[1])).toEqual(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]);
     for (const s of doc.sections) expect(html).toContain(`<section id="doc-${s.id}">`);
   });
 
@@ -458,5 +458,57 @@ describe("gapsToCsv", () => {
 
   it("writes only the header for an empty register", () => {
     expect(gapsToCsv(content, [])).toBe(CSV_COLUMNS.map((c) => `"${c}"`).join(",") + "\r\n");
+  });
+});
+
+// ================================================================== validation sections
+
+describe("validation plan and equipment qualification sections", () => {
+  const plan = doc.sections.find((s) => s.id === "validation-plan")!;
+  const equipment = doc.sections.find((s) => s.id === "equipment-qualification")!;
+
+  it("are present, adjacent and numbered consecutively", () => {
+    expect(plan).toBeDefined();
+    expect(equipment).toBeDefined();
+    expect(Number(equipment.number)).toBe(Number(plan.number) + 1);
+    expect(doc.sections.map((s) => s.id)).not.toContain("activities");
+  });
+
+  it("Markdown renders both headings and the plan table with readiness and gap ids", () => {
+    const md = renderMarkdown(doc);
+    expect(md).toContain(`## ${plan.number}. Validation plan`);
+    expect(md).toContain(`## ${equipment.number}. Equipment qualification comparison`);
+    expect(md).toContain("| Activity | Description | Implied by gaps | Severity | Regulatory | Linked studies: source status | Linked studies: target status | Readiness |");
+    const table = plan.blocks.find((b) => b.type === "table");
+    expect(table?.type === "table" && table.rows.length).toBeGreaterThan(0);
+    if (table?.type === "table") {
+      for (const r of table.rows) {
+        expect(r[2], r[0]).toMatch(/G-\d{3}/);
+        expect(r[7], r[0]).not.toBe("");
+      }
+    }
+    const section = md.slice(md.indexOf(`## ${plan.number}. `), md.indexOf(`## ${equipment.number}. `));
+    expect(section).not.toMatch(/undefined|NaN|\[object Object\]/);
+  });
+
+  it("HTML renders both sections with scrollable tables, or the plain empty statement", () => {
+    const html = renderHtml(doc);
+    expect(html).toContain('<section id="doc-validation-plan">');
+    expect(html).toContain('<section id="doc-equipment-qualification">');
+    const eq = html.slice(html.indexOf('<section id="doc-equipment-qualification">'), html.indexOf("</section>", html.indexOf('<section id="doc-equipment-qualification">')));
+    const hasTable = equipment.blocks.some((b) => b.type === "table");
+    if (hasTable) expect(eq).toContain('<div class="table-wrap" role="region"');
+    else expect(eq).toContain("No equipment qualification information has been recorded.");
+    const pl = html.slice(html.indexOf('<section id="doc-validation-plan">'), html.indexOf("</section>", html.indexOf('<section id="doc-validation-plan">')));
+    expect(pl).toContain('<th scope="col">Readiness</th>');
+  });
+
+  it("escapes cell text in both renderers", () => {
+    const evil: DocModel = {
+      ...hostile,
+      sections: [{ id: "validation-plan", number: "1", title: "Validation plan", blocks: [{ type: "table", columns: ["Activity", "Readiness"], rows: [["<script>x</script> | y", "Planned"]] }] }],
+    };
+    expect(renderHtml(evil)).not.toContain("<script>x");
+    expect(renderMarkdown(evil)).toContain("<script>x</script> \\| y");
   });
 });

@@ -168,6 +168,13 @@ function crossCheck(b: ContentBundle): string[] {
   const uoKeys = new Set(b.catalog.unitOperations.map((u) => u.key));
   const activityKeys = new Set(b.catalog.activities.map((a) => a.key));
 
+  const studyKeys = new Set(b.catalog.unitOperations.flatMap((u) => u.items.filter((i) => i.coll === "study").map((i) => i.key)));
+  for (const a of b.catalog.activities) {
+    for (const s of a.studies ?? []) {
+      if (!studyKeys.has(s)) p.push(`activity ${a.key}: unknown study "${s}" (it must be a study item of a unit operation)`);
+    }
+  }
+
   const seenIds = new Set<string>();
   const seenBinds = new Map<string, string>();
   for (const s of b.sections) {

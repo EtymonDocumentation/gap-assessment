@@ -60,6 +60,9 @@ export const UNITS: readonly UnitDef[] = [
   // force (base N)
   U("N", "newton", "force", 1),
   U("lbf", "pound-force", "force", 4.4482216153),
+  // length (base mm); used for leak size and detection limits in container closure integrity
+  U("µm", "micrometre", "length", 0.001),
+  U("mm", "millimetre", "length", 1),
   // bioburden (base CFU/100 mL)
   U("CFU/100 mL", "colony-forming units per 100 mL", "bioburden", 1),
   U("CFU/mL", "colony-forming units per mL", "bioburden", 100),

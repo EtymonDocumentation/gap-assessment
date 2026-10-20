@@ -187,6 +187,93 @@ questions:
     binds: uo.sterile_filtration.ipc.bioburden.limit
     input: { type: quantity, units: [CFU/100 mL, CFU/mL] }
 
+  # ================================================================== milestone 3: validation studies
+  # ---- filter validation (extension of bacterial retention)
+  - id: filt.bret_conditions
+    section: uo.sterile_filtration
+    prompt: Do the test conditions of the bacterial retention study (differential pressure, temperature, flow and filtration time) cover the target worst case?
+    label: Bacterial retention test conditions (target)
+    why: Bacterial retention is demonstrated under worst-case conditions of the process. A higher pressure, larger volume or longer filtration time at the target can fall outside the conditions tested.
+    triggerNote: Asked because the target filter, differential pressure or batch size differs from the source.
+    tags: [m3]
+    sides: target
+    binds: uo.sterile_filtration.study.bacterial_retention.conditions
+    input: { type: choice, optionsFrom: validationCoverage }
+    showWhen:
+      any:
+        - *filterChanged
+        - { increased: uo.sterile_filtration.param.differential_pressure.setPoint }
+        - { increased: uo.compounding.param.batch_size.setPoint }
+
+  - id: filt.integrity_method
+    section: uo.sterile_filtration
+    prompt: Filter integrity test method
+    label: Filter integrity test method
+    why: Bubble point, diffusive flow, water intrusion and pressure hold are different principles with their own specifications and wetting fluid. A change of method needs its own validated specification.
+    tags: [m3]
+    sides: paired
+    binds: uo.sterile_filtration.ipc.integrity.method
+    input: { type: choice, optionsFrom: integrityMethod }
+
+  - id: filt.integrity_validation
+    section: uo.sterile_filtration
+    parent: filt.integrity_method
+    prompt: Has the product-wet integrity test specification been established for the target filter and test method with this product?
+    label: Product-wet integrity specification (target)
+    why: The integrity limit for the product-wet filter can differ from the water-wet limit because of product surface tension and viscosity. It must be established with the target filter and method.
+    triggerNote: Asked because the target filter or integrity test method differs from the source.
+    tags: [m3]
+    sides: target
+    binds: uo.sterile_filtration.study.integrity_validation.status
+    input: { type: choice, optionsFrom: validationCoverage }
+    showWhen:
+      any:
+        - *filterChanged
+        - { changed: uo.sterile_filtration.ipc.integrity.method }
+
+  # ---- extractables and leachables (single-use assembly)
+  - id: filt.sua_el_source
+    section: uo.sterile_filtration
+    parent: filt.sua_el
+    prompt: What is the source of the extractables and leachables data for the target single-use assembly?
+    label: Single-use assembly E&L data source
+    why: Supplier extractables data describe model solvents and generic conditions. Product-specific conditions (formulation, temperature, contact time and surface area) decide whether a leachables risk remains.
+    triggerNote: Asked because a single-use assembly is new at the target.
+    tags: [m3]
+    sides: target
+    binds: uo.sterile_filtration.study.sua_el.dataSource
+    input: { type: choice, optionsFrom: elDataSource }
+    showWhen: &suaNew
+      all:
+        - { isTrue: target.uo.sterile_filtration.mat.sua.present }
+        - { not: { isTrue: source.uo.sterile_filtration.mat.sua.present } }
+        - { answered: source.uo.sterile_filtration.mat.sua.present }
+
+  - id: filt.sua_el_risk
+    section: uo.sterile_filtration
+    parent: filt.sua_el
+    prompt: What is the outcome of the leachables risk assessment for the target single-use assembly with this product?
+    label: Single-use assembly leachables risk outcome
+    why: A toxicological assessment compares worst-case leachables with the safety threshold for the route of administration. A leachable above the threshold needs a product-specific study or a mitigation.
+    triggerNote: Asked because a single-use assembly is new at the target.
+    tags: [m3]
+    sides: target
+    binds: uo.sterile_filtration.study.sua_el.riskOutcome
+    input: { type: choice, optionsFrom: elRisk }
+    showWhen: *suaNew
+
+  # ---- equipment qualification
+  - id: filt.tester_qual
+    section: uo.sterile_filtration
+    prompt: Qualification status of the filter integrity tester
+    label: Integrity tester qualification status
+    why: The automated integrity tester produces the result that releases the filtered bulk. It must be qualified and calibrated before GMP use.
+    tags: [m3]
+    sides: paired
+    sameAsSource: false
+    binds: uo.sterile_filtration.equip.integrity_tester.qualificationStatus
+    input: { type: choice, optionsFrom: equipQualification }
+
   - id: filt.procedures
     section: uo.sterile_filtration
     prompt: Status of target procedures for filtration

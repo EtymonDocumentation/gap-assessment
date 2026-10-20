@@ -109,6 +109,82 @@ questions:
     binds: uo.storage_shipping.ipc.shipping_monitoring.tests
     input: { type: multi_choice, optionsFrom: shippingMonitoring }
 
+  # ================================================================== milestone 3: validation studies
+  # ---- shipping validation
+  - id: ss.modes
+    section: uo.storage_shipping
+    prompt: Which transport modes does the primary shipping lane use?
+    label: Lane transport modes
+    why: Air, road, sea and rail differ in temperature exposure, vibration, pressure and handling. Each mode on the lane needs to be represented in the shipping qualification.
+    tags: [m3]
+    sides: paired
+    binds: uo.storage_shipping.doc.shipping_lane.modes
+    input: { type: multi_choice, optionsFrom: transportModes }
+
+  - id: ss.ship_scope
+    section: uo.storage_shipping
+    prompt: What testing supports the shipping qualification of the target configuration and lane?
+    label: Shipping qualification scope (target)
+    why: A desk-based assessment or thermal chamber test alone does not show performance on the real lane (handling, dwell time and ambient extremes). The scope decides how much of the lane is proven.
+    triggerNote: Asked because the shipping configuration, lane or transport modes differ from the source.
+    tags: [m3]
+    sides: target
+    binds: uo.storage_shipping.study.shipping_validation.scope
+    input: { type: choice, optionsFrom: shippingScope }
+    showWhen: &shippingChanged
+      any:
+        - { changed: uo.storage_shipping.equip.shipper.operatingPrinciple }
+        - { changed: uo.storage_shipping.doc.shipping_lane.name }
+        - { changed: uo.storage_shipping.doc.shipping_lane.modes }
+
+  - id: ss.ship_profiles
+    section: uo.storage_shipping
+    prompt: Which seasonal temperature profiles does the target shipping qualification cover?
+    label: Shipping seasonal profiles (target)
+    why: Ambient extremes in summer and winter set the worst-case thermal load. A qualification with one profile does not cover the other season.
+    triggerNote: Asked because the shipping configuration, lane or transport modes differ from the source.
+    tags: [m3]
+    sides: target
+    binds: uo.storage_shipping.study.shipping_validation.profiles
+    input: { type: choice, optionsFrom: seasonalProfiles }
+    showWhen: *shippingChanged
+
+  # ---- equipment qualification
+  - id: ss.storage_qual
+    section: uo.storage_shipping
+    prompt: Qualification status of the finished-product storage equipment
+    label: Storage equipment qualification status
+    why: Storage equipment must be qualified and mapped before GMP storage. A target store that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    tags: [m3]
+    sides: paired
+    sameAsSource: false
+    binds: uo.storage_shipping.equip.storage_unit.qualificationStatus
+    input: { type: choice, optionsFrom: equipQualification }
+
+  - id: ss.shipper_qual
+    section: uo.storage_shipping
+    prompt: Qualification status of the shipping configuration
+    label: Shipper qualification status
+    why: A shipping configuration is qualified for a defined duration and temperature profile. A target configuration that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    tags: [m3]
+    sides: paired
+    sameAsSource: false
+    binds: uo.storage_shipping.equip.shipper.qualificationStatus
+    input: { type: choice, optionsFrom: equipQualification }
+
+  - id: ss.shipper_range
+    section: uo.storage_shipping
+    parent: ss.shipper_qual
+    prompt: Qualified duration range of the target shipping configuration
+    label: Shipper qualified duration
+    why: The thermal qualification holds the labeled temperature for a stated duration. A planned transit time beyond that duration is not supported by the qualification.
+    triggerNote: Asked because the target shipping configuration is qualified or has a qualification planned.
+    tags: [m3]
+    sides: target
+    binds: uo.storage_shipping.equip.shipper.qualifiedRange
+    input: { type: range, units: [h, d] }
+    showWhen: { in: [target.uo.storage_shipping.equip.shipper.qualificationStatus, [planned, iq_complete, oq_complete, pq_complete, requalification_due]] }
+
   - id: ss.procedures
     section: uo.storage_shipping
     prompt: Status of target procedures for storage and shipping

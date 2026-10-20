@@ -101,6 +101,42 @@ questions:
     binds: uo.labeling_packaging.ipc.label_checks.tests
     input: { type: multi_choice, optionsFrom: labelChecks }
 
+  # ================================================================== milestone 3: equipment qualification
+  - id: lp.labeler_qual
+    section: uo.labeling_packaging
+    prompt: Qualification status of the labeling machine
+    label: Labeler qualification status
+    why: Equipment used for GMP manufacture must be qualified. A target labeler that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    tags: [m3]
+    sides: paired
+    sameAsSource: false
+    binds: uo.labeling_packaging.equip.labeler.qualificationStatus
+    input: { type: choice, optionsFrom: equipQualification }
+
+  - id: lp.labeler_range
+    section: uo.labeling_packaging
+    parent: lp.labeler_qual
+    prompt: Qualified speed range of the target labeling machine
+    label: Labeler qualified speed range
+    why: Label application and print verification are qualified over a stated speed range. Planned speeds outside that range are not supported by the qualification.
+    triggerNote: Asked because the target labeler is qualified or has a qualification planned.
+    tags: [m3]
+    sides: target
+    binds: uo.labeling_packaging.equip.labeler.qualifiedRange
+    input: { type: range, units: [units/min, units/h] }
+    showWhen: { in: [target.uo.labeling_packaging.equip.labeler.qualificationStatus, [planned, iq_complete, oq_complete, pq_complete, requalification_due]] }
+
+  - id: lp.serialization_qual
+    section: uo.labeling_packaging
+    prompt: Qualification status of the serialization and aggregation system
+    label: Serialization system qualification status
+    why: The serialization system is a validated computerized system with equipment. A target system that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    tags: [m3]
+    sides: paired
+    sameAsSource: false
+    binds: uo.labeling_packaging.equip.serialization.qualificationStatus
+    input: { type: choice, optionsFrom: equipQualification }
+
   - id: lp.procedures
     section: uo.labeling_packaging
     prompt: Status of target procedures for labeling and packaging

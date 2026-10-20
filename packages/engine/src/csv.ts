@@ -1,7 +1,7 @@
 import { activityLabel, categoryLabel, type ContentBundle } from "./content";
 import type { Gap } from "./compare";
 
-function cell(v: string): string {
+export function cell(v: string): string {
   // Neutralize spreadsheet formula injection and quote every cell.
   // Neutralise spreadsheet formulas; a bare negative number such as "-20" stays a number.
   const safe = /^[=+\-@\t\r]/.test(v) && !/^-\d+(\.\d+)?$/.test(v) ? `'${v}` : v;

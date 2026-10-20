@@ -186,6 +186,41 @@ test("side by side markers link to the register row", async ({ page }) => {
   await expect(page.locator("table.register tr.open")).toContainText("Scale change");
 });
 
+test("validation page: plan, equipment table, gap link and CSV", async ({ page }) => {
+  await loadDemo(page);
+  await go(page, "#/validation");
+  await expect(page.getByRole("heading", { level: 1, name: "Validation" })).toBeVisible();
+
+  const planSection = page.locator("section", { has: page.getByRole("heading", { level: 2, name: "Validation plan" }) });
+  const equipSection = page.locator("section", { has: page.getByRole("heading", { level: 2, name: "Equipment qualification" }) });
+  const planRows = planSection.locator("table.validation-plan tbody tr");
+  await expect(planRows.first()).toBeVisible();
+  expect(await planRows.count()).toBeGreaterThan(0);
+
+  // A filter narrows the plan, and a nonsense search shows the plain empty state.
+  await page.getByRole("searchbox").fill("zzzz-no-such-activity");
+  await expect(page.getByText("No activities match these filters.")).toBeVisible();
+  await page.getByRole("searchbox").fill("");
+  await expect(planRows.first()).toBeVisible();
+
+  // A gap link opens the register on that row.
+  await planRows.first().locator("a[href*='register']").first().click();
+  await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
+  await expect(page.locator("table.register tr.open")).toHaveCount(1);
+
+  // CSV downloads from both sections.
+  await go(page, "#/validation");
+  const csv = await downloadText(page, () => planSection.getByRole("button", { name: /^Export CSV/ }).click());
+  expect(csv.name).toMatch(/validation-plan.*\.csv$/);
+  expect(csv.text.split("\n")[0]).toContain("Activity");
+  expect(csv.text).not.toMatch(/undefined|NaN/);
+  // The equipment table needs the demo's equipment qualification answers.
+  await expect(equipSection.locator("table.equipment-qualification tbody tr").first()).toBeVisible();
+  const eq = await downloadText(page, () => equipSection.getByRole("button", { name: /^Export CSV/ }).click());
+  expect(eq.name).toMatch(/equipment-qualification.*\.csv$/);
+  expect(eq.text).not.toMatch(/undefined|NaN/);
+});
+
 test("document preview and downloads", async ({ page }) => {
   await loadDemo(page);
   await go(page, "#/document");
@@ -211,13 +246,23 @@ for (const theme of ["light", "dark"] as const) {
     await loadDemo(page);
     await page.getByLabel("Colour theme").selectOption(theme);
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
-    const routes = ["#/", "#/interview?q=fill.pump%40target", "#/interview?summary=uo.aseptic_filling", "#/compare", "#/register", "#/document", "#/builder"];
+    const routes = ["#/", "#/interview?q=fill.pump%40target", "#/interview?summary=uo.aseptic_filling", "#/compare", "#/register", "#/validation", "#/document", "#/builder"];
     for (const r of routes) {
       await go(page, r);
       await expect(page.locator("main h1").first()).toBeVisible();
       await expectAccessible(page, `${theme} ${r}`);
       await expectNoHorizontalScroll(page, `${theme} ${r}`);
     }
+    // The validation page at three widths (wide tables scroll inside their own region, never the page).
+    await go(page, "#/validation");
+    const original = page.viewportSize();
+    for (const width of [1280, 768, 390]) {
+      await page.setViewportSize({ width, height: 800 });
+      await expect(page.getByRole("heading", { level: 1, name: "Validation" })).toBeVisible();
+      await expectAccessible(page, `${theme} validation at ${width}px`);
+      await expectNoHorizontalScroll(page, `${theme} validation at ${width}px`);
+    }
+    if (original) await page.setViewportSize(original);
     // Open register details and a dialog are checked too.
     await go(page, "#/register");
     await page.locator("table.register tbody tr").first().getByRole("button", { name: /^Details/ }).click();

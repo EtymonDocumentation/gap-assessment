@@ -72,6 +72,11 @@ describe("convert", () => {
     expect(convert(q(0.1, "mbar"), "Pa").value).toBeCloseTo(10, 9);
   });
 
+  it("converts the length units used for container closure integrity leak sizes", () => {
+    expect(convert(q(5, "µm"), "mm").value).toBeCloseTo(0.005, 12);
+    expect(convert(q(0.01, "mm"), "µm").value).toBeCloseTo(10, 9);
+  });
+
   it("converts area, mass, flow, speed and force", () => {
     expect(convert(q(1, "m²"), "cm²")).toEqual(q(10000, "cm²"));
     expect(convert(q(2500, "cm²"), "m²")).toEqual(q(0.25, "m²"));

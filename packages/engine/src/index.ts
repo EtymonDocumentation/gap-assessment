@@ -11,5 +11,6 @@ export * from "./compare";
 export * from "./overlays";
 export * from "./document";
 export * from "./csv";
+export * from "./validation";
 export * from "./demo";
 export * from "./adapters";

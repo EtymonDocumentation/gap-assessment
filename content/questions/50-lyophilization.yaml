@@ -167,6 +167,55 @@ questions:
     binds: uo.lyophilization.ipc.cycle_monitoring.tests
     input: { type: multi_choice, optionsFrom: lyoMonitoring }
 
+  # ================================================================== milestone 3: equipment qualification
+  - id: lyo.qual
+    section: uo.lyophilization
+    prompt: Qualification status of the lyophilizer
+    label: Lyophilizer qualification status
+    why: Equipment used for GMP manufacture must be qualified. A target lyophilizer that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    tags: [m3]
+    sides: paired
+    sameAsSource: false
+    binds: uo.lyophilization.equip.lyophilizer.qualificationStatus
+    input: { type: choice, optionsFrom: equipQualification }
+
+  - id: lyo.shelf_range
+    section: uo.lyophilization
+    parent: lyo.qual
+    prompt: Qualified shelf temperature range of the target lyophilizer
+    label: Lyophilizer qualified shelf temperature range
+    why: Shelf temperature uniformity is qualified over a stated range. Planned shelf temperatures outside that range are not supported by the qualification.
+    triggerNote: Asked because the target lyophilizer is qualified or has a qualification planned.
+    tags: [m3]
+    sides: target
+    binds: uo.lyophilization.equip.lyophilizer.qualifiedRange_shelf_temp
+    input: { type: range, units: ["°C"] }
+    showWhen: &lyoQualified { in: [target.uo.lyophilization.equip.lyophilizer.qualificationStatus, [planned, iq_complete, oq_complete, pq_complete, requalification_due]] }
+
+  - id: lyo.pressure_range
+    section: uo.lyophilization
+    parent: lyo.qual
+    prompt: Qualified chamber pressure range of the target lyophilizer
+    label: Lyophilizer qualified pressure range
+    why: Chamber pressure control is qualified over a stated range. Planned drying pressures outside that range are not supported by the qualification.
+    triggerNote: Asked because the target lyophilizer is qualified or has a qualification planned.
+    tags: [m3]
+    sides: target
+    binds: uo.lyophilization.equip.lyophilizer.qualifiedRange_pressure
+    input: { type: range, units: [mbar, Pa, µbar, mTorr] }
+    showWhen: *lyoQualified
+
+  - id: lyo.loading_qual
+    section: uo.lyophilization
+    prompt: Qualification status of the loading system
+    label: Loading system qualification status
+    why: An automatic loading system is part of the aseptic zone and must be qualified. A target system that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    tags: [m3]
+    sides: paired
+    sameAsSource: false
+    binds: uo.lyophilization.equip.loading_system.qualificationStatus
+    input: { type: choice, optionsFrom: equipQualification }
+
   - id: lyo.procedures
     section: uo.lyophilization
     prompt: Status of target procedures for lyophilization

@@ -5,6 +5,7 @@ import { HomePage } from "./pages/HomePage";
 import { InterviewPage } from "./pages/InterviewPage";
 import { BuilderPage } from "./pages/BuilderPage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { ValidationPage } from "./pages/ValidationPage";
 import { href, useRoute } from "./router";
 import { useStore } from "./store";
 
@@ -13,6 +14,7 @@ const NAV = [
   { path: "/interview", label: "Interview" },
   { path: "/compare", label: "Side by side" },
   { path: "/register", label: "Gap register" },
+  { path: "/validation", label: "Validation" },
   { path: "/document", label: "Document" },
   { path: "/builder", label: "Builder" },
 ] as const;
@@ -64,6 +66,7 @@ export function App() {
   else if (route.path === "/interview") page = <InterviewPage params={route.params} />;
   else if (route.path === "/compare") page = <ComparePage />;
   else if (route.path === "/register") page = <RegisterPage />;
+  else if (route.path === "/validation") page = <ValidationPage />;
   else if (route.path === "/document") page = <DocumentPage />;
   else if (route.path === "/builder" || route.path === "/model") page = <BuilderPage />;
   else page = <HomePage />;

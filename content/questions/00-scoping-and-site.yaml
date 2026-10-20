@@ -3,7 +3,7 @@
 # "Unknown / to be confirmed" is added to every question by the engine.
 bank:
   id: gap-core
-  version: 1.1.0
+  version: 1.2.0
 
 sections:
   - { id: scoping, title: Scoping, kind: scoping, order: 0, intro: These answers decide which unit operations and questions apply. They are shared by source and target. }

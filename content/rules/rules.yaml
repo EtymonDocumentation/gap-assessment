@@ -5,7 +5,7 @@
 # flagged. Regulatory wording is fixed: "Requires regulatory affairs assessment."
 ruleset:
   id: gap-core-rules
-  version: 1.1.0
+  version: 1.2.0
 
 rules:
   # ------------------------------------------------------------------ site
@@ -904,6 +904,440 @@ rules:
     severity: low
     why: Procedures and batch record instructions must reflect the target process before GMP manufacture.
     activities: [procedure_update, training]
+
+  # ================================================================== milestone 3: validation studies and equipment qualification
+  # Each rule links a gap to the validation activity it implies. They sit ahead of the generic
+  # fallbacks so the first match is the specific one.
+
+  # ---- process performance qualification
+  - id: R-PPQ-STRATEGY
+    version: 1.0.0
+    title: PPQ approach at target
+    match: [uo.aseptic_filling.study.ppq.strategy]
+    comparator: evidence
+    config:
+      map: { full_ppq: new_requirement, reduced_bridging: outside_validated_range, source_data_leveraged: within_validated_range, not_decided: information_required }
+    severity: high
+    why: The PPQ approach decides what is demonstrated at the target. New batches are needed for a full PPQ; a bridging approach needs a justified gap analysis; leveraging source data needs a documented rationale that the source PPQ covers the target conditions.
+    activities: [ppq, ppq_coverage_assessment, risk_assessment_update]
+    outcomes:
+      within_validated_range:
+        why: Source PPQ data are judged to cover the target. The coverage rationale must be documented and approved.
+        activities: [ppq_coverage_assessment]
+
+  - id: R-PPQ-BATCHES
+    version: 1.0.0
+    title: Planned PPQ batches (informational)
+    match: [uo.aseptic_filling.study.ppq.batches]
+    comparator: informational
+    severity: none
+    why: Recorded to size the validation plan; the PPQ approach question carries the gap.
+
+  # ---- aseptic process simulation
+  - id: R-APS-INITIAL-RUNS
+    version: 1.0.0
+    title: APS initial runs
+    match: [uo.aseptic_filling.study.aps.initialRuns]
+    comparator: lower_limit
+    severity: medium
+    why: Initial qualification of an aseptic line is shown by several consecutive successful simulations. Fewer runs at the target than in the source programme weaken that demonstration.
+    activities: [media_fill, risk_assessment_update]
+
+  - id: R-APS-INTERVENTIONS
+    version: 1.0.0
+    title: Maximum interventions per batch (simulation worst case)
+    match: [uo.aseptic_filling.param.max_interventions.max]
+    comparator: upper_limit
+    severity: medium
+    why: The simulation must include the worst-case interventions allowed in routine manufacture. More allowed interventions at the target than were simulated at the source are not covered.
+    activities: [media_fill, risk_assessment_update, procedure_update]
+
+  - id: R-EV-APS-SCOPE
+    version: 1.0.0
+    title: APS coverage of target container, closure and filling principle
+    match: [uo.aseptic_filling.study.aps.status]
+    comparator: evidence
+    config:
+      map: { covered: within_validated_range, bridging_required: outside_validated_range, not_covered: outside_validated_range }
+    severity: high
+    regulatory: true
+    why: The simulation is valid for the line, container and closure configuration it represents. The target configuration is not demonstrated until a simulation covers it.
+    activities: [media_fill]
+
+  # ---- hold times
+  - id: R-FILTERED-HOLD
+    version: 1.0.0
+    title: Filtered bulk hold time (maximum)
+    match: [uo.aseptic_filling.param.max_filtered_hold.max]
+    comparator: upper_limit
+    severity: high
+    regulatory: true
+    why: Holding the sterile bulk longer than the validated time is not supported by the chemical, physical and microbial hold data.
+    activities: [hold_time_study, risk_assessment_update]
+    outcomes:
+      within_validated_range:
+        why: The planned maximum filtered bulk hold is within the validated hold time.
+
+  - id: R-HOLD-COVERAGE-BULK
+    version: 1.0.0
+    title: Hold study coverage of formulated bulk hold
+    match: [uo.compounding.study.hold_time.coverage]
+    comparator: coverage
+    config:
+      coverageSide: target
+      against: { side: target, path: uo.compounding.param.max_hold_time.max }
+    severity: high
+    why: Hold-time data cover only the durations studied. The longest planned bulk hold must fall within that coverage.
+    activities: [hold_time_study]
+
+  - id: R-HOLD-COVERAGE-FILTERED
+    version: 1.0.0
+    title: Hold study coverage of filtered bulk hold
+    match: [uo.aseptic_filling.study.filtered_hold.coverage]
+    comparator: coverage
+    config:
+      coverageSide: target
+      against: { side: target, path: uo.aseptic_filling.param.max_filtered_hold.max }
+    severity: high
+    why: Hold-time data cover only the durations studied. The longest planned filtered bulk hold must fall within that coverage.
+    activities: [hold_time_study]
+
+  - id: R-EV-HOLD-BASIS
+    version: 1.0.0
+    title: Endpoints of the bulk hold time study
+    match: [uo.compounding.study.hold_time.basis]
+    comparator: evidence
+    config:
+      map: { full_study: within_validated_range, partial_study: outside_validated_range, extrapolated: outside_validated_range, none: outside_validated_range }
+    severity: high
+    why: A hold time claim needs chemical, physical and microbial evidence. Missing endpoints leave part of the claim unsupported.
+    activities: [hold_time_study, scientific_justification]
+
+  # ---- extractables and leachables
+  - id: R-EL-DATA-SOURCE
+    version: 1.0.0
+    title: Source of extractables data
+    match: [uo.*.study.*.dataSource]
+    comparator: evidence
+    config:
+      map: { product_specific_study: within_validated_range, supplier_data: outside_validated_range, none: outside_validated_range }
+    severity: high
+    regulatory: true
+    why: Supplier data alone do not reflect the product formulation, temperature and contact time. A product-specific assessment or study is needed before the leachables risk can be closed.
+    activities: [extractables_leachables, risk_assessment_update]
+
+  - id: R-EL-RISK
+    version: 1.0.0
+    title: Leachables risk assessment outcome
+    match: [uo.*.study.*.riskOutcome]
+    comparator: evidence
+    config:
+      map: { below_threshold: within_validated_range, above_threshold: outside_validated_range, not_assessed: outside_validated_range }
+    severity: high
+    regulatory: true
+    why: The leachables risk is closed only when the toxicological assessment shows worst-case levels below the safety threshold for the route of administration.
+    activities: [extractables_leachables, risk_assessment_update]
+
+  - id: R-EV-CONTAINER-EL
+    version: 1.0.0
+    title: Container closure E&L data for target components
+    match: [uo.aseptic_filling.study.container_el.status]
+    comparator: evidence
+    config:
+      map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
+    severity: high
+    regulatory: true
+    why: Extractables and leachables from the target glass, stopper and coatings have not been assessed for this product over shelf life.
+    activities: [extractables_leachables, stability_assessment]
+
+  # ---- cleaning
+  - id: R-BULK-VESSEL-TYPE
+    version: 1.0.0
+    title: Sterile bulk holding vessel type
+    match: [uo.aseptic_filling.equip.bulk_vessel.type]
+    comparator: enum
+    severity: medium
+    regulatory: true
+    why: A different holding vessel type changes product-contact materials and moves the cleaning or single-use E&L burden. Hold time data collected in the source vessel do not carry over.
+    activities: [extractables_leachables, cleaning_validation, hold_time_study, equipment_qualification, risk_assessment_update]
+
+  - id: R-EV-CLEANING
+    version: 1.0.0
+    title: Cleaning validation of target reusable equipment
+    match: [uo.*.study.cleaning.status]
+    comparator: evidence
+    config:
+      map: { covered: within_validated_range, bridging_required: outside_validated_range, not_covered: outside_validated_range }
+    severity: high
+    why: Reusable product-contact equipment at the target must be shown to be cleaned to acceptable residue and microbial limits for this product.
+    activities: [cleaning_validation]
+
+  - id: R-CLEAN-WORST-CASE
+    version: 1.0.0
+    title: Cleaning worst-case approach
+    match: [uo.*.study.cleaning.worstCase]
+    comparator: evidence
+    config:
+      map: { matrix_worst_case: within_validated_range, dedicated_product: within_validated_range, not_defined: outside_validated_range }
+    severity: medium
+    why: Cleaning validation is meaningful only at a defined worst-case soil and location.
+    activities: [cleaning_validation, scientific_justification]
+
+  - id: R-CLEAN-CARRYOVER
+    version: 1.0.0
+    title: Cleaning carryover limits
+    match: [uo.*.study.cleaning.carryover]
+    comparator: evidence
+    config:
+      map: { health_based_limits: within_validated_range, visual_rinse_only: outside_validated_range, not_established: outside_validated_range }
+    severity: high
+    why: Carryover limits must be scientifically justified; visual and rinse criteria alone do not demonstrate that residues are acceptable.
+    activities: [cleaning_validation, scientific_justification]
+
+  # ---- filter validation
+  - id: R-EV-BRET-CONDITIONS
+    version: 1.0.0
+    title: Bacterial retention test conditions cover target worst case
+    match: [uo.sterile_filtration.study.bacterial_retention.conditions]
+    comparator: evidence
+    config:
+      map: { covered: within_validated_range, bridging_required: outside_validated_range, not_covered: outside_validated_range }
+    severity: high
+    regulatory: true
+    why: Bacterial retention is valid only for the pressure, temperature, flow and time tested. More demanding target conditions are not demonstrated by the existing study.
+    activities: [filter_bacterial_retention]
+
+  - id: R-INTEGRITY-METHOD
+    version: 1.0.0
+    title: Filter integrity test method
+    match: [uo.sterile_filtration.ipc.integrity.method]
+    comparator: enum
+    severity: medium
+    why: Integrity test methods work on different principles and have their own specifications and wetting fluids. A different method needs its own validated specification and procedure.
+    activities: [filter_integrity_validation, equipment_qualification, procedure_update, training]
+
+  - id: R-EV-INTEGRITY-VALIDATION
+    version: 1.0.0
+    title: Product-wet integrity specification for target filter
+    match: [uo.sterile_filtration.study.integrity_validation.status]
+    comparator: evidence
+    config:
+      map: { covered: within_validated_range, bridging_required: outside_validated_range, not_covered: outside_validated_range }
+    severity: medium
+    why: The product-wet integrity limit must be established for the target filter and method before the test can release filtered bulk.
+    activities: [filter_integrity_validation]
+
+  # ---- container closure integrity
+  - id: R-CCI-METHOD
+    version: 1.0.0
+    title: CCI test method
+    match: [uo.capping.study.cci.method]
+    comparator: enum
+    severity: high
+    regulatory: true
+    why: Deterministic and probabilistic CCI methods detect leaks by different principles with different sensitivity. A different method is a change in principle and needs its own validation.
+    activities: [cci_method_validation, cci_study, procedure_update, training]
+
+  - id: R-CCI-SENSITIVITY
+    version: 1.0.0
+    title: CCI method detection limit
+    match: [uo.capping.study.cci.sensitivity]
+    comparator: upper_limit
+    severity: high
+    regulatory: true
+    why: A larger smallest detectable leak means the target method is less sensitive than the validated one, so it does not support the same integrity claim.
+    activities: [cci_method_validation, cci_study, scientific_justification]
+
+  - id: R-EV-CCI-METHOD-VALIDATION
+    version: 1.0.0
+    title: Validation of target CCI method
+    match: [uo.capping.study.cci_method_validation.status]
+    comparator: evidence
+    config:
+      map: { covered: within_validated_range, bridging_required: outside_validated_range, not_covered: outside_validated_range }
+    severity: high
+    why: Results of a CCI method support the integrity claim only when the method is shown fit for purpose with this container and closure.
+    activities: [cci_method_validation]
+
+  - id: R-EV-CCI-LIFECYCLE
+    version: 1.0.0
+    title: CCI over shelf life and distribution
+    match: [uo.capping.study.cci.lifecycle]
+    comparator: evidence
+    config:
+      map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
+    severity: high
+    regulatory: true
+    why: Integrity at release does not show that the seal is kept through storage and transport. Shelf-life and distribution stress data are needed for the target configuration.
+    activities: [cci_study, stability_assessment]
+
+  # ---- shipping validation
+  - id: R-SHIP-MODES
+    version: 1.0.0
+    title: Lane transport modes
+    match: [uo.storage_shipping.doc.shipping_lane.modes]
+    comparator: set
+    severity: medium
+    why: Each transport mode adds its own temperature, vibration and handling exposure that the shipping qualification must represent.
+    activities: [shipping_validation, risk_assessment_update]
+    outcomes:
+      removed_element:
+        why: A transport mode used at the source is not used at the target. Confirm the qualification still covers the remaining modes.
+        activities: [risk_assessment_update]
+
+  - id: R-SHIP-SCOPE
+    version: 1.0.0
+    title: Shipping qualification scope
+    match: [uo.storage_shipping.study.shipping_validation.scope]
+    comparator: evidence
+    config:
+      map: { lane_performance_qualified: within_validated_range, operational_only: outside_validated_range, desk_based: outside_validated_range, none: outside_validated_range }
+    severity: high
+    why: Thermal chamber testing or a desk assessment alone does not show performance on the actual lane.
+    activities: [shipping_validation]
+
+  - id: R-SHIP-PROFILES
+    version: 1.0.0
+    title: Shipping seasonal profiles
+    match: [uo.storage_shipping.study.shipping_validation.profiles]
+    comparator: evidence
+    config:
+      map: { summer_and_winter: within_validated_range, single_season: outside_validated_range, not_defined: outside_validated_range }
+    severity: medium
+    why: Summer and winter ambient extremes set the worst-case thermal load; a qualification that covers one season does not cover the other.
+    activities: [shipping_validation]
+
+  # ---- equipment qualification
+  - id: R-EQ-STATUS
+    version: 1.0.0
+    title: Equipment qualification status
+    match: [uo.*.equip.*.qualificationStatus]
+    comparator: enum
+    config:
+      differentAs: new_requirement
+    severity: medium
+    why: Equipment must be qualified for its intended use before GMP manufacture. A target qualification status that differs from the source (not qualified, planned or at an earlier stage) is a qualification requirement for the transfer.
+    activities: [equipment_qualification, risk_assessment_update]
+
+  - id: R-EQ-RANGE-FILLER-SPEED
+    version: 1.0.0
+    title: Filler qualified speed range
+    match: [uo.aseptic_filling.equip.filler.qualifiedRange_speed]
+    comparator: coverage
+    config:
+      coverageSide: target
+      against: { side: target, path: uo.aseptic_filling.param.line_speed }
+    severity: high
+    why: Operational qualification supports only the speed range tested. A planned line speed outside it is not qualified.
+    activities: [equipment_qualification, equipment_requalification]
+
+  - id: R-EQ-RANGE-FILLER-VOLUME
+    version: 1.0.0
+    title: Filler qualified volume range
+    match: [uo.aseptic_filling.equip.filler.qualifiedRange_volume]
+    comparator: coverage
+    config:
+      coverageSide: target
+      against: { side: target, path: uo.aseptic_filling.param.fill_volume }
+    severity: high
+    why: Dosing accuracy is qualified over a stated volume range. A planned fill volume outside it is not qualified.
+    activities: [equipment_qualification, equipment_requalification]
+
+  - id: R-EQ-RANGE-VESSEL
+    version: 1.0.0
+    title: Compounding vessel qualified working volume
+    match: [uo.compounding.equip.vessel.qualifiedRange]
+    comparator: coverage
+    config:
+      coverageSide: target
+      against: { side: target, path: uo.compounding.param.batch_size }
+    severity: medium
+    why: Vessel qualification supports only the working volume range tested. A planned batch volume outside it is not qualified.
+    activities: [equipment_qualification, equipment_requalification]
+
+  - id: R-EQ-RANGE-MIXER
+    version: 1.0.0
+    title: Mixer qualified speed range
+    match: [uo.compounding.equip.mixer.qualifiedRange]
+    comparator: coverage
+    config:
+      coverageSide: target
+      against: { side: target, path: uo.compounding.param.mixing_speed }
+    severity: medium
+    why: Mixer qualification supports only the speed range tested. A planned mixing speed outside it is not qualified.
+    activities: [equipment_qualification, equipment_requalification]
+
+  - id: R-EQ-RANGE-THAW
+    version: 1.0.0
+    title: Thaw system qualified temperature range
+    match: [uo.ds_receipt_thaw.equip.thaw_unit.qualifiedRange]
+    comparator: coverage
+    config:
+      coverageSide: target
+      against: { side: target, path: uo.ds_receipt_thaw.param.thaw_temperature }
+    severity: medium
+    why: Thaw system qualification supports only the temperature range tested. A planned thaw temperature outside it is not qualified.
+    activities: [equipment_qualification, equipment_requalification]
+
+  - id: R-EQ-RANGE-LYO-SHELF
+    version: 1.0.0
+    title: Lyophilizer qualified shelf temperature range
+    match: [uo.lyophilization.equip.lyophilizer.qualifiedRange_shelf_temp]
+    comparator: coverage
+    config:
+      coverageSide: target
+      against: { side: target, path: uo.lyophilization.param.primary_shelf_temp }
+    severity: high
+    why: Shelf temperature uniformity is qualified over a stated range. A planned shelf temperature outside it is not qualified.
+    activities: [equipment_qualification, equipment_requalification]
+
+  - id: R-EQ-RANGE-LYO-PRESSURE
+    version: 1.0.0
+    title: Lyophilizer qualified pressure range
+    match: [uo.lyophilization.equip.lyophilizer.qualifiedRange_pressure]
+    comparator: coverage
+    config:
+      coverageSide: target
+      against: { side: target, path: uo.lyophilization.param.primary_pressure }
+    severity: high
+    why: Chamber pressure control is qualified over a stated range. A planned drying pressure outside it is not qualified.
+    activities: [equipment_qualification, equipment_requalification]
+
+  - id: R-EQ-RANGE-INSPECTION
+    version: 1.0.0
+    title: Inspection equipment qualified rate range
+    match: [uo.visual_inspection.equip.inspection.qualifiedRange]
+    comparator: coverage
+    config:
+      coverageSide: target
+      against: { side: target, path: uo.visual_inspection.param.inspection_rate }
+    severity: medium
+    why: Detection performance is qualified at a stated inspection rate. A planned rate outside it is not qualified.
+    activities: [equipment_qualification, equipment_requalification]
+
+  - id: R-EQ-RANGE-LABELER
+    version: 1.0.0
+    title: Labeler qualified speed range
+    match: [uo.labeling_packaging.equip.labeler.qualifiedRange]
+    comparator: coverage
+    config:
+      coverageSide: target
+      against: { side: target, path: uo.labeling_packaging.param.labeling_speed }
+    severity: low
+    why: Label application is qualified over a stated speed range. A planned speed outside it is not qualified.
+    activities: [equipment_qualification, equipment_requalification]
+
+  - id: R-EQ-RANGE-SHIPPER
+    version: 1.0.0
+    title: Shipper qualified duration
+    match: [uo.storage_shipping.equip.shipper.qualifiedRange]
+    comparator: coverage
+    config:
+      coverageSide: target
+      against: { side: target, path: uo.storage_shipping.param.max_transit_time.max }
+    severity: high
+    why: The shipping configuration is qualified to hold temperature for a stated duration. A planned transit time beyond it is not qualified.
+    activities: [equipment_qualification, equipment_requalification, shipping_validation]
 
   # ------------------------------------------------------------------ generic fallbacks (custom and catalog items)
   # Placed last so every specific rule above wins. Custom items use keys starting with x_.

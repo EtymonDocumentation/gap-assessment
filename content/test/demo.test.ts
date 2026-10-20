@@ -65,7 +65,7 @@ describe("ARX-217 demo (golden)", () => {
   it("renders the document to Markdown, HTML and the register to CSV", () => {
     const doc = buildDocument(content, project, a, "2026-10-02T00:00:00.000Z");
     expect(doc.title).toBe("Gap assessment: ARX-217 — Site North (fictional), Line 2 to Site South (fictional), Line 4");
-    expect(doc.sections.map((s) => s.id)).toHaveLength(11);
+    expect(doc.sections.map((s) => s.id)).toHaveLength(12);
     const md = renderMarkdown(doc);
     expect(md).toContain("Proof of concept. Not validated. Not for GMP use.");
     expect(md).toContain("DEMO-PPQ-217-01");

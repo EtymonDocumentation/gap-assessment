@@ -2,7 +2,7 @@
 # Editable without code changes. Bump catalog.version on any change.
 catalog:
   id: fill-finish-catalog
-  version: 1.1.0
+  version: 1.2.0
 
 unitOperations:
   - key: ds_receipt_thaw
@@ -17,6 +17,7 @@ unitOperations:
       - { coll: param, key: max_ambient_time, label: Maximum time at ambient temperature after thaw }
       - { coll: equip, key: thaw_unit, label: Thaw system }
       - { coll: equip, key: thaw_mixer, label: Post-thaw mixing }
+      - { coll: equip, key: ds_storage, label: Drug substance storage unit }
       - { coll: mat, key: ds_container, label: Drug substance container }
       - { coll: mat, key: transfer_bag, label: Single-use transfer bag }
       - { coll: study, key: freeze_thaw, label: Freeze-thaw and thaw study }
@@ -37,6 +38,8 @@ unitOperations:
       - { coll: equip, key: mixer, label: Mixer }
       - { coll: ipc, key: panel, label: Compounding in-process controls }
       - { coll: study, key: mixing, label: Mixing study }
+      - { coll: study, key: hold_time, label: Formulated bulk hold time study }
+      - { coll: study, key: cleaning, label: Cleaning validation (compounding equipment) }
       - { coll: doc, key: procedures, label: Compounding procedures }
   - key: sterile_filtration
     label: Bioburden reduction and sterile filtration
@@ -50,6 +53,7 @@ unitOperations:
       - { coll: mat, key: redundant_filter, label: Redundant sterilizing filter }
       - { coll: mat, key: sterilizing_filter, label: Sterilizing-grade filter }
       - { coll: mat, key: sua, label: Single-use filtration assembly }
+      - { coll: equip, key: integrity_tester, label: Filter integrity tester }
       - { coll: ipc, key: integrity, label: Filter integrity testing }
       - { coll: ipc, key: bioburden, label: Pre-filtration bioburden }
       - { coll: study, key: bacterial_retention, label: Bacterial retention validation }
@@ -57,6 +61,7 @@ unitOperations:
       - { coll: study, key: filter_extractables, label: Filter extractables }
       - { coll: study, key: sua_el, label: Single-use assembly E&L }
       - { coll: study, key: filter_sizing, label: Filter sizing }
+      - { coll: study, key: integrity_validation, label: Integrity test validation (product-wet specification) }
       - { coll: doc, key: procedures, label: Filtration procedures }
   - key: aseptic_filling
     label: Aseptic filling and stoppering
@@ -67,7 +72,10 @@ unitOperations:
       - { coll: param, key: fill_volume, label: Fill volume }
       - { coll: param, key: line_speed, label: Filling line speed }
       - { coll: param, key: max_fill_duration, label: Filling duration }
+      - { coll: param, key: max_filtered_hold, label: Filtered (sterile) bulk hold time }
+      - { coll: param, key: max_interventions, label: Maximum interventions per batch }
       - { coll: equip, key: filler, label: Filling machine }
+      - { coll: equip, key: bulk_vessel, label: Sterile bulk holding vessel }
       - { coll: mat, key: container, label: Primary container }
       - { coll: mat, key: stopper, label: Stopper }
       - { coll: ipc, key: fill_check, label: Fill weight check }
@@ -75,6 +83,9 @@ unitOperations:
       - { coll: study, key: pump_product_impact, label: Pump product-quality impact assessment }
       - { coll: study, key: ppq, label: Process performance qualification }
       - { coll: study, key: aps, label: Aseptic process simulation (media fill) }
+      - { coll: study, key: filtered_hold, label: Filtered bulk hold time study }
+      - { coll: study, key: cleaning, label: Cleaning validation (filling equipment) }
+      - { coll: study, key: container_el, label: Container closure E&L }
       - { coll: doc, key: procedures, label: Filling procedures }
   - key: stoppering
     label: Stoppering (stand-alone)
@@ -124,6 +135,7 @@ unitOperations:
       - { coll: ipc, key: panel, label: Capping in-process controls }
       - { coll: study, key: cci, label: Container closure integrity }
       - { coll: study, key: rsf_cci_correlation, label: RSF–CCI correlation }
+      - { coll: study, key: cci_method_validation, label: CCI test method validation }
       - { coll: doc, key: procedures, label: Capping procedures }
   - key: visual_inspection
     label: Visual inspection
@@ -213,6 +225,27 @@ fieldLabels:
   storageCondition: Storage condition
   siliconization: Stopper siliconization
   route: Route
+  # ---- milestone 3: validation studies and equipment qualification
+  qualifiedRange: Qualified range
+  qualifiedRange_speed: Qualified speed range
+  qualifiedRange_volume: Qualified volume range
+  qualifiedRange_shelf_temp: Qualified shelf temperature range
+  qualifiedRange_pressure: Qualified pressure range
+  strategy: Validation strategy
+  batches: Number of batches
+  initialRuns: Number of initial runs
+  method: Test method
+  sensitivity: Detection limit (smallest leak detected)
+  lifecycle: Lifecycle coverage
+  conditions: Test conditions covered
+  scope: Qualification scope
+  profiles: Seasonal profiles
+  modes: Transport modes
+  basis: Basis for hold time
+  worstCase: Worst-case approach
+  carryover: Carryover limits
+  dataSource: Source of data
+  riskOutcome: Risk assessment outcome
 
 optionSets:
   classification:
@@ -473,6 +506,66 @@ optionSets:
     - { value: data_logger, label: Single-use temperature data logger }
     - { value: real_time, label: Real-time telemetry }
     - { value: indicator, label: Temperature indicator }
+  # ---- milestone 3: equipment qualification and validation studies
+  equipQualification:
+    - { value: not_qualified, label: Not qualified }
+    - { value: planned, label: Qualification planned }
+    - { value: iq_complete, label: Installation qualification (IQ) complete }
+    - { value: oq_complete, label: Operational qualification (OQ) complete }
+    - { value: pq_complete, label: Performance qualification (PQ) complete }
+    - { value: requalification_due, label: Qualified; requalification due }
+  ppqStrategy:
+    - { value: full_ppq, label: Full PPQ at the target (new batches) }
+    - { value: reduced_bridging, label: Reduced or bridging PPQ with source data leveraged }
+    - { value: source_data_leveraged, label: Source PPQ data judged to cover the target (no new PPQ) }
+    - { value: not_decided, label: Not yet decided }
+  elDataSource:
+    - { value: product_specific_study, label: Product-specific extractables and leachables study }
+    - { value: supplier_data, label: "Supplier extractables data with a product risk assessment" }
+    - { value: none, label: No data available }
+  elRisk:
+    - { value: below_threshold, label: Assessed; leachables below the safety threshold }
+    - { value: above_threshold, label: Assessed; a leachable exceeds the threshold }
+    - { value: not_assessed, label: Not assessed }
+  holdBasis:
+    - { value: full_study, label: "Hold study with chemical, physical and microbial endpoints" }
+    - { value: partial_study, label: "Hold study with some endpoints only (for example microbial only)" }
+    - { value: extrapolated, label: Extrapolated or justified without a study }
+    - { value: none, label: No hold data }
+  cleanWorstCase:
+    - { value: matrix_worst_case, label: Worst-case product and location selected from a documented matrix }
+    - { value: dedicated_product, label: Dedicated equipment for this product }
+    - { value: not_defined, label: Worst case not defined }
+  cleanCarryover:
+    - { value: health_based_limits, label: Health-based limits with residue and bioburden or endotoxin limits }
+    - { value: visual_rinse_only, label: Visual and rinse criteria only }
+    - { value: not_established, label: Not established }
+  cciMethod:
+    - { value: dye_ingress, label: Dye ingress }
+    - { value: microbial_ingress, label: Microbial ingress (immersion) }
+    - { value: helium_leak, label: Helium leak detection }
+    - { value: hvld, label: High-voltage leak detection (HVLD) }
+    - { value: vacuum_decay, label: Vacuum decay }
+    - { value: pressure_decay, label: Pressure decay }
+  integrityMethod:
+    - { value: bubble_point, label: Bubble point }
+    - { value: diffusive_flow, label: Diffusive flow }
+    - { value: water_intrusion, label: Water intrusion }
+    - { value: pressure_hold, label: Pressure hold }
+  transportModes:
+    - { value: road, label: Road }
+    - { value: air, label: Air }
+    - { value: sea, label: Sea }
+    - { value: rail, label: Rail }
+  shippingScope:
+    - { value: lane_performance_qualified, label: Lane qualified with operational and performance testing }
+    - { value: operational_only, label: Operational (thermal chamber) testing only }
+    - { value: desk_based, label: Desk-based assessment only }
+    - { value: none, label: No qualification }
+  seasonalProfiles:
+    - { value: summer_and_winter, label: Summer and winter profiles }
+    - { value: single_season, label: One seasonal profile }
+    - { value: not_defined, label: Profiles not defined }
 
 activities:
   - { key: information_gathering, label: Information gathering, description: Establish the missing source or target information before the comparison can be completed. }
@@ -480,32 +573,36 @@ activities:
   - { key: engineering_run, label: Engineering run, description: Non-GMP run at the target to confirm equipment and process performance before PPQ. }
   - { key: scientific_justification, label: Scientific justification or characterization, description: Document a scientific rationale or perform characterization work to support the target range. }
   - { key: comparability_assessment, label: Comparability assessment, description: Assess product comparability between source and target processes. }
-  - { key: ppq, label: Process performance qualification, description: PPQ at the target covering the changed element. }
-  - { key: ppq_coverage_assessment, label: PPQ coverage assessment, description: Determine whether existing PPQ data cover the target condition or whether additional PPQ is needed. }
-  - { key: mixing_study, label: Mixing study, description: Demonstrate homogeneity at the target batch volume and mixing configuration. }
-  - { key: hold_time_study, label: Hold time study, description: Establish or extend the validated hold time for the target condition. }
-  - { key: filter_bacterial_retention, label: Filter validation (bacterial retention), description: Bacterial retention validation for the target filter with product under worst-case conditions. }
-  - { key: filter_compatibility, label: Filter compatibility study, description: Chemical compatibility of the target filter with the product. }
-  - { key: extractables_leachables, label: Extractables and leachables assessment, description: E&L assessment of the target product-contact materials. }
-  - { key: filter_sizing, label: Filter sizing confirmation, description: Confirm filter area and throughput for the target batch volume. }
-  - { key: fill_accuracy_study, label: Fill accuracy study, description: Demonstrate fill accuracy and precision of the target filling system with product or a justified surrogate. }
-  - { key: product_quality_impact, label: Product-quality impact assessment, description: "Assess shear and other stress effects of the target equipment on product quality (for example, subvisible particles, aggregation)." }
-  - { key: media_fill, label: Aseptic process simulation (media fill), description: "Media fill covering the target line, duration, container format and interventions." }
+  - { key: ppq, label: Process performance qualification, description: PPQ at the target covering the changed element., studies: [ppq] }
+  - { key: ppq_coverage_assessment, label: PPQ coverage assessment, description: Determine whether existing PPQ data cover the target condition or whether additional PPQ is needed., studies: [ppq] }
+  - { key: mixing_study, label: Mixing study, description: Demonstrate homogeneity at the target batch volume and mixing configuration., studies: [mixing] }
+  - { key: hold_time_study, label: Hold time study, description: Establish or extend the validated hold time for the target condition., studies: [hold_time, filtered_hold] }
+  - { key: filter_bacterial_retention, label: Filter validation (bacterial retention), description: Bacterial retention validation for the target filter with product under worst-case conditions., studies: [bacterial_retention] }
+  - { key: filter_compatibility, label: Filter compatibility study, description: Chemical compatibility of the target filter with the product., studies: [filter_compatibility] }
+  - { key: extractables_leachables, label: Extractables and leachables assessment, description: E&L assessment of the target product-contact materials., studies: [sua_el, filter_extractables, container_el] }
+  - { key: filter_sizing, label: Filter sizing confirmation, description: Confirm filter area and throughput for the target batch volume., studies: [filter_sizing] }
+  - { key: fill_accuracy_study, label: Fill accuracy study, description: Demonstrate fill accuracy and precision of the target filling system with product or a justified surrogate., studies: [fill_accuracy] }
+  - { key: product_quality_impact, label: Product-quality impact assessment, description: "Assess shear and other stress effects of the target equipment on product quality (for example, subvisible particles, aggregation).", studies: [pump_product_impact] }
+  - { key: media_fill, label: Aseptic process simulation (media fill), description: "Media fill covering the target line, duration, container format and interventions.", studies: [aps] }
   - { key: equipment_qualification, label: Equipment qualification, description: IQ/OQ/PQ of target equipment. }
-  - { key: cci_study, label: Container closure integrity study, description: "CCI demonstration for the target container, closure, seal and capping process." }
-  - { key: rsf_study, label: Residual seal force study, description: Establish the RSF range for the target capping equipment and correlate it with CCI. }
+  - { key: cci_study, label: Container closure integrity study, description: "CCI demonstration for the target container, closure, seal and capping process.", studies: [cci] }
+  - { key: rsf_study, label: Residual seal force study, description: Establish the RSF range for the target capping equipment and correlate it with CCI., studies: [rsf_cci_correlation] }
   - { key: environmental_monitoring_assessment, label: Environmental monitoring assessment, description: Assess the environmental monitoring programme for the target barrier and room classification. }
   - { key: csv_assessment, label: Computerized system assessment, description: Assess validation status and data flows of the target computerized systems. }
   - { key: procedure_update, label: Procedure update, description: Create or update procedures and batch record instructions at the target. }
   - { key: training, label: Training, description: Train target personnel on the changed or new procedures. }
-  - { key: freeze_thaw_study, label: Freeze-thaw and thaw study, description: "Demonstrate that the target container, freezer and thaw method give acceptable product quality (for example, no aggregation or concentration gradient) across the validated freeze-thaw conditions." }
-  - { key: lyo_cycle_verification, label: Lyophilization cycle verification, description: "Run and verify the lyophilization cycle at the target (shelf mapping, product temperature, residual moisture, cake appearance) to show the cycle performs as validated." }
-  - { key: avi_qualification, label: Automated inspection qualification, description: "Qualify the automated inspection system against a defect kit (detection probability compared with manual inspection, for example a Knapp-style study) and set the rejection criteria." }
-  - { key: inspector_qualification, label: Inspector qualification, description: "Qualify and periodically requalify manual inspectors against the defect library, with documented acceptance criteria." }
-  - { key: shipping_validation, label: Shipping validation, description: "Qualify the shipping configuration and lane (thermal performance over the worst-case transit time and seasonal profiles)." }
-  - { key: serialization_verification, label: Serialization verification, description: "Verify serialization and aggregation (code quality, data transfer and reporting) for the target markets." }
-  - { key: stability_assessment, label: Stability assessment, description: "Assess whether available stability data support the target storage condition, time out of refrigeration or excursion allowance." }
+  - { key: freeze_thaw_study, label: Freeze-thaw and thaw study, description: "Demonstrate that the target container, freezer and thaw method give acceptable product quality (for example, no aggregation or concentration gradient) across the validated freeze-thaw conditions.", studies: [freeze_thaw, thaw_homogeneity] }
+  - { key: lyo_cycle_verification, label: Lyophilization cycle verification, description: "Run and verify the lyophilization cycle at the target (shelf mapping, product temperature, residual moisture, cake appearance) to show the cycle performs as validated.", studies: [cycle_verification, aps_loading] }
+  - { key: avi_qualification, label: Automated inspection qualification, description: "Qualify the automated inspection system against a defect kit (detection probability compared with manual inspection, for example a Knapp-style study) and set the rejection criteria.", studies: [avi_qualification] }
+  - { key: inspector_qualification, label: Inspector qualification, description: "Qualify and periodically requalify manual inspectors against the defect library, with documented acceptance criteria.", studies: [inspector_qualification] }
+  - { key: shipping_validation, label: Shipping validation, description: "Qualify the shipping configuration and lane (thermal performance over the worst-case transit time and seasonal profiles).", studies: [shipping_validation] }
+  - { key: serialization_verification, label: Serialization verification, description: "Verify serialization and aggregation (code quality, data transfer and reporting) for the target markets.", studies: [serialization_verification] }
+  - { key: stability_assessment, label: Stability assessment, description: "Assess whether available stability data support the target storage condition, time out of refrigeration or excursion allowance.", studies: [stability_support, tor_stability] }
   - { key: temperature_mapping, label: Temperature mapping, description: Map and qualify storage areas and monitoring points for the target storage condition. }
+  - { key: equipment_requalification, label: Equipment requalification, description: "Requalify or extend the qualified range of target equipment so it covers the planned operating range (OQ re-execution, or a documented assessment and delta qualification)." }
+  - { key: cleaning_validation, label: Cleaning validation, description: "Validate cleaning of the target product-contact equipment (worst-case selection, residue and microbial limits, sampling and hold times).", studies: [cleaning] }
+  - { key: cci_method_validation, label: CCI test method validation, description: "Validate the container closure integrity test method for the target container (sensitivity, positive and negative controls, repeatability).", studies: [cci_method_validation] }
+  - { key: filter_integrity_validation, label: Filter integrity test validation, description: "Establish and validate the product-wet integrity test specification and procedure for the target filter and tester.", studies: [integrity_validation] }
 
 categories:
   - { key: equivalent, label: Equivalent, description: Source and target are the same. }

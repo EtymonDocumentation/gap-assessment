@@ -98,7 +98,15 @@ export const catalogSchema = z.object({
   ),
   fieldLabels: z.record(z.string(), z.string()),
   optionSets: z.record(z.string(), z.array(optionSchema).min(1)),
-  activities: z.array(z.object({ key: z.string(), label: z.string(), description: z.string() })),
+  activities: z.array(
+    z.object({
+      key: z.string(),
+      label: z.string(),
+      description: z.string(),
+      /** Keys of catalog study items (coll "study") that provide evidence for this activity. */
+      studies: z.array(z.string()).optional(),
+    }),
+  ),
   categories: z.array(z.object({ key: z.enum(CATEGORIES), label: z.string(), description: z.string() })),
 });
 export type Catalog = z.infer<typeof catalogSchema>;
@@ -233,6 +241,7 @@ export const templateSchema = z.object({
     differencesIntro: z.string(),
     gapTableIntro: z.string(),
     activitiesIntro: z.string(),
+    equipmentQualificationIntro: z.string(),
     openItemsIntro: z.string(),
     riskIntro: z.string(),
     referencesIntro: z.string(),
