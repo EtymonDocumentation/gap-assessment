@@ -1,11 +1,13 @@
-import { buildDocument, verificationSummary } from "@gap/engine";
+import { buildDocument, documentFingerprint, recordExport, revisionState, verificationSummary } from "@gap/engine";
+import type { DocumentExport, TemplateRecord } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlBody, renderMarkdown } from "@gap/renderers";
 import { useMemo, useState } from "react";
 import { download, SIDE_TEXT as SIDE_NAME, slug, today } from "../lib";
 import { href } from "../router";
 import { useAssessment, useContent, useStore } from "../store";
+import { BUILTIN_RECORD, CommentsPanel, ExportHistory, RevisionsPanel, useWordChoice, WordPanel } from "./document-panels";
 
-/** Live preview of the generated document, with Markdown and print-ready HTML downloads. */
+/** Live preview of the generated document, with downloads (Markdown, HTML, Word), revisions, reviewer comments and the export history. */
 export function DocumentPage() {
   const project = useStore((s) => s.project)!;
   const content = useContent();
@@ -16,16 +18,48 @@ export function DocumentPage() {
   const body = useMemo(() => renderHtmlBody(doc), [doc]);
   const vs = useMemo(() => verificationSummary(content, project), [content, project]);
   const base = `${slug(project.meta.title)}-gap-assessment-${today()}`;
+  const update = useStore((s) => s.update);
+  const by = useStore((s) => s.lastPerson?.name);
+  const choice = useWordChoice();
+  const state = useMemo(() => revisionState(project, doc), [project, doc]);
+
+  /** Every download is written to the export history, with the revision it was made at and whether the content has changed since. */
+  const recordDownload = (format: DocumentExport["format"], template: TemplateRecord) =>
+    update(
+      (p) =>
+        recordExport(p, {
+          at: new Date().toISOString(),
+          ...(by ? { by } : {}),
+          format,
+          template,
+          ...(state.latest ? { revision: state.latest.number } : {}),
+          fingerprint: documentFingerprint(doc),
+          changedSinceRevision: state.changedSinceIssue,
+        }),
+      "Download recorded in the export history",
+    );
 
   return (
     <div className="stack-lg">
       <div className="row between wrap no-print">
         <h1>Document</h1>
         <div className="row wrap">
-          <button className="btn" onClick={() => download(`${base}.md`, renderMarkdown(doc), "text/markdown;charset=utf-8")}>
+          <button
+            className="btn"
+            onClick={() => {
+              download(`${base}.md`, renderMarkdown(doc), "text/markdown;charset=utf-8");
+              recordDownload("markdown", BUILTIN_RECORD);
+            }}
+          >
             Download Markdown
           </button>
-          <button className="btn" onClick={() => download(`${base}.html`, renderHtml(doc), "text/html;charset=utf-8")}>
+          <button
+            className="btn"
+            onClick={() => {
+              download(`${base}.html`, renderHtml(doc), "text/html;charset=utf-8");
+              recordDownload("html", BUILTIN_RECORD);
+            }}
+          >
             Download HTML
           </button>
           <button className="btn primary" onClick={() => window.print()}>
@@ -77,6 +111,19 @@ export function DocumentPage() {
           Names are free text without a login, so verification is not attributable in a GMP sense. The full breakdown by section is in the document.
         </p>
       </section>
+      <WordPanel
+        choice={choice}
+        doc={doc}
+        content={content}
+        project={project}
+        assessment={a}
+        generatedAt={generatedAt}
+        fileBase={base}
+        onExported={(template) => recordDownload("docx", template)}
+      />
+      <RevisionsPanel project={project} state={state} doc={doc} choice={choice} />
+      <CommentsPanel project={project} doc={doc} assessment={a} />
+      <ExportHistory exports={project.document.exports} />
       <style>{DOCUMENT_CSS}</style>
       {/* Content is built from escaped text by renderHtmlBody (every value passes through escapeHtml). */}
       <div className="doc-preview" dangerouslySetInnerHTML={{ __html: body }} />

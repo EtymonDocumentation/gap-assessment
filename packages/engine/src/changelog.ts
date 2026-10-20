@@ -4,6 +4,7 @@ import { cell } from "./csv";
 import type { ContentBundle } from "./content";
 import { effectiveContent } from "./custom";
 import { entryLabel } from "./labels";
+import { commentDisplayId } from "./review";
 
 /**
  * Human-readable views of the project change log: filterable rows for the Change log page, CSV export and
@@ -32,7 +33,19 @@ export const ACTION_LABELS: Record<string, string> = {
   custom_item_add: "Custom item added",
   custom_item_rename: "Custom item renamed",
   custom_item_remove: "Custom item removed",
+  issue_revision: "Revision issued",
+  add_comment: "Comment added",
+  reply_comment: "Comment reply",
+  resolve_comment: "Comment resolved",
+  reopen_comment: "Comment reopened",
 };
+
+/**
+ * Actions that record the review of the document (revisions and reviewer comments). The document's own Change log
+ * summary leaves them out: they are listed in its revision history and reviewer comments, and counting them there
+ * would make the document look changed every time a revision is issued or a comment is added.
+ */
+export const REVIEW_ACTIONS: readonly string[] = ["issue_revision", "add_comment", "reply_comment", "resolve_comment", "reopen_comment"];
 
 export function actionLabel(action: string): string {
   if (ACTION_LABELS[action]) return ACTION_LABELS[action]!;
@@ -261,6 +274,22 @@ function toRow(content: ContentBundle, project: Project, ev: ChangeEvent, i: num
       row.after = String(ev.after ?? NONE);
       return row;
     }
+    case "issue_revision": {
+      const a = isObj(ev.after) ? ev.after : undefined;
+      row.subject = typeof a?.number === "number" ? `Document revision ${a.number}` : "Document revision";
+      return row;
+    }
+    case "add_comment":
+    case "reply_comment":
+    case "resolve_comment":
+    case "reopen_comment": {
+      const seq = Number(/^document\.comment\.(\d+)$/.exec(ev.path ?? "")?.[1]);
+      row.subject = Number.isInteger(seq) && seq > 0 ? `Reviewer comment ${commentDisplayId(seq)}` : "Reviewer comment";
+      const status = (o: unknown) => (isObj(o) && (o.status === "open" || o.status === "resolved") ? (o.status === "open" ? "Open" : "Resolved") : NONE);
+      row.before = status(ev.before);
+      row.after = status(ev.after);
+      return row;
+    }
     default: {
       if (ev.action.startsWith("custom_")) {
         row.subject = ev.detail ?? ev.path ?? "";
@@ -327,10 +356,13 @@ export interface ActionCount {
   count: number;
 }
 
-/** Number of events per action, most frequent first. */
-export function changeLogActionCounts(project: Project): ActionCount[] {
+/** Number of events per action, most frequent first. With `excludeReview`, revision and comment events are left out. */
+export function changeLogActionCounts(project: Project, opts: { excludeReview?: boolean } = {}): ActionCount[] {
   const m = new Map<string, number>();
-  for (const ev of project.changeLog) m.set(ev.action, (m.get(ev.action) ?? 0) + 1);
+  for (const ev of project.changeLog) {
+    if (opts.excludeReview && REVIEW_ACTIONS.includes(ev.action)) continue;
+    m.set(ev.action, (m.get(ev.action) ?? 0) + 1);
+  }
   return [...m]
     .map(([action, count]) => ({ action, label: actionLabel(action), count }))
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));

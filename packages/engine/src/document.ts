@@ -11,6 +11,7 @@ import { cellVerification, verificationSummary } from "./verification";
 import { sourceRegisterRows } from "./source-register";
 import { changeLogActionCounts } from "./changelog";
 import { effectiveContent } from "./custom";
+import { commentDisplayId, revisionState, revisionStatusLabel } from "./review";
 
 export type Block =
   | { type: "paragraph"; text: string }
@@ -28,12 +29,54 @@ export interface DocSection {
   blocks: Block[];
 }
 
+/** One issued document revision, as shown in the revision history. */
+export interface DocRevision {
+  number: number;
+  /** "Draft" or "Issued for review". Never "Approved": the tool has no electronic signature. */
+  statusLabel: string;
+  date: string;
+  by: string;
+  role?: string;
+  summary: string;
+  /** Template used when the revision was issued, e.g. "Built-in default 1.0.0". */
+  template?: string;
+}
+
+export interface DocCommentReply {
+  kind: "reply" | "resolution" | "reopen";
+  by: string;
+  role?: string;
+  at: string;
+  text: string;
+}
+
+/** A reviewer comment anchored to a document section, and optionally to one gap row in it. */
+export interface DocComment {
+  /** Display ID, "C-001", ... */
+  id: string;
+  sectionId: string;
+  /** Current display ID of the anchored gap; undefined when anchored to the section only. */
+  gapDisplayId?: string;
+  /** Human-readable anchor, e.g. "5. Detailed gap table, G-012" or "... (gap no longer present)". */
+  anchorText: string;
+  by: string;
+  role?: string;
+  at: string;
+  text: string;
+  status: "open" | "resolved";
+  replies: DocCommentReply[];
+}
+
 export interface DocModel {
   title: string;
   banner: string;
   status: string;
   meta: [string, string][];
   sections: DocSection[];
+  /** Issued revisions, oldest first. */
+  revisions: DocRevision[];
+  /** Reviewer comments, oldest first. */
+  comments: DocComment[];
 }
 
 const SEVERITY_TEXT = { high: "High", medium: "Medium", low: "Low", none: "None" } as const;
@@ -359,15 +402,87 @@ export function buildDocument(content: ContentBundle, project: Project, a: Asses
       : []),
   ]);
 
-  const counts = changeLogActionCounts(project);
+  // Revision and comment events are not counted: they are listed in Appendices C and D, and counting them here
+  // would make the content look changed each time a revision is issued or a comment is added.
+  const counts = changeLogActionCounts(project, { excludeReview: true });
+  const countedTotal = counts.reduce((sum, c) => sum + c.count, 0);
   appendix("change-log-summary", "Change log summary", [
     { type: "paragraph", text: fill(t.changeLogSummaryIntro, vars) },
     counts.length
-      ? { type: "table", columns: ["Change", "Count"], rows: [...counts.map((c) => [c.label, String(c.count)]), ["Total", String(project.changeLog.length)]] }
+      ? { type: "table", columns: ["Change", "Count"], rows: [...counts.map((c) => [c.label, String(c.count)]), ["Total", String(countedTotal)]] }
       : { type: "paragraph", text: "No changes have been recorded." },
+    { type: "note", text: t.changeLogReviewNote },
   ]);
 
-  return {
+  const revisions: DocRevision[] = project.document.revisions.map((r) => ({
+    number: r.number,
+    statusLabel: revisionStatusLabel(r.status),
+    date: shortDate(r.at),
+    by: r.by,
+    ...(r.role ? { role: r.role } : {}),
+    summary: r.summary,
+    ...(r.template ? { template: `${r.template.name} ${r.template.version}`.trim() } : {}),
+  }));
+
+  const byText = (by: string, role?: string) => (role ? `${by} (${role})` : by);
+  appendix("revision-history", "Revision history", [
+    { type: "paragraph", text: fill(t.revisionHistoryIntro, vars) },
+    revisions.length
+      ? {
+          type: "table",
+          columns: ["Revision", "Status", "Date", "By", "Summary of change", "Template"],
+          rows: revisions.map((r) => [String(r.number), r.statusLabel, r.date, byText(r.by, r.role), r.summary, r.template ?? "—"]),
+        }
+      : { type: "paragraph", text: "No revision has been issued yet." },
+    { type: "note", text: t.revisionStatement },
+  ]);
+  // Appendix D is added empty first, so a comment can point at it like at any other section; its table is filled in below.
+  appendix("reviewer-comments", "Reviewer comments", []);
+
+  const sectionAnchor = (sectionId: string): string => {
+    const s = sections.find((x) => x.id === sectionId);
+    if (!s) return `Unknown section (${sectionId})`;
+    return `${s.appendix ? "Appendix " : ""}${s.number}. ${s.title}`;
+  };
+  const comments: DocComment[] = project.document.comments.map((c) => {
+    const gap = c.anchor.gapKey ? a.gaps.find((g) => g.key === c.anchor.gapKey) : undefined;
+    const gapText = !c.anchor.gapKey ? "" : gap ? `, ${gap.displayId}` : `, gap no longer present (${c.anchor.gapKey})`;
+    return {
+      id: commentDisplayId(c.seq),
+      sectionId: c.anchor.sectionId,
+      ...(gap ? { gapDisplayId: gap.displayId } : {}),
+      anchorText: sectionAnchor(c.anchor.sectionId) + gapText,
+      by: c.by,
+      ...(c.role ? { role: c.role } : {}),
+      at: c.at,
+      text: c.text,
+      status: c.status,
+      replies: c.replies.map((r) => ({ kind: r.kind, by: r.by, ...(r.role ? { role: r.role } : {}), at: r.at, text: r.text })),
+    };
+  });
+
+  const REPLY_KIND = { reply: "Reply", resolution: "Resolution", reopen: "Reopened" } as const;
+  sections.find((s) => s.id === "reviewer-comments")!.blocks.push(
+    { type: "paragraph", text: fill(t.reviewerCommentsIntro, vars) },
+    comments.length
+      ? {
+          type: "table",
+          columns: ["ID", "Location", "Comment", "By", "Date", "Status", "Responses"],
+          rows: comments.map((c) => [
+            c.id,
+            c.anchorText,
+            c.text,
+            byText(c.by, c.role),
+            shortDate(c.at),
+            c.status === "open" ? "Open" : "Resolved",
+            c.replies.map((r) => `${REPLY_KIND[r.kind]} by ${r.by}, ${shortDate(r.at)}: ${r.text}`).join("; ") || "—",
+          ]),
+        }
+      : { type: "paragraph", text: "No reviewer comments have been recorded." },
+  );
+
+
+  const doc: DocModel = {
     title: fill(t.title, vars),
     banner: t.banner,
     status: "DRAFT",
@@ -380,5 +495,18 @@ export function buildDocument(content: ContentBundle, project: Project, a: Asses
       ["Verification", t.verificationStatement],
     ],
     sections,
+    revisions,
+    comments,
   };
+  // The Revision line goes right after "Generated". It is left out of the fingerprint, so adding it changes nothing.
+  doc.meta.splice(2, 0, ["Revision", revisionMetaText(project, doc)]);
+  return doc;
+}
+
+/** The text of the Revision line: not yet issued, the latest revision, or the latest revision with a warning that the content has changed. */
+function revisionMetaText(project: Project, doc: DocModel): string {
+  const { latest, changedSinceIssue } = revisionState(project, doc);
+  if (!latest) return "Not yet issued";
+  const base = `${latest.number} (${revisionStatusLabel(latest.status)}, ${shortDate(latest.at)})`;
+  return changedSinceIssue ? `${base}; the content has changed since this revision was issued` : base;
 }

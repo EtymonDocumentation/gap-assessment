@@ -1,0 +1,20 @@
+{
+  "name": "@gap/docx",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@gap/engine": "^0.1.0",
+    "@gap/process-model": "^0.1.0",
+    "@xmldom/xmldom": "^0.9.12",
+    "docxtemplater": "^3.71.1",
+    "pdfjs-dist": "^6.4.299",
+    "pizzip": "^3.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "pdf-lib": "^1.17.1"
+  }
+}

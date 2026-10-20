@@ -7,6 +7,8 @@ import { BuilderPage } from "./pages/BuilderPage";
 import { ChangesPage } from "./pages/ChangesPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { SourcesPage } from "./pages/SourcesPage";
+import { MappingPage } from "./pages/MappingPage";
+import { TemplatesPage } from "./pages/TemplatesPage";
 import { ValidationPage } from "./pages/ValidationPage";
 import { href, useRoute } from "./router";
 import { useStore } from "./store";
@@ -18,6 +20,7 @@ const NAV = [
   { path: "/register", label: "Gap register" },
   { path: "/validation", label: "Validation" },
   { path: "/document", label: "Document" },
+  { path: "/templates", label: "Templates" },
   { path: "/builder", label: "Builder" },
   { path: "/sources", label: "Sources" },
   { path: "/changes", label: "Change log" },
@@ -63,7 +66,9 @@ export function App() {
     window.scrollTo(0, 0);
   }, [route.path]);
 
-  const needsProject = route.path !== "/";
+  // The template library belongs to the browser, not to a project, so it opens without one.
+  const needsProject = route.path !== "/" && route.path !== "/templates";
+  const mappingId = /^\/templates\/([^/]+)\/mapping$/.exec(route.path)?.[1];
   let page: React.ReactNode;
   if (!ready) page = <p className="muted">Loading…</p>;
   else if (needsProject && !project) page = <HomePage notice="Open the demo or start a new project first." />;
@@ -75,6 +80,8 @@ export function App() {
   else if (route.path === "/builder" || route.path === "/model") page = <BuilderPage />;
   else if (route.path === "/sources") page = <SourcesPage />;
   else if (route.path === "/changes") page = <ChangesPage />;
+  else if (route.path === "/templates") page = <TemplatesPage />;
+  else if (mappingId) page = <MappingPage id={decodeURIComponent(mappingId)} />;
   else page = <HomePage />;
 
   return (
@@ -98,7 +105,7 @@ export function App() {
           <ul className="nav">
             {NAV.map((n) => (
               <li key={n.path}>
-                <a href={href(n.path)} aria-current={route.path === n.path || (n.path === "/builder" && route.path === "/model") ? "page" : undefined}>
+                <a href={href(n.path)} aria-current={route.path === n.path || (n.path === "/builder" && route.path === "/model") || (n.path === "/templates" && !!mappingId) ? "page" : undefined}>
                   {n.label}
                 </a>
               </li>

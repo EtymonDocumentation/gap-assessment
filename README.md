@@ -22,6 +22,7 @@ Live site: `https://<your-github-user>.github.io/gap-assessment/` (after the dep
 9. [Testing](#testing)
 10. [Deployment to GitHub Pages](#deployment-to-github-pages)
 11. [Scope of this milestone and known limitations](#scope-of-this-milestone-and-known-limitations)
+12. [Word templates](#word-templates)
 
 ---
 
@@ -42,6 +43,8 @@ Live site: `https://<your-github-user>.github.io/gap-assessment/` (after the dep
 - **Sources.** A register of every source: interview answers, user notes and document references, with who gave them, when, and which entries cite each one. Add or edit a document reference, attach a source to a value, or detach one. **Removing a source shows its consequences first** (every entry it supports, and which of them would be left with no source), then, once confirmed, those entries revert to *Not established*, the old value is kept only in the change log, and the gaps recompute. A source that nothing cites is listed as unused.
 - **Verification.** Every entry in the document is either *Unverified* or *Verified by* a named person, with role and date. Verify one value in the Builder, or every verifiable value in a section at once (the dialog lists what will be verified and what will be skipped, and why). Only established and not-applicable values can be verified; Unknown and Not established values cannot. Changing a value, its status, its justification or its "same as source" link withdraws the verification and the entry shows *Verification withdrawn* with the reason. A verification can also be withdrawn on purpose, with a required reason.
 - **Change log.** A page with every change in the project, newest first: who, when, what, and the value before and after. Filter by actor, action, section or text, and export the (filtered) log to CSV. Cells that start with a formula character are neutralised in the export.
+- **Word document (M5).** The Document page also makes a real `.docx` file, in the browser, with the same content as the preview. You can use the built-in layout, or a company Word or PDF template from a template library kept in this browser (see [Word templates](#word-templates)). Every download is written to an export history in the project, with the template, its version and a SHA-256 hash.
+- **Revisions and reviewer comments (M5).** Issue a numbered revision (Draft or Issued for review) with a summary and the name and role of whoever issued it. The document shows a revision history and says when the content has changed since the last revision. Reviewers' comments are anchored to a section (and, for some sections, to one gap), can be answered, resolved with a response, or reopened with a reason, and are listed in the document. A revision is **not** an approval or a signature.
 - **One-click demo.** ARX-217 is a fictional liquid mAb in 2R vials moving from Site North (Line 2) to Site South (Line 4). It produces every one of the eight categories.
 
 M1 covers four unit operations:
@@ -99,7 +102,12 @@ Other commands (run from the repository root):
    - *Sources:* review who said or wrote what, and remove a source if it turns out to be wrong. The impact dialog tells you which values would become *Not established* before you confirm.
    - *Builder:* verify a value (or a whole section) by entering the verifier's name and role. If the verifier is the person who recorded the value, the tool asks for an explicit confirmation ("I am verifying my own entry") and the document marks the entry "same person as recorder". Withdraw a verification with a reason, or edit the value, which withdraws it automatically.
    - *Change log:* check what changed, by whom, and from which value to which.
-6. **Document.** Download Markdown or HTML, or print. Each entry shows its source and its verification status (Unverified, Verified by name and date, or Verification withdrawn). The document ends with a *Verification status* section and two appendices: A, the source register, and B, a summary of the change log.
+6. **Document.** Download Markdown, HTML or Word, or print. Each entry shows its source and its verification status (Unverified, Verified by name and date, or Verification withdrawn). The document ends with a *Verification status* section and appendices: the source register, a summary of the change log, the revision history and the reviewer comments.
+   - *Word document:* choose one of four options (see [Word templates](#word-templates)), pick a template if the option needs one, and read the checks under *Before you download*. A problem there switches the button off. Warnings from the export are shown after the download.
+   - *Revisions:* **Issue revision** asks for Draft or Issued for review, a summary, and your name and role. The page says which revision is current and whether the content has changed since.
+   - *Reviewer comments:* filter by Open, Resolved or All. **Add comment** asks for the section (and, for the differences, gap table, risk and validation plan sections, optionally one gap). Reply, resolve (a response is required) or reopen (a reason is required) from each comment. Your name and role are remembered until you close the tab.
+   - *Export history:* every Markdown, HTML and Word download, newest first, with the revision and whether the content had changed since it was issued.
+7. **Templates.** Add, rename, export, import and delete Word and PDF templates, read what the tool found in each one, and build the heading mapping for the "Map to their headings" option. This page also opens without a project.
 
 Your project is saved automatically in this browser only (IndexedDB). Use **Export project (JSON)** to keep a copy or move it to another browser. Nothing is sent to a server.
 
@@ -132,6 +140,7 @@ A static single-page app with no backend, organized as npm workspaces:
 | `packages/process-model` | `@gap/process-model` | Types and Zod schemas for the project, entries, sources, verification, units and conversion, and schema migrations. **Shared with the later TRD and MBR modules.** |
 | `packages/engine` | `@gap/engine` | Content loading and cross-checks, condition evaluator, sequencer (paired and sequential), answer application, comparators and gap derivation, overlays, document model, CSV, demo builder. No UI code. |
 | `packages/renderers` | `@gap/renderers` | Document model to Markdown and print HTML (all text is escaped). |
+| `packages/docx` | `@gap/docx` | Word export and template handling: reading `.docx`, `.dotx`, `.docm` and PDF templates, the analysis report, the four export options, placeholder tags and the heading mapping. The web app loads it only when needed (a separate chunk), so the first page load stays small. |
 | `content` | `@gap/content` | Versioned YAML: catalog, question bank, rules, document template and demo project. |
 | `apps/web` | `@gap/web` | React 19 UI (Vite, Zustand, Radix Dialog, hash router). Contains no business logic. |
 
@@ -167,6 +176,7 @@ Every page has light and dark themes. The layout works from phone width up. Acce
   - scope, and source and target process models
   - sources and the answer log
   - gap overlays and an append-only change log
+  - `document`: the revisions, the reviewer comments (each with its replies, resolution and reopening) and the export history (schema 1.3.0; older files migrate on load)
 - **Gaps are derived, never stored.** They are recomputed from the model on every change. Each gap has a stable key (`ruleId:path[#subKey]`). User decisions (owner, status, severity override, notes) are stored as *overlays* on that key, so they survive recomputation.
 - **Closed branches.** If an answer change makes a question irrelevant, its earlier answers are kept but marked inactive. They are excluded from comparison and from the document, and listed on the Model page.
 
@@ -237,6 +247,7 @@ The comparator decides the category. The rule content supplies the wording, acti
   - It lists the sources, removes one after reading its impact, and checks that the value becomes Not established and the register changes.
   - It verifies a value in the Builder, checks the document, changes the value so the verification is withdrawn, and checks the change log and its CSV.
   - It runs an axe scan with no serious or critical violations on every page in both themes, and checks that no page scrolls sideways.
+  - The M5 tests (`apps/web/e2e/m5.spec.ts`) add the sample templates and check each analysis (removed macros, the old `.doc` advice, a PDF listed for mapping only). They rename, export, delete and re-import a template file (a changed file is refused). They build and save a heading mapping and check it is still there after a reload. They download a Word file in all four options, and with a PDF template, and check that it is a zip of a sensible size. They check the export history, issue a revision and see the "content has changed" notice, and add, reply to, resolve and reopen a comment. They also run axe, with dialogs open, on the Templates page, the mapping editor and the Document page in both themes and at 1280, 768 and 390 px.
 
 ## Deployment to GitHub Pages
 
@@ -284,14 +295,48 @@ The build uses relative asset paths (`base: "./"`) and a hash router, so it work
   - the Change log page with filters and CSV export
   - verification status for every entry in the document, a *Verification status* section, appendix A (source register) and appendix B (change log summary), and verification columns in the gap register CSV
   - project schema 1.2.0 (older files migrate on load)
+- **In M5:**
+  - project schema 1.3.0 with `project.document`: revisions, reviewer comments and the export history (older files migrate on load)
+  - Word (`.docx`) export with four options, and a template library kept in this browser (Word and PDF templates, analysis report, export and import of template files)
+  - the heading mapping editor and placeholder tags, with a downloadable starter template and tag reference
+  - the Templates page, and the Word document, revisions, comments and export history panels on the Document page
+  - revision history and reviewer comments in the document, and new change log actions for them
 - **Not yet:**
-  - DOCX export (M5)
   - TRD seed export and packaging of the model (M6)
 - **Responder and verifier identity is free text.** There is no login and no electronic signature, so answers and verifications are not attributable in a GMP sense. The document says so.
 - **Four-eyes is a prompt, not a lock.** If the verifier's name matches the person who recorded the value (compared without regard to case or spacing), the tool asks for explicit confirmation and flags the verification as a self-verification. Because names are free text, a different spelling of the same person, or another person's name, is not detected.
 - **Risk ranking is severity only** (rule severity plus justified overrides). There is no likelihood scoring.
 - **Equivalence is exact** after unit conversion. There is no tolerance band yet.
-- **Data stays in the browser.** Clearing site data deletes the project unless it was exported.
+- **Data stays in the browser.** Clearing site data deletes the project unless it was exported. The same is true of the template library, which is stored separately from projects.
+- **Word layout is generated without Word.** The `.docx` file is built by this tool, not by Microsoft Word. Check the layout, page breaks, headers and tables in Word before you use the document.
+- **PDF templates give only headings.** From a PDF the tool can read the outline of headings, not the styles, fonts or page layout. A PDF template can only be used with "Map to their headings".
+- **Placeholder tags are simple.** A tag is replaced by a value or a block of content. Tags do not support expressions, calculations or conditions.
+- **A revision is not an approval or a signature.** It numbers a state of the document and records who issued it. Approval stays outside the tool.
+- **Comment names are free text.** There is no login, so the author of a comment and the person who resolved it are not attributable in a GMP sense.
+
+
+## Word templates
+
+The Document page can make a Word file in four ways. Pick the one that fits:
+
+| Option | What you get | Needs a template |
+|---|---|---|
+| **Built-in default** | This tool's own layout. | No |
+| **Their look** | The content in the built-in order, with the fonts, colours, margins, headers and footers of a company Word template. | A Word template |
+| **Map to their headings** | The content placed under the headings of a company template (Word or PDF), following a mapping you set up on the Templates page. | A Word or PDF template, plus a saved mapping |
+| **Placeholder tags** | A template that contains tags such as `{program}`. The tool fills them in. | A Word template with tags |
+
+**Add a template.** Open **Templates**, choose a file (`.docx`, `.dotx`, `.docm` or `.pdf`), then give it a name and a version. The version is recorded with every export. The tool recognises `.doc`, `.rtf` and `.odt` files, but does not read them: it tells you how to save them as `.docx` first. Each template shows a report of what the tool found (headings, styles, tags, layout), what it removed, and which of the four options it can be used for.
+
+**Macros are removed.** A `.docm` template is accepted, but its macros are stripped and listed in the report. The copy kept in the library, and every Word file the tool makes, has none.
+
+**The library lives only in this browser.** Templates are not part of the project file and are not sent anywhere. Clearing site data deletes them. Use **Export template file** (a `.gap-template.json` file) to keep a copy or move it to another browser, and **Import a template file** to bring it back. The tool checks the file's checksum on import and refuses a file that has been changed.
+
+**Placeholder tags.** Use **Download starter tag template** for a ready-made Word file. Use **Download tag reference (Markdown)**, or the table on the Templates page, for the list of tags.
+
+**Heading mapping.** To use "Map to their headings", open the template's mapping from the Templates page. This needs an open project, because the mapping lists that project's content. Assign the tool's content to the template's headings with the Add, Up, Down and Remove buttons, or use **Suggest a mapping** and adjust it. For each heading choose whether the template's own text is kept or replaced. Content you do not map is added at the end, or left out if you tick "I understand this content will be left out of the Word document". The report beside the editor updates as you work, and the mapping is saved with the template.
+
+**Fictional samples.** **Add the fictional sample templates** adds four Brightwater Biologics (fictional) templates: a Word template, a tag template, a macro-enabled template and a PDF outline. They are there for trying the feature. Samples already in the library are skipped.
 
 ---
 

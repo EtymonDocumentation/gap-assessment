@@ -14,6 +14,7 @@ export * from "./verification";
 export * from "./source-register";
 export * from "./changelog";
 export * from "./document";
+export * from "./review";
 export * from "./csv";
 export * from "./validation";
 export * from "./demo";

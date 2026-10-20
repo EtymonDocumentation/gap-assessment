@@ -253,6 +253,10 @@ export const templateSchema = z.object({
     identityStatement: z.string(),
     sourceRegisterIntro: z.string(),
     changeLogSummaryIntro: z.string(),
+    changeLogReviewNote: z.string(),
+    revisionHistoryIntro: z.string(),
+    revisionStatement: z.string(),
+    reviewerCommentsIntro: z.string(),
   }),
 });
 export type Templates = z.infer<typeof templateSchema>;

@@ -117,6 +117,73 @@ export const customSchema = z
     }
   });
 
+const templateRecord = z.object({
+  mode: z.enum(["builtin", "their_look", "mapped", "tags"]),
+  name: z.string().trim().min(1),
+  version: z.string(),
+  sha256: z.string().optional(),
+  fileName: z.string().optional(),
+});
+
+const reviewReply = z.object({
+  kind: z.enum(["reply", "resolution", "reopen"]),
+  by: z.string(),
+  role: z.string().optional(),
+  at: z.string(),
+  text: z.string().trim().min(1, "a response needs text"),
+});
+
+export const documentStateSchema = z
+  .object({
+    revisions: z.array(
+      z.object({
+        number: z.number().int().positive(),
+        status: z.enum(["draft", "issued_for_review"]),
+        summary: z.string().trim().min(1, "a revision needs a summary of the change"),
+        by: z.string().trim().min(1),
+        role: z.string().optional(),
+        at: z.string(),
+        fingerprint: z.string().min(1),
+        template: templateRecord.optional(),
+      }),
+    ),
+    comments: z.array(
+      z.object({
+        seq: z.number().int().positive(),
+        anchor: z.object({ sectionId: z.string().min(1), gapKey: z.string().min(1).optional() }),
+        by: z.string().trim().min(1),
+        role: z.string().optional(),
+        at: z.string(),
+        text: z.string().trim().min(1, "a comment needs text"),
+        status: z.enum(["open", "resolved"]),
+        replies: z.array(reviewReply),
+      }),
+    ),
+    exports: z.array(
+      z.object({
+        at: z.string(),
+        by: z.string().optional(),
+        format: z.enum(["markdown", "html", "docx"]),
+        template: templateRecord,
+        revision: z.number().int().positive().optional(),
+        fingerprint: z.string(),
+        changedSinceRevision: z.boolean(),
+      }),
+    ),
+  })
+  .superRefine((d, ctx) => {
+    const nums = new Set<number>();
+    for (const r of d.revisions) {
+      if (nums.has(r.number)) ctx.addIssue({ code: "custom", message: `Duplicate revision number ${r.number}` });
+      nums.add(r.number);
+    }
+    const seqs = new Set<number>();
+    for (const c of d.comments) {
+      if (seqs.has(c.seq)) ctx.addIssue({ code: "custom", message: `Duplicate comment number ${c.seq}` });
+      seqs.add(c.seq);
+    }
+  });
+
 export const projectSchema = z.object({
   schemaVersion: z.string(),
   meta: z.object({
@@ -137,6 +204,7 @@ export const projectSchema = z.object({
   scope: fields,
   processes: z.object({ source: processModel("source"), target: processModel("target") }),
   custom: customSchema,
+  document: documentStateSchema,
   sources: z.array(
     z.object({
       id: z.string(),
@@ -236,6 +304,12 @@ const MIGRATIONS: { from: string; to: string; migrate: (raw: Record<string, unkn
       }
       return next;
     },
+  },
+  // 1.2.0 -> 1.3.0: revision history, reviewer comments and export records. Older projects have none.
+  {
+    from: "1.2.0",
+    to: "1.3.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.3.0", document: raw.document ?? { revisions: [], comments: [], exports: [] } }),
   },
 ];
 

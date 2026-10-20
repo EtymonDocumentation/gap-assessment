@@ -4,7 +4,7 @@
 # by the engine (for example "Unknown — to be confirmed"); nothing is invented.
 templates:
   id: gap-assessment-document
-  version: 1.1.0
+  version: 1.2.0
 
 document:
   title: "Gap assessment: {program} — {sourceSite} to {targetSite}"
@@ -101,3 +101,24 @@ document:
     Number of recorded changes by type. The full change log, with who, when, and
     the values before and after each change, is available as a CSV export from the
     tool.
+  changeLogReviewNote: >-
+    Revisions issued and reviewer comments are not counted here. They are listed in
+    Appendix C (Revision history) and Appendix D (Reviewer comments), and they appear
+    in the full change log, so that issuing a revision or adding a comment does not
+    change the content it refers to.
+  revisionHistoryIntro: >-
+    Revisions of this document recorded in the tool, oldest first. Each revision keeps
+    a fingerprint of the document content at the time it was recorded, so the tool can
+    show whether the content has changed since the latest revision. The Revision line
+    at the top of the document says so.
+  revisionStatement: >-
+    A revision records that a draft of this document was saved or issued for review, by
+    whom, when and why. Names are free text typed into the tool and the tool has no
+    electronic signature, so a revision is not an approval and does not make the
+    document controlled or approved for use.
+  reviewerCommentsIntro: >-
+    Comments recorded by reviewers, each tied to a section of this document and, where
+    given, to one gap. A comment stays open until someone records how it was resolved,
+    and a resolved comment can be reopened. Every response is listed with the person who
+    gave it and the date. Names are free text typed into the tool, so comments are not
+    attributable in a GMP sense.

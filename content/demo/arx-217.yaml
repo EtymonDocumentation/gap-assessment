@@ -446,3 +446,43 @@ followUp:
     by: Alex Example (fictional)
     role: MSAT engineer
     answer: { q: filt.sua_supplier, side: target, value: SU Vendor B2 (fictional) }
+
+# The document is reviewed after everything above. The revision is issued first; the comments follow. Comments are
+# not part of the document fingerprint, so revision 1 still reads as current. All names are fictional.
+review:
+  revision:
+    at: "2026-10-05T09:00:00.000Z"
+    by: A. Reviewer (fictional)
+    role: MSAT lead (fictional)
+    status: draft
+    summary: First draft for internal review
+  comments:
+    # Open, on the detailed gap table and on one gap that is flagged for regulatory affairs.
+    - at: "2026-10-06T09:00:00.000Z"
+      by: B. Checker (fictional)
+      role: QA reviewer (fictional)
+      section: gap-table
+      gapKey: "R-FILL-PUMP:uo.aseptic_filling.equip.filler.operatingPrinciple"
+      text: Please ask regulatory affairs to confirm whether the change in filling pump principle is covered by the registered description of the filling step.
+    # Resolved by the author.
+    - at: "2026-10-06T09:30:00.000Z"
+      by: B. Checker (fictional)
+      role: QA reviewer (fictional)
+      section: scope
+      text: The scope table does not say whether lyophilization and stand-alone stoppering were assessed.
+      resolution:
+        at: "2026-10-06T09:45:00.000Z"
+        by: A. Reviewer (fictional)
+        role: MSAT lead (fictional)
+        text: Checked. The product is a liquid, so those unit operations are not asked about and are outside this assessment. No change to the document.
+    # Open, with one reply.
+    - at: "2026-10-06T10:00:00.000Z"
+      by: B. Checker (fictional)
+      role: QA reviewer (fictional)
+      section: validation-plan
+      text: The validation plan shows the media fill coverage as an open item but does not say who will schedule it at Site South.
+      replies:
+        - at: "2026-10-06T11:00:00.000Z"
+          by: Alex Example (fictional)
+          role: MSAT engineer
+          text: Scheduling sits with the Site South quality team. I will record an owner in the gap register.

@@ -219,6 +219,79 @@ export interface CustomDefinitions {
   items: CustomItem[];
 }
 
+/** Never "approved": the tool has no electronic signature, so a revision is a record, not an approval. */
+export type RevisionStatus = "draft" | "issued_for_review";
+
+/** Which template produced an output. */
+export interface TemplateRecord {
+  mode: "builtin" | "their_look" | "mapped" | "tags";
+  /** "Built-in default" or the name the user gave the template in the library. */
+  name: string;
+  /** Built-in: the built-in template version. Library template: the version string the user entered. */
+  version: string;
+  /** Hex SHA-256 of the original uploaded file. Absent for the built-in template. */
+  sha256?: string;
+  fileName?: string;
+}
+
+/** One issued revision of the generated document. The numbers are never reused. */
+export interface DocumentRevision {
+  number: number;
+  status: RevisionStatus;
+  /** Required: what changed, or why the revision was issued. */
+  summary: string;
+  /** Free text name and role, as typed. Not an authenticated identity. */
+  by: string;
+  role?: string;
+  at: string;
+  /** Fingerprint of the document content when the revision was issued (see documentFingerprint in the engine). */
+  fingerprint: string;
+  /** Template chosen on the Document page at that time, if any. */
+  template?: TemplateRecord;
+}
+
+export interface ReviewCommentReply {
+  kind: "reply" | "resolution" | "reopen";
+  by: string;
+  role?: string;
+  at: string;
+  text: string;
+}
+
+/** A reviewer comment on a document section, optionally on one gap row in it. */
+export interface ReviewComment {
+  /** 1, 2, 3 ... shown as "C-001". Never reused. */
+  seq: number;
+  /** sectionId is a document section id; gapKey is the stable Gap.key, not the display ID. */
+  anchor: { sectionId: string; gapKey?: string };
+  by: string;
+  role?: string;
+  at: string;
+  text: string;
+  status: "open" | "resolved";
+  replies: ReviewCommentReply[];
+}
+
+/** A record that the document was downloaded. Exports are not changes, so they have no change-log entry. */
+export interface DocumentExport {
+  at: string;
+  by?: string;
+  format: "markdown" | "html" | "docx";
+  /** Markdown and HTML always use mode "builtin". */
+  template: TemplateRecord;
+  /** Latest issued revision number at export time. */
+  revision?: number;
+  fingerprint: string;
+  changedSinceRevision: boolean;
+}
+
+/** Revision history, reviewer comments and export records (added in schema 1.3.0). */
+export interface DocumentState {
+  revisions: DocumentRevision[];
+  comments: ReviewComment[];
+  exports: DocumentExport[];
+}
+
 export interface Project {
   schemaVersion: string;
   meta: {
@@ -241,6 +314,8 @@ export interface Project {
   processes: { source: ProcessModel; target: ProcessModel };
   /** User-defined unit operations and items. Values recorded against them live in `processes` like any other entry. */
   custom: CustomDefinitions;
+  /** Revision history, reviewer comments and export records for the generated document. */
+  document: DocumentState;
   sources: Source[];
   answers: AnswerRecord[];
   gapOverlays: GapOverlay[];
