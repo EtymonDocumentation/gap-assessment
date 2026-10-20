@@ -58,7 +58,7 @@ questions:
     section: uo.capping
     prompt: Residual seal force (RSF)
     label: Residual seal force
-    why: RSF is an indicator of crimp quality and CCI; the target range is compared with the source validated range.
+    why: RSF is an indicator of crimp quality and CCI; the target range is compared with the source {{validated|demonstrated}} range.
     sides: paired
     binds: uo.capping.param.rsf
     input: { type: parameter, units: [N, lbf] }
@@ -98,9 +98,9 @@ questions:
     prompt: Smallest leak size the CCI test method reliably detects (limit of detection)
     label: CCI method detection limit
     why: The method must be sensitive enough for the maximum allowable leakage limit of the product. A less sensitive method at the target (a larger smallest detectable leak) does not support the same integrity claim.
-    help: Enter the validated leak size in micrometres (equivalent hole diameter).
+    help: Enter the {{validated|demonstrated}} leak size in micrometres (equivalent hole diameter).
     tags: [m3]
-    sideLabels: { source: Validated detection limit, target: Target method detection limit }
+    sideLabels: { source: "{{Validated|Demonstrated}} detection limit", target: Target method detection limit }
     sides: paired
     binds: uo.capping.study.cci.sensitivity
     input: { type: quantity, units: [µm, mm] }

@@ -17,9 +17,9 @@ import {
 import type { DocRef, Project } from "@gap/process-model";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CategoryChip, Modal, ResponderForm, SeverityBadge } from "../components";
-import { SIDE_TEXT } from "../lib";
+import { sideText } from "../lib";
 import { href, navigate } from "../router";
-import { useAssessment, useContent, useStore } from "../store";
+import { useAssessment, useContent, useStageWording, useStore } from "../store";
 import { QuestionInput, initialForm, toAnswer, type FormState } from "./question-inputs";
 
 export function InterviewPage({ params }: { params: URLSearchParams }) {
@@ -209,6 +209,7 @@ function QuestionCard({
   const next = instances[idx + 1];
   const side = inst.side;
   const sameAllowed = side === "target" && q.sides === "paired" && q.sameAsSource !== false;
+  const wording = useStageWording();
   const sideLabel = side !== "shared" ? q.sideLabels?.[side] : undefined;
   const gaps = a.gaps.filter((g) => g.questionId === q.id);
   const answered = isAnswered(project, inst);
@@ -223,7 +224,7 @@ function QuestionCard({
     <article className="card question-card" aria-labelledby="q-prompt">
       <div className="q-meta">
         <span className="small muted">{inst.section.title}</span>
-        <span className={`side-badge side-${side}`}>{SIDE_TEXT[side]}</span>
+        <span className={`side-badge side-${side}`}>{sideText(wording)[side]}</span>
         {isCustomQuestion(q) && <span className="tag tag-custom">Custom item</span>}
         {answered && <span className="tag">Answered</span>}
       </div>
@@ -240,7 +241,7 @@ function QuestionCard({
 
       {side === "target" && q.sides === "paired" && (
         <div className="source-ref">
-          <span className="small muted">Source (validated): </span>
+          <span className="small muted">{wording.sourceValidated ? "Source (validated)" : "Source (current)"}: </span>
           <span>{formatQuestionSide(content, project, q, "source")}</span>
         </div>
       )}

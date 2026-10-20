@@ -10,8 +10,9 @@ import { entryLabel, sourceShort } from "./labels";
 import { cellVerification, verificationSummary } from "./verification";
 import { sourceRegisterRows } from "./source-register";
 import { changeLogActionCounts } from "./changelog";
-import { effectiveContent } from "./custom";
+import { effectiveStaged } from "./custom";
 import { commentDisplayId, revisionState, revisionStatusLabel } from "./review";
+import { STAGE_NOT_ESTABLISHED, stageBasis, stagedFor, stageWording } from "./stage";
 
 export type Block =
   | { type: "paragraph"; text: string }
@@ -67,11 +68,26 @@ export interface DocComment {
   replies: DocCommentReply[];
 }
 
+export interface DocCover {
+  /** Program or product code, e.g. "ARX-217". */
+  program: string;
+  /** Modality, dosage form and presentation joined with ", ". */
+  product: string;
+  /** Site name and line, as in the document header. */
+  sourceSite: string;
+  targetSite: string;
+  /** Program stage label per side, e.g. "Commercial (process validated)". */
+  sourceStage: string;
+  targetStage: string;
+}
+
 export interface DocModel {
   title: string;
   banner: string;
   status: string;
   meta: [string, string][];
+  /** Facts for renderers that draw a cover page (the built-in Word template). Unknown values read "[not established]". */
+  cover: DocCover;
   sections: DocSection[];
   /** Issued revisions, oldest first. */
   revisions: DocRevision[];
@@ -84,7 +100,7 @@ const SEVERITY_TEXT = { high: "High", medium: "Medium", low: "Low", none: "None"
 function scopeText(content: ContentBundle, project: Project, key: string): string {
   const q = content.questions.find((x) => x.binds === `scope.${key}`);
   const r = resolveEntry(project, `scope.${key}`);
-  return r.status === "established" ? formatResolved(content, q, r) : "[not established]";
+  return r.status === "established" ? formatResolved(content, q, r) : STAGE_NOT_ESTABLISHED;
 }
 
 function siteText(project: Project, side: "source" | "target"): string {
@@ -136,7 +152,10 @@ function severityText(g: Gap): string {
 const STATUS_LABEL = { open: "Open", in_progress: "In progress", closed: "Closed", accepted_no_action: "Accepted, no action" } as const;
 
 /** Builds the structured gap assessment document. Renderers turn it into Markdown or HTML. */
-export function buildDocument(content: ContentBundle, project: Project, a: Assessment, generatedAt: string): DocModel {
+export function buildDocument(rawContent: ContentBundle, project: Project, a: Assessment, generatedAt: string): DocModel {
+  // Texts, headings and labels follow the program stage of the source (see stage.ts).
+  const content = stagedFor(rawContent, project);
+  const w = stageWording(project);
   const t = content.templates.document;
   const vars: Record<string, string> = {
     program: scopeText(content, project, "program"),
@@ -147,6 +166,8 @@ export function buildDocument(content: ContentBundle, project: Project, a: Asses
     markets: scopeText(content, project, "markets"),
     sourceSite: siteText(project, "source"),
     targetSite: siteText(project, "target"),
+    sourceStage: w.sourceLabel,
+    targetStage: w.targetLabel,
     date: shortDate(generatedAt),
   };
   const diffs = a.gaps.filter((g) => g.category !== "equivalent");
@@ -169,11 +190,11 @@ export function buildDocument(content: ContentBundle, project: Project, a: Asses
       const insts = a.instances.filter((i) => i.section.id === sec.id && i.side === side);
       if (!insts.length) continue;
       blocks.push({ type: "heading", text: sec.title });
-      blocks.push({ type: "table", columns: ["Attribute", side === "source" ? "Validated state" : "Planned state", "Source", "Verification"], rows: sideRows(content, project, insts) });
+      blocks.push({ type: "table", columns: ["Attribute", side === "source" ? w.sourceStateColumn : "Planned state", "Source", "Verification"], rows: sideRows(content, project, insts) });
     }
     return blocks;
   };
-  add("source-summary", "Source program summary (validated state)", [{ type: "paragraph", text: fill(t.sourceSummaryIntro, vars) }, ...sectionBlocks("source")]);
+  add("source-summary", w.sourceSummaryHeading, [{ type: "paragraph", text: fill(t.sourceSummaryIntro, vars) }, ...sectionBlocks("source")]);
   add("target-summary", "Target summary (planned state)", [{ type: "paragraph", text: fill(t.targetSummaryIntro, vars) }, ...sectionBlocks("target")]);
 
   const secsWithGaps = content.sections.filter((s) => a.gaps.some((g) => g.sectionId === s.id));
@@ -232,14 +253,18 @@ export function buildDocument(content: ContentBundle, project: Project, a: Asses
           })
           .join("; ")
       : "—";
+  const basis = stageBasis(w);
   add("validation-plan", "Validation plan", [
+    { type: "paragraph", text: `Stage basis. ${basis.statement}` },
+    { type: "list", items: [basis.sourcePoint, basis.targetPoint] },
+    { type: "note", text: basis.closing },
     { type: "paragraph", text: fill(t.activitiesIntro, vars) },
     {
       type: "table",
       columns: ["Activity", "Description", "Implied by gaps", "Severity", "Regulatory", "Linked studies: source status", "Linked studies: target status", "Readiness"],
       rows: plan.map((r) => [
         r.label,
-        r.description,
+        r.stageNote ? `${r.description} Program stage: ${r.stageNote}` : r.description,
         gapIds(r),
         SEVERITY_TEXT[r.severity],
         r.regulatoryNote ?? "—",
@@ -306,7 +331,7 @@ export function buildDocument(content: ContentBundle, project: Project, a: Asses
     String(c.notVerifiable),
   ];
   const activeRefsList = [...new Set(a.instances.flatMap((i) => instanceRefs(i)))];
-  const eff = effectiveContent(content, project);
+  const eff = effectiveStaged(content, project);
   const withdrawnItems: string[] = [];
   const selfItems: string[] = [];
   for (const ref of activeRefsList) {
@@ -488,18 +513,28 @@ export function buildDocument(content: ContentBundle, project: Project, a: Asses
     status: "DRAFT",
     meta: [
       ["Project", project.meta.title],
+      ["Source program stage", w.sourceLabel],
+      ["Target program stage", w.targetLabel],
       ["Generated", generatedAt.replace("T", " ").slice(0, 16) + " UTC"],
       ["Differences identified", String(diffs.length)],
       ["Open information items", String(a.openItems.length)],
       ["Entries verified", `${vs.all.verified} of ${vs.all.total}`],
       ["Verification", t.verificationStatement],
     ],
+    cover: {
+      program: scopeText(content, project, "program"),
+      product: ["modality", "dosage_form", "presentation"].map((k) => scopeText(content, project, k)).join(", "),
+      sourceSite: siteText(project, "source"),
+      targetSite: siteText(project, "target"),
+      sourceStage: w.sourceLabel,
+      targetStage: w.targetLabel,
+    },
     sections,
     revisions,
     comments,
   };
   // The Revision line goes right after "Generated". It is left out of the fingerprint, so adding it changes nothing.
-  doc.meta.splice(2, 0, ["Revision", revisionMetaText(project, doc)]);
+  doc.meta.splice(doc.meta.findIndex(([k]) => k === "Generated") + 1, 0, ["Revision", revisionMetaText(project, doc)]);
   return doc;
 }
 

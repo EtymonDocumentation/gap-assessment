@@ -57,7 +57,7 @@ questions:
     section: uo.aseptic_filling
     prompt: Fill volume
     label: Fill volume
-    why: Fill volume determines deliverable volume and is normally a critical parameter; the target range is compared with the source validated range.
+    why: Fill volume determines deliverable volume and is normally a critical parameter; the target range is compared with the source {{validated|demonstrated}} range.
     sides: paired
     binds: uo.aseptic_filling.param.fill_volume
     input: { type: parameter, units: [mL, µL] }
@@ -66,7 +66,7 @@ questions:
     section: uo.aseptic_filling
     prompt: Filling line speed
     label: Line speed
-    why: Line speed affects fill accuracy, stoppering performance and exposure time; operating above the validated speed is outside the validated range.
+    why: Line speed affects fill accuracy, stoppering performance and exposure time; operating above the {{validated|demonstrated}} speed is outside the {{validated|demonstrated}} range.
     sides: paired
     binds: uo.aseptic_filling.param.line_speed
     input: { type: parameter, units: [units/min, units/h] }
@@ -75,8 +75,8 @@ questions:
     section: uo.aseptic_filling
     prompt: Maximum filling duration per batch
     label: Filling duration (maximum)
-    why: Maximum filling duration must stay within the validated duration and within what the aseptic process simulation covers.
-    sideLabels: { source: Validated maximum filling duration, target: Planned maximum filling duration }
+    why: Maximum filling duration must stay within the {{validated|demonstrated}} duration and within what the aseptic process simulation covers.
+    sideLabels: { source: "{{Validated|Demonstrated}} maximum filling duration", target: Planned maximum filling duration }
     sides: paired
     binds: uo.aseptic_filling.param.max_fill_duration.max
     input: { type: quantity, units: [h, min] }
@@ -109,7 +109,7 @@ questions:
     section: uo.aseptic_filling
     prompt: Primary container format
     label: Container format
-    why: The container format is part of the registered presentation and of the validated filling, stoppering and CCI configuration.
+    why: The container format is part of the registered presentation and of the {{validated|current}} filling, stoppering and CCI configuration.
     sides: paired
     binds: uo.aseptic_filling.mat.container.format
     input: { type: choice, optionsFrom: containerFormat }
@@ -206,9 +206,9 @@ questions:
     section: uo.aseptic_filling
     prompt: Maximum hold time of the filtered (sterile) bulk before and during filling
     label: Filtered bulk hold time (maximum)
-    why: Sterile bulk waiting in the holding vessel is exposed to chemical, physical and microbial risk. The planned maximum must stay within the validated hold time.
+    why: Sterile bulk waiting in the holding vessel is exposed to chemical, physical and microbial risk. The planned maximum must stay within the {{validated|demonstrated}} hold time.
     tags: [m3]
-    sideLabels: { source: Validated maximum filtered bulk hold, target: Planned maximum filtered bulk hold }
+    sideLabels: { source: "{{Validated|Demonstrated}} maximum filtered bulk hold", target: Planned maximum filtered bulk hold }
     sides: paired
     binds: uo.aseptic_filling.param.max_filtered_hold.max
     input: { type: quantity, units: [h, min, d] }

@@ -5,13 +5,14 @@
 # Answers are replayed through the normal interview code path, so every value
 # carries an interview source, responder and date exactly as a user's would.
 # The scenario deliberately exercises all eight comparison categories.
+# Milestone 5.1: both sides are commercial (process validated), so the wording stays "validated".
 # Milestone 3 additions: the product is a liquid, so the lyophilizer and stand-alone stoppering
 # are not applicable and their questions stay hidden; validation study and equipment
 # qualification answers are marked "milestone 3" below.
 demo:
   id: arx-217
   title: "ARX-217 transfer: Site North Line 2 to Site South Line 4 (fictional demo)"
-  version: 1.2.0
+  version: 1.3.0
 
 responder: { name: Alex Example (fictional), role: MSAT engineer }
 date: "2026-10-01T09:00:00.000Z"
@@ -43,6 +44,8 @@ answers:
   - { q: site.name, side: target, value: Site South (fictional) }
   - { q: site.line, side: source, value: Line 2 }
   - { q: site.line, side: target, value: Line 4 }
+  - { q: site.stage, side: source, value: commercial, docs: [DEMO-PPQ-217-01] }   # M5.1: process validated, PPQ report on file
+  - { q: site.stage, side: target, value: commercial, docs: [DEMO-APS-S4-26] }    # M5.1: planned commercial supply from Line 4
   - { q: site.barrier, side: source, value: isolator }
   - { q: site.barrier, side: target, same: true }                    # equivalent
   - { q: site.background_grade, side: source, value: D }

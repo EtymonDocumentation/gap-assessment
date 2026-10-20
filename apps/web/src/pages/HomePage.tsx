@@ -3,11 +3,12 @@ import { useRef, useState } from "react";
 import { Modal, ResponderForm } from "../components";
 import { download, slug, today } from "../lib";
 import { href, navigate } from "../router";
-import { content, useAssessment, useStore } from "../store";
+import { content, useAssessment, useStageWording, useStore } from "../store";
 
 export function HomePage({ notice }: { notice?: string }) {
   const { project, loadDemo, newProject, importJson, setProject } = useStore();
   const a = useAssessment();
+  const wording = useStageWording();
   const [creating, setCreating] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [importError, setImportError] = useState("");
@@ -26,7 +27,7 @@ export function HomePage({ notice }: { notice?: string }) {
         </p>
       )}
       <p className="lede">
-        Compare a validated <strong>source</strong> process with a planned <strong>target</strong> site through a guided interview. The tool
+        Compare a <strong>source</strong> process with a planned <strong>target</strong> site through a guided interview. The tool
         classifies every difference, builds a gap register and drafts a gap assessment document. Values are never filled in for you: anything
         unknown stays visible as an open item.
       </p>
@@ -52,6 +53,14 @@ export function HomePage({ notice }: { notice?: string }) {
             <div>
               <dt>Open information items</dt>
               <dd>{a.openItems.length}</dd>
+            </div>
+            <div>
+              <dt>Program stage</dt>
+              <dd>
+                Source: {wording.sourceLabel}
+                <br />
+                Target: {wording.targetLabel}
+              </dd>
             </div>
             <div>
               <dt>Responder</dt>

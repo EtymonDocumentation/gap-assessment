@@ -3,7 +3,7 @@ questions:
     section: uo.visual_inspection
     prompt: Is 100% visual inspection of filled containers performed at this site?
     label: Visual inspection performed
-    why: Establishes whether the unit operation exists at each site. Inspection that moves to another site or to a contract partner changes who holds the validated state and the qualification evidence.
+    why: Establishes whether the unit operation exists at each site. Inspection that moves to another site or to a contract partner changes who holds the {{validated|current}} state and the qualification evidence.
     sides: paired
     binds: uo.visual_inspection.presence
     input: { type: yes_no }
@@ -22,7 +22,7 @@ questions:
     parent: vi.method
     prompt: Is a qualification of the target automated or semi-automated inspection (detection performance against a defect kit, for example a Knapp-style study) available?
     label: Automated inspection qualification (target)
-    why: Automated inspection must be shown to detect defects at least as well as the validated manual process, using a defect kit with known defect types and sizes. A new or changed system has no such evidence until it is qualified.
+    why: Automated inspection must be shown to detect defects at least as well as the {{validated|existing}} manual process, using a defect kit with known defect types and sizes. A new or changed system has no such evidence until it is qualified.
     triggerNote: Asked because the target inspection method differs from the source and is semi-automated or automated.
     sides: target
     binds: uo.visual_inspection.study.avi_qualification.status

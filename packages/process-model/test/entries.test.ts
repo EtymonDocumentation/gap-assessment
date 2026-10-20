@@ -617,7 +617,7 @@ describe("parseProject", () => {
 
   it("rejects an unsupported or missing schema version", () => {
     const old = mutated((r) => { r.schemaVersion = "0.9.0"; });
-    expect(() => parseProject(old)).toThrow(/Unsupported schema version 0\.9\.0 \(this build reads 1.3.0\)/);
+    expect(() => parseProject(old)).toThrow(/Unsupported schema version 0\.9\.0 \(this build reads 1.4.0\)/);
     const future = mutated((r) => { r.schemaVersion = "2.0.0"; });
     expect(() => parseProject(future)).toThrow(ImportError);
     const none = mutated((r) => { delete r.schemaVersion; });

@@ -22,18 +22,25 @@ export function slug(s: string): string {
 
 export const SEVERITY_TEXT: Record<Severity, string> = { high: "High", medium: "Medium", low: "Low", none: "None" };
 
-export const SIDE_TEXT = { source: "Source — validated state", target: "Target — planned state", shared: "Scoping (shared)" } as const;
+/** Side badges. The source text follows the stage wording (StageWording.sourceSideText). */
+export function sideText(w: { sourceSideText: string }): Record<"source" | "target" | "shared", string> {
+  return { source: w.sourceSideText, target: "Target — planned state", shared: "Scoping (shared)" };
+}
 
-export const CATEGORY_SHORT: Record<Category, string> = {
-  equivalent: "Equivalent",
-  within_validated_range: "Within validated range",
-  outside_validated_range: "Outside validated range",
-  different_principle: "Different principle",
-  scale_change: "Scale change",
-  new_requirement: "New requirement",
-  removed_element: "Removed element",
-  information_required: "Information required",
-};
+/** Short category labels. The keys never change; only the two range labels follow the source stage. */
+export function categoryShort(validated: boolean): Record<Category, string> {
+  const word = validated ? "validated" : "source";
+  return {
+    equivalent: "Equivalent",
+    within_validated_range: `Within ${word} range`,
+    outside_validated_range: `Outside ${word} range`,
+    different_principle: "Different principle",
+    scale_change: "Scale change",
+    new_requirement: "New requirement",
+    removed_element: "Removed element",
+    information_required: "Information required",
+  };
+}
 
 export function today(): string {
   return new Date().toISOString().slice(0, 10);

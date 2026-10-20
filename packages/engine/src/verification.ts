@@ -14,7 +14,7 @@ import {
   type VerifyOptions,
 } from "@gap/process-model";
 import type { ContentBundle } from "./content";
-import { effectiveContent } from "./custom";
+import { effectiveStaged } from "./custom";
 import { entryLabel, type EntryLabel } from "./labels";
 import { instanceRefs, visibleInstances, type QuestionInstance } from "./sequencer";
 
@@ -131,7 +131,7 @@ function addTo(c: VerificationCounts, d: VerificationCounts): void {
  * unverified (could be verified, is not), not verifiable (Unknown or not established, no verification held).
  */
 export function verificationSummary(content: ContentBundle, project: Project): VerificationSummary {
-  const eff = effectiveContent(content, project);
+  const eff = effectiveStaged(content, project);
   const rows = new Map<string, VerificationSummaryRow>();
   const seen = new Set<string>();
   const order: string[] = [];
@@ -192,7 +192,7 @@ export function planSectionVerification(
   verifier: string,
   opts: VerifyOptions = {},
 ): SectionVerificationPlan {
-  const eff = effectiveContent(content, project);
+  const eff = effectiveStaged(content, project);
   const { refs, title } = sectionRefs(eff, project, sectionId, side);
   const plan = planVerification(project, refs, verifier, opts);
   return {
@@ -213,7 +213,7 @@ export function verifySection(
   actor: Actor,
   opts: VerifyOptions = {},
 ): BulkVerifyResult {
-  const eff = effectiveContent(content, project);
+  const eff = effectiveStaged(content, project);
   const { refs, title } = sectionRefs(eff, project, sectionId, side);
   return verifyEntries(project, refs, actor, opts, `${title}${side === "all" ? "" : ` (${side})`}`);
 }

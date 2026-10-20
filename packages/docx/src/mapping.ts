@@ -17,7 +17,7 @@ const SYNONYMS: Record<string, string[]> = {
   front: ["document details", "document information", "general information"],
   purpose: ["purpose", "objective", "objectives", "aim", "aims", "introduction"],
   scope: ["scope", "applicability", "applicable scope"],
-  "source-summary": ["source process", "source program", "source summary", "process description", "current process", "validated state", "sending site"],
+  "source-summary": ["source process", "source program", "source summary", "process description", "current process", "validated state", "current state", "sending site"],
   "target-summary": ["target process", "target summary", "receiving process", "process description", "planned state", "receiving site"],
   differences: ["differences", "identified differences", "summary of differences", "differences by unit operation"],
   "gap-table": ["gap table", "detailed gap table", "gap analysis", "identified differences", "differences"],

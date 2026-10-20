@@ -19,6 +19,7 @@ import { findRule, optionLabel, type ContentBundle } from "./content";
 import type { Category, Question, Rule } from "./content-schema";
 import { formatQuestionSide, questionLabel, STATUS_TEXT } from "./format";
 import { inactiveEntries, instanceRefs, visibleInstances, type QuestionInstance } from "./sequencer";
+import { sourceValidated, stagedFor } from "./stage";
 import { isQuantity, isRange, valuesEqual } from "./values";
 
 export const REGULATORY_NOTE = "Requires regulatory affairs assessment.";
@@ -140,13 +141,19 @@ function targetWindow(ctx: Ctx): { window?: Range; label: string } {
   return { label: "target operating range" };
 }
 
-/** Source reference range: validated range when recorded, else PAR. */
+/** "validated" for a commercial (process validated) source; "demonstrated" (actually run) for any other source stage. */
+function rangeWord(ctx: Ctx): string {
+  return sourceValidated(ctx.project) ? "validated" : "demonstrated";
+}
+
+/** Source reference range: the validated (non-validated source: demonstrated) range when recorded, else PAR. */
 function sourceReference(ctx: Ctx): { range?: Range; label: string } {
+  const word = rangeWord(ctx);
   const vr = ctx.get("source", "validatedRange");
-  if (est(vr)) return { range: vr.value as Range, label: `source validated range ${formatRange(vr.value as Range)}` };
+  if (est(vr)) return { range: vr.value as Range, label: `source ${word} range ${formatRange(vr.value as Range)}` };
   const par = ctx.get("source", "par");
   if (est(par)) return { range: par.value as Range, label: `source PAR ${formatRange(par.value as Range)}` };
-  return { label: "source PAR / validated range" };
+  return { label: `source PAR / ${word} range` };
 }
 
 function paramEquivalent(ctx: Ctx): boolean {
@@ -236,8 +243,8 @@ function cmpLimit(ctx: Ctx, upper: boolean): ComparatorResult[] {
       const r = quantityRatio(qt, qs);
       const tighter = upper ? r < 1 : r > 1;
       return tighter
-        ? [{ category: "within_validated_range" as const, detail: `Target ${formatQuantity(qt)} is within the source validated ${upper ? "maximum" : "minimum"} of ${formatQuantity(qs)}.` }]
-        : [{ category: "outside_validated_range" as const, detail: `Target ${formatQuantity(qt)} exceeds the source validated ${upper ? "maximum" : "minimum"} of ${formatQuantity(qs)}.` }];
+        ? [{ category: "within_validated_range" as const, detail: `Target ${formatQuantity(qt)} is within the source ${rangeWord(ctx)} ${upper ? "maximum" : "minimum"} of ${formatQuantity(qs)}.` }]
+        : [{ category: "outside_validated_range" as const, detail: `Target ${formatQuantity(qt)} exceeds the source ${rangeWord(ctx)} ${upper ? "maximum" : "minimum"} of ${formatQuantity(qs)}.` }];
     },
     [{ category: "information_required", detail: "Source and target units are not comparable." }],
   );
@@ -386,7 +393,10 @@ export interface Assessment {
  * current entries; user decisions (severity override, owner, status) are
  * merged from overlays keyed by the stable gap key.
  */
-export function assess(content: ContentBundle, project: Project): Assessment {
+export function assess(raw: ContentBundle, project: Project): Assessment {
+  // Every stage-dependent text (labels, rule explanations, the detail strings above) follows the source stage.
+  const content = stagedFor(raw, project);
+  const validated = sourceValidated(project);
   const instances = visibleInstances(content, project, "paired");
   const visibleSides = new Map<string, Set<string>>();
   for (const i of instances) {
@@ -459,7 +469,9 @@ export function assess(content: ContentBundle, project: Project): Assessment {
           : res.category === "equivalent"
             ? "No difference identified."
             : res.category === "within_validated_range"
-              ? "The target is within the validated range or covered by existing validation; no additional validation activity is implied. The difference is recorded for completeness."
+              ? validated
+                ? "The target is within the validated range or covered by existing validation; no additional validation activity is implied. The difference is recorded for completeness."
+                : "The target is within the range demonstrated at the source or covered by the source data; this difference alone implies no additional activity. It is recorded for completeness."
               : rule.why);
       // A one-sided coverage question shows the value it was checked against in the other column.
       const against = rule.comparator === "coverage" ? rule.config.against : undefined;

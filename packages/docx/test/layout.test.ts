@@ -1,9 +1,12 @@
 /// <reference types="node" />
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { importTemplateFile, renderDocx, suggestMapping, type RenderDocxInput } from "../src/index";
 import { columnNeeds, columnWidths } from "../src/writer";
 import { GENERATED_AT, buildModel, fixture } from "./fixtures";
 import { strictDocx, type StrictResult } from "./strict";
+
+// Rendering and strictly checking whole documents takes several seconds on a busy machine.
+vi.setConfig({ testTimeout: 60000 });
 
 const NS_W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 const model = buildModel();

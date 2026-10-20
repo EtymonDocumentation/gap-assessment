@@ -46,7 +46,7 @@ questions:
     parent: lyo.shelf_area
     prompt: Has the lyophilization cycle been transferred and verified on the target lyophilizer (for example with an engineering or verification run)?
     label: Cycle transfer and verification (target)
-    why: Heat transfer, chamber pressure control and condenser capacity differ between lyophilizers. A validated cycle cannot be assumed to give the same product temperature profile and residual moisture on a different machine or scale.
+    why: Heat transfer, chamber pressure control and condenser capacity differ between lyophilizers. A {{validated|source}} cycle cannot be assumed to give the same product temperature profile and residual moisture on a different machine or scale.
     triggerNote: Asked because the target lyophilizer shelf area, loading system or nucleation method differs from the source.
     sides: target
     binds: uo.lyophilization.study.cycle_verification.status
@@ -70,7 +70,7 @@ questions:
     section: uo.lyophilization
     prompt: Freezing shelf temperature
     label: Freezing shelf temperature
-    why: The freezing temperature and hold decide ice structure and whether the product is completely solidified before drying. Operating outside the validated range is not supported by the cycle development and PPQ data.
+    why: The freezing temperature and hold decide ice structure and whether the product is completely solidified before drying. Operating outside the {{validated|demonstrated}} range is not supported by the cycle development and {{PPQ|source run}} data.
     sides: paired
     binds: uo.lyophilization.param.freeze_shelf_temp
     input: { type: parameter, units: ["°C"] }
@@ -79,7 +79,7 @@ questions:
     section: uo.lyophilization
     prompt: Primary drying shelf temperature
     label: Primary drying shelf temperature
-    why: Shelf temperature drives sublimation. Product temperature must stay below the collapse temperature, so a higher shelf temperature than validated risks cake collapse.
+    why: Shelf temperature drives sublimation. Product temperature must stay below the collapse temperature, so a higher shelf temperature than {{validated|demonstrated}} risks cake collapse.
     sides: paired
     binds: uo.lyophilization.param.primary_shelf_temp
     input: { type: parameter, units: ["°C"] }
@@ -89,7 +89,7 @@ questions:
     prompt: Primary drying chamber pressure
     label: Primary drying chamber pressure
     why: Chamber pressure sets sublimation rate and heat transfer to the vial. It is normally a critical parameter and, together with shelf temperature, decides the product temperature during drying.
-    help: Source — set point and validated range in the units of the control system. Target — planned set point and operating range. Units are converted for the comparison.
+    help: Source — set point and {{validated|demonstrated}} range in the units of the control system. Target — planned set point and operating range. Units are converted for the comparison.
     sides: paired
     binds: uo.lyophilization.param.primary_pressure
     input: { type: parameter, units: [mbar, Pa, µbar, mTorr] }
@@ -116,8 +116,8 @@ questions:
     section: uo.lyophilization
     prompt: Maximum total lyophilization cycle time
     label: Total cycle time (maximum)
-    why: The total cycle time covers the whole time that vials spend in the chamber, including freezing, drying and any hold. It must stay within the validated maximum, because longer times are not supported by stability and process data.
-    sideLabels: { source: Validated maximum total cycle time, target: Planned maximum total cycle time }
+    why: The total cycle time covers the whole time that vials spend in the chamber, including freezing, drying and any hold. It must stay within the {{validated|demonstrated}} maximum, because longer times are not supported by stability and process data.
+    sideLabels: { source: "{{Validated|Demonstrated}} maximum total cycle time", target: Planned maximum total cycle time }
     sides: paired
     binds: uo.lyophilization.param.total_cycle_time.max
     input: { type: quantity, units: [h, min] }
@@ -153,7 +153,7 @@ questions:
     section: uo.lyophilization
     prompt: Residual moisture limit
     label: Residual moisture limit
-    why: The moisture limit is tied to the stability data for the lyophilized product. A higher limit than the validated one is outside the supported stability basis.
+    why: The moisture limit is tied to the stability data for the lyophilized product. A higher limit than the {{validated|demonstrated}} one is outside the supported stability basis.
     sides: paired
     binds: uo.lyophilization.ipc.residual_moisture.limit
     input: { type: quantity, units: ["%"] }

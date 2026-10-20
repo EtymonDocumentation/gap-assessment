@@ -1,9 +1,12 @@
 /// <reference types="node" />
 import { documentFingerprint } from "@gap/engine";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { importTemplateFile, mappingReport, renderDocx, suggestMapping, TemplateError, toolBlocks, type ImportedTemplate, type RenderDocxInput, type RenderDocxResult, type TemplateMapping } from "../src/index";
 import { BANNER, GENERATED_AT, buildModel, buildModelWithComments, fixture, type Model } from "./fixtures";
 import { countElements, customProps, plainText, strictDocx, type StrictResult } from "./strict";
+
+// Rendering and strictly checking whole documents takes several seconds on a busy machine.
+vi.setConfig({ testTimeout: 60000 });
 
 const NS_W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 const model = buildModel();

@@ -64,7 +64,7 @@ function nullPaths(value: unknown, path = "$", out: string[] = []): string[] {
 
 describe("shipped content builds", () => {
   it("builds without error and reports its versions", () => {
-    expect(content.versions).toEqual({ catalog: "1.2.0", questions: "1.2.0", rules: "1.2.0", templates: "1.2.0" });
+    expect(content.versions).toEqual({ catalog: "1.3.0", questions: "1.3.0", rules: "1.3.0", templates: "1.3.0" });
     for (const v of Object.values(content.versions)) expect(v).toMatch(/^\d+\.\d+\.\d+$/);
   });
 
@@ -148,7 +148,7 @@ describe("shipped content builds", () => {
   });
 
   it("templates are complete and use only placeholders the document builder fills", () => {
-    const known = new Set(["program", "modality", "dosageForm", "presentation", "transferType", "markets", "sourceSite", "targetSite", "date"]);
+    const known = new Set(["program", "modality", "dosageForm", "presentation", "transferType", "markets", "sourceSite", "targetSite", "sourceStage", "targetStage", "date"]);
     const doc = content.templates.document;
     for (const [field, text] of Object.entries(doc)) {
       if (typeof text !== "string") continue;

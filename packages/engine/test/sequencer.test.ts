@@ -44,6 +44,8 @@ describe("empty project", () => {
       "site.name@target",
       "site.line@source",
       "site.line@target",
+      "site.stage@source",
+      "site.stage@target",
       "site.barrier@source",
       "site.barrier@target",
       "site.background_grade@source",
@@ -422,9 +424,9 @@ describe("progress", () => {
     expect(scoping.bySide.shared).toEqual({ total: 8, answered: 2 });
     expect(scoping.bySide.source).toEqual({ total: 0, answered: 0 });
     const site = prog.find((s) => s.section.id === "site")!;
-    expect(site.total).toBe(10);
-    expect(site.bySide.source).toEqual({ total: 5, answered: 1 });
-    expect(site.bySide.target).toEqual({ total: 5, answered: 0 });
+    expect(site.total).toBe(12);
+    expect(site.bySide.source).toEqual({ total: 6, answered: 1 });
+    expect(site.bySide.target).toEqual({ total: 6, answered: 0 });
     // Capping, stoppering and lyophilization are not applicable on an empty project (vial presentation and lyophilized product are not yet known).
     expect(prog.map((s) => s.section.id)).toEqual([
       "scoping",

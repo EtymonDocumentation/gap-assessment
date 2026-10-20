@@ -14,7 +14,7 @@ import {
   type Range,
   type Source,
 } from "@gap/process-model";
-import { labelResolver, optionsFor, parameterFields, sameAsSourceAllowed, type ContentBundle } from "./content";
+import { fieldLabel, labelResolver, optionsFor, parameterFields, sameAsSourceAllowed, type ContentBundle } from "./content";
 import type { ParameterField, Question } from "./content-schema";
 import type { QuestionInstance } from "./sequencer";
 import { isQuantity, isRange } from "./values";
@@ -90,7 +90,7 @@ function normalizeParamField(content: ContentBundle, q: Question, field: Paramet
     return v;
   }
   if (field === "setPoint") return checkQuantity(q, v, "Set point");
-  return checkRange(q, v, field === "nor" ? "NOR" : field === "par" ? "PAR" : "Validated range");
+  return checkRange(q, v, field === "nor" ? "NOR" : field === "par" ? "PAR" : fieldLabel(content, "validatedRange"));
 }
 
 export interface AnswerOptions {

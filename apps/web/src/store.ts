@@ -1,4 +1,15 @@
-import { assess, buildDemoProject, effectiveContent, type Assessment, type ContentBundle } from "@gap/engine";
+import {
+  assess,
+  buildDemoProject,
+  effectiveContent,
+  programStage,
+  sourceValidated,
+  stagedContent,
+  stageWordingFor,
+  type Assessment,
+  type ContentBundle,
+  type StageWording,
+} from "@gap/engine";
 import { emptyProject, parseProject, type Actor, type Project } from "@gap/process-model";
 import { del, get, set } from "idb-keyval";
 import { useMemo } from "react";
@@ -102,8 +113,17 @@ export const useStore = create<State>((setState, getState) => ({
 /** The content bundle with the project's custom unit operations and items added. Use this everywhere instead of the base `content`. */
 export function useContent(): ContentBundle {
   const custom = useStore((s) => s.project?.custom);
+  const validated = useStore((s) => (s.project ? sourceValidated(s.project) : false));
   const project = useStore.getState().project;
-  return useMemo(() => (project ? effectiveContent(content, project) : content), [custom]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The bundle is staged for the source program stage, so every text and label in the app uses the right wording.
+  return useMemo(() => stagedContent(project ? effectiveContent(content, project) : content, validated), [custom, validated]); // eslint-disable-line react-hooks/exhaustive-deps
+}
+
+/** The stage-aware wording of the open project: both stage labels, the source column header and the category labels. */
+export function useStageWording(): StageWording {
+  const source = useStore((s) => (s.project ? programStage(s.project, "source") : undefined));
+  const target = useStore((s) => (s.project ? programStage(s.project, "target") : undefined));
+  return useMemo(() => stageWordingFor(source, target), [source, target]);
 }
 
 /** Recomputed gap assessment for the open project (memoized on project identity). */

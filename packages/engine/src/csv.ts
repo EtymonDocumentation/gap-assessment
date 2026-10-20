@@ -1,6 +1,7 @@
 import { activityLabel, categoryLabel, type ContentBundle } from "./content";
 import type { Project } from "@gap/process-model";
 import type { Gap } from "./compare";
+import { stagedFor } from "./stage";
 import { cellVerification } from "./verification";
 
 export function cell(v: string): string {
@@ -37,7 +38,8 @@ function sideVerification(project: Project, refs: string[], side: "source" | "ta
   return mine.length ? cellVerification(project, mine).text : "";
 }
 
-export function gapsToCsv(content: ContentBundle, gaps: Gap[], project: Project): string {
+export function gapsToCsv(rawContent: ContentBundle, gaps: Gap[], project: Project): string {
+  const content = stagedFor(rawContent, project);
   const rows = gaps.map((g) => [
     g.displayId,
     g.sectionTitle,

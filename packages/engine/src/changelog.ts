@@ -2,7 +2,7 @@ import { parseRef, type ChangeEvent, type EntryValue, type Project } from "@gap/
 import { formatValue, STATUS_TEXT } from "./format";
 import { cell } from "./csv";
 import type { ContentBundle } from "./content";
-import { effectiveContent } from "./custom";
+import { effectiveStaged } from "./custom";
 import { entryLabel } from "./labels";
 import { commentDisplayId } from "./review";
 
@@ -311,7 +311,7 @@ function toRow(content: ContentBundle, project: Project, ev: ChangeEvent, i: num
 
 /** Rows of the change log, newest first, with the optional filters applied. */
 export function changeLogView(content: ContentBundle, project: Project, filter: ChangeLogFilter = {}): ChangeRow[] {
-  const eff = effectiveContent(content, project);
+  const eff = effectiveStaged(content, project);
   const text = (filter.text ?? "").trim().toLowerCase();
   const rows: ChangeRow[] = [];
   project.changeLog.forEach((ev, i) => {

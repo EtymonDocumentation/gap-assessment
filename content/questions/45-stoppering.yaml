@@ -3,7 +3,7 @@ questions:
     section: uo.stoppering
     prompt: Is stand-alone stoppering (a separate operation after filling, for example partial stoppering before lyophilization) performed at this site?
     label: Stand-alone stoppering performed
-    why: Establishes whether stoppering is a separate step at each site. For a lyophilized product, partial stoppering at or after filling and full stoppering in the lyophilizer are separate steps, and a step present at only one site changes the validated flow.
+    why: Establishes whether stoppering is a separate step at each site. For a lyophilized product, partial stoppering at or after filling and full stoppering in the lyophilizer are separate steps, and a step present at only one site changes the {{validated|current}} flow.
     sides: paired
     binds: uo.stoppering.presence
     input: { type: yes_no }
@@ -30,7 +30,7 @@ questions:
     section: uo.stoppering
     prompt: Stopper type and preparation
     label: Stopper preparation
-    why: Ready-to-use stoppers and stoppers processed on site differ in particulates, endotoxin control and sterilization history. The preparation route is part of the validated component supply.
+    why: Ready-to-use stoppers and stoppers processed on site differ in particulates, endotoxin control and sterilization history. The preparation route is part of the {{validated|current}} component supply.
     sides: paired
     binds: uo.stoppering.mat.stopper.type
     input: { type: choice, optionsFrom: stopperPreparation }
@@ -64,8 +64,8 @@ questions:
     section: uo.stoppering
     prompt: Maximum time vials remain partially stoppered (open) before lyophilization or full stoppering
     label: Maximum partially stoppered time
-    why: While vials are partially stoppered the product is exposed to the Grade A environment. The time must stay within the validated value and within what the aseptic process simulation covers.
-    sideLabels: { source: Validated maximum partially stoppered time, target: Planned maximum partially stoppered time }
+    why: While vials are partially stoppered the product is exposed to the Grade A environment. The time must stay within the {{validated|demonstrated}} value and within what the aseptic process simulation covers.
+    sideLabels: { source: "{{Validated|Demonstrated}} maximum partially stoppered time", target: Planned maximum partially stoppered time }
     sides: paired
     binds: uo.stoppering.param.max_open_time.max
     input: { type: quantity, units: [h, min] }

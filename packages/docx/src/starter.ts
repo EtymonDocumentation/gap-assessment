@@ -27,7 +27,9 @@ const COLUMNS: Record<string, string[]> = {
 };
 
 /** An empty document model: the starter template only needs the shell of the built-in look. */
-const SHELL: DocModel = { title: "{title}", banner: "{banner}", status: "{status}", meta: [], sections: [], revisions: [], comments: [] };
+const SHELL: DocModel = { title: "{title}", banner: "{banner}", status: "{status}", meta: [],
+  cover: { program: "{program}", product: "", sourceSite: "{sourceSite}", targetSite: "{targetSite}", sourceStage: "", targetStage: "" },
+  sections: [], revisions: [], comments: [] };
 
 /**
  * A valid .docx in the built-in look that uses every main tag, to start a placeholder-tag template from.

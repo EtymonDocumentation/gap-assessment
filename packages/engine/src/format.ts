@@ -1,6 +1,7 @@
 import { formatQuantity, formatRange, resolveEntry, type EntryValue, type Project, type Resolved } from "@gap/process-model";
 import { fieldLabel, optionLabel, parameterFields, type ContentBundle } from "./content";
 import type { ParameterField, Question } from "./content-schema";
+import { adaptText, sourceValidated } from "./stage";
 import { isQuantity, isRange } from "./values";
 
 export const STATUS_TEXT = {
@@ -36,7 +37,7 @@ const FIELD_SHORT: Record<ParameterField, string> = {
   setPoint: "SP",
   nor: "NOR",
   par: "PAR",
-  validatedRange: "Validated range",
+  validatedRange: "{{Validated range|Demonstrated range}}",
   rangeBasis: "Basis",
 };
 
@@ -45,9 +46,10 @@ const FIELD_OPTION_SET: Partial<Record<ParameterField, string>> = { classificati
 /** One-line display of a parameter question's fields on one side, e.g. "SP 25 rpm; NOR 20–30 rpm; PAR 15–35 rpm". */
 export function formatParameter(content: ContentBundle, project: Project, q: Question, side: "source" | "target"): string {
   const parts: string[] = [];
+  const validated = sourceValidated(project);
   for (const f of parameterFields(q, side)) {
     const r = resolveEntry(project, `${side}.${q.binds}.${f}`);
-    parts.push(`${FIELD_SHORT[f]} ${formatResolved(content, q, r, FIELD_OPTION_SET[f])}`);
+    parts.push(`${adaptText(FIELD_SHORT[f], validated)} ${formatResolved(content, q, r, FIELD_OPTION_SET[f])}`);
   }
   return parts.join("; ");
 }

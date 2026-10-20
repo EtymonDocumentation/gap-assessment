@@ -10,6 +10,7 @@ import {
 import type { Assessment, Gap } from "./compare";
 import { fieldLabel, type ContentBundle } from "./content";
 import type { Question, Section } from "./content-schema";
+import { stagedFor } from "./stage";
 import { CUSTOM_KIND_LABELS, isCustomQuestion, isCustomSection, recordedEntries } from "./custom";
 import { sourceShort } from "./labels";
 import { cellVerification, type CellVerification } from "./verification";
@@ -214,7 +215,8 @@ function definitionRows(content: ContentBundle, project: Project): CustomDefinit
   return rows;
 }
 
-export function buildModelView(content: ContentBundle, project: Project, a: Assessment): ModelView {
+export function buildModelView(rawContent: ContentBundle, project: Project, a: Assessment): ModelView {
+  const content = stagedFor(rawContent, project);
   const gapsByQ = new Map<string, Gap[]>();
   for (const g of a.gaps) gapsByQ.set(g.questionId, [...(gapsByQ.get(g.questionId) ?? []), g]);
 

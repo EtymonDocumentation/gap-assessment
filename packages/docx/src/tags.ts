@@ -1,4 +1,4 @@
-import { DOCUMENT_SECTION_IDS, categoryLabel, formatResolved, type Assessment, type ContentBundle, type DocModel } from "@gap/engine";
+import { DOCUMENT_SECTION_IDS, categoryLabel, formatResolved, stageWording, stagedFor, type Assessment, type ContentBundle, type DocModel } from "@gap/engine";
 import { resolveEntry, type Project } from "@gap/process-model";
 
 // ------------------------------------------------------------------ the data a template can use
@@ -34,6 +34,8 @@ export interface TagData {
   markets: string;
   sourceSite: string;
   targetSite: string;
+  sourceStage: string;
+  targetStage: string;
   generated: string;
   revision: string;
   regulatoryStatement: string;
@@ -94,7 +96,9 @@ function siteText(project: Project, side: "source" | "target"): string {
 }
 
 /** Everything a Word template can use. Values are the strings the HTML and Markdown documents show (taken from the DocModel tables). */
-export function buildTagData(content: ContentBundle, project: Project, a: Assessment, doc: DocModel): TagData {
+export function buildTagData(rawContent: ContentBundle, project: Project, a: Assessment, doc: DocModel): TagData {
+  const content = stagedFor(rawContent, project);
+  const stages = stageWording(project);
   const gapRows = rowsAs(doc, "gap-table", {
     id: "ID",
     section: "Section",
@@ -129,6 +133,8 @@ export function buildTagData(content: ContentBundle, project: Project, a: Assess
     markets: scopeText(content, project, "markets"),
     sourceSite: siteText(project, "source"),
     targetSite: siteText(project, "target"),
+    sourceStage: stages.sourceLabel,
+    targetStage: stages.targetLabel,
     generated: metaValue(doc, "Generated"),
     revision: metaValue(doc, "Revision"),
     regulatoryStatement: noteIn(doc, "gap-table"),
@@ -192,6 +198,8 @@ const TEXT_TAGS: [string, string, boolean?][] = [
   ["markets", "Markets."],
   ["sourceSite", "Source site (name and line)."],
   ["targetSite", "Target (receiving) site (name and line)."],
+  ["sourceStage", "Program stage of the source: Commercial (process validated), Clinical (GMP, not process validated), Development / engineering runs, or [not established]."],
+  ["targetStage", "Program stage of the target, with the same values as sourceStage."],
   ["generated", "Date and time the document was generated (UTC)."],
   ["revision", "Revision line: \"Not yet issued\" or the latest issued revision and its status."],
   ["regulatoryStatement", "The statement under the gap table that regulatory consequences need review. The tool never decides a filing category; it only says \"Requires regulatory affairs assessment\"."],

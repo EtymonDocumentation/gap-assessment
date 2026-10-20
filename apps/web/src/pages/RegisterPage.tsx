@@ -2,9 +2,9 @@ import { activityLabel, CATEGORIES, gapsToCsv, SEVERITY_RANK, setGapOverlay, typ
 import { verificationState, type GapStatus, type Severity } from "@gap/process-model";
 import { useEffect, useMemo, useState } from "react";
 import { CategoryChip, Empty, RegulatoryFlag, SeverityBadge } from "../components";
-import { CATEGORY_SHORT, download, SEVERITY_TEXT, slug, today } from "../lib";
+import { categoryShort, download, SEVERITY_TEXT, slug, today } from "../lib";
 import { href } from "../router";
-import { useAssessment, useContent, useStore } from "../store";
+import { useAssessment, useContent, useStageWording, useStore } from "../store";
 
 type SortKey = "id" | "severity" | "category" | "section" | "status";
 
@@ -256,6 +256,7 @@ function GapRow({ g, open, onToggle }: { g: Gap; open: boolean; onToggle: () => 
 }
 
 function OverlayEditor({ g }: { g: Gap }) {
+  const wording = useStageWording();
   const update = useStore((s) => s.update);
   const [owner, setOwner] = useState(g.owner ?? "");
   const [status, setStatus] = useState<GapStatus>(g.status);
@@ -333,7 +334,7 @@ function OverlayEditor({ g }: { g: Gap }) {
           </span>
         )}
       </div>
-      <p className="small muted">{CATEGORY_SHORT[g.category]} is derived from the answers and cannot be edited here; change the answer instead.</p>
+      <p className="small muted">{categoryShort(wording.sourceValidated)[g.category]} is derived from the answers and cannot be edited here; change the answer instead.</p>
     </form>
   );
 }

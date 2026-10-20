@@ -4,6 +4,7 @@ import {
   equipmentQualificationToCsv,
   READINESS_LABEL,
   READINESS_ORDER,
+  stageBasis,
   validationPlanToCsv,
   type EquipmentRow,
   type LinkedGap,
@@ -15,7 +16,7 @@ import { useMemo, useState } from "react";
 import { CategoryChip, Empty, SeverityBadge } from "../components";
 import { download, SEVERITY_TEXT, slug, today } from "../lib";
 import { href } from "../router";
-import { useAssessment, useContent, useStore } from "../store";
+import { useAssessment, useContent, useStageWording, useStore } from "../store";
 
 const STATUS_TEXT: Record<GapStatus, string> = { open: "Open", in_progress: "In progress", closed: "Closed", accepted_no_action: "Accepted, no action" };
 
@@ -65,6 +66,7 @@ export function ValidationPage() {
   const plan = useMemo(() => buildValidationPlan(content, project, a), [content, project, a]);
   const equipment = useMemo(() => buildEquipmentQualification(content, project, a), [content, project, a]);
 
+  const basis = stageBasis(useStageWording());
   const [ready, setReady] = useState<Readiness | "">("");
   const [sev, setSev] = useState<Severity | "">("");
   const [text, setText] = useState("");
@@ -94,6 +96,16 @@ export function ValidationPage() {
             Export CSV ({rows.length} rows)
           </button>
         </div>
+
+        <section className="card tight stack" aria-labelledby="stage-basis-h">
+          <h3 id="stage-basis-h">Stage basis</h3>
+          <p>{basis.statement}</p>
+          <ul>
+            <li>{basis.sourcePoint}</li>
+            <li>{basis.targetPoint}</li>
+          </ul>
+          <p className="small muted">{basis.closing}</p>
+        </section>
 
         {plan.length === 0 ? (
           <Empty>No validation activities implied yet. Answer the interview or load the demo.</Empty>
@@ -201,6 +213,7 @@ function PlanRowView({ r }: { r: PlanRow }) {
       <th scope="row">
         {r.label}
         <div className="small muted normal">{r.description}</div>
+        {r.stageNote && <div className="small muted normal">Program stage: {r.stageNote}</div>}
         {r.openGaps === 0 && <div className="small muted normal">All implying gaps are closed or accepted.</div>}
       </th>
       <td>

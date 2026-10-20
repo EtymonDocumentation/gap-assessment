@@ -1,28 +1,34 @@
 # Fixed wording for the generated gap assessment document.
 # Placeholders: {program} {modality} {dosageForm} {presentation} {transferType}
-# {markets} {sourceSite} {targetSite} {date}. Unknown values appear as written
-# by the engine (for example "Unknown — to be confirmed"); nothing is invented.
+# {markets} {sourceSite} {targetSite} {sourceStage} {targetStage} {date}. Unknown values appear as written
+# by the engine (for example "Unknown — to be confirmed", or "[not established]" for a program stage);
+# nothing is invented.
+#
+# Stage-aware wording: {{validated wording|other wording}}. The first variant is used only when the source
+# program stage is established as commercial (process validated); every other case, including an unanswered
+# stage, uses the second. Quote a value that holds a marker if it would otherwise start with a brace.
 templates:
   id: gap-assessment-document
-  version: 1.2.0
+  version: 1.3.0
 
 document:
   title: "Gap assessment: {program} — {sourceSite} to {targetSite}"
   banner: Proof of concept. Not validated. Not for GMP use.
   purpose: >-
-    This document compares the validated manufacturing process for {program} at
+    This document compares the {{validated|current}} manufacturing process for {program} at
     {sourceSite} (source) with the planned process at {targetSite} (target). It
     identifies differences, classifies each difference, lists the activities
-    implied before the target process can be considered validated, and records
+    {{implied before the target process can be considered validated|implied by the differences for the target program stage}}, and records
     information that is still missing. It is a draft generated from structured
     interview answers and must be reviewed and approved before use.
   scope: >-
     Product: {program} ({modality}; {dosageForm}; {presentation}). Transfer type:
-    {transferType}. Intended markets: {markets}. The assessment covers the unit
+    {transferType}. Program stage: source {sourceStage}; target {targetStage}.
+    Intended markets: {markets}. The assessment covers the unit
     operations listed below for both sites. Unit operations outside this list are
     not assessed in this version.
   sourceSummaryIntro: >-
-    The source process as validated, as recorded in the interview. Each value shows
+    The source process {{as validated|as it currently stands}}, as recorded in the interview. Each value shows
     its source and verification state. Values marked "Unknown — to be confirmed" or
     "Not established" are open information items.
   targetSummaryIntro: >-

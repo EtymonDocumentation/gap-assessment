@@ -15,6 +15,7 @@ import {
 } from "@gap/process-model";
 import type { ContentBundle } from "./content";
 import type { Catalog, Question, Section } from "./content-schema";
+import { stagedFor } from "./stage";
 
 /**
  * Custom unit operations and custom items.
@@ -268,9 +269,10 @@ const byReference = new WeakMap<ContentBundle, WeakMap<CustomDefinitions, Conten
 const bySignature = new WeakMap<ContentBundle, Map<string, ContentBundle>>();
 const SIGNATURE_CACHE_SIZE = 32;
 
-/** The loaded bundle behind an effective bundle (or the bundle itself). */
+/** The loaded bundle behind an effective or staged bundle (or the bundle itself). */
 export function baseContent(content: ContentBundle): ContentBundle {
-  return content.effectiveOf ?? content;
+  const unstaged = content.stagedOf ?? content;
+  return unstaged.effectiveOf ?? unstaged;
 }
 
 /**
@@ -298,6 +300,11 @@ export function effectiveContent(content: ContentBundle, project: Pick<Project, 
   }
   refs.set(custom, bundle);
   return bundle;
+}
+
+/** effectiveContent() with the project's stage wording applied (see stage.ts). What the engine uses for anything it prints. */
+export function effectiveStaged(content: ContentBundle, project: Project): ContentBundle {
+  return stagedFor(effectiveContent(content, project), project);
 }
 
 /** True for questions synthesized from custom definitions. */

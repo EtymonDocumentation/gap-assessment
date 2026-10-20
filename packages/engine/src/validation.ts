@@ -1,6 +1,7 @@
 import { isCustomKey, resolveEntry, type GapStatus, type Project, type Resolved, type Severity, type Side } from "@gap/process-model";
 import { assess, SEVERITY_RANK, type Assessment, type Gap } from "./compare";
-import { effectiveContent } from "./custom";
+import { effectiveStaged } from "./custom";
+import { activityStageNote, stageWording } from "./stage";
 import { fieldLabel, findRule, type ContentBundle } from "./content";
 import type { Category, Question } from "./content-schema";
 import { cell } from "./csv";
@@ -148,6 +149,8 @@ export interface PlanRow {
   activityKey: string;
   label: string;
   description: string;
+  /** What the source and target program stages mean for this activity (stage.ts); to confirm with QA. */
+  stageNote?: string;
   gaps: LinkedGap[];
   /** Highest effective severity among the gaps that imply the activity (including closed or accepted ones). */
   severity: Severity;
@@ -170,10 +173,11 @@ export interface PlanRow {
  * not-applicable unit operations are not in the assessment and so never imply anything.
  */
 export function buildValidationPlan(content: ContentBundle, project: Project, assessment?: Assessment): PlanRow[] {
-  const eff = effectiveContent(content, project);
+  const eff = effectiveStaged(content, project);
   const a = assessment ?? assess(eff, project);
   const shown = visibleBinds(a);
   const diffs = a.gaps.filter((g) => g.category !== "equivalent");
+  const wording = stageWording(project);
   const rows: { row: PlanRow; order: number }[] = [];
 
   eff.catalog.activities.forEach((act, order) => {
@@ -203,6 +207,8 @@ export function buildValidationPlan(content: ContentBundle, project: Project, as
       openItems: studies.filter((s) => s.target.entry === "unknown" || s.target.entry === "not_established").length,
     };
     if (regulatory) row.regulatoryNote = regulatory;
+    const stageNote = activityStageNote(act.key, wording);
+    if (stageNote) row.stageNote = stageNote;
     rows.push({ row, order });
   });
 
@@ -302,7 +308,7 @@ const RANGE_FIELD = /^qualifiedRange(?:[._](.+))?$/;
 
 /** One row per equipment item with qualification entries, in unit operation sequence then catalog order. */
 export function buildEquipmentQualification(content: ContentBundle, project: Project, assessment?: Assessment): EquipmentRow[] {
-  const eff = effectiveContent(content, project);
+  const eff = effectiveStaged(content, project);
   const a = assessment ?? assess(eff, project);
   const shown = visibleBinds(a);
   const diffs = a.gaps.filter((g) => g.category !== "equivalent");

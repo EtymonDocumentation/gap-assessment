@@ -1,4 +1,5 @@
 import { TemplateError } from "./errors";
+import { ACCENT, MUTED_HEADING } from "./palette";
 import { W_NS, XML_DECL, attrByLocal, childElements, esc, firstChildByLocal, localName, parseXml } from "./xml";
 
 // ------------------------------------------------------------------ reading a styles part
@@ -205,9 +206,51 @@ export function styleXml(key: StyleKey, id: string, basedOn: string | undefined)
   }
 }
 
-/** A complete styles part for the built-in template. */
-export function builtinStylesXml(): string {
+/** The title and heading styles of the upgraded built-in look: one accent colour, and a thin accent rule under Heading 1. */
+function accentStyleXml(key: StyleKey, id: string, basedOn: string): string {
+  const head = `<w:style w:type="paragraph" w:styleId="${esc(id)}"><w:name w:val="${esc(STYLE_NAME[key])}"/><w:basedOn w:val="${esc(basedOn)}"/><w:next w:val="${esc(basedOn)}"/>`;
+  if (key === "title") {
+    return (
+      head +
+      `<w:uiPriority w:val="10"/><w:qFormat/><w:pPr><w:spacing w:before="120" w:after="120" w:line="240" w:lineRule="auto"/></w:pPr>` +
+      `<w:rPr><w:b/><w:bCs/><w:color w:val="${ACCENT}"/><w:sz w:val="40"/><w:szCs w:val="40"/></w:rPr></w:style>`
+    );
+  }
+  const n = Number(/^heading(\d)$/.exec(key)![1]);
+  const rule = n === 1 ? `<w:pBdr><w:bottom w:val="single" w:sz="8" w:space="3" w:color="${ACCENT}"/></w:pBdr>` : "";
+  const color = n <= 2 ? ACCENT : MUTED_HEADING;
+  return (
+    head +
+    `<w:uiPriority w:val="9"/><w:qFormat/>` +
+    `<w:pPr><w:keepNext/><w:keepLines/>${rule}<w:spacing w:before="${HEADING_BEFORE[n - 1]}" w:after="120"/><w:outlineLvl w:val="${n - 1}"/></w:pPr>` +
+    `<w:rPr><w:b/><w:bCs/><w:color w:val="${color}"/><w:sz w:val="${HEADING_SIZE[n - 1]}"/><w:szCs w:val="${HEADING_SIZE[n - 1]}"/></w:rPr></w:style>`
+  );
+}
+
+/** "Contents" heading (not an outline level, so it stays out of the table of contents) and the three table-of-contents entry styles. */
+function tocStylesXml(rightTab: number): string {
+  const entry = (n: number, indent: number) =>
+    `<w:style w:type="paragraph" w:styleId="TOC${n}"><w:name w:val="toc ${n}"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:autoRedefine/><w:uiPriority w:val="39"/><w:unhideWhenUsed/>` +
+    `<w:pPr><w:tabs><w:tab w:val="right" w:leader="dot" w:pos="${rightTab}"/></w:tabs><w:spacing w:before="${n === 1 ? 80 : 0}" w:after="40"/><w:ind w:left="${indent}"/></w:pPr>` +
+    (n === 1 ? `<w:rPr><w:b/><w:bCs/></w:rPr>` : "") +
+    `</w:style>`;
+  return (
+    `<w:style w:type="paragraph" w:styleId="TOCHeading"><w:name w:val="TOC Heading"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="39"/><w:unhideWhenUsed/><w:qFormat/>` +
+    `<w:pPr><w:keepNext/><w:keepLines/><w:pBdr><w:bottom w:val="single" w:sz="8" w:space="3" w:color="${ACCENT}"/></w:pBdr><w:spacing w:before="0" w:after="240"/></w:pPr>` +
+    `<w:rPr><w:b/><w:bCs/><w:color w:val="${ACCENT}"/><w:sz w:val="32"/><w:szCs w:val="32"/></w:rPr></w:style>` +
+    entry(1, 0) +
+    entry(2, 240) +
+    entry(3, 480)
+  );
+}
+
+/**
+ * A complete styles part for the built-in template. `upgraded` is the M5.1 look (accent headings, table-of-contents styles); without it the
+ * part is the original one, which the starter template and the PDF-outline output still use.
+ */
+export function builtinStylesXml(upgraded = false, tocTab = 15138): string {
   const keys: StyleKey[] = ["title", "heading1", "heading2", "heading3", "heading4", "heading5", "heading6", "heading7", "heading8", "heading9", "listParagraph", "tableText", "header", "footer"];
+  const own = (k: StyleKey) => (upgraded && (k === "title" || k.startsWith("heading")) ? accentStyleXml(k, BUILTIN_STYLE_ID[k], "Normal") : styleXml(k, BUILTIN_STYLE_ID[k], "Normal"));
   return (
     XML_DECL +
     `<w:styles xmlns:w="${W_NS}">` +
@@ -217,8 +260,9 @@ export function builtinStylesXml(): string {
     `<w:style w:type="character" w:default="1" w:styleId="DefaultParagraphFont"><w:name w:val="Default Paragraph Font"/><w:uiPriority w:val="1"/><w:semiHidden/><w:unhideWhenUsed/></w:style>` +
     `<w:style w:type="table" w:default="1" w:styleId="TableNormal"><w:name w:val="Normal Table"/><w:uiPriority w:val="99"/><w:semiHidden/><w:unhideWhenUsed/><w:tblPr><w:tblInd w:w="0" w:type="dxa"/><w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:left w:w="108" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:right w:w="108" w:type="dxa"/></w:tblCellMar></w:tblPr></w:style>` +
     `<w:style w:type="numbering" w:default="1" w:styleId="NoList"><w:name w:val="No List"/><w:uiPriority w:val="99"/><w:semiHidden/><w:unhideWhenUsed/></w:style>` +
-    keys.map((k) => styleXml(k, BUILTIN_STYLE_ID[k], "Normal")).join("") +
+    keys.map(own).join("") +
     styleXml("tableGrid", BUILTIN_STYLE_ID.tableGrid, "TableNormal") +
+    (upgraded ? tocStylesXml(tocTab) : "") +
     `</w:styles>`
   );
 }

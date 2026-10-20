@@ -21,7 +21,7 @@ questions:
     section: uo.labeling_packaging
     prompt: Labeling speed
     label: Labeling speed
-    why: Line speed affects label placement accuracy and print quality. A speed above the validated range is not covered by the line qualification.
+    why: Line speed affects label placement accuracy and print quality. A speed above the {{validated|demonstrated}} range is not covered by the line qualification.
     sides: paired
     binds: uo.labeling_packaging.param.labeling_speed
     input: { type: parameter, units: [units/min, units/h] }
@@ -66,7 +66,7 @@ questions:
     prompt: Maximum time out of refrigeration during labeling and packaging
     label: Maximum time out of refrigeration
     why: Refrigerated product is warmed during labeling and packaging. The time out of refrigeration must stay within what the stability data support.
-    sideLabels: { source: Validated maximum time out of refrigeration, target: Planned maximum time out of refrigeration }
+    sideLabels: { source: "{{Validated|Demonstrated}} maximum time out of refrigeration", target: Planned maximum time out of refrigeration }
     sides: paired
     binds: uo.labeling_packaging.param.max_time_out_of_refrigeration.max
     input: { type: quantity, units: [h, min] }
@@ -130,7 +130,7 @@ questions:
     section: uo.labeling_packaging
     prompt: Qualification status of the serialization and aggregation system
     label: Serialization system qualification status
-    why: The serialization system is a validated computerized system with equipment. A target system that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    why: The serialization system is a computerized system that is validated and qualified together with its equipment. A target system that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
     tags: [m3]
     sides: paired
     sameAsSource: false

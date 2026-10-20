@@ -311,6 +311,13 @@ const MIGRATIONS: { from: string; to: string; migrate: (raw: Record<string, unkn
     to: "1.3.0",
     migrate: (raw) => ({ ...raw, schemaVersion: "1.3.0", document: raw.document ?? { revisions: [], comments: [], exports: [] } }),
   },
+  // 1.3.0 -> 1.4.0: the program stage per side (site.programStage). It is an ordinary site entry, so the structure does not
+  // change. Older projects get no value: their stage stays "not established" until someone answers the stage question.
+  {
+    from: "1.3.0",
+    to: "1.4.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.4.0" }),
+  },
 ];
 
 function sameNameRaw(a: string, b: string): boolean {

@@ -13,7 +13,7 @@ import {
 } from "@gap/process-model";
 import { assess, type Gap } from "./compare";
 import { categoryLabel, type ContentBundle } from "./content";
-import { effectiveContent } from "./custom";
+import { effectiveStaged } from "./custom";
 import { sourceShort } from "./labels";
 import { entryDisplay, entryLabel, type EntryLabel } from "./labels";
 import { activeRefs, visibleInstances } from "./sequencer";
@@ -67,7 +67,7 @@ export function docDetail(s: Source): string {
 
 /** One row per source, with the entries citing it. */
 export function sourceRegisterRows(content: ContentBundle, project: Project): SourceRow[] {
-  const eff = effectiveContent(content, project);
+  const eff = effectiveStaged(content, project);
   const active = activeRefs(visibleInstances(eff, project, "paired"));
   return sourceUsage(project).map(({ source, refs, unused }) => {
     const state = source.supersededBy && unused ? "superseded" : unused ? "unused" : "in_use";
@@ -159,7 +159,7 @@ function describeGap(content: ContentBundle, g: Gap) {
 export function previewSourceRemoval(content: ContentBundle, project: Project, sourceId: string): SourceRemovalPreview {
   const source = project.sources.find((s) => s.id === sourceId);
   if (!source) throw new Error(`Unknown source ${sourceId}`);
-  const eff = effectiveContent(content, project);
+  const eff = effectiveStaged(content, project);
   const { project: after } = removeSource(project, sourceId, PREVIEW_ACTOR);
   const a0 = assess(eff, project);
   const a1 = assess(eff, after);

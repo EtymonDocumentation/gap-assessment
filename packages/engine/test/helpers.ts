@@ -101,9 +101,20 @@ export function makeKit(content: ContentBundle) {
   const pair = (p: Project, questionId: string, source: EntryValue, target: EntryValue): Project =>
     v(v(p, questionId, "source", source), questionId, "target", target);
 
-  /** Scoping answers for a liquid vial site-to-site transfer, plus unit-operation presence on both sides. */
+  /**
+   * Scoping answers for a liquid vial site-to-site transfer, plus unit-operation presence on both sides. Both program
+   * stages are answered (commercial to commercial by default, which is the validated wording most tests expect).
+   */
   const base = (
-    opts: { uos?: string[]; presentation?: string; transfer?: string; containment?: string; entrySequence?: "paired" | "sequential" } = {},
+    opts: {
+      uos?: string[];
+      presentation?: string;
+      transfer?: string;
+      containment?: string;
+      entrySequence?: "paired" | "sequential";
+      sourceStage?: string;
+      targetStage?: string;
+    } = {},
   ): Project => {
     let p = newProject(opts.entrySequence);
     p = v(p, "scope.program", "shared", "TST-001");
@@ -114,6 +125,8 @@ export function makeKit(content: ContentBundle) {
     p = v(p, "scope.containment", "shared", opts.containment ?? "standard");
     p = v(p, "scope.markets", "shared", ["us"]);
     p = v(p, "scope.transfer_type", "shared", opts.transfer ?? "site_to_site");
+    p = v(p, "site.stage", "source", opts.sourceStage ?? "commercial");
+    p = v(p, "site.stage", "target", opts.targetStage ?? "commercial");
     for (const uo of opts.uos ?? ["compounding", "sterile_filtration", "aseptic_filling"]) p = both(p, PRESENCE_QUESTION[uo]!, "yes");
     return p;
   };

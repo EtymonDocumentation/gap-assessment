@@ -13,6 +13,7 @@ import {
   type Section,
   type Templates,
 } from "./content-schema";
+import { adaptText } from "./stage";
 
 export interface ContentBundle {
   catalog: Catalog;
@@ -25,6 +26,10 @@ export interface ContentBundle {
   sectionById: Map<string, Section>;
   /** Set only on bundles made by effectiveContent(): the loaded bundle they were derived from. */
   effectiveOf?: ContentBundle;
+  /** Set only on bundles made by stagedContent(): which wording its {{a|b}} variants were resolved to (true = validated source). */
+  sourceValidated?: boolean;
+  /** Set only on bundles made by stagedContent(): the bundle with the variants unresolved. */
+  stagedOf?: ContentBundle;
 }
 
 export class ContentError extends Error {
@@ -295,14 +300,16 @@ export function labelResolver(content: ContentBundle): LabelResolver {
   };
 }
 
+// The three label helpers resolve stage variants too, so a bundle that was never staged cannot leak "{{a|b}}" into output.
+// An unstaged bundle reads as a non-validated source; the engine and the web app always stage first.
 export function fieldLabel(content: ContentBundle, field: string): string {
-  return content.catalog.fieldLabels[field] ?? field;
+  return adaptText(content.catalog.fieldLabels[field] ?? field, content.sourceValidated === true);
 }
 
 export function activityLabel(content: ContentBundle, key: string): string {
-  return content.catalog.activities.find((a) => a.key === key)?.label ?? key;
+  return adaptText(content.catalog.activities.find((a) => a.key === key)?.label ?? key, content.sourceValidated === true);
 }
 
 export function categoryLabel(content: ContentBundle, key: string): string {
-  return content.catalog.categories.find((c) => c.key === key)?.label ?? key;
+  return adaptText(content.catalog.categories.find((c) => c.key === key)?.label ?? key, content.sourceValidated === true);
 }

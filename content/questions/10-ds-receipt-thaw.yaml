@@ -3,7 +3,7 @@ questions:
     section: uo.ds_receipt_thaw
     prompt: Is drug substance receipt and storage (and thaw, where frozen) performed at this site?
     label: Receipt and thaw performed
-    why: Establishes whether the unit operation exists at each site. A site that receives drug substance ready for compounding has no receipt or thaw step of its own, which changes where the validated hold and thaw controls sit.
+    why: Establishes whether the unit operation exists at each site. A site that receives drug substance ready for compounding has no receipt or thaw step of its own, which changes where the {{validated|current}} hold and thaw controls sit.
     sides: paired
     binds: uo.ds_receipt_thaw.presence
     input: { type: yes_no }
@@ -21,7 +21,7 @@ questions:
     section: uo.ds_receipt_thaw
     prompt: Drug substance storage temperature before use
     label: Drug substance storage temperature
-    why: The storage temperature is the condition supported by drug substance stability data. A target range wider than the validated one is not covered by those data.
+    why: The storage temperature is the condition supported by drug substance stability data. A target range wider than the {{validated|demonstrated}} one is not covered by those data.
     help: Source — the storage temperature and the range supported by drug substance stability data. Target — the planned storage set point and range.
     sides: paired
     binds: uo.ds_receipt_thaw.param.storage_temperature
@@ -77,7 +77,7 @@ questions:
     section: uo.ds_receipt_thaw
     prompt: Thaw temperature (thaw medium or chamber set point)
     label: Thaw temperature
-    why: The thaw temperature sets the thaw rate and the maximum product temperature. A higher temperature than validated can cause local warming and degradation.
+    why: The thaw temperature sets the thaw rate and the maximum product temperature. A higher temperature than {{validated|demonstrated}} can cause local warming and degradation.
     triggerNote: Asked because the drug substance is received frozen.
     sides: paired
     binds: uo.ds_receipt_thaw.param.thaw_temperature
@@ -99,9 +99,9 @@ questions:
     section: uo.ds_receipt_thaw
     prompt: Maximum time at ambient temperature after thaw, before compounding
     label: Maximum ambient time after thaw
-    why: Time at room temperature after thaw is limited by drug substance stability and bioburden control. The target maximum must stay within the validated time.
+    why: Time at room temperature after thaw is limited by drug substance stability and bioburden control. The target maximum must stay within the {{validated|demonstrated}} time.
     triggerNote: Asked because the drug substance is received frozen.
-    sideLabels: { source: Validated maximum time at ambient temperature, target: Planned maximum time at ambient temperature }
+    sideLabels: { source: "{{Validated|Demonstrated}} maximum time at ambient temperature", target: Planned maximum time at ambient temperature }
     sides: paired
     binds: uo.ds_receipt_thaw.param.max_ambient_time.max
     input: { type: quantity, units: [h, min] }

@@ -809,7 +809,7 @@ describe("a project with a review survives a file round trip", () => {
 
   it("the project used here starts with an empty document block", () => {
     expect(project().document).toEqual({ revisions: [], comments: [], exports: [] });
-    expect(project().schemaVersion).toBe("1.3.0");
+    expect(project().schemaVersion).toBe("1.4.0");
     expect(ACTOR.name).toBeTruthy();
   });
 });

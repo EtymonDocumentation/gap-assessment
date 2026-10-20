@@ -3,7 +3,7 @@
 # "Unknown / to be confirmed" is added to every question by the engine.
 bank:
   id: gap-core
-  version: 1.2.0
+  version: 1.3.0
 
 sections:
   - { id: scoping, title: Scoping, kind: scoping, order: 0, intro: These answers decide which unit operations and questions apply. They are shared by source and target. }
@@ -106,10 +106,25 @@ questions:
   - id: site.line
     section: site
     prompt: Filling line
-    why: Identifies the line whose validated state (equipment, APS, qualification) applies.
+    why: "Identifies the line whose {{validated|current}} state (equipment, APS, qualification) applies."
     sides: paired
     binds: site.line
     input: { type: text, placeholder: e.g. Line 2 }
+
+  - id: site.stage
+    section: site
+    prompt: Program stage at this site
+    label: Program stage
+    why: >-
+      The stage decides what evidence the source can offer and what the target is expected to show. A commercial
+      (process validated) source has PPQ and validation to leverage; a clinical (GMP, not process validated) source
+      or a development source does not, so the document then says "source range" and "current state" instead of
+      "validated". It also sets the validation expectations for the target (PPQ, phase-appropriate or
+      engineering runs). Nothing is assumed: an unanswered stage is listed as an open item.
+    sides: paired
+    sameAsSource: false
+    binds: site.programStage
+    input: { type: choice, optionsFrom: programStage }
 
   - id: site.barrier
     section: site

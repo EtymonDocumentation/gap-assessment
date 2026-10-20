@@ -297,7 +297,7 @@ test("document: Word export in all four modes, from the saved mapping, with the 
   await expect(rows.first()).toContainText("Word");
   await expect(rows.first()).toContainText("PDF outline");
   await expect(rows.nth(1)).toContainText("placeholder-tag");
-  await expect(rows.last()).toContainText("Built-in default 1.0.0");
+  await expect(rows.last()).toContainText("Built-in default 1.1.0");
   await expect(rows.last().locator("td").nth(3)).toHaveText("1");
   await expect(rows.last().locator("td").nth(4)).toHaveText("No");
   await expect(rows.first().locator("code")).toHaveText(/^[0-9a-f]{12}$/);
@@ -306,7 +306,7 @@ test("document: Word export in all four modes, from the saved mapping, with the 
   await page.getByRole("button", { name: "Download Markdown" }).click();
   await expect(rows).toHaveCount(6);
   await expect(rows.first()).toContainText("Markdown");
-  await expect(rows.first()).toContainText("Built-in default 1.0.0");
+  await expect(rows.first()).toContainText("Built-in default 1.1.0");
   await page.getByRole("button", { name: "Download HTML" }).click();
   await expect(rows).toHaveCount(7);
   await expect(rows.first()).toContainText("HTML");
@@ -351,7 +351,7 @@ test("revisions: the demo has revision 1; issue revision 2; a change shows the c
   await expect(state).toHaveText(/^Revision 2, issued for review on \d{4}-\d{2}-\d{2}\.$/);
   await expect(table.locator("tbody tr")).toHaveCount(2);
   await expect(table.locator("tbody tr").first()).toContainText("Q. Tester (fictional)");
-  await expect(table.locator("tbody tr").first()).toContainText("Built-in default 1.0.0");
+  await expect(table.locator("tbody tr").first()).toContainText("Built-in default 1.1.0");
   await expect(page.getByRole("button", { name: "Issue revision" })).toBeFocused();
 
   // The name typed last is offered again.

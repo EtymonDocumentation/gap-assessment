@@ -1,7 +1,7 @@
 import { allEntries, getEntry, parseRef } from "./paths";
 import type { Actor, Entry, EntryStatus, EntryValue, Project, Source } from "./types";
 
-export const SCHEMA_VERSION = "1.3.0";
+export const SCHEMA_VERSION = "1.4.0";
 
 let counter = 0;
 /** Short unique id. Uses crypto.randomUUID where available. */

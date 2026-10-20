@@ -5,17 +5,18 @@
 # flagged. Regulatory wording is fixed: "Requires regulatory affairs assessment."
 ruleset:
   id: gap-core-rules
-  version: 1.2.0
+  version: 1.3.0
 
 rules:
   # ------------------------------------------------------------------ site
   - id: R-SITE-INFO
-    version: 1.0.0
-    title: Site identification (informational)
-    match: [site.name, site.line]
+    version: 1.1.0
+    title: Site identification and program stage (informational)
+    # The program stage is not compared as a difference. It sets the wording and the validation expectations (see stage.ts).
+    match: [site.name, site.line, site.programStage]
     comparator: informational
     severity: none
-    why: Identification only; not compared.
+    why: Identification and program stage only; not compared.
 
   - id: R-SITE-BARRIER
     version: 1.0.0
@@ -63,7 +64,7 @@ rules:
     comparator: presence
     severity: high
     regulatory: true
-    why: Adding or removing a unit operation changes the process flow covered by the validated state.
+    why: Adding or removing a unit operation changes the process flow covered by the {{validated|current}} state.
     activities: [risk_assessment_update, ppq_coverage_assessment, procedure_update, training]
 
   # ================================================================== milestone 2 unit operations
@@ -123,11 +124,11 @@ rules:
     comparator: upper_limit
     severity: high
     regulatory: true
-    why: Holding thawed drug substance at ambient temperature for longer than the validated time is not supported by stability and microbial hold data.
+    why: Holding thawed drug substance at ambient temperature for longer than the {{validated|demonstrated}} time is not supported by stability and microbial hold data.
     activities: [hold_time_study, risk_assessment_update]
     outcomes:
       within_validated_range:
-        why: The planned maximum time at ambient temperature is within the validated time.
+        why: The planned maximum time at ambient temperature is within the {{validated|demonstrated}} time.
 
   - id: R-EV-FREEZE-THAW
     version: 1.0.0
@@ -180,7 +181,7 @@ rules:
     comparator: upper_limit
     severity: high
     regulatory: true
-    why: A longer time with vials partially stoppered extends exposure in the aseptic zone and must be covered by the media fill and the process validation.
+    why: A longer time with vials partially stoppered extends exposure in the aseptic zone and must be covered by the media fill and {{the process validation|the process data}}.
     activities: [media_fill, risk_assessment_update, ppq_coverage_assessment]
 
   - id: R-APS-OPEN-TIME-COVERAGE
@@ -221,11 +222,11 @@ rules:
     severityBy:
       classification: { CPP: high, KPP: medium, non_critical: low }
     regulatory: true
-    why: Lyophilization cycle parameters determine product temperature, cake structure and residual moisture. Operating outside the source proven acceptable or validated range is not supported by the cycle development and PPQ data.
+    why: Lyophilization cycle parameters determine product temperature, cake structure and residual moisture. Operating outside the source proven acceptable or {{validated|demonstrated}} range is not supported by the cycle development and {{PPQ|source run}} data.
     activities: [lyo_cycle_verification, scientific_justification, engineering_run, ppq_coverage_assessment]
     outcomes:
       within_validated_range:
-        why: The target cycle conditions lie within the source proven acceptable or validated range. Record the target cycle in the recipe and procedures; no additional validation is implied.
+        why: The target cycle conditions lie within the source proven acceptable or {{validated|demonstrated}} range. Record the target cycle in the recipe and procedures; no additional {{validation|activity}} is implied.
         activities: [procedure_update]
 
   - id: R-LYO-CYCLE-TIME
@@ -235,7 +236,7 @@ rules:
     comparator: upper_limit
     severity: high
     regulatory: true
-    why: A longer total cycle time extends the time vials spend in the chamber and is not supported by the validated cycle and the stability data.
+    why: A longer total cycle time extends the time vials spend in the chamber and is not supported by the {{validated|source}} cycle and the stability data.
     activities: [lyo_cycle_verification, hold_time_study, ppq_coverage_assessment]
 
   - id: R-LYO-SHELF-AREA
@@ -249,7 +250,7 @@ rules:
         - { atLeast: 1, severity: medium }
     severity: medium
     regulatory: true
-    why: A different shelf area changes the maximum batch size and the heat and mass transfer of the cycle. The validated cycle cannot be assumed to perform the same way at another scale.
+    why: A different shelf area changes the maximum batch size and the heat and mass transfer of the cycle. The {{validated|source}} cycle cannot be assumed to perform the same way at another scale.
     activities: [lyo_cycle_verification, engineering_run, equipment_qualification, ppq_coverage_assessment]
 
   - id: R-LYO-LOADING
@@ -272,7 +273,7 @@ rules:
     comparator: enum
     severity: medium
     regulatory: true
-    why: Nucleation control, the closure approach and the backfill gas change ice structure, drying behaviour or the vial headspace. They are part of the cycle design that was validated.
+    why: Nucleation control, the closure approach and the backfill gas change ice structure, drying behaviour or the vial headspace. They are part of the cycle design that was {{validated|run at the source}}.
     activities: [lyo_cycle_verification, cci_study, scientific_justification, procedure_update]
 
   - id: R-LYO-MOISTURE-LIMIT
@@ -294,7 +295,7 @@ rules:
       map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
     severity: high
     regulatory: true
-    why: The cycle has not been shown to give the validated product temperature profile and residual moisture on the target lyophilizer or scale.
+    why: The cycle has not been shown to give the {{validated|source}} product temperature profile and residual moisture on the target lyophilizer or scale.
     activities: [lyo_cycle_verification, engineering_run]
 
   - id: R-EV-LYO-APS-LOADING
@@ -499,7 +500,7 @@ rules:
         - { atLeast: 1, severity: medium }
     severity: medium
     regulatory: true
-    why: A batch size outside the validated range affects mixing, hold times, filter loading, filling duration and APS coverage, and is outside the scale demonstrated in PPQ.
+    why: A batch size outside the {{validated|demonstrated}} range affects mixing, hold times, filter loading, filling duration and APS coverage, and is outside the scale demonstrated {{in PPQ|at the source}}.
     activities: [mixing_study, hold_time_study, filter_sizing, media_fill, engineering_run, ppq_coverage_assessment]
     outcomes:
       within_validated_range:
@@ -539,11 +540,11 @@ rules:
     comparator: upper_limit
     severity: high
     regulatory: true
-    why: Holding the bulk longer than the validated time is not supported by stability and microbial hold data.
+    why: Holding the bulk longer than the {{validated|demonstrated}} time is not supported by stability and microbial hold data.
     activities: [hold_time_study]
     outcomes:
       within_validated_range:
-        why: The planned maximum hold time is within the validated hold time.
+        why: The planned maximum hold time is within the {{validated|demonstrated}} hold time.
 
   - id: R-FILL-DURATION
     version: 1.0.0
@@ -552,7 +553,7 @@ rules:
     comparator: upper_limit
     severity: high
     regulatory: true
-    why: A longer filling duration extends product exposure and room-temperature hold and must be covered by the APS and process validation.
+    why: A longer filling duration extends product exposure and room-temperature hold and must be covered by the APS and {{process validation|process data}}.
     activities: [media_fill, hold_time_study, ppq_coverage_assessment]
 
   - id: R-BIOBURDEN-LIMIT
@@ -575,14 +576,14 @@ rules:
     severityBy:
       classification: { CPP: high, KPP: medium, non_critical: low }
     regulatory: true
-    why: Operating outside the source PAR or validated range is not supported by existing process validation data.
+    why: Operating outside the source PAR or {{validated|demonstrated}} range is not supported by {{existing process validation data|the source process data}}.
     activities: [scientific_justification, engineering_run, ppq_coverage_assessment]
     outcomes:
       within_validated_range:
-        why: The target operating range lies within the source PAR or validated range. Record the target range in procedures; no additional validation is implied.
+        why: The target operating range lies within the source PAR or {{validated|demonstrated}} range. Record the target range in procedures; no additional {{validation|activity}} is implied.
         activities: [procedure_update]
 
-  # ------------------------------------------------------------------ coverage (validated state)
+  # ------------------------------------------------------------------ coverage (source state)
   - id: R-MIXING-COVERAGE
     version: 1.0.0
     title: Mixing study coverage of target batch size
@@ -615,7 +616,7 @@ rules:
     comparator: enum
     severity: high
     regulatory: true
-    why: The filling principle affects fill accuracy, shear and particle formation, and is part of the process demonstrated in PPQ. A different principle is a design change.
+    why: The filling principle affects fill accuracy, shear and particle formation, and is part of the process demonstrated {{in PPQ|at the source}}. A different principle is a design change.
     activities: [engineering_run, fill_accuracy_study, product_quality_impact, comparability_assessment, equipment_qualification, ppq, procedure_update, training]
 
   - id: R-MIXER
@@ -687,7 +688,7 @@ rules:
     comparator: presence
     severity: high
     regulatory: true
-    why: The filtration train is part of the validated sterilization design; adding or removing a filter changes it.
+    why: The filtration train is part of the {{validated|current}} sterilization design; adding or removing a filter changes it.
     activities: [filter_bacterial_retention, risk_assessment_update, procedure_update]
 
   - id: R-FILTER-DESIGN
@@ -711,7 +712,7 @@ rules:
     comparator: enum
     severity: high
     regulatory: true
-    why: The container format is part of the registered presentation and of the validated filling, stoppering and CCI configuration.
+    why: The container format is part of the registered presentation and of the {{validated|current}} filling, stoppering and CCI configuration.
     activities: [cci_study, equipment_qualification, media_fill, ppq]
 
   - id: R-COMPONENT
@@ -732,7 +733,7 @@ rules:
     comparator: set
     severity: high
     regulatory: true
-    why: Filter integrity testing confirms the sterilizing filter performed as validated. Removing a test requires a documented risk assessment against EU GMP Annex 1 and other applicable expectations.
+    why: Filter integrity testing confirms the sterilizing filter performed as {{validated|intended}}. Removing a test requires a documented risk assessment against EU GMP Annex 1 and other applicable expectations.
     activities: [risk_assessment_update, procedure_update, training]
     outcomes:
       new_requirement:
@@ -973,11 +974,11 @@ rules:
     comparator: upper_limit
     severity: high
     regulatory: true
-    why: Holding the sterile bulk longer than the validated time is not supported by the chemical, physical and microbial hold data.
+    why: Holding the sterile bulk longer than the {{validated|demonstrated}} time is not supported by the chemical, physical and microbial hold data.
     activities: [hold_time_study, risk_assessment_update]
     outcomes:
       within_validated_range:
-        why: The planned maximum filtered bulk hold is within the validated hold time.
+        why: The planned maximum filtered bulk hold is within the {{validated|demonstrated}} hold time.
 
   - id: R-HOLD-COVERAGE-BULK
     version: 1.0.0
@@ -1146,7 +1147,7 @@ rules:
     comparator: upper_limit
     severity: high
     regulatory: true
-    why: A larger smallest detectable leak means the target method is less sensitive than the validated one, so it does not support the same integrity claim.
+    why: A larger smallest detectable leak means the target method is less sensitive than the {{validated|source}} one, so it does not support the same integrity claim.
     activities: [cci_method_validation, cci_study, scientific_justification]
 
   - id: R-EV-CCI-METHOD-VALIDATION
@@ -1348,7 +1349,7 @@ rules:
     match: [uo.*.equip.*.operatingPrinciple]
     comparator: text
     severity: medium
-    why: A different operating principle changes how the step performs and how it was qualified and validated.
+    why: A different operating principle changes how the step performs and how it was qualified{{ and validated|}}.
     activities: [equipment_qualification, risk_assessment_update, procedure_update]
 
   - id: R-GEN-MAT-PRESENCE
@@ -1357,7 +1358,7 @@ rules:
     match: [uo.*.mat.*.present]
     comparator: presence
     severity: medium
-    why: Adding or removing a product-contact material or component changes the materials basis of the validated process.
+    why: Adding or removing a product-contact material or component changes the materials basis of the {{validated|current}} process.
     activities: [extractables_leachables, risk_assessment_update, procedure_update]
 
   - id: R-GEN-IPC-DESCRIPTION

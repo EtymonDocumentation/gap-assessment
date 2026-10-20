@@ -1,9 +1,9 @@
 import type { Block, DocComment, DocModel, DocSection } from "@gap/engine";
+import { ACCENT, BANNER_COLOR, BORDER_COLOR, ON_ACCENT, ZEBRA_FILL, tintForColumn } from "./palette";
 import { BUILTIN_STYLE_ID, STYLE_NAME, StyleTable, styleXml, withBulletList, type StyleKey } from "./styles";
 import { cleanXmlText, esc } from "./xml";
 
-/** Colour of the proof-of-concept banner (dark red, as in the HTML document). */
-export const BANNER_COLOR = "8A1C1C";
+export { BANNER_COLOR };
 const HEADER_FILL = "D9E2F3";
 
 // ------------------------------------------------------------------ run and paragraph properties (schema order)
@@ -37,26 +37,31 @@ export interface PPr {
   style?: string;
   keepNext?: boolean;
   keepLines?: boolean;
+  pageBreakBefore?: boolean;
   numPr?: { ilvl: number; numId: number };
   /** Complete w:pBdr element. */
   pBdr?: string;
+  /** Fill colour (RRGGBB) of the paragraph. */
+  shd?: string;
   spacing?: { before?: number; after?: number };
-  ind?: { left?: number; hanging?: number };
+  ind?: { left?: number; right?: number; hanging?: number };
   jc?: "left" | "center" | "right" | "both";
   /** Complete w:sectPr element: this paragraph ends a section. */
   sectPr?: string;
 }
 
-/** Paragraph properties in ECMA-376 order: pStyle, keepNext, keepLines, numPr, pBdr, spacing, ind, jc, sectPr. */
+/** Paragraph properties in ECMA-376 order: pStyle, keepNext, keepLines, pageBreakBefore, numPr, pBdr, shd, spacing, ind, jc, sectPr. */
 export function pPrXml(p: PPr = {}): string {
   const inner =
     (p.style ? `<w:pStyle w:val="${esc(p.style)}"/>` : "") +
     (p.keepNext ? "<w:keepNext/>" : "") +
     (p.keepLines ? "<w:keepLines/>" : "") +
+    (p.pageBreakBefore ? "<w:pageBreakBefore/>" : "") +
     (p.numPr ? `<w:numPr><w:ilvl w:val="${p.numPr.ilvl}"/><w:numId w:val="${p.numPr.numId}"/></w:numPr>` : "") +
     (p.pBdr ?? "") +
+    (p.shd ? `<w:shd w:val="clear" w:color="auto" w:fill="${esc(p.shd)}"/>` : "") +
     (p.spacing ? `<w:spacing${p.spacing.before !== undefined ? ` w:before="${p.spacing.before}"` : ""}${p.spacing.after !== undefined ? ` w:after="${p.spacing.after}"` : ""}/>` : "") +
-    (p.ind ? `<w:ind${p.ind.left !== undefined ? ` w:left="${p.ind.left}"` : ""}${p.ind.hanging !== undefined ? ` w:hanging="${p.ind.hanging}"` : ""}/>` : "") +
+    (p.ind ? `<w:ind${p.ind.left !== undefined ? ` w:left="${p.ind.left}"` : ""}${p.ind.right !== undefined ? ` w:right="${p.ind.right}"` : ""}${p.ind.hanging !== undefined ? ` w:hanging="${p.ind.hanging}"` : ""}/>` : "") +
     (p.jc ? `<w:jc w:val="${p.jc}"/>` : "") +
     (p.sectPr ?? "");
   return inner ? `<w:pPr>${inner}</w:pPr>` : "";
@@ -166,6 +171,8 @@ export interface WriterInit {
   numberingXml?: string;
   /** Builtin template: bullets already exist as numId 1. */
   bulletNumId?: number;
+  /** The upgraded built-in look: accent table headers, zebra rows, category and severity shading. Never set for a customer's template. */
+  styled?: boolean;
 }
 
 /** Everything the block writers share: style lookup, numbering, page geometry and comment anchors. */
@@ -174,6 +181,7 @@ export class WriterCtx {
   readonly styles: StyleTable;
   readonly page: PageGeom;
   readonly sectPrs?: SectPrs;
+  readonly styled: boolean;
   numberingXml?: string;
   /** Style definitions added because the template had no style of that name. */
   addedStyles: string[] = [];
@@ -189,6 +197,7 @@ export class WriterCtx {
     this.styles = init.styles;
     this.page = init.page;
     this.sectPrs = init.sectPrs;
+    this.styled = !!init.styled;
     this.numberingXml = init.numberingXml;
     this.bullet = init.bulletNumId;
     init.doc.comments.forEach((c, i) => {
@@ -282,12 +291,14 @@ export interface HeadingOpts {
   /** Do not let the heading style's automatic numbering add a number (used for sub-headings and appendices). */
   noNumber?: boolean;
   commentIds?: number[];
+  pageBreakBefore?: boolean;
 }
 
 export function headingPara(ctx: WriterCtx, level: number, text: string, o: HeadingOpts = {}): string {
   const lvl = Math.min(9, Math.max(1, level));
   return para(withCommentRanges(textRuns(text), o.commentIds ?? []), {
     style: ctx.headingStyle(lvl),
+    pageBreakBefore: o.pageBreakBefore,
     numPr: o.noNumber && ctx.headingNumbered(lvl) ? { ilvl: 0, numId: 0 } : undefined,
   });
 }
@@ -419,10 +430,12 @@ export interface TableOpts {
   /** Make the first column bold (label/value tables). */
   firstColumnBold?: boolean;
   sectionId?: string;
+  /** Fixed column widths in twips (they must add up to the table width); default: sized from the content. */
+  widths?: number[];
 }
 
 const CELL_MARGIN = '<w:tblCellMar><w:top w:w="40" w:type="dxa"/><w:left w:w="80" w:type="dxa"/><w:bottom w:w="40" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar>';
-const BORDER = (n: string) => `<w:${n} w:val="single" w:sz="4" w:space="0" w:color="808080"/>`;
+const BORDER = (n: string, color = "808080") => `<w:${n} w:val="single" w:sz="4" w:space="0" w:color="${color}"/>`;
 
 /** One table. A table with more than 8 columns is put in its own landscape section when the page is portrait. */
 export function tableXml(ctx: WriterCtx, columns: string[], rows: string[][], o: TableOpts = {}): string {
@@ -436,27 +449,38 @@ export function tableXml(ctx: WriterCtx, columns: string[], rows: string[][], o:
   const needsMin = canTurn ? columnNeeds(cols, rows, fontPt, boldFirst).min.reduce((a, b) => a + b, 0) : 0;
   const wide = canTurn && (ncols > 8 || needsMin > ctx.tableWidth(false) * 1.15);
   const total = ctx.tableWidth(ctx.page.startsLandscape || wide);
-  const widths = columnWidths(cols, rows, total, fontPt, boldFirst);
+  const widths = o.widths && o.widths.length === ncols && o.widths.reduce((a, b) => a + b, 0) === total ? o.widths : columnWidths(cols, rows, total, fontPt, boldFirst);
   const textStyle = ctx.style("tableText");
 
-  const cell = (text: string, w: number, opts: { head?: boolean; bold?: boolean; ids?: number[] }) =>
-    `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${opts.head ? `<w:shd w:val="clear" w:color="auto" w:fill="${HEADER_FILL}"/>` : ""}</w:tcPr>` +
-    para(withCommentRanges(textRuns(text, { b: opts.head || opts.bold }), opts.ids ?? []), { style: textStyle, keepNext: opts.head }) +
-    "</w:tc>";
+  // The upgraded built-in look: accent header with white bold text, zebra rows, and a tint (plus the text) in category and severity columns.
+  const styled = ctx.styled;
+  const headFill = styled ? ACCENT : HEADER_FILL;
+  const tints = styled ? cols.map(tintForColumn) : [];
+  const cell = (text: string, w: number, opts: { head?: boolean; bold?: boolean; ids?: number[]; fill?: string }) => {
+    const fill = opts.head ? headFill : opts.fill;
+    const rpr = { b: opts.head || opts.bold, ...(opts.head && styled ? { color: ON_ACCENT } : {}) };
+    return (
+      `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${fill ? `<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/>` : ""}</w:tcPr>` +
+      para(withCommentRanges(textRuns(text, rpr), opts.ids ?? []), { style: textStyle, keepNext: opts.head }) +
+      "</w:tc>"
+    );
+  };
 
   const trs: string[] = [];
   if (header) trs.push(`<w:tr><w:trPr><w:cantSplit/><w:tblHeader/></w:trPr>${cols.map((c, i) => cell(c, widths[i]!, { head: true })).join("")}</w:tr>`);
-  for (const r of rows) {
+  rows.forEach((r, ri) => {
     const tcs = cols.map((_, i) => {
       const text = r[i] ?? "";
       const ids = o.sectionId && text ? ctx.takeGapComments(o.sectionId, text) : [];
-      return cell(text, widths[i]!, { bold: o.firstColumnBold && i === 0, ids });
+      const fill = styled ? (tints[i]?.(text) ?? (ri % 2 === 1 ? ZEBRA_FILL : undefined)) : undefined;
+      return cell(text, widths[i]!, { bold: o.firstColumnBold && i === 0, ids, fill });
     });
     trs.push(`<w:tr><w:trPr><w:cantSplit/></w:trPr>${tcs.join("")}</w:tr>`);
-  }
+  });
+  const line = styled ? BORDER_COLOR : undefined;
   const tbl =
     `<w:tbl><w:tblPr><w:tblStyle w:val="${esc(ctx.style("tableGrid"))}"/><w:tblW w:w="${total}" w:type="dxa"/>` +
-    `<w:tblBorders>${BORDER("top")}${BORDER("left")}${BORDER("bottom")}${BORDER("right")}${BORDER("insideH")}${BORDER("insideV")}</w:tblBorders>` +
+    `<w:tblBorders>${BORDER("top", line)}${BORDER("left", line)}${BORDER("bottom", line)}${BORDER("right", line)}${BORDER("insideH", line)}${BORDER("insideV", line)}</w:tblBorders>` +
     `<w:tblLayout w:type="fixed"/>${CELL_MARGIN}<w:tblLook w:val="04A0" w:firstRow="${header ? 1 : 0}" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:noHBand="0" w:noVBand="1"/></w:tblPr>` +
     `<w:tblGrid>${widths.map((w) => `<w:gridCol w:w="${w}"/>`).join("")}</w:tblGrid>${trs.join("")}</w:tbl>`;
   if (wide) {
@@ -499,6 +523,8 @@ export interface SectionOpts {
   noNumber?: boolean;
   /** Comments to anchor on the heading; default: the section's own. */
   commentIds?: number[];
+  /** Start the heading on a new page (the first section after the front pages). */
+  pageBreakBefore?: boolean;
 }
 
 /** Heading text as the HTML document shows it, without or with the number. */
@@ -519,6 +545,7 @@ export function sectionXml(ctx: WriterCtx, s: DocSection, o: SectionOpts): strin
       headingPara(ctx, o.headingLevel, o.headingText ?? sectionHeadingText(s, !numbered), {
         noNumber: !!s.appendix || !!o.noNumber,
         commentIds: o.commentIds ?? ctx.takeHeadingComments(s.id),
+        pageBreakBefore: o.pageBreakBefore,
       }),
     );
   }

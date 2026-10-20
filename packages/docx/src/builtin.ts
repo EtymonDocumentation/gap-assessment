@@ -16,13 +16,18 @@ export const BUILTIN_GEOM: PageGeom = {
   startsLandscape: true,
 };
 
-const SETTINGS_XML =
-  `${XML_DECL}<w:settings xmlns:w="${W_NS}"><w:zoom w:percent="100"/><w:defaultTabStop w:val="720"/><w:characterSpacingControl w:val="doNotCompress"/>` +
-  `<w:compat><w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/></w:compat>` +
-  `<w:themeFontLang w:val="en-US"/><w:decimalSymbol w:val="."/><w:listSeparator w:val=","/></w:settings>`;
+/** word/settings.xml. `updateFields` asks Word to refresh fields (the table of contents) when the file is opened. */
+function settingsXml(updateFields: boolean): string {
+  return (
+    `${XML_DECL}<w:settings xmlns:w="${W_NS}"><w:zoom w:percent="100"/><w:defaultTabStop w:val="720"/><w:characterSpacingControl w:val="doNotCompress"/>` +
+    (updateFields ? `<w:updateFields w:val="true"/>` : "") +
+    `<w:compat><w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/></w:compat>` +
+    `<w:themeFontLang w:val="en-US"/><w:decimalSymbol w:val="."/><w:listSeparator w:val=","/></w:settings>`
+  );
+}
 
 /** A complex field (not w:fldSimple) so Word shows the right number straight away and updates it on print. */
-function field(code: string, placeholder: string): string {
+export function field(code: string, placeholder: string): string {
   return (
     `<w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> ${code} </w:instrText></w:r>` +
     `<w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>${placeholder}</w:t></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r>`
@@ -52,14 +57,19 @@ export interface BuiltinParts {
   numbering: string;
 }
 
-/** The complete built-in package, generated in code: styles, numbering, settings, header, footer and an A4 landscape section. */
-export function createBuiltin(doc: DocModel): BuiltinParts {
+/**
+ * The complete built-in package, generated in code: styles, numbering, settings, header, footer and an A4 landscape section.
+ * `upgraded` is the M5.1 look (cover page, accent colours, styled tables, refresh of the table of contents on open). The starter template and
+ * the PDF-outline output keep the original look.
+ */
+export function createBuiltin(doc: DocModel, o: { upgraded?: boolean } = {}): BuiltinParts {
+  const upgraded = !!o.upgraded;
   const dp = DocPackage.fresh();
-  const stylesXml = builtinStylesXml();
+  const stylesXml = builtinStylesXml(upgraded, BUILTIN_GEOM.landscapeWidth);
   const bullets = withBulletList(undefined);
   dp.setPart("word/styles.xml", stylesXml, CT.styles, REL.styles);
   dp.setPart("word/numbering.xml", bullets.xml, CT.numbering, REL.numbering);
-  dp.setPart("word/settings.xml", SETTINGS_XML, CT.settings, REL.settings);
+  dp.setPart("word/settings.xml", settingsXml(upgraded), CT.settings, REL.settings);
 
   const hdrStyle = BUILTIN_STYLE_ID.header;
   const ftrStyle = BUILTIN_STYLE_ID.footer;
@@ -76,9 +86,11 @@ export function createBuiltin(doc: DocModel): BuiltinParts {
   const sectPr =
     `<w:sectPr><w:headerReference w:type="default" r:id="${headerId}"/><w:footerReference w:type="default" r:id="${footerId}"/>` +
     `<w:pgSz w:w="${BUILTIN_PAGE_W}" w:h="${BUILTIN_PAGE_H}" w:orient="landscape"/>` +
-    `<w:pgMar w:top="${BUILTIN_MARGIN}" w:right="${BUILTIN_MARGIN}" w:bottom="${BUILTIN_MARGIN}" w:left="${BUILTIN_MARGIN}" w:header="425" w:footer="425" w:gutter="0"/></w:sectPr>`;
+    `<w:pgMar w:top="${BUILTIN_MARGIN}" w:right="${BUILTIN_MARGIN}" w:bottom="${BUILTIN_MARGIN}" w:left="${BUILTIN_MARGIN}" w:header="425" w:footer="425" w:gutter="0"/>` +
+    // A different first page: the cover has no header or footer (it carries the banner in its body); every other page has both.
+    `${upgraded ? "<w:titlePg/>" : ""}</w:sectPr>`;
 
-  const ctx = new WriterCtx({ doc, styles: StyleTable.parse(stylesXml), page: BUILTIN_GEOM, numberingXml: bullets.xml, bulletNumId: bullets.numId });
+  const ctx = new WriterCtx({ doc, styles: StyleTable.parse(stylesXml), page: BUILTIN_GEOM, numberingXml: bullets.xml, bulletNumId: bullets.numId, styled: upgraded });
   return { dp, ctx, sectPr, numbering: bullets.xml };
 }
 

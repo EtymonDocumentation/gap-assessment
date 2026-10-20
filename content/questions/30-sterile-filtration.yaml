@@ -12,7 +12,7 @@ questions:
     section: uo.sterile_filtration
     prompt: Is a bioburden-reduction filter used upstream of the sterilizing filter?
     label: Bioburden-reduction filter used
-    why: A bioburden-reduction filter protects the sterilizing filter and is part of the validated filtration train.
+    why: A bioburden-reduction filter protects the sterilizing filter and is part of the {{validated|current}} filtration train.
     sides: paired
     binds: uo.sterile_filtration.mat.prefilter.present
     input: { type: yes_no }
@@ -21,7 +21,7 @@ questions:
     section: uo.sterile_filtration
     prompt: Is a redundant (second, in-series) sterilizing-grade filter used?
     label: Redundant sterilizing filter used
-    why: Redundant filtration is a risk control in the validated design; removing or adding it changes the filtration train and its validation.
+    why: Redundant filtration is a risk control in the {{validated|current}} design; removing or adding it changes the filtration train and its validation.
     sides: paired
     binds: uo.sterile_filtration.mat.redundant_filter.present
     input: { type: yes_no }
@@ -39,7 +39,7 @@ questions:
     section: uo.sterile_filtration
     prompt: Sterilizing filter pore rating
     label: Sterilizing filter pore rating
-    why: Pore rating is part of the validated filter design and is tied to the bacterial retention claim.
+    why: Pore rating is part of the {{validated|current}} filter design and is tied to the bacterial retention claim.
     sides: paired
     binds: uo.sterile_filtration.mat.sterilizing_filter.poreRating
     input: { type: choice, optionsFrom: poreRating }
@@ -57,7 +57,7 @@ questions:
     section: uo.sterile_filtration
     prompt: Sterilizing filter part number or device format
     label: Sterilizing filter part number
-    why: Device format and part number identify the validated filter; a different device may need bridging validation.
+    why: Device format and part number identify the {{validated|current}} filter; a different device may need bridging validation.
     sides: paired
     binds: uo.sterile_filtration.mat.sterilizing_filter.partNumber
     input: { type: text, placeholder: e.g. FLT-0001-DEMO }
@@ -117,7 +117,7 @@ questions:
     parent: filt.area
     prompt: Has filter sizing (throughput or Vmax) been confirmed for the target batch volume?
     label: Filter sizing for target batch volume
-    why: A larger batch can exceed the validated filter loading; sizing must be confirmed for the target volume and filter area.
+    why: A larger batch can exceed the {{validated|demonstrated}} filter loading; sizing must be confirmed for the target volume and filter area.
     triggerNote: Asked because the target batch size is larger than the source.
     sides: target
     binds: uo.sterile_filtration.study.filter_sizing.status
@@ -164,7 +164,7 @@ questions:
     section: uo.sterile_filtration
     prompt: Filtration differential pressure
     label: Filtration differential pressure
-    why: Differential pressure is a validated condition of the bacterial retention study; operating above it is outside the validated range.
+    why: Differential pressure is a {{validated|tested}} condition of the bacterial retention study; operating above it is outside the {{validated|demonstrated}} range.
     sides: paired
     binds: uo.sterile_filtration.param.differential_pressure
     input: { type: parameter, units: [bar, mbar, kPa, psi] }
@@ -173,7 +173,7 @@ questions:
     section: uo.sterile_filtration
     prompt: Which filter integrity tests are performed?
     label: Filter integrity tests
-    why: Integrity testing confirms the sterilizing filter performed as validated; EU GMP Annex 1 sets expectations for pre-use post-sterilization testing.
+    why: Integrity testing confirms the sterilizing filter performed as {{validated|intended}}; EU GMP Annex 1 sets expectations for pre-use post-sterilization testing.
     sides: paired
     binds: uo.sterile_filtration.ipc.integrity.tests
     input: { type: multi_choice, optionsFrom: integrityTests }
@@ -182,7 +182,7 @@ questions:
     section: uo.sterile_filtration
     prompt: Pre-filtration bioburden limit
     label: Pre-filtration bioburden limit
-    why: The bioburden limit is tied to the bacterial retention challenge level; a higher target limit is outside the validated basis.
+    why: The bioburden limit is tied to the bacterial retention challenge level; a higher target limit is outside the {{validated|demonstrated}} basis.
     sides: paired
     binds: uo.sterile_filtration.ipc.bioburden.limit
     input: { type: quantity, units: [CFU/100 mL, CFU/mL] }

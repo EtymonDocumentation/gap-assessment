@@ -2,7 +2,7 @@ import { formatQuestionSide, questionLabel, sidesOf, type Gap } from "@gap/engin
 import { useState } from "react";
 import { CategoryChip, Empty, RegulatoryFlag, SeverityBadge } from "../components";
 import { href } from "../router";
-import { useAssessment, useContent, useStore } from "../store";
+import { useAssessment, useContent, useStageWording, useStore } from "../store";
 
 /** Source and target side by side, per section, with a comparison marker on each row. */
 export function ComparePage() {
@@ -10,6 +10,7 @@ export function ComparePage() {
   const content = useContent();
   const a = useAssessment()!;
   const [hideEqual, setHideEqual] = useState(false);
+  const wording = useStageWording();
 
   const sections = content.sections.filter((s) => s.kind !== "scoping" && a.instances.some((i) => i.section.id === s.id));
   const gapsByQ = new Map<string, Gap[]>();
@@ -23,8 +24,11 @@ export function ComparePage() {
           <input type="checkbox" checked={hideEqual} onChange={(e) => setHideEqual(e.target.checked)} /> Hide equivalent rows
         </label>
       </div>
+      <p className="small" data-testid="stage-line">
+        <strong>Program stage:</strong> source {wording.sourceLabel}; target {wording.targetLabel}.
+      </p>
       <p className="muted">
-        Every visible question, with the source validated state and the target planned state. Select a value to change it in the interview.
+        Every visible question, with the source {wording.sourceValidated ? "validated" : "current"} state and the target planned state. Select a value to change it in the interview.
       </p>
       {sections.length === 0 && <Empty>No unit operations are in scope yet. Answer the scoping questions first.</Empty>}
       {sections.map((sec) => {
@@ -42,7 +46,7 @@ export function ComparePage() {
                 <thead>
                   <tr>
                     <th scope="col">Attribute</th>
-                    <th scope="col">Source (validated)</th>
+                    <th scope="col">{wording.sourceValidated ? "Source (validated)" : "Source (current)"}</th>
                     <th scope="col">Target (planned)</th>
                     <th scope="col">Comparison</th>
                   </tr>

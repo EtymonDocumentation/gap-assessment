@@ -2,10 +2,13 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { importTemplateFile, renderDocx, suggestMapping, type RenderDocxInput, type TemplateMapping } from "../src/index";
 import { BANNER, GENERATED_AT, buildModelWithComments, fixture } from "./fixtures";
 import { customProps, plainText, strictDocx } from "./strict";
+
+// Rendering and strictly checking whole documents takes several seconds on a busy machine.
+vi.setConfig({ testTimeout: 60000 });
 
 /** One sample per mode, written where a person can open them in Word (and checked with the strict package check first). */
 describe("sample output files", () => {

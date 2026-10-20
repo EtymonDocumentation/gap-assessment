@@ -2,14 +2,16 @@ import type { Category, Gap } from "@gap/engine";
 import type { Severity } from "@gap/process-model";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useState, type ReactNode } from "react";
-import { CATEGORY_SHORT, SEVERITY_TEXT } from "./lib";
+import { categoryShort, SEVERITY_TEXT } from "./lib";
+import { useStageWording } from "./store";
 
 /** Category marker. Colour is never the only cue: the label is always shown. */
 export function CategoryChip({ category, compact }: { category: Category; compact?: boolean }) {
+  const text = categoryShort(useStageWording().sourceValidated)[category];
   return (
-    <span className={`chip cat-${category}`} title={CATEGORY_SHORT[category]}>
+    <span className={`chip cat-${category}`} title={text}>
       <span className="chip-dot" aria-hidden="true" />
-      {compact && category === "equivalent" ? "Equal" : CATEGORY_SHORT[category]}
+      {compact && category === "equivalent" ? "Equal" : text}
     </span>
   );
 }

@@ -3,7 +3,7 @@ questions:
     section: uo.storage_shipping
     prompt: Is finished-product storage and distribution handled at this site?
     label: Storage and shipping performed
-    why: Establishes whether the unit operation exists at each site. If storage or shipping moves to another site or a logistics partner, the validated storage and shipping controls move with it.
+    why: Establishes whether the unit operation exists at each site. If storage or shipping moves to another site or a logistics partner, the {{validated|current}} storage and shipping controls move with it.
     sides: paired
     binds: uo.storage_shipping.presence
     input: { type: yes_no }

@@ -2,9 +2,9 @@ import { buildDocument, documentFingerprint, recordExport, revisionState, verifi
 import type { DocumentExport, TemplateRecord } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlBody, renderMarkdown } from "@gap/renderers";
 import { useMemo, useState } from "react";
-import { download, SIDE_TEXT as SIDE_NAME, slug, today } from "../lib";
+import { download, sideText, slug, today } from "../lib";
 import { href } from "../router";
-import { useAssessment, useContent, useStore } from "../store";
+import { useAssessment, useContent, useStageWording, useStore } from "../store";
 import { BUILTIN_RECORD, CommentsPanel, ExportHistory, RevisionsPanel, useWordChoice, WordPanel } from "./document-panels";
 
 /** Live preview of the generated document, with downloads (Markdown, HTML, Word), revisions, reviewer comments and the export history. */
@@ -21,6 +21,7 @@ export function DocumentPage() {
   const update = useStore((s) => s.update);
   const by = useStore((s) => s.lastPerson?.name);
   const choice = useWordChoice();
+  const wording = useStageWording();
   const state = useMemo(() => revisionState(project, doc), [project, doc]);
 
   /** Every download is written to the export history, with the revision it was made at and whether the content has changed since. */
@@ -96,7 +97,7 @@ export function DocumentPage() {
                 .filter((sd) => vs.bySide[sd].total > 0)
                 .map((sd) => (
                   <tr key={sd}>
-                    <th scope="row">{SIDE_NAME[sd]}</th>
+                    <th scope="row">{sideText(wording)[sd]}</th>
                     <td className="num">{vs.bySide[sd].total}</td>
                     <td className="num">{vs.bySide[sd].verified}</td>
                     <td className="num">{vs.bySide[sd].withdrawn}</td>

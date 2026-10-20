@@ -5,6 +5,7 @@ import { DOCUMENT_CLOSE, createBuiltin, documentOpen } from "./builtin";
 import { TemplateError } from "./errors";
 import { DocPackage } from "./docpkg";
 import { finalisePackage, type FinaliseInput } from "./finalise";
+import { builtinFrontXml } from "./front";
 import { classifyBody, deriveSectPrs, pageFromSectPr, type BodyItem } from "./inspect";
 import { FRONT_BLOCK_ID, FRONT_BLOCK_TITLE, mappingReport, toolBlocks } from "./mapping";
 import { CT, Pkg, REL } from "./package";
@@ -71,8 +72,8 @@ function endMatter(ctx: WriterCtx, omitted: string[] = []): string {
   return out + bannerPara(ctx.doc.banner);
 }
 
-function allSections(ctx: WriterCtx): string {
-  return ctx.doc.sections.map((s) => sectionXml(ctx, s, { headingLevel: 1 })).join("");
+function allSections(ctx: WriterCtx, firstOnNewPage = false): string {
+  return ctx.doc.sections.map((s, i) => sectionXml(ctx, s, { headingLevel: 1, pageBreakBefore: firstOnNewPage && i === 0 })).join("");
 }
 
 /** The banner must be in the body of every output. A last check on what is about to be written. */
@@ -119,8 +120,9 @@ function writeBody(dp: DocPackage, split: BodySplit, body: string, banner: strin
 
 function renderBuiltin(input: RenderDocxInput, record: TemplateRecord): Uint8Array {
   const { doc } = input;
-  const { dp, ctx, sectPr, numbering } = createBuiltin(doc);
-  const body = frontXml(ctx, { banner: true }) + allSections(ctx) + endMatter(ctx);
+  // Only the built-in default gets the upgraded look; the other kinds of Word document keep the customer's own look.
+  const { dp, ctx, sectPr, numbering } = createBuiltin(doc, { upgraded: true });
+  const body = builtinFrontXml(ctx) + allSections(ctx, true) + endMatter(ctx);
   const xml = documentOpen() + body + sectPr + DOCUMENT_CLOSE;
   assertBanner(xml, doc.banner);
   dp.setMainXml(xml);

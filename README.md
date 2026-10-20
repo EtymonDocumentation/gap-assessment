@@ -3,7 +3,7 @@
 > **Proof of concept. Not validated. Not for GMP use.**
 > All names, sites, part numbers and document IDs in this repository are fictional.
 
-The Gap Assessment Generator is the first module of a technology-transfer document suite for biologics sterile fill/finish. It compares a **source** validated process with a **target** site or line. A guided, adaptive interview collects the information. The tool then classifies every difference into one of eight categories, builds a gap register and drafts a gap assessment document.
+The Gap Assessment Generator is the first module of a technology-transfer document suite for biologics sterile fill/finish. It compares a **source** process with a **target** site or line. Each side has a program stage (commercial, clinical or development), which sets the wording and the validation expectations. A guided, adaptive interview collects the information. The tool then classifies every difference into one of eight categories, builds a gap register and drafts a gap assessment document.
 
 Live site: `https://<your-github-user>.github.io/gap-assessment/` (after the deployment steps below).
 
@@ -16,6 +16,7 @@ Live site: `https://<your-github-user>.github.io/gap-assessment/` (after the dep
 3. [Quick start](#quick-start)
 4. [Using the app](#using-the-app)
 5. [The eight categories](#the-eight-categories)
+   - [Program stage and wording](#program-stage-and-wording)
 6. [Architecture](#architecture)
 7. [Data model](#data-model)
 8. [Editing content (questions, rules, templates)](#editing-content)
@@ -124,6 +125,23 @@ Your project is saved automatically in this browser only (IndexedDB). Use **Expo
 | Removed element | Something present at the source that the target drops (for example a pre-use integrity test) | Set per rule |
 | Information required | Either side is unknown or not yet established | Set per rule |
 
+### Program stage and wording
+
+Each side answers one paired site question, **Program stage at this site** (`site.stage`, stored as `site.programStage`). There is no default: an unanswered stage reads `[not established]` everywhere and is listed as an open information item.
+
+| Stage | Label |
+|---|---|
+| `commercial` | Commercial (process validated) |
+| `clinical` | Clinical (GMP, not process validated) |
+| `development` | Development / engineering runs |
+
+Source and target are independent, so all nine source-to-target pairs work (commercial to clinical included).
+
+- **Wording rule.** "Validated" wording is used only when the source stage is established as commercial. A clinical source, a development source and an unanswered source stage all use the non-validated wording: "Within source range" and "Outside source range", "Source program summary (current state)", "Demonstrated range (actually run)". The category keys (`within_validated_range`, `outside_validated_range`) never change, so stored data, the CSV keys and the rules stay the same. Only labels and texts change.
+- **How content adapts.** Content texts hold a variant as `{{validated wording|other wording}}`. The first variant is used for a commercial source, the second otherwise (it may be empty). All stage logic is in `packages/engine/src/stage.ts`. Keep markers out of question prompts and labels.
+- **The stage is not compared as a gap.** A difference in stage has no meaning in the eight categories, so rule R-SITE-INFO treats it as informational. Its effect is on the wording, on the cover and the document control lines, and on the **Stage basis** at the top of the validation plan.
+- **Validation plan.** A source that is not commercial has no source PPQ or process validation evidence to leverage. A commercial target is expected to need PPQ (typically a full PPQ from a source that is not commercial). A clinical target is held to phase-appropriate expectations; a development target covers engineering runs that are not for GMP supply. Everything is phrased as an expectation to confirm with QA. The tool never decides a filing category.
+
 Severities come from the rules (`content/rules/rules.yaml`). Users can override a severity in the register, but only with a written justification; the original rule severity stays visible.
 
 ## Architecture
@@ -176,7 +194,7 @@ Every page has light and dark themes. The layout works from phone width up. Acce
   - scope, and source and target process models
   - sources and the answer log
   - gap overlays and an append-only change log
-  - `document`: the revisions, the reviewer comments (each with its replies, resolution and reopening) and the export history (schema 1.3.0; older files migrate on load)
+  - `document`: the revisions, the reviewer comments (each with its replies, resolution and reopening) and the export history (schema 1.4.0; older files migrate on load)
 - **Gaps are derived, never stored.** They are recomputed from the model on every change. Each gap has a stable key (`ruleId:path[#subKey]`). User decisions (owner, status, severity override, notes) are stored as *overlays* on that key, so they survive recomputation.
 - **Closed branches.** If an answer change makes a question irrelevant, its earlier answers are kept but marked inactive. They are excluded from comparison and from the document, and listed on the Model page.
 
@@ -295,6 +313,8 @@ The build uses relative asset paths (`base: "./"`) and a hash router, so it work
   - the Change log page with filters and CSV export
   - verification status for every entry in the document, a *Verification status* section, appendix A (source register) and appendix B (change log summary), and verification columns in the gap register CSV
   - project schema 1.2.0 (older files migrate on load)
+- **In M5.1:**
+  - the program stage per side (project schema 1.4.0; older projects get no stage value and show `[not established]` until it is answered), and stage-aware wording and validation expectations
 - **In M5:**
   - project schema 1.3.0 with `project.document`: revisions, reviewer comments and the export history (older files migrate on load)
   - Word (`.docx`) export with four options, and a template library kept in this browser (Word and PDF templates, analysis report, export and import of template files)
@@ -321,10 +341,12 @@ The Document page can make a Word file in four ways. Pick the one that fits:
 
 | Option | What you get | Needs a template |
 |---|---|---|
-| **Built-in default** | This tool's own layout. | No |
+| **Built-in default** | This tool's own layout: a cover page, a table of contents, a document-control page, deep-blue headings and tables with shaded header rows. | No |
 | **Their look** | The content in the built-in order, with the fonts, colours, margins, headers and footers of a company Word template. | A Word template |
 | **Map to their headings** | The content placed under the headings of a company template (Word or PDF), following a mapping you set up on the Templates page. | A Word or PDF template, plus a saved mapping |
 | **Placeholder tags** | A template that contains tags such as `{program}`. The tool fills them in. | A Word template with tags |
+
+**Built-in layout details.** The cover page carries the "Proof of concept. Not validated. Not for GMP use." banner, the title and the facts of the transfer (program, product, sites, program stages, revision, status, date). The table of contents is a real Word field. Word asks "This document contains fields that may refer to other files. Do you want to update the fields in this document?" when you open the file. Choose **Yes** to fill in the contents and page numbers. The document-control page has blank placeholders for author, reviewer and approver. The tool does not capture approvals or electronic signatures.
 
 **Add a template.** Open **Templates**, choose a file (`.docx`, `.dotx`, `.docm` or `.pdf`), then give it a name and a version. The version is recorded with every export. The tool recognises `.doc`, `.rtf` and `.odt` files, but does not read them: it tells you how to save them as `.docx` first. Each template shows a report of what the tool found (headings, styles, tags, layout), what it removed, and which of the four options it can be used for.
 

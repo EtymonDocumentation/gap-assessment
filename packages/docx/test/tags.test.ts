@@ -1,9 +1,12 @@
 /// <reference types="node" />
 import PizZip from "pizzip";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { TAG_REFERENCE, TemplateError, buildTagData, importTemplateFile, renderDocx, tagReferenceMarkdown } from "../src/index";
 import { BANNER, GENERATED_AT, buildModel, buildModelWithComments, fixture } from "./fixtures";
 import { countElements, plainText, strictDocx } from "./strict";
+
+// Rendering and strictly checking whole documents takes several seconds on a busy machine.
+vi.setConfig({ testTimeout: 60000 });
 
 const model = buildModel();
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");

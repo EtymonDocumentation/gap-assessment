@@ -1,5 +1,5 @@
 import type { Project } from "@gap/process-model";
-import { addComment, assess, buildDemoProject, buildDocument, CSV_COLUMNS, gapsToCsv, issueRevision, replyToComment, resolveComment, type DocModel, type Gap } from "@gap/engine";
+import { adaptText, addComment, assess, buildDemoProject, buildDocument, CSV_COLUMNS, gapsToCsv, issueRevision, replyToComment, resolveComment, type DocModel, type Gap } from "@gap/engine";
 import { describe, expect, it } from "vitest";
 import { content, demos } from "../../../content/index";
 import { DOCUMENT_CSS, escapeHtml, renderHtml, renderHtmlBody, renderMarkdown } from "../src/index";
@@ -8,6 +8,7 @@ const project = buildDemoProject(content, demos["arx-217"]);
 const assessment = assess(content, project);
 const doc = buildDocument(content, project, assessment, "2026-10-02T00:00:00.000Z");
 const BANNER = "Proof of concept. Not validated. Not for GMP use.";
+const EMPTY_COVER: DocModel["cover"] = { program: "", product: "", sourceSite: "", targetSite: "", sourceStage: "", targetStage: "" };
 
 /** A small document with hostile content, built by hand so the test controls every string. */
 const hostile: DocModel = {
@@ -19,6 +20,7 @@ const hostile: DocModel = {
     ["Quote", `He said "hi" & it's fine`],
     ["Revision", "1 (Draft, 2026-10-05) <script>alert(7)</script>"],
   ],
+  cover: { program: "<b>P</b>", product: "x & y", sourceSite: "<i>S</i>", targetSite: "T", sourceStage: "<script>s</script>", targetStage: "t" },
   // The renderers draw only meta and sections; revisions and comments reach the page through the appendices
   // the engine builds from them. They carry hostile strings here so no future renderer can trust them.
   revisions: [
@@ -156,7 +158,7 @@ describe("renderMarkdown", () => {
   });
 
   it("renders a document with no sections and no metadata", () => {
-    const out = renderMarkdown({ title: "T", banner: "B", status: "DRAFT", meta: [], sections: [], revisions: [], comments: [] });
+    const out = renderMarkdown({ title: "T", banner: "B", status: "DRAFT", meta: [], cover: EMPTY_COVER, sections: [], revisions: [], comments: [] });
     expect(out).toBe("> **B**\n\n# T\n\n**Status:** DRAFT\n\n\n---\n\n_B_\n");
   });
 });
@@ -436,7 +438,7 @@ describe("gapsToCsv", () => {
 
     it("uses category and activity labels, not internal keys", () => {
       for (const [i, g] of assessment.gaps.entries()) {
-        const label = content.catalog.categories.find((c) => c.key === g.category)!.label;
+        const label = adaptText(content.catalog.categories.find((c) => c.key === g.category)!.label, true);
         expect(rows[i]![COL("Category")], g.key).toBe(label);
         const acts = rows[i]![COL("Activities implied")]!;
         for (const a of g.activities) expect(acts).not.toContain(a);

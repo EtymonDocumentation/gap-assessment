@@ -29,7 +29,7 @@ import { addSource, CUSTOM_ITEM_KINDS, type Actor, type CustomItemKind } from "@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CategoryChip, Empty, Modal, ResponderForm, VerificationBadge, VerifierFields } from "../components";
 import { useRoute } from "../router";
-import { useAssessment, useContent, useStore } from "../store";
+import { useAssessment, useContent, useStageWording, useStore } from "../store";
 import { QuestionInput, initialForm, toAnswer, type FormState } from "./question-inputs";
 
 type SideKey = "source" | "target" | "shared";
@@ -71,6 +71,7 @@ export function BuilderPage() {
   const content = useContent();
   const a = useAssessment()!;
   const view = useMemo(() => buildModelView(content, project, a), [content, project, a]);
+  const wording = useStageWording();
 
   const [text, setText] = useState("");
   const [onlyDifferences, setOnlyDifferences] = useState(false);
@@ -216,7 +217,7 @@ export function BuilderPage() {
                   <thead>
                     <tr>
                       <th scope="col">Attribute</th>
-                      <th scope="col">Source (validated)</th>
+                      <th scope="col">{wording.sourceValidated ? "Source (validated)" : "Source (current)"}</th>
                       <th scope="col">Target (planned)</th>
                       <th scope="col">Comparison</th>
                     </tr>
