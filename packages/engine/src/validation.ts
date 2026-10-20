@@ -277,6 +277,10 @@ export interface QualifiedRange {
   attribute: string;
   /** Target qualified range as recorded, or "Not established" / "Unknown (to be confirmed)" / "—". */
   qualified: SideValue;
+  /** Reference of the entry holding the qualified range. */
+  ref: string;
+  /** References of the entries the required value was read from (for verification status). */
+  requiredRefs?: string[];
   /** The target process value or range it must cover, when the coverage rule names one. */
   required?: { display: string; basis: string; entry: SideEntryState };
 }
@@ -345,7 +349,7 @@ function qualifiedRange(content: ContentBundle, project: Project, shown: Set<str
   const q = questionFor(content, path);
   const suffix = RANGE_FIELD.exec(field)?.[1];
   const attribute = q ? questionLabel(q) : suffix ? suffix.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()) : fieldLabel(content, field);
-  const result: QualifiedRange = { attribute, qualified: sideValue(content, project, shown, "target", path, custom) };
+  const result: QualifiedRange = { attribute, qualified: sideValue(content, project, shown, "target", path, custom), ref: `target.${path}` };
   const rule = findRule(content.rules, path);
   const against = rule?.comparator === "coverage" ? rule.config.against : undefined;
   if (!against) return result;
@@ -353,20 +357,24 @@ function qualifiedRange(content: ContentBundle, project: Project, shown: Set<str
   const root = against.path.split(".").length === 4;
   let r: Resolved;
   let basis: string;
+  let requiredRefs: string[];
   let refQ: Question | undefined;
   if (root) {
     const nor = resolveEntry(project, `${against.side}.${against.path}.nor`);
     const useNor = nor.status === "established" && nor.value !== undefined;
     r = useNor ? nor : resolveEntry(project, `${against.side}.${against.path}.setPoint`);
     basis = `${against.side} ${useNor ? "NOR" : "set point"}`;
+    requiredRefs = [`${against.side}.${against.path}.${useNor ? "nor" : "setPoint"}`];
     refQ = content.questions.find((x) => x.binds === against.path);
   } else {
     r = resolveEntry(project, `${against.side}.${against.path}`);
     basis = `${against.side} process value`;
+    requiredRefs = [`${against.side}.${against.path}`];
     refQ = questionFor(content, against.path);
   }
   const display = formatResolved(content, refQ, r);
   result.required = { display, basis: `${refQ ? `${questionLabel(refQ)}, ` : ""}${basis}`, entry: r.status === "established" && r.value === undefined ? "not_established" : r.status };
+  result.requiredRefs = requiredRefs;
   return result;
 }
 

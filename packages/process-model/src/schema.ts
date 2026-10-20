@@ -8,6 +8,16 @@ const quantity = z.object({ value: z.number().finite(), unit: z.string().min(1) 
 const range = z.object({ min: quantity.optional(), max: quantity.optional() }).strict();
 const entryValue = z.union([z.string(), z.number(), z.boolean(), z.array(z.string()), quantity, range]);
 
+const verificationSchema = z.object({
+  by: z.string(),
+  role: z.string().optional(),
+  at: z.string(),
+  fingerprint: z.string(),
+  status: z.enum(["established", "unknown", "not_applicable", "not_established"]).optional(),
+  sameAsSource: z.boolean().optional(),
+  selfVerification: z.boolean().optional(),
+});
+
 export const entrySchema = z
   .object({
     id: z.string().min(1),
@@ -20,7 +30,7 @@ export const entrySchema = z
     recordedBy: z.string(),
     recordedAt: z.string(),
     revision: z.number().int().nonnegative(),
-    verification: z.object({ by: z.string(), at: z.string(), fingerprint: z.string() }).optional(),
+    verification: verificationSchema.optional(),
   })
   .superRefine((e, ctx) => {
     if (e.status === "established" && e.value === undefined && !e.sameAsSource) {
@@ -195,7 +205,44 @@ const MIGRATIONS: { from: string; to: string; migrate: (raw: Record<string, unkn
     to: "1.1.0",
     migrate: (raw) => ({ ...raw, schemaVersion: "1.1.0", custom: raw.custom ?? { unitOperations: [], items: [] } }),
   },
+  // 1.1.0 -> 1.2.0: verification records gain role, status, sameAsSource and selfVerification (all optional).
+  // The one fact that can be derived is selfVerification: a verification whose verifier has the same name as the
+  // entry's recorder was a self-verification. Nothing else is filled in; missing optional fields stay missing.
+  {
+    from: "1.1.0",
+    to: "1.2.0",
+    migrate: (raw) => {
+      const next = structuredClone(raw) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+      next.schemaVersion = "1.2.0";
+      const fixEntry = (e: any) => {
+        const v = e?.verification;
+        if (v && typeof v === "object" && v.selfVerification === undefined && typeof v.by === "string" && typeof e.recordedBy === "string" && sameNameRaw(v.by, e.recordedBy)) {
+          v.selfVerification = true;
+        }
+      };
+      const fixFields = (fields: any) => {
+        if (fields && typeof fields === "object") for (const e of Object.values(fields)) fixEntry(e);
+      };
+      fixFields(next.scope);
+      for (const side of ["source", "target"]) {
+        const model = next.processes?.[side];
+        fixFields(model?.site?.fields);
+        for (const uo of Object.values<any>(model?.unitOperations ?? {})) {
+          fixFields(uo?.fields);
+          for (const coll of Object.values<any>(uo?.collections ?? {})) {
+            for (const item of Object.values<any>(coll ?? {})) fixFields(item?.fields);
+          }
+        }
+      }
+      return next;
+    },
+  },
 ];
+
+function sameNameRaw(a: string, b: string): boolean {
+  const n = (x: string) => x.trim().replace(/\s+/g, " ").toLowerCase();
+  return n(a) !== "" && n(a) === n(b);
+}
 
 export class ImportError extends Error {
   constructor(

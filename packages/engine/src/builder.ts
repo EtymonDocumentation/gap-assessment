@@ -11,7 +11,8 @@ import type { Assessment, Gap } from "./compare";
 import { fieldLabel, type ContentBundle } from "./content";
 import type { Question, Section } from "./content-schema";
 import { CUSTOM_KIND_LABELS, isCustomQuestion, isCustomSection, recordedEntries } from "./custom";
-import { sourceShort, verificationText } from "./document";
+import { sourceShort } from "./labels";
+import { cellVerification, type CellVerification } from "./verification";
 import { formatQuestionSide, formatResolved, questionLabel } from "./format";
 import { instanceRefs, type QuestionInstance } from "./sequencer";
 
@@ -32,8 +33,10 @@ export interface AttributeSide {
   sameAsSource: boolean;
   /** Unknown or not yet established: an open information item. */
   open: boolean;
+  /** Entries that hold a value here, with the source cited by each (for attaching and detaching). */
+  sourceLinks: { id: string; label: string; refs: string[] }[];
+  verification: CellVerification;
   sources: string[];
-  verification: string;
   revision: number;
 }
 
@@ -120,7 +123,10 @@ function sideOf(content: ContentBundle, project: Project, inst: QuestionInstance
     sameAsSource: same,
     open: resolved.some((r) => r.status === "unknown" || r.status === "not_established"),
     sources: [...new Set(project.sources.filter((s) => ids.has(s.id)).map(sourceShort))],
-    verification: verificationText(project, refs),
+    sourceLinks: project.sources
+      .filter((s) => ids.has(s.id))
+      .map((s) => ({ id: s.id, label: sourceShort(s), refs: refs.filter((r) => getEntry(project, r)?.sourceIds.includes(s.id)) })),
+    verification: cellVerification(project, refs),
     revision: entries.reduce((m, e) => Math.max(m, e!.revision), 0),
   };
 }
@@ -163,7 +169,7 @@ function inactiveRows(content: ContentBundle, project: Project, a: Assessment): 
       display: formatResolved(content, undefined, r, FIELD_OPTION_SET[field]),
       reason,
       sources: [...new Set(project.sources.filter((s) => ids.has(s.id)).map(sourceShort))],
-      verification: verificationText(project, [e.path]),
+      verification: cellVerification(project, [e.path]).text,
       revision: e.revision,
     });
   }
@@ -248,6 +254,16 @@ export interface ModelFilter {
   text?: string;
   onlyDifferences?: boolean;
   onlyOpen?: boolean;
+  /** Attributes with a withdrawn or partial verification, or a value that could be verified and is not. */
+  onlyUnverified?: boolean;
+}
+
+function needsVerification(a: BuilderAttribute): boolean {
+  return [a.shared, a.source, a.target].some((s) => {
+    if (!s) return false;
+    const v = s.verification;
+    return v.state === "withdrawn" || v.state === "partial" || (v.state === "unverified" && v.verifiable.length > 0);
+  });
 }
 
 /** Applies the Builder filters. A section whose title matches the text keeps all its attributes that pass the toggles. */
@@ -259,6 +275,7 @@ export function filterModelView(view: ModelView, f: ModelFilter): ModelView {
       const attributes = s.attributes.filter((a) => {
         if (f.onlyDifferences && !a.differs) return false;
         if (f.onlyOpen && !a.open) return false;
+        if (f.onlyUnverified && !needsVerification(a)) return false;
         if (!text || titleHit) return true;
         const hay = [a.label, a.question.prompt, a.question.binds, a.source?.display, a.target?.display, a.shared?.display].filter(Boolean).join(" ").toLowerCase();
         return hay.includes(text);
@@ -269,6 +286,6 @@ export function filterModelView(view: ModelView, f: ModelFilter): ModelView {
   const inactive = text
     ? view.inactive.filter((r) => [r.where, r.name, r.ref, r.display].join(" ").toLowerCase().includes(text))
     : view.inactive;
-  return { sections, inactive: f.onlyDifferences || f.onlyOpen ? [] : inactive, definitions: view.definitions };
+  return { sections, inactive: f.onlyDifferences || f.onlyOpen || f.onlyUnverified ? [] : inactive, definitions: view.definitions };
 }
 

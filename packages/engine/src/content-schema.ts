@@ -249,6 +249,10 @@ export const templateSchema = z.object({
     approvalRoles: z.array(z.string()).min(1),
     regulatoryStatement: z.string(),
     verificationStatement: z.string(),
+    verificationStatusIntro: z.string(),
+    identityStatement: z.string(),
+    sourceRegisterIntro: z.string(),
+    changeLogSummaryIntro: z.string(),
   }),
 });
 export type Templates = z.infer<typeof templateSchema>;

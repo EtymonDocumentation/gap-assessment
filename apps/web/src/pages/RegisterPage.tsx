@@ -81,7 +81,7 @@ export function RegisterPage() {
     <div className="stack-lg">
       <div className="row between wrap">
         <h1>Gap register</h1>
-        <button className="btn" onClick={() => download(`${slug(project.meta.title)}-gap-register-${today()}.csv`, gapsToCsv(content, rows), "text/csv;charset=utf-8")}>
+        <button className="btn" onClick={() => download(`${slug(project.meta.title)}-gap-register-${today()}.csv`, gapsToCsv(content, rows, project), "text/csv;charset=utf-8")}>
           Export CSV ({rows.length} rows)
         </button>
       </div>

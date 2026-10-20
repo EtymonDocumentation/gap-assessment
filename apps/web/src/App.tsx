@@ -4,7 +4,9 @@ import { DocumentPage } from "./pages/DocumentPage";
 import { HomePage } from "./pages/HomePage";
 import { InterviewPage } from "./pages/InterviewPage";
 import { BuilderPage } from "./pages/BuilderPage";
+import { ChangesPage } from "./pages/ChangesPage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { SourcesPage } from "./pages/SourcesPage";
 import { ValidationPage } from "./pages/ValidationPage";
 import { href, useRoute } from "./router";
 import { useStore } from "./store";
@@ -17,6 +19,8 @@ const NAV = [
   { path: "/validation", label: "Validation" },
   { path: "/document", label: "Document" },
   { path: "/builder", label: "Builder" },
+  { path: "/sources", label: "Sources" },
+  { path: "/changes", label: "Change log" },
 ] as const;
 
 type Theme = "system" | "light" | "dark";
@@ -69,6 +73,8 @@ export function App() {
   else if (route.path === "/validation") page = <ValidationPage />;
   else if (route.path === "/document") page = <DocumentPage />;
   else if (route.path === "/builder" || route.path === "/model") page = <BuilderPage />;
+  else if (route.path === "/sources") page = <SourcesPage />;
+  else if (route.path === "/changes") page = <ChangesPage />;
   else page = <HomePage />;
 
   return (

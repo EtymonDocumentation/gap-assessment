@@ -34,7 +34,7 @@ export function renderMarkdown(doc: DocModel): string {
   for (const [k, v] of doc.meta) out.push(`- **${k}:** ${v}`);
   out.push("");
   for (const s of doc.sections) {
-    out.push(`## ${s.number}. ${s.title}`, "");
+    out.push(`## ${s.appendix ? "Appendix " : ""}${s.number}. ${s.title}`, "");
     for (const b of s.blocks) out.push(mdBlock(b), "");
   }
   out.push("---", "", `_${doc.banner}_`, "");
@@ -96,7 +96,7 @@ export const DOCUMENT_CSS = `
 export function renderHtmlBody(doc: DocModel): string {
   const meta = doc.meta.map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`).join("");
   const sections = doc.sections
-    .map((s) => `<section id="doc-${s.id}"><h2>${escapeHtml(`${s.number}. ${s.title}`)}</h2>${s.blocks.map(htmlBlock).join("\n")}</section>`)
+    .map((s) => `<section id="doc-${s.id}"><h2>${escapeHtml(`${s.appendix ? "Appendix " : ""}${s.number}. ${s.title}`)}</h2>${s.blocks.map(htmlBlock).join("\n")}</section>`)
     .join("\n");
   return `<article class="gap-doc">
 <div class="banner" role="note">${escapeHtml(doc.banner)}</div>

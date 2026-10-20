@@ -1,4 +1,4 @@
-import { getEntry, resolveEntry, verificationState, type Project, type Source } from "@gap/process-model";
+import { describeVerification, getEntry, resolveEntry, verificationState, type Project } from "@gap/process-model";
 import { activityLabel, categoryLabel, type ContentBundle } from "./content";
 import { buildEquipmentQualification, buildValidationPlan, type PlanRow } from "./validation";
 import { CATEGORIES } from "./content-schema";
@@ -6,6 +6,11 @@ import type { Assessment, Gap } from "./compare";
 import { riskRanked } from "./compare";
 import { formatQuestionSide, formatResolved, questionLabel, STATUS_TEXT } from "./format";
 import { instanceRefs, type QuestionInstance } from "./sequencer";
+import { entryLabel, sourceShort } from "./labels";
+import { cellVerification, verificationSummary } from "./verification";
+import { sourceRegisterRows } from "./source-register";
+import { changeLogActionCounts } from "./changelog";
+import { effectiveContent } from "./custom";
 
 export type Block =
   | { type: "paragraph"; text: string }
@@ -16,7 +21,9 @@ export type Block =
 
 export interface DocSection {
   id: string;
+  /** "1", "2", ... for sections; "A", "B", ... for appendices. */
   number: string;
+  appendix?: boolean;
   title: string;
   blocks: Block[];
 }
@@ -52,23 +59,15 @@ function shortDate(iso: string): string {
   return iso.slice(0, 10);
 }
 
-/** Combined verification state of the entries behind a row. */
+/** Combined verification state of the entries behind a row (see cellVerification). */
 export function verificationText(project: Project, refs: string[]): string {
-  const states = refs.filter((r) => getEntry(project, r)).map((r) => verificationState(project, r));
-  if (!states.length) return "Unverified";
-  if (states.some((s) => s.state === "withdrawn")) return "Verification withdrawn (value changed)";
-  if (states.every((s) => s.state === "verified")) {
-    const v = states[0] as { by: string; at: string };
-    return `Verified by ${v.by}, ${shortDate(v.at)}`;
-  }
-  return "Unverified";
+  return cellVerification(project, refs).text;
 }
 
-export function sourceShort(s: Source): string {
-  if (s.type === "document_reference" && s.docRef) return s.docRef.identifier;
-  if (s.type === "interview_answer") return `Interview (${s.responder?.name ?? "unknown responder"}, ${shortDate(s.date)})`;
-  if (s.type === "imported_file") return `Imported file ${s.file?.name ?? ""}`.trim();
-  return s.label;
+/** Verification of the entries on one side among a gap's inputs; "—" when the gap uses none from that side. */
+function sideVerificationText(project: Project, refs: string[], side: "source" | "target"): string {
+  const mine = refs.filter((r) => r.startsWith(`${side}.`));
+  return mine.length ? verificationText(project, mine) : "—";
 }
 
 function sourcesText(project: Project, refs: string[]): string {
@@ -157,7 +156,7 @@ export function buildDocument(content: ContentBundle, project: Project, a: Asses
     { type: "paragraph", text: fill(t.gapTableIntro, vars) },
     {
       type: "table",
-      columns: ["ID", "Section", "Attribute", "Source", "Target", "Category", "Why it matters", "Activities implied", "Severity", "Regulatory", "Owner", "Status", "Rule", "Verification"],
+      columns: ["ID", "Section", "Attribute", "Source", "Target", "Category", "Why it matters", "Activities implied", "Severity", "Regulatory", "Owner", "Status", "Rule", "Source verification", "Target verification"],
       rows: diffs.map((g) => [
         g.displayId,
         g.sectionTitle,
@@ -172,7 +171,8 @@ export function buildDocument(content: ContentBundle, project: Project, a: Asses
         g.owner ?? "[unassigned]",
         STATUS_LABEL[g.status],
         `${g.ruleId} v${g.ruleVersion}`,
-        verificationText(project, g.inputRefs),
+        sideVerificationText(project, g.inputRefs, "source"),
+        sideVerificationText(project, g.inputRefs, "target"),
       ]),
     },
     { type: "note", text: t.regulatoryStatement },
@@ -181,7 +181,14 @@ export function buildDocument(content: ContentBundle, project: Project, a: Asses
   const plan = buildValidationPlan(content, project, a);
   const gapIds = (r: PlanRow) => r.gaps.map((g) => (g.status === "open" ? g.displayId : `${g.displayId} (${STATUS_LABEL[g.status]})`)).join(", ");
   const studyCell = (r: PlanRow, side: "source" | "target") =>
-    r.studies.length ? r.studies.map((s) => `${s.label} (${s.uoLabel}): ${s[side].display}`).join("; ") : "—";
+    r.studies.length
+      ? r.studies
+          .map((s) => {
+            const v = s[side].entry === "not_asked" ? "" : ` [${verificationText(project, [`${side}.uo.${s.uoKey}.study.${s.key}.status`])}]`;
+            return `${s.label} (${s.uoLabel}): ${s[side].display}${v}`;
+          })
+          .join("; ")
+      : "—";
   add("validation-plan", "Validation plan", [
     { type: "paragraph", text: fill(t.activitiesIntro, vars) },
     {
@@ -201,6 +208,7 @@ export function buildDocument(content: ContentBundle, project: Project, a: Asses
   ]);
 
   const equipment = buildEquipmentQualification(content, project, a);
+  const withStatus = (display: string, entry: string, refs: string[]) => (entry === "not_asked" || !refs.length ? display : `${display} [${verificationText(project, refs)}]`);
   add("equipment-qualification", "Equipment qualification comparison", [
     { type: "paragraph", text: fill(t.equipmentQualificationIntro, vars) },
     equipment.length
@@ -210,10 +218,12 @@ export function buildDocument(content: ContentBundle, project: Project, a: Asses
           rows: equipment.map((e) => [
             e.uoLabel,
             e.equipLabel,
-            e.source.display,
-            e.target.display,
-            e.ranges.map((x) => `${x.attribute}: ${x.qualified.display}`).join("; ") || "—",
-            e.ranges.map((x) => (x.required ? `${x.attribute}: ${x.required.display} (${x.required.basis})` : `${x.attribute}: not derived`)).join("; ") || "—",
+            withStatus(e.source.display, e.source.entry, [`source.uo.${e.uoKey}.equip.${e.equipKey}.qualificationStatus`]),
+            withStatus(e.target.display, e.target.entry, [`target.uo.${e.uoKey}.equip.${e.equipKey}.qualificationStatus`]),
+            e.ranges.map((x) => `${x.attribute}: ${withStatus(x.qualified.display, x.qualified.entry, [x.ref])}`).join("; ") || "—",
+            e.ranges
+              .map((x) => (x.required ? `${x.attribute}: ${withStatus(x.required.display, x.required.entry, x.requiredRefs ?? [])} (${x.required.basis})` : `${x.attribute}: not derived`))
+              .join("; ") || "—",
             e.gaps.map((g) => `${g.displayId} (${categoryLabel(content, g.category)})`).join(", ") || "—",
           ]),
         }
@@ -240,6 +250,45 @@ export function buildDocument(content: ContentBundle, project: Project, a: Asses
       rows: ranked.map((g, i) => [String(i + 1), g.displayId, `${g.sectionTitle}: ${g.attribute}`, categoryLabel(content, g.category), severityText(g), g.regulatoryNote ? "Yes" : "No"]),
     },
   ]);
+
+  const vs = verificationSummary(content, project);
+  const sideName = { shared: "Scoping", source: "Source", target: "Target" } as const;
+  const countRow = (name: string, side: string, c: { total: number; verified: number; withdrawn: number; unverified: number; notVerifiable: number }) => [
+    name,
+    side,
+    String(c.total),
+    String(c.verified),
+    String(c.withdrawn),
+    String(c.unverified),
+    String(c.notVerifiable),
+  ];
+  const activeRefsList = [...new Set(a.instances.flatMap((i) => instanceRefs(i)))];
+  const eff = effectiveContent(content, project);
+  const withdrawnItems: string[] = [];
+  const selfItems: string[] = [];
+  for (const ref of activeRefsList) {
+    const st = verificationState(project, ref);
+    if (st.state === "unverified") continue;
+    const text = `${entryLabel(eff, project, ref).text}: ${describeVerification(st)}`;
+    if (st.state === "withdrawn") withdrawnItems.push(text);
+    else if (st.selfVerification) selfItems.push(text);
+  }
+  const vsBlocks: Block[] = [
+    { type: "paragraph", text: fill(t.verificationStatusIntro, vars) },
+    {
+      type: "table",
+      columns: ["Section", "Side", "Entries", "Verified", "Verification withdrawn", "Unverified", "Not verifiable"],
+      rows: [
+        ...vs.rows.map((r) => countRow(r.sectionTitle, sideName[r.side], r.counts)),
+        ...(["shared", "source", "target"] as const).filter((sd) => vs.bySide[sd].total > 0).map((sd) => countRow("All sections", sideName[sd], vs.bySide[sd])),
+        countRow("All sections", "Scoping, source and target", vs.all),
+      ],
+    },
+  ];
+  if (withdrawnItems.length) vsBlocks.push({ type: "heading", text: "Entries with a withdrawn verification" }, { type: "list", items: withdrawnItems });
+  if (selfItems.length) vsBlocks.push({ type: "heading", text: "Entries verified by the person who recorded them" }, { type: "list", items: selfItems });
+  vsBlocks.push({ type: "note", text: t.identityStatement });
+  add("verification-status", "Verification status", vsBlocks);
 
   // References: every source cited by an active entry, plus the content versions used.
   const activeIds = new Set(a.instances.flatMap((i) => instanceRefs(i)).flatMap((r) => getEntry(project, r)?.sourceIds ?? []));
@@ -273,6 +322,51 @@ export function buildDocument(content: ContentBundle, project: Project, a: Asses
     { type: "table", columns: ["Role", "Name", "Signature", "Date"], rows: t.approvalRoles.map((r) => [r, "[placeholder]", "[placeholder]", "[placeholder]"]) },
   ]);
 
+  const appendix = (id: string, title: string, blocks: Block[]) =>
+    sections.push({ id, number: String.fromCharCode(65 + sections.filter((x) => x.appendix).length), appendix: true, title, blocks });
+
+  // Entries that are no longer asked about (inactive) are counted, not listed: the document shows only current values.
+  const citedBy = (citing: { text: string; active: boolean }[]) => {
+    const act = citing.filter((c) => c.active).map((c) => c.text);
+    const hidden = citing.length - act.length;
+    const parts = [...act];
+    if (hidden) parts.push(`${hidden} recorded value${hidden === 1 ? "" : "s"} not currently asked about`);
+    return parts.join("; ") || "—";
+  };
+  const allRegister = sourceRegisterRows(content, project);
+  // A source that only supports recorded values no longer asked about is not listed (the document shows only current values).
+  const register = allRegister.filter((r) => r.state !== "in_use" || r.citing.some((c) => c.active));
+  const omitted = allRegister.length - register.length;
+  appendix("source-register", "Source register", [
+    { type: "paragraph", text: fill(t.sourceRegisterIntro, vars) },
+    register.length
+      ? {
+          type: "table",
+          columns: ["ID", "Type", "Identifier, title, version", "Responder", "Date", "State", "Cited by"],
+          rows: register.map((r, i) => [
+            `S-${String(i + 1).padStart(3, "0")}`,
+            r.typeLabel,
+            r.source.docRef ? [r.source.docRef.identifier, r.source.docRef.title, r.source.docRef.version ? `version ${r.source.docRef.version}` : ""].filter(Boolean).join(", ") : r.source.label,
+            r.responder,
+            r.date,
+            r.stateText,
+            citedBy(r.citing),
+          ]),
+        }
+      : { type: "paragraph", text: "No sources have been recorded." },
+    ...(omitted
+      ? [{ type: "note" as const, text: `${omitted} further source${omitted === 1 ? "" : "s"} support${omitted === 1 ? "s" : ""} only recorded values that are not currently asked about; ${omitted === 1 ? "it is" : "they are"} kept in the project file and not listed here.` }]
+      : []),
+  ]);
+
+  const counts = changeLogActionCounts(project);
+  appendix("change-log-summary", "Change log summary", [
+    { type: "paragraph", text: fill(t.changeLogSummaryIntro, vars) },
+    counts.length
+      ? { type: "table", columns: ["Change", "Count"], rows: [...counts.map((c) => [c.label, String(c.count)]), ["Total", String(project.changeLog.length)]] }
+      : { type: "paragraph", text: "No changes have been recorded." },
+  ]);
+
   return {
     title: fill(t.title, vars),
     banner: t.banner,
@@ -282,6 +376,7 @@ export function buildDocument(content: ContentBundle, project: Project, a: Asses
       ["Generated", generatedAt.replace("T", " ").slice(0, 16) + " UTC"],
       ["Differences identified", String(diffs.length)],
       ["Open information items", String(a.openItems.length)],
+      ["Entries verified", `${vs.all.verified} of ${vs.all.total}`],
       ["Verification", t.verificationStatement],
     ],
     sections,

@@ -34,9 +34,17 @@ export type EntryValue = string | number | boolean | string[] | Quantity | Range
 
 export interface Verification {
   by: string;
+  /** Free text, as typed in the verifier dialog. Not an authenticated identity. */
+  role?: string;
   at: string;
   /** Fingerprint of the resolved status and value at the time of verification. */
   fingerprint: string;
+  /** Resolved status at the time of verification (lets a withdrawal say whether the value or the status changed). */
+  status?: EntryStatus;
+  /** True when the entry was "same as source" at the time of verification. */
+  sameAsSource?: boolean;
+  /** True when the verifier is the same person as the one who recorded the entry (four-eyes override). */
+  selfVerification?: boolean;
 }
 
 export interface Entry<T extends EntryValue = EntryValue> {

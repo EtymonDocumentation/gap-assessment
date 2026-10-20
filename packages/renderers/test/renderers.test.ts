@@ -63,11 +63,13 @@ describe("renderMarkdown", () => {
     for (const [k, v] of doc.meta) expect(md).toContain(`- **${k}:** ${v}`);
   });
 
-  it("numbers the section headings 1 to 12 in order", () => {
+  it("numbers the sections 1 to 13 and the appendices A and B in order", () => {
     const headings = lines.filter((l) => l.startsWith("## "));
-    expect(headings).toHaveLength(12);
-    headings.forEach((h, i) => expect(h.startsWith(`## ${i + 1}. `), h).toBe(true));
-    expect(headings).toEqual(doc.sections.map((s) => `## ${s.number}. ${s.title}`));
+    expect(headings).toHaveLength(15);
+    headings.slice(0, 13).forEach((h, i) => expect(h.startsWith(`## ${i + 1}. `), h).toBe(true));
+    expect(headings[13]).toMatch(/^## Appendix A\. Source register$/);
+    expect(headings[14]).toMatch(/^## Appendix B\. Change log summary$/);
+    expect(headings).toEqual(doc.sections.map((s) => `## ${s.appendix ? "Appendix " : ""}${s.number}. ${s.title}`));
   });
 
   it("leaves no empty heading and no unfilled placeholder", () => {
@@ -163,9 +165,9 @@ describe("renderHtml", () => {
     expect(html).toContain(`<div class="footer">${BANNER}</div>`);
   });
 
-  it("numbers the section headings 1 to 12 in order, each in its own section element", () => {
-    const h2 = [...html.matchAll(/<h2>(\d+)\. ([^<]*)<\/h2>/g)];
-    expect(h2.map((m) => m[1])).toEqual(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]);
+  it("numbers the sections 1 to 13 and the appendices A and B, each in its own section element", () => {
+    const h2 = [...html.matchAll(/<h2>(?:Appendix )?([0-9A-Z]+)\. ([^<]*)<\/h2>/g)];
+    expect(h2.map((m) => m[1])).toEqual(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "A", "B"]);
     for (const s of doc.sections) expect(html).toContain(`<section id="doc-${s.id}">`);
   });
 
@@ -290,15 +292,15 @@ function parseCsv(text: string): string[][] {
 
 const baseGap = assessment.gaps[0]!;
 const withGap = (over: Partial<Gap>): Gap => ({ ...baseGap, ...over });
-const csvOf = (g: Gap) => gapsToCsv(content, [g]);
+const csvOf = (g: Gap) => gapsToCsv(content, [g], project);
 const dataRow = (g: Gap) => parseCsv(csvOf(g))[1]!;
 const COL = (name: (typeof CSV_COLUMNS)[number]) => CSV_COLUMNS.indexOf(name);
 
 describe("gapsToCsv", () => {
-  const csv = gapsToCsv(content, assessment.gaps);
+  const csv = gapsToCsv(content, assessment.gaps, project);
 
-  it("has one header row plus one row per gap, 17 columns each, CRLF line endings and a final CRLF", () => {
-    expect(CSV_COLUMNS).toHaveLength(17);
+  it("has one header row plus one row per gap, 19 columns each, CRLF line endings and a final CRLF", () => {
+    expect(CSV_COLUMNS).toHaveLength(19);
     const rows = parseCsv(csv);
     expect(rows).toHaveLength(assessment.gaps.length + 1);
     for (const r of rows) expect(r).toHaveLength(CSV_COLUMNS.length);
@@ -457,7 +459,7 @@ describe("gapsToCsv", () => {
   });
 
   it("writes only the header for an empty register", () => {
-    expect(gapsToCsv(content, [])).toBe(CSV_COLUMNS.map((c) => `"${c}"`).join(",") + "\r\n");
+    expect(gapsToCsv(content, [], project)).toBe(CSV_COLUMNS.map((c) => `"${c}"`).join(",") + "\r\n");
   });
 });
 

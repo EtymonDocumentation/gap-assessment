@@ -1184,3 +1184,122 @@ table.validation-plan td,
 table.equipment-qualification td {
   min-width: 9rem;
 }
+
+/* ---------------------------------------------------------------- M4: verification, sources, change log */
+
+.verif {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 0.85rem;
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+.verif-icon {
+  font-weight: 700;
+}
+.verif-verified {
+  border-color: var(--ok);
+}
+.verif-verified .verif-icon {
+  color: var(--ok);
+}
+.verif-withdrawn {
+  border-style: dashed;
+  border-width: 2px;
+  border-color: var(--c-scale);
+}
+.verif-withdrawn .verif-icon {
+  color: var(--c-scale);
+}
+.verif-partial {
+  border-style: dashed;
+  border-color: var(--c-info);
+}
+.verif-unverified {
+  border-style: dotted;
+  color: var(--muted);
+}
+.b-sources {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.b-sources li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.b-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.b-cell .b-actions .btn.small {
+  margin-top: 0;
+}
+.section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+.section-head h2 {
+  margin: 0;
+}
+.plan-list {
+  max-height: 11rem;
+  overflow: auto;
+  margin: 0;
+  padding: 6px 6px 6px 1.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-2);
+  font-size: 0.85rem;
+}
+.dialog.wide {
+  width: min(680px, calc(100vw - 32px));
+}
+.impact {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+.impact li {
+  margin-bottom: 4px;
+}
+.vs-table td.num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.cite-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+}
+.tag.state-unused {
+  border-style: dashed;
+  border-color: var(--c-info);
+}
+.tag.state-superseded {
+  border-style: dotted;
+}
+.change-table td,
+.change-table th {
+  vertical-align: top;
+}
+.change-table .wrap-text {
+  overflow-wrap: anywhere;
+  min-width: 10rem;
+}
+.builder-table tr:focus {
+  outline: 3px solid var(--focus);
+  outline-offset: -3px;
+}

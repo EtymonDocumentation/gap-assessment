@@ -1,5 +1,14 @@
 import {
   addCustomItem,
+  attachableSources,
+  attachToCell,
+  detachFromCell,
+  needsSelfVerification,
+  planSectionVerification,
+  previewDetach,
+  unverifyCell,
+  verifyCell,
+  verifySection,
   addCustomUnitOperation,
   applyAnswer,
   buildModelView,
@@ -16,9 +25,10 @@ import {
   type BuilderAttribute,
   type CustomDefinitionRow,
 } from "@gap/engine";
-import { CUSTOM_ITEM_KINDS, type CustomItemKind } from "@gap/process-model";
+import { addSource, CUSTOM_ITEM_KINDS, type Actor, type CustomItemKind } from "@gap/process-model";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CategoryChip, Empty, Modal, ResponderForm } from "../components";
+import { CategoryChip, Empty, Modal, ResponderForm, VerificationBadge, VerifierFields } from "../components";
+import { useRoute } from "../router";
 import { useAssessment, useContent, useStore } from "../store";
 import { QuestionInput, initialForm, toAnswer, type FormState } from "./question-inputs";
 
@@ -31,15 +41,28 @@ interface EditTarget {
   cell: AttributeSide;
 }
 
+type SourceLink = { id: string; label: string; refs: string[] };
+type CellAction = "edit" | "verify" | "unverify" | "attach" | "detach";
+type Who = { name: string; role?: string };
+
+/** The named verifier acts at the current time; they are not necessarily the responder. */
+const asVerifier = (actor: Actor, who: Who): Actor => ({ name: who.name, at: actor.at, ...(who.role ? { role: who.role } : {}) });
+
 type Dialogs =
   | { kind: "edit"; target: EditTarget }
+  | { kind: "verify"; target: EditTarget }
+  | { kind: "unverify"; target: EditTarget }
+  | { kind: "attach"; target: EditTarget }
+  | { kind: "detach"; target: EditTarget; link: SourceLink }
+  | { kind: "verify-section"; sectionId: string; title: string }
   | { kind: "add-uo" }
   | { kind: "add-item"; uo?: string }
   | { kind: "rename"; def: CustomDefinitionRow }
   | { kind: "remove"; def: CustomDefinitionRow }
   | null;
 
-const editButtonId = (attrId: string, side: SideKey) => `edit-${attrId}-${side}`;
+const cellButtonId = (action: string, attrId: string, side: SideKey) => `${action}-${attrId}-${side}`;
+const editButtonId = (attrId: string, side: SideKey) => cellButtonId("edit", attrId, side);
 
 /** Editable view of the process model: every attribute of every in-scope section, source beside target. */
 export function BuilderPage() {
@@ -52,7 +75,11 @@ export function BuilderPage() {
   const [text, setText] = useState("");
   const [onlyDifferences, setOnlyDifferences] = useState(false);
   const [onlyOpen, setOnlyOpen] = useState(false);
-  const shown = useMemo(() => filterModelView(view, { text, onlyDifferences, onlyOpen }), [view, text, onlyDifferences, onlyOpen]);
+  const [onlyUnverified, setOnlyUnverified] = useState(false);
+  const shown = useMemo(
+    () => filterModelView(view, { text, onlyDifferences, onlyOpen, onlyUnverified }),
+    [view, text, onlyDifferences, onlyOpen, onlyUnverified],
+  );
   const attrCount = shown.sections.reduce((n, s) => n + s.attributes.length, 0);
 
   const [dialog, setDialog] = useState<Dialogs>(null);
@@ -68,6 +95,19 @@ export function BuilderPage() {
     setFocusId(null);
   }, [focusId, project]);
 
+  // A link from the Sources page names the question to show (?q=...): scroll to its row and focus it.
+  const targetQ = useRoute().params.get("q");
+  useEffect(() => {
+    if (!targetQ) return;
+    const t = window.setTimeout(() => {
+      const el = document.getElementById(`attr-${targetQ}`);
+      if (!el) return;
+      el.scrollIntoView({ block: "center" });
+      el.focus({ preventScroll: true });
+    }, 60);
+    return () => window.clearTimeout(t);
+  }, [targetQ]);
+
   const needsResponder = !project.interview.responder;
   /** Opens a dialog, asking who is making the change first when no responder is recorded yet. */
   const open = (d: Dialogs) => (needsResponder ? setPendingOpen(d) : setDialog(d));
@@ -76,6 +116,16 @@ export function BuilderPage() {
   const restoreFocus = () => (returnFocus.current ? document.getElementById(returnFocus.current) : null) ?? headingRef.current;
 
   const activeUos = content.catalog.unitOperations;
+
+  /** Opens the dialog for a button inside an attribute cell, asking for a responder first when needed. */
+  const act = (kind: CellAction, target: EditTarget, link?: SourceLink) => {
+    returnFocus.current = cellButtonId(kind === "detach" ? `detach-${link!.id}` : kind, target.attr.id, target.sideKey);
+    if (kind === "edit") return open({ kind: "edit", target });
+    if (kind === "verify") return setDialog({ kind: "verify", target }); // the verifier is named in the dialog itself
+    if (kind === "unverify") return open({ kind: "unverify", target });
+    if (kind === "attach") return open({ kind: "attach", target });
+    return open({ kind: "detach", target, link: link! });
+  };
 
   return (
     <div className="stack-lg">
@@ -127,6 +177,10 @@ export function BuilderPage() {
           <input type="checkbox" checked={onlyOpen} onChange={(e) => setOnlyOpen(e.target.checked)} />
           <span>Only open items</span>
         </label>
+        <label className="check">
+          <input type="checkbox" checked={onlyUnverified} onChange={(e) => setOnlyUnverified(e.target.checked)} />
+          <span>Only unverified or withdrawn</span>
+        </label>
         <p className="small muted filter-count" aria-live="polite" role="status">
           {attrCount} {attrCount === 1 ? "attribute" : "attributes"} shown
         </p>
@@ -139,10 +193,24 @@ export function BuilderPage() {
           const headingId = `sec-${s.section.id}`;
           return (
             <section key={s.section.id} aria-labelledby={headingId} className="stack builder-section">
-              <h2 id={headingId} tabIndex={-1}>
-                {s.section.title}
-                {s.custom && <span className="tag tag-custom">Custom unit operation</span>}
-              </h2>
+              <div className="section-head">
+                <h2 id={headingId} tabIndex={-1}>
+                  {s.section.title}
+                  {s.custom && <span className="tag tag-custom">Custom unit operation</span>}
+                </h2>
+                <button
+                  type="button"
+                  id={`verify-section-${s.section.id}`}
+                  className="btn small"
+                  aria-label={`Verify all in this section: ${s.section.title}`}
+                  onClick={() => {
+                    returnFocus.current = `verify-section-${s.section.id}`;
+                    setDialog({ kind: "verify-section", sectionId: s.section.id, title: s.section.title });
+                  }}
+                >
+                  Verify all in this section
+                </button>
+              </div>
               <div className="table-scroll" role="region" aria-label={`${s.section.title} attributes`} tabIndex={0}>
                 <table className="data builder-table">
                   <thead>
@@ -155,7 +223,7 @@ export function BuilderPage() {
                   </thead>
                   <tbody>
                     {s.attributes.map((attr) => (
-                      <tr key={attr.id} className={attr.differs ? "row-diff" : undefined}>
+                      <tr key={attr.id} id={`attr-${attr.id}`} tabIndex={-1} className={attr.differs ? "row-diff" : undefined}>
                         <th scope="row" className={attr.depth > 0 ? "indent" : undefined}>
                           {attr.label}
                           {attr.custom && <span className="tag tag-custom">Custom</span>}
@@ -163,24 +231,12 @@ export function BuilderPage() {
                         </th>
                         {attr.shared ? (
                           <td colSpan={2}>
-                            <Cell attr={attr} sideKey="shared" cell={attr.shared} onEdit={(t) => { returnFocus.current = editButtonId(attr.id, "shared"); open({ kind: "edit", target: t }); }} />
+                            <Cell attr={attr} sideKey="shared" cell={attr.shared} act={act} />
                           </td>
                         ) : (
                           <>
-                            <td>
-                              {attr.source ? (
-                                <Cell attr={attr} sideKey="source" cell={attr.source} onEdit={(t) => { returnFocus.current = editButtonId(attr.id, "source"); open({ kind: "edit", target: t }); }} />
-                              ) : (
-                                <span className="muted">Not asked</span>
-                              )}
-                            </td>
-                            <td>
-                              {attr.target ? (
-                                <Cell attr={attr} sideKey="target" cell={attr.target} onEdit={(t) => { returnFocus.current = editButtonId(attr.id, "target"); open({ kind: "edit", target: t }); }} />
-                              ) : (
-                                <span className="muted">Not asked</span>
-                              )}
-                            </td>
+                            <td>{attr.source ? <Cell attr={attr} sideKey="source" cell={attr.source} act={act} /> : <span className="muted">Not asked</span>}</td>
+                            <td>{attr.target ? <Cell attr={attr} sideKey="target" cell={attr.target} act={act} /> : <span className="muted">Not asked</span>}</td>
                           </>
                         )}
                         <td>
@@ -326,7 +382,7 @@ export function BuilderPage() {
         <ResponderForm
           submitLabel="Save responder and continue"
           onSubmit={(v) => {
-            update((p) => setResponder(p, { name: v.name, ...(v.role ? { role: v.role } : {}) }), "Responder saved");
+            update((p, actor) => setResponder(p, { name: v.name, ...(v.role ? { role: v.role } : {}) }, actor.at), "Responder saved");
             const next = pendingOpen;
             setPendingOpen(null);
             setDialog(next);
@@ -343,6 +399,108 @@ export function BuilderPage() {
             const err = update((p, actor) => applyAnswer(p, content, dialog.target.cell.inst, input, actor), `${dialog.target.attr.label} saved`);
             if (!err) {
               returnFocus.current = editButtonId(dialog.target.attr.id, dialog.target.sideKey);
+              setDialog(null);
+            }
+            return err;
+          }}
+        />
+      )}
+
+      {dialog?.kind === "verify" && (
+        <VerifyDialog
+          target={dialog.target}
+          restoreFocus={restoreFocus}
+          onClose={() => setDialog(null)}
+          onVerify={(who, opts) => {
+            const refs = dialog.target.cell.verification.verifiable;
+            const err = update((p, actor) => verifyCell(p, refs, asVerifier(actor, who), opts), `${dialog.target.attr.label} verified by ${who.name}`);
+            if (!err) setDialog(null);
+            return err;
+          }}
+        />
+      )}
+
+      {dialog?.kind === "unverify" && (
+        <UnverifyDialog
+          target={dialog.target}
+          restoreFocus={restoreFocus}
+          onClose={() => setDialog(null)}
+          onWithdraw={(reason) => {
+            const err = update(
+              (p, actor) => unverifyCell(p, dialog.target.cell.verification.withdrawable, actor, reason),
+              `Verification withdrawn for ${dialog.target.attr.label}`,
+            );
+            if (!err) setDialog(null);
+            return err;
+          }}
+        />
+      )}
+
+      {dialog?.kind === "attach" && (
+        <AttachDialog
+          target={dialog.target}
+          restoreFocus={restoreFocus}
+          onClose={() => setDialog(null)}
+          onAttach={(choice) => {
+            const refs = dialog.target.cell.refs;
+            const err = update(
+              (p, actor) => {
+                if (choice.kind === "existing") return attachToCell(p, refs, choice.sourceId, actor);
+                const added = addSource(p, { type: "document_reference", docRef: choice.docRef }, actor);
+                return attachToCell(added.project, refs, added.source.id, actor);
+              },
+              `Source attached to ${dialog.target.attr.label}`,
+            );
+            if (!err) setDialog(null);
+            return err;
+          }}
+        />
+      )}
+
+      {dialog?.kind === "detach" && (
+        <DetachDialog
+          target={dialog.target}
+          link={dialog.link}
+          restoreFocus={restoreFocus}
+          onClose={() => setDialog(null)}
+          onDetach={() => {
+            const link = dialog.link;
+            let reverted = 0;
+            const err = update(
+              (p, actor) => {
+                const r = detachFromCell(p, link.refs, link.id, actor);
+                reverted = r.reverted;
+                return r.project;
+              },
+              `Source detached from ${dialog.target.attr.label}`,
+            );
+            if (!err) {
+              if (reverted) useStore.setState({ status: `Source detached. ${dialog.target.attr.label} is now Not established.` });
+              setDialog(null);
+            }
+            return err;
+          }}
+        />
+      )}
+
+      {dialog?.kind === "verify-section" && (
+        <VerifySectionDialog
+          sectionId={dialog.sectionId}
+          title={dialog.title}
+          restoreFocus={restoreFocus}
+          onClose={() => setDialog(null)}
+          onVerify={(who, opts) => {
+            let n = 0;
+            const err = update(
+              (p, actor) => {
+                const r = verifySection(content, p, dialog.sectionId, "all", asVerifier(actor, who), opts);
+                n = r.verified.length;
+                return r.project;
+              },
+              `Section verified by ${who.name}`,
+            );
+            if (!err) {
+              useStore.setState({ status: `${n} ${n === 1 ? "entry" : "entries"} verified in ${dialog.title}` });
               setDialog(null);
             }
             return err;
@@ -450,8 +608,21 @@ export function BuilderPage() {
   );
 }
 
-function Cell({ attr, sideKey, cell, onEdit }: { attr: BuilderAttribute; sideKey: SideKey; cell: AttributeSide; onEdit: (t: EditTarget) => void }) {
+function Cell({
+  attr,
+  sideKey,
+  cell,
+  act,
+}: {
+  attr: BuilderAttribute;
+  sideKey: SideKey;
+  cell: AttributeSide;
+  act: (kind: CellAction, t: EditTarget, link?: SourceLink) => void;
+}) {
   const statusClass = `status-${cell.status}`;
+  const target: EditTarget = { attr, sideKey, cell };
+  const sideLabel = sideKey === "shared" ? "" : `, ${SIDE_NAME[sideKey].toLowerCase()}`;
+  const v = cell.verification;
   return (
     <div className="b-cell">
       <div className="b-value">{cell.display}</div>
@@ -459,18 +630,436 @@ function Cell({ attr, sideKey, cell, onEdit }: { attr: BuilderAttribute; sideKey
         <span className={`tag status ${statusClass}`}>{cell.statusText}</span>
         <span className="muted"> Revision {cell.revision}</span>
       </div>
-      <div className="small muted">Sources: {cell.sources.join("; ") || "none"}</div>
-      <div className="small muted">{cell.verification}</div>
-      <button
-        type="button"
-        id={editButtonId(attr.id, sideKey)}
-        className="btn small"
-        aria-label={`Edit ${attr.label}${sideKey === "shared" ? "" : `, ${SIDE_NAME[sideKey].toLowerCase()}`}`}
-        onClick={() => onEdit({ attr, sideKey, cell })}
-      >
-        Edit
-      </button>
+      <div className="small">
+        <span className="muted">Sources: </span>
+        {cell.sourceLinks.length === 0 ? (
+          <span className="muted">none</span>
+        ) : (
+          <ul className="b-sources">
+            {cell.sourceLinks.map((l) => (
+              <li key={l.id}>
+                <span>{l.label}</span>
+                <button
+                  type="button"
+                  id={cellButtonId(`detach-${l.id}`, attr.id, sideKey)}
+                  className="btn small ghost"
+                  aria-label={`Detach source ${l.label} from ${attr.label}${sideLabel}`}
+                  onClick={() => act("detach", target, l)}
+                >
+                  Detach
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      <div className="small">
+        <VerificationBadge state={v.state} text={v.text} />
+      </div>
+      {v.hint && v.state !== "verified" && v.verifiable.length === 0 && <div className="small muted">{v.hint}</div>}
+      <div className="b-actions">
+        <button
+          type="button"
+          id={editButtonId(attr.id, sideKey)}
+          className="btn small"
+          aria-label={`Edit ${attr.label}${sideLabel}`}
+          onClick={() => act("edit", target)}
+        >
+          Edit
+        </button>
+        {v.verifiable.length > 0 && (
+          <button
+            type="button"
+            id={cellButtonId("verify", attr.id, sideKey)}
+            className="btn small"
+            aria-label={`Verify ${attr.label}${sideLabel}`}
+            onClick={() => act("verify", target)}
+          >
+            Verify
+          </button>
+        )}
+        {v.withdrawable.length > 0 && (
+          <button
+            type="button"
+            id={cellButtonId("unverify", attr.id, sideKey)}
+            className="btn small"
+            aria-label={`Withdraw verification of ${attr.label}${sideLabel}`}
+            onClick={() => act("unverify", target)}
+          >
+            Withdraw verification
+          </button>
+        )}
+        {cell.status !== "not_established" && (
+          <button
+            type="button"
+            id={cellButtonId("attach", attr.id, sideKey)}
+            className="btn small"
+            aria-label={`Attach source to ${attr.label}${sideLabel}`}
+            onClick={() => act("attach", target)}
+          >
+            Attach source
+          </button>
+        )}
+      </div>
     </div>
+  );
+}
+
+function VerifyDialog({
+  target,
+  onVerify,
+  onClose,
+  restoreFocus,
+}: {
+  target: EditTarget;
+  onVerify: (who: Who, opts: { selfVerification?: boolean }) => string | null;
+  onClose: () => void;
+  restoreFocus: () => HTMLElement | null;
+}) {
+  const project = useStore((s) => s.project)!;
+  const resp = project.interview.responder;
+  const [name, setName] = useState(resp?.name ?? "");
+  const [role, setRole] = useState(resp?.role ?? "");
+  const [self, setSelf] = useState(false);
+  const [error, setError] = useState("");
+  const refs = target.cell.verification.verifiable;
+  const selfNeeded = needsSelfVerification(project, refs, name);
+  return (
+    <Modal
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title={`Verify: ${target.attr.label}`}
+      description={`${SIDE_NAME[target.sideKey]}${target.sideKey === "shared" ? "" : " side"}: ${target.cell.display}`}
+      restoreFocus={restoreFocus}
+    >
+      <form
+        className="stack"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!name.trim()) return setError("Enter the name of the person verifying.");
+          if (selfNeeded && !self) return setError("Confirm that you are verifying your own entry, or ask another person to verify it.");
+          setError(onVerify({ name: name.trim(), ...(role.trim() ? { role: role.trim() } : {}) }, selfNeeded ? { selfVerification: true } : {}) ?? "");
+        }}
+      >
+        <p className="small">Verifying confirms that the value shown is correct and supported by its sources. Changing the value later withdraws the verification.</p>
+        <VerifierFields name={name} role={role} onName={setName} onRole={setRole} selfNeeded={selfNeeded} self={self} onSelf={setSelf} />
+        {error && (
+          <p className="error" role="alert">
+            {error}
+          </p>
+        )}
+        <div className="row end">
+          <button type="button" className="btn" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="submit" className="btn primary">
+            Verify
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function UnverifyDialog({
+  target,
+  onWithdraw,
+  onClose,
+  restoreFocus,
+}: {
+  target: EditTarget;
+  onWithdraw: (reason: string) => string | null;
+  onClose: () => void;
+  restoreFocus: () => HTMLElement | null;
+}) {
+  const [reason, setReason] = useState("");
+  const [error, setError] = useState("");
+  return (
+    <Modal
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title={`Withdraw verification: ${target.attr.label}`}
+      description={target.cell.verification.text}
+      restoreFocus={restoreFocus}
+    >
+      <form
+        className="stack"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!reason.trim()) return setError("Enter the reason for withdrawing the verification.");
+          setError(onWithdraw(reason) ?? "");
+        }}
+      >
+        <label className="field">
+          <span>Reason (required)</span>
+          <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} autoFocus />
+        </label>
+        {error && (
+          <p className="error" role="alert">
+            {error}
+          </p>
+        )}
+        <div className="row end">
+          <button type="button" className="btn" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="submit" className="btn danger">
+            Withdraw verification
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+type AttachChoice = { kind: "existing"; sourceId: string } | { kind: "new"; docRef: { docType: string; identifier: string; title?: string; version?: string } };
+
+function AttachDialog({
+  target,
+  onAttach,
+  onClose,
+  restoreFocus,
+}: {
+  target: EditTarget;
+  onAttach: (c: AttachChoice) => string | null;
+  onClose: () => void;
+  restoreFocus: () => HTMLElement | null;
+}) {
+  const project = useStore((s) => s.project)!;
+  const options = useMemo(() => attachableSources(project, target.cell.refs), [project, target.cell.refs]);
+  const [mode, setMode] = useState<"existing" | "new">(options.length ? "existing" : "new");
+  const [sourceId, setSourceId] = useState(options[0]?.id ?? "");
+  const [docType, setDocType] = useState("");
+  const [identifier, setIdentifier] = useState("");
+  const [title, setTitle] = useState("");
+  const [version, setVersion] = useState("");
+  const [error, setError] = useState("");
+  return (
+    <Modal
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title={`Attach a source: ${target.attr.label}`}
+      description="A source says where the value comes from. Attaching one does not change the value or its verification."
+      restoreFocus={restoreFocus}
+    >
+      <form
+        className="stack"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (mode === "existing") {
+            if (!sourceId) return setError("Choose a source.");
+            return setError(onAttach({ kind: "existing", sourceId }) ?? "");
+          }
+          setError(onAttach({ kind: "new", docRef: { docType, identifier, ...(title.trim() ? { title } : {}), ...(version.trim() ? { version } : {}) } }) ?? "");
+        }}
+      >
+        <fieldset className="stack">
+          <legend>Which source?</legend>
+          <label className="check">
+            <input type="radio" name="attach-mode" checked={mode === "existing"} disabled={options.length === 0} onChange={() => setMode("existing")} />
+            <span>An existing source{options.length === 0 ? " (none available)" : ""}</span>
+          </label>
+          <label className="check">
+            <input type="radio" name="attach-mode" checked={mode === "new"} onChange={() => setMode("new")} />
+            <span>A new document reference</span>
+          </label>
+        </fieldset>
+        {mode === "existing" ? (
+          <label className="field">
+            <span>Source</span>
+            <select value={sourceId} onChange={(e) => setSourceId(e.target.value)}>
+              {options.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <>
+            <label className="field">
+              <span>Document type</span>
+              <input value={docType} onChange={(e) => setDocType(e.target.value)} placeholder="e.g. PPQ report" autoFocus />
+            </label>
+            <label className="field">
+              <span>Identifier</span>
+              <input value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="e.g. DEMO-PPQ-217-02" />
+            </label>
+            <label className="field">
+              <span>
+                Title <span className="muted">(optional)</span>
+              </span>
+              <input value={title} onChange={(e) => setTitle(e.target.value)} />
+            </label>
+            <label className="field">
+              <span>
+                Version <span className="muted">(optional)</span>
+              </span>
+              <input value={version} onChange={(e) => setVersion(e.target.value)} />
+            </label>
+          </>
+        )}
+        {error && (
+          <p className="error" role="alert">
+            {error}
+          </p>
+        )}
+        <div className="row end">
+          <button type="button" className="btn" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="submit" className="btn primary">
+            Attach source
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function DetachDialog({
+  target,
+  link,
+  onDetach,
+  onClose,
+  restoreFocus,
+}: {
+  target: EditTarget;
+  link: SourceLink;
+  onDetach: () => string | null;
+  onClose: () => void;
+  restoreFocus: () => HTMLElement | null;
+}) {
+  const project = useStore((s) => s.project)!;
+  const preview = previewDetach(project, link.refs, link.id);
+  const [error, setError] = useState("");
+  return (
+    <Modal
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title={`Detach source from ${target.attr.label}?`}
+      description={link.label}
+      restoreFocus={restoreFocus}
+    >
+      <div className="stack">
+        {preview.warning ? (
+          <p role="alert">
+            <strong>Warning.</strong> {preview.warning}
+          </p>
+        ) : (
+          <p>The value stays as it is. It keeps its other sources.</p>
+        )}
+        {error && (
+          <p className="error" role="alert">
+            {error}
+          </p>
+        )}
+        <div className="row end">
+          <button type="button" className="btn" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="button" className={preview.warning ? "btn danger" : "btn primary"} onClick={() => setError(onDetach() ?? "")}>
+            {preview.warning ? "Detach and make Not established" : "Detach source"}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function VerifySectionDialog({
+  sectionId,
+  title,
+  onVerify,
+  onClose,
+  restoreFocus,
+}: {
+  sectionId: string;
+  title: string;
+  onVerify: (who: Who, opts: { selfVerification?: boolean }) => string | null;
+  onClose: () => void;
+  restoreFocus: () => HTMLElement | null;
+}) {
+  const project = useStore((s) => s.project)!;
+  const content = useContent();
+  const resp = project.interview.responder;
+  const [name, setName] = useState(resp?.name ?? "");
+  const [role, setRole] = useState(resp?.role ?? "");
+  const [self, setSelf] = useState(false);
+  const [error, setError] = useState("");
+  const plan = useMemo(
+    () => planSectionVerification(content, project, sectionId, "all", name, self ? { selfVerification: true } : {}),
+    [content, project, sectionId, name, self],
+  );
+  const recordedByVerifier = plan.skip.some((s) => s.reason.startsWith("Recorded by the verifier"));
+  return (
+    <Modal
+      open
+      wide
+      onOpenChange={(o) => !o && onClose()}
+      title={`Verify all in ${title}`}
+      description="Only entries that hold a value are verified. Unknown and Not established entries are skipped."
+      restoreFocus={restoreFocus}
+    >
+      <form
+        className="stack"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!name.trim()) return setError("Enter the name of the person verifying.");
+          setError(onVerify({ name: name.trim(), ...(role.trim() ? { role: role.trim() } : {}) }, self ? { selfVerification: true } : {}) ?? "");
+        }}
+      >
+        <VerifierFields
+          name={name}
+          role={role}
+          onName={setName}
+          onRole={setRole}
+          selfNeeded={recordedByVerifier || self}
+          self={self}
+          onSelf={setSelf}
+          selfLabel="I am verifying my own entries"
+        />
+        <section aria-labelledby="plan-verify" className="stack">
+          <h3 id="plan-verify">Will be verified ({plan.verify.length})</h3>
+          {plan.verify.length === 0 ? (
+            <p className="muted small">Nothing to verify.</p>
+          ) : (
+            <ul className="plan-list">
+              {plan.verify.map((l) => (
+                <li key={l.ref}>{l.text}</li>
+              ))}
+            </ul>
+          )}
+        </section>
+        <section aria-labelledby="plan-skip" className="stack">
+          <h3 id="plan-skip">Will be skipped ({plan.skip.length})</h3>
+          {plan.skip.length === 0 ? (
+            <p className="muted small">Nothing is skipped.</p>
+          ) : (
+            <ul className="plan-list">
+              {plan.skip.map((l) => (
+                <li key={l.ref}>
+                  {l.text}: {l.reason}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+        {error && (
+          <p className="error" role="alert">
+            {error}
+          </p>
+        )}
+        <div className="row end">
+          <button type="button" className="btn" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="submit" className="btn primary" disabled={plan.verify.length === 0}>
+            Verify {plan.verify.length} {plan.verify.length === 1 ? "entry" : "entries"}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 

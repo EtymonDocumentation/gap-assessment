@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { emptyProject, type Actor, type DocRef, type Project } from "@gap/process-model";
+import { addSource, emptyProject, verifyEntry, type Actor, type DocRef, type Project } from "@gap/process-model";
 import type { ContentBundle } from "./content";
 import { PARAMETER_FIELDS, type ParameterField } from "./content-schema";
 import { applyAnswer, type AnswerInput, type FieldAnswer } from "./interview";
@@ -8,23 +8,35 @@ import type { QuestionInstance } from "./sequencer";
 
 const fieldValue = z.union([z.literal("unknown"), z.literal("same"), z.unknown()]);
 
+const answerSchema = z.object({
+  q: z.string(),
+  side: z.enum(["shared", "source", "target"]),
+  value: z.unknown().optional(),
+  unknown: z.boolean().optional(),
+  same: z.boolean().optional(),
+  fields: z.record(z.string(), fieldValue).optional(),
+  docs: z.array(z.string()).optional(),
+});
+
+/** A later, dated action by a named person: add a source, verify entries, or change an answer. */
+const stepSchema = z.object({
+  at: z.string(),
+  by: z.string(),
+  role: z.string().optional(),
+  addSource: z.object({ identifier: z.string(), docType: z.string(), title: z.string().optional(), version: z.string().optional() }).optional(),
+  verify: z.array(z.string()).optional(),
+  /** Confirms that the verifier is the person who recorded the entries. */
+  selfVerification: z.boolean().optional(),
+  answer: answerSchema.optional(),
+});
+
 const demoSchema = z.object({
   demo: z.object({ id: z.string(), title: z.string(), version: z.string() }),
   responder: z.object({ name: z.string(), role: z.string().optional() }),
   date: z.string(),
   entrySequence: z.enum(["paired", "sequential"]).default("paired"),
   documents: z.array(z.object({ identifier: z.string(), docType: z.string(), title: z.string().optional(), version: z.string().optional() })).default([]),
-  answers: z.array(
-    z.object({
-      q: z.string(),
-      side: z.enum(["shared", "source", "target"]),
-      value: z.unknown().optional(),
-      unknown: z.boolean().optional(),
-      same: z.boolean().optional(),
-      fields: z.record(z.string(), fieldValue).optional(),
-      docs: z.array(z.string()).optional(),
-    }),
-  ),
+  answers: z.array(answerSchema),
   overlays: z
     .array(
       z.object({
@@ -35,6 +47,7 @@ const demoSchema = z.object({
       }),
     )
     .default([]),
+  followUp: z.array(stepSchema).default([]),
 });
 
 export type DemoScript = z.infer<typeof demoSchema>;
@@ -43,6 +56,34 @@ function fieldAnswer(v: unknown): FieldAnswer {
   if (v === "unknown") return { kind: "unknown" };
   if (v === "same") return { kind: "same_as_source" };
   return { kind: "value", value: v as never };
+}
+
+function applyScripted(project: Project, content: ContentBundle, a: z.infer<typeof answerSchema>, actor: Actor, docs: Map<string, DocRef>): Project {
+  const q = content.questionById.get(a.q);
+  if (!q) throw new Error(`Demo: unknown question ${a.q}`);
+  const section = content.sectionById.get(q.section)!;
+  const inst: QuestionInstance = { key: `${q.id}@${a.side}`, question: q, side: a.side, section, depth: 0 };
+  let input: AnswerInput;
+  if (a.unknown) input = { kind: "unknown" };
+  else if (a.same) input = { kind: "same_as_source" };
+  else if (a.fields) {
+    const fields: Partial<Record<ParameterField, FieldAnswer>> = {};
+    for (const [k, v] of Object.entries(a.fields)) {
+      if (!PARAMETER_FIELDS.includes(k as ParameterField)) throw new Error(`Demo: unknown parameter field ${k} in ${a.q}`);
+      fields[k as ParameterField] = fieldAnswer(v);
+    }
+    input = { kind: "composite", fields };
+  } else input = { kind: "value", value: a.value as never };
+  const docRefs = (a.docs ?? []).map((id) => {
+    const d = docs.get(id);
+    if (!d) throw new Error(`Demo: unknown document ${id}`);
+    return d;
+  });
+  try {
+    return applyAnswer(project, content, inst, input, actor, { docRefs });
+  } catch (e) {
+    throw new Error(`Demo answer ${a.q}@${a.side}: ${(e as Error).message}`);
+  }
 }
 
 /**
@@ -63,35 +104,22 @@ export function buildDemoProject(content: ContentBundle, raw: unknown): Project 
   project.interview.responder = demo.responder;
   const docs = new Map<string, DocRef>(demo.documents.map((d) => [d.identifier, d]));
 
-  for (const a of demo.answers) {
-    const q = content.questionById.get(a.q);
-    if (!q) throw new Error(`Demo: unknown question ${a.q}`);
-    const section = content.sectionById.get(q.section)!;
-    const inst: QuestionInstance = { key: `${q.id}@${a.side}`, question: q, side: a.side, section, depth: 0 };
-    let input: AnswerInput;
-    if (a.unknown) input = { kind: "unknown" };
-    else if (a.same) input = { kind: "same_as_source" };
-    else if (a.fields) {
-      const fields: Partial<Record<ParameterField, FieldAnswer>> = {};
-      for (const [k, v] of Object.entries(a.fields)) {
-        if (!PARAMETER_FIELDS.includes(k as ParameterField)) throw new Error(`Demo: unknown parameter field ${k} in ${a.q}`);
-        fields[k as ParameterField] = fieldAnswer(v);
-      }
-      input = { kind: "composite", fields };
-    } else input = { kind: "value", value: a.value as never };
-    const docRefs = (a.docs ?? []).map((id) => {
-      const d = docs.get(id);
-      if (!d) throw new Error(`Demo: unknown document ${id}`);
-      return d;
-    });
-    try {
-      project = applyAnswer(project, content, inst, input, actor, { docRefs });
-    } catch (e) {
-      throw new Error(`Demo answer ${a.q}@${a.side}: ${(e as Error).message}`);
-    }
-  }
+  for (const a of demo.answers) project = applyScripted(project, content, a, actor, docs);
   for (const o of demo.overlays) {
     project = setGapOverlay(project, o.gapKey, { ...o }, actor);
+  }
+  // Follow-up steps happen after the interview, in script order, each by its own named person at its own time.
+  for (const step of demo.followUp) {
+    const who: Actor = { name: step.by, at: step.at, ...(step.role ? { role: step.role } : {}) };
+    if (step.addSource) project = addSource(project, { type: "document_reference", docRef: step.addSource }, who).project;
+    for (const ref of step.verify ?? []) {
+      try {
+        project = verifyEntry(project, ref, who, step.selfVerification ? { selfVerification: true } : {});
+      } catch (e) {
+        throw new Error(`Demo verification of ${ref}: ${(e as Error).message}`);
+      }
+    }
+    if (step.answer) project = applyScripted(project, content, step.answer, who, docs);
   }
   return project;
 }

@@ -38,7 +38,10 @@ Live site: `https://<your-github-user>.github.io/gap-assessment/` (after the dep
 - **Validation.** A validation plan (one row per implied activity, with the gaps that imply it, linked study status on both sides and a derived readiness) and an equipment qualification comparison. Filter by readiness, severity or text. Export either table to CSV.
 - **Gap register.** Filter by category, severity, section, status or text. Sort the columns. Record an owner, a status, notes, or a severity change with a required justification. Export to CSV.
 - **Document.** The gap assessment draft is available as a live preview, as Markdown, and as print-ready HTML (print or save as PDF from the browser).
-- **Builder.** An editable view of every recorded value, source beside target, with status, sources, verification state and revision. Edit in place (Unknown, Not applicable with a reason, Same as source), filter by text, differences or open items, and add your own unit operations, parameters, equipment, materials and controls. They are stored in the project (`project.custom`, schema 1.1.0; older files migrate on load), asked and compared like built-in items, and marked Custom. Removing a custom definition keeps its values as inactive: listed in the Builder, excluded from comparison and the document.
+- **Builder.** An editable view of every recorded value, source beside target, with status, sources, verification state and revision. Edit in place (Unknown, Not applicable with a reason, Same as source), filter by text, differences or open items, and add your own unit operations, parameters, equipment, materials and controls. They are stored in the project (`project.custom`, added in schema 1.1.0; older files migrate on load), asked and compared like built-in items, and marked Custom. Removing a custom definition keeps its values as inactive: listed in the Builder, excluded from comparison and the document.
+- **Sources.** A register of every source: interview answers, user notes and document references, with who gave them, when, and which entries cite each one. Add or edit a document reference, attach a source to a value, or detach one. **Removing a source shows its consequences first** (every entry it supports, and which of them would be left with no source), then, once confirmed, those entries revert to *Not established*, the old value is kept only in the change log, and the gaps recompute. A source that nothing cites is listed as unused.
+- **Verification.** Every entry in the document is either *Unverified* or *Verified by* a named person, with role and date. Verify one value in the Builder, or every verifiable value in a section at once (the dialog lists what will be verified and what will be skipped, and why). Only established and not-applicable values can be verified; Unknown and Not established values cannot. Changing a value, its status, its justification or its "same as source" link withdraws the verification and the entry shows *Verification withdrawn* with the reason. A verification can also be withdrawn on purpose, with a required reason.
+- **Change log.** A page with every change in the project, newest first: who, when, what, and the value before and after. Filter by actor, action, section or text, and export the (filtered) log to CSV. Cells that start with a formula character are neutralised in the export.
 - **One-click demo.** ARX-217 is a fictional liquid mAb in 2R vials moving from Site North (Line 2) to Site South (Line 4). It produces every one of the eight categories.
 
 M1 covers four unit operations:
@@ -54,7 +57,7 @@ M1 covers four unit operations:
 | **No fabricated or default values** | The engine never fills an answer. Catalog data supplies options (pick lists, units), never values. |
 | **Unknowns stay visible** | Every question offers "Unknown — to be confirmed". Unknowns become open information items and "Information required" rows. |
 | **Every value has a source** | Each value is an *entry* linked to at least one source: the interview answer (responder, role, date) plus any document cited. Removing a source strips it from every entry. Entries left without a source revert to "not established", and the gaps that relied on them are recomputed. |
-| **Verification is withdrawn when a value changes** | Verification stores a fingerprint of the value. If the value changes, including a source value that a "same as source" target follows, the entry shows as unverified again. |
+| **Verification is withdrawn when a value changes** | Verification stores a fingerprint of the value. If the value changes, including a source value that a "same as source" target follows, the entry shows "Verification withdrawn" until someone verifies it again. |
 | **No filing decisions** | Rows that may affect registered information say only *"Requires regulatory affairs assessment."* The tool never states a filing category. |
 | **Traceability** | Every register row cites the rule ID and rule version that produced it, plus the exact model entries it used. |
 
@@ -92,7 +95,11 @@ Other commands (run from the repository root):
    You can cite a supporting document on any answer. Use the progress map to jump between sections and **Review** to see a section summary.
 3. **Side by side.** Check the comparison row by row. Select a value to change it in the interview, or a marker to open the register row.
 4. **Gap register.** Work the differences: assign owners and statuses, and adjust severity with a justification. Equivalent rows are hidden by default; tick *Show equivalent* to see them.
-5. **Document.** Download Markdown or HTML, or print. Every entry in the document is shown as "Unverified" in this milestone.
+5. **Sources, verification and change log.**
+   - *Sources:* review who said or wrote what, and remove a source if it turns out to be wrong. The impact dialog tells you which values would become *Not established* before you confirm.
+   - *Builder:* verify a value (or a whole section) by entering the verifier's name and role. If the verifier is the person who recorded the value, the tool asks for an explicit confirmation ("I am verifying my own entry") and the document marks the entry "same person as recorder". Withdraw a verification with a reason, or edit the value, which withdraws it automatically.
+   - *Change log:* check what changed, by whom, and from which value to which.
+6. **Document.** Download Markdown or HTML, or print. Each entry shows its source and its verification status (Unverified, Verified by name and date, or Verification withdrawn). The document ends with a *Verification status* section and two appendices: A, the source register, and B, a summary of the change log.
 
 Your project is saved automatically in this browser only (IndexedDB). Use **Export project (JSON)** to keep a copy or move it to another browser. Nothing is sent to a server.
 
@@ -152,7 +159,7 @@ Every page has light and dark themes. The layout works from phone width up. Acce
   - an optional `value` and an optional `sameAsSource` flag
   - `sourceIds`
   - `recordedBy` / `recordedAt` and a `revision` number
-  - an optional `verification` (who verified it, when, and the fingerprint of the value at that time)
+  - an optional `verification` (who verified it, their role, when, the fingerprint of the value, status and sources at that time, and whether it was a self-verification). A verification stays on the entry when the value changes, but no longer matches its fingerprint, so it is reported as withdrawn rather than silently dropped.
 - **Source.** The source register records each source's type, label, responder, date, file hash or document reference. Allowed types are interview answer, user entry, imported file, catalog rule and document reference; the AI types are reserved.
 - **Project.**
   - schema version and the content versions used
@@ -227,6 +234,8 @@ The comparator decides the category. The rule content supplies the wording, acti
   - In the interview it checks the progress-map jump, "Why is this asked?", paired versus sequential order, section summaries and branch closing.
   - It runs a new project through scoping, Unknown and Not applicable validation.
   - It follows side-by-side markers and checks the document downloads.
+  - It lists the sources, removes one after reading its impact, and checks that the value becomes Not established and the register changes.
+  - It verifies a value in the Builder, checks the document, changes the value so the verification is withdrawn, and checks the change log and its CSV.
   - It runs an axe scan with no serious or critical violations on every page in both themes, and checks that no page scrolls sideways.
 
 ## Deployment to GitHub Pages
@@ -268,11 +277,18 @@ The build uses relative asset paths (`base: "./"`) and a hash router, so it work
   - a validation plan that links each gap to the validation activity it implies, with a readiness derived from the study statuses
   - equipment qualification comparison (source and target status, target qualified range against the required process value)
   - the Validation page, and the matching document sections
+- **In M4:**
+  - the Sources page, with source removal that shows its impact and cascades (entries left without a source revert to Not established, the value is kept only in the change log, the gaps recompute)
+  - attaching and detaching sources, and editing document references
+  - verification: single and per-section, withdrawal with a reason, automatic withdrawal when a value changes, four-eyes confirmation for self-verification
+  - the Change log page with filters and CSV export
+  - verification status for every entry in the document, a *Verification status* section, appendix A (source register) and appendix B (change log summary), and verification columns in the gap register CSV
+  - project schema 1.2.0 (older files migrate on load)
 - **Not yet:**
-  - a source-register UI (M4; the cascade engine and its tests are already in place)
   - DOCX export (M5)
   - TRD seed export and packaging of the model (M6)
-- **Responder identity is free text.** There is no login, so answers are not attributable in a GMP sense. The document says so.
+- **Responder and verifier identity is free text.** There is no login and no electronic signature, so answers and verifications are not attributable in a GMP sense. The document says so.
+- **Four-eyes is a prompt, not a lock.** If the verifier's name matches the person who recorded the value (compared without regard to case or spacing), the tool asks for explicit confirmation and flags the verification as a self-verification. Because names are free text, a different spelling of the same person, or another person's name, is not detected.
 - **Risk ranking is severity only** (rule severity plus justified overrides). There is no likelihood scoring.
 - **Equivalence is exact** after unit conversion. There is no tolerance band yet.
 - **Data stays in the browser.** Clearing site data deletes the project unless it was exported.

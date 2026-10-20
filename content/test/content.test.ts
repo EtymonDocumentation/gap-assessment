@@ -64,7 +64,7 @@ function nullPaths(value: unknown, path = "$", out: string[] = []): string[] {
 
 describe("shipped content builds", () => {
   it("builds without error and reports its versions", () => {
-    expect(content.versions).toEqual({ catalog: "1.2.0", questions: "1.2.0", rules: "1.2.0", templates: "1.0.0" });
+    expect(content.versions).toEqual({ catalog: "1.2.0", questions: "1.2.0", rules: "1.2.0", templates: "1.1.0" });
     for (const v of Object.values(content.versions)) expect(v).toMatch(/^\d+\.\d+\.\d+$/);
   });
 

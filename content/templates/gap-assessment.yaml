@@ -4,7 +4,7 @@
 # by the engine (for example "Unknown — to be confirmed"); nothing is invented.
 templates:
   id: gap-assessment-document
-  version: 1.0.0
+  version: 1.1.0
 
 document:
   title: "Gap assessment: {program} — {sourceSite} to {targetSite}"
@@ -76,5 +76,28 @@ document:
     information. This tool does not determine the regulatory filing category of any
     change; that decision belongs to regulatory affairs.
   verificationStatement: >-
-    Values are unverified unless shown as verified. Verification is withdrawn
-    automatically when a verified value changes.
+    Every value is shown as Unverified, Verified (by name, role and date) or
+    Verification withdrawn. A verification is withdrawn automatically when the
+    verified value or its status changes, including a target value that follows
+    the source ("same as source") when the source value changes. See the
+    Verification status section.
+  verificationStatusIntro: >-
+    Counts of the entries behind this document by verification state, for each
+    section and side. "Not verifiable" means the entry is Unknown or not
+    established, so there is no value to confirm yet. A verification covers the
+    value and status at the time it was given; a later change withdraws it.
+  identityStatement: >-
+    Responder and verifier names and roles are free text typed into the tool.
+    There is no login, authentication or electronic signature, so these identities
+    are not attributable in a GMP sense. Where the verifier is the same person as
+    the recorder, the entry is marked "same person as recorder"; that is a
+    self-check, not an independent second check.
+  sourceRegisterIntro: >-
+    Every source held in the project register, with the entries that cite it. A
+    source that no entry cites is shown as unused. Removing a source from the
+    register returns every entry left without a source to "Not established"; the
+    removed value is kept only in the change log.
+  changeLogSummaryIntro: >-
+    Number of recorded changes by type. The full change log, with who, when, and
+    the values before and after each change, is available as a CSV export from the
+    tool.

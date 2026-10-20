@@ -242,25 +242,27 @@ test("document preview and downloads", async ({ page }) => {
 
 for (const theme of ["light", "dark"] as const) {
   test(`accessibility and layout, ${theme} theme`, async ({ page }) => {
-    test.setTimeout(120_000); // the demo now has more rows to check on each page
+    test.setTimeout(240_000); // the demo has many rows to check on each page
     await loadDemo(page);
     await page.getByLabel("Colour theme").selectOption(theme);
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
-    const routes = ["#/", "#/interview?q=fill.pump%40target", "#/interview?summary=uo.aseptic_filling", "#/compare", "#/register", "#/validation", "#/document", "#/builder"];
+    const routes = ["#/", "#/interview?q=fill.pump%40target", "#/interview?summary=uo.aseptic_filling", "#/compare", "#/register", "#/validation", "#/document", "#/builder", "#/sources", "#/changes"];
     for (const r of routes) {
       await go(page, r);
       await expect(page.locator("main h1").first()).toBeVisible();
       await expectAccessible(page, `${theme} ${r}`);
       await expectNoHorizontalScroll(page, `${theme} ${r}`);
     }
-    // The validation page at three widths (wide tables scroll inside their own region, never the page).
-    await go(page, "#/validation");
+    // The wide pages at three widths (wide tables scroll inside their own region, never the page).
     const original = page.viewportSize();
-    for (const width of [1280, 768, 390]) {
-      await page.setViewportSize({ width, height: 800 });
-      await expect(page.getByRole("heading", { level: 1, name: "Validation" })).toBeVisible();
-      await expectAccessible(page, `${theme} validation at ${width}px`);
-      await expectNoHorizontalScroll(page, `${theme} validation at ${width}px`);
+    for (const [hash, heading] of [["#/validation", "Validation"], ["#/sources", "Sources"], ["#/changes", "Change log"]] as const) {
+      await go(page, hash);
+      for (const width of [1280, 768, 390]) {
+        await page.setViewportSize({ width, height: 800 });
+        await expect(page.getByRole("heading", { level: 1, name: heading })).toBeVisible();
+        await expectAccessible(page, `${theme} ${heading} at ${width}px`);
+        await expectNoHorizontalScroll(page, `${theme} ${heading} at ${width}px`);
+      }
     }
     if (original) await page.setViewportSize(original);
     // Open register details and a dialog are checked too.
@@ -273,6 +275,22 @@ for (const theme of ["light", "dark"] as const) {
     await expect(page.getByRole("dialog")).toBeVisible();
     await expectAccessible(page, `${theme} builder add dialog`);
     await expectNoHorizontalScroll(page, `${theme} builder add dialog`);
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toBeHidden();
+    // The verification and source-removal dialogs are checked too.
+    await page.getByRole("searchbox", { name: "Filter by text or path" }).fill("Batch record system");
+    await page.getByRole("button", { name: "Verify Batch record system, source" }).click();
+    await expect(page.getByRole("dialog", { name: "Verify: Batch record system" })).toBeVisible();
+    await expectAccessible(page, `${theme} verify dialog`);
+    await expectNoHorizontalScroll(page, `${theme} verify dialog`);
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toBeHidden();
+    await go(page, "#/sources");
+    await page.getByRole("searchbox", { name: "Filter by text" }).fill("Filling pump operating principle");
+    await page.getByRole("button", { name: "Remove Interview answer: Filling pump operating principle [target]" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expectAccessible(page, `${theme} remove source dialog`);
+    await expectNoHorizontalScroll(page, `${theme} remove source dialog`);
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).toBeHidden();
     await go(page, "#/");
@@ -392,4 +410,111 @@ test("builder: custom unit operation and parameter appear in the register, and r
   await go(page, "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
   await expect(page.locator("table.register")).not.toContainText("Hold temperature (fictional)");
+});
+
+test("sources: the register lists sources; removing one shows the impact, then reverts the value and changes the register", async ({ page }) => {
+  await loadDemo(page);
+  const differentPrinciple = async () => {
+    const btn = page.getByRole("list", { name: "Count by category" }).getByRole("button", { name: /^Different principle\s+\d+$/ });
+    return Number((await btn.locator(".count").textContent()) ?? "0");
+  };
+  const before = await differentPrinciple();
+  expect(before).toBeGreaterThan(0);
+
+  await go(page, "#/sources");
+  await expect(page.getByRole("heading", { level: 1, name: "Sources" })).toBeVisible();
+  const table = page.locator("table.sources-table");
+  expect(await table.locator("tbody tr").count()).toBeGreaterThan(50);
+  await expect(table).toContainText("DEMO-PPQ-217-01");
+  await expect(table).toContainText("Unused"); // the registered document that no entry cites
+
+  await page.getByRole("searchbox", { name: "Filter by text" }).fill("Filling pump operating principle");
+  const remove = page.getByRole("button", { name: "Remove Interview answer: Filling pump operating principle [target]" });
+  await expect(remove).toBeVisible();
+  await remove.click();
+
+  // The consequences are stated before anything is removed.
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("list", { name: "Consequences of removing this source" })).toBeVisible();
+  await expect(dialog).toContainText("Not established");
+  await expect(dialog).toContainText("Filling pump principle");
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(remove).toBeFocused();
+  await go(page, "#/register");
+  expect(await differentPrinciple()).toBe(before);
+
+  await go(page, "#/sources");
+  await page.getByRole("searchbox", { name: "Filter by text" }).fill("Filling pump operating principle");
+  await remove.click();
+  await page.getByRole("dialog").getByRole("button", { name: "Remove source" }).click();
+  await expect(page.getByRole("dialog")).toBeHidden();
+  await expect(remove).toHaveCount(0); // the source side's own source is still listed
+
+  // The value is Not established in the Builder ...
+  await go(page, "#/builder");
+  await page.getByRole("searchbox", { name: "Filter by text or path" }).fill("Filling pump principle");
+  await expect(page.locator("main")).toContainText("Not established");
+
+  // ... and the register no longer counts the different principle.
+  await go(page, "#/register");
+  await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
+  expect(await differentPrinciple()).toBe(before - 1);
+
+  // The removed value is kept only in the change log.
+  await go(page, "#/changes");
+  await expect(page.locator("table.change-table")).toContainText("Source removed");
+  await expect(page.locator("table.change-table")).toContainText("Value reverted (source removed)");
+});
+
+test("verification: verify in the builder, see it in the document, withdraw it by changing the value, and find it in the change log", async ({ page }) => {
+  await loadDemo(page);
+  await go(page, "#/builder");
+  await expect(page.getByRole("heading", { level: 1, name: "Builder" })).toBeVisible();
+  await page.getByRole("searchbox", { name: "Filter by text or path" }).fill("Batch record system");
+
+  await page.getByRole("button", { name: "Verify Batch record system, source" }).click();
+  const dialog = page.getByRole("dialog", { name: "Verify: Batch record system" });
+  await dialog.getByLabel("Verifier name").fill("Pat Checker (fictional)");
+  await dialog.getByLabel(/^Role/).fill("QA");
+  await dialog.getByRole("button", { name: "Verify", exact: true }).click();
+  await expect(page.getByRole("dialog")).toBeHidden();
+  await expect(page.locator("main")).toContainText("Verified by Pat Checker (fictional) (QA)");
+
+  await go(page, "#/document");
+  await expect(page.locator(".doc-preview")).toContainText("Verified by Pat Checker (fictional) (QA)");
+  await expect(page.locator(".doc-preview")).toContainText("Verification status");
+
+  // Changing the value withdraws the verification.
+  await go(page, "#/builder");
+  await page.getByRole("searchbox", { name: "Filter by text or path" }).fill("Batch record system");
+  await page.getByRole("button", { name: "Edit Batch record system, source" }).click();
+  await answerResponderIfAsked(page);
+  await page.getByRole("dialog").locator("label.choice-chip", { hasText: /^Electronic/ }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Save value" }).click();
+  await expect(page.getByRole("dialog")).toBeHidden();
+  await expect(page.locator("main")).toContainText(/withdrawn/i);
+  await expect(page.locator("main")).not.toContainText("Verified by Pat Checker (fictional) (QA)");
+
+  await go(page, "#/document");
+  await expect(page.locator(".doc-preview")).toContainText(/Verification withdrawn \(value changed after verification\); was verified by Pat Checker \(fictional\) \(QA\)/);
+
+  // The change log shows both events, can be filtered, and downloads as CSV.
+  await go(page, "#/changes");
+  await expect(page.getByRole("heading", { level: 1, name: "Change log" })).toBeVisible();
+  const table = page.locator("table.change-table");
+  await expect(table).toContainText("Verified");
+  await expect(table).toContainText("Pat Checker (fictional)");
+  const all = await table.locator("tbody tr").count();
+  await page.getByLabel("Action").selectOption({ label: "Verified" });
+  await expect(table.locator("tbody tr").first()).toContainText("Pat Checker (fictional)");
+  expect(await table.locator("tbody tr").count()).toBeLessThan(all);
+  await page.getByLabel("Action").selectOption({ label: "All actions" });
+
+  const csv = await downloadText(page, () => page.getByRole("button", { name: /^Export CSV/ }).click());
+  expect(csv.name).toMatch(/change-log.*\.csv$/);
+  expect(csv.text.split("\n")[0]).toContain("Actor");
+  expect(csv.text).toContain("Pat Checker (fictional)");
+  expect(csv.text).toContain("Verified");
+  expect(csv.text).not.toMatch(/undefined|NaN/);
 });

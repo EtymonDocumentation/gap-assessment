@@ -161,8 +161,9 @@ export function applyAnswer(
   for (const d of opts.docRefs ?? []) {
     let ds = next.sources.find((s) => s.type === "document_reference" && s.docRef?.identifier === d.identifier);
     if (!ds) {
-      ds = { id: newId("src"), type: "document_reference", label: d.title ? `${d.identifier} ${d.title}` : d.identifier, date: actor.at, docRef: d };
+      ds = { id: newId("src"), type: "document_reference", label: d.title ? `${d.identifier} ${d.title}` : d.identifier, responder: { name: actor.name, ...(actor.role ? { role: actor.role } : {}) }, date: actor.at, docRef: d };
       next.sources.push(ds);
+      next.changeLog.push({ at: actor.at, by: actor.name, action: "add_source", detail: `${ds.type}: ${ds.label}`, after: structuredClone(ds) });
     }
     if (!docSourceIds.includes(ds.id)) docSourceIds.push(ds.id);
   }
@@ -208,8 +209,10 @@ export function applyAnswer(
       by: actor.name,
       action: "answer",
       path: ref,
-      before: existing ? { status: existing.status, value: existing.value, sameAsSource: existing.sameAsSource } : undefined,
-      after: { status: entry.status, value: entry.value, sameAsSource: entry.sameAsSource },
+      before: existing
+        ? { status: existing.status, value: existing.value, sameAsSource: existing.sameAsSource, ...(existing.justification ? { justification: existing.justification } : {}) }
+        : undefined,
+      after: { status: entry.status, value: entry.value, sameAsSource: entry.sameAsSource, ...(entry.justification ? { justification: entry.justification } : {}) },
     });
   }
 
@@ -226,19 +229,40 @@ export function applyAnswer(
   return next;
 }
 
-export function setEntrySequence(project: Project, mode: "paired" | "sequential"): Project {
-  return { ...project, settings: { ...project.settings, entrySequence: mode } };
+/** Switches the order questions are asked in. Logged when an actor is given. */
+export function setEntrySequence(project: Project, mode: "paired" | "sequential", actor?: Actor): Project {
+  const next: Project = { ...project, settings: { ...project.settings, entrySequence: mode } };
+  if (actor && mode !== project.settings.entrySequence) {
+    next.changeLog = [...project.changeLog, { at: actor.at, by: actor.name, action: "set_entry_sequence", before: project.settings.entrySequence, after: mode }];
+  }
+  return next;
 }
 
-export function setResponder(project: Project, responder: { name: string; role?: string }): Project {
+/** Sets who is answering. Logged when `at` is given (the new responder is recorded as the actor). */
+export function setResponder(project: Project, responder: { name: string; role?: string }, at?: string): Project {
   if (!responder.name.trim()) throw new AnswerError("Responder name is required");
-  return { ...project, interview: { ...project.interview, responder } };
+  const next: Project = { ...project, interview: { ...project.interview, responder } };
+  if (at) {
+    next.changeLog = [
+      ...project.changeLog,
+      { at, by: responder.name, action: "set_responder", before: project.interview.responder ? { ...project.interview.responder } : undefined, after: { ...responder } },
+    ];
+  }
+  return next;
 }
 
 export function confirmSection(project: Project, sectionId: string, side: "source" | "target" | "shared" | "both", actor: Actor): Project {
   const next = structuredClone(project);
+  const prior = next.interview.confirmations.find((c) => c.sectionId === sectionId && c.side === side);
   next.interview.confirmations = next.interview.confirmations.filter((c) => !(c.sectionId === sectionId && c.side === side));
   next.interview.confirmations.push({ sectionId, side, by: actor.name, at: actor.at });
-  next.changeLog.push({ at: actor.at, by: actor.name, action: "confirm_section", detail: `${sectionId} (${side})` });
+  next.changeLog.push({
+    at: actor.at,
+    by: actor.name,
+    action: "confirm_section",
+    detail: `${sectionId} (${side})`,
+    ...(prior ? { before: { sectionId, side, by: prior.by, at: prior.at } } : {}),
+    after: { sectionId, side },
+  });
   return next;
 }

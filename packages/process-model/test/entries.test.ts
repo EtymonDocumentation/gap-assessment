@@ -186,14 +186,14 @@ describe("verification", () => {
   it("does not mutate the project it was given", () => {
     const p = v(newProject(), "comp.vessel_type", "source", "stainless_tank");
     const snapshot = JSON.stringify(p);
-    verifyEntry(p, VESSEL_S, ACTOR);
+    verifyEntry(p, VESSEL_S, OTHER_ACTOR);
     expect(JSON.stringify(p)).toBe(snapshot);
   });
 
   it("is withdrawn (keeping who and when) when the value changes after verification", () => {
     let p = verifyEntry(v(newProject(), "comp.vessel_type", "source", "stainless_tank"), VESSEL_S, OTHER_ACTOR);
     p = v(p, "comp.vessel_type", "source", "glass");
-    expect(verificationState(p, VESSEL_S)).toEqual({ state: "withdrawn", by: "Sam Sample (fictional)", at: T1 });
+    expect(verificationState(p, VESSEL_S)).toEqual({ state: "withdrawn", by: "Sam Sample (fictional)", at: T1, reason: "value_changed" });
   });
 
   it("stays verified when the same value is simply re-answered", () => {
@@ -209,10 +209,9 @@ describe("verification", () => {
     expect(verificationState(p, VESSEL_S).state).toBe("withdrawn");
   });
 
-  it("can verify an Unknown and a Not-applicable entry", () => {
-    const u = verifyEntry(unk(newProject(), "comp.vessel_type", "source"), VESSEL_S, ACTOR);
-    expect(verificationState(u, VESSEL_S).state).toBe("verified");
-    const n = verifyEntry(na(newProject(), "comp.vessel_type", "source", "Not used (fictional)"), VESSEL_S, ACTOR);
+  it("refuses to verify an Unknown entry (an open information item) but can verify a Not-applicable one", () => {
+    expect(() => verifyEntry(unk(newProject(), "comp.vessel_type", "source"), VESSEL_S, OTHER_ACTOR)).toThrow(/Unknown/);
+    const n = verifyEntry(na(newProject(), "comp.vessel_type", "source", "Not used (fictional)"), VESSEL_S, OTHER_ACTOR);
     expect(verificationState(n, VESSEL_S).state).toBe("verified");
   });
 
@@ -222,7 +221,7 @@ describe("verification", () => {
     p = verifyEntry(p, VESSEL_T, OTHER_ACTOR);
     expect(verificationState(p, VESSEL_T).state).toBe("verified");
     p = v(p, "comp.vessel_type", "source", "glass");
-    expect(verificationState(p, VESSEL_T)).toEqual({ state: "withdrawn", by: "Sam Sample (fictional)", at: T1 });
+    expect(verificationState(p, VESSEL_T)).toEqual({ state: "withdrawn", by: "Sam Sample (fictional)", at: T1, reason: "source_changed" });
     // Verification is judged against the resolved value, so reverting the source restores it.
     p = v(p, "comp.vessel_type", "source", "stainless_tank");
     expect(verificationState(p, VESSEL_T).state).toBe("verified");
@@ -230,7 +229,7 @@ describe("verification", () => {
 
   it("a sameAsSource target whose source answer is removed is withdrawn", () => {
     let p = v(newProject(), "comp.vessel_type", "source", "stainless_tank");
-    p = verifyEntry(same(p, "comp.vessel_type"), VESSEL_T, ACTOR);
+    p = verifyEntry(same(p, "comp.vessel_type"), VESSEL_T, OTHER_ACTOR);
     p = removeSource(p, interviewSourceId(p, VESSEL_S), ACTOR).project;
     expect(resolveEntry(p, VESSEL_T).status).toBe("not_established");
     expect(verificationState(p, VESSEL_T).state).toBe("withdrawn");
@@ -277,16 +276,16 @@ describe("removeSource", () => {
     const src = p.sources[0]!;
     const { project } = removeSource(p, src.id, OTHER_ACTOR);
     const added = project.changeLog.slice(p.changeLog.length);
-    expect(added).toEqual([
+    expect(added).toMatchObject([
       {
         at: T1,
         by: "Sam Sample (fictional)",
         action: "revert_on_source_removal",
         path: VESSEL_S,
-        before: { status: "established", value: "stainless_tank", sameAsSource: undefined },
+        before: { status: "established", value: "stainless_tank" },
         after: { status: "not_established" },
       },
-      { at: T1, by: "Sam Sample (fictional)", action: "remove_source", detail: `interview_answer: ${src.label}` },
+      { at: T1, by: "Sam Sample (fictional)", action: "remove_source", detail: `interview_answer: ${src.label}`, before: { id: src.id }, after: { citingEntries: 1, reverted: 1 } },
     ]);
   });
 
@@ -618,7 +617,7 @@ describe("parseProject", () => {
 
   it("rejects an unsupported or missing schema version", () => {
     const old = mutated((r) => { r.schemaVersion = "0.9.0"; });
-    expect(() => parseProject(old)).toThrow(/Unsupported schema version 0\.9\.0 \(this build reads 1.1.0\)/);
+    expect(() => parseProject(old)).toThrow(/Unsupported schema version 0\.9\.0 \(this build reads 1.2.0\)/);
     const future = mutated((r) => { r.schemaVersion = "2.0.0"; });
     expect(() => parseProject(future)).toThrow(ImportError);
     const none = mutated((r) => { delete r.schemaVersion; });

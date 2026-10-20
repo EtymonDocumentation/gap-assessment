@@ -1,5 +1,7 @@
 import { activityLabel, categoryLabel, type ContentBundle } from "./content";
+import type { Project } from "@gap/process-model";
 import type { Gap } from "./compare";
+import { cellVerification } from "./verification";
 
 export function cell(v: string): string {
   // Neutralize spreadsheet formula injection and quote every cell.
@@ -24,11 +26,18 @@ export const CSV_COLUMNS = [
   "Regulatory",
   "Owner",
   "Status",
+  "Source verification",
+  "Target verification",
   "Rule",
   "Inputs",
 ] as const;
 
-export function gapsToCsv(content: ContentBundle, gaps: Gap[]): string {
+function sideVerification(project: Project, refs: string[], side: "source" | "target"): string {
+  const mine = refs.filter((r) => r.startsWith(`${side}.`));
+  return mine.length ? cellVerification(project, mine).text : "";
+}
+
+export function gapsToCsv(content: ContentBundle, gaps: Gap[], project: Project): string {
   const rows = gaps.map((g) => [
     g.displayId,
     g.sectionTitle,
@@ -45,6 +54,8 @@ export function gapsToCsv(content: ContentBundle, gaps: Gap[]): string {
     g.regulatoryNote ?? "",
     g.owner ?? "",
     g.status,
+    sideVerification(project, g.inputRefs, "source"),
+    sideVerification(project, g.inputRefs, "target"),
     `${g.ruleId} v${g.ruleVersion}`,
     g.inputRefs.join(" | "),
   ]);

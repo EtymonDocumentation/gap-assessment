@@ -446,7 +446,7 @@ describe("renaming and removal", () => {
     expect(a.inactive.length).toBe(recordedEntries(next, { uo, coll: "param", key: par }).length);
     const doc = JSON.stringify(buildDocument(k.content, next, a, ACTOR.at).sections);
     expect(doc).not.toContain("Hold temperature");
-    expect(gapsToCsv(k.content, a.gaps)).not.toContain("Hold temperature");
+    expect(gapsToCsv(k.content, a.gaps, next)).not.toContain("Hold temperature");
 
     const view = buildModelView(k.content, next, a);
     const row = view.inactive.find((r) => r.ref === refs[0])!;
@@ -522,7 +522,7 @@ describe("pipeline integration", () => {
     const a = made.k.run(p);
     const g = a.gaps.find((x) => x.path.endsWith(".description"))!;
     expect(g).toMatchObject({ sectionTitle: "Visual check (custom)", attribute: "Lighting check", category: "different_principle" });
-    expect(gapsToCsv(made.k.content, a.gaps)).toContain("Lighting check");
+    expect(gapsToCsv(made.k.content, a.gaps, p)).toContain("Lighting check");
     const doc = buildDocument(made.k.content, p, a, ACTOR.at);
     const text = JSON.stringify(doc.sections);
     expect(text).toContain("Visual check (custom)");
@@ -552,7 +552,7 @@ describe("pipeline integration", () => {
     expect(sec.custom).toBe(true);
     const attr = sec.attributes.find((x) => x.id === `x.${uo}.ipc.${made.key}`)!;
     expect(attr).toMatchObject({ custom: true, differs: true, label: "Lighting check" });
-    expect(attr.source).toMatchObject({ display: "Daily", status: "established", revision: 1, verification: "Unverified" });
+    expect(attr.source).toMatchObject({ display: "Daily", status: "established", revision: 1, verification: expect.objectContaining({ state: "unverified", text: "Unverified" }) });
     expect(attr.target!.sources[0]).toContain(ACTOR.name);
     expect(view.definitions.map((d) => [d.kind, d.label, d.recorded])).toEqual([
       ["uo", "Visual check (custom)", 4],

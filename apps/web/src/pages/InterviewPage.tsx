@@ -68,7 +68,7 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
             <legend className="small">Entry order</legend>
             {(["paired", "sequential"] as const).map((m) => (
               <label key={m}>
-                <input type="radio" name="mode" value={m} checked={mode === m} onChange={() => update((p) => setEntrySequence(p, m), `Entry order: ${m}`)} />
+                <input type="radio" name="mode" value={m} checked={mode === m} onChange={() => update((p, actor) => setEntrySequence(p, m, actor), `Entry order: ${m}`)} />
                 <span>{m === "paired" ? "Paired" : "Sequential"}</span>
               </label>
             ))}
@@ -122,7 +122,7 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
           initial={project.interview.responder}
           submitLabel="Save responder"
           onSubmit={(v) => {
-            update((p) => setResponder(p, { name: v.name, ...(v.role ? { role: v.role } : {}) }), "Responder saved");
+            update((p, actor) => setResponder(p, { name: v.name, ...(v.role ? { role: v.role } : {}) }, actor.at), "Responder saved");
             setEditingResponder(false);
           }}
         />

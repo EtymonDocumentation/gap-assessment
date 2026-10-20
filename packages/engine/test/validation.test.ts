@@ -530,14 +530,15 @@ describe("document sections", () => {
     expect(ids).toContain("validation-plan");
     expect(ids).toContain("equipment-qualification");
     expect(ids.indexOf("equipment-qualification")).toBe(ids.indexOf("validation-plan") + 1);
-    doc.sections.forEach((s, i) => expect(s.number).toBe(String(i + 1)));
+    doc.sections.filter((s) => !s.appendix).forEach((s, i) => expect(s.number).toBe(String(i + 1)));
+    doc.sections.filter((s) => s.appendix).forEach((s, i) => expect(s.number).toBe(String.fromCharCode(65 + i)));
     const plan = doc.sections.find((s) => s.id === "validation-plan")!;
     const table = plan.blocks.find((b) => b.type === "table");
     expect(table?.type === "table" && table.columns).toContain("Readiness");
     const ppq = table?.type === "table" ? table.rows.find((r) => r[0] === "PPQ activity") : undefined;
     expect(ppq?.[2]).toMatch(/G-\d{3}, G-\d{3}/);
     expect(ppq?.[5]).toBe("PPQ (Filling X): —"); // PPQ is not asked on the source
-    expect(ppq?.[6]).toBe("PPQ (Filling X): Not covered");
+    expect(ppq?.[6]).toBe("PPQ (Filling X): Not covered [Unverified]");
     expect(ppq?.[7]).toBe("Not planned");
   });
 

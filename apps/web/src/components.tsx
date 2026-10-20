@@ -40,6 +40,7 @@ export function Modal({
   description,
   children,
   restoreFocus,
+  wide,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -48,13 +49,15 @@ export function Modal({
   children: ReactNode;
   /** Returns the element that should get focus when the dialog closes (default: the previously focused element). */
   restoreFocus?: () => HTMLElement | null;
+  /** A wider dialog for lists and tables. */
+  wide?: boolean;
 }) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay" />
         <Dialog.Content
-          className="dialog"
+          className={wide ? "dialog wide" : "dialog"}
           aria-describedby={description ? "dialog-desc" : undefined}
           onCloseAutoFocus={(e) => {
             const el = restoreFocus?.();
@@ -133,5 +136,70 @@ export function ResponderForm({
         </button>
       </div>
     </form>
+  );
+}
+
+const VERIF_ICON = { verified: "✓", withdrawn: "⚠", unverified: "○", partial: "◐" } as const;
+
+/** Verification state as an icon plus words, so colour is never the only cue. */
+export function VerificationBadge({ state, text }: { state: keyof typeof VERIF_ICON; text: string }) {
+  return (
+    <span className={`verif verif-${state}`}>
+      <span className="verif-icon" aria-hidden="true">
+        {VERIF_ICON[state]}
+      </span>
+      <span>{text}</span>
+    </span>
+  );
+}
+
+/**
+ * Who is verifying. Free text, prefilled with the current responder. When the verifier recorded the entry,
+ * an explicit confirmation is required (four-eyes), and the record then says so.
+ */
+export function VerifierFields({
+  name,
+  role,
+  onName,
+  onRole,
+  selfNeeded,
+  self,
+  onSelf,
+  selfLabel = "I am verifying my own entry",
+}: {
+  name: string;
+  role: string;
+  onName: (v: string) => void;
+  onRole: (v: string) => void;
+  selfNeeded: boolean;
+  self: boolean;
+  onSelf: (v: boolean) => void;
+  selfLabel?: string;
+}) {
+  return (
+    <>
+      <label className="field">
+        <span>Verifier name</span>
+        <input value={name} onChange={(e) => onName(e.target.value)} autoComplete="name" autoFocus />
+      </label>
+      <label className="field">
+        <span>
+          Role <span className="muted">(optional)</span>
+        </span>
+        <input value={role} onChange={(e) => onRole(e.target.value)} placeholder="e.g. QA" />
+      </label>
+      {selfNeeded && (
+        <div className="na-box">
+          <p className="small">The verifier recorded this entry. A second person should normally verify it.</p>
+          <label className="check">
+            <input type="checkbox" checked={self} onChange={(e) => onSelf(e.target.checked)} />
+            <span>{selfLabel}</span>
+          </label>
+        </div>
+      )}
+      <p className="muted small">
+        Recorded as free text. This proof of concept has no login, so the verifier is not attributable in a GMP sense.
+      </p>
+    </>
   );
 }
