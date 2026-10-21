@@ -1,5 +1,5 @@
 import type { Category } from "@gap/engine";
-import type { Severity } from "@gap/process-model";
+import { fullRef, getEntry, type Project, type Severity } from "@gap/process-model";
 
 export function download(filename: string, data: string | Uint8Array, type: string): void {
   const url = URL.createObjectURL(new Blob([data as BlobPart], { type }));
@@ -25,6 +25,32 @@ export const SEVERITY_TEXT: Record<Severity, string> = { high: "High", medium: "
 /** Side badges. The source text follows the stage wording (StageWording.sourceSideText). */
 export function sideText(w: { sourceSideText: string }): Record<"source" | "target" | "shared", string> {
   return { source: w.sourceSideText, target: "RU — planned state", shared: "Scoping (shared)" };
+}
+
+export type UnitSide = "source" | "target";
+
+/** "Sending unit (SU)" / "Receiving unit (RU)". */
+export const SIDE_FULL: Record<UnitSide, string> = { source: "Sending unit (SU)", target: "Receiving unit (RU)" };
+/** "SU" / "RU". */
+export const SIDE_SHORT: Record<UnitSide, string> = { source: "SU", target: "RU" };
+
+/** The site and line recorded in scoping for a side ("Site North (fictional), Line 2"), or "" when neither is established yet. */
+export function siteLine(project: Project, side: UnitSide): string {
+  const text = (field: string): string => {
+    const e = getEntry(project, fullRef(side, `site.${field}`));
+    return e && e.status === "established" && typeof e.value === "string" ? e.value.trim() : "";
+  };
+  return [text("name"), text("line")].filter(Boolean).join(", ");
+}
+
+/**
+ * Full description of one side: the side name, the site and line from scoping when known, and the stage-aware state wording.
+ * "Sending unit (SU) — Site North (fictional), Line 2 · validated state".
+ */
+export function sideDescription(project: Project, side: UnitSide, w: { sourceValidated: boolean }): string {
+  const state = side === "target" ? "planned state" : w.sourceValidated ? "validated state" : "current state";
+  const site = siteLine(project, side);
+  return `${SIDE_FULL[side]}${site ? ` — ${site}` : ""} · ${state}`;
 }
 
 /** Short category labels. The keys never change; only the two range labels follow the source stage. */

@@ -683,19 +683,102 @@ input.num {
   align-items: center;
   margin-bottom: 8px;
 }
-.side-badge {
-  font-size: 0.8rem;
-  font-weight: 700;
-  padding: 2px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-}
-.side-source {
+/* Which side is being answered: a banner on single-side cards, a panel per side on paired questions.
+   The text marker (SU / RU) and the border style (solid for SU, double for RU) carry the meaning, not the colour alone. */
+.side-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  border: 2px solid var(--muted);
+  border-left-width: 10px;
   background: var(--surface-2);
 }
-.side-target {
+.side-banner p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.side-banner.side-target {
+  border: 4px double var(--accent);
+  border-left-width: 10px;
   background: var(--accent-soft);
-  border-color: var(--accent);
+}
+.side-banner.side-shared {
+  border: 2px dotted var(--muted);
+  border-left-width: 10px;
+}
+.side-mark {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.4em;
+  padding: 2px 8px;
+  border: 2px solid currentColor;
+  border-radius: 6px;
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  background: var(--surface);
+  color: var(--text);
+}
+.side-target .side-mark {
+  color: var(--accent);
+}
+.question-card.is-paired {
+  max-width: 1040px;
+}
+.side-panels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+fieldset.side-panel {
+  min-width: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--space-stack);
+  padding: 12px 14px 14px;
+  border: 2px solid var(--muted);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+fieldset.side-panel.side-target {
+  border: 4px double var(--accent);
+}
+.side-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  font-weight: 700;
+  padding: 0 6px;
+}
+.side-legend > span:last-child {
+  overflow-wrap: anywhere;
+}
+.side-panel .side-question {
+  margin: 0;
+  font-weight: 600;
+}
+.side-panel .recorded {
+  margin: 0;
+}
+.side-answered {
+  justify-self: start;
+}
+.side-panel-single {
+  display: grid;
+  gap: var(--space-stack);
+}
+@media (max-width: 760px) {
+  .side-panels {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .q-prompt {
   font-size: 1.35rem;
@@ -726,9 +809,11 @@ input.num {
 }
 .source-ref {
   background: var(--surface-2);
+  border-left: 4px solid var(--muted);
   border-radius: 6px;
   padding: 8px 12px;
-  margin: 8px 0 12px;
+  margin: 0;
+  font-size: 1.05rem;
 }
 .chips {
   border: 0;
@@ -1489,11 +1574,15 @@ details.report h4 {
   gap: 4px;
 }
 .cite-option {
-  align-items: flex-start;
+  align-items: center;
+  min-height: 28px;
 }
 .cite-option input {
-  margin-top: 4px;
+  margin: 0;
   flex: none;
+  width: 24px;
+  height: 24px;
+  align-self: center;
 }
 .section-choice {
   display: grid;

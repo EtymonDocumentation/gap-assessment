@@ -13,16 +13,59 @@ import {
   setResponder,
   visibleInstances,
   type AnswerInput,
+  type InstanceSide,
   type QuestionInstance,
   type SectionProgress,
 } from "@gap/engine";
-import { getEntry, type DocRef, type Project } from "@gap/process-model";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { getEntry, type DocRef, type Project, type Source } from "@gap/process-model";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { CategoryChip, Modal, ResponderForm, SeverityBadge } from "../components";
-import { sideText } from "../lib";
+import { SIDE_SHORT, sideDescription, type UnitSide } from "../lib";
 import { href, navigate } from "../router";
 import { useAssessment, useContent, useStageWording, useStore } from "../store";
-import { QuestionInput, initialForm, toAnswer, type FormState } from "./question-inputs";
+import { QuestionInput, formTouched, initialForm, sameForm, toAnswer, type FormState } from "./question-inputs";
+
+/** One answer to record: the instance, what was entered, and any cited documents. */
+interface SaveItem {
+  inst: QuestionInstance;
+  input: AnswerInput;
+  docRefs: DocRef[];
+}
+
+interface SaveResult {
+  /** Why nothing was saved (the whole save is refused), or null. */
+  error: string | null;
+  /** The instance whose answer was refused, when known. */
+  failedKey?: string;
+  /** Saved, and the card stays because this side still needs an answer. */
+  stayOn?: UnitSide;
+}
+
+/** Set when the app moves on by itself (after a save, Previous, Skip): the new card then puts focus on its heading, not on an input. */
+let headingFocusKey: string | null = null;
+function markHeadingFocus(key: string): void {
+  headingFocusKey = key;
+}
+
+/** The instances shown on one card: both sides of a paired question (SU first), or the single instance. */
+function groupOf(list: QuestionInstance[], inst: QuestionInstance): QuestionInstance[] {
+  if (inst.question.sides !== "paired") return [inst];
+  const g = list.filter((i) => i.question.id === inst.question.id).sort((x, y) => (x.side === y.side ? 0 : x.side === "source" ? -1 : 1));
+  return g.length ? g : [inst];
+}
+
+/** The card's React key: stays the same while the user saves one side and carries on with the other. */
+function cardKey(current: QuestionInstance, group: QuestionInstance[], project: Project): string {
+  if (group.length < 2) return `${current.key}:${project.answers.length}`;
+  return `${current.question.id}:${group.length}:${project.answers.filter((a) => a.questionId !== current.question.id).length}`;
+}
+
+/** What a card for this instance is headed: the side prefix appears only on a card that asks one side of a paired question. */
+function nextTitle(list: QuestionInstance[], inst: QuestionInstance): string {
+  const q = inst.question;
+  if (inst.side === "shared" || groupOf(list, inst).length > 1) return q.prompt;
+  return `${SIDE_SHORT[inst.side]}: ${q.sideLabels?.[inst.side] ?? q.prompt}`;
+}
 
 export function InterviewPage({ params }: { params: URLSearchParams }) {
   const project = useStore((s) => s.project)!;
@@ -38,22 +81,61 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
   const requested = params.get("q");
   const current = (requested && instances.find((i) => i.key === requested)) || (!summaryId ? nextInstance(instances, project) : undefined);
 
+  const group = current ? groupOf(instances, current) : [];
   const needsResponder = !project.interview.responder;
   const answeredCount = instances.filter((i) => isAnswered(project, i)).length;
 
-  function goNext(fromKey: string, p: Project) {
-    const list = visibleInstances(content, p, p.settings.entrySequence);
-    const idx = list.findIndex((i) => i.key === fromKey);
-    const after = list.slice(idx + 1);
-    const next = after.find((i) => !isAnswered(p, i)) ?? after[0] ?? nextInstance(list, p);
+  /** Records one or more answers in a single store update, then moves on (or stays, see SaveResult). */
+  function save(group: QuestionInstance[], items: SaveItem[], opts: { quick: boolean; otherPending: boolean }): SaveResult {
+    const out: { project?: Project; failed?: string } = {};
+    const err = update((p, actor) => {
+      let cur = p;
+      for (const it of items) {
+        try {
+          cur = applyAnswer(cur, content, it.inst, it.input, actor, { docRefs: it.docRefs });
+        } catch (e) {
+          out.failed = it.inst.key;
+          throw e;
+        }
+      }
+      out.project = cur;
+      return cur;
+    }, "Answer saved");
+    if (err || !out.project) return { error: err ?? "The answer could not be saved.", ...(out.failed ? { failedKey: out.failed } : {}) };
+    const saved = out.project;
+    const names = items.map((it) => it.inst.side).filter((x): x is UnitSide => x !== "shared").map((x) => SIDE_SHORT[x]);
+    const done = names.length ? `Saved ${names.join(" and ")}.` : "Saved.";
+
+    // A quick action (Unknown, Same as SU, Not applicable) on one panel stays on the card while the other side still needs an answer.
+    if (opts.quick) {
+      const savedKeys = items.map((it) => it.inst.key);
+      const others = group.filter((i) => !savedKeys.includes(i.key));
+      const open = others.filter((i) => !isAnswered(saved, i));
+      const first = open[0] ?? others[0];
+      if (first && first.side !== "shared" && (open.length > 0 || opts.otherPending)) {
+        const name = SIDE_SHORT[first.side];
+        useStore.setState({ status: open.length > 0 ? `${done} ${name} still needs an answer.` : `${done} Your ${name} entry is not saved yet.` });
+        return { error: null, stayOn: first.side };
+      }
+    }
+
+    const list = visibleInstances(content, saved, saved.settings.entrySequence);
+    const idx = list.findIndex((i) => i.key === items[items.length - 1]!.inst.key);
     const from = list[idx];
+    const after = list.slice(idx + 1).filter((i) => !from || i.question.id !== from.question.id);
+    const next = after.find((i) => !isAnswered(saved, i)) ?? after[0] ?? nextInstance(list, saved);
     if (from && (!next || next.section.id !== from.section.id)) {
+      useStore.setState({ status: `${done} Next: section summary, ${from.section.title}.` });
       navigate("/interview", { summary: from.section.id, ...(next ? { then: next.key } : {}) });
     } else if (next) {
+      useStore.setState({ status: `${done} Next: ${nextTitle(list, next)}.` });
+      markHeadingFocus(next.key);
       navigate("/interview", { q: next.key });
     } else {
+      useStore.setState({ status: `${done} Next: interview summary.` });
       navigate("/interview", { summary: "all" });
     }
+    return { error: null };
   }
 
   return (
@@ -76,7 +158,7 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
             ))}
           </fieldset>
           <p id="mode-help" className="small muted">
-            {mode === "paired" ? "SU, then RU, for each question." : "All SU answers first, then the RU pass."}
+            {mode === "paired" ? "SU, then RU, for each question. Both are on one card." : "All SU answers first, then the RU pass. A question for both units still shows SU and RU together."}
           </p>
           <p className="small">
             Responder: <strong>{project.interview.responder?.name ?? "not set"}</strong>{" "}
@@ -99,15 +181,13 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
           <SectionSummary sectionId={summaryId} instances={instances} thenKey={params.get("then")} />
         ) : current ? (
           <QuestionCard
-            key={current.key + ":" + project.answers.length}
-            inst={current}
+            key={cardKey(current, group, project)}
+            current={current}
+            group={group}
+            requestedKey={requested && instances.some((i) => i.key === requested) ? requested : null}
             instances={instances}
-            onSave={(input, docRefs) => {
-              let saved: Project | null = null;
-              const err = update((p, actor) => (saved = applyAnswer(p, content, current, input, actor, { docRefs })), "Answer saved");
-              if (!err && saved) goNext(current.key, saved);
-              return err;
-            }}
+            mode={mode}
+            onSave={(items, opts) => save(group, items, opts)}
           />
         ) : (
           <SectionSummary sectionId="all" instances={instances} thenKey={null} />
@@ -181,181 +261,254 @@ function ProgressMap({
   );
 }
 
+/** Everything typed on one side's panel: the answer, a refused-answer message, the Not applicable box and the cited documents. */
+interface SideState {
+  form: FormState;
+  error: string;
+  naOpen: boolean;
+  naText: string;
+  citedIds: string[];
+  docId: string;
+  docTitle: string;
+  docType: string;
+}
+
+const FIRST_INPUT = "input:not([type=checkbox]), .chips input, select, textarea";
+
 function QuestionCard({
-  inst,
+  current,
+  group,
+  requestedKey,
   instances,
+  mode,
   onSave,
 }: {
-  inst: QuestionInstance;
+  current: QuestionInstance;
+  group: QuestionInstance[];
+  requestedKey: string | null;
   instances: QuestionInstance[];
-  onSave: (input: AnswerInput, docRefs: DocRef[]) => string | null;
+  mode: "paired" | "sequential";
+  onSave: (items: SaveItem[], opts: { quick: boolean; otherPending: boolean }) => SaveResult;
 }) {
   const project = useStore((s) => s.project)!;
   const content = useContent();
   const a = useAssessment()!;
-  const q = inst.question;
-  const [form, setForm] = useState<FormState>(() => initialForm(content, project, inst));
-  const [error, setError] = useState("");
-  const [naOpen, setNaOpen] = useState(false);
-  const [naText, setNaText] = useState("");
-  // Documents cited with this answer: register documents already backing the current value stay ticked; one new reference can be added.
-  const registerDocs = useMemo(() => project.sources.filter((s) => s.type === "document_reference" && s.docRef && !s.supersededBy), [project.sources]);
-  const [citedIds, setCitedIds] = useState<string[]>(() => {
-    const ids = new Set(instanceRefs(inst).flatMap((r) => getEntry(project, r)?.sourceIds ?? []));
-    return registerDocs.filter((s) => ids.has(s.id)).map((s) => s.id);
-  });
-  const [docId, setDocId] = useState("");
-  const [docTitle, setDocTitle] = useState("");
-  const [docType, setDocType] = useState("");
-  const headingRef = useRef<HTMLHeadingElement>(null);
-
-  useEffect(() => {
-    headingRef.current?.focus();
-  }, [inst.key]);
-
-  const idx = instances.findIndex((i) => i.key === inst.key);
-  const prev = instances[idx - 1];
-  const next = instances[idx + 1];
-  const side = inst.side;
-  const sameAllowed = side === "target" && q.sides === "paired" && q.sameAsSource !== false;
   const wording = useStageWording();
-  const sideLabel = side !== "shared" ? q.sideLabels?.[side] : undefined;
-  const gaps = a.gaps.filter((g) => g.questionId === q.id);
-  const answered = isAnswered(project, inst);
+  const q = current.question;
+  const combined = group.length > 1;
+  // Documents cited with an answer: register documents already backing the current value stay ticked; one new reference can be added.
+  const registerDocs = useMemo(() => project.sources.filter((s) => s.type === "document_reference" && s.docRef && !s.supersededBy), [project.sources]);
+  const makeState = (inst: QuestionInstance): SideState => {
+    const ids = new Set(instanceRefs(inst).flatMap((r) => getEntry(project, r)?.sourceIds ?? []));
+    return {
+      form: initialForm(content, project, inst),
+      error: "",
+      naOpen: false,
+      naText: "",
+      citedIds: registerDocs.filter((s) => ids.has(s.id)).map((s) => s.id),
+      docId: "",
+      docTitle: "",
+      docType: "",
+    };
+  };
+  const [states, setStates] = useState<Record<string, SideState>>(() => Object.fromEntries(group.map((i) => [i.key, makeState(i)])));
+  const [summaryError, setSummaryError] = useState("");
+  const [nonce, setNonce] = useState(0);
+  const st = (i: QuestionInstance): SideState => states[i.key] ?? makeState(i);
+  const patch = (i: QuestionInstance, p: Partial<SideState>) => setStates((cur) => ({ ...cur, [i.key]: { ...(cur[i.key] ?? makeState(i)), ...p } }));
 
-  const docRefs = (): DocRef[] => [
-    ...registerDocs.filter((s) => citedIds.includes(s.id)).map((s) => s.docRef!),
-    ...(docId.trim() ? [{ identifier: docId.trim(), docType: docType.trim() || "Document", ...(docTitle.trim() ? { title: docTitle.trim() } : {}) }] : []),
-  ];
-  const submit = (input: AnswerInput) => {
-    const withValue = input.kind === "value" || input.kind === "composite";
-    if (withValue && !docId.trim() && (docTitle.trim() || docType.trim())) {
-      setError("Enter the reference ID of the new document, or clear its title and type.");
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const panels = useRef<Record<string, HTMLElement | null>>({});
+  const pendingFocus = useRef<UnitSide | null>(null);
+
+  const focusPanel = (side: InstanceSide) => {
+    const el = panels.current[side];
+    const target = el?.querySelector<HTMLElement>(FIRST_INPUT) ?? el?.querySelector<HTMLElement>("input");
+    if (!el || !target) {
+      headingRef.current?.focus();
       return;
     }
-    const err = onSave(input, withValue ? docRefs() : []);
-    setError(err ?? "");
+    target.focus();
+    el.scrollIntoView?.({ block: "nearest" });
   };
-  const citedCount = citedIds.length + (docId.trim() ? 1 : 0);
+
+  useEffect(() => {
+    const pending = pendingFocus.current;
+    pendingFocus.current = null;
+    if (pending) {
+      focusPanel(pending);
+      return;
+    }
+    // A link to one side (progress map, Compare, Register, a summary row) puts focus in that side's panel; moving on by itself
+    // (after a save, Previous, Skip) starts at the heading.
+    const byLink = combined && requestedKey !== null && headingFocusKey !== requestedKey;
+    headingFocusKey = null;
+    if (byLink) focusPanel(current.side);
+    else headingRef.current?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current.key, nonce]);
+
+  // Previous / next question: the nearest instance of another question (the other side of this one is on this card).
+  const idx = instances.findIndex((i) => i.key === current.key);
+  const prev = [...instances.slice(0, Math.max(idx, 0))].reverse().find((i) => i.question.id !== q.id);
+  const next = instances.slice(idx + 1).find((i) => i.question.id !== q.id);
+  const gaps = a.gaps.filter((g) => g.questionId === q.id);
+  const answeredHere = (i: QuestionInstance) => isAnswered(project, i);
+
+  const docRefsOf = (s: SideState): DocRef[] => [
+    ...registerDocs.filter((d) => s.citedIds.includes(d.id)).map((d) => d.docRef!),
+    ...(s.docId.trim() ? [{ identifier: s.docId.trim(), docType: s.docType.trim() || "Document", ...(s.docTitle.trim() ? { title: s.docTitle.trim() } : {}) }] : []),
+  ];
+
+  // Which sides the primary button saves: those with input that is new or changed; if nothing changed, those that hold an answer.
+  const hasInput = (i: QuestionInstance) => formTouched(q, st(i).form);
+  const changed = (i: QuestionInstance) => !answeredHere(i) || !sameForm(st(i).form, initialForm(content, project, i));
+  const changedInput = group.filter((i) => hasInput(i) && changed(i));
+  const toSave = changedInput.length ? changedInput : group.filter(hasInput);
+  const names = (list: QuestionInstance[]) => list.map((i) => (i.side === "shared" ? "" : SIDE_SHORT[i.side])).filter(Boolean).join(" and ");
+  const primaryLabel = !combined ? "Save and continue" : `Save ${toSave.length ? names(toSave) : "SU and RU"}`;
+
+  const failWith = (errors: Record<string, string>, summary: string) => {
+    setStates((cur) => {
+      const nextStates = { ...cur };
+      for (const i of group) nextStates[i.key] = { ...(cur[i.key] ?? makeState(i)), error: errors[i.key] ?? "" };
+      return nextStates;
+    });
+    setSummaryError(summary);
+    const first = group.find((i) => errors[i.key]);
+    if (first && combined) {
+      pendingFocus.current = first.side === "shared" ? null : first.side;
+      setNonce((n) => n + 1);
+    }
+  };
+
+  const finish = (res: SaveResult, items: SaveItem[]) => {
+    if (res.error) {
+      const key = res.failedKey ?? items[0]?.inst.key ?? current.key;
+      failWith({ [key]: res.error }, combined ? `Nothing was saved. Check the ${names(group.filter((i) => i.key === key))} answer.` : "");
+      return;
+    }
+    setSummaryError("");
+    if (res.stayOn) {
+      setStates((cur) => {
+        const nextStates = { ...cur };
+        for (const it of items) nextStates[it.inst.key] = { ...(cur[it.inst.key] ?? makeState(it.inst)), error: "", naOpen: false, naText: "" };
+        return nextStates;
+      });
+      pendingFocus.current = res.stayOn;
+      setNonce((n) => n + 1);
+    }
+  };
+
+  const savePrimary = () => {
+    if (!toSave.length) {
+      failWith({}, "Enter an answer for SU, RU or both, or choose Unknown — to be confirmed for a side.");
+      if (combined) {
+        pendingFocus.current = "source";
+        setNonce((n) => n + 1);
+      }
+      return;
+    }
+    const items: SaveItem[] = [];
+    const errors: Record<string, string> = {};
+    for (const i of toSave) {
+      const s = st(i);
+      const r = toAnswer(q, s.form);
+      if ("error" in r) errors[i.key] = r.error;
+      else if (!s.docId.trim() && (s.docTitle.trim() || s.docType.trim())) errors[i.key] = "Enter the reference ID of the new document, or clear its title and type.";
+      else items.push({ inst: i, input: r.input, docRefs: docRefsOf(s) });
+    }
+    if (Object.keys(errors).length) {
+      failWith(errors, combined ? `Nothing was saved. Check the ${names(group.filter((i) => errors[i.key]))} answer.` : "");
+      return;
+    }
+    finish(onSave(items, { quick: false, otherPending: false }), items);
+  };
+
+  const quickSave = (i: QuestionInstance, input: AnswerInput) => {
+    const otherPending = group.some((o) => o.key !== i.key && hasInput(o) && changed(o));
+    const items: SaveItem[] = [{ inst: i, input, docRefs: [] }];
+    finish(onSave(items, { quick: true, otherPending }), items);
+  };
+
+  const side = current.side;
+  const sideLabel = side !== "shared" ? q.sideLabels?.[side] : undefined;
+  const heading = combined ? q.prompt : side === "shared" ? q.prompt : `${SIDE_SHORT[side]}: ${sideLabel ?? q.prompt}`;
+  const single = !combined ? group[0]! : null;
+
+  const panel = (inst: QuestionInstance, primary?: ReactNode) => (
+    <SidePanel
+      key={inst.key}
+      inst={inst}
+      group={group}
+      combined={combined}
+      mode={mode}
+      state={st(inst)}
+      patch={(p) => patch(inst, p)}
+      registerDocs={registerDocs}
+      answered={answeredHere(inst)}
+      onQuick={(input) => quickSave(inst, input)}
+      panelRef={(el) => {
+        panels.current[inst.side] = el;
+      }}
+      primary={primary}
+    />
+  );
 
   return (
-    <article className="card question-card" aria-labelledby="q-prompt">
+    <article className={`card question-card${combined ? " is-paired" : ""}`} aria-labelledby="q-prompt">
+      {single && (single.side === "shared" ? <SharedBanner /> : <SideBanner side={single.side} text={sideDescription(project, single.side, wording)} />)}
       <div className="q-meta">
-        <span className="small muted">{inst.section.title}</span>
-        <span className={`side-badge side-${side}`}>{sideText(wording)[side]}</span>
+        <span className="small muted">{current.section.title}</span>
         {isCustomQuestion(q) && <span className="tag tag-custom">Custom item</span>}
-        {answered && <span className="tag">Answered</span>}
+        {single && answeredHere(single) && <span className="tag">Answered</span>}
       </div>
-      {inst.depth > 0 && q.triggerNote && <p className="trigger">↳ {q.triggerNote}</p>}
+      {current.depth > 0 && q.triggerNote && <p className="trigger">↳ {q.triggerNote}</p>}
       <h1 id="q-prompt" ref={headingRef} tabIndex={-1} className="q-prompt">
-        {sideLabel ?? q.prompt}
+        {heading}
       </h1>
-      {sideLabel && <p className="muted small">{q.prompt}</p>}
+      {!combined && sideLabel && <p className="muted small">{q.prompt}</p>}
       <details className="why">
         <summary>Why is this asked?</summary>
         <p>{q.why}</p>
         {q.help && <p className="muted">{q.help}</p>}
       </details>
 
-      {side === "target" && q.sides === "paired" && (
-        <div className="source-ref">
-          <span className="small muted">{wording.sourceValidated ? "SU (validated)" : "SU (current)"}: </span>
-          <span>{formatQuestionSide(content, project, q, "source")}</span>
-        </div>
-      )}
-
       <form
         className="stack"
         onSubmit={(e) => {
           e.preventDefault();
-          const r = toAnswer(q, form);
-          if ("error" in r) setError(r.error);
-          else submit(r.input);
+          savePrimary();
         }}
       >
-        <QuestionInput q={q} side={side} form={form} setForm={setForm} />
-
-        <details className="cite">
-          <summary>
-            Cite supporting documents (optional)
-            {citedCount > 0 && <span className="small muted"> — {citedCount} selected</span>}
-          </summary>
-          <div className="stack">
-            <p className="small muted" id={`cite-help-${inst.key}`}>
-              Where a document backs this value, the document is shown as its source instead of the interview. Documents are recorded with a value, not with Unknown or Not applicable.
-            </p>
-            {registerDocs.length > 0 && (
-              <fieldset className="cite-pick" aria-describedby={`cite-help-${inst.key}`}>
-                <legend className="small">Documents already in the register</legend>
-                {registerDocs.map((s) => (
-                  <label key={s.id} className="row inline cite-option">
-                    <input
-                      type="checkbox"
-                      checked={citedIds.includes(s.id)}
-                      onChange={(e) => setCitedIds((cur) => (e.target.checked ? [...cur, s.id] : cur.filter((x) => x !== s.id)))}
-                    />
-                    <span>{sourceShort(s)}</span>
-                  </label>
-                ))}
-              </fieldset>
-            )}
-            <fieldset className="cite-new">
-              <legend className="small">Add a new document reference</legend>
-              <div className="row wrap">
-                <label className="field">
-                  <span>Reference ID</span>
-                  <input value={docId} onChange={(e) => setDocId(e.target.value)} placeholder="e.g. DEMO-PPQ-001 (fictional)" />
-                </label>
-                <label className="field">
-                  <span>Title</span>
-                  <input value={docTitle} onChange={(e) => setDocTitle(e.target.value)} placeholder="e.g. PPQ report" />
-                </label>
-                <label className="field">
-                  <span>Document type</span>
-                  <input value={docType} onChange={(e) => setDocType(e.target.value)} placeholder="e.g. Report" />
-                </label>
-              </div>
-              <p className="small muted">A reference ID that is already in the register reuses that document.</p>
-            </fieldset>
-          </div>
-        </details>
-
-        {error && (
-          <p className="error" role="alert">
-            {error}
-          </p>
+        {combined ? (
+          <div className="side-panels">{group.map((i) => panel(i))}</div>
+        ) : (
+          panel(
+            group[0]!,
+            <button type="submit" className="btn primary">
+              {primaryLabel}
+            </button>,
+          )
         )}
 
-        <div className="row wrap q-actions">
-          <button type="submit" className="btn primary">
-            Save and continue
-          </button>
-          <button type="button" className="btn" onClick={() => submit({ kind: "unknown" })}>
-            Unknown — to be confirmed
-          </button>
-          {sameAllowed && (
-            <button type="button" className="btn" onClick={() => submit({ kind: "same_as_source" })}>
-              Same as SU
-            </button>
-          )}
-          <button type="button" className="btn ghost" aria-expanded={naOpen} onClick={() => setNaOpen((o) => !o)}>
-            Not applicable…
-          </button>
-        </div>
-        {naOpen && (
-          <div className="na-box">
-            <label className="field">
-              <span>Why does this not apply? (required)</span>
-              <textarea value={naText} onChange={(e) => setNaText(e.target.value)} rows={2} />
-            </label>
-            <button type="button" className="btn" onClick={() => submit({ kind: "not_applicable", justification: naText })}>
-              Record as not applicable
-            </button>
-          </div>
+        {combined && (
+          <>
+            {summaryError && (
+              <p className="error" role="alert">
+                {summaryError}
+              </p>
+            )}
+            <div className="row wrap q-actions">
+              <button type="submit" className="btn primary">
+                {primaryLabel}
+              </button>
+            </div>
+          </>
         )}
       </form>
 
-      {gaps.length > 0 && side !== "source" && (
+      {gaps.length > 0 && group.some((i) => i.side !== "source") && (
         <div className="live-compare" aria-live="polite">
           <span className="small muted">Comparison: </span>
           {gaps.map((g) => (
@@ -370,19 +523,219 @@ function QuestionCard({
 
       <div className="row between q-nav">
         {prev ? (
-          <a href={href("/interview", { q: prev.key })} className="btn ghost">
+          <a href={href("/interview", { q: prev.key })} className="btn ghost" onClick={() => markHeadingFocus(prev.key)}>
             ← Previous
           </a>
         ) : (
           <span />
         )}
         {next && (
-          <a href={href("/interview", { q: next.key })} className="btn ghost">
+          <a href={href("/interview", { q: next.key })} className="btn ghost" onClick={() => markHeadingFocus(next.key)}>
             Skip for now →
           </a>
         )}
       </div>
     </article>
+  );
+}
+
+function SideBanner({ side, text }: { side: UnitSide; text: string }) {
+  return (
+    <div className={`side-banner side-${side}`}>
+      <span className="side-mark" aria-hidden="true">
+        {SIDE_SHORT[side]}
+      </span>
+      <p>
+        <span className="small">You are answering for: </span>
+        <strong>{text}</strong>
+      </p>
+    </div>
+  );
+}
+
+function SharedBanner() {
+  return (
+    <div className="side-banner side-shared">
+      <span className="side-mark" aria-hidden="true">
+        SU + RU
+      </span>
+      <p>
+        <span className="small">Scoping: </span>
+        <strong>one answer for both the sending unit (SU) and the receiving unit (RU)</strong>
+      </p>
+    </div>
+  );
+}
+
+/** One side's answer: its own input, document citations and Unknown / Same as SU / Not applicable actions. */
+function SidePanel({
+  inst,
+  group,
+  combined,
+  mode,
+  state,
+  patch,
+  registerDocs,
+  answered,
+  onQuick,
+  panelRef,
+  primary,
+}: {
+  inst: QuestionInstance;
+  group: QuestionInstance[];
+  combined: boolean;
+  mode: "paired" | "sequential";
+  state: SideState;
+  patch: (p: Partial<SideState>) => void;
+  registerDocs: Source[];
+  answered: boolean;
+  onQuick: (input: AnswerInput) => void;
+  panelRef: (el: HTMLElement | null) => void;
+  /** Single-panel cards put the Save button first in the action row. */
+  primary?: ReactNode;
+}) {
+  const project = useStore((s) => s.project)!;
+  const content = useContent();
+  const wording = useStageWording();
+  const q = inst.question;
+  const side = inst.side;
+  const who = side === "shared" ? undefined : SIDE_SHORT[side];
+  const sideLabel = side !== "shared" ? q.sideLabels?.[side] : undefined;
+  const sameAllowed = side === "target" && q.sides === "paired" && q.sameAsSource !== false;
+  const errId = `err-${inst.key}`;
+  const textId = `qtext-${inst.key}`;
+  const citedCount = state.citedIds.length + (state.docId.trim() ? 1 : 0);
+  const sourceInst = group.find((i) => i.side === "source");
+  // The SU answer sits above the RU input. On a combined card it is shown once SU has one recorded, so "Same as SU" has something to refer to.
+  const showSu = side === "target" && q.sides === "paired" && (!combined || (!!sourceInst && isAnswered(project, sourceInst)));
+  const secondPassNote = combined && mode === "sequential" && side === "target" && !answered;
+
+  const body = (
+    <>
+      {combined && sideLabel && (
+        <p id={textId} className="side-question">
+          {sideLabel}
+        </p>
+      )}
+      {combined && answered && (
+        <p className="recorded">
+          <span className="small muted">Recorded {who}: </span>
+          <span>{formatQuestionSide(content, project, q, side)}</span>
+        </p>
+      )}
+      {showSu && (
+        <div className="source-ref">
+          <strong>SU answer: </strong>
+          <span>{formatQuestionSide(content, project, q, "source")}</span>
+        </div>
+      )}
+      {secondPassNote && <p className="small muted">RU is asked in the second pass; you can answer it now.</p>}
+
+      <QuestionInput q={q} side={side} form={state.form} setForm={(f) => patch({ form: f })} {...(who ? { sideName: who } : {})} errorId={state.error ? errId : undefined} />
+
+      <details className="cite">
+        <summary>
+          Cite supporting documents{who ? ` for ${who}` : ""} (optional)
+          {citedCount > 0 && <span className="small muted"> — {citedCount} selected</span>}
+        </summary>
+        <div className="stack">
+          <p className="small muted" id={`cite-help-${inst.key}`}>
+            Where a document backs this value, the document is shown as its source instead of the interview. Documents are recorded with a value, not with Unknown or Not applicable.
+          </p>
+          {registerDocs.length > 0 && (
+            <fieldset className="cite-pick" aria-describedby={`cite-help-${inst.key}`}>
+              <legend className="small">Documents already in the register</legend>
+              {registerDocs.map((s) => (
+                <label key={s.id} className="row inline cite-option">
+                  <input
+                    type="checkbox"
+                    checked={state.citedIds.includes(s.id)}
+                    onChange={(e) => patch({ citedIds: e.target.checked ? [...state.citedIds, s.id] : state.citedIds.filter((x) => x !== s.id) })}
+                  />
+                  <span>{sourceShort(s)}</span>
+                </label>
+              ))}
+            </fieldset>
+          )}
+          <fieldset className="cite-new">
+            <legend className="small">Add a new document reference</legend>
+            <div className="row wrap">
+              <label className="field">
+                <span>Reference ID</span>
+                <input value={state.docId} onChange={(e) => patch({ docId: e.target.value })} placeholder="e.g. DEMO-PPQ-001 (fictional)" />
+              </label>
+              <label className="field">
+                <span>Title</span>
+                <input value={state.docTitle} onChange={(e) => patch({ docTitle: e.target.value })} placeholder="e.g. PPQ report" />
+              </label>
+              <label className="field">
+                <span>Document type</span>
+                <input value={state.docType} onChange={(e) => patch({ docType: e.target.value })} placeholder="e.g. Report" />
+              </label>
+            </div>
+            <p className="small muted">A reference ID that is already in the register reuses that document.</p>
+          </fieldset>
+        </div>
+      </details>
+
+      {state.error && (
+        <p className="error" id={errId} {...(combined ? {} : { role: "alert" })}>
+          {state.error}
+        </p>
+      )}
+
+      <div className="row wrap q-actions">
+        {primary}
+        <button type="button" className="btn" onClick={() => onQuick({ kind: "unknown" })}>
+          Unknown — to be confirmed
+        </button>
+        {sameAllowed && (
+          <button type="button" className="btn" onClick={() => onQuick({ kind: "same_as_source" })}>
+            Same as SU
+          </button>
+        )}
+        <button type="button" className="btn ghost" aria-expanded={state.naOpen} onClick={() => patch({ naOpen: !state.naOpen })}>
+          Not applicable…
+        </button>
+      </div>
+      {state.naOpen && (
+        <div className="na-box">
+          <label className="field">
+            <span>Why does this not apply{who ? ` for ${who}` : ""}? (required)</span>
+            <textarea value={state.naText} onChange={(e) => patch({ naText: e.target.value })} rows={2} />
+          </label>
+          <button type="button" className="btn" onClick={() => onQuick({ kind: "not_applicable", justification: state.naText })}>
+            Record as not applicable
+          </button>
+        </div>
+      )}
+    </>
+  );
+
+  if (!combined) {
+    return (
+      <div className="side-panel-single" data-side={side} ref={panelRef}>
+        {body}
+      </div>
+    );
+  }
+  const unitSide = side as UnitSide;
+  return (
+    <fieldset
+      className={`side-panel side-${unitSide}`}
+      data-side={unitSide}
+      ref={panelRef}
+      aria-describedby={[sideLabel ? textId : "", state.error ? errId : ""].filter(Boolean).join(" ") || undefined}
+    >
+      <legend className="side-legend">
+        <span className="side-mark" aria-hidden="true">
+          {SIDE_SHORT[unitSide]}
+        </span>
+        <span>{sideDescription(project, unitSide, wording)}</span>
+      </legend>
+      {answered && <span className="tag side-answered">Answered</span>}
+      {body}
+    </fieldset>
   );
 }
 
@@ -463,7 +816,7 @@ function SectionSummary({ sectionId, instances, thenKey }: { sectionId: string; 
           </button>
         )}
         {thenKey ? (
-          <a className="btn primary" href={href("/interview", { q: thenKey })}>
+          <a className="btn primary" href={href("/interview", { q: thenKey })} onClick={() => markHeadingFocus(thenKey)}>
             Continue to next section →
           </a>
         ) : (

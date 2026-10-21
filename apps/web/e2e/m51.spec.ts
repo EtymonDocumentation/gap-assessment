@@ -35,10 +35,10 @@ async function newProject(page: Page) {
   await expect(page.locator("#q-prompt")).toHaveText("Program or product code");
 }
 
-/** Chooses one option of the open choice question and saves it. */
-async function answerChoice(page: Page, option: string) {
-  await page.locator(".question-card .choice-chip", { hasText: option }).click();
-  await page.getByRole("button", { name: "Save and continue" }).click();
+/** Chooses one option for one side of the open choice question (SU and RU are on one card) and saves that side. */
+async function answerChoice(page: Page, side: "source" | "target", option: string) {
+  await page.locator(`fieldset.side-panel[data-side="${side}"] .choice-chip`, { hasText: option }).click();
+  await page.getByRole("button", { name: side === "source" ? "Save SU" : "Save RU", exact: true }).click();
 }
 
 async function loadDemo(page: Page) {
@@ -52,10 +52,14 @@ test("a new project asks the program stage for each side, with no preselected op
   await go(page, "#/interview?q=site.stage%40source");
   const prompt = page.locator("#q-prompt");
   await expect(prompt).toHaveText("Program stage at this site");
-  await expect(page.locator(".question-card .choice-chip")).toHaveCount(3);
+  // SU and RU are on one card, each with the three options and none preselected.
+  await expect(page.locator(".question-card .choice-chip")).toHaveCount(6);
   await expect(page.locator(".question-card input[type=radio]:checked")).toHaveCount(0);
-  for (const label of ["Commercial (process validated)", "Clinical (GMP, not process validated)", "Development / engineering runs"]) {
-    await expect(page.locator(".question-card .choice-chip", { hasText: label })).toBeVisible();
+  for (const side of ["source", "target"] as const) {
+    await expect(page.locator(`fieldset.side-panel[data-side="${side}"] .choice-chip`)).toHaveCount(3);
+    for (const label of ["Commercial (process validated)", "Clinical (GMP, not process validated)", "Development / engineering runs"]) {
+      await expect(page.locator(`fieldset.side-panel[data-side="${side}"] .choice-chip`, { hasText: label })).toBeVisible();
+    }
   }
   await expectAccessible(page, "stage question");
   await expectNoHorizontalScroll(page, "stage question");
@@ -74,7 +78,7 @@ test("a clinical source: stage-aware labels on Compare, Register and the Documen
   // SU: clinical. RU stays commercial.
   await go(page, "#/interview?q=site.stage%40source");
   await expect(page.locator("#q-prompt")).toHaveText("Program stage at this site");
-  await answerChoice(page, "Clinical (GMP, not process validated)");
+  await answerChoice(page, "source", "Clinical (GMP, not process validated)");
 
   await go(page, "#/compare");
   await expect(page.getByRole("heading", { level: 1, name: "Side by side" })).toBeVisible();
@@ -109,10 +113,10 @@ test("a clinical source: stage-aware labels on Compare, Register and the Documen
 test("both stages answered in a new project show on Home and Compare, and the banner stays", async ({ page }) => {
   await newProject(page);
   await go(page, "#/interview?q=site.stage%40source");
-  await answerChoice(page, "Development / engineering runs");
+  await answerChoice(page, "source", "Development / engineering runs");
   await go(page, "#/interview?q=site.stage%40target");
   await expect(page.locator("#q-prompt")).toHaveText("Program stage at this site");
-  await answerChoice(page, "Clinical (GMP, not process validated)");
+  await answerChoice(page, "target", "Clinical (GMP, not process validated)");
 
   await go(page, "#/compare");
   await expect(page.getByTestId("stage-line")).toContainText("sending unit (SU) Development / engineering runs; receiving unit (RU) Clinical (GMP, not process validated)");

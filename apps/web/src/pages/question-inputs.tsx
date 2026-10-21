@@ -76,6 +76,19 @@ export function initialForm(c: ContentBundle, project: Project, inst: QuestionIn
   return { simple: scalarFrom(valueOf(getEntry(project, fullRef(inst.side, q.binds))), unit), fields: {} };
 }
 
+const scalarTouched = (s: Scalar): boolean => !!s.choice || s.multi.length > 0 || !!s.text.trim() || !!s.num.trim() || !!s.min.trim() || !!s.max.trim();
+
+/** True when the form holds any input at all (a chosen option, text, a number, or a field marked Unknown). */
+export function formTouched(q: Question, form: FormState): boolean {
+  if (q.input.type === "parameter") return Object.values(form.fields).some((f) => !!f && (f.unknown || scalarTouched(f)));
+  return scalarTouched(form.simple);
+}
+
+/** True when the two forms hold the same input. */
+export function sameForm(a: FormState, b: FormState): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
 type Parsed = { value: EntryValue } | { error: string };
 
 function num(s: string, what: string): { n: number } | { error: string } {
@@ -172,6 +185,7 @@ function Chips({
   value,
   onChange,
   legend,
+  describedBy,
 }: {
   name: string;
   options: { value: string; label: string }[];
@@ -179,9 +193,10 @@ function Chips({
   value: string | string[];
   onChange: (v: string | string[]) => void;
   legend: string;
+  describedBy?: string | undefined;
 }) {
   return (
-    <fieldset className="chips">
+    <fieldset className="chips" aria-describedby={describedBy}>
       <legend className="visually-hidden">{legend}</legend>
       {options.map((o) => {
         const checked = multi ? (value as string[]).includes(o.value) : value === o.value;
@@ -215,6 +230,7 @@ function ScalarInput({
   set,
   label,
   options,
+  describedBy,
 }: {
   type: string;
   q: Question;
@@ -222,20 +238,23 @@ function ScalarInput({
   set: (patch: Partial<Scalar>) => void;
   label: string;
   options?: { value: string; label: string }[];
+  /** Id of the error text for this panel, set on each input while an error is shown. */
+  describedBy?: string | undefined;
 }) {
+  const inv = describedBy ? { "aria-describedby": describedBy, "aria-invalid": true as const } : {};
   const id = useId();
   const units = q.input.units ?? [];
   switch (type) {
     case "choice":
     case "yes_no":
-      return <Chips name={id} legend={label} options={options ?? optionsFor(content, q)} value={s.choice} onChange={(v) => set({ choice: v as string })} />;
+      return <Chips name={id} legend={label} describedBy={describedBy} options={options ?? optionsFor(content, q)} value={s.choice} onChange={(v) => set({ choice: v as string })} />;
     case "multi_choice":
-      return <Chips name={id} legend={label} multi options={optionsFor(content, q)} value={s.multi} onChange={(v) => set({ multi: v as string[] })} />;
+      return <Chips name={id} legend={label} describedBy={describedBy} multi options={optionsFor(content, q)} value={s.multi} onChange={(v) => set({ multi: v as string[] })} />;
     case "text":
       return (
         <label className="field">
           <span className="visually-hidden">{label}</span>
-          <input value={s.text} onChange={(e) => set({ text: e.target.value })} placeholder={q.input.placeholder} />
+          <input value={s.text} onChange={(e) => set({ text: e.target.value })} placeholder={q.input.placeholder} {...inv} />
         </label>
       );
     case "quantity":
@@ -243,7 +262,7 @@ function ScalarInput({
         <div className="row inline">
           <label className="field compact">
             <span className="visually-hidden">{label} value</span>
-            <input inputMode="decimal" value={s.num} onChange={(e) => set({ num: e.target.value })} className="num" />
+            <input inputMode="decimal" value={s.num} onChange={(e) => set({ num: e.target.value })} className="num" {...inv} />
           </label>
           <UnitSelect units={units} value={s.unit} onChange={(u) => set({ unit: u })} label={`${label} unit`} />
         </div>
@@ -253,12 +272,12 @@ function ScalarInput({
         <div className="row inline wrap">
           <label className="field compact">
             <span className="small">Min</span>
-            <input inputMode="decimal" value={s.min} onChange={(e) => set({ min: e.target.value })} className="num" aria-label={`${label} minimum`} />
+            <input inputMode="decimal" value={s.min} onChange={(e) => set({ min: e.target.value })} className="num" aria-label={`${label} minimum`} {...inv} />
           </label>
           <span aria-hidden="true">–</span>
           <label className="field compact">
             <span className="small">Max</span>
-            <input inputMode="decimal" value={s.max} onChange={(e) => set({ max: e.target.value })} className="num" aria-label={`${label} maximum`} />
+            <input inputMode="decimal" value={s.max} onChange={(e) => set({ max: e.target.value })} className="num" aria-label={`${label} maximum`} {...inv} />
           </label>
           <UnitSelect units={units} value={s.unit} onChange={(u) => set({ unit: u })} label={`${label} unit`} />
         </div>
@@ -273,14 +292,29 @@ export function QuestionInput({
   side,
   form,
   setForm,
+  sideName,
+  errorId,
 }: {
   q: Question;
   side: QuestionInstance["side"];
   form: FormState;
   setForm: (f: FormState) => void;
+  /** "SU" or "RU": put in every input's accessible name ("RU answer"). Omit for shared (scoping) questions. */
+  sideName?: string;
+  /** Id of the visible error text; the inputs point at it while it is shown. */
+  errorId?: string | undefined;
 }) {
   if (q.input.type !== "parameter" || side === "shared") {
-    return <ScalarInput type={q.input.type} q={q} s={form.simple} label={q.label ?? q.prompt} set={(patch) => setForm({ ...form, simple: { ...form.simple, ...patch } })} />;
+    return (
+      <ScalarInput
+        type={q.input.type}
+        q={q}
+        s={form.simple}
+        label={sideName ? `${sideName} answer` : (q.label ?? q.prompt)}
+        describedBy={errorId}
+        set={(patch) => setForm({ ...form, simple: { ...form.simple, ...patch } })}
+      />
+    );
   }
   const fields = parameterFields(q, side);
   return (
@@ -292,9 +326,9 @@ export function QuestionInput({
         return (
           <div key={f} className={`param-field${s.unknown ? " is-unknown" : ""}`}>
             <div className="param-label">
-              <span id={`pf-${f}`}>{fieldLabel(content, f)}</span>
+              <span>{fieldLabel(content, f)}</span>
               <label className="small unknown-toggle">
-                <input type="checkbox" checked={s.unknown} onChange={(e) => set({ unknown: e.target.checked })} /> Unknown
+                <input type="checkbox" checked={s.unknown} onChange={(e) => set({ unknown: e.target.checked })} aria-label={sideName ? `${sideName} ${fieldLabel(content, f)}: unknown` : `${fieldLabel(content, f)}: unknown`} /> Unknown
               </label>
             </div>
             {!s.unknown && (
@@ -303,7 +337,8 @@ export function QuestionInput({
                 q={q}
                 s={s}
                 set={set}
-                label={fieldLabel(content, f)}
+                label={sideName ? `${sideName} ${fieldLabel(content, f)}` : fieldLabel(content, f)}
+                describedBy={errorId}
                 {...(optSet ? { options: content.catalog.optionSets[optSet] ?? [] } : {})}
               />
             )}

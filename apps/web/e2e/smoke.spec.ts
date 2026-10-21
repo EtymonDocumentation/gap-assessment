@@ -86,21 +86,21 @@ test("demo loads in one click and the register covers all eight categories", asy
   expect(csv.text).not.toMatch(/undefined|NaN/);
 });
 
-test("interview: progress map jump, why-asked, paired and sequential order", async ({ page }) => {
+test("interview: progress map jump, why-asked, SU and RU on one card, SU-first order", async ({ page }) => {
   await loadDemo(page);
   await go(page, "#/interview");
   const map = page.getByRole("navigation", { name: "Sections" });
   await expect(map).toBeVisible();
 
-  // Paired: source then target for the same question.
+  // The progress map opens a question card.
   await map.getByRole("link", { name: /^Pooling, compounding and dilution/ }).click();
   const prompt = page.locator("#q-prompt");
-  const badge = page.locator(".question-card .side-badge");
-  await expect(badge).toHaveText(/^SU/);
-  const firstPrompt = await prompt.textContent();
-  await page.getByRole("link", { name: /Skip for now/ }).click();
-  await expect(badge).toHaveText(/^RU/);
-  await expect(prompt).toHaveText(firstPrompt ?? "");
+  await expect(page.locator(".question-card")).toBeVisible();
+
+  // Paired: SU and RU are asked together, under one heading.
+  await go(page, "#/interview?q=fill.pump%40source");
+  await expect(prompt).toHaveText("Filling pump operating principle");
+  await expect(page.locator("legend.side-legend")).toHaveText([/^SU\s*Sending unit \(SU\)/, /^RU\s*Receiving unit \(RU\)/]);
   await expect(page.locator(".source-ref")).toBeVisible();
 
   // Why is this asked?
@@ -109,14 +109,17 @@ test("interview: progress map jump, why-asked, paired and sequential order", asy
   await expect(why).toHaveAttribute("open", "");
   await expect(why.locator("p").first()).not.toBeEmpty();
 
-  // Sequential: the source pass continues with the next source question.
+  // SU-first: a paired question still shows both sides; a one-sided question shows the banner, and Skip moves on.
   await page.locator(".segmented label", { hasText: "Sequential" }).click();
   await expect(page.locator("#mode-help")).toHaveText(/All SU answers first/);
-  await map.getByRole("link", { name: /^Pooling, compounding and dilution/ }).click();
-  await expect(badge).toHaveText(/^SU/);
+  await go(page, "#/interview?q=fill.pump%40target");
+  await expect(page.locator("fieldset.side-panel")).toHaveCount(2);
+  await go(page, "#/interview?q=comp.mixing_coverage%40source");
+  const firstPrompt = (await prompt.textContent()) ?? "";
+  await expect(prompt).toHaveText(/^SU: /);
+  await expect(page.locator(".side-banner .side-mark")).toHaveText("SU");
   await page.getByRole("link", { name: /Skip for now/ }).click();
-  await expect(badge).toHaveText(/^SU/);
-  await expect(prompt).not.toHaveText(firstPrompt ?? "");
+  await expect(prompt).not.toHaveText(firstPrompt);
 
   // Section summary.
   await map.getByRole("link", { name: /^Review Aseptic filling/ }).click();

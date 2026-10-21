@@ -77,8 +77,10 @@ function AppShell() {
   }, [init]);
 
   // Move focus to the main heading on page change, for keyboard and screen reader users.
+  // A page that has already put focus somewhere inside the main area (the interview card does) keeps it.
   useEffect(() => {
-    document.getElementById("main")?.focus({ preventScroll: true });
+    const main = document.getElementById("main");
+    if (!main?.contains(document.activeElement) || document.activeElement === main) main?.focus({ preventScroll: true });
     window.scrollTo(0, 0);
   }, [route.path]);
 
