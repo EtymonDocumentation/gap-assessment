@@ -10,6 +10,8 @@ import { addSource, removeSource, updateSource, type SourceType } from "@gap/pro
 import { Fragment, useMemo, useRef, useState } from "react";
 import { Empty, Modal } from "../components";
 import { href } from "../router";
+import { ProjectFilesSection, SourceFiles, useIsRemote } from "../server/ServerUi";
+import { SERVER_MODE } from "../server/mode";
 import { useContent, useStore } from "../store";
 
 type Dialog = { kind: "add" } | { kind: "edit"; row: SourceRow } | { kind: "remove"; row: SourceRow } | null;
@@ -19,6 +21,7 @@ export function SourcesPage() {
   const project = useStore((s) => s.project)!;
   const update = useStore((s) => s.update);
   const content = useContent();
+  const remote = SERVER_MODE && useIsRemote();
   const rows = useMemo(() => sourceRegisterRows(content, project), [content, project]);
 
   const [type, setType] = useState<SourceType | "all">("all");
@@ -124,6 +127,11 @@ export function SourcesPage() {
                         {r.source.type === "document_reference" ? r.title : sourceLabel(r.source)}
                         {r.state !== "in_use" && <span className={`tag state-${r.state}`}>{r.stateText}</span>}
                         {r.detail && <div className="small muted normal">{r.detail}</div>}
+                        {remote && r.source.type === "document_reference" && (
+                          <div className="normal">
+                            <SourceFiles sourceId={r.source.id} label={sourceLabel(r.source)} />
+                          </div>
+                        )}
                       </th>
                       <td className="small">{r.responder}</td>
                       <td className="small">{r.date}</td>
@@ -201,6 +209,8 @@ export function SourcesPage() {
           </table>
         </div>
       )}
+
+      {remote && <ProjectFilesSection />}
 
       {dialog?.kind === "add" && (
         <DocRefDialog

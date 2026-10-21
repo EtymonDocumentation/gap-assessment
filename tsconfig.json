@@ -7,6 +7,9 @@
     "content/*.ts",
     "content/test/**/*",
     "apps/web/src/**/*",
+    "apps/web/test/**/*",
+    "apps/server/src/**/*",
+    "apps/server/test/**/*",
     "vitest.config.ts"
   ]
 }

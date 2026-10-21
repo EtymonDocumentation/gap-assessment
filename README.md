@@ -24,6 +24,7 @@ Live site: `https://<your-github-user>.github.io/gap-assessment/` (after the dep
 10. [Deployment to GitHub Pages](#deployment-to-github-pages)
 11. [Scope of this milestone and known limitations](#scope-of-this-milestone-and-known-limitations)
 12. [Word templates](#word-templates)
+13. [Running on your own machine (server mode)](#running-on-your-own-machine-server-mode)
 
 ---
 
@@ -87,7 +88,10 @@ Other commands (run from the repository root):
 | `npm run validate:content` | Content tests only |
 | `npm run build` | Production build into `apps/web/dist` |
 | `npm run preview` | Serve the production build locally |
+| `npm run build:server` | Server-mode web build (`apps/web/dist-server`) plus the server and admin tool (`apps/server/dist`). See [server mode](#running-on-your-own-machine-server-mode) |
+| `npm run serve -- --data <dir>` | Start the server (after `build:server` and `admin init`) |
 | `npm run e2e` | Browser smoke and accessibility tests (Playwright + axe). Run `npm run build` and `npx playwright install chromium` first |
+| `npm run e2e:server` | Server-mode browser tests against the real server (Playwright + axe). Runs `npm run build:server` first; needs `npx playwright install chromium` |
 | `npm run ci` | Typecheck, tests and build, as in CI |
 
 ## Using the app
@@ -163,6 +167,7 @@ A static single-page app with no backend, organized as npm workspaces:
 | `packages/docx` | `@gap/docx` | Word export and template handling: reading `.docx`, `.dotx`, `.docm` and PDF templates, the analysis report, the four export options, placeholder tags and the heading mapping. The web app loads it only when needed (a separate chunk), so the first page load stays small. |
 | `content` | `@gap/content` | Versioned YAML: catalog, question bank, rules, document template and demo project. |
 | `apps/web` | `@gap/web` | React 19 UI (Vite, Zustand, Radix Dialog, hash router). Contains no business logic. |
+| `apps/server` | `@gap/server` | Optional small HTTP server for [server mode](#running-on-your-own-machine-server-mode): accounts by invite, projects, template library and uploaded files stored on your own machine. Node built-ins and Zod only. The public Pages build never includes or calls it. |
 
 Technology:
 - TypeScript (strict), Vite, React 19, Zustand and idb-keyval.
@@ -366,6 +371,94 @@ The Document page can make a Word file in four ways. Pick the one that fits:
 **Heading mapping.** To use "Map to their headings", open the template's mapping from the Templates page. This needs an open project, because the mapping lists that project's content. Assign the tool's content to the template's headings with the Add, Up, Down and Remove buttons, or use **Suggest a mapping** and adjust it. For each heading choose whether the template's own text is kept or replaced. Content you do not map is added at the end, or left out if you tick "I understand this content will be left out of the Word document". The report beside the editor updates as you work, and the mapping is saved with the template.
 
 **Fictional samples.** **Add the fictional sample templates** adds four Brightwater Biologics (fictional) templates: a Word template, a tag template, a macro-enabled template and a PDF outline. They are there for trying the feature. Samples already in the library are skipped.
+
+## Running on your own machine (server mode)
+
+The public GitHub Pages site stays a **static demo**: it has no accounts, makes no network calls and keeps everything in the visitor's browser. Server mode is a separate, optional way to run the same app from your own computer with sign-in, so a small, invited group can use it from any device. The server is in `apps/server` (`@gap/server`) and needs nothing beyond Node.js 22 or later.
+
+### Two storage modes
+
+The mode is chosen once, when the data folder is created (`admin init --storage ...`), and is stored in `<data>/config.json`.
+
+| Mode | What the server keeps | Where projects, templates and documents live |
+|---|---|---|
+| `server` | Accounts, sessions, **projects, the template library and uploaded document files** | On the server's disk, under `<data>/users/<userId>/...`, so they follow the person to any computer. Uploaded files are stored as real, openable files with their original extension. |
+| `client` | **Only** accounts, sessions and the plan | Still in the person's browser, exactly like the static app. `/api/projects`, `/api/templates` and `/api/files` answer `403 {"error":"client-storage"}`. Meant for confidential use later. |
+
+Deleted projects, templates and files are moved to `<data>/trash/`, never erased. Every account carries a plan object (`{ id, status, since, modules }`; `trial-free` for now) so billing can be added later; there is no payment provider. `modules` lists the parts of the product the account may use (`gap` is the gap assessment); the signed-in header shows it, for example "Plan: Trial (free) · Modules: Gap assessment".
+
+### Set it up (Windows or any OS)
+
+Keep the data folder **outside the repository** and always give it with `--data` (an absolute path, for example `C:\path\to\data`). The server refuses to start without `--data` and without the `config.json` that `admin init` creates.
+
+```bash
+npm ci
+npm run build:server                       # web build for server mode + server + admin tool
+
+# 1. create the data folder's settings (once)
+npm run admin -w @gap/server -- init --data C:\path\to\data --storage server --max-upload-mb 50
+
+# 2. make the first invite, as an admin; the code is printed once
+npm run admin -w @gap/server -- invite --data C:\path\to\data --role admin
+
+# 3. start the server (127.0.0.1 only; port 8787 unless you pass --port)
+npm run serve -- --data C:\path\to\data
+```
+
+Open `http://localhost:8787/`, choose **Create account** and enter the invite code. After that, invite other people with `invite` (role `member`, valid 7 days unless you pass `--days`, module `gap` unless you pass `--modules`).
+
+Admin commands (all take `--data <dir>`; each prints a plain-English result and exits non-zero on error):
+
+| Command | What it does |
+|---|---|
+| `init --storage server\|client --max-upload-mb <n> [--force]` | Create `config.json` and the empty account files. Refuses if the folder is already set up unless `--force` (accounts are kept). |
+| `invite [--role admin\|member] [--days 7] [--modules gap[,other]]` | Print a new invite code (4 groups of 5 characters) **once**. Only its hash is stored. The new account gets the invite's modules; without `--modules` it gets `gap`, and the command says so. |
+| `invites` | List invites with their status (unused, used by, revoked, expired). Never shows the codes. |
+| `revoke-invite <number-or-hash-start>` | Cancel an unused invite, by its number in `invites` or by the first characters (4 or more) of its hash. |
+| `users` | List accounts (role, plan, modules, disabled). |
+| `disable <username>` / `enable <username>` | Block or allow an account. Disabling also signs the person out everywhere. |
+| `sessions-revoke <username>` | Sign an account out of all its sessions. |
+| `set-plan <username> <planId>` | Change the account's plan, for example `trial-free`. Its modules are kept. |
+| `set-modules <username> <comma list>` | Change the modules the account may use, for example `gap,other`. Accounts made before modules existed read as `gap`. |
+
+The admin tool may be used while the server is running: both take the lock file `<data>/.lock` (created exclusively, retried for about 5 seconds, taken over if older than 30 seconds) around every change to `users.json`, `invites.json` and `sessions.json`, and read the file again from disk under the lock, so no change is lost. the web build from `apps/web/dist-server`; add `--web <dir>` to serve a different folder and `--port <n>` to change the port. The build scripts are `npm run build -w @gap/server` (server and admin only) and `npm run build:server -w @gap/web` (web only).
+
+### Testing server mode
+
+- `npm test` includes the server's unit tests (`apps/server/test`, real HTTP on a free port, temporary data folders).
+- `npm run e2e:server` builds first (`npm run build:server`) and then runs the browser tests against the real server. To run them without rebuilding, run `npm run build:server` once and then `npx playwright test -c playwright.server.config.ts` in `apps/web`. The suite needs the build: it starts `apps/server/dist/server.mjs` with `apps/web/dist-server` on ports 8788 (storage `server`) and 8789 (storage `client`), using temporary data folders that are deleted afterwards.
+
+### Make it reachable with Tailscale
+
+The server listens on `127.0.0.1` only, never on the network. Tailscale proxies HTTPS to it, and provides the certificate.
+
+```bash
+# only people on your tailnet:
+tailscale serve --bg 8787
+#   -> https://<machine>.<tailnet>.ts.net/
+
+# anyone with the link (public internet), for a small invite-only trial:
+tailscale funnel --bg 8787
+#   -> https://<machine>.<tailnet>.ts.net/
+
+tailscale serve status         # see what is published
+tailscale funnel reset         # stop public access again
+tailscale serve reset          # stop sharing completely
+```
+
+Funnel must be allowed for your tailnet (an admin switch in the Tailscale admin console) and HTTPS must be enabled there. Check `tailscale funnel --help` for the exact options of your version. The session cookie is `Secure`, so sign in through the `https://` address (plain `http://localhost` also works on the same computer).
+
+### Security notes
+
+- **Only invited people get in.** There is no open sign-up; a code is single-use, expires, and can be revoked. Passwords are at least 12 characters, hashed with scrypt (N=2^15, r=8, p=1, 64-byte key, per-password salt) and compared in constant time. An unknown user name takes as long to check as a real one, and every sign-in failure gives the same message.
+- **Sessions** are random 32-byte tokens in an `HttpOnly; Secure; SameSite=Strict` cookie, valid 14 days. Only a SHA-256 hash of the token is stored, so a copy of the data folder does not contain usable sessions. Changing the password signs the account out of its other sessions.
+- **Cross-site requests** are blocked: every change needs the `X-Gap-Request: 1` header, and an `Origin` header, when present, must match the address the request came to.
+- **Rate limits** (in memory, reset on restart): 5 failed sign-ins per user name and 20 per address in 15 minutes; 10 sign-up attempts per address per hour. The address is taken from `X-Forwarded-For` only when the connection comes from this machine (Tailscale), otherwise the real peer address is used. Because failures are counted per user name, anyone can briefly lock a known user name out by guessing wrongly; the lock ends after 15 minutes.
+- **Headers:** a strict Content-Security-Policy (same-origin only, no inline scripts), `nosniff`, `no-referrer`, `X-Frame-Options: DENY`, HSTS, and `Cache-Control: no-store` for the API. Downloads are always `application/octet-stream` attachments.
+- **Limits and paths:** JSON bodies up to 25 MB, sign-in bodies up to 16 KB, uploads up to the configured size; a body that goes over the limit is cut off while it is being read, not stored, and the sender gets the 413 message (up to four times the limit, at least 64 MB, is read and thrown away so the browser is not reset; a sender that stops for 30 seconds is cut off). Ids are checked before any disk access, uploaded file names are reduced to a safe name (no folders, no reserved Windows names, no control or direction-override characters) and static files cannot be fetched from outside the web folder. Every route is scoped to the signed-in person; nobody can reach another account's data.
+- **Data:** writes are atomic (temp file, then rename) and queued per file. `<data>/audit.log` records sign-ups, sign-ins (ok and failed), sign-outs, invites, password changes, enable/disable, uploads and deletes, without passwords, tokens or invite codes. Back up the whole data folder; it is the only copy of server-stored projects.
+- **Not provided:** password reset by e-mail (an admin can `disable` the account and issue a new invite), multi-factor sign-in, encryption of files at rest (use disk encryption), and running more than one server process on the same data folder (the admin tool alongside one server is fine). Responder names in a project are still free text; an account is not an electronic signature.
+- Never put the data folder, an invite code or a session cookie in the repository, a ticket or a chat.
 
 ---
 

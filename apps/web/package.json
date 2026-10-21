@@ -5,9 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:server": "vite --mode server",
     "build": "vite build",
+    "build:server": "vite build --mode server",
     "preview": "vite preview",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "e2e:server": "playwright test -c playwright.server.config.ts"
   },
   "dependencies": {
     "@gap/content": "^1.0.0",
@@ -19,6 +22,7 @@
     "idb-keyval": "^6.3.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "zod": "^4.6.7",
     "zustand": "^5.0.15"
   }
 }

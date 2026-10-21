@@ -10,7 +10,10 @@ import { SourcesPage } from "./pages/SourcesPage";
 import { MappingPage } from "./pages/MappingPage";
 import { TemplatesPage } from "./pages/TemplatesPage";
 import { ValidationPage } from "./pages/ValidationPage";
+import { PocBanner, PocFooter } from "./components";
 import { href, useRoute } from "./router";
+import { AccountBar, ConflictDialog, ServerGate, useIsRemote } from "./server/ServerUi";
+import { SERVER_MODE } from "./server/mode";
 import { useStore } from "./store";
 
 const NAV = [
@@ -51,8 +54,21 @@ function useTheme(): [Theme, (t: Theme) => void] {
   return [theme, setTheme];
 }
 
+/** In server mode the app opens behind the sign-in page; the static build (GitHub Pages) has no sign-in and no network calls. */
 export function App() {
+  if (SERVER_MODE) {
+    return (
+      <ServerGate>
+        <AppShell />
+      </ServerGate>
+    );
+  }
+  return <AppShell />;
+}
+
+function AppShell() {
   const route = useRoute();
+  const remote = SERVER_MODE && useIsRemote();
   const { ready, project, error, status, init, clearError } = useStore();
   const [theme, setTheme] = useTheme();
 
@@ -89,10 +105,7 @@ export function App() {
       <a className="skip-link" href="#main">
         Skip to content
       </a>
-      <div className="poc-banner" role="note">
-        <strong>Proof of concept. Not validated. Not for GMP use.</strong>
-        <span className="poc-sub"> Fictional data only. Data stays in this browser.</span>
-      </div>
+      <PocBanner sub={remote ? "Fictional data only. Your data is kept on the server." : "Fictional data only. Data stays in this browser."} />
       <header className="app-header">
         <div className="brand">
           <span className="brand-mark" aria-hidden="true" />
@@ -121,6 +134,7 @@ export function App() {
           </select>
         </label>
       </header>
+      {SERVER_MODE && <AccountBar />}
       {error && (
         <div className="alert" role="alert">
           <span>{error}</span>
@@ -135,9 +149,8 @@ export function App() {
       <div className="visually-hidden" aria-live="polite">
         {status}
       </div>
-      <footer className="app-footer">
-        Proof of concept. Not validated. Not for GMP use. The tool never determines regulatory filing categories.
-      </footer>
+      <PocFooter />
+      {SERVER_MODE && remote && <ConflictDialog />}
     </>
   );
 }

@@ -31,6 +31,20 @@ export function RegulatoryFlag({ gap }: { gap: Pick<Gap, "regulatoryNote"> }) {
   );
 }
 
+/** The permanent banner at the top of every screen, the sign-in page included. */
+export function PocBanner({ sub }: { sub: string }) {
+  return (
+    <div className="poc-banner" role="note">
+      <strong>Proof of concept. Not validated. Not for GMP use.</strong>
+      <span className="poc-sub"> {sub}</span>
+    </div>
+  );
+}
+
+export function PocFooter() {
+  return <footer className="app-footer">Proof of concept. Not validated. Not for GMP use. The tool never determines regulatory filing categories.</footer>;
+}
+
 export function Empty({ children }: { children: ReactNode }) {
   return <p className="empty">{children}</p>;
 }

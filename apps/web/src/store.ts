@@ -15,6 +15,10 @@ import { del, get, set } from "idb-keyval";
 import { useMemo } from "react";
 import { create } from "zustand";
 import { content, demos } from "@gap/content";
+import { resetFiles } from "./server/files";
+import { SERVER_MODE } from "./server/mode";
+import { afterSessionEnds, remoteStorage } from "./server/session-store";
+import * as sync from "./server/sync";
 
 const STORAGE_KEY = "gap-assessment:project";
 
@@ -28,8 +32,11 @@ interface State {
   /** Name and role last typed in a revision or comment dialog. Kept for this session only; used to prefill the next dialog. */
   lastPerson: { name: string; role: string } | null;
   init(): Promise<void>;
-  /** Replaces the project (or clears it) and persists. */
-  setProject(p: Project | null, status?: string): void;
+  /**
+   * Replaces the project (or clears it) and persists. In server mode with server storage, `fresh` marks a different
+   * project (new, demo, import) rather than an edit of the open one; it is saved as a new project on the server.
+   */
+  setProject(p: Project | null, status?: string, fresh?: boolean): void;
   /** Applies an engine function. Returns an error message instead of throwing. */
   update(fn: (p: Project, actor: Actor) => Project, status?: string): string | null;
   loadDemo(): void;
@@ -45,6 +52,8 @@ export function actorOf(p: Project): Actor {
 }
 
 function persist(p: Project | null): Promise<void> {
+  // Server mode with server storage: the server holds the project; this browser keeps an offline copy (see server/sync.ts).
+  if (SERVER_MODE && remoteStorage()) return sync.onLocalChange(p);
   return p ? set(STORAGE_KEY, p) : del(STORAGE_KEY);
 }
 
@@ -56,6 +65,15 @@ export const useStore = create<State>((setState, getState) => ({
   lastPerson: null,
 
   async init() {
+    if (SERVER_MODE && remoteStorage()) {
+      try {
+        await sync.restore();
+        setState({ ready: true });
+      } catch (e) {
+        setState({ ready: true, error: `The open project could not be loaded: ${(e as Error).message}` });
+      }
+      return;
+    }
     try {
       const raw = await get(STORAGE_KEY);
       setState({ project: raw ? parseProject(raw) : null, ready: true });
@@ -64,7 +82,8 @@ export const useStore = create<State>((setState, getState) => ({
     }
   },
 
-  setProject(p, status = "Saved") {
+  setProject(p, status = "Saved", fresh = false) {
+    if (SERVER_MODE && fresh && remoteStorage()) sync.beginNew();
     setState({ project: p, status });
     persist(p).catch((e: Error) => setState({ error: `Browser storage failed: ${e.message}. Export your project as JSON to keep it.` }));
   },
@@ -81,20 +100,20 @@ export const useStore = create<State>((setState, getState) => ({
   },
 
   loadDemo() {
-    getState().setProject(buildDemoProject(content, demos["arx-217"]), "Demo project loaded");
+    getState().setProject(buildDemoProject(content, demos["arx-217"]), "Demo project loaded", true);
   },
 
   newProject(title, responder) {
     const at = new Date().toISOString();
     const p = emptyProject({ title, actor: { name: responder.name, at }, contentRefs: content.versions });
     p.interview.responder = responder;
-    getState().setProject(p, "New project created");
+    getState().setProject(p, "New project created", true);
   },
 
   importJson(text) {
     try {
       const p = parseProject(JSON.parse(text));
-      getState().setProject(p, "Project imported");
+      getState().setProject(p, "Project imported", true);
       return null;
     } catch (e) {
       return e instanceof SyntaxError ? "The file is not valid JSON." : (e as Error).message;
@@ -109,6 +128,19 @@ export const useStore = create<State>((setState, getState) => ({
     setState({ lastPerson: { name: name.trim(), role: role.trim() } });
   },
 }));
+
+if (SERVER_MODE) {
+  sync.connect({
+    getProject: () => useStore.getState().project,
+    replace: (project, status) => useStore.setState({ project, ...(status ? { status } : {}) }),
+    fail: (error) => useStore.setState({ error }),
+  });
+  // Signed out (or the session ended): nothing of the account stays in memory. The browser's offline copy is kept.
+  afterSessionEnds(() => {
+    useStore.setState({ project: null, ready: false, error: null, status: "" });
+    resetFiles();
+  });
+}
 
 /** The content bundle with the project's custom unit operations and items added. Use this everywhere instead of the base `content`. */
 export function useContent(): ContentBundle {

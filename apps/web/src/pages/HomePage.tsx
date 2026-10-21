@@ -3,6 +3,8 @@ import { useRef, useState } from "react";
 import { Modal, ResponderForm } from "../components";
 import { download, slug, today } from "../lib";
 import { href, navigate } from "../router";
+import { CloseProjectButton, ProjectListCard, useIsRemote } from "../server/ServerUi";
+import { SERVER_MODE } from "../server/mode";
 import { content, useAssessment, useStageWording, useStore } from "../store";
 
 export function HomePage({ notice }: { notice?: string }) {
@@ -14,7 +16,9 @@ export function HomePage({ notice }: { notice?: string }) {
   const [importError, setImportError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const confirmReplace = () => !project || window.confirm("This replaces the project currently open in this browser. Export it first if you want to keep it. Continue?");
+  // Server storage: every project is its own saved project on the server, so nothing is replaced.
+  const remote = SERVER_MODE && useIsRemote();
+  const confirmReplace = () => remote || !project || window.confirm("This replaces the project currently open in this browser. Export it first if you want to keep it. Continue?");
 
   const differences = a?.gaps.filter((g) => g.category !== "equivalent").length ?? 0;
 
@@ -80,12 +84,18 @@ export function HomePage({ notice }: { notice?: string }) {
             <button className="btn" onClick={() => download(`${slug(project.meta.title)}-${today()}.json`, JSON.stringify(project, null, 2), "application/json")}>
               Export project (JSON)
             </button>
-            <button className="btn danger" onClick={() => setConfirmDelete(true)}>
-              Close and delete…
-            </button>
+            {remote ? (
+              <CloseProjectButton />
+            ) : (
+              <button className="btn danger" onClick={() => setConfirmDelete(true)}>
+                Close and delete…
+              </button>
+            )}
           </div>
         </section>
       ) : null}
+
+      {remote && <ProjectListCard />}
 
       <section className="card" aria-labelledby="start-h">
         <h2 id="start-h">Start</h2>
@@ -149,7 +159,11 @@ export function HomePage({ notice }: { notice?: string }) {
       <section className="card" aria-labelledby="about-h">
         <h2 id="about-h">About this proof of concept</h2>
         <ul className="plain-list">
-          <li>Your project is stored only in this browser (IndexedDB). Export it as JSON to keep or share it.</li>
+          {remote ? (
+            <li>Your projects are saved on the server under your account, as you work. This browser keeps an offline copy of the open project only. Export a project as JSON to share it.</li>
+          ) : (
+            <li>Your project is stored only in this browser (IndexedDB). Export it as JSON to keep or share it.</li>
+          )}
           <li>Every value carries its source: the interview answer, responder and date, plus any document cited.</li>
           <li>Rows that may affect registered information say “Requires regulatory affairs assessment”. The tool never decides filing categories.</li>
           <li>

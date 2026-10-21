@@ -13,11 +13,14 @@
     "dev": "npm run dev -w @gap/web",
     "build": "npm run build -w @gap/web",
     "preview": "npm run preview -w @gap/web",
+    "build:server": "npm run build:server -w @gap/web && npm run build -w @gap/server",
+    "serve": "npm run start -w @gap/server --",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "validate:content": "vitest run content",
     "e2e": "npm run e2e -w @gap/web",
+    "e2e:server": "npm run build:server && npm run e2e:server -w @gap/web",
     "ci": "npm run typecheck && npm test && npm run build"
   },
   "engines": {

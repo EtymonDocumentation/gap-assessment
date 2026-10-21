@@ -1513,3 +1513,86 @@ details.report h4 {
   margin-top: 4px;
   flex: none;
 }
+
+/* ---------------------------------------------------------------- M5.3: server mode (sign-in, account bar, saved projects, files) */
+
+.auth-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 16px;
+  align-items: start;
+}
+.auth-grid .card h2 {
+  font-size: 1.1rem;
+}
+.field > .small {
+  font-weight: 400;
+}
+.account-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  padding: 6px 16px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+.account-bar p {
+  margin: 0;
+}
+.account-who {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.account-actions {
+  margin-left: auto;
+}
+.save-status {
+  min-height: 1.4em;
+}
+.save-status .error {
+  font-weight: 600;
+}
+.project-list,
+.file-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.project-list > li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+.project-info {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.source-files {
+  margin-top: 6px;
+}
+.file-list > li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: center;
+  padding: 4px 0;
+}
+.file-list > li > p {
+  flex: 1 1 100%;
+  margin: 0;
+}
+.file-summary {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.files-table td,
+.files-table th {
+  overflow-wrap: anywhere;
+}

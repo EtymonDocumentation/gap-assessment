@@ -1,7 +1,25 @@
 node_modules/
 dist/
+apps/server/dist/
+apps/web/dist-server/
+# Server data folders (accounts, projects, uploads) must live outside the repository; never commit one by accident.
+gap-data/
+apps/server/test-data/
 coverage/
 test-results/
 playwright-report/
 *.log
 .DS_Store
+# Playwright output (the static and the server suite both write here) and leftovers of the server tests
+apps/web/test-results/
+apps/web/playwright-report/
+apps/web/blob-report/
+# Lock and half-written files of a data folder, in case one is ever created inside the repository
+.lock
+*.tmp
+gap-server-test-*/
+gap-web53-*/
+gap-admin-test-*/
+gap-lock-test-*/
+apps/web/test-results-server/
+apps/web/playwright-report-server/

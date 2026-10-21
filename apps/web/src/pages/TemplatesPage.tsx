@@ -5,6 +5,8 @@ import { loadDocx, useDocx } from "../docx-loader";
 import { dateTime, download, MODE_LABEL, shortHash, slug } from "../lib";
 import { fetchSample, SAMPLE_TEMPLATES } from "../sample-templates";
 import { href } from "../router";
+import { BrowserLibraryPanel, useIsRemote } from "../server/ServerUi";
+import { SERVER_MODE } from "../server/mode";
 import { useStore } from "../store";
 import { newTemplateId, nameFromFile, parseTemplateFile, sha256Hex, templateFileJson, useTemplates, type StoredTemplate } from "../templates-store";
 
@@ -32,6 +34,7 @@ export function TemplatesPage() {
   const storageError = useTemplates((s) => s.error);
   const project = useStore((s) => s.project);
   const { docx, error: docxError } = useDocx();
+  const remote = SERVER_MODE && useIsRemote();
 
   useEffect(() => {
     void useTemplates.getState().load();
@@ -133,8 +136,12 @@ export function TemplatesPage() {
           Templates
         </h1>
         <p className="muted">
-          Keep your own Word or PDF templates here and choose one when you create a Word document. The library is stored only in this browser. It is not part of the project file, so
-          the same templates can be used for every project. Export a template as a file to back it up or move it to another browser. Macros in a template are never run and are removed.
+          Keep your own Word or PDF templates here and choose one when you create a Word document.{" "}
+          {remote
+            ? "The library is kept on the server under your account, so it follows you to any computer."
+            : "The library is stored only in this browser."}{" "}
+          It is not part of the project file, so the same templates can be used for every project.{" "}
+          {remote ? "Export a template as a file to keep a copy of your own." : "Export a template as a file to back it up or move it to another browser."} Macros in a template are never run and are removed.
         </p>
       </div>
 
@@ -151,6 +158,8 @@ export function TemplatesPage() {
       <p className="small muted" role="status" aria-live="polite">
         {busy ? "Working…" : notice}
       </p>
+
+      {remote && <BrowserLibraryPanel />}
 
       <section className="card stack" aria-labelledby="add-title">
         <h2 id="add-title">Add a template</h2>
@@ -252,7 +261,7 @@ export function TemplatesPage() {
           open
           onOpenChange={(o) => !o && setDialog(null)}
           title={`Delete ${dialog.t.name}?`}
-          description="The template is removed from this browser only. Word documents already created from it are not affected, and the export history keeps its name and checksum."
+          description={`The template is removed from ${remote ? "your library on the server" : "this browser only"}. Word documents already created from it are not affected, and the export history keeps its name and checksum.`}
           restoreFocus={restoreFocus}
         >
           <div className="row end">

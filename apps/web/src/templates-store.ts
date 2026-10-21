@@ -2,6 +2,9 @@ import type { TemplateAnalysis, TemplateMapping, TemplateMode } from "@gap/docx"
 import type { TemplateRecord } from "@gap/process-model";
 import { createStore, del, set, values } from "idb-keyval";
 import { create } from "zustand";
+import * as api from "./server/api";
+import { SERVER_MODE } from "./server/mode";
+import { afterSessionEnds, remoteStorage } from "./server/session-store";
 
 /**
  * The template library. It lives in this browser's IndexedDB, in its own database, and is NOT part of the project
@@ -41,7 +44,30 @@ function sorted(items: StoredTemplate[]): StoredTemplate[] {
   return [...items].sort((a, b) => a.addedAt.localeCompare(b.addedAt) || a.name.localeCompare(b.name));
 }
 
-export const useTemplates = create<State>((setState, getState) => ({
+// ------------------------------------------------------------------ the library kept on the server (server mode only)
+
+function metaOf(t: StoredTemplate): api.TemplateMeta {
+  const { bytes: _bytes, ...meta } = t;
+  return meta;
+}
+
+/** The server sends the details of each template; the Word file of each is fetched too, so a template is ready to use as soon as it is listed. */
+async function loadFromServer(): Promise<StoredTemplate[]> {
+  const metas = await api.listTemplates();
+  return Promise.all(metas.map(async (m) => ({ ...m, bytes: await api.getTemplateFile(m.id) })));
+}
+
+/** The templates this browser holds in its own library (from before the server, or from the static demo). Server mode only. */
+export function readBrowserLibrary(): Promise<StoredTemplate[]> {
+  return values<StoredTemplate>(db).then(sorted);
+}
+
+/** Removes the given templates from this browser's own library. Never called without the user asking. */
+export async function removeFromBrowserLibrary(ids: string[]): Promise<void> {
+  for (const id of ids) await del(id, db);
+}
+
+export const useTemplates = /* @__PURE__ */ create<State>((setState, getState) => ({
   items: [],
   ready: false,
   error: null,
@@ -49,18 +75,27 @@ export const useTemplates = create<State>((setState, getState) => ({
   async load() {
     if (getState().ready) return;
     try {
-      setState({ items: sorted(await values<StoredTemplate>(db)), ready: true, error: null });
+      const items = SERVER_MODE && remoteStorage() ? await loadFromServer() : await values<StoredTemplate>(db);
+      setState({ items: sorted(items), ready: true, error: null });
     } catch (e) {
-      setState({ ready: true, error: `The template library could not be read from this browser: ${(e as Error).message}` });
+      const where = SERVER_MODE && remoteStorage() ? "from the server" : "from this browser";
+      setState({ ready: true, error: `The template library could not be read ${where}: ${(e as Error).message}` });
     }
   },
 
   async add(t) {
     try {
-      await set(t.id, t, db);
-      setState({ items: sorted([...getState().items.filter((x) => x.id !== t.id), t]), error: null });
+      let saved = t;
+      if (SERVER_MODE && remoteStorage()) {
+        const r = await api.createTemplate(metaOf(t), toBase64(t.bytes));
+        saved = { ...t, id: r.id };
+      } else {
+        await set(t.id, t, db);
+      }
+      setState({ items: sorted([...getState().items.filter((x) => x.id !== saved.id), saved]), error: null });
     } catch (e) {
-      setState({ error: `The template could not be saved in this browser: ${(e as Error).message}. Export it as a file to keep it.` });
+      const where = SERVER_MODE && remoteStorage() ? "on the server" : "in this browser";
+      setState({ error: `The template could not be saved ${where}: ${(e as Error).message}. Export it as a file to keep it.` });
       throw e;
     }
   },
@@ -68,19 +103,26 @@ export const useTemplates = create<State>((setState, getState) => ({
   async patch(id, patch) {
     const cur = getState().items.find((x) => x.id === id);
     if (!cur) return;
-    const next = { ...cur, ...patch };
+    let next: StoredTemplate = { ...cur, ...patch };
     try {
-      await set(id, next, db);
+      if (SERVER_MODE && remoteStorage()) {
+        const meta = await api.patchTemplate(id, patch);
+        next = { ...cur, ...meta, bytes: cur.bytes };
+      } else {
+        await set(id, next, db);
+      }
       setState({ items: getState().items.map((x) => (x.id === id ? next : x)), error: null });
     } catch (e) {
-      setState({ error: `The change could not be saved in this browser: ${(e as Error).message}` });
+      const where = SERVER_MODE && remoteStorage() ? "on the server" : "in this browser";
+      setState({ error: `The change could not be saved ${where}: ${(e as Error).message}` });
       throw e;
     }
   },
 
   async remove(id) {
     try {
-      await del(id, db);
+      if (SERVER_MODE && remoteStorage()) await api.deleteTemplate(id);
+      else await del(id, db);
       setState({ items: getState().items.filter((x) => x.id !== id), error: null });
     } catch (e) {
       setState({ error: `The template could not be removed: ${(e as Error).message}` });
@@ -88,6 +130,11 @@ export const useTemplates = create<State>((setState, getState) => ({
     }
   },
 }));
+
+if (SERVER_MODE) {
+  // Signed out: the account's library leaves memory. The next sign-in loads it again.
+  afterSessionEnds(() => useTemplates.setState({ items: [], ready: false, error: null }));
+}
 
 export function newTemplateId(): string {
   return globalThis.crypto?.randomUUID?.() ?? `t-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
