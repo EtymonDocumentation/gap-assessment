@@ -237,6 +237,7 @@ export function BuilderPage() {
                         </th>
                         {attr.shared ? (
                           <td colSpan={2}>
+                            <span className="tag">Both SU and RU</span>
                             <Cell attr={attr} sideKey="shared" cell={attr.shared} act={act} />
                           </td>
                         ) : (

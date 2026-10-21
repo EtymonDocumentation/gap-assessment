@@ -26,7 +26,7 @@ function oldFile() {
 describe("migration 1.6.0 -> 1.7.0", () => {
   it("reads the old file and stamps the current schema version", () => {
     expect(parseProject(oldFile()).schemaVersion).toBe(SCHEMA_VERSION);
-    expect(SCHEMA_VERSION).toBe("1.9.0");
+    expect(SCHEMA_VERSION).toBe("1.10.0");
   });
 
   it("an old 'unknown' reaches the current version as a TBD with no details (nothing invented)", () => {
@@ -42,6 +42,6 @@ describe("migration 1.6.0 -> 1.7.0", () => {
     expect(e.status).toBe("established");
     expect(e.sourceLocations).toBeUndefined();
     expect(p.interview.answeringFrom).toBeUndefined();
-    expect(p.document.revisions.every((r) => r.tbdCount === undefined)).toBe(true);
+    expect(((p.document.archivedReview?.revisions ?? []) as { tbdCount?: number }[]).every((r) => r.tbdCount === undefined)).toBe(true);
   });
 });

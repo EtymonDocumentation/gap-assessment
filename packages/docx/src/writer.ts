@@ -1,4 +1,4 @@
-import type { Block, DocComment, DocModel, DocSection } from "@gap/engine";
+import type { Block, DocModel, DocSection } from "@gap/engine";
 import { ACCENT, BANNER_COLOR, BORDER_COLOR, ON_ACCENT, ZEBRA_FILL, tintForColumn } from "./palette";
 import { BUILTIN_STYLE_ID, COMPACT_TABLE_HEADER_HALF_POINTS, STYLE_NAME, StyleTable, styleXml, withBulletList, type StyleKey } from "./styles";
 import { cleanXmlText, esc } from "./xml";
@@ -82,17 +82,6 @@ export function textRuns(text: string, r: RPr = {}): string {
   return out.join("");
 }
 
-/** Wraps runs in Word comment ranges: start markers, the runs, end markers, then the reference runs. */
-export function withCommentRanges(runs: string, ids: number[]): string {
-  if (!ids.length) return runs;
-  return (
-    ids.map((id) => `<w:commentRangeStart w:id="${id}"/>`).join("") +
-    runs +
-    ids.map((id) => `<w:commentRangeEnd w:id="${id}"/>`).reverse().join("") +
-    ids.map((id) => `<w:r><w:commentReference w:id="${id}"/></w:r>`).join("")
-  );
-}
-
 export function para(runs: string, p: PPr = {}): string {
   return `<w:p>${pPrXml(p)}${runs}</w:p>`;
 }
@@ -114,52 +103,6 @@ export interface SectPrs {
   landscape: string;
 }
 
-// ------------------------------------------------------------------ comments
-
-const KIND_LABEL = { reply: "Reply", resolution: "Resolution", reopen: "Reopened" } as const;
-
-/** Plain-text lines of one Word comment: the comment, one line per response, then the status. */
-export function commentLines(c: DocComment): string[] {
-  return [
-    `${c.id}: ${c.text}`,
-    ...c.replies.map((r) => `${KIND_LABEL[r.kind]} by ${r.by}${r.role ? ` (${r.role})` : ""}, ${r.at.slice(0, 10)}: ${r.text}`),
-    `Status: ${c.status}`,
-  ];
-}
-
-export function initialsOf(name: string): string {
-  const words = name
-    .replace(/\([^)]*\)/g, " ")
-    .split(/\s+/)
-    .map((w) => w.replace(/[^\p{L}\p{N}]/gu, ""))
-    .filter(Boolean);
-  const letters = words.map((w) => w[0]!.toUpperCase()).join("").slice(0, 3);
-  return letters || (name.trim()[0] ?? "?").toUpperCase();
-}
-
-function wordDate(iso: string): string | undefined {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return undefined;
-  return d.toISOString().slice(0, 19) + "Z";
-}
-
-/** word/comments.xml for the comments with these indexes (the index is also the Word comment id). */
-export function commentsXml(comments: DocComment[], indexes: number[], wNs: string): string {
-  const items = indexes.map((i) => {
-    const c = comments[i]!;
-    const date = wordDate(c.at);
-    const lines = commentLines(c);
-    const paras = lines
-      .map((line, li) => {
-        const lead = li === 0 ? '<w:r><w:annotationRef/></w:r>' : "";
-        return `<w:p>${lead}${textRuns(line)}</w:p>`;
-      })
-      .join("");
-    return `<w:comment w:id="${i}" w:author="${esc(c.by)}"${date ? ` w:date="${date}"` : ""} w:initials="${esc(initialsOf(c.by))}">${paras}</w:comment>`;
-  });
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:comments xmlns:w="${wNs}">${items.join("")}</w:comments>`;
-}
-
 // ------------------------------------------------------------------ writer context
 
 export interface WriterInit {
@@ -175,7 +118,7 @@ export interface WriterInit {
   styled?: boolean;
 }
 
-/** Everything the block writers share: style lookup, numbering, page geometry and comment anchors. */
+/** Everything the block writers share: style lookup, numbering and page geometry. */
 export class WriterCtx {
   readonly doc: DocModel;
   readonly styles: StyleTable;
@@ -187,10 +130,6 @@ export class WriterCtx {
   addedStyles: string[] = [];
   private bullet?: number;
   private styleCache = new Map<StyleKey, string>();
-  private anchored = new Set<number>();
-  /** Comment index lists, by section id (section-level) and by "sectionId|gapDisplayId". */
-  private sectionComments = new Map<string, number[]>();
-  private gapComments = new Map<string, number[]>();
 
   constructor(init: WriterInit) {
     this.doc = init.doc;
@@ -200,15 +139,6 @@ export class WriterCtx {
     this.styled = !!init.styled;
     this.numberingXml = init.numberingXml;
     this.bullet = init.bulletNumId;
-    init.doc.comments.forEach((c, i) => {
-      // A comment with no section id has no anchor: it is never handed out, so it ends up in the closing note.
-      if (!c.sectionId) return;
-      const section = init.doc.sections.find((s) => s.id === c.sectionId);
-      const hasRow = !!(c.gapDisplayId && section && sectionHasCell(section, c.gapDisplayId));
-      const map = hasRow ? this.gapComments : this.sectionComments;
-      const key = hasRow ? `${c.sectionId}|${c.gapDisplayId}` : c.sectionId;
-      map.set(key, [...(map.get(key) ?? []), i]);
-    });
   }
 
   /** Id of the template's style for this role, adding the tool's own style when the template has none. */
@@ -252,39 +182,6 @@ export class WriterCtx {
     return landscape ? this.page.landscapeWidth : this.page.portraitWidth;
   }
 
-  // -- comment anchors
-
-  /** Comments to anchor on a section heading: the section's own, and gap comments whose row is not in a table. Each comment is handed out once. */
-  takeHeadingComments(sectionId: string): number[] {
-    return this.take(this.sectionComments.get(sectionId) ?? []);
-  }
-
-  takeGapComments(sectionId: string, displayId: string): number[] {
-    return this.take(this.gapComments.get(`${sectionId}|${displayId}`) ?? []);
-  }
-
-  private take(ids: number[]): number[] {
-    const fresh = ids.filter((i) => !this.anchored.has(i));
-    fresh.forEach((i) => this.anchored.add(i));
-    return fresh;
-  }
-
-  anchoredIndexes(): number[] {
-    return [...this.anchored].sort((a, b) => a - b);
-  }
-
-  unanchoredIndexes(): number[] {
-    return this.doc.comments.map((_, i) => i).filter((i) => !this.anchored.has(i));
-  }
-
-  /** Marks comments as anchored by something the caller wrote itself. */
-  markAnchored(ids: number[]): void {
-    ids.forEach((i) => this.anchored.add(i));
-  }
-}
-
-function sectionHasCell(section: DocSection, text: string): boolean {
-  return section.blocks.some((b) => b.type === "table" && b.rows.some((r) => r.some((c) => c === text)));
 }
 
 // ------------------------------------------------------------------ blocks
@@ -292,13 +189,12 @@ function sectionHasCell(section: DocSection, text: string): boolean {
 export interface HeadingOpts {
   /** Do not let the heading style's automatic numbering add a number (used for sub-headings and appendices). */
   noNumber?: boolean;
-  commentIds?: number[];
   pageBreakBefore?: boolean;
 }
 
 export function headingPara(ctx: WriterCtx, level: number, text: string, o: HeadingOpts = {}): string {
   const lvl = Math.min(9, Math.max(1, level));
-  return para(withCommentRanges(textRuns(text), o.commentIds ?? []), {
+  return para(textRuns(text), {
     style: ctx.headingStyle(lvl),
     pageBreakBefore: o.pageBreakBefore,
     numPr: o.noNumber && ctx.headingNumbered(lvl) ? { ilvl: 0, numId: 0 } : undefined,
@@ -316,8 +212,8 @@ export function bannerPara(text: string): string {
   });
 }
 
-export function notePara(text: string, commentIds: number[] = []): string {
-  return para(withCommentRanges(textRuns(text, { i: true }), commentIds), {
+export function notePara(text: string): string {
+  return para(textRuns(text, { i: true }), {
     pBdr: '<w:pBdr><w:left w:val="single" w:sz="12" w:space="8" w:color="808080"/></w:pBdr>',
     ind: { left: 200 },
   });
@@ -511,12 +407,12 @@ export function tableXml(ctx: WriterCtx, columns: string[], rows: string[][], o:
   const styled = ctx.styled;
   const headFill = styled ? ACCENT : HEADER_FILL;
   const tints = styled ? cols.map(tintForColumn) : [];
-  const cell = (text: string, w: number, opts: { head?: boolean; bold?: boolean; ids?: number[]; fill?: string }) => {
+  const cell = (text: string, w: number, opts: { head?: boolean; bold?: boolean; fill?: string }) => {
     const fill = opts.head ? headFill : opts.fill;
     const rpr = { b: opts.head || opts.bold, ...(opts.head && styled ? { color: ON_ACCENT, sz: COMPACT_TABLE_HEADER_HALF_POINTS } : {}) };
     return (
       `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${fill ? `<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/>` : ""}</w:tcPr>` +
-      para(withCommentRanges(textRuns(text, rpr), opts.ids ?? []), { style: textStyle, keepNext: opts.head }) +
+      para(textRuns(text, rpr), { style: textStyle, keepNext: opts.head }) +
       "</w:tc>"
     );
   };
@@ -526,9 +422,8 @@ export function tableXml(ctx: WriterCtx, columns: string[], rows: string[][], o:
   rows.forEach((r, ri) => {
     const tcs = cols.map((_, i) => {
       const text = r[i] ?? "";
-      const ids = o.sectionId && text ? ctx.takeGapComments(o.sectionId, text) : [];
       const fill = styled ? (tints[i]?.(text) ?? (ri % 2 === 1 ? ZEBRA_FILL : undefined)) : undefined;
-      return cell(text, widths[i]!, { bold: o.firstColumnBold && i === 0, ids, fill });
+      return cell(text, widths[i]!, { bold: o.firstColumnBold && i === 0, fill });
     });
     trs.push(`<w:tr><w:trPr><w:cantSplit/></w:trPr>${tcs.join("")}</w:tr>`);
   });
@@ -576,8 +471,6 @@ export interface SectionOpts {
   subLevel?: number;
   /** Keep the heading style's automatic numbering off (sub-headings added under a customer heading). */
   noNumber?: boolean;
-  /** Comments to anchor on the heading; default: the section's own. */
-  commentIds?: number[];
   /** Start the heading on a new page (the first section after the front pages). */
   pageBreakBefore?: boolean;
 }
@@ -589,7 +482,7 @@ export function sectionHeadingText(s: DocSection, withNumber: boolean): string {
 }
 
 /**
- * One document section: heading, blocks, and the Word comments anchored to it.
+ * One document section: heading and blocks.
  * Headings of an automatically numbered style get no number text (the style supplies it); appendices always carry their "Appendix A." text.
  */
 export function sectionXml(ctx: WriterCtx, s: DocSection, o: SectionOpts): string {
@@ -599,7 +492,6 @@ export function sectionXml(ctx: WriterCtx, s: DocSection, o: SectionOpts): strin
     out.push(
       headingPara(ctx, o.headingLevel, o.headingText ?? sectionHeadingText(s, !numbered), {
         noNumber: !!s.appendix || !!o.noNumber,
-        commentIds: o.commentIds ?? ctx.takeHeadingComments(s.id),
         pageBreakBefore: o.pageBreakBefore,
       }),
     );

@@ -151,7 +151,6 @@ export function contractModel(o: ContractOptions = {}): DocModel {
     meta: [
       ["Project", "ARX-217 (fictional)"],
       ["Generated", "2026-10-02 00:00 UTC"],
-      ["Revision", "Not yet issued"],
       ["Differences identified", String(specs.length)],
       ["Sections omitted", omitted.length ? omitted.join("; ") : "None"],
     ],
@@ -164,8 +163,6 @@ export function contractModel(o: ContractOptions = {}): DocModel {
       targetStage: o.stages?.ru ?? "Clinical (GMP, not process validated)",
     },
     sections,
-    revisions: [],
-    comments: [],
     tbdCount: 0,
   };
 }

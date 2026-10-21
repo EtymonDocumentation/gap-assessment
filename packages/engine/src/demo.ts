@@ -2,10 +2,7 @@ import { z } from "zod";
 import { addSource, emptyProject, verifyEntry, type Actor, type DocRef, type Project } from "@gap/process-model";
 import type { ContentBundle } from "./content";
 import { PARAMETER_FIELDS, type ParameterField } from "./content-schema";
-import { assess } from "./compare";
-import { buildDocument } from "./document";
 import { applyAnswer, type AnswerInput, type FieldAnswer } from "./interview";
-import { addComment, issueRevision, replyToComment, resolveComment } from "./review";
 import { setGapOverlay } from "./overlays";
 import type { QuestionInstance } from "./sequencer";
 
@@ -37,23 +34,6 @@ const stepSchema = z.object({
 /** A named person acting at a fixed time in the demo script. */
 const personAtSchema = z.object({ at: z.string(), by: z.string(), role: z.string().optional() });
 
-/**
- * Review of the generated document, applied after everything else: one revision, then comments. Comments are not
- * part of the document fingerprint, so the revision still reads as current afterwards.
- */
-const reviewSchema = z.object({
-  revision: personAtSchema.extend({ status: z.enum(["draft", "issued_for_review"]), summary: z.string() }),
-  comments: z.array(
-    personAtSchema.extend({
-      section: z.string(),
-      gapKey: z.string().optional(),
-      text: z.string(),
-      replies: z.array(personAtSchema.extend({ text: z.string() })).default([]),
-      resolution: personAtSchema.extend({ text: z.string() }).optional(),
-    }),
-  ),
-});
-
 const demoSchema = z.object({
   demo: z.object({ id: z.string(), title: z.string(), version: z.string() }),
   responder: z.object({ name: z.string(), role: z.string().optional() }),
@@ -73,7 +53,6 @@ const demoSchema = z.object({
     )
     .default([]),
   followUp: z.array(stepSchema).default([]),
-  review: reviewSchema.optional(),
 });
 
 export type DemoScript = z.infer<typeof demoSchema>;
@@ -114,25 +93,6 @@ function applyScripted(project: Project, content: ContentBundle, a: z.infer<type
 
 const actorOf = (p: { at: string; by: string; role?: string | undefined }): Actor => ({ name: p.by, at: p.at, ...(p.role ? { role: p.role } : {}) });
 
-/** Issues the scripted revision on the document as it stands, then records the scripted comments, replies and resolutions. */
-function applyReview(start: Project, content: ContentBundle, review: z.infer<typeof reviewSchema>): Project {
-  const rev = review.revision;
-  let project = start;
-  try {
-    const doc = buildDocument(content, project, assess(content, project), rev.at);
-    project = issueRevision(project, doc, { status: rev.status, summary: rev.summary }, actorOf(rev));
-    for (const c of review.comments) {
-      const seq = project.document.comments.reduce((m, x) => Math.max(m, x.seq), 0) + 1;
-      project = addComment(project, { sectionId: c.section, ...(c.gapKey ? { gapKey: c.gapKey } : {}), text: c.text }, actorOf(c));
-      for (const r of c.replies) project = replyToComment(project, seq, r.text, actorOf(r));
-      if (c.resolution) project = resolveComment(project, seq, c.resolution.text, actorOf(c.resolution));
-    }
-  } catch (e) {
-    throw new Error(`Demo review: ${(e as Error).message}`);
-  }
-  return project;
-}
-
 /**
  * Builds the fictional demonstration project by replaying scripted interview
  * answers through the same code path a user takes, so every demo entry has
@@ -168,6 +128,5 @@ export function buildDemoProject(content: ContentBundle, raw: unknown): Project 
     }
     if (step.answer) project = applyScripted(project, content, step.answer, who, docs);
   }
-  if (demo.review) project = applyReview(project, content, demo.review);
   return project;
 }

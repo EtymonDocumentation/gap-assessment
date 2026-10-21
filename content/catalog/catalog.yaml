@@ -6,7 +6,35 @@
 # not answered yet, uses the second. Quote any value that holds a marker when it sits inside a { } mapping.
 catalog:
   id: fill-finish-catalog
-  version: 1.6.0
+  version: 1.7.0
+
+# Stage groups of the Scope step: the broad stages of the fill-finish process, in process order. Every unit operation is in
+# exactly one group (a content test checks it), so the Scope step can show them all and a group tick covers them all.
+stageGroups:
+  - key: drug_substance_in
+    label: Drug substance in
+    description: Shipping the drug substance to the fill site, then receiving and thawing it.
+    unitOperations: [ds_shipping_inbound, ds_receipt_thaw]
+  - key: formulation
+    label: Formulation
+    description: Buffer preparation, and pooling, compounding and dilution of the formulated bulk.
+    unitOperations: [buffer_prep, compounding]
+  - key: filtration
+    label: Filtration
+    description: Bioburden reduction and sterile filtration, including filter integrity testing.
+    unitOperations: [bbr_filtration, sterile_filtration]
+  - key: filling_closing
+    label: Filling and closing
+    description: Aseptic filling, stoppering, lyophilization and capping.
+    unitOperations: [aseptic_filling, stoppering, lyophilization, capping]
+  - key: inspection_packaging
+    label: Inspection and packaging
+    description: Visual inspection, bulk packaging, and labelling and secondary packaging.
+    unitOperations: [visual_inspection, bulk_packaging, labeling_packaging]
+  - key: shipping_out
+    label: Shipping out
+    description: Storage and shipping of the finished product from the fill site.
+    unitOperations: [storage_shipping]
 
 unitOperations:
   - key: ds_shipping_inbound

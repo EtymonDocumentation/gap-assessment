@@ -29,6 +29,8 @@ async function newProject(page: Page) {
   await dialog.getByLabel("Project title").fill("Cite test (fictional)");
   await dialog.getByLabel("Responder name").fill("A. Reviewer (fictional)");
   await dialog.getByRole("button", { name: "Create project" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "What does this assessment cover?" })).toBeVisible();
+  await page.getByRole("link", { name: "Continue to the interview" }).click();
   await expect(page.locator("#q-prompt")).toHaveText("Program or product code");
 }
 
@@ -44,8 +46,14 @@ async function expectNoHorizontalScroll(page: Page, label: string) {
   expect(overflow, `${label}: page scrolls sideways by ${overflow}px`).toBeLessThanOrEqual(1);
 }
 
+/** The demo has open TBD values, so a download asks first (M5.4); these tests want the file, so they answer "Download anyway". */
+async function confirmTbd(page: Page): Promise<void> {
+  const anyway = page.getByRole("button", { name: "Download anyway" });
+  if (await anyway.waitFor({ timeout: 1500 }).then(() => true, () => false)) await anyway.click();
+}
+
 async function downloadText(page: Page, click: () => Promise<void>): Promise<string> {
-  const [dl] = (await Promise.all([page.waitForEvent("download"), click()])) as [Download, void];
+  const [dl] = (await Promise.all([page.waitForEvent("download"), click().then(() => confirmTbd(page))])) as [Download, void];
   return readFile(await dl.path(), "utf8");
 }
 
@@ -92,14 +100,17 @@ test("leaving out Risk ranking and Approval removes them and the document says s
   await expect(preview.getByRole("heading", { name: /Approval/ })).toBeVisible();
   await expect(preview).toContainText("Sections omitted");
 
-  const panel = page.getByRole("region", { name: "Sections to include" }).or(page.locator("section", { has: page.getByRole("heading", { name: "Sections to include" }) }));
-  // Mandatory sections are not offered as a choice.
-  await expect(panel.getByRole("checkbox", { name: /^Purpose/ })).toHaveCount(0);
-  await expect(panel.getByRole("checkbox", { name: /Detailed gap table/ })).toHaveCount(0);
+  const panel = page.getByTestId("doc-scope-panel");
+  await panel.getByRole("button", { name: "Change" }).click();
+  // Mandatory sections are shown ticked and disabled, marked "Always included"; they cannot be unticked.
+  await expect(panel.getByRole("checkbox", { name: /^Purpose/ })).toBeDisabled();
+  await expect(panel.getByRole("checkbox", { name: /^Purpose/ })).toBeChecked();
+  await expect(panel.getByRole("checkbox", { name: /Detailed gap table/ })).toBeDisabled();
+  await expect(panel.getByText("Always included").first()).toBeVisible();
 
   await panel.getByRole("checkbox", { name: "Risk ranking" }).uncheck();
   await panel.getByRole("checkbox", { name: "Approval" }).uncheck();
-  await expect(panel).toContainText("2 optional sections are left out.");
+  await expect(panel.getByTestId("doc-sections")).toContainText("2 optional sections are left out.");
   await expect(preview.getByRole("heading", { name: /Risk ranking/ })).toHaveCount(0);
   await expect(preview.getByRole("heading", { name: /Approval/ })).toHaveCount(0);
   await expect(preview).toContainText("Risk ranking; Approval");
@@ -117,10 +128,11 @@ test("leaving out Risk ranking and Approval removes them and the document says s
   await page.reload();
   await go(page, "#/document");
   await expect(page.locator(".doc-preview")).toContainText("Risk ranking; Approval");
-  await expect(page.getByRole("checkbox", { name: "Risk ranking" })).not.toBeChecked();
+  await page.getByTestId("doc-scope-panel").getByRole("button", { name: "Change" }).click();
+  await expect(page.locator("#doc-sec-risk")).not.toBeChecked();
 
   // Ticking a section brings it back.
-  await page.getByRole("checkbox", { name: "Risk ranking" }).check();
+  await page.locator("#doc-sec-risk").check();
   await expect(page.locator(".doc-preview").getByRole("heading", { name: /Risk ranking/ })).toBeVisible();
   await expect(page.locator(".doc-preview")).toContainText("Approval");
   await expectAccessible(page, "document with sections omitted");

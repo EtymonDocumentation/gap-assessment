@@ -386,6 +386,9 @@ function ProgressMap({
   return (
     <nav className="card tight" aria-label="Sections">
       <h2 className="h-small">Progress map</h2>
+      <p className="small muted pm-help" data-testid="pm-help">
+        Counts are questions answered out of those showing. Some answers open follow-up questions, so totals can grow.
+      </p>
       <ol className="progress-map">
         {prog.map((s) => {
           const mine = instances.filter((i) => i.section.id === s.section.id);
@@ -397,13 +400,12 @@ function ProgressMap({
                 <span className={`pm-state ${done ? "done" : s.answered ? "partial" : ""}`} aria-hidden="true" />
                 <span className="pm-title">{s.section.title}</span>
                 <span className="pm-count">
-                  {s.answered}/{s.total}
-                  <span className="visually-hidden"> answered{done ? ", complete" : ""}</span>
+                  {s.answered} of {s.total} answered{done ? ", complete" : ""}
                 </span>
               </a>
               {s.section.kind !== "scoping" && s.total > 0 && (
                 <span className="pm-sides small muted">
-                  SU {s.bySide.source.answered}/{s.bySide.source.total} · RU {s.bySide.target.answered}/{s.bySide.target.total}
+                  SU: {s.bySide.source.answered} of {s.bySide.source.total} answered · RU: {s.bySide.target.answered} of {s.bySide.target.total} answered
                   {s.confirmed && " · confirmed"}
                 </span>
               )}
@@ -1013,6 +1015,8 @@ function SectionSummary({ sectionId, instances, thenKey }: { sectionId: string; 
   const mine = all ? instances : instances.filter((i) => i.section.id === sectionId);
   const questions = [...new Map(mine.map((i) => [i.question.id, i.question])).values()];
   const unanswered = mine.filter((i) => !isAnswered(project, i));
+  // A section whose questions are all shared (Scoping) answers once for the whole project: a single answer column.
+  const allShared = mine.length > 0 && mine.every((i) => i.side === "shared");
   const confirmed = project.interview.confirmations.find((c) => c.sectionId === sectionId);
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => headingRef.current?.focus(), [sectionId]);
@@ -1041,9 +1045,15 @@ function SectionSummary({ sectionId, instances, thenKey }: { sectionId: string; 
           <thead>
             <tr>
               <th scope="col">Attribute</th>
-              <th scope="col">SU</th>
-              <th scope="col">RU</th>
-              <th scope="col">Comparison</th>
+              {allShared ? (
+                <th scope="col">Answer (applies to both SU and RU)</th>
+              ) : (
+                <>
+                  <th scope="col">SU</th>
+                  <th scope="col">RU</th>
+                  <th scope="col">Comparison</th>
+                </>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -1051,6 +1061,17 @@ function SectionSummary({ sectionId, instances, thenKey }: { sectionId: string; 
               const srcInst = mine.find((i) => i.question.id === q.id && (i.side === "source" || i.side === "shared"));
               const tgtInst = mine.find((i) => i.question.id === q.id && i.side === "target");
               const gaps = a.gaps.filter((g) => g.questionId === q.id);
+              // A shared answer belongs to the whole project, so it is one answer for both sites: no empty RU cell, no comparison.
+              if (srcInst?.side === "shared") {
+                return (
+                  <tr key={q.id}>
+                    <th scope="row">{questionLabel(q)}</th>
+                    <td colSpan={allShared ? 1 : 3}>
+                      {!allShared && <span className="tag">Both SU and RU</span>} <a href={href("/interview", { q: srcInst.key })}>{formatQuestionSide(content, project, q, "shared")}</a>
+                    </td>
+                  </tr>
+                );
+              }
               return (
                 <tr key={q.id}>
                   <th scope="row">{questionLabel(q)}</th>

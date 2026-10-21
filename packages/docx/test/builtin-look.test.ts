@@ -69,12 +69,12 @@ describe("built-in look: cover page", () => {
     expect(wAttr(kids(kids(second, "pPr")[0]!, "pStyle")[0], "val")).toBe("Title");
   });
 
-  it("lists program, product, both sites and both program stages, revision, status and generated date, straight from the document", async () => {
+  it("lists program, product, both sites and both program stages, status and generated date, straight from the document", async () => {
     const res = await renderBuiltin();
     const facts = factsOf(res, "Program");
     const c = model.doc.cover;
     const meta = (k: string) => model.doc.meta.find(([x]) => x === k)![1];
-    expect([...facts.keys()]).toEqual(["Program", "Product", COVER_LABELS.suSite, COVER_LABELS.suStage, COVER_LABELS.ruSite, COVER_LABELS.ruStage, "Revision", "Status", "Generated"]);
+    expect([...facts.keys()]).toEqual(["Program", "Product", COVER_LABELS.suSite, COVER_LABELS.suStage, COVER_LABELS.ruSite, COVER_LABELS.ruStage, "Status", "Generated"]);
     expect(facts.get("Program")).toBe(c.program);
     expect(facts.get("Product")).toBe(c.product);
     expect(facts.get("Sending unit (SU) site")).toBe(c.sourceSite);
@@ -83,7 +83,7 @@ describe("built-in look: cover page", () => {
     expect(facts.get("Receiving unit (RU) program stage")).toBe("Clinical (GMP, not process validated)");
     // The sites are SU and RU everywhere in the front matter: no label calls them source or target.
     expect([...facts.keys()].some((k) => /(source|target)/i.test(k))).toBe(false);
-    expect(facts.get("Revision")).toBe(meta("Revision"));
+    expect(facts.has("Revision")).toBe(false);
     expect(facts.get("Status")).toBe(model.doc.status);
     expect(facts.get("Generated")).toBe(meta("Generated"));
   });
@@ -161,11 +161,11 @@ describe("built-in look: table of contents and document control", () => {
     expect(model.doc.sections.some((s) => s.appendix)).toBe(true);
   });
 
-  it("has a document-control table with a placeholder ID, revision, status and author, reviewer and approver rows, but no signatures", async () => {
+  it("has a document-control table with a placeholder ID, status and author, reviewer and approver rows, but no signatures", async () => {
     const res = await renderBuiltin();
     const control = factsOf(res, "Document ID");
     expect(control.get("Document ID")).toBe("[to be assigned]");
-    expect(control.get("Revision")).toBe(model.doc.meta.find(([k]) => k === "Revision")![1]);
+    expect(control.has("Revision")).toBe(false);
     expect(control.get("Status")).toBe(model.doc.status);
     const people = rowsOf(findTable(res, ["Responsibility", "Name", "Role", "Date"])).map((r) => r.map(text));
     expect(people).toEqual([
@@ -189,7 +189,7 @@ describe("built-in look: table of contents and document control", () => {
     expect(rowsOf(findTable(res, ["Role", "Name", "Signature", "Date"])).length).toBeGreaterThan(1);
     const summary = rowsOf(findTable(res, ["Item", "Value"])).map((r) => r.map(text));
     for (const [k, v] of model.doc.meta) {
-      if (k === "Revision" || k === "Generated") continue;
+      if (k === "Generated") continue;
       expect(summary, k).toContainEqual([k, v]);
     }
   });

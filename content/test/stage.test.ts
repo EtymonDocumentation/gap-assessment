@@ -158,8 +158,7 @@ describe.each(PAIRS)("source %s, target %s", (source, target) => {
     expect(doc.cover.targetStage).toBe(STAGE_LABEL[target]);
     expect(meta(doc, "SU program stage")).toBe(STAGE_LABEL[source]);
     expect(meta(doc, "RU program stage")).toBe(STAGE_LABEL[target]);
-    const labels = doc.meta.map(([k]) => k);
-    expect(labels.indexOf("Revision")).toBe(labels.indexOf("Generated") + 1);
+    expect(doc.meta.some(([k]) => k === "Revision")).toBe(false);
     expect(plain(md)).toContain(`Program stage: sending unit ${STAGE_LABEL[source]}; receiving unit ${STAGE_LABEL[target]}.`);
   });
 

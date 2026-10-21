@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { importTemplateFile, renderDocx, suggestMapping, type RenderDocxInput, type TemplateMapping } from "../src/index";
-import { BANNER, GENERATED_AT, buildModelWithComments, fixture } from "./fixtures";
+import { BANNER, GENERATED_AT, buildModel, fixture } from "./fixtures";
 import { customProps, plainText, strictDocx } from "./strict";
 
 // Rendering and strictly checking whole documents takes several seconds on a busy machine.
@@ -14,7 +14,7 @@ vi.setConfig({ testTimeout: 60000 });
 describe("sample output files", () => {
   const dir = join(tmpdir(), "gap-docx-samples");
   mkdirSync(dir, { recursive: true });
-  const m = buildModelWithComments();
+  const m = buildModel();
 
   const cases: { file: string; mode: RenderDocxInput["mode"]; template?: string; mapped?: boolean; omit?: boolean }[] = [
     { file: "sample-builtin.docx", mode: "builtin" },

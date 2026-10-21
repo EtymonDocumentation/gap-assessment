@@ -132,8 +132,11 @@ describe("tailoring", () => {
     expect(isTopicExcluded(demo, UO, "hold")).toBe(false);
   });
 
-  it("requires a reason", () => {
-    expect(() => excludeTopic(content, demo, UO, "hold", "   ", ACTOR)).toThrow(TailoringError);
+  it("accepts a topic without a reason (the reason is optional) and still refuses an unknown topic", () => {
+    const blank = excludeTopic(content, demo, UO, "hold", "   ", ACTOR);
+    expect(isTopicExcluded(blank, UO, "hold")).toBe(true);
+    expect(blank.tailoring.excluded[0]!.reason).toBeUndefined();
+    expect(excludeTopic(content, demo, UO, "hold", undefined, ACTOR).tailoring.excluded[0]!.reason).toBeUndefined();
     expect(() => excludeTopic(content, demo, UO, "nope", "reason", ACTOR)).toThrow(TailoringError);
   });
 

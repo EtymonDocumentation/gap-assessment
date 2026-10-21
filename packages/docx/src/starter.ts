@@ -22,14 +22,12 @@ const COLUMNS: Record<string, string[]> = {
   risks: ["Rank", "ID", "Attribute", "Category", "Severity", "Regulatory"],
   sources: ["ID", "Type", "Identifier, title, version", "Responder", "Date", "State", "Cited by"],
   approvals: ["Role", "Name", "Signature", "Date"],
-  revisions: ["Revision", "Status", "Date", "By", "Summary of change", "Template"],
-  comments: ["ID", "Location", "Comment", "By", "Date", "Status", "Responses"],
 };
 
 /** An empty document model: the starter template only needs the shell of the built-in look. */
 const SHELL: DocModel = { title: "{title}", banner: "{banner}", status: "{status}", meta: [],
   cover: { program: "{program}", product: "", sourceSite: "{sourceSite}", targetSite: "{targetSite}", sourceStage: "", targetStage: "" },
-  sections: [], revisions: [], comments: [], tbdCount: 0 };
+  sections: [], tbdCount: 0 };
 
 /** The appendices of a document, in order, with their letters. Without a document, those of a document that leaves nothing out. */
 function appendicesOf(doc?: Pick<DocModel, "sections">): { id: string; number: string; title: string }[] {
@@ -38,7 +36,7 @@ function appendicesOf(doc?: Pick<DocModel, "sections">): { id: string; number: s
 }
 
 /** Appendices that have a loop tag in the starter template: the appendix id, the loop, and the table columns. */
-const APPENDIX_LOOPS: Record<string, string> = { "source-register": "sources", "revision-history": "revisions", "reviewer-comments": "comments" };
+const APPENDIX_LOOPS: Record<string, string> = { "source-register": "sources" };
 
 /**
  * A valid .docx in the built-in look that uses every main tag, to start a placeholder-tag template from.
@@ -70,7 +68,6 @@ export function buildStarterTemplate(doc?: Pick<DocModel, "sections">): Uint8Arr
       ["Sending unit (SU) site", "{sourceSite}"],
       ["Receiving unit (RU) site", "{targetSite}"],
       ["Generated", "{generated}"],
-      ["Revision", "{revision}"],
       ["Differences identified", "{differencesCount}"],
       ["Open information items", "{openItemsCount}"],
       ["Entries verified", "{verifiedSummary}"],

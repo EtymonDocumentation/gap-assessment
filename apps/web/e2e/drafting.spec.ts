@@ -28,6 +28,8 @@ async function newProject(page: Page) {
   await dialog.getByLabel("Project title").fill("Drafting test (fictional)");
   await dialog.getByLabel("Responder name").fill("A. Reviewer (fictional)");
   await dialog.getByRole("button", { name: "Create project" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "What does this assessment cover?" })).toBeVisible();
+  await page.getByRole("link", { name: "Continue to the interview" }).click();
   await expect(page.locator("#q-prompt")).toHaveText("Program or product code");
 }
 
@@ -205,39 +207,27 @@ test("the demo's Home card counts its TBD values and the overdue one; Show only 
   await expectAccessible(page, "interview with Show only TBD");
 });
 
-test("issuing for review with TBD values asks first and names the count; a draft does not, and both record it", async ({ page }) => {
+test("a download with TBD values asks first and names the count, in every format; Go back changes nothing; Download anyway records it", async ({ page }) => {
   test.setTimeout(90_000);
   await loadDemo(page);
   await go(page, "#/document");
-  const table = page.getByRole("region", { name: "Revisions table" });
-
-  // A draft: no warning, count recorded.
-  await page.getByRole("button", { name: "Issue revision" }).click();
-  let dlg = page.getByRole("dialog", { name: "Issue revision" });
-  await dlg.getByLabel(/^Summary of change/).fill("Working draft with TBD values");
-  await dlg.getByLabel("Issued by (required)").fill("Q. Tester (fictional)");
-  await dlg.getByRole("button", { name: "Issue revision" }).click();
-  await expect(page.getByRole("dialog")).toBeHidden();
-  await expect(table.locator("tbody tr").first()).toContainText("4 TBD values open");
-
-  // Issued for review: a warning that names the count. Go back changes nothing; Issue anyway records it.
-  await page.getByRole("button", { name: "Issue revision" }).click();
-  dlg = page.getByRole("dialog", { name: "Issue revision" });
-  await dlg.getByLabel(/^Summary of change/).fill("Ready for review");
-  await dlg.getByLabel("Issued by (required)").fill("Q. Tester (fictional)");
-  await dlg.getByLabel("Issued for review").check();
-  await dlg.getByRole("button", { name: "Issue revision" }).click();
-  const warn = page.getByRole("dialog", { name: "Issue for review with TBD values?" });
-  await expect(warn).toContainText("4 TBD values");
+  for (const name of ["Download Markdown", "Download HTML"]) {
+    await page.getByRole("button", { name }).click();
+    const warn = page.getByRole("dialog", { name: "Download with TBD values?" });
+    await expect(warn).toContainText("4 TBD values");
+    await expect(warn.getByTestId("tbd-warning")).toContainText("4 TBD values were");
+    await warn.getByRole("button", { name: "Go back" }).click();
+    await expect(page.getByRole("dialog")).toBeHidden();
+  }
+  await page.getByRole("button", { name: "Download Word document" }).click();
+  const warn = page.getByRole("dialog", { name: "Download with TBD values?" });
   await expectAccessible(page, "TBD warning dialog");
-  await warn.getByRole("button", { name: "Go back" }).click();
-  // Back at the Issue revision dialog with nothing issued yet.
-  await expect(page.getByRole("dialog", { name: "Issue revision" })).toBeVisible();
-  await page.getByRole("dialog", { name: "Issue revision" }).getByRole("button", { name: "Issue revision" }).click();
-  await page.getByRole("dialog", { name: "Issue for review with TBD values?" }).getByRole("button", { name: "Issue anyway" }).click();
+  // Nothing was recorded by going back.
+  await expect(page.getByRole("region", { name: "Export history" }).or(page.locator("section", { has: page.getByRole("heading", { name: "Export history" }) })).locator("tbody tr")).toHaveCount(0);
+  const [dl] = await Promise.all([page.waitForEvent("download"), warn.getByRole("button", { name: "Download anyway" }).click()]);
+  expect(dl.suggestedFilename()).toMatch(/\.docx$/);
   await expect(page.getByRole("dialog")).toBeHidden();
-  await expect(table.locator("tbody tr")).toHaveCount(3);
-  await expect(table.locator("tbody tr").first()).toContainText("4 TBD values open");
+  await expect(page.locator("section", { has: page.getByRole("heading", { name: "Export history" }) }).locator("tbody tr").first()).toContainText("4");
 });
 
 test("the Interview page with the bar is accessible, keyboard operable and does not scroll sideways", async ({ page }) => {

@@ -76,6 +76,15 @@ const versionString = z.string().regex(/^\d+\.\d+\.\d+$/, "must be semver x.y.z"
 
 export const catalogSchema = z.object({
   catalog: z.object({ id: z.string(), version: versionString }),
+  /** The broad process stages of the Scope step, in process order. Every unit operation is in exactly one group. */
+  stageGroups: z.array(
+    z.object({
+      key: z.string().regex(/^[a-z0-9_]+$/),
+      label: z.string(),
+      description: z.string(),
+      unitOperations: z.array(z.string()).min(1),
+    }),
+  ),
   unitOperations: z.array(
     z.object({
       key: z.string(),
@@ -286,9 +295,6 @@ export const templateSchema = z.object({
     sourceRegisterIntro: z.string(),
     changeLogSummaryIntro: z.string(),
     changeLogReviewNote: z.string(),
-    revisionHistoryIntro: z.string(),
-    revisionStatement: z.string(),
-    reviewerCommentsIntro: z.string(),
   }),
 });
 export type Templates = z.infer<typeof templateSchema>;

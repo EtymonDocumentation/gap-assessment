@@ -154,11 +154,11 @@ describe("migration 1.5.0 -> 1.6.0", () => {
       // A key that did not move is left alone.
       expect(p.gapOverlays.some((o) => o.gapKey === "R-FILL-PUMP:uo.aseptic_filling.equip.filler.operatingPrinciple")).toBe(true);
       expect(p.gapOverlays.some((o) => o.gapKey.includes("prefilter"))).toBe(false);
-      expect(p.document.comments.map((c) => c.anchor.gapKey)).toEqual([
+      expect((p.document.archivedReview!.comments as { anchor: { gapKey: string } }[]).map((c) => c.anchor.gapKey)).toEqual([
         "R-BBR-PRESENCE:uo.bbr_filtration.presence",
         "R-PUPSIT:uo.sterile_filtration.ipc.pupsit.status",
       ]);
-      expect(p.document.comments.map((c) => c.text)).toEqual(["Is the BBR filter still needed (fictional)?", "PUPSIT justification please (fictional)."]);
+      expect((p.document.archivedReview!.comments as { text: string }[]).map((c) => c.text)).toEqual(["Is the BBR filter still needed (fictional)?", "PUPSIT justification please (fictional)."]);
       expect(p.changeLog[0]!.path).toBe("source.uo.bbr_filtration.presence");
     });
 

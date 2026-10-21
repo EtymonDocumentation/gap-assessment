@@ -34,15 +34,24 @@ const EXPORT = {
   by: "Pat Placeholder (fictional)",
   format: "docx",
   template: { mode: "builtin", name: "Built-in default", version: "1.0.0" },
-  revision: 1,
   fingerprint: "0123456789abcdef",
-  changedSinceRevision: false,
+  tbdCount: 2,
+  changedSincePrevious: false,
 };
 
-/** A current-version file with a fully populated document block. */
+/** A schema 1.9.0 file with a fully populated document block, as the retired review workflow wrote it. */
 const reviewed = () => {
   const raw = json(empty());
+  raw.schemaVersion = "1.9.0";
+  delete raw.stepScope;
   raw.document = structuredClone({ revisions: [REVISION], comments: [COMMENT], exports: [EXPORT] });
+  return raw;
+};
+
+/** A current-version file with an export record. */
+const exported = () => {
+  const raw = json(empty());
+  raw.document = structuredClone({ exports: [EXPORT] });
   return raw;
 };
 
@@ -58,26 +67,26 @@ const issuesOf = (raw: unknown): string[] => {
 
 describe("schema 1.3.0 and later: the document block", () => {
   it("is the current version, and a new project starts with an empty document block", () => {
-    expect(SCHEMA_VERSION).toBe("1.9.0");
+    expect(SCHEMA_VERSION).toBe("1.10.0");
     const p = empty();
-    expect(p.schemaVersion).toBe("1.9.0");
-    expect(p.document).toEqual({ revisions: [], comments: [], exports: [] });
+    expect(p.schemaVersion).toBe("1.10.0");
+    expect(p.document).toEqual({ exports: [] });
   });
 
   it("each new project gets its own arrays", () => {
     const a = empty();
     const b = empty();
-    a.document.comments.push({ seq: 1, anchor: { sectionId: "scope" }, by: "x", at: T0, text: "t", status: "open", replies: [] });
-    expect(b.document.comments).toHaveLength(0);
+    a.document.exports.push({ at: T0, format: "html", template: { mode: "builtin", name: "Built-in default", version: "1.0.0" }, fingerprint: "0123456789abcdef" });
+    expect(b.document.exports).toHaveLength(0);
   });
 
   it("round-trips an empty project, a reviewed one and the demo through JSON", () => {
     const fresh = json(empty());
     expect(parseProject(fresh)).toEqual(fresh);
-    const raw = reviewed();
+    const raw = exported();
     expect(parseProject(raw)).toEqual(raw);
     const demo = buildDemoProject(realContent, demos["arx-217"]);
-    expect(demo.document.revisions).toHaveLength(1);
+    expect(demo.document.exports).toEqual([]);
     expect(parseProject(json(demo))).toEqual(json(demo));
   });
 
@@ -103,8 +112,8 @@ describe("migration to 1.3.0", () => {
   for (const version of ["1.0.0", "1.1.0", "1.2.0"]) {
     it(`reads a ${version} file and adds an empty document block`, () => {
       const p = parseProject(older(version));
-      expect(p.schemaVersion).toBe("1.9.0");
-      expect(p.document).toEqual({ revisions: [], comments: [], exports: [] });
+      expect(p.schemaVersion).toBe("1.10.0");
+      expect(p.document).toEqual({ exports: [] });
       // Nothing else is touched: the change log, sources and entries are as they were.
       expect(p.changeLog).toEqual(original.changeLog);
       expect(p.sources).toEqual(original.sources);
@@ -130,13 +139,13 @@ describe("migration to 1.3.0", () => {
   it("keeps a document block if an older file somehow has one", () => {
     const raw = reviewed();
     raw.schemaVersion = "1.2.0";
-    expect(parseProject(raw).document.revisions).toHaveLength(1);
+    expect(parseProject(raw).document.archivedReview?.revisions).toHaveLength(1);
   });
 
   it("still refuses versions it does not know", () => {
     const raw = reviewed();
     raw.schemaVersion = "0.9.0";
-    expect(() => parseProject(raw)).toThrow(/Unsupported schema version 0\.9\.0 \(this build reads 1.9.0\)/);
+    expect(() => parseProject(raw)).toThrow(/Unsupported schema version 0\.9\.0 \(this build reads 1.10.0\)/);
     raw.schemaVersion = "2.0.0";
     expect(() => parseProject(raw)).toThrow(/Unsupported schema version 2.0.0/);
   });
@@ -161,7 +170,7 @@ describe("migration to 1.4.0: the program stage", () => {
 
   it("reads a 1.3.0 project as the current version and inserts no stage value", () => {
     const p = parseProject(v13());
-    expect(p.schemaVersion).toBe("1.9.0");
+    expect(p.schemaVersion).toBe("1.10.0");
     for (const side of ["source", "target"] as const) {
       expect(p.processes[side].site.fields.programStage).toBeUndefined();
       expect(resolveEntry(p, `${side}.site.programStage`).status).toBe("not_established");
@@ -182,15 +191,15 @@ describe("migration to 1.4.0: the program stage", () => {
     delete raw.document;
     delete raw.custom;
     const p = parseProject(raw);
-    expect(p.schemaVersion).toBe("1.9.0");
-    expect(p.document).toEqual({ revisions: [], comments: [], exports: [] });
+    expect(p.schemaVersion).toBe("1.10.0");
+    expect(p.document).toEqual({ exports: [] });
     expect(resolveEntry(p, "source.site.programStage").status).toBe("not_established");
     expect(resolveEntry(p, "target.site.programStage").status).toBe("not_established");
   });
 
   it("accepts a current project with answered stages and round-trips it", () => {
     const raw = json(original);
-    expect(raw.schemaVersion).toBe("1.9.0");
+    expect(raw.schemaVersion).toBe("1.10.0");
     expect(parseProject(raw)).toEqual(raw);
     expect(resolveEntry(original, "source.site.programStage")).toMatchObject({ status: "established", value: "commercial" });
   });
@@ -210,7 +219,7 @@ describe("migration to 1.5.0: per-gap notes and omitted sections", () => {
   it("reads a 1.4.0 project as 1.5.0 and gives it no notes and no omitted sections", () => {
     const raw = v14();
     const p = parseProject(raw);
-    expect(p.schemaVersion).toBe("1.9.0");
+    expect(p.schemaVersion).toBe("1.10.0");
     for (const o of p.gapOverlays) expect(o.notes).toBeUndefined();
     expect(p.document.omittedSections).toBeUndefined();
   });
@@ -229,8 +238,8 @@ describe("migration to 1.5.0: per-gap notes and omitted sections", () => {
     for (const side of ["source", "target"]) delete raw.processes[side].site.fields.programStage;
     raw.answers = raw.answers.filter((a: { questionId: string }) => a.questionId !== "site.stage");
     const p = parseProject(raw);
-    expect(p.schemaVersion).toBe("1.9.0");
-    expect(p.document).toEqual({ revisions: [], comments: [], exports: [] });
+    expect(p.schemaVersion).toBe("1.10.0");
+    expect(p.document).toEqual({ exports: [] });
   });
 
   it("round-trips omitted sections and a gap note", () => {
@@ -249,75 +258,71 @@ describe("migration to 1.5.0: per-gap notes and omitted sections", () => {
 
 describe("invalid document data is rejected with a useful message", () => {
   const bad = (edit: (raw: Record<string, any>) => void) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-    const raw = reviewed();
+    const raw = exported();
     edit(raw);
     return issuesOf(raw).join("\n");
   };
 
-  it("a revision with no summary", () => {
-    expect(bad((r) => (r.document.revisions[0].summary = "   "))).toMatch(/document\.revisions\.0\.summary: a revision needs a summary of the change/);
-    expect(bad((r) => delete r.document.revisions[0].summary)).toMatch(/document\.revisions\.0\.summary/);
-  });
-
-  it("a revision status other than draft or issued for review (there is no approved)", () => {
-    expect(bad((r) => (r.document.revisions[0].status = "approved"))).toMatch(/document\.revisions\.0\.status/);
-  });
-
-  it("a revision with a bad number, no author, no fingerprint or a bad template", () => {
-    expect(bad((r) => (r.document.revisions[0].number = 0))).toMatch(/document\.revisions\.0\.number/);
-    expect(bad((r) => (r.document.revisions[0].number = 1.5))).toMatch(/document\.revisions\.0\.number/);
-    expect(bad((r) => (r.document.revisions[0].by = ""))).toMatch(/document\.revisions\.0\.by/);
-    expect(bad((r) => delete r.document.revisions[0].fingerprint)).toMatch(/document\.revisions\.0\.fingerprint/);
-    expect(bad((r) => (r.document.revisions[0].template.mode = "macro"))).toMatch(/document\.revisions\.0\.template\.mode/);
-    expect(bad((r) => (r.document.revisions[0].template.name = " "))).toMatch(/document\.revisions\.0\.template\.name/);
-  });
-
-  it("two revisions with the same number", () => {
-    expect(bad((r) => r.document.revisions.push(structuredClone(REVISION)))).toMatch(/Duplicate revision number 1/);
-  });
-
-  it("a comment with no text, a bad status or no anchor section", () => {
-    expect(bad((r) => (r.document.comments[0].text = ""))).toMatch(/document\.comments\.0\.text: a comment needs text/);
-    expect(bad((r) => (r.document.comments[0].status = "closed"))).toMatch(/document\.comments\.0\.status/);
-    expect(bad((r) => (r.document.comments[0].anchor = {}))).toMatch(/document\.comments\.0\.anchor\.sectionId/);
-    expect(bad((r) => (r.document.comments[0].anchor.gapKey = ""))).toMatch(/document\.comments\.0\.anchor\.gapKey/);
-    expect(bad((r) => delete r.document.comments[0].replies)).toMatch(/document\.comments\.0\.replies/);
-  });
-
-  it("a comment number that is not a positive whole number", () => {
-    expect(bad((r) => (r.document.comments[0].seq = 0))).toMatch(/document\.comments\.0\.seq/);
-    expect(bad((r) => (r.document.comments[0].seq = -3))).toMatch(/document\.comments\.0\.seq/);
-  });
-
-  it("two comments with the same number", () => {
-    expect(bad((r) => r.document.comments.push(structuredClone(COMMENT)))).toMatch(/Duplicate comment number 1/);
-  });
-
-  it("a reply with an unknown kind or no text", () => {
-    expect(bad((r) => (r.document.comments[0].replies[0].kind = "approve"))).toMatch(/document\.comments\.0\.replies\.0\.kind/);
-    expect(bad((r) => (r.document.comments[0].replies[0].text = " "))).toMatch(/document\.comments\.0\.replies\.0\.text: a response needs text/);
-  });
-
-  it("an export with an unknown format, a missing template or a missing flag", () => {
+  it("an export with an unknown format or a missing template or fingerprint", () => {
     expect(bad((r) => (r.document.exports[0].format = "pdf"))).toMatch(/document\.exports\.0\.format/);
     expect(bad((r) => delete r.document.exports[0].template)).toMatch(/document\.exports\.0\.template/);
-    expect(bad((r) => delete r.document.exports[0].changedSinceRevision)).toMatch(/document\.exports\.0\.changedSinceRevision/);
+    expect(bad((r) => delete r.document.exports[0].fingerprint)).toMatch(/document\.exports\.0\.fingerprint/);
+  });
+
+  it("an export with a bad TBD count", () => {
+    expect(bad((r) => (r.document.exports[0].tbdCount = -1))).toMatch(/document\.exports\.0\.tbdCount/);
   });
 
   it("a document block of the wrong shape", () => {
     expect(bad((r) => (r.document = []))).toMatch(/document/);
-    expect(bad((r) => (r.document = { revisions: [], comments: [] }))).toMatch(/document\.exports/);
-    expect(bad((r) => (r.document = { revisions: "none", comments: [], exports: [] }))).toMatch(/document\.revisions/);
+    expect(bad((r) => (r.document = {}))).toMatch(/document\.exports/);
   });
 
-  it("accepts a revision or comment without the optional fields", () => {
-    const raw = reviewed();
-    delete raw.document.revisions[0].role;
-    delete raw.document.revisions[0].template;
-    delete raw.document.comments[0].role;
-    delete raw.document.comments[0].anchor.gapKey;
+  it("accepts an export without the optional fields", () => {
+    const raw = exported();
     delete raw.document.exports[0].by;
-    delete raw.document.exports[0].revision;
+    delete raw.document.exports[0].tbdCount;
+    delete raw.document.exports[0].changedSincePrevious;
     expect(() => parseProject(raw)).not.toThrow();
+  });
+});
+
+describe("migration to 1.10.0: the review workflow is archived, not shown", () => {
+  it("moves revisions and comments, untouched, into document.archivedReview and logs it", () => {
+    const raw = reviewed();
+    const p = parseProject(raw);
+    expect(p.schemaVersion).toBe("1.10.0");
+    expect(p.document.archivedReview?.revisions).toEqual([REVISION]);
+    expect(p.document.archivedReview?.comments).toEqual([COMMENT]);
+    expect("revisions" in p.document).toBe(false);
+    expect("comments" in p.document).toBe(false);
+    expect(p.document.exports).toEqual([EXPORT]);
+    expect(p.changeLog.at(-1)).toMatchObject({ action: "archive_review", path: "document.archivedReview" });
+    expect(p.stepScope).toEqual({ excluded: [] });
+  });
+
+  it("round-trips the archive unchanged, and writes nothing more on the second read", () => {
+    const first = parseProject(reviewed());
+    const again = parseProject(JSON.parse(JSON.stringify(first)));
+    expect(again).toEqual(first);
+    expect(again.document.archivedReview).toEqual(first.document.archivedReview);
+  });
+
+  it("keeps even an archived record the tool could not have written itself", () => {
+    const raw = reviewed();
+    raw.document.revisions[0].status = "approved"; // not a status the tool ever offered
+    raw.document.comments[0].extra = "kept";
+    const p = parseProject(raw);
+    expect((p.document.archivedReview?.revisions[0] as unknown as Record<string, unknown>).status).toBe("approved");
+    expect((p.document.archivedReview?.comments[0] as unknown as Record<string, unknown>).extra).toBe("kept");
+  });
+
+  it("adds no archive and no log entry when there was nothing to archive", () => {
+    const raw = reviewed();
+    raw.document.revisions = [];
+    raw.document.comments = [];
+    const p = parseProject(raw);
+    expect(p.document.archivedReview).toBeUndefined();
+    expect(p.changeLog.some((c) => c.action === "archive_review")).toBe(false);
   });
 });

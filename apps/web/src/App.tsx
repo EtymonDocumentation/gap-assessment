@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ScopePage } from "./pages/ScopePage";
 import { ComparePage } from "./pages/ComparePage";
 import { DocumentPage } from "./pages/DocumentPage";
 import { GuidancePage } from "./pages/GuidancePage";
@@ -20,6 +21,7 @@ import { useStore } from "./store";
 
 const NAV = [
   { path: "/", label: "Project" },
+  { path: "/scope", label: "Scope" },
   { path: "/interview", label: "Interview" },
   { path: "/compare", label: "Side by side" },
   { path: "/register", label: "Gap register" },
@@ -94,6 +96,7 @@ function AppShell() {
   let page: React.ReactNode;
   if (!ready) page = <p className="muted">Loading…</p>;
   else if (needsProject && !project) page = <HomePage notice="Open the demo or start a new project first." />;
+  else if (route.path === "/scope") page = <ScopePage />;
   else if (route.path === "/interview") page = <InterviewPage params={route.params} />;
   else if (route.path === "/compare") page = <ComparePage />;
   else if (route.path === "/register") page = <RegisterPage />;

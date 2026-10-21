@@ -4,7 +4,6 @@ import { cell } from "./csv";
 import type { ContentBundle } from "./content";
 import { effectiveStaged } from "./custom";
 import { displaySideTags, entryLabel, locationText, sideName } from "./labels";
-import { commentDisplayId } from "./review";
 
 /**
  * Human-readable views of the project change log: filterable rows for the Change log page, CSV export and
@@ -39,6 +38,9 @@ export const ACTION_LABELS: Record<string, string> = {
   custom_item_remove: "Custom item removed",
   tailor_exclude: "Topic switched off (scope)",
   tailor_include: "Topic switched on (scope)",
+  scope_exclude_uo: "Process step left out (scope)",
+  scope_include_uo: "Process step put back (scope)",
+  archive_review: "Revisions and comments archived",
   issue_revision: "Revision issued",
   add_comment: "Comment added",
   reply_comment: "Comment reply",
@@ -47,10 +49,16 @@ export const ACTION_LABELS: Record<string, string> = {
 };
 
 /**
- * Actions that record the review of the document (revisions and reviewer comments). The document's own Change log
- * summary leaves them out: they are listed in its revision history and reviewer comments, and counting them there
- * would make the document look changed every time a revision is issued or a comment is added.
+ * Actions of the retired review workflow (revisions and reviewer comments, removed in schema 1.10.0). An old project can still
+ * carry them in its change log, where they stay readable. The document's own Change log summary leaves them out: that history
+ * is archived, not part of the assessment the document describes.
  */
+/** "C-001" for comment number 1 (old comments appear in the change log of projects from before schema 1.10.0). */
+function commentDisplayId(seq: number): string {
+  return `C-${String(seq).padStart(3, "0")}`;
+}
+
+
 export const REVIEW_ACTIONS: readonly string[] = ["issue_revision", "add_comment", "reply_comment", "resolve_comment", "reopen_comment"];
 
 export function actionLabel(action: string): string {
@@ -317,12 +325,12 @@ function toRow(content: ContentBundle, project: Project, ev: ChangeEvent, i: num
       return row;
     }
     default: {
-      if (ev.action.startsWith("tailor_")) {
+      if (ev.action.startsWith("tailor_") || ev.action.startsWith("scope_")) {
         row.subject = ev.detail ?? ev.path ?? "";
         const uo = ev.path?.split(".")[1];
         const sec = uo ? content.sections.find((s) => s.kind === "uo" && s.uo === uo) : undefined;
         withSection(sec?.id, sec?.title);
-        const reason = (o: unknown) => (isObj(o) && typeof o.reason === "string" ? `Excluded: ${o.reason}` : NONE);
+        const reason = (o: unknown) => (isObj(o) ? (typeof o.reason === "string" ? `Excluded: ${o.reason}` : `Excluded: No reason recorded`) : NONE);
         row.before = reason(ev.before);
         row.after = reason(ev.after);
       } else if (ev.action.startsWith("custom_")) {

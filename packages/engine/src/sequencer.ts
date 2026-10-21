@@ -24,13 +24,28 @@ export function sidesOf(q: Question): InstanceSide[] {
   return [q.sides];
 }
 
-export function uoApplicable(content: ContentBundle, project: Project, uo: string): boolean {
+/**
+ * Whether the answers given so far put the unit operation in scope (for example lyophilization only for a lyophilized product).
+ * The project's own scope choice is separate: see uoApplicable.
+ */
+export function uoAnswerApplicable(content: ContentBundle, project: Project, uo: string): boolean {
   const def = content.catalog.unitOperations.find((u) => u.key === uo);
   if (!def) return false;
   if (def.applicableWhen && !evaluate(def.applicableWhen, { project, side: "shared" })) return false;
   // Out of scope on BOTH sides (e.g. labelling is done at another site for SU and RU): the section is not shown at all.
   if (def.hiddenWhen && (["source", "target"] as const).every((side) => evaluate(def.hiddenWhen!, { project, side }))) return false;
   return true;
+}
+
+/**
+ * The unit operation is asked about, compared and documented: its answers put it in scope AND the project did not leave it
+ * out in the Scope step. This is the single place the scope choice takes effect, so the interview, progress, comparison, gap
+ * register, validation plan, verification and document all follow it. Values of a left-out unit operation are not deleted;
+ * they stay in the project as inactive entries and return when the step is ticked again.
+ */
+export function uoApplicable(content: ContentBundle, project: Project, uo: string): boolean {
+  if ((project.stepScope?.excluded ?? []).some((e) => e.uo === uo)) return false;
+  return uoAnswerApplicable(content, project, uo);
 }
 
 export function isPresenceQuestion(q: Question, section: Section): boolean {

@@ -52,7 +52,7 @@ describe("SU and RU in the front matter", () => {
   it("names the two sites and their program stages with the full terms on the cover", async () => {
     const res = await renderDoc(contractModel());
     const facts = factsOf(res, "Program");
-    expect([...facts.keys()]).toEqual(["Program", "Product", COVER_LABELS.suSite, COVER_LABELS.suStage, COVER_LABELS.ruSite, COVER_LABELS.ruStage, "Revision", "Status", "Generated"]);
+    expect([...facts.keys()]).toEqual(["Program", "Product", COVER_LABELS.suSite, COVER_LABELS.suStage, COVER_LABELS.ruSite, COVER_LABELS.ruStage, "Status", "Generated"]);
     expect(facts.get("Sending unit (SU) site")).toBe("Site North (fictional), Line 2");
     expect(facts.get("Receiving unit (RU) site")).toBe("Site South (fictional), Line 4");
     expect(facts.get("Sending unit (SU) program stage")).toBe("Commercial (process validated)");

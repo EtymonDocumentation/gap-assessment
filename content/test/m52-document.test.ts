@@ -1,7 +1,6 @@
 // Milestone 5.2: SU/RU wording, the lean gap table with the Gap details appendix, per-gap notes, documents-first
 // sources and the optional document sections. All names and data are fictional.
 import {
-  addComment,
   assess,
   buildDemoProject,
   buildDocument,
@@ -127,8 +126,6 @@ describe("the main gap table and the Gap details appendix", () => {
       ["A", "gap-details"],
       ["B", "source-register"],
       ["C", "change-log-summary"],
-      ["D", "revision-history"],
-      ["E", "reviewer-comments"],
     ]);
     expect(tableOf(d, "gap-details").rows).toHaveLength(diffs.length);
     expect(tableOf(d, "gap-table").rows).toHaveLength(diffs.length);
@@ -181,12 +178,6 @@ describe("the main gap table and the Gap details appendix", () => {
     expect(md).toContain("| ID | Rule | Owner | Status | Regulatory | SU verification | RU verification |");
     expect(html).toContain('<section id="doc-gap-details">');
     expect(html).toContain('<th scope="col">RU verification</th>');
-  });
-
-  it("allows a comment on the Gap details appendix", () => {
-    expect(DOCUMENT_SECTION_IDS).toContain("gap-details");
-    const p = addComment(demo, { sectionId: "gap-details", text: "Check the rule versions." }, { name: "B. Checker (fictional)", at: "2026-10-05T09:00:00.000Z" });
-    expect(docOf(p).comments.at(-1)!.anchorText).toBe("Appendix A. Gap details");
   });
 });
 
@@ -296,8 +287,6 @@ describe("optional document sections", () => {
       "gap-details",
       "source-register",
       "change-log-summary",
-      "revision-history",
-      "reviewer-comments",
     ]);
     for (const id of ["purpose", "scope", "source-summary", "target-summary", "gap-table", "open-items"]) {
       expect(OPTIONAL_SECTIONS.map((s) => s.id)).not.toContain(id);
@@ -310,7 +299,7 @@ describe("optional document sections", () => {
     expect(omittedSectionIds(demo)).toEqual([]);
     expect(demo.document.omittedSections).toBeUndefined();
     expect(full.meta.find(([k]) => k === "Sections omitted")?.[1]).toBe("None");
-    expect(full.sections).toHaveLength(18);
+    expect(full.sections).toHaveLength(16);
   });
 
   it("removes the sections and closes up the numbering and the appendix letters", () => {
@@ -330,11 +319,9 @@ describe("optional document sections", () => {
       "verification-status",
       "references",
     ]);
-    const omitAppendix = docOf(setOmittedSections(demo, ["gap-details", "revision-history"]));
+    const omitAppendix = docOf(setOmittedSections(demo, ["gap-details", "source-register"]));
     expect(omitAppendix.sections.filter((s) => s.appendix).map((s) => [s.number, s.id])).toEqual([
-      ["A", "source-register"],
-      ["B", "change-log-summary"],
-      ["C", "reviewer-comments"],
+      ["A", "change-log-summary"],
     ]);
   });
 
@@ -358,31 +345,11 @@ describe("optional document sections", () => {
   });
 
   it("records the omitted sections in each export record", () => {
-    const rec = { at: GENERATED, by: ACTOR.name, format: "markdown" as const, template: { mode: "builtin" as const, name: "Built-in default", version: "1.0.0" }, fingerprint: documentFingerprint(d), changedSinceRevision: false };
+    const rec = { at: GENERATED, by: ACTOR.name, format: "markdown" as const, template: { mode: "builtin" as const, name: "Built-in default", version: "1.0.0" }, fingerprint: documentFingerprint(d) };
     const p = recordExport(recordExport(omitted, rec), { ...rec, format: "html" });
     expect(p.document.exports.map((e) => e.omittedSections)).toEqual([OMIT, OMIT]);
     expect(recordExport(demo, rec).document.exports[0]!.omittedSections).toBeUndefined();
     expect(parseProject(JSON.parse(JSON.stringify(p))).document.exports[1]!.omittedSections).toEqual(OMIT);
-  });
-
-  it("keeps comments anchored to an omitted section, with their anchor text", () => {
-    let p = addComment(omitted, { sectionId: "risk", text: "Ranking looks high (fictional)." }, { name: "B. Checker (fictional)", at: "2026-10-05T09:00:00.000Z" });
-    p = addComment(p, { sectionId: "gap-table", gapKey: PUMP_KEY, text: "Regulatory check." }, { name: "B. Checker (fictional)", at: "2026-10-05T10:00:00.000Z" });
-    const doc = docOf(p);
-    const mine = doc.comments.find((c) => c.text === "Ranking looks high (fictional).")!;
-    expect(mine).toMatchObject({ sectionId: "risk", anchorText: "Risk ranking (section omitted from this export)" });
-    const row = tableOf(doc, "reviewer-comments").rows.find((r) => r[2] === "Ranking looks high (fictional).")!;
-    expect(row[1]).toBe("Risk ranking (section omitted from this export)");
-    expect(doc.comments.find((c) => c.text === "Regulatory check.")!.anchorText).toMatch(/^6\. Detailed gap table, G-\d+$/);
-    expect(doc.comments).toHaveLength(demo.document.comments.length + 2);
-  });
-
-  it("keeps comments when the Reviewer comments appendix itself is omitted", () => {
-    const p = addComment(setOmittedSections(demo, ["reviewer-comments"]), { sectionId: "scope", text: "Scope?" }, { name: "B. Checker (fictional)", at: "2026-10-05T09:00:00.000Z" });
-    const doc = docOf(p);
-    expect(doc.sections.map((s) => s.id)).not.toContain("reviewer-comments");
-    expect(doc.comments).toHaveLength(demo.document.comments.length + 1);
-    expect(doc.comments.find((c) => c.text === "Scope?")!.anchorText).toBe("2. Scope");
   });
 
   it("renders the Markdown and HTML without the omitted sections", () => {

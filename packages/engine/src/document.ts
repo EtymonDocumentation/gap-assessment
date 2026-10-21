@@ -7,13 +7,14 @@ import type { Assessment, Gap } from "./compare";
 import { riskRanked } from "./compare";
 import { formatQuestionSide, formatResolved, questionLabel, STATUS_TEXT } from "./format";
 import { scopeExclusions } from "./tailoring";
+import { stepExclusions } from "./scope";
 import { instanceRefs, type QuestionInstance } from "./sequencer";
 import { citationNames, entryLabel, locationText, sourceLabel } from "./labels";
 import { cellVerification, verificationSummary } from "./verification";
 import { sourceRegisterRows } from "./source-register";
 import { changeLogActionCounts } from "./changelog";
 import { effectiveStaged } from "./custom";
-import { commentDisplayId, omittedSectionIds, optionalSectionTitle, revisionState, revisionStatusLabel } from "./review";
+import { omittedSectionIds, optionalSectionTitle } from "./review";
 import { STAGE_NOT_ESTABLISHED, stageBasis, stagedFor, stageWording } from "./stage";
 
 export type Block =
@@ -30,46 +31,6 @@ export interface DocSection {
   appendix?: boolean;
   title: string;
   blocks: Block[];
-}
-
-/** One issued document revision, as shown in the revision history. */
-export interface DocRevision {
-  number: number;
-  /** "Draft" or "Issued for review". Never "Approved": the tool has no electronic signature. */
-  statusLabel: string;
-  date: string;
-  by: string;
-  role?: string;
-  summary: string;
-  /** Template used when the revision was issued, e.g. "Built-in default 1.0.0". */
-  template?: string;
-  /** TBD values the document listed when the revision was issued. Absent for revisions made before TBD existed. */
-  tbdCount?: number;
-}
-
-export interface DocCommentReply {
-  kind: "reply" | "resolution" | "reopen";
-  by: string;
-  role?: string;
-  at: string;
-  text: string;
-}
-
-/** A reviewer comment anchored to a document section, and optionally to one gap row in it. */
-export interface DocComment {
-  /** Display ID, "C-001", ... */
-  id: string;
-  sectionId: string;
-  /** Current display ID of the anchored gap; undefined when anchored to the section only. */
-  gapDisplayId?: string;
-  /** Human-readable anchor, e.g. "5. Detailed gap table, G-012" or "... (gap no longer present)". */
-  anchorText: string;
-  by: string;
-  role?: string;
-  at: string;
-  text: string;
-  status: "open" | "resolved";
-  replies: DocCommentReply[];
 }
 
 export interface DocCover {
@@ -93,10 +54,6 @@ export interface DocModel {
   /** Facts for renderers that draw a cover page (the built-in Word template). Values not established read "[not established]". */
   cover: DocCover;
   sections: DocSection[];
-  /** Issued revisions, oldest first. */
-  revisions: DocRevision[];
-  /** Reviewer comments, oldest first. */
-  comments: DocComment[];
   /** How many TBD values the document lists as open items (also the "TBD values" line). Date-independent by design. */
   tbdCount: number;
 }
@@ -203,6 +160,8 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
   // What is out of scope is stated in the document itself (GMP: a reader must not assume labelling or a topic was assessed
   // when it was not). Both blocks sit inside the Scope section so section numbers stay stable.
   const exclusions = scopeExclusions(content, project);
+  const steps = stepExclusions(content, project);
+  const noReason = "No reason recorded";
   const scopeBlocks: Block[] = [
     { type: "paragraph", text: fill(t.scope, vars) },
     { type: "table", columns: ["Scoping attribute", "Response", "Source", "Verification"], rows: sideRows(content, project, scoping) },
@@ -210,13 +169,25 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
     { type: "list", items: (["source", "target"] as const).map((side) => `${side === "source" ? "SU" : "RU"}: ${labellingScopeText(content, project, side)}`) },
     { type: "heading", text: "Scope exclusions" },
   ];
+  if (steps.length) {
+    scopeBlocks.push(
+      { type: "paragraph", text: "The following process steps were left out of this assessment, for both SU and RU. They are not compared and not part of the gap table or the validation plan. Values recorded for them are kept in the project and return when the step is put back in scope." },
+      {
+        type: "table",
+        columns: ["Process step left out", "Reason", "Recorded by", "Date"],
+        rows: steps.map((e) => [e.uoLabel, e.reason ?? noReason, e.by, shortDate(e.at)]),
+      },
+    );
+  } else {
+    scopeBlocks.push({ type: "paragraph", text: "No process steps were left out of this assessment." });
+  }
   if (exclusions.length) {
     scopeBlocks.push(
       { type: "paragraph", text: "The following topics were switched off for this assessment. They are not compared and not part of the gap table or the validation plan. Values recorded for them are kept in the project and return when the topic is switched on again." },
       {
         type: "table",
         columns: ["Section", "Topic left out", "Reason", "Recorded by", "Date"],
-        rows: exclusions.map((e) => [e.uoLabel, e.topicLabel, e.reason, e.by, shortDate(e.at)]),
+        rows: exclusions.map((e) => [e.uoLabel, e.topicLabel, e.reason ?? noReason, e.by, shortDate(e.at)]),
       },
     );
   } else {
@@ -496,8 +467,8 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
       : []),
   ]);
 
-  // Revision and comment events are not counted: they are listed in the Revision history and Reviewer comments appendices, and counting them here
-  // would make the content look changed each time a revision is issued or a comment is added.
+  // Events of the retired review workflow (revisions, comments) can still sit in the log of an old project. They are not counted:
+  // that history is archived, not part of this document.
   const counts = changeLogActionCounts(project, { excludeReview: true });
   const countedTotal = counts.reduce((sum, c) => sum + c.count, 0);
   appendix("change-log-summary", "Change log summary", [
@@ -507,79 +478,6 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
       : { type: "paragraph", text: "No changes have been recorded." },
     { type: "note", text: t.changeLogReviewNote },
   ]);
-
-  const revisions: DocRevision[] = project.document.revisions.map((r) => ({
-    number: r.number,
-    statusLabel: revisionStatusLabel(r.status),
-    date: shortDate(r.at),
-    by: r.by,
-    ...(r.role ? { role: r.role } : {}),
-    summary: r.summary,
-    ...(r.template ? { template: `${r.template.name} ${r.template.version}`.trim() } : {}),
-    ...(r.tbdCount !== undefined ? { tbdCount: r.tbdCount } : {}),
-  }));
-
-  const byText = (by: string, role?: string) => (role ? `${by} (${role})` : by);
-  appendix("revision-history", "Revision history", [
-    { type: "paragraph", text: fill(t.revisionHistoryIntro, vars) },
-    revisions.length
-      ? {
-          type: "table",
-          columns: ["Revision", "Status", "Date", "By", "Summary of change", "Template"],
-          rows: revisions.map((r) => [String(r.number), r.tbdCount ? `${r.statusLabel}; ${r.tbdCount} TBD value${r.tbdCount === 1 ? "" : "s"} open` : r.statusLabel, r.date, byText(r.by, r.role), r.summary, r.template ?? "—"]),
-        }
-      : { type: "paragraph", text: "No revision has been issued yet." },
-    { type: "note", text: t.revisionStatement },
-  ]);
-  // Reviewer comments is added empty first, so a comment can point at it like at any other section; its table is filled in below.
-  appendix("reviewer-comments", "Reviewer comments", []);
-
-  const sectionAnchor = (sectionId: string): string => {
-    const s = sections.find((x) => x.id === sectionId);
-    if (!s) {
-      // A section the user left out still names the place a comment was made, so the comment keeps its meaning.
-      const title = optionalSectionTitle(sectionId);
-      return title ? `${title} (section omitted from this export)` : `Unknown section (${sectionId})`;
-    }
-    return `${s.appendix ? "Appendix " : ""}${s.number}. ${s.title}`;
-  };
-  const comments: DocComment[] = project.document.comments.map((c) => {
-    const gap = c.anchor.gapKey ? a.gaps.find((g) => g.key === c.anchor.gapKey) : undefined;
-    const gapText = !c.anchor.gapKey ? "" : gap ? `, ${gap.displayId}` : `, gap no longer present (${c.anchor.gapKey})`;
-    return {
-      id: commentDisplayId(c.seq),
-      sectionId: c.anchor.sectionId,
-      ...(gap ? { gapDisplayId: gap.displayId } : {}),
-      anchorText: sectionAnchor(c.anchor.sectionId) + gapText,
-      by: c.by,
-      ...(c.role ? { role: c.role } : {}),
-      at: c.at,
-      text: c.text,
-      status: c.status,
-      replies: c.replies.map((r) => ({ kind: r.kind, by: r.by, ...(r.role ? { role: r.role } : {}), at: r.at, text: r.text })),
-    };
-  });
-
-  const REPLY_KIND = { reply: "Reply", resolution: "Resolution", reopen: "Reopened" } as const;
-  sections.find((s) => s.id === "reviewer-comments")?.blocks.push(
-    { type: "paragraph", text: fill(t.reviewerCommentsIntro, vars) },
-    comments.length
-      ? {
-          type: "table",
-          columns: ["ID", "Location", "Comment", "By", "Date", "Status", "Responses"],
-          rows: comments.map((c) => [
-            c.id,
-            c.anchorText,
-            c.text,
-            byText(c.by, c.role),
-            shortDate(c.at),
-            c.status === "open" ? "Open" : "Resolved",
-            c.replies.map((r) => `${REPLY_KIND[r.kind]} by ${r.by}, ${shortDate(r.at)}: ${r.text}`).join("; ") || "—",
-          ]),
-        }
-      : { type: "paragraph", text: "No reviewer comments have been recorded." },
-  );
-
 
   const doc: DocModel = {
     title: fill(t.title, vars),
@@ -606,19 +504,7 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
       targetStage: w.targetLabel,
     },
     sections,
-    revisions,
-    comments,
     tbdCount: tbdList.length,
   };
-  // The Revision line goes right after "Generated". It is left out of the fingerprint, so adding it changes nothing.
-  doc.meta.splice(doc.meta.findIndex(([k]) => k === "Generated") + 1, 0, ["Revision", revisionMetaText(project, doc)]);
   return doc;
-}
-
-/** The text of the Revision line: not yet issued, the latest revision, or the latest revision with a warning that the content has changed. */
-function revisionMetaText(project: Project, doc: DocModel): string {
-  const { latest, changedSinceIssue } = revisionState(project, doc);
-  if (!latest) return "Not yet issued";
-  const base = `${latest.number} (${revisionStatusLabel(latest.status)}, ${shortDate(latest.at)})`;
-  return changedSinceIssue ? `${base}; the content has changed since this revision was issued` : base;
 }

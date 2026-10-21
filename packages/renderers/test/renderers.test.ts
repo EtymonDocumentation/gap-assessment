@@ -1,5 +1,5 @@
 import type { Project } from "@gap/process-model";
-import { adaptText, addComment, assess, buildDemoProject, buildDocument, CSV_COLUMNS, gapsToCsv, issueRevision, replyToComment, resolveComment, type DocModel, type Gap } from "@gap/engine";
+import { adaptText, assess, buildDemoProject, buildDocument, CSV_COLUMNS, excludeStep, gapsToCsv, type DocModel, type Gap } from "@gap/engine";
 import { describe, expect, it } from "vitest";
 import { content, demos } from "../../../content/index";
 import { DOCUMENT_CSS, escapeHtml, renderHtml, renderHtmlBody, renderMarkdown } from "../src/index";
@@ -18,26 +18,8 @@ const hostile: DocModel = {
   meta: [
     ["Key <i>", "Value <script>alert(1)</script>"],
     ["Quote", `He said "hi" & it's fine`],
-    ["Revision", "1 (Draft, 2026-10-05) <script>alert(7)</script>"],
   ],
   cover: { program: "<b>P</b>", product: "x & y", sourceSite: "<i>S</i>", targetSite: "T", sourceStage: "<script>s</script>", targetStage: "t" },
-  // The renderers draw only meta and sections; revisions and comments reach the page through the appendices
-  // the engine builds from them. They carry hostile strings here so no future renderer can trust them.
-  revisions: [
-    { number: 1, statusLabel: "Draft", date: "2026-10-05", by: "<b>Reviewer</b> & co", summary: "Summary <script>alert(8)</script>", template: 'Template "x" <i>1.0</i>' },
-  ],
-  comments: [
-    {
-      id: "C-001",
-      sectionId: "one",
-      anchorText: "1. Section <script>x</script>, G-001",
-      by: "<b>Checker</b>",
-      at: "2026-10-06T09:00:00.000Z",
-      text: "Comment <script>alert(9)</script> | pipe",
-      status: "open",
-      replies: [{ kind: "reply", by: "<i>Author</i>", at: "2026-10-06T10:00:00.000Z", text: "Reply <img src=x onerror=alert(10)>" }],
-    },
-  ],
   tbdCount: 0,
   sections: [
     {
@@ -85,15 +67,13 @@ describe("renderMarkdown", () => {
     for (const [k, v] of doc.meta) expect(md).toContain(`- **${k}:** ${v}`);
   });
 
-  it("numbers the sections 1 to 13 and the appendices A to E in order", () => {
+  it("numbers the sections 1 to 13 and the appendices A to C in order", () => {
     const headings = lines.filter((l) => l.startsWith("## "));
-    expect(headings).toHaveLength(18);
+    expect(headings).toHaveLength(16);
     headings.slice(0, 13).forEach((h, i) => expect(h.startsWith(`## ${i + 1}. `), h).toBe(true));
     expect(headings[13]).toMatch(/^## Appendix A\. Gap details$/);
     expect(headings[14]).toMatch(/^## Appendix B\. Source register$/);
     expect(headings[15]).toMatch(/^## Appendix C\. Change log summary$/);
-    expect(headings[16]).toMatch(/^## Appendix D\. Revision history$/);
-    expect(headings[17]).toMatch(/^## Appendix E. Reviewer comments$/);
     expect(headings).toEqual(doc.sections.map((s) => `## ${s.appendix ? "Appendix " : ""}${s.number}. ${s.title}`));
   });
 
@@ -160,7 +140,7 @@ describe("renderMarkdown", () => {
   });
 
   it("renders a document with no sections and no metadata", () => {
-    const out = renderMarkdown({ title: "T", banner: "B", status: "DRAFT", meta: [], cover: EMPTY_COVER, sections: [], revisions: [], comments: [], tbdCount: 0 });
+    const out = renderMarkdown({ title: "T", banner: "B", status: "DRAFT", meta: [], cover: EMPTY_COVER, sections: [], tbdCount: 0 });
     expect(out).toBe("> **B**\n\n# T\n\n**Status:** DRAFT\n\n\n---\n\n_B_\n");
   });
 });
@@ -190,9 +170,9 @@ describe("renderHtml", () => {
     expect(html).toContain(`<div class="footer">${BANNER}</div>`);
   });
 
-  it("numbers the sections 1 to 13 and the appendices A to E, each in its own section element", () => {
+  it("numbers the sections 1 to 13 and the appendices A to C, each in its own section element", () => {
     const h2 = [...html.matchAll(/<h2>(?:Appendix )?([0-9A-Z]+)\. ([^<]*)<\/h2>/g)];
-    expect(h2.map((m) => m[1])).toEqual(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "A", "B", "C", "D", "E"]);
+    expect(h2.map((m) => m[1])).toEqual(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "A", "B", "C"]);
     for (const s of doc.sections) expect(html).toContain(`<section id="doc-${s.id}">`);
   });
 
@@ -540,81 +520,35 @@ describe("validation plan and equipment qualification sections", () => {
   });
 });
 
-// ================================================================== Revision line and appendices C and D (M5)
+// ================================================================== no review workflow, step exclusions (M5.7)
 
-describe("revision history and reviewer comments in the rendered document", () => {
+describe("the rendered document", () => {
   const BAD = '<script>alert("x")</script> & "q" | pipe';
-  const who = (name: string, at: string) => ({ name, role: "Role <b>x</b>", at });
-
-  /** A project whose revision and comment strings are all hostile, so every field has to be escaped. */
-  const evilProject = () => {
-    const base = buildDemoProject(content, demos["arx-217"]);
-    const d0 = buildDocument(content, base, assess(content, base), "2026-10-02T00:00:00.000Z");
-    let p: Project = { ...base, document: { revisions: [], comments: [], exports: [] } };
-    p = issueRevision(p, d0, { status: "issued_for_review", summary: `Summary ${BAD}`, template: { mode: "their_look", name: `Tpl ${BAD}`, version: "2.0" } }, who(`Rev ${BAD}`, "2026-10-05T09:00:00.000Z"));
-    p = addComment(p, { sectionId: "gap-table", gapKey: "R-NO-SUCH-RULE:uo.nowhere", text: `Comment ${BAD}` }, who(`Chk ${BAD}`, "2026-10-06T09:00:00.000Z"));
-    p = replyToComment(p, 1, `Reply ${BAD}`, who("Author", "2026-10-06T10:00:00.000Z"));
-    p = resolveComment(p, 1, `Resolved ${BAD}`, who("Author", "2026-10-06T11:00:00.000Z"));
-    return p;
-  };
+  const ACTOR = { name: `Who ${BAD}`, role: "Role", at: "2026-10-06T09:00:00.000Z" };
   const evilDoc = () => {
-    const p = evilProject();
+    const base = buildDemoProject(content, demos["arx-217"]);
+    const p = excludeStep(content, base, "buffer_prep", `Reason ${BAD}`, ACTOR);
     return buildDocument(content, p, assess(content, p), "2026-10-07T00:00:00.000Z");
   };
 
-  it("shows the Revision line right after Generated, in Markdown and HTML", () => {
-    const rev = doc.meta.find(([k]) => k === "Revision")!;
-    expect(doc.meta.findIndex(([k]) => k === "Revision")).toBe(doc.meta.findIndex(([k]) => k === "Generated") + 1);
-    expect(rev[1]).toBe("1 (Draft, 2026-10-05)");
-    expect(renderMarkdown(doc)).toContain("- **Revision:** 1 (Draft, 2026-10-05)");
-    expect(renderHtml(doc)).toContain("<dt>Revision</dt><dd>1 (Draft, 2026-10-05)</dd>");
-  });
-
-  it("renders appendices C and D from the demo with their tables", () => {
+  it("has no Revision line, no revision history and no reviewer comments, in any format", () => {
     const md = renderMarkdown(doc);
-    expect(md).toContain("| Revision | Status | Date | By | Summary of change | Template |");
-    expect(md).toContain("| 1 | Draft; 4 TBD values open | 2026-10-05 | A. Reviewer (fictional) (MSAT lead (fictional)) | First draft for internal review | — |");
-    expect(md).toContain("| ID | Location | Comment | By | Date | Status | Responses |");
-    expect(md).toMatch(/\| C-001 \| 6\. Detailed gap table, G-\d+ \|/);
-    expect(md).toContain("Resolution by A. Reviewer (fictional), 2026-10-06:");
-    expect(md).toContain("a revision is not an approval");
     const html = renderHtml(doc);
-    expect(html).toContain('<section id="doc-revision-history">');
-    expect(html).toContain('<section id="doc-reviewer-comments">');
+    for (const out of [md, html]) {
+      expect(out).not.toMatch(/Revision history|Reviewer comments|Not yet issued/);
+      expect(out).not.toContain("Revision</dt>");
+    }
+    expect(md).not.toContain("- **Revision:**");
   });
 
-  it("escapes revision and comment text in HTML", () => {
+  it("escapes the reason and the person of a left-out process step in HTML", () => {
     const html = renderHtml(evilDoc());
     expect(html).not.toMatch(/<script/i);
-    expect(html).not.toContain("<b>x</b>");
-    expect(html).toContain("Summary &lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt; &amp; &quot;q&quot; | pipe");
-    expect(html).toContain("Comment &lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt; &amp; &quot;q&quot; | pipe");
-    expect(html).toContain("Tpl &lt;script&gt;");
-    expect(html).toContain("Role &lt;b&gt;x&lt;/b&gt;");
+    expect(html).toContain("Reason &lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt; &amp; &quot;q&quot; | pipe");
   });
 
-  it("escapes pipes in Markdown tables so a comment cannot add columns", () => {
+  it("escapes pipes in Markdown tables so a reason cannot add columns", () => {
     const md = renderMarkdown(evilDoc());
-    expect(md).toContain('Comment <script>alert("x")</script> & "q" \\| pipe');
-    expect(md).toContain('Summary <script>alert("x")</script> & "q" \\| pipe');
-    const row = md.split("\n").find((l) => l.startsWith("| C-001 |"))!;
-    expect((row.match(/(?<!\\)\|/g) ?? []).length).toBe(8); // 7 columns + 1
-    const revRow = md.split("\n").find((l) => l.startsWith("| 1 | Issued for review"))!;
-    expect((revRow.match(/(?<!\\)\|/g) ?? []).length).toBe(7); // 6 columns + 1
-  });
-
-  it("states that a comment's gap is no longer present instead of dropping the comment", () => {
-    const md = renderMarkdown(evilDoc());
-    expect(md).toContain("gap no longer present (R-NO-SUCH-RULE:uo.nowhere)");
-  });
-
-  it("renders the empty cases in plain words", () => {
-    const base = buildDemoProject(content, demos["arx-217"]);
-    const empty = { ...base, document: { revisions: [], comments: [], exports: [] } };
-    const d = buildDocument(content, empty, assess(content, empty), "2026-10-07T00:00:00.000Z");
-    const md = renderMarkdown(d);
-    expect(md).toContain("- **Revision:** Not yet issued");
-    expect(md).toContain("No revision has been issued yet.");
-    expect(md).toContain("No reviewer comments have been recorded.");
+    expect(md).toContain('Reason <script>alert("x")</script> & "q" \\| pipe');
   });
 });

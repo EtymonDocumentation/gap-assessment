@@ -143,6 +143,8 @@ export async function startProject(page: Page, title: string): Promise<void> {
   await dialog.getByLabel("Project title").fill(title);
   await dialog.getByLabel("Responder name").fill("A. Reviewer (fictional)");
   await dialog.getByRole("button", { name: "Create project" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "What does this assessment cover?" })).toBeVisible();
+  await page.getByRole("link", { name: "Continue to the interview" }).click();
   await expect(page.locator("#q-prompt")).toHaveText("Program or product code");
 }
 

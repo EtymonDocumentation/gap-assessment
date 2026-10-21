@@ -176,6 +176,18 @@ function crossCheck(b: ContentBundle): string[] {
   const uoKeys = new Set(b.catalog.unitOperations.map((u) => u.key));
   const activityKeys = new Set(b.catalog.activities.map((a) => a.key));
 
+  // The Scope step shows the unit operations by stage group; one that is in no group could never be left out, and one in two
+  // groups would have two ticks for one decision.
+  const groupOf = new Map<string, string>();
+  for (const g of b.catalog.stageGroups) {
+    for (const u of g.unitOperations) {
+      if (!uoKeys.has(u)) p.push(`stage group ${g.key}: unknown unit operation "${u}"`);
+      else if (groupOf.has(u)) p.push(`unit operation ${u} is in two stage groups (${groupOf.get(u)} and ${g.key})`);
+      else groupOf.set(u, g.key);
+    }
+  }
+  for (const u of uoKeys) if (!groupOf.has(u)) p.push(`unit operation ${u} is in no stage group`);
+
   const studyKeys = new Set(b.catalog.unitOperations.flatMap((u) => u.items.filter((i) => i.coll === "study").map((i) => i.key)));
   for (const a of b.catalog.activities) {
     for (const s of a.studies ?? []) {

@@ -1,41 +1,23 @@
 import type { TemplateMode } from "@gap/docx";
 import { BUILTIN_TEMPLATE_VERSION } from "@gap/docx/src/version";
-import {
-  addComment,
-  commentDisplayId,
-  issueRevision,
-  reopenComment,
-  replyToComment,
-  resolveComment,
-  revisionStatusLabel,
-  type Assessment,
-  type ContentBundle,
-  type DocModel,
-  type DocSection,
-} from "@gap/engine";
-import type { Actor, DocumentExport, Project, ReviewComment, RevisionStatus, TemplateRecord } from "@gap/process-model";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Empty, Modal } from "../components";
+import { optionalSectionTitle, type Assessment, type ContentBundle, type DocModel } from "@gap/engine";
+import type { DocumentExport, Project, TemplateRecord } from "@gap/process-model";
+import { useEffect, useMemo, useState } from "react";
+import { Empty } from "../components";
 import { loadDocx, useDocx } from "../docx-loader";
 import { dateTime, download, FORMAT_LABEL, MODE_HELP, MODE_LABEL, shortHash } from "../lib";
 import { href } from "../router";
-import { useStore } from "../store";
 import { recordOf, useTemplates, type StoredTemplate } from "../templates-store";
 
 export const BUILTIN_RECORD: TemplateRecord = { mode: "builtin", name: "Built-in default", version: BUILTIN_TEMPLATE_VERSION };
 
 const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
-/** "5. Detailed gap table" or "Appendix A. Source register". */
-function sectionLabel(s: Pick<DocSection, "number" | "title" | "appendix">): string {
-  return s.appendix ? `Appendix ${s.number}. ${s.title}` : `${s.number}. ${s.title}`;
-}
-
 function templateText(t: TemplateRecord): string {
   return `${t.name} ${t.version}${t.sha256 ? ` (${shortHash(t.sha256)})` : ""}`;
 }
 
-// ------------------------------------------------------------------ the Word choice (shared by the export panel and the revision dialog)
+// ------------------------------------------------------------------ the Word choice
 
 export interface WordChoice {
   mode: TemplateMode;
@@ -44,7 +26,7 @@ export interface WordChoice {
   candidates: StoredTemplate[];
   template: StoredTemplate | undefined;
   setTemplateId(id: string): void;
-  /** What an export (or a revision) records about the chosen template. */
+  /** What an export records about the chosen template. */
   record: TemplateRecord | undefined;
 }
 
@@ -59,63 +41,6 @@ export function useWordChoice(): WordChoice {
   const template = candidates.find((t) => t.id === pick) ?? candidates[0];
   const record = mode === "builtin" ? BUILTIN_RECORD : template ? recordOf(mode, template) : undefined;
   return { mode, setMode, candidates, template, setTemplateId: setPick, record };
-}
-
-// ------------------------------------------------------------------ people
-
-/** Name and role for a dialog: the last ones typed in this session, else the project's responder. */
-function usePerson() {
-  const last = useStore((s) => s.lastPerson);
-  const resp = useStore((s) => s.project?.interview.responder);
-  const [name, setName] = useState(last?.name ?? resp?.name ?? "");
-  const [role, setRole] = useState(last?.role ?? resp?.role ?? "");
-  return { name, role, setName, setRole };
-}
-
-function PersonFields({ p, nameLabel = "Your name" }: { p: ReturnType<typeof usePerson>; nameLabel?: string }) {
-  return (
-    <>
-      <label className="field">
-        <span>{nameLabel} (required)</span>
-        <input value={p.name} onChange={(e) => p.setName(e.target.value)} autoComplete="name" />
-      </label>
-      <label className="field">
-        <span>
-          Role <span className="muted">(optional)</span>
-        </span>
-        <input value={p.role} onChange={(e) => p.setRole(e.target.value)} placeholder="e.g. QA reviewer" />
-      </label>
-      <p className="muted small">Recorded as free text. This proof of concept has no login, so a name is not attributable in a GMP sense.</p>
-    </>
-  );
-}
-
-function DialogButtons({ onClose, submit, danger }: { onClose: () => void; submit: string; danger?: boolean }) {
-  return (
-    <div className="row end">
-      <button type="button" className="btn" onClick={onClose}>
-        Cancel
-      </button>
-      <button type="submit" className={danger ? "btn danger" : "btn primary"}>
-        {submit}
-      </button>
-    </div>
-  );
-}
-
-/** Runs an engine change as the person named in a dialog. Returns the error message, or null. */
-function useReviewAction() {
-  const update = useStore((s) => s.update);
-  const remember = useStore((s) => s.rememberPerson);
-  return (who: { name: string; role: string }, fn: (p: Project, actor: Actor) => Project, status: string): string | null => {
-    const name = who.name.trim();
-    if (!name) return "Enter your name.";
-    const role = who.role.trim();
-    const actor: Actor = { name, ...(role ? { role } : {}), at: new Date().toISOString() };
-    const err = update((p) => fn(p, actor), status);
-    if (!err) remember(name, role);
-    return err;
-  };
 }
 
 // ------------------------------------------------------------------ Word document panel
@@ -179,6 +104,7 @@ export function WordPanel({
   assessment,
   generatedAt,
   fileBase,
+  guard,
   onExported,
 }: {
   choice: WordChoice;
@@ -188,6 +114,8 @@ export function WordPanel({
   assessment: Assessment;
   generatedAt: string;
   fileBase: string;
+  /** Runs the download, after the TBD warning when the document still lists TBD values. */
+  guard: (run: () => void) => void;
   onExported: (template: TemplateRecord) => void;
 }) {
   const checks = usePreExportChecks(choice, doc);
@@ -334,7 +262,7 @@ export function WordPanel({
       </div>
 
       <div className="row wrap">
-        <button type="button" className="btn primary" disabled={blocked || busy} aria-describedby={checks?.blockers.length ? "word-blockers" : undefined} onClick={() => void exportWord()}>
+        <button type="button" className="btn primary" disabled={blocked || busy} aria-describedby={checks?.blockers.length ? "word-blockers" : undefined} onClick={() => guard(() => void exportWord())}>
           {busy ? "Creating…" : "Download Word document"}
         </button>
       </div>
@@ -371,6 +299,7 @@ export function WordPanel({
 
 // ------------------------------------------------------------------ export history
 
+/** What the document was downloaded with and when. Not a revision history: formal versions live in the company's document system. */
 export function ExportHistory({ exports }: { exports: DocumentExport[] }) {
   const rows = [...exports].reverse();
   return (
@@ -383,11 +312,13 @@ export function ExportHistory({ exports }: { exports: DocumentExport[] }) {
           <table className="data export-table">
             <thead>
               <tr>
-                <th scope="col">Date</th>
+                <th scope="col">Date and person</th>
                 <th scope="col">Format</th>
                 <th scope="col">Template</th>
-                <th scope="col">Revision</th>
-                <th scope="col">Content changed since revision</th>
+                <th scope="col">Fingerprint</th>
+                <th scope="col">TBD values open</th>
+                <th scope="col">Sections left out</th>
+                <th scope="col">Answers changed since previous download</th>
               </tr>
             </thead>
             <tbody>
@@ -406,440 +337,18 @@ export function ExportHistory({ exports }: { exports: DocumentExport[] }) {
                       </div>
                     )}
                   </td>
-                  <td>{r.revision ?? "None issued"}</td>
-                  <td>{r.revision === undefined ? "Not applicable" : r.changedSinceRevision ? "Yes" : "No"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </section>
-  );
-}
-
-// ------------------------------------------------------------------ revisions
-
-export function RevisionsPanel({
-  project,
-  state,
-  doc,
-  choice,
-}: {
-  project: Project;
-  state: { latest?: { number: number; status: RevisionStatus; at: string }; changedSinceIssue: boolean };
-  doc: DocModel;
-  choice: WordChoice;
-}) {
-  const [open, setOpen] = useState(false);
-  const headingRef = useRef<HTMLHeadingElement>(null);
-  const revisions = [...project.document.revisions].reverse();
-  const latest = state.latest;
-
-  let sentence = "No revision has been issued yet.";
-  if (latest) {
-    sentence =
-      latest.status === "draft"
-        ? `Revision ${latest.number}, saved as a draft on ${latest.at.slice(0, 10)}.`
-        : `Revision ${latest.number}, ${revisionStatusLabel(latest.status).toLowerCase()} on ${latest.at.slice(0, 10)}.`;
-    if (state.changedSinceIssue) sentence += " The content has changed since this revision was issued.";
-  }
-
-  return (
-    <section className="card stack no-print" aria-labelledby="revisions-title">
-      <div className="row between wrap">
-        <h2 id="revisions-title" ref={headingRef} tabIndex={-1}>
-          Revisions
-        </h2>
-        <button type="button" id="issue-revision-button" className="btn" onClick={() => setOpen(true)}>
-          Issue revision
-        </button>
-      </div>
-      <p className={state.changedSinceIssue ? "notice" : undefined} id="revision-state">
-        {state.changedSinceIssue && (
-          <span aria-hidden="true" className="warn-icon">
-            ⚠{" "}
-          </span>
-        )}
-        {sentence}
-      </p>
-      <p className="small muted">A revision records the document as a draft or as issued for review. It is not an approval and not a signature: the tool has no electronic signature.</p>
-      {revisions.length > 0 && (
-        <div className="table-scroll" role="region" aria-label="Revisions table" tabIndex={0}>
-          <table className="data revisions-table">
-            <thead>
-              <tr>
-                <th scope="col">Revision</th>
-                <th scope="col">Status</th>
-                <th scope="col">Date</th>
-                <th scope="col">By</th>
-                <th scope="col">Summary</th>
-                <th scope="col">Template</th>
-              </tr>
-            </thead>
-            <tbody>
-              {revisions.map((r) => (
-                <tr key={r.number}>
-                  <th scope="row">{r.number}</th>
-                  <td>
-                    {revisionStatusLabel(r.status)}
-                    {r.tbdCount ? <div className="small muted">{r.tbdCount} TBD {r.tbdCount === 1 ? "value" : "values"} open</div> : null}
-                  </td>
-                  <td className="small">{r.at.slice(0, 10)}</td>
                   <td className="small">
-                    {r.by}
-                    {r.role && <div className="muted">{r.role}</div>}
+                    <code title={r.fingerprint}>{r.fingerprint}</code>
                   </td>
-                  <td className="small wrap-text">{r.summary}</td>
-                  <td className="small">{r.template ? templateText(r.template) : "—"}</td>
+                  <td>{r.tbdCount ?? "Not recorded"}</td>
+                  <td className="small">{r.omittedSections?.length ? r.omittedSections.map((id) => optionalSectionTitle(id) ?? id).join("; ") : "None"}</td>
+                  <td>{r.changedSincePrevious === undefined ? "No earlier download" : r.changedSincePrevious ? "Yes" : "No"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
-      {open && <IssueRevisionDialog doc={doc} choice={choice} onClose={() => setOpen(false)} restoreFocus={() => document.getElementById("issue-revision-button") ?? headingRef.current} />}
     </section>
-  );
-}
-
-function IssueRevisionDialog({ doc, choice, onClose, restoreFocus }: { doc: DocModel; choice: WordChoice; onClose: () => void; restoreFocus: () => HTMLElement | null }) {
-  const act = useReviewAction();
-  const person = usePerson();
-  const [status, setStatus] = useState<RevisionStatus>("draft");
-  const [summary, setSummary] = useState("");
-  const [error, setError] = useState("");
-  // Issuing for review with TBD values still open is allowed, but only after the person has seen the count.
-  const [confirmingTbd, setConfirmingTbd] = useState(false);
-  const issue = () => {
-    const err = act(person, (p, actor) => issueRevision(p, doc, { status, summary, ...(choice.record ? { template: choice.record } : {}) }, actor), "Revision issued");
-    if (err) {
-      setConfirmingTbd(false);
-      setError(err);
-    } else onClose();
-  };
-  const n = doc.tbdCount;
-  if (confirmingTbd) {
-    return (
-      <Modal
-        open
-        onOpenChange={(o) => !o && onClose()}
-        title="Issue for review with TBD values?"
-        description={`This document still lists ${n} TBD ${n === 1 ? "value" : "values"}. They are open items, not confirmed values, and every result that uses a best guess is labelled Provisional.`}
-        restoreFocus={restoreFocus}
-      >
-        <div className="stack">
-          <p>
-            The revision will record that <strong>{n} TBD {n === 1 ? "value was" : "values were"}</strong> open when it was issued.
-          </p>
-          <div className="row end">
-            <button type="button" className="btn" autoFocus onClick={() => setConfirmingTbd(false)}>
-              Go back
-            </button>
-            <button type="button" className="btn primary" onClick={issue}>
-              Issue anyway
-            </button>
-          </div>
-        </div>
-      </Modal>
-    );
-  }
-  return (
-    <Modal
-      open
-      onOpenChange={(o) => !o && onClose()}
-      title="Issue revision"
-      description="A revision records the document as it is now, as a draft or as issued for review. It is not an approval or a signature."
-      restoreFocus={restoreFocus}
-    >
-      <form
-        className="stack"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!person.name.trim()) return setError("Enter your name.");
-          if (!summary.trim()) return setError("Enter a summary of what changed or why this revision is issued.");
-          // Draft revisions get no warning (a draft is expected to be incomplete); the count is still recorded.
-          if (status === "issued_for_review" && n > 0) return setConfirmingTbd(true);
-          issue();
-        }}
-      >
-        <fieldset className="stack">
-          <legend>Status</legend>
-          <label className="check">
-            <input type="radio" name="rev-status" checked={status === "draft"} onChange={() => setStatus("draft")} />
-            <span>Draft</span>
-          </label>
-          <label className="check">
-            <input type="radio" name="rev-status" checked={status === "issued_for_review"} onChange={() => setStatus("issued_for_review")} />
-            <span>Issued for review</span>
-          </label>
-        </fieldset>
-        <label className="field">
-          <span>Summary of change (required)</span>
-          <textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={3} autoFocus />
-        </label>
-        <PersonFields p={person} nameLabel="Issued by" />
-        {choice.record && <p className="small muted">Word template recorded with this revision: {templateText(choice.record)}.</p>}
-        {error && (
-          <p className="error" role="alert">
-            {error}
-          </p>
-        )}
-        <DialogButtons onClose={onClose} submit="Issue revision" />
-      </form>
-    </Modal>
-  );
-}
-
-// ------------------------------------------------------------------ reviewer comments
-
-type Filter = "open" | "resolved" | "all";
-type CommentDialog =
-  | { kind: "add" }
-  | { kind: "reply" | "resolution" | "reopen"; comment: ReviewComment }
-  | null;
-
-/** Sections whose comments can point at one gap row. */
-const GAP_SECTIONS = new Set(["differences", "gap-table", "risk", "validation-plan"]);
-
-const KIND_TEXT = { reply: "Reply", resolution: "Resolution", reopen: "Reopened" } as const;
-
-export function CommentsPanel({ project, doc, assessment }: { project: Project; doc: DocModel; assessment: Assessment }) {
-  const [filter, setFilter] = useState<Filter>("open");
-  const [dialog, setDialog] = useState<CommentDialog>(null);
-  const headingRef = useRef<HTMLHeadingElement>(null);
-  const [focusId, setFocusId] = useState("add-comment-button");
-  const restoreFocus = () => document.getElementById(focusId) ?? document.getElementById("add-comment-button") ?? headingRef.current;
-  const open = (d: CommentDialog, id: string) => {
-    setFocusId(id);
-    setDialog(d);
-  };
-
-  const all = project.document.comments;
-  const counts = { open: all.filter((c) => c.status === "open").length, resolved: all.filter((c) => c.status === "resolved").length, all: all.length };
-  const shown = all.filter((c) => filter === "all" || c.status === filter);
-
-  const groups = useMemo(() => {
-    const out: { id: string; label: string; items: ReviewComment[]; open: number; resolved: number }[] = [];
-    const known = new Set(doc.sections.map((s) => s.id));
-    const make = (id: string, label: string) => {
-      const items = all.filter((c) => c.anchor.sectionId === id);
-      const sel = items.filter((c) => filter === "all" || c.status === filter);
-      if (sel.length) out.push({ id, label, items: sel, open: items.filter((c) => c.status === "open").length, resolved: items.filter((c) => c.status === "resolved").length });
-    };
-    for (const s of doc.sections) make(s.id, sectionLabel(s));
-    for (const id of new Set(all.map((c) => c.anchor.sectionId))) if (!known.has(id)) make(id, id);
-    return out;
-  }, [all, doc.sections, filter]);
-
-  const docComment = (c: ReviewComment) => doc.comments.find((d) => d.id === commentDisplayId(c.seq));
-
-  return (
-    <section className="card stack no-print" aria-labelledby="comments-title">
-      <div className="row between wrap">
-        <h2 id="comments-title" ref={headingRef} tabIndex={-1}>
-          Reviewer comments
-        </h2>
-        <button type="button" id="add-comment-button" className="btn" onClick={() => open({ kind: "add" }, "add-comment-button")}>
-          Add comment
-        </button>
-      </div>
-      <p className="small muted">
-        Comments are kept in the project and appear in the Reviewer comments appendix of the document and as Word comments in the Word document. They never change the assessment. Names are free text without a login.
-      </p>
-      <fieldset className="row wrap filter-set">
-        <legend>Show comments</legend>
-        {(["open", "resolved", "all"] as const).map((f) => (
-          <label key={f} className="check">
-            <input type="radio" name="comment-filter" checked={filter === f} onChange={() => setFilter(f)} />
-            <span>
-              {f === "open" ? "Open" : f === "resolved" ? "Resolved" : "All"} ({counts[f]})
-            </span>
-          </label>
-        ))}
-      </fieldset>
-
-      {shown.length === 0 ? (
-        <Empty>{all.length === 0 ? "No reviewer comments have been recorded." : `No ${filter} comments.`}</Empty>
-      ) : (
-        <div className="stack">
-          {groups.map((g) => (
-            <section key={g.id} className="stack" aria-labelledby={`cg-${g.id}`}>
-              <h3 id={`cg-${g.id}`}>
-                {g.label}{" "}
-                <span className="muted small normal">
-                  ({g.open} open, {g.resolved} resolved)
-                </span>
-              </h3>
-              <ul className="comment-list">
-                {g.items.map((c) => {
-                  const id = commentDisplayId(c.seq);
-                  const d = docComment(c);
-                  return (
-                    <li key={c.seq} className="comment" id={`comment-${c.seq}`}>
-                      <div className="row between wrap">
-                        <strong>
-                          {id}
-                          <span className={`tag status-${c.status === "open" ? "open" : "resolved"}`}>
-                            <span aria-hidden="true">{c.status === "open" ? "○ " : "✓ "}</span>
-                            {c.status === "open" ? "Open" : "Resolved"}
-                          </span>
-                        </strong>
-                        <span className="row wrap">
-                          <button type="button" id={`reply-${c.seq}`} className="btn small" aria-label={`Reply to ${id}`} onClick={() => open({ kind: "reply", comment: c }, `reply-${c.seq}`)}>
-                            Reply
-                          </button>
-                          {c.status === "open" ? (
-                            <button type="button" id={`resolve-${c.seq}`} className="btn small" aria-label={`Resolve ${id}`} onClick={() => open({ kind: "resolution", comment: c }, `resolve-${c.seq}`)}>
-                              Resolve
-                            </button>
-                          ) : (
-                            <button type="button" id={`reopen-${c.seq}`} className="btn small" aria-label={`Reopen ${id}`} onClick={() => open({ kind: "reopen", comment: c }, `reopen-${c.seq}`)}>
-                              Reopen
-                            </button>
-                          )}
-                        </span>
-                      </div>
-                      {d && <p className="small muted">About: {d.anchorText}</p>}
-                      <p className="comment-text">{c.text}</p>
-                      <p className="small muted">
-                        By {c.by}
-                        {c.role ? ` (${c.role})` : ""}, {c.at.slice(0, 10)}
-                      </p>
-                      {c.replies.length > 0 && (
-                        <ul className="comment-replies" aria-label={`Responses to ${id}`}>
-                          {c.replies.map((r, i) => (
-                            <li key={i}>
-                              <span className="small muted">
-                                {KIND_TEXT[r.kind]} by {r.by}
-                                {r.role ? ` (${r.role})` : ""}, {r.at.slice(0, 10)}:
-                              </span>{" "}
-                              {r.text}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          ))}
-        </div>
-      )}
-
-      {dialog?.kind === "add" && <AddCommentDialog doc={doc} assessment={assessment} onClose={() => setDialog(null)} restoreFocus={restoreFocus} />}
-      {dialog && dialog.kind !== "add" && <RespondDialog kind={dialog.kind} comment={dialog.comment} onClose={() => setDialog(null)} restoreFocus={restoreFocus} />}
-    </section>
-  );
-}
-
-function AddCommentDialog({ doc, assessment, onClose, restoreFocus }: { doc: DocModel; assessment: Assessment; onClose: () => void; restoreFocus: () => HTMLElement | null }) {
-  const act = useReviewAction();
-  const person = usePerson();
-  const [sectionId, setSectionId] = useState(doc.sections[0]?.id ?? "");
-  const [gapKey, setGapKey] = useState("");
-  const [text, setText] = useState("");
-  const [error, setError] = useState("");
-  const gaps = useMemo(() => assessment.gaps.filter((g) => g.category !== "equivalent"), [assessment]);
-  const withGaps = GAP_SECTIONS.has(sectionId);
-  return (
-    <Modal open onOpenChange={(o) => !o && onClose()} title="Add comment" description="The comment is kept in the project and does not change the assessment." restoreFocus={restoreFocus}>
-      <form
-        className="stack"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!person.name.trim()) return setError("Enter your name.");
-          if (!text.trim()) return setError("Enter the comment.");
-          const err = act(person, (p, actor) => addComment(p, { sectionId, ...(withGaps && gapKey ? { gapKey } : {}), text }, actor), "Comment added");
-          if (err) setError(err);
-          else onClose();
-        }}
-      >
-        <label className="field">
-          <span>Section</span>
-          <select
-            value={sectionId}
-            onChange={(e) => {
-              setSectionId(e.target.value);
-              setGapKey("");
-            }}
-          >
-            {doc.sections.map((s) => (
-              <option key={s.id} value={s.id}>
-                {sectionLabel(s)}
-              </option>
-            ))}
-          </select>
-        </label>
-        {withGaps && (
-          <label className="field">
-            <span>
-              Gap <span className="muted">(optional)</span>
-            </span>
-            <select value={gapKey} onChange={(e) => setGapKey(e.target.value)}>
-              <option value="">Whole section</option>
-              {gaps.map((g) => (
-                <option key={g.key} value={g.key}>
-                  {g.displayId}: {g.attribute}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        <label className="field">
-          <span>Comment (required)</span>
-          <textarea value={text} onChange={(e) => setText(e.target.value)} rows={4} autoFocus />
-        </label>
-        <PersonFields p={person} />
-        {error && (
-          <p className="error" role="alert">
-            {error}
-          </p>
-        )}
-        <DialogButtons onClose={onClose} submit="Add comment" />
-      </form>
-    </Modal>
-  );
-}
-
-const RESPOND = {
-  reply: { title: "Reply to", label: "Reply (required)", submit: "Add reply", status: "Reply added", fn: replyToComment, empty: "Enter your reply." },
-  resolution: { title: "Resolve", label: "How it was resolved (required)", submit: "Resolve comment", status: "Comment resolved", fn: resolveComment, empty: "Enter how the comment was resolved." },
-  reopen: { title: "Reopen", label: "Reason for reopening (required)", submit: "Reopen comment", status: "Comment reopened", fn: reopenComment, empty: "Enter the reason for reopening the comment." },
-} as const;
-
-function RespondDialog({ kind, comment, onClose, restoreFocus }: { kind: "reply" | "resolution" | "reopen"; comment: ReviewComment; onClose: () => void; restoreFocus: () => HTMLElement | null }) {
-  const act = useReviewAction();
-  const person = usePerson();
-  const [text, setText] = useState("");
-  const [error, setError] = useState("");
-  const cfg = RESPOND[kind];
-  const id = commentDisplayId(comment.seq);
-  return (
-    <Modal open onOpenChange={(o) => !o && onClose()} title={`${cfg.title} ${id}`} description={comment.text} restoreFocus={restoreFocus}>
-      <form
-        className="stack"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!text.trim()) return setError(cfg.empty);
-          const err = act(person, (p, actor) => cfg.fn(p, comment.seq, text, actor), cfg.status);
-          if (err) setError(err);
-          else onClose();
-        }}
-      >
-        <label className="field">
-          <span>{cfg.label}</span>
-          <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} autoFocus />
-        </label>
-        <PersonFields p={person} />
-        {error && (
-          <p className="error" role="alert">
-            {error}
-          </p>
-        )}
-        <DialogButtons onClose={onClose} submit={cfg.submit} />
-      </form>
-    </Modal>
   );
 }

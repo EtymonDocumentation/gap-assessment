@@ -37,7 +37,6 @@ export interface TagData {
   sourceStage: string;
   targetStage: string;
   generated: string;
-  revision: string;
   regulatoryStatement: string;
   verificationStatement: string;
   identityStatement: string;
@@ -51,8 +50,6 @@ export interface TagData {
   risks: { rank: string; id: string; attribute: string; category: string; severity: string; regulatory: string }[];
   sources: { id: string; type: string; identifier: string; responder: string; date: string; state: string; citedBy: string }[];
   approvals: { role: string; name: string; signature: string; date: string }[];
-  revisions: { number: string; status: string; date: string; by: string; summary: string; template: string }[];
-  comments: { id: string; location: string; comment: string; by: string; date: string; status: string; responses: string }[];
   meta: { label: string; value: string }[];
   sections: { number: string; title: string }[];
 }
@@ -150,6 +147,17 @@ function siteText(project: Project, side: "source" | "target"): string {
   return line.status === "established" ? `${n}, ${String(line.value)}` : n;
 }
 
+/**
+ * Tags of the retired review workflow (schema 1.10.0). Customer templates written for earlier versions may still contain
+ * {revision}, {#revisions} or {#comments}; such a template must keep working, so these tags are accepted and render as
+ * empty (an empty loop prints nothing). They are deliberately not in TAG_REFERENCE, the starter template or the docs.
+ */
+const RETIRED_TAG_DATA = { revision: "", revisions: [] as Record<string, string>[], comments: [] as Record<string, string>[] };
+const RETIRED_LOOP_FIELDS: Record<string, string[]> = {
+  revisions: ["number", "status", "date", "by", "summary", "template"],
+  comments: ["id", "location", "comment", "by", "date", "status", "responses"],
+};
+
 /** Everything a Word template can use. Values are the strings the HTML and Markdown documents show (taken from the DocModel tables). */
 export function buildTagData(rawContent: ContentBundle, project: Project, a: Assessment, doc: DocModel): TagData {
   const content = stagedFor(rawContent, project);
@@ -159,6 +167,7 @@ export function buildTagData(rawContent: ContentBundle, project: Project, a: Ass
     title: doc.title,
     banner: doc.banner,
     status: doc.status,
+    ...RETIRED_TAG_DATA,
     program: scopeText(content, project, "program"),
     modality: scopeText(content, project, "modality"),
     dosageForm: scopeText(content, project, "dosage_form"),
@@ -170,7 +179,6 @@ export function buildTagData(rawContent: ContentBundle, project: Project, a: Ass
     sourceStage: stages.sourceLabel,
     targetStage: stages.targetLabel,
     generated: metaValue(doc, "Generated"),
-    revision: metaValue(doc, "Revision"),
     regulatoryStatement: noteIn(doc, "gap-table"),
     verificationStatement: metaValue(doc, "Verification"),
     identityStatement: noteIn(doc, "verification-status"),
@@ -201,8 +209,6 @@ export function buildTagData(rawContent: ContentBundle, project: Project, a: Ass
     risks: rowsAs(doc, "risk", { rank: "Rank", id: "ID", attribute: "Attribute", category: "Category", severity: "Severity", regulatory: "Regulatory" }),
     sources: rowsAs(doc, "source-register", { id: "ID", type: "Type", identifier: "Identifier, title, version", responder: "Responder", date: "Date", state: "State", citedBy: "Cited by" }),
     approvals: rowsAs(doc, "approval", { role: "Role", name: "Name", signature: "Signature", date: "Date" }),
-    revisions: rowsAs(doc, "revision-history", { number: "Revision", status: "Status", date: "Date", by: "By", summary: "Summary of change", template: "Template" }),
-    comments: rowsAs(doc, "reviewer-comments", { id: "ID", location: "Location", comment: "Comment", by: "By", date: "Date", status: "Status", responses: "Responses" }),
     meta: doc.meta.map(([label, value]) => ({ label, value })),
     sections: doc.sections.map((s) => ({ number: s.appendix ? `Appendix ${s.number}` : s.number, title: s.title })),
   };
@@ -235,7 +241,6 @@ const TEXT_TAGS: [string, string, boolean?][] = [
   ["sourceStage", "Program stage of the sending unit (SU): Commercial (process validated), Clinical (GMP, not process validated), Development / engineering runs, or [not established]."],
   ["targetStage", "Program stage of the receiving unit (RU), with the same values as sourceStage."],
   ["generated", "Date and time the document was generated (UTC)."],
-  ["revision", "Revision line: \"Not yet issued\" or the latest issued revision and its status."],
   ["regulatoryStatement", "The statement under the gap table that regulatory consequences need review. The tool never decides a filing category; it only says \"Requires regulatory affairs assessment\"."],
   ["verificationStatement", "The statement about data verification."],
   ["identityStatement", "The statement that explains how verifier identity is recorded."],
@@ -303,12 +308,6 @@ const LOOP_TAGS: { tag: string; description: string; fields: { name: string; des
     fields: [f("id", "Source ID."), f("type", "Type."), f("identifier", "Identifier, title, version."), f("responder", "Responder."), f("date", "Date."), f("state", "State."), f("citedBy", "Cited by.")],
   },
   { tag: "approvals", description: "Approval lines. The name, signature and date stay as placeholders: the tool has no electronic signature.", fields: [f("role", "Role."), f("name", "Name (placeholder)."), f("signature", "Signature (placeholder)."), f("date", "Date (placeholder).")] },
-  { tag: "revisions", description: "Revision history (empty when nothing has been issued).", fields: [f("number", "Revision number."), f("status", "Draft or Issued for review."), f("date", "Date."), f("by", "Who issued it."), f("summary", "Summary of the change."), f("template", "Template used.")] },
-  {
-    tag: "comments",
-    description: "Reviewer comments (empty when there are none).",
-    fields: [f("id", "Comment ID, for example C-001."), f("location", "Where in the document."), f("comment", "The comment."), f("by", "Author."), f("date", "Date."), f("status", "Open or Resolved."), f("responses", "Replies and resolutions.")],
-  },
   { tag: "meta", description: "The document-details lines (project, generated, counts, verification).", fields: [f("label", "Line name."), f("value", "Line value.")] },
   { tag: "sections", description: "Section numbers and titles (for a table of contents).", fields: [f("number", "Section number, or \"Appendix\" and its letter. Letters follow the sections kept in the document, so they close up when optional appendices are left out."), f("title", "Section title.")] },
 ];
@@ -336,8 +335,11 @@ export const TAG_REFERENCE: TagReferenceEntry[] = [
 /** Names a template may use at the top level, and the field names allowed inside each loop. */
 export function knownTagNames(): { top: Set<string>; loopFields: Map<string, Set<string>>; recommended: string[] } {
   return {
-    top: new Set(TAG_REFERENCE.map((t) => t.tag)),
-    loopFields: new Map(TAG_REFERENCE.filter((t) => t.kind === "loop").map((t) => [t.tag, new Set((t.fields ?? []).map((x) => x.name))])),
+    top: new Set([...TAG_REFERENCE.map((t) => t.tag), "revision", ...Object.keys(RETIRED_LOOP_FIELDS)]),
+    loopFields: new Map([
+      ...TAG_REFERENCE.filter((t) => t.kind === "loop").map((t): [string, Set<string>] => [t.tag, new Set((t.fields ?? []).map((x) => x.name))]),
+      ...Object.entries(RETIRED_LOOP_FIELDS).map(([k, v]): [string, Set<string>] => [k, new Set(v)]),
+    ]),
     recommended: TAG_REFERENCE.filter((t) => t.recommended).map((t) => t.tag),
   };
 }

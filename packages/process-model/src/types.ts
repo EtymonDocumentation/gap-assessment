@@ -259,7 +259,11 @@ export interface CustomDefinitions {
   items: CustomItem[];
 }
 
-/** Never "approved": the tool has no electronic signature, so a revision is a record, not an approval. */
+/**
+ * Revisions and reviewer comments were removed from the tool in schema 1.10.0 (formal review, versioning and approval belong
+ * in the company's document system, the system of record; a second set here would create conflicting records). The types
+ * stay only to describe the records an older file may still hold in `document.archivedReview`.
+ */
 export type RevisionStatus = "draft" | "issued_for_review";
 
 /** Which template produced an output. */
@@ -274,7 +278,7 @@ export interface TemplateRecord {
   fileName?: string;
 }
 
-/** One issued revision of the generated document. The numbers are never reused. */
+/** One issued revision of the generated document (archived since schema 1.10.0). */
 export interface DocumentRevision {
   number: number;
   status: RevisionStatus;
@@ -300,7 +304,7 @@ export interface ReviewCommentReply {
   text: string;
 }
 
-/** A reviewer comment on a document section, optionally on one gap row in it. */
+/** A reviewer comment on a document section, optionally on one gap row in it (archived since schema 1.10.0). */
 export interface ReviewComment {
   /** 1, 2, 3 ... shown as "C-001". Never reused. */
   seq: number;
@@ -324,18 +328,34 @@ export interface DocumentExport {
   /** Latest issued revision number at export time. */
   revision?: number;
   fingerprint: string;
-  changedSinceRevision: boolean;
+  /** Only on records made before schema 1.10.0 (revisions existed then). */
+  changedSinceRevision?: boolean;
+  /**
+   * True when the document content differs from the previous download of this project; absent on the first download and on
+   * records made before schema 1.10.0. This replaced "changed since revision": the tool no longer issues revisions.
+   */
+  changedSincePrevious?: boolean;
   /** Ids of the optional sections left out of this export (added in schema 1.5.0). Absent means none were left out. */
   omittedSections?: string[];
   /** How many TBD values the exported document listed (added in schema 1.7.0). */
   tbdCount?: number;
 }
 
-/** Revision history, reviewer comments and export records (added in schema 1.3.0). */
-export interface DocumentState {
+/**
+ * Revisions and reviewer comments of a file written before schema 1.10.0. They are kept in the file exactly as they were
+ * written (GMP: a record is never destroyed because the tool stopped showing it), but they are not shown, not edited and not
+ * part of any output. `archivedAt` is when the file was converted.
+ */
+export interface ArchivedReview {
+  archivedAt: string;
   revisions: DocumentRevision[];
   comments: ReviewComment[];
+}
+
+/** Export records and the optional-section choice (revisions and comments moved to `archivedReview` in schema 1.10.0). */
+export interface DocumentState {
   exports: DocumentExport[];
+  archivedReview?: ArchivedReview;
   /**
    * Ids of the optional document sections the user left out (added in schema 1.5.0). Absent or empty means the document
    * includes everything. Only optional sections can be listed; the mandatory ones are always included.
@@ -351,13 +371,30 @@ export interface DocumentState {
 export interface TailoredTopic {
   uo: string;
   topic: string;
-  reason: string;
+  /** Optional since schema 1.10.0 (offered, never required); a document then says "No reason recorded". */
+  reason?: string;
   by: string;
   at: string;
 }
 
 export interface Tailoring {
   excluded: TailoredTopic[];
+}
+
+/**
+ * A whole process step (unit operation) the project leaves out of the assessment on both sides (added in schema 1.10.0).
+ * GMP: leaving a step out is a scope decision a reviewer must be able to see, so it carries who and when; the reason is
+ * offered but optional. Values recorded for the step stay in the project as inactive entries and return when it is included.
+ */
+export interface ExcludedStep {
+  uo: string;
+  reason?: string;
+  by: string;
+  at: string;
+}
+
+export interface StepScope {
+  excluded: ExcludedStep[];
 }
 
 export interface Project {
@@ -386,7 +423,9 @@ export interface Project {
   custom: CustomDefinitions;
   /** Topics switched off for this project (schema 1.8.0). Default and migration: nothing excluded. */
   tailoring: Tailoring;
-  /** Revision history, reviewer comments and export records for the generated document. */
+  /** Process steps left out of the assessment (schema 1.10.0). Default and migration: nothing left out. */
+  stepScope: StepScope;
+  /** Export records and the optional-section choice for the generated document. */
   document: DocumentState;
   sources: Source[];
   answers: AnswerRecord[];

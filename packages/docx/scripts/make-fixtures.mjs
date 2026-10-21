@@ -165,7 +165,7 @@ function tagsBody() {
   return (
     p("BBNormal", run("{banner}", "<w:b/><w:bCs/><w:color w:val=\"8A1C1C\"/>")) +
     p("BBTitle", run("{title}")) +
-    normal("Status: {status}. Revision: {revision}. Generated: {generated}.") +
+    normal("Status: {status}. Generated: {generated}.") +
     heading(1, "Objective") +
     normal("Transfer of {program} ({modality}, {dosageForm}) from {sourceSite} to {targetSite}.") +
     heading(1, "Applicability") +

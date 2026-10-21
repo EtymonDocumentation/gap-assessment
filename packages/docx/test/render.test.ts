@@ -2,7 +2,7 @@
 import { documentFingerprint } from "@gap/engine";
 import { describe, expect, it, vi } from "vitest";
 import { importTemplateFile, mappingReport, renderDocx, suggestMapping, TemplateError, toolBlocks, type ImportedTemplate, type RenderDocxInput, type RenderDocxResult, type TemplateMapping } from "../src/index";
-import { BANNER, GENERATED_AT, buildModel, buildModelWithComments, fixture, type Model } from "./fixtures";
+import { BANNER, GENERATED_AT, buildModel, fixture, type Model } from "./fixtures";
 import { countElements, customProps, plainText, strictDocx, type StrictResult } from "./strict";
 
 // Rendering and strictly checking whole documents takes several seconds on a busy machine.
@@ -111,7 +111,6 @@ describe("built-in look", () => {
     expect(p.templateName).toBe("Built-in default");
     expect(p.templateVersion).toMatch(/^\d+\.\d+\.\d+$/);
     expect(p.documentFingerprint).toBe(documentFingerprint(model.doc));
-    expect(p.revision).toBeTruthy();
     expect(res.text("docProps/app.xml")).toContain("Gap Assessment Generator (proof of concept)");
     expect(res.text("docProps/core.xml")).not.toMatch(/@/);
   });
@@ -124,7 +123,6 @@ describe("built-in look", () => {
       doc: {
         ...model.doc,
         sections: [{ id: "purpose", number: "1", title: "Purpose", blocks: [{ type: "table", columns: Array.from({ length: 10 }, (_, i) => `Column ${i + 1}`), rows: [Array.from({ length: 10 }, (_, i) => `v${i}`)] }] }],
-        comments: [],
       },
     };
     const { res } = await render(wide, "their_look", t);
@@ -154,7 +152,6 @@ describe("built-in look", () => {
             ],
           },
         ],
-        comments: [],
       },
     };
     const { text, res } = await render(hostile, "builtin");
@@ -166,38 +163,25 @@ describe("built-in look", () => {
   });
 });
 
-// ================================================================== comments
+// ================================================================== no review workflow
 
-describe("reviewer comments", () => {
-  const withComments = buildModelWithComments();
-
-  it("become native Word comments anchored where the section is, in every mode", async () => {
+describe("no reviewer comments (M5.7)", () => {
+  it("never writes a Word comments part, in any mode, and has no revision or comment text", async () => {
     const t = await templateOf("brightwater-template.docx");
     const tags = await templateOf("brightwater-tags.docx");
-    const mapped = suggestMapping(t.analysis, withComments.doc);
+    const mapped = suggestMapping(t.analysis, model.doc);
     for (const [mode, tpl, map] of [
       ["builtin", undefined, undefined],
       ["their_look", t, undefined],
       ["mapped", t, mapped],
       ["tags", tags, undefined],
     ] as const) {
-      const { res, out } = await render(withComments, mode, tpl, map);
-      const n = withComments.doc.comments.length;
-      expect(n).toBeGreaterThanOrEqual(3);
-      expect(countElements(res, "comment", "word/comments.xml"), mode).toBe(n);
-      expect(countElements(res, "commentRangeStart"), mode).toBe(n);
-      expect(countElements(res, "commentReference"), mode).toBe(n);
-      const body = res.text("word/comments.xml");
-      for (const c of withComments.doc.comments) expect(body, mode).toContain(c.text.slice(0, 30));
-      void out;
+      const { res, text } = await render(model, mode, tpl, map);
+      expect(res.names, mode).not.toContain("word/comments.xml");
+      expect(res.text("[Content_Types].xml"), mode).not.toContain("comments+xml");
+      expect(countElements(res, "commentReference"), mode).toBe(0);
+      expect(text, mode).not.toMatch(/Revision history|Reviewer comments/);
     }
-  });
-
-  it("has no comments part when the document has no comments", async () => {
-    const none: Model = { ...model, doc: { ...model.doc, comments: [] } };
-    const { res } = await render(none, "builtin");
-    expect(res.names).not.toContain("word/comments.xml");
-    expect(res.text("[Content_Types].xml")).not.toContain("comments+xml");
   });
 });
 

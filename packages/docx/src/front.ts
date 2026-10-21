@@ -81,7 +81,6 @@ export function coverXml(ctx: WriterCtx): string {
     [COVER_LABELS.suStage, c.sourceStage],
     [COVER_LABELS.ruSite, c.targetSite],
     [COVER_LABELS.ruStage, c.targetStage],
-    ["Revision", metaValue(d, "Revision") || NOT_RECORDED],
     ["Status", d.status],
     ["Generated", metaValue(d, "Generated") || NOT_RECORDED],
   ];
@@ -98,12 +97,11 @@ export function documentControlXml(ctx: WriterCtx): string {
   const d = ctx.doc;
   const control: [string, string][] = [
     ["Document ID", DOCUMENT_ID_PLACEHOLDER],
-    ["Revision", metaValue(d, "Revision") || NOT_RECORDED],
     ["Status", d.status],
   ];
   const people = ["Author", "Reviewer", "Approver"].map((r) => [r, "[name]", "[role]", "[date]"]);
   // The cover already shows these two lines; the rest of the document details keep their own table here, so no fact is lost.
-  const rest = d.meta.filter(([k]) => k !== "Revision" && k !== "Generated");
+  const rest = d.meta.filter(([k]) => k !== "Generated");
   return (
     headingPara(ctx, 1, "Document control", { noNumber: true, pageBreakBefore: true }) +
     factsTable(ctx, control, { sz: 20, labelWidth: 3800, pad: 60 }) +

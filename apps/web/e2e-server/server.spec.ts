@@ -446,10 +446,16 @@ test("Word and Markdown export work under the server's security policy", async (
   await go(page, "#/document");
   const panel = page.locator("section", { has: page.getByRole("heading", { level: 2, name: "Word document" }) });
   await panel.getByRole("radio", { name: /^Built-in default/ }).check();
-  const [word] = await Promise.all([page.waitForEvent("download"), panel.getByRole("button", { name: "Download Word document" }).click()]);
+  const [word] = await Promise.all([page.waitForEvent("download"), (async () => {
+      await panel.getByRole("button", { name: "Download Word document" }).click();
+      await page.getByRole("button", { name: "Download anyway" }).click(); // the demo has open TBD values
+    })()]);
   expect(word.suggestedFilename()).toMatch(/\.docx$/);
   expect((await readFile((await word.path())!)).subarray(0, 2).toString("latin1")).toBe("PK");
-  const [md] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download Markdown" }).click()]);
+  const [md] = await Promise.all([page.waitForEvent("download"), (async () => {
+      await page.getByRole("button", { name: "Download Markdown" }).click();
+      await page.getByRole("button", { name: "Download anyway" }).click(); // the demo has open TBD values
+    })()]);
   expect(md.suggestedFilename()).toMatch(/\.md$/);
 
   // Visit every page once: none may break the policy or throw.

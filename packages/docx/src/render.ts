@@ -1,4 +1,4 @@
-import { idWithTitle, type DocModel } from "@gap/engine";
+import type { DocModel } from "@gap/engine";
 import type { TemplateRecord } from "@gap/process-model";
 import { BUILTIN_TEMPLATE_VERSION } from "./version";
 import { DOCUMENT_CLOSE, createBuiltin, documentOpen } from "./builtin";
@@ -14,21 +14,13 @@ import { StyleTable, builtinStylesXml, parseNumbering } from "./styles";
 import { fillTemplate, inspectTags, NOT_AVAILABLE } from "./templater";
 import { sectionTagName } from "./tags";
 import type { OutlineHeading, RenderDocxInput, RenderDocxResult, TemplateAnalysis, TemplateMapping } from "./types";
-import { WriterCtx, bannerPara, frontXml, headingPara, notePara, para, sectionHeadingText, sectionXml, textRuns, withCommentRanges } from "./writer";
+import { WriterCtx, bannerPara, frontXml, headingPara, notePara, para, sectionHeadingText, sectionXml, textRuns } from "./writer";
 import { cleanXmlText, decodeXml, parseXml } from "./xml";
 
 const OUT_OF_MAPPING_HEADING = "Additional content not mapped to a template heading";
 const FLAG_TEXT = "[No content from the gap assessment tool is mapped to this heading. To be completed.]";
 
 // ------------------------------------------------------------------ helpers on paragraph xml
-
-/** Wraps the content of a paragraph in Word comment ranges (used on a customer heading that the tool did not write). */
-export function anchorParagraph(xml: string, ids: number[]): string {
-  if (!ids.length) return xml;
-  const p = splitParagraph(xml);
-  if (!p) return xml;
-  return `${p.open}${p.pPr}${withCommentRanges(p.content, ids)}</w:p>`;
-}
 
 /** A dropped paragraph that ended a section keeps its section properties, so the page layout does not change. */
 function keepSectionBreak(xml: string): string {
@@ -59,16 +51,10 @@ function finaliseInput(input: RenderDocxInput, record: TemplateRecord): Finalise
   };
 }
 
-/** What closes every document: a note for left-out content, a note for comments with no place, and the banner. */
+/** What closes every document: a note for left-out content and the banner. */
 function endMatter(ctx: WriterCtx, omitted: string[] = []): string {
   let out = "";
   if (omitted.length) out += notePara(`The following tool content was left out by choice: ${omitted.join("; ")}.`);
-  const orphans = ctx.unanchoredIndexes();
-  if (orphans.length) {
-    const list = orphans.map((i) => idWithTitle(ctx.doc.comments[i]!.id, ctx.doc.comments[i]!.anchorText)).join("; ");
-    out += notePara(`Reviewer comments whose section is not in this document: ${list}.`, orphans);
-    ctx.markAnchored(orphans);
-  }
   return out + bannerPara(ctx.doc.banner);
 }
 
@@ -211,8 +197,7 @@ function assembleMapped(ctx: WriterCtx, items: Item[], outline: OutlineHeading[]
     } else {
       const sectionIds = ids.filter((id) => id !== FRONT_BLOCK_ID);
       const single = ids.length === 1;
-      const headingXml = single && sectionIds.length === 1 ? anchorParagraph(it.xml, ctx.takeHeadingComments(sectionIds[0]!)) : it.xml;
-      out.push(headingXml);
+      out.push(it.xml);
       if (existing === "keep") out.push(regionXml);
       else {
         // The customer's own text is replaced by choice; section breaks are kept so the page layout does not change.
@@ -302,7 +287,7 @@ function renderTags(input: RenderDocxInput, record: TemplateRecord, warnings: st
   const opened = openTemplate(doc, t.bytes);
   const { ctx } = opened;
   const data = plainData(input.tagData) as Record<string, unknown>;
-  // Raw tags are written on demand, so comments are only anchored in sections the template really uses.
+  // Raw tags are written on demand, so only the sections the template really uses are written.
   const lazy = (name: string, make: () => string) => {
     let cache: string | undefined;
     Object.defineProperty(data, name, { enumerable: true, get: () => (cache ??= make()) });
@@ -324,13 +309,6 @@ function renderTags(input: RenderDocxInput, record: TemplateRecord, warnings: st
   if (!textOfXml(dp.mainXml()).includes(doc.banner)) {
     pre = bannerPara(doc.banner);
     warnings.push("The template has no {banner} tag, so the proof-of-concept banner was inserted at the top of the document.");
-  }
-  const orphans = ctx.unanchoredIndexes();
-  if (orphans.length) {
-    const list = orphans.map((i) => idWithTitle(doc.comments[i]!.id, doc.comments[i]!.anchorText)).join("; ");
-    post = notePara(`Reviewer comments that the template has no place for: ${list}.`, orphans);
-    ctx.markAnchored(orphans);
-    warnings.push(`${orphans.length} reviewer comment${orphans.length === 1 ? "" : "s"} could not be placed next to a section because the template has no {@body} or {@section_...} tag. ${orphans.length === 1 ? "It is" : "They are"} attached to a note at the end of the document.`);
   }
   if (pre || post) {
     const split = splitDocument(dp.mainXml());

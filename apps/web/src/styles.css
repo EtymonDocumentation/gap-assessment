@@ -113,7 +113,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font);
-  font-size: 15px;
+  font-size: 0.9375rem; /* 15px at the default size, but follows the reader's text-size setting (WCAG 1.4.4) */
   line-height: 1.5;
 }
 
@@ -631,23 +631,30 @@ input.num {
   margin: 0;
   padding: 0;
 }
+/* Each section is a small stack: the title (which may wrap), then the counts, then the Review link. Nothing sits in a fixed
+   right-hand column, so a narrow phone or 200% text never clips the count or the link (WCAG 1.4.4, 1.4.10). */
+.pm-help {
+  margin: 0 0 8px;
+}
 .progress-map li {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: block;
   padding: 6px 4px;
   border-radius: 6px;
+  min-width: 0;
 }
 .progress-map li.current {
   background: var(--accent-soft);
 }
 .progress-map li > a:first-child {
   display: grid;
-  grid-template-columns: 14px minmax(0, 1fr) auto;
-  gap: 8px;
+  grid-template-columns: 14px minmax(0, 1fr);
+  gap: 2px 8px;
   align-items: center;
   text-decoration: none;
   color: var(--text);
-  grid-column: 1 / -1;
+}
+.pm-title {
+  overflow-wrap: anywhere;
 }
 .pm-state {
   width: 12px;
@@ -664,19 +671,23 @@ input.num {
   border-color: var(--accent);
 }
 .pm-count {
+  grid-column: 2;
   font-variant-numeric: tabular-nums;
   font-size: 0.85rem;
   color: var(--muted);
+  overflow-wrap: anywhere;
 }
 .pm-sides {
+  display: block;
   padding-left: 22px;
+  overflow-wrap: anywhere;
 }
 .pm-review {
-  justify-self: end;
   display: inline-flex;
   align-items: center;
   min-height: 24px;
   min-width: 24px;
+  margin-left: 16px;
   padding: 0 6px;
 }
 
@@ -1097,7 +1108,7 @@ table.data tr.inactive {
 
 @media (max-width: 560px) {
   body {
-    font-size: 14px;
+    font-size: 0.875rem;
   }
   .poc-sub {
     display: none;
@@ -1422,7 +1433,7 @@ table.equipment-qualification td {
   outline-offset: -3px;
 }
 
-/* ---------------------------------------------------------------- M5: templates, mapping, revisions, comments */
+/* ---------------------------------------------------------------- M5: templates, mapping */
 
 code {
   font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
@@ -1475,16 +1486,13 @@ fieldset.filter-set {
 }
 .template-list,
 .map-list,
-.comment-list,
-.comment-replies,
 .map-blocks {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 .template-list > li + li,
-.map-list > li + li,
-.comment-list > li + li {
+.map-list > li + li {
   margin-top: 12px;
 }
 .facts {
@@ -1553,37 +1561,6 @@ details.report h4 {
 .tag-table code {
   white-space: nowrap;
 }
-.comment {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  padding: 10px 14px;
-}
-.comment p {
-  margin: 4px 0;
-}
-.comment-text {
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-.comment-replies {
-  border-left: 3px solid var(--border);
-  padding-left: 10px;
-  margin-top: 6px;
-  overflow-wrap: anywhere;
-}
-.comment-replies li + li {
-  margin-top: 4px;
-}
-.tag.status-open {
-  border-style: dashed;
-  border-color: var(--c-info);
-}
-.tag.status-resolved {
-  border-color: var(--ok);
-  color: var(--ok);
-}
-.revisions-table .wrap-text,
 .export-table td {
   overflow-wrap: anywhere;
 }
@@ -2024,7 +2001,7 @@ details.report h4 {
   }
 }
 
-/* Tailor dialog (milestone 5.5): topics that can be left out of a unit-operation section, each with a required reason. */
+/* Tailor dialog (milestone 5.5): topics that can be left out of a unit-operation section, each with an optional reason. */
 .tailor-list {
   list-style: none;
   margin: 0;
@@ -2053,7 +2030,111 @@ details.report h4 {
 .tailor-link {
   margin-left: auto;
 }
-.tailor-item textarea[aria-invalid="true"] {
-  border-color: var(--danger, var(--text));
-  border-width: 2px;
+
+/* ---------------------------------------------------------------- M5.7: Scope step and the scope panel of the Document page */
+
+.scope-summary {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.scope-hint {
+  margin: 0;
+  max-width: 60ch;
+}
+.scope-groups,
+.scope-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.scope-group {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.scope-group-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 12px;
+}
+.scope-group-head input {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  min-height: 0;
+  margin: 0;
+}
+.scope-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 6px 4px;
+  background: none;
+  border: 0;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.scope-toggle:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.scope-group-title {
+  font-weight: 600;
+}
+.scope-chevron {
+  width: 1em;
+  flex: none;
+}
+.scope-group-body {
+  padding: 0 12px 12px 42px;
+  border-top: 1px solid var(--border);
+}
+.scope-group-body[hidden] {
+  display: none;
+}
+.scope-steps {
+  margin-top: 6px;
+}
+.scope-step {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: grid;
+  gap: 4px;
+}
+.scope-step.is-off {
+  border-style: dashed;
+  border-color: var(--text);
+}
+.scope-step.is-na {
+  background: var(--surface-2, var(--bg));
+  border-style: dotted;
+}
+.scope-step.is-na strong {
+  color: var(--muted);
+}
+.scope-note {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.scope-step .check.top {
+  align-items: flex-start;
+}
+.scope-step .check.top input {
+  width: 20px;
+  height: 20px;
+}
+@media (max-width: 480px) {
+  .scope-group-body {
+    padding-left: 12px;
+  }
 }

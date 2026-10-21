@@ -135,14 +135,15 @@ export const customSchema = z
     }
   });
 
-// A scope exclusion without a reason is not allowed: the document must be able to justify every omission.
+// A reason is offered but optional (schema 1.10.0, product owner): when it is empty the document says "No reason recorded"
+// instead of refusing the scope decision. Who and when are always kept.
 export const tailoringSchema = z
   .object({
     excluded: z.array(
       z.object({
         uo: z.string().min(1),
         topic: z.string().min(1),
-        reason: z.string().trim().min(1, "an excluded topic needs a reason"),
+        reason: z.string().trim().min(1).optional(),
         by: z.string(),
         at: z.string(),
       }),
@@ -157,6 +158,25 @@ export const tailoringSchema = z
     }
   });
 
+export const stepScopeSchema = z
+  .object({
+    excluded: z.array(
+      z.object({
+        uo: z.string().min(1),
+        reason: z.string().trim().min(1).optional(),
+        by: z.string(),
+        at: z.string(),
+      }),
+    ),
+  })
+  .superRefine((t, ctx) => {
+    const seen = new Set<string>();
+    for (const e of t.excluded) {
+      if (seen.has(e.uo)) ctx.addIssue({ code: "custom", message: `Process step ${e.uo} is left out twice` });
+      seen.add(e.uo);
+    }
+  });
+
 const templateRecord = z.object({
   mode: z.enum(["builtin", "their_look", "mapped", "tags"]),
   name: z.string().trim().min(1),
@@ -165,68 +185,28 @@ const templateRecord = z.object({
   fileName: z.string().optional(),
 });
 
-const reviewReply = z.object({
-  kind: z.enum(["reply", "resolution", "reopen"]),
-  by: z.string(),
-  role: z.string().optional(),
-  at: z.string(),
-  text: z.string().trim().min(1, "a response needs text"),
+export const documentStateSchema = z.object({
+  exports: z.array(
+    z.object({
+      at: z.string(),
+      by: z.string().optional(),
+      format: z.enum(["markdown", "html", "docx"]),
+      template: templateRecord,
+      revision: z.number().int().positive().optional(),
+      fingerprint: z.string(),
+      changedSinceRevision: z.boolean().optional(),
+      changedSincePrevious: z.boolean().optional(),
+      omittedSections: z.array(z.string()).optional(),
+      tbdCount: z.number().int().nonnegative().optional(),
+    }),
+  ),
+  omittedSections: z.array(z.string()).optional(),
+  // Old revisions and reviewer comments, kept exactly as written. They are deliberately not described field by field: the
+  // tool no longer reads them, and a strict shape here could only ever reject or alter a record that must stay untouched.
+  archivedReview: z
+    .object({ archivedAt: z.string(), revisions: z.array(z.unknown()), comments: z.array(z.unknown()) })
+    .optional(),
 });
-
-export const documentStateSchema = z
-  .object({
-    revisions: z.array(
-      z.object({
-        number: z.number().int().positive(),
-        status: z.enum(["draft", "issued_for_review"]),
-        summary: z.string().trim().min(1, "a revision needs a summary of the change"),
-        by: z.string().trim().min(1),
-        role: z.string().optional(),
-        at: z.string(),
-        fingerprint: z.string().min(1),
-        template: templateRecord.optional(),
-        tbdCount: z.number().int().nonnegative().optional(),
-      }),
-    ),
-    comments: z.array(
-      z.object({
-        seq: z.number().int().positive(),
-        anchor: z.object({ sectionId: z.string().min(1), gapKey: z.string().min(1).optional() }),
-        by: z.string().trim().min(1),
-        role: z.string().optional(),
-        at: z.string(),
-        text: z.string().trim().min(1, "a comment needs text"),
-        status: z.enum(["open", "resolved"]),
-        replies: z.array(reviewReply),
-      }),
-    ),
-    exports: z.array(
-      z.object({
-        at: z.string(),
-        by: z.string().optional(),
-        format: z.enum(["markdown", "html", "docx"]),
-        template: templateRecord,
-        revision: z.number().int().positive().optional(),
-        fingerprint: z.string(),
-        changedSinceRevision: z.boolean(),
-        omittedSections: z.array(z.string()).optional(),
-        tbdCount: z.number().int().nonnegative().optional(),
-      }),
-    ),
-    omittedSections: z.array(z.string()).optional(),
-  })
-  .superRefine((d, ctx) => {
-    const nums = new Set<number>();
-    for (const r of d.revisions) {
-      if (nums.has(r.number)) ctx.addIssue({ code: "custom", message: `Duplicate revision number ${r.number}` });
-      nums.add(r.number);
-    }
-    const seqs = new Set<number>();
-    for (const c of d.comments) {
-      if (seqs.has(c.seq)) ctx.addIssue({ code: "custom", message: `Duplicate comment number ${c.seq}` });
-      seqs.add(c.seq);
-    }
-  });
 
 export const projectSchema = z.object({
   schemaVersion: z.string(),
@@ -252,6 +232,7 @@ export const projectSchema = z.object({
   processes: z.object({ source: processModel("source"), target: processModel("target") }),
   custom: customSchema,
   tailoring: tailoringSchema,
+  stepScope: stepScopeSchema,
   document: documentStateSchema,
   sources: z.array(
     z.object({
@@ -417,6 +398,15 @@ const MIGRATIONS: { from: string; to: string; migrate: Migrate }[] = [
     to: "1.9.0",
     migrate: (raw, now) => migrateTo190(raw, now),
   },
+  // 1.9.0 -> 1.10.0: the scope step (project.stepScope: process steps left out, with an optional reason) and the end of the
+  // review workflow. Nothing is excluded after the update, which is exactly how the project behaved before. Revisions and
+  // reviewer comments are moved, untouched, into document.archivedReview (see migrateTo1100): formal review happens in the
+  // company's document system, so the tool stops showing and editing them, but a record is never destroyed.
+  {
+    from: "1.9.0",
+    to: "1.10.0",
+    migrate: (raw, now) => migrateTo1100(raw, now),
+  },
 ];
 
 /** Actor name on change-log records written by a file update rather than by a person. */
@@ -460,6 +450,33 @@ function migrateTo190(raw: Record<string, unknown>, now: string): Record<string,
   }
   // The old records stay as they were written (they keep saying "Unknown"); the conversions are appended after them.
   next.changeLog = [...(Array.isArray(next.changeLog) ? next.changeLog : []), ...log];
+  return next;
+}
+
+function migrateTo1100(raw: Record<string, unknown>, now: string): Record<string, unknown> {
+  const next = structuredClone(raw) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  next.schemaVersion = "1.10.0";
+  next.stepScope = next.stepScope ?? { excluded: [] };
+  const doc = (next.document ??= { exports: [] });
+  const revisions: unknown[] = Array.isArray(doc.revisions) ? doc.revisions : [];
+  const comments: unknown[] = Array.isArray(doc.comments) ? doc.comments : [];
+  delete doc.revisions;
+  delete doc.comments;
+  if (!Array.isArray(doc.exports)) doc.exports = [];
+  if (revisions.length || comments.length) {
+    doc.archivedReview = { archivedAt: now, revisions, comments };
+    // The conversion is a change to the file, so it is written to the change log (a file update never changes records silently).
+    next.changeLog = [
+      ...(Array.isArray(next.changeLog) ? next.changeLog : []),
+      {
+        at: now,
+        by: SYSTEM_ACTOR,
+        action: "archive_review",
+        path: "document.archivedReview",
+        detail: `${revisions.length} revision${revisions.length === 1 ? "" : "s"} and ${comments.length} reviewer comment${comments.length === 1 ? "" : "s"} archived (schema 1.10.0): kept in the file, no longer shown`,
+      },
+    ];
+  }
   return next;
 }
 

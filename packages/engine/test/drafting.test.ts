@@ -10,7 +10,6 @@ import {
   filterLinkCandidates,
   gapsToCsv,
   hasCitableValue,
-  issueRevision,
   linkCandidates,
   locationText,
   PROVISIONAL_LABEL,
@@ -180,26 +179,6 @@ describe("overdue", () => {
     const items = tbdItems(content, p, assess(content, p));
     expect(tbdSummaryText(tbdSummary(items, "2026-10-21"))).toBe("2 TBD (1 overdue)");
     expect(tbdSummary(items, "2026-10-21").withBestGuess).toBe(1);
-  });
-});
-
-describe("revisions record the TBD count", () => {
-  it("records tbdCount on a draft and on an issued revision, and shows it in the revision history", () => {
-    const p0 = ask(base(), "fill.pump", "target", { kind: "tbd" });
-    const doc = buildDocument(content, p0, assess(content, p0), GEN);
-    expect(doc.tbdCount).toBe(1);
-    const p1 = issueRevision(p0, doc, { status: "draft", summary: "Draft" }, A2);
-    expect(p1.document.revisions[0]!.tbdCount).toBe(1);
-    const p2 = issueRevision(p1, doc, { status: "issued_for_review", summary: "For review" }, A2);
-    expect(p2.document.revisions[1]!.tbdCount).toBe(1);
-    const again = buildDocument(content, p2, assess(content, p2), GEN);
-    expect(JSON.stringify(again.sections)).toContain("1 TBD value open");
-  });
-
-  it("records zero when there are none", () => {
-    const p = base();
-    const doc = buildDocument(content, p, assess(content, p), GEN);
-    expect(issueRevision(p, doc, { status: "issued_for_review", summary: "x" }, A2).document.revisions[0]!.tbdCount).toBe(0);
   });
 });
 

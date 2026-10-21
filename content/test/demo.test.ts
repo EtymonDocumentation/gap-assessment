@@ -1,4 +1,4 @@
-import { assess, buildDemoProject, buildDocument, CATEGORIES, commentDisplayId, DOCUMENT_SECTION_IDS, documentFingerprint, gapsToCsv, revisionState, tbdItems, tbdSummary, verificationSummary } from "@gap/engine";
+import { assess, buildDemoProject, buildDocument, CATEGORIES, DOCUMENT_SECTION_IDS, gapsToCsv, tbdItems, tbdSummary, verificationSummary } from "@gap/engine";
 import { getEntry, removeSource, sourceUsage, verificationState } from "@gap/process-model";
 import { renderHtml, renderMarkdown } from "@gap/renderers";
 import { describe, expect, it } from "vitest";
@@ -91,7 +91,7 @@ describe("ARX-217 demo (golden)", () => {
   it("renders the document to Markdown, HTML and the register to CSV", () => {
     const doc = buildDocument(content, project, a, "2026-10-02T00:00:00.000Z");
     expect(doc.title).toBe("Gap assessment: ARX-217 — Site North (fictional), Line 2 to Site South (fictional), Line 4");
-    expect(doc.sections.map((s) => s.id)).toHaveLength(18);
+    expect(doc.sections.map((s) => s.id)).toHaveLength(16);
     const md = renderMarkdown(doc);
     expect(md).toContain("Proof of concept. Not validated. Not for GMP use.");
     expect(md).toContain("DEMO-PPQ-217-01");
@@ -125,11 +125,11 @@ describe("ARX-217 demo (golden)", () => {
       expect(md).toMatch(/not attributable in a GMP sense/);
     });
 
-    it("has a Verification status section and appendices A to E after the approval section", () => {
+    it("has a Verification status section and appendices A to C after the approval section", () => {
       const ids = doc.sections.map((x) => x.id);
       expect(ids).toContain("verification-status");
       expect(ids.indexOf("verification-status")).toBeLessThan(ids.indexOf("source-register"));
-      expect(doc.sections.filter((x) => x.appendix).map((x) => x.number)).toEqual(["A", "B", "C", "D", "E"]);
+      expect(doc.sections.filter((x) => x.appendix).map((x) => x.number)).toEqual(["A", "B", "C"]);
     });
 
     it("lists the unused document reference in the source register", () => {
@@ -155,61 +155,21 @@ describe("ARX-217 demo (golden)", () => {
     });
   });
 
-  describe("revision history and reviewer comments (M5)", () => {
+  describe("no review workflow (M5.7)", () => {
     const doc = buildDocument(content, project, a, "2026-10-02T00:00:00.000Z");
     const md = renderMarkdown(doc);
 
-    it("has revision 1 as a draft by the reviewer, still current because comments do not change the fingerprint", () => {
-      expect(project.document.revisions).toHaveLength(1);
-      expect(project.document.revisions[0]).toMatchObject({
-        number: 1,
-        status: "draft",
-        summary: "First draft for internal review",
-        by: "A. Reviewer (fictional)",
-        role: "MSAT lead (fictional)",
-        at: "2026-10-05T09:00:00.000Z",
-      });
-      const st = revisionState(project, doc);
-      expect(st.latest?.number).toBe(1);
-      expect(st.changedSinceIssue).toBe(false);
-      expect(project.document.revisions[0]!.fingerprint).toBe(documentFingerprint(doc));
-      expect(doc.meta.find(([k]) => k === "Revision")![1]).toBe("1 (Draft, 2026-10-05)");
-      expect(md).toContain("- **Revision:** 1 (Draft, 2026-10-05)");
+    it("has no revisions or comments, no Revision line and no reviewer appendices", () => {
+      expect(project.document.exports).toEqual([]);
+      expect("revisions" in project.document).toBe(false);
+      expect("comments" in project.document).toBe(false);
+      expect(doc.meta.some(([k]) => k === "Revision")).toBe(false);
+      expect(md).not.toMatch(/Revision history|Reviewer comments|\*\*Revision:\*\*/);
     });
 
-    it("has three comments by the checker: one on a regulatory gap, one resolved on scope, one answered on the validation plan", () => {
-      const cs = project.document.comments;
-      expect(cs.map((c) => [commentDisplayId(c.seq), c.anchor.sectionId, c.status, c.replies.length])).toEqual([
-        ["C-001", "gap-table", "open", 0],
-        ["C-002", "scope", "resolved", 1],
-        ["C-003", "validation-plan", "open", 1],
-      ]);
-      for (const c of cs) expect(c.by).toBe("B. Checker (fictional)");
-      expect(cs[0]!.anchor.gapKey).toBe("R-FILL-PUMP:uo.aseptic_filling.equip.filler.operatingPrinciple");
-      expect(a.gaps.find((g) => g.key === cs[0]!.anchor.gapKey)?.regulatoryNote).toBe("Requires regulatory affairs assessment.");
-      expect(cs[1]!.replies[0]).toMatchObject({ kind: "resolution", by: "A. Reviewer (fictional)" });
-      expect(cs[2]!.replies[0]!.kind).toBe("reply");
-    });
-
-    it("shows the comments with their locations, including the gap's current ID", () => {
-      const gapId = a.gaps.find((g) => g.key === project.document.comments[0]!.anchor.gapKey)!.displayId;
-      expect(doc.comments.map((c) => c.anchorText)).toEqual([`6. Detailed gap table, ${gapId}`, "2. Scope", "7. Validation plan"]);
-      expect(doc.comments[0]!.gapDisplayId).toBe(gapId);
-      expect(md).toContain(`| C-001 | 6. Detailed gap table, ${gapId} |`);
-      expect(md).toContain("| C-002 | 2. Scope |");
-      expect(md).toContain("Resolution by A. Reviewer (fictional), 2026-10-06:");
-      expect(md).toContain("Reply by Alex Example (fictional), 2026-10-06:");
-      expect(md).toMatch(/revision is not an approval/);
-    });
-
-    it("lists the review events in the full change log but not in the document's change log summary", () => {
+    it("the change log has no revision or comment events", () => {
       const actions = project.changeLog.map((c) => c.action);
-      expect(actions.filter((x) => x === "issue_revision")).toHaveLength(1);
-      expect(actions.filter((x) => x === "add_comment")).toHaveLength(3);
-      expect(actions).toContain("resolve_comment");
-      expect(actions).toContain("reply_comment");
-      const appendixB = doc.sections.find((s) => s.id === "change-log-summary")!;
-      expect(JSON.stringify(appendixB)).not.toMatch(/Revision issued|Comment added/);
+      for (const x of ["issue_revision", "add_comment", "reply_comment", "resolve_comment", "reopen_comment"]) expect(actions).not.toContain(x);
     });
 
     it("keeps the section id list in step with the sections the document builds", () => {

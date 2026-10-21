@@ -2,7 +2,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { addComment, assess, buildDemoProject, buildDocument, citeEntries, type DocModel } from "@gap/engine";
+import { assess, buildDemoProject, buildDocument, citeEntries, type DocModel } from "@gap/engine";
 import type { Project } from "@gap/process-model";
 import { content, demos } from "../../../content/index";
 import { buildTagData, type TagData } from "../src/tags";
@@ -25,18 +25,6 @@ export interface Model {
 
 export function buildModel(): Model {
   const project = buildDemoProject(content, demos["arx-217"]);
-  const a = assess(content, project);
-  const doc = buildDocument(content, project, a, GENERATED_AT);
-  return { project, doc, tagData: buildTagData(content, project, a, doc) };
-}
-
-/** A model whose document has reviewer comments on several sections (the demo already has one on the gap table). */
-export function buildModelWithComments(): Model {
-  const base = buildDemoProject(content, demos["arx-217"]);
-  let project: Project = base;
-  const who = (name: string, at: string) => ({ name, role: "QA reviewer (fictional)", at });
-  project = addComment(project, { sectionId: "purpose", text: "Please confirm the objective wording (fictional comment)." }, who("B. Checker (fictional)", "2026-10-06T09:00:00.000Z"));
-  project = addComment(project, { sectionId: "approval", text: "Sign-off table needs a second row (fictional comment)." }, who("B. Checker (fictional)", "2026-10-06T09:30:00.000Z"));
   const a = assess(content, project);
   const doc = buildDocument(content, project, a, GENERATED_AT);
   return { project, doc, tagData: buildTagData(content, project, a, doc) };

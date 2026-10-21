@@ -88,6 +88,9 @@ export function HomePage({ notice }: { notice?: string }) {
             <a className="btn primary" href={href("/interview")}>
               Continue interview
             </a>
+            <a className="btn" href={href("/scope")}>
+              Scope
+            </a>
             <a className="btn" href={href("/register")}>
               Gap register
             </a>
@@ -193,7 +196,8 @@ export function HomePage({ notice }: { notice?: string }) {
           onSubmit={(v) => {
             newProject(v.title!, { name: v.name, ...(v.role ? { role: v.role } : {}) });
             setCreating(false);
-            navigate("/interview");
+            // The Scope step comes right after project setup, before the interview, so nobody answers questions about steps they do not have.
+            navigate("/scope");
           }}
         />
       </Modal>

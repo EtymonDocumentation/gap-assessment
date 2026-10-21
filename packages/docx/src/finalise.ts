@@ -4,7 +4,7 @@ import type { DocPackage } from "./docpkg";
 import { CT, REL, resolveTarget } from "./package";
 import type { TemplateMode } from "./types";
 import { W_NS, XML_DECL, attrByLocal, childElements, esc, localName, parseXml, textOf } from "./xml";
-import { commentsXml, type WriterCtx } from "./writer";
+import type { WriterCtx } from "./writer";
 
 export const CREATOR = "Gap Assessment Generator (proof of concept)";
 const FALLBACK_DATE = "2000-01-01T00:00:00Z";
@@ -95,14 +95,12 @@ function rootPartFor(dp: DocPackage, type: string, fallback: string): string {
 /** Writes docProps/core.xml, app.xml and custom.xml (replacing the template's own; the creator is never a person). */
 export function writeDocProps(dp: DocPackage, input: FinaliseInput): void {
   const { doc } = input;
-  const revision = metaValue(doc, "Revision");
   const own: [string, string][] = [
     ["templateMode", input.mode],
     ["templateName", input.templateName],
     ["templateVersion", input.templateVersion],
     ["templateSha256", input.templateSha256 ?? "not applicable (built-in template)"],
     ["documentFingerprint", documentFingerprint(doc)],
-    ["revision", revision || "not recorded"],
     ["contentVersions", contentVersionsText(doc)],
   ];
   const corePart = rootPartFor(dp, REL.coreProps, "docProps/core.xml");
@@ -122,9 +120,9 @@ export function writeDocProps(dp: DocPackage, input: FinaliseInput): void {
   for (const n of dp.pkg.names()) if (/^docProps\/thumbnail\./i.test(n)) dp.removePart(n);
 }
 
-// ------------------------------------------------------------------ styles, numbering, comments
+// ------------------------------------------------------------------ styles, numbering
 
-/** Writes everything the writer context collected: added styles, extended numbering, Word comments, document properties. */
+/** Writes everything the writer context collected: added styles, extended numbering, document properties. */
 export function finalisePackage(dp: DocPackage, ctx: WriterCtx, input: FinaliseInput, originalNumbering: string | undefined): void {
   const stylesPart = dp.partOf(REL.styles) ?? "word/styles.xml";
   if (ctx.addedStyles.length) {
@@ -139,9 +137,7 @@ export function finalisePackage(dp: DocPackage, ctx: WriterCtx, input: FinaliseI
   if (ctx.numberingXml !== undefined && ctx.numberingXml !== originalNumbering) {
     dp.setPart(dp.partOf(REL.numbering) ?? "word/numbering.xml", ctx.numberingXml, CT.numbering, REL.numbering);
   }
-  const anchored = ctx.anchoredIndexes();
-  const commentsPart = dp.partOf(REL.comments) ?? "word/comments.xml";
-  if (anchored.length) dp.setPart(commentsPart, commentsXml(ctx.doc.comments, anchored, W_NS), CT.comments, REL.comments);
-  else dp.removePart(commentsPart);
+  // The tool writes no Word comments (reviewer comments were removed in schema 1.10.0); a comments part is never carried over.
+  dp.removePart(dp.partOf(REL.comments) ?? "word/comments.xml");
   writeDocProps(dp, input);
 }

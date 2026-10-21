@@ -30,7 +30,6 @@ interface State {
   /** Polite status message for screen readers ("Saved", "Imported"). */
   status: string;
   /** Name and role last typed in a revision or comment dialog. Kept for this session only; used to prefill the next dialog. */
-  lastPerson: { name: string; role: string } | null;
   init(): Promise<void>;
   /**
    * Replaces the project (or clears it) and persists. In server mode with server storage, `fresh` marks a different
@@ -43,7 +42,6 @@ interface State {
   newProject(title: string, responder: { name: string; role?: string }): void;
   importJson(text: string): string | null;
   clearError(): void;
-  rememberPerson(name: string, role: string): void;
 }
 
 export function actorOf(p: Project): Actor {
@@ -62,7 +60,6 @@ export const useStore = create<State>((setState, getState) => ({
   ready: false,
   error: null,
   status: "",
-  lastPerson: null,
 
   async init() {
     if (SERVER_MODE && remoteStorage()) {
@@ -126,10 +123,6 @@ export const useStore = create<State>((setState, getState) => ({
 
   clearError() {
     setState({ error: null });
-  },
-
-  rememberPerson(name, role) {
-    setState({ lastPerson: { name: name.trim(), role: role.trim() } });
   },
 }));
 

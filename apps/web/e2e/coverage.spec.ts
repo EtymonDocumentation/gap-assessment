@@ -99,7 +99,7 @@ test("labelling at another site hides the labelling section for that side and th
   await expect(page.getByText("out of scope: labelling and secondary packaging are done at another site").first()).toBeVisible();
 });
 
-test("tailoring: a topic can only be left out with a reason, and it is listed in the document scope", async ({ page }, testInfo) => {
+test("tailoring: a topic can be left out with an optional reason, and it is listed in the document scope", async ({ page }, testInfo) => {
   // A long flow (dialog, document, dialog again) that runs slower when the whole suite shares the machine.
   test.setTimeout(120_000);
   await loadDemo(page);
@@ -113,10 +113,7 @@ test("tailoring: a topic can only be left out with a reason, and it is listed in
   await dialog.getByRole("checkbox", { name: /Hold and temperature/ }).uncheck();
   await expectAccessible(page, "tailor dialog");
   await shot(page, "tailor-dialog", testInfo);
-  // No reason: refused with a message, nothing changes.
-  await dialog.getByRole("button", { name: "Save scope" }).click();
-  await expect(dialog.getByRole("alert")).toContainText("Give a reason");
-  await expect(dialog).toBeVisible();
+  // The reason is optional (M5.7); here one is given.
   await dialog.getByLabel(/Reason for leaving out/).fill("Bulk is packed and labelled in one shift (fictional)");
   await dialog.getByRole("button", { name: "Save scope" }).click();
   await expect(dialog).toBeHidden();

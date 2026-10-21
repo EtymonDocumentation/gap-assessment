@@ -59,7 +59,7 @@ describe("a project stored by a 1.8.0 build", () => {
     const put = await c.put(`/api/projects/${PROJECT_ID}`, { project: old, baseRevision: 1 });
     expect(put.status).toBe(200);
     const saved = (await c.get(`/api/projects/${PROJECT_ID}`)).json.project;
-    expect(saved.schemaVersion).toBe("1.9.0");
+    expect(saved.schemaVersion).toBe("1.10.0");
     expect(saved.scope.modality).toMatchObject({ status: "tbd", tbd: {} });
     const record = saved.changeLog.at(-1);
     expect(record).toMatchObject({ by: "System (file update)", action: "migrate_status", path: "scope.modality" });
@@ -73,14 +73,14 @@ describe("a project stored by a 1.8.0 build", () => {
     const made = await c.post("/api/projects", { project: oldStoredFile().project });
     expect(made.status).toBe(201);
     const saved = (await c.get(`/api/projects/${made.json.id}`)).json.project;
-    expect(saved.schemaVersion).toBe("1.9.0");
+    expect(saved.schemaVersion).toBe("1.10.0");
     expect(saved.scope.modality.status).toBe("tbd");
   });
 
   it("refuses a new write of the retired status on a current file", async () => {
     const c = await signedInClient(env);
     const bad = oldStoredFile().project;
-    bad.schemaVersion = "1.9.0";
+    bad.schemaVersion = "1.10.0";
     const res = await c.post("/api/projects", { project: bad });
     expect(res.status).toBe(400);
     expect(JSON.stringify(res.json)).toContain("invalid-project");

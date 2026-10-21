@@ -30,6 +30,7 @@ function fixtureRaw(mutate?: (r: Record<string, any>) => void): RawContent { // 
   const raw: Record<string, any> = { // eslint-disable-line @typescript-eslint/no-explicit-any
     catalog: {
       catalog: { id: "fixture", version: "1.0.0" },
+      stageGroups: [{ key: "fixture_group", label: "Fixture group", description: "Both fixture unit operations.", unitOperations: ["fill_x", "cap_x"] }],
       unitOperations: [
         {
           key: "fill_x",

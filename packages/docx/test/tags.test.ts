@@ -3,7 +3,7 @@ import { DOCUMENT_SECTION_IDS } from "@gap/engine";
 import PizZip from "pizzip";
 import { describe, expect, it, vi } from "vitest";
 import { TAG_REFERENCE, TemplateError, buildTagData, importTemplateFile, renderDocx, tagReferenceMarkdown } from "../src/index";
-import { BANNER, GENERATED_AT, buildModel, buildModelWithComments, fixture } from "./fixtures";
+import { BANNER, GENERATED_AT, buildModel, fixture } from "./fixtures";
 import { countElements, plainText, strictDocx } from "./strict";
 
 // Rendering and strictly checking whole documents takes several seconds on a busy machine.
@@ -28,6 +28,29 @@ async function renderTags(bytes: Uint8Array, tagData = model.tagData, doc = mode
   const res = strictDocx(out.bytes);
   return { out, res, text: plainText(res), analysis: t.analysis };
 }
+
+describe("tags of the retired review workflow (M5.7)", () => {
+  // An old customer template may still say {revision}, {#revisions} or {#comments}. It must keep working: no error, no
+  // "unknown tag" warning, and the tags print nothing.
+  const old = () => tagDoc(P("Title: {title}"), P("Revision: [{revision}]"), P("{#revisions}"), P("R{number} {status}"), P("{/revisions}"), P("{#comments}"), P("C{id} {comment}"), P("{/comments}"), P("End"));
+
+  it("are accepted by the check", async () => {
+    const t = await importTemplateFile("old.docx", old());
+    expect(t.analysis.tags!.errors).toEqual([]);
+    expect(t.analysis.tags!.unknown).toEqual([]);
+  });
+
+  it("render as empty, and are not part of the tag reference", async () => {
+    const { res, text, out } = await renderTags(old());
+    expect(text).toContain("Revision: []");
+    expect(text).toContain("End");
+    expect(text).not.toMatch(/\{|not available/i);
+    expect(out.warnings.join(" ")).not.toMatch(/revision|comment/i);
+    expect(res.names).not.toContain("word/comments.xml");
+    expect(TAG_REFERENCE.map((x) => x.tag)).not.toEqual(expect.arrayContaining(["revision"]));
+    expect(tagReferenceMarkdown()).not.toMatch(/revisions|comments/);
+  });
+});
 
 describe("checking tags in a template", () => {
   it("lists tags found, unknown tags, and recommended tags that are missing", async () => {
@@ -91,24 +114,9 @@ describe("raw tags", () => {
     expect(text).not.toContain("Requires regulatory affairs assessment");
   });
 
-  it("anchors reviewer comments in the section they belong to", async () => {
-    const withComments = buildModelWithComments();
-    const { res, out } = await renderTags(tagDoc(P("{banner}"), P("{@body}")), withComments.tagData, withComments.doc);
-    expect(countElements(res, "comment", "word/comments.xml")).toBe(withComments.doc.comments.length);
-    expect(out.warnings.join(" ")).not.toMatch(/could not be placed/);
-  });
-
   it("explains a raw tag that shares its paragraph with other text", async () => {
     const t = await importTemplateFile("r.docx", tagDoc(P("Before {@body} after")));
     expect(t.analysis.tags!.errors.join(" ")).toMatch(/alone in its own paragraph/);
-  });
-
-  it("without a raw tag, comments go to a note at the end with a warning", async () => {
-    const withComments = buildModelWithComments();
-    const { res, out, text } = await renderTags(tagDoc(P("{banner}"), P("{title}")), withComments.tagData, withComments.doc);
-    expect(out.warnings.join(" ")).toMatch(/could not be placed/);
-    expect(countElements(res, "comment", "word/comments.xml")).toBe(withComments.doc.comments.length);
-    expect(text).toMatch(/reviewer comment/i);
   });
 });
 

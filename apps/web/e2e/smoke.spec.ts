@@ -29,8 +29,14 @@ async function go(page: Page, hash: string) {
   await page.evaluate((h) => (window.location.hash = h), hash);
 }
 
+/** The demo has open TBD values, so a download asks first (M5.4); these tests want the file, so they answer "Download anyway". */
+async function confirmTbd(page: Page): Promise<void> {
+  const anyway = page.getByRole("button", { name: "Download anyway" });
+  if (await anyway.waitFor({ timeout: 1500 }).then(() => true, () => false)) await anyway.click();
+}
+
 async function downloadText(page: Page, click: () => Promise<void>): Promise<{ name: string; text: string }> {
-  const [dl] = (await Promise.all([page.waitForEvent("download"), click()])) as [Download, void];
+  const [dl] = (await Promise.all([page.waitForEvent("download"), click().then(() => confirmTbd(page))])) as [Download, void];
   const path = await dl.path();
   return { name: dl.suggestedFilename(), text: await readFile(path, "utf8") };
 }
@@ -151,6 +157,8 @@ test("new project: responder, scoping answers, TBD and not-applicable handling",
   await dialog.getByLabel("Project title").fill("Smoke test (fictional)");
   await dialog.getByLabel("Responder name").fill("Test Person (fictional)");
   await dialog.getByRole("button", { name: "Create project" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "What does this assessment cover?" })).toBeVisible();
+  await page.getByRole("link", { name: "Continue to the interview" }).click();
 
   const prompt = page.locator("#q-prompt");
   await expect(prompt).toHaveText("Program or product code");

@@ -31,8 +31,6 @@ const SYNONYMS: Record<string, string[]> = {
   approval: ["approval", "approvals", "sign off", "signoff", "signatures", "document sign off", "authorisation", "authorization"],
   "source-register": ["source register"],
   "change-log-summary": ["change log", "change history"],
-  "revision-history": ["revision history", "document history", "version history", "revisions"],
-  "reviewer-comments": ["reviewer comments", "review comments"],
 };
 
 function normalise(s: string): string {
