@@ -125,6 +125,40 @@ questions:
     binds: uo.compounding.ipc.panel.tests
     input: { type: multi_choice, optionsFrom: compoundingIpc }
 
+  # ---- dilution only (shown when scope.dilution is yes)
+  - id: comp.diluent
+    section: uo.compounding
+    prompt: Which buffer or diluent is used to dilute or formulate the product?
+    label: Buffer or diluent used
+    why: The buffer or diluent composition decides the final formulation and its compatibility with the product. A different buffer is a formulation change that needs regulatory affairs assessment.
+    triggerNote: Asked because the program involves dilution or formulation with a buffer.
+    sides: paired
+    binds: uo.compounding.mat.diluent.description
+    input: { type: text, placeholder: e.g. Formulation buffer FB-1 (fictional) }
+    showWhen: &dilution { isTrue: scope.dilution }
+
+  - id: comp.diluent_volume
+    section: uo.compounding
+    prompt: Buffer or diluent volume added per batch
+    label: Buffer or diluent volume
+    why: The volume of buffer added, with the drug substance volume, sets the dilution ratio. A change in volume changes the final concentration and the batch size.
+    triggerNote: Asked because the program involves dilution or formulation with a buffer.
+    sides: paired
+    binds: uo.compounding.mat.diluent.volume
+    input: { type: quantity, units: [L, mL] }
+    showWhen: *dilution
+
+  - id: comp.target_conc
+    section: uo.compounding
+    prompt: Target protein concentration after dilution
+    label: Target concentration after dilution
+    why: The target concentration is the outcome of the dilution (the dilution ratio). The RU operating range is compared with the SU proven acceptable range.
+    triggerNote: Asked because the program involves dilution or formulation with a buffer.
+    sides: paired
+    binds: uo.compounding.param.target_concentration
+    input: { type: parameter, units: [mg/mL, g/L] }
+    showWhen: *dilution
+
   # ================================================================== milestone 3: validation studies
   # ---- hold time study (formulated bulk)
   - id: comp.hold_cov

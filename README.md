@@ -53,11 +53,20 @@ Live site: `https://<your-github-user>.github.io/gap-assessment/` (after the dep
 - **Revisions and reviewer comments (M5).** Issue a numbered revision (Draft or Issued for review) with a summary and the name and role of whoever issued it. The document shows a revision history and says when the content has changed since the last revision. Reviewers' comments are anchored to a section (and, for some sections, to one gap), can be answered, resolved with a response, or reopened with a reason, and are listed in the document. A revision is **not** an approval or a signature.
 - **One-click demo.** ARX-217 is a fictional liquid mAb in 2R vials moving from Site North (Line 2) to Site South (Line 4). It produces every one of the eight categories.
 
-M1 covers four unit operations:
+M1 covers these unit operations (the list has grown since M1, see the later milestones):
 - pooling, compounding and dilution
-- bioburden reduction and sterile filtration
+- bioburden reduction (BBR) filtration
+- sterile filtration
 - aseptic filling and stoppering
 - capping and crimping
+
+### Dilution, buffer preparation, BBR filtration and PUPSIT (schema 1.6.0)
+
+- **Dilution switch.** A shared yes/no scoping question, "Does the program involve dilution or formulation with a buffer or diluent?" (`scope.dilution`). It works like the drug substance state question. **No** hides the whole Buffer preparation section and the dilution-only questions in the compounding section (diluent, diluent volume, target concentration). They do not count in progress. **Unanswered** behaves the same as No for visibility, and the question stays an open item. Nothing is assumed. If it is switched to No later, earlier answers are kept but marked inactive.
+- **Buffer preparation** (`content/questions/15-buffer-prep.yaml`, unit `buffer_prep`, order 15, shown only when dilution = yes). Presence at each site, then the supply route per site: prepared on site, received frozen and thawed on site, or received ready to use (RTU). Each route has its own questions. Route-specific questions are asked only on the side that uses that route, so a route difference is one high gap (R-BUFFER-ROUTE) and the route-specific questions are not compared across routes. Every route also asks whether the buffer is BBR filtered; the BBR detail questions show only when the answer is yes. Hold time and hold study, cleaning, equipment qualification and RU procedures are asked as well.
+- **BBR filtration** (`content/questions/25-bbr-filtration.yaml`, unit `bbr_filtration`, order 25) is separate from **Sterile filtration** (order 30). The old "BBR filter used" question (`uo.sterile_filtration.mat.prefilter`) is now the presence question of the BBR unit. The bioburden limit before the sterilizing filter stays in sterile filtration, because it is tied to the bacterial retention challenge. The BBR unit has its own inlet limit.
+- **PUPSIT** has its own block in sterile filtration (`filt.pupsit` and follow-ups). PUPSIT is no longer an option of the integrity tests question. A new `transition` comparator (see Rules) lets the outcome depend on the SU and RU answer pair.
+- **Plunger stopper position** (prefilled syringes and cartridges only). Questions `fill.stopper_*` and `fill.headspace` are in `content/questions/40-aseptic-filling.yaml`, in the Aseptic filling section: placement method, stopper position range (mm, set point with NOR and PAR), headspace or air bubble limit (mm), in-process position checks (including 100% in-line camera against sampling), the acceptance criterion, and an RU follow-up on position capability and device fit. They show only when the presentation is a prefilled syringe or a cartridge. While the presentation is unanswered they stay hidden and the presentation question remains an open item.
 
 ## Ground rules the tool enforces
 
@@ -218,7 +227,7 @@ All domain content lives in `content/` as YAML. Each file carries a semantic ver
 | File | Contents |
 |---|---|
 | `content/catalog/catalog.yaml` | Pick-list options, unit operations, activities, category labels and descriptions |
-| `content/questions/*.yaml` | Sections, then questions per section (`00` scoping and site, `20` compounding, `30` sterile filtration, `40` aseptic filling, `60` capping) |
+| `content/questions/*.yaml` | Sections, then questions per section (`00` scoping and site, `15` buffer preparation, `20` compounding, `25` BBR filtration, `30` sterile filtration including the PUPSIT block, `40` aseptic filling including the plunger stopper position questions, `60` capping) |
 | `content/rules/rules.yaml` | Comparison rules, evaluated in order; the first rule whose pattern matches a path wins (`*` matches one path segment) |
 | `content/templates/gap-assessment.yaml` | Document title pattern, banner, fixed text and approval roles |
 | `content/demo/arx-217.yaml` | The demo, written as interview answers and replayed through the engine |
@@ -240,6 +249,8 @@ A small, typed expression language. It is safe to edit because nothing is evalua
 
 `all`, `any`, `not`, `eq`, `in`, `includes`, `answered`, `isUnknown`, `isTrue`, `uoPresent`, `changed` (SU and RU differ), `increased`, `decreased`, `ratioAbove`, `gt`, `gte`, `lt`, `lte` (comparisons are unit-aware).
 
+A reference that starts with `uo.` or `site.` (no `source.` or `target.` in front) means the **same side as the question being shown**. One paired question can then depend on its own side's answer: `eq: [uo.buffer_prep.mat.buffer.supplyRoute, prepared_on_site]` is the SU route on the SU card and the RU route on the RU card. On a shared question it cannot be determined, so it is false. Write `source.` or `target.` to name a side explicitly.
+
 ```yaml
 showWhen: { changed: uo.aseptic_filling.equip.filler.operatingPrinciple }
 showWhen: { all: [ { uoPresent: compounding }, { increased: uo.compounding.param.batch_size } ] }
@@ -250,11 +261,13 @@ showWhen: { all: [ { uoPresent: compounding }, { increased: uo.compounding.param
 Each rule has:
 - `id`, `version` and `title`
 - `match` (a path pattern)
-- a `comparator`: one of `range`, `scale`, `upper_limit`, `lower_limit`, `enum`, `text`, `presence`, `set`, `coverage`, `evidence` or `informational`
+- a `comparator`: one of `range`, `scale`, `upper_limit`, `lower_limit`, `enum`, `text`, `presence`, `set`, `coverage`, `evidence`, `transition` or `informational`
 - `severity` (optionally `severityBy` parameter class), and optional `config`
 - `outcomes` per category: the rationale text, the implied activities, and `regulatory: true` where the row should carry "Requires regulatory affairs assessment."
 
 The comparator decides the category. The rule content supplies the wording, activities and severity.
+
+The `transition` comparator (used by the PUPSIT rule) reads an ordered list in `config.transitions`. Each entry has optional `from` and `to` lists of answers, a `category`, a `detail`, and optional `why`, `activities`, `severity` and `regulatory`. The first entry that matches the SU and RU answers wins. If none matches, equal answers are equivalent and different answers use `config.differentAs` (default: different operating principle). Every answer named in a transition must be an option of each question the rule is first-match for; a test and the content check enforce this.
 
 **YAML tip:** in `{ ... }` flow mappings, put any text that contains a comma in quotes. Otherwise YAML splits it into extra keys. A test checks for this.
 
@@ -305,7 +318,7 @@ The build uses relative asset paths (`base: "./"`) and a hash router, so it work
 ## Scope of this milestone and known limitations
 
 - **In M1:**
-  - scoping, site, and four unit operations
+  - scoping, site, and the first unit operations (since split and extended, see the section on dilution, buffer preparation, BBR filtration and PUPSIT)
   - all eight categories, the register, side-by-side view and document (Markdown and HTML)
   - the demo, unit tests, smoke tests and CI/CD
 - **In M2:**
@@ -324,6 +337,11 @@ The build uses relative asset paths (`base: "./"`) and a hash router, so it work
   - the Change log page with filters and CSV export
   - verification status for every entry in the document, a *Verification status* section, the source register and change log summary appendices (lettered A and B at the time; now B and C after the Gap details appendix), and verification columns in the gap register CSV
   - project schema 1.2.0 (older files migrate on load)
+- **Project schema 1.6.0** (dilution, buffer preparation, BBR filtration, PUPSIT, plunger stopper position):
+  - older files migrate on load. The old BBR filter answer (`uo.sterile_filtration.mat.prefilter.*`) moves to `uo.bbr_filtration.*` with its sources, verification, recorder and revision; gap overlays, reviewer comment anchors, change log paths and the stored answer ids follow
+  - an old integrity answer that included PUPSIT becomes PUPSIT = performed (same sources, recorder and date) and PUPSIT leaves the tests; an old answer without PUPSIT leaves the PUPSIT question unanswered, so it shows as an open item. No justification is ever invented
+  - `scope.dilution` starts unanswered; the Buffer preparation unit and the plunger stopper position questions start empty
+  - catalog, question bank and rule set are 1.4.0
 - **In M5.2:**
   - SU / RU wording everywhere people read it (web pages, interview prompts, content, the document, Word, CSV headers and this README). Stored data is unchanged: `source` / `target` paths, the `Side` type, rule ids, category keys and schema field names stay
   - a lean gap table plus a Gap details appendix; notes per gap (schema 1.5.0, change-logged, in the fingerprint and the CSV)

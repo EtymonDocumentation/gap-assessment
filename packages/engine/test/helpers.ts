@@ -54,7 +54,9 @@ export function composite(fields: FieldSpecs): AnswerInput {
 }
 
 const PRESENCE_QUESTION: Record<string, string> = {
+  buffer_prep: "buf.presence",
   compounding: "comp.presence",
+  bbr_filtration: "bbr.presence",
   sterile_filtration: "filt.presence",
   aseptic_filling: "fill.presence",
   capping: "cap.presence",
@@ -111,6 +113,8 @@ export function makeKit(content: ContentBundle) {
       presentation?: string;
       transfer?: string;
       containment?: string;
+      /** The shared dilution question; "no" by default so the buffer and dilution-only questions stay out of the way. */
+      dilution?: "yes" | "no";
       entrySequence?: "paired" | "sequential";
       sourceStage?: string;
       targetStage?: string;
@@ -122,6 +126,7 @@ export function makeKit(content: ContentBundle) {
     p = v(p, "scope.dosage_form", "shared", "liquid");
     p = v(p, "scope.presentation", "shared", opts.presentation ?? "vial");
     p = v(p, "scope.ds_state", "shared", "liquid");
+    p = v(p, "scope.dilution", "shared", opts.dilution ?? "no");
     p = v(p, "scope.containment", "shared", opts.containment ?? "standard");
     p = v(p, "scope.markets", "shared", ["us"]);
     p = v(p, "scope.transfer_type", "shared", opts.transfer ?? "site_to_site");

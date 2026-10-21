@@ -181,6 +181,7 @@ export const COMPARATORS = [
   "set",
   "coverage",
   "evidence",
+  "transition",
   "informational",
 ] as const;
 export type ComparatorKind = (typeof COMPARATORS)[number];
@@ -191,6 +192,22 @@ const outcomeSchema = z.object({
   severity: z.enum(SEVERITIES).optional(),
   regulatory: z.boolean().optional(),
 });
+export type Outcome = z.infer<typeof outcomeSchema>;
+
+/**
+ * Transition comparator: the SU answer and the RU answer of a choice question are looked up in an ordered list. The first entry whose
+ * `from` (SU) and `to` (RU) both match decides the category; a missing `from` or `to` matches any answer. `detail` replaces the generic
+ * detail text, and the outcome fields (why, activities, severity, regulatory) apply to that entry only. When no entry matches, equal answers
+ * are equivalent and different answers use `differentAs` (default: different principle).
+ */
+const transitionSchema = z.object({
+  from: z.array(z.string()).min(1).optional(),
+  to: z.array(z.string()).min(1).optional(),
+  category: z.enum(CATEGORIES),
+  detail: z.string().optional(),
+  ...outcomeSchema.shape,
+});
+export type Transition = z.infer<typeof transitionSchema>;
 
 export const ruleSchema = z.object({
   id: z.string().regex(/^R-[A-Z0-9-]+$/),
@@ -209,6 +226,8 @@ export const ruleSchema = z.object({
       against: z.object({ side: z.enum(["source", "target"]), path: z.string() }).optional(),
       /** Coverage comparator: which side holds the coverage (study) entry. */
       coverageSide: z.enum(["source", "target"]).optional(),
+      /** Transition comparator: ordered SU answer -> RU answer rules (see transitionSchema). */
+      transitions: z.array(transitionSchema).optional(),
       /** Scale comparator: severity by magnitude of change (ratio >= atLeast, largest first). */
       ratioSeverity: z.array(z.object({ atLeast: z.number(), severity: z.enum(SEVERITIES) })).optional(),
     })

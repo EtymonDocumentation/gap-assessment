@@ -64,7 +64,7 @@ function nullPaths(value: unknown, path = "$", out: string[] = []): string[] {
 
 describe("shipped content builds", () => {
   it("builds without error and reports its versions", () => {
-    expect(content.versions).toEqual({ catalog: "1.3.0", questions: "1.3.0", rules: "1.3.0", templates: "1.3.0" });
+    expect(content.versions).toEqual({ catalog: "1.4.0", questions: "1.4.0", rules: "1.4.0", templates: "1.3.0" });
     for (const v of Object.values(content.versions)) expect(v).toMatch(/^\d+\.\d+\.\d+$/);
   });
 
@@ -190,7 +190,10 @@ describe("rules cover the questions", () => {
     expect(by("uo.compounding.param.batch_size")).toBe("R-BATCH-SIZE");
     expect(by("uo.compounding.param.mixing_speed")).toBe("R-PARAM-RANGE");
     expect(by("uo.sterile_filtration.mat.sua.present")).toBe("R-SUA-PRESENCE");
-    expect(by("uo.sterile_filtration.mat.prefilter.present")).toBe("R-FILTER-TRAIN");
+    expect(by("uo.sterile_filtration.mat.redundant_filter.present")).toBe("R-FILTER-TRAIN");
+    expect(by("uo.bbr_filtration.presence")).toBe("R-BBR-PRESENCE");
+    expect(by("uo.buffer_prep.presence")).toBe("R-BUFFER-PRESENCE");
+    expect(by("uo.sterile_filtration.ipc.pupsit.status")).toBe("R-PUPSIT");
     expect(by("uo.sterile_filtration.mat.sterilizing_filter.supplier")).toBe("R-FILTER-DESIGN");
     expect(by("uo.aseptic_filling.mat.container.supplier")).toBe("R-COMPONENT");
     expect(by("uo.sterile_filtration.ipc.integrity.tests")).toBe("R-INTEGRITY-TESTS");
@@ -227,7 +230,7 @@ describe("rules cover the questions", () => {
   });
 
   it("only comparator kinds the engine implements are used", () => {
-    const implemented = new Set(["range", "scale", "upper_limit", "lower_limit", "enum", "text", "presence", "set", "coverage", "evidence", "informational"]);
+    const implemented = new Set(["range", "scale", "upper_limit", "lower_limit", "enum", "text", "presence", "set", "coverage", "evidence", "transition", "informational"]);
     for (const r of content.rules) expect(implemented.has(r.comparator), r.id).toBe(true);
   });
 

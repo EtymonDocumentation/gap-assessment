@@ -45,10 +45,27 @@ describe("ARX-217 demo (golden)", () => {
       regulatoryNote: "Requires regulatory affairs assessment.",
     });
     expect(by("R-SUA-PRESENCE:uo.sterile_filtration.mat.sua.present")?.category).toBe("new_requirement");
-    expect(by("R-INTEGRITY-TESTS:uo.sterile_filtration.ipc.integrity.tests#pupsit")).toMatchObject({ category: "removed_element", severity: "high" });
+    expect(by("R-PUPSIT:uo.sterile_filtration.ipc.pupsit.status")).toMatchObject({ category: "removed_element", severity: "high" });
     expect(by("R-APS-COVERAGE:uo.aseptic_filling.study.aps.coverage")?.category).toBe("outside_validated_range");
     expect(by("R-PARAM-RANGE:uo.capping.param.rsf")?.category).toBe("information_required");
     expect(by("R-SITE-BARRIER:site.barrier")?.category).toBe("equivalent");
+  });
+
+  it("shows the dilution, buffer and BBR story of the new sections", () => {
+    const by = (key: string) => a.gaps.find((g) => g.key === key);
+    expect(getEntry(project, "scope.dilution")?.value).toBe(true);
+    expect(getEntry(project, "source.uo.buffer_prep.mat.buffer.supplyRoute")?.value).toBe("prepared_on_site");
+    expect(getEntry(project, "target.uo.buffer_prep.mat.buffer.supplyRoute")?.value).toBe("received_rtu");
+    expect(by("R-BUFFER-ROUTE:uo.buffer_prep.mat.buffer.supplyRoute")).toMatchObject({ category: "different_principle", severity: "high" });
+    expect(by("R-EV-BUFFER-SUPPLIER:uo.buffer_prep.mat.buffer.supplierQualification")?.category).toBe("outside_validated_range");
+    expect(getEntry(project, "source.uo.bbr_filtration.presence")?.value).toBe(true);
+    expect(getEntry(project, "target.uo.bbr_filtration.presence")?.value).toBe(true);
+    expect(by("R-BBR-AREA:uo.bbr_filtration.mat.bbr_filter.area")?.category).toBe("scale_change");
+    expect(by("R-BUFFER-BBR-PRESENCE:uo.buffer_prep.mat.buffer_bbr_filter.present")?.category).toBe("removed_element");
+  });
+
+  it("is a vial product, so the plunger stopper position questions stay hidden", () => {
+    expect(a.instances.some((i) => i.question.id.startsWith("fill.stopper_") || i.question.id === "fill.headspace")).toBe(false);
   });
 
   it("lists target unknowns as open items", () => {

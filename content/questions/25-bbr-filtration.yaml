@@ -1,0 +1,117 @@
+questions:
+  - id: bbr.presence
+    section: uo.bbr_filtration
+    prompt: Is bioburden-reduction (BBR) filtration of the bulk performed at this site?
+    label: BBR filtration performed
+    why: Establishes whether a BBR step exists at each site. A BBR filter ahead of the sterilizing filter limits the bioburden the sterilizing filter sees, and it is part of the {{validated|current}} filtration train. A step present at only one site is a new or removed element.
+    sides: paired
+    binds: uo.bbr_filtration.presence
+    input: { type: yes_no }
+
+  - id: bbr.membrane
+    section: uo.bbr_filtration
+    prompt: BBR filter membrane material
+    label: BBR filter membrane
+    why: Membrane chemistry affects protein adsorption and extractables. Validation data for the BBR filter are specific to the membrane.
+    sides: paired
+    binds: uo.bbr_filtration.mat.bbr_filter.materialOfConstruction
+    input: { type: choice, optionsFrom: membrane }
+
+  - id: bbr.pore
+    section: uo.bbr_filtration
+    prompt: BBR filter pore rating
+    label: BBR filter pore rating
+    why: The pore rating decides how much bioburden the BBR filter removes. It is part of the {{validated|current}} filter design.
+    sides: paired
+    binds: uo.bbr_filtration.mat.bbr_filter.poreRating
+    input: { type: choice, optionsFrom: bbrPoreRating }
+
+  - id: bbr.supplier
+    section: uo.bbr_filtration
+    prompt: BBR filter supplier
+    label: BBR filter supplier
+    why: Filter validation data are specific to the supplier's membrane and device. A supplier change is a design change.
+    sides: paired
+    binds: uo.bbr_filtration.mat.bbr_filter.supplier
+    input: { type: text, placeholder: e.g. Filter Vendor A (fictional) }
+
+  - id: bbr.part
+    section: uo.bbr_filtration
+    prompt: BBR filter part number or device format
+    label: BBR filter part number
+    why: Device format and part number identify the {{validated|current}} BBR filter. A different device may need bridging data.
+    sides: paired
+    binds: uo.bbr_filtration.mat.bbr_filter.partNumber
+    input: { type: text, placeholder: e.g. BBR-0001-DEMO }
+
+  - id: bbr.validation
+    section: uo.bbr_filtration
+    parent: bbr.part
+    prompt: Do existing BBR filter validation data (bioburden reduction, compatibility and extractables) cover the RU filter with this product under the RU process conditions?
+    label: BBR filter validation coverage (RU filter)
+    why: The BBR filter must be shown to reduce bioburden to the level the sterilizing filter was challenged with, and to be compatible with the product, for the specific filter and conditions.
+    triggerNote: Asked because the RU BBR filter differs from the SU.
+    tags: [m3]
+    sides: target
+    binds: uo.bbr_filtration.study.bbr_validation.status
+    input: { type: choice, optionsFrom: validationCoverage }
+    showWhen:
+      any:
+        - { changed: uo.bbr_filtration.mat.bbr_filter.materialOfConstruction }
+        - { changed: uo.bbr_filtration.mat.bbr_filter.poreRating }
+        - { changed: uo.bbr_filtration.mat.bbr_filter.supplier }
+        - { changed: uo.bbr_filtration.mat.bbr_filter.partNumber }
+
+  - id: bbr.area
+    section: uo.bbr_filtration
+    prompt: Effective filtration area of the BBR filter
+    label: BBR filter area
+    why: Filter area relative to batch volume affects throughput, filtration time and the risk of filter blockage.
+    sides: paired
+    binds: uo.bbr_filtration.mat.bbr_filter.area
+    input: { type: quantity, units: ["cm²", "m²"] }
+
+  - id: bbr.pressure
+    section: uo.bbr_filtration
+    prompt: BBR filtration differential pressure
+    label: BBR filtration differential pressure
+    why: Differential pressure is a {{validated|tested}} condition of the BBR filter validation. Operating above it is outside the {{validated|demonstrated}} range.
+    sides: paired
+    binds: uo.bbr_filtration.param.differential_pressure
+    input: { type: parameter, units: [bar, mbar, kPa, psi] }
+
+  - id: bbr.duration
+    section: uo.bbr_filtration
+    prompt: BBR filtration duration
+    label: BBR filtration duration
+    why: A longer filtration extends product exposure and gives bioburden more time to grow upstream of the filter. The RU duration is compared with the SU {{validated|demonstrated}} range.
+    sides: paired
+    binds: uo.bbr_filtration.param.max_filtration_time
+    input: { type: parameter, units: [h, min] }
+
+  - id: bbr.bioburden_limit
+    section: uo.bbr_filtration
+    prompt: Pre-filtration bioburden limit at the BBR filter inlet
+    label: BBR inlet bioburden limit
+    why: The bioburden limit at the BBR inlet is tied to the challenge the BBR filter was shown to handle. A higher RU limit is outside the {{validated|demonstrated}} basis.
+    sides: paired
+    binds: uo.bbr_filtration.ipc.bioburden.limit
+    input: { type: quantity, units: [CFU/100 mL, CFU/mL] }
+
+  - id: bbr.integrity
+    section: uo.bbr_filtration
+    prompt: How is the integrity of the BBR filter tested?
+    label: BBR filter integrity testing
+    why: Integrity testing confirms the BBR filter performed as {{validated|intended}}. It is a control on the filtration train, even though the BBR filter is not the sterilizing filter.
+    sides: paired
+    binds: uo.bbr_filtration.ipc.integrity.approach
+    input: { type: choice, optionsFrom: bbrIntegrity }
+
+  - id: bbr.procedures
+    section: uo.bbr_filtration
+    prompt: Status of RU procedures for BBR filtration
+    label: RU BBR filtration procedures
+    why: BBR filtration and integrity-test procedures must reflect the RU filter and process before GMP manufacture.
+    sides: target
+    binds: uo.bbr_filtration.doc.procedures.status
+    input: { type: choice, optionsFrom: procedureStatus }

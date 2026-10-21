@@ -36,7 +36,7 @@ const GENERATED = "2026-10-02T00:00:00.000Z";
 const ACTOR: Actor = { name: "Pat Placeholder (fictional)", role: "MSAT engineer", at: "2026-10-04T09:00:00.000Z" };
 const PUMP_KEY = "R-FILL-PUMP:uo.aseptic_filling.equip.filler.operatingPrinciple";
 const BATCH_KEY = "R-BATCH-SIZE:uo.compounding.param.batch_size";
-const PUPSIT_KEY = "R-INTEGRITY-TESTS:uo.sterile_filtration.ipc.integrity.tests#pupsit";
+const PUPSIT_KEY = "R-PUPSIT:uo.sterile_filtration.ipc.pupsit.status";
 const PROCEDURES_KEY = "R-PROCEDURES:uo.compounding.doc.procedures.status";
 
 const demo = buildDemoProject(content, demos["arx-217"]);

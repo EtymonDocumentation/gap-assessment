@@ -12,7 +12,7 @@
 demo:
   id: arx-217
   title: "ARX-217 transfer: Site North Line 2 to Site South Line 4 (fictional demo)"
-  version: 1.3.0
+  version: 1.4.0
 
 responder: { name: Alex Example (fictional), role: MSAT engineer }
 date: "2026-10-01T09:00:00.000Z"
@@ -35,6 +35,7 @@ answers:
   - { q: scope.dosage_form, side: shared, value: liquid }
   - { q: scope.presentation, side: shared, value: vial }
   - { q: scope.ds_state, side: shared, value: liquid }
+  - { q: scope.dilution, side: shared, value: yes }                   # the program dilutes with a buffer: Buffer preparation and the dilution questions apply
   - { q: scope.containment, side: shared, value: standard }
   - { q: scope.markets, side: shared, value: [us, eu] }
   - { q: scope.transfer_type, side: shared, value: site_to_site }
@@ -52,6 +53,60 @@ answers:
   - { q: site.background_grade, side: target, value: D }
   - { q: site.batch_record, side: source, value: paper }
   - { q: site.batch_record, side: target, value: electronic }        # different principle
+
+  # ---------------------------------------------------------------- buffer preparation (dilution = yes)
+  # The SU prepares the buffer on site from raw materials; the RU receives it as a ready-to-use liquid. The supply route
+  # is the difference. Questions of the other routes stay hidden on the side that does not use them.
+  - { q: buf.presence, side: source, value: yes }
+  - { q: buf.presence, side: target, value: yes }
+  - { q: buf.route, side: source, value: prepared_on_site }
+  - { q: buf.route, side: target, value: received_rtu }              # different supply route (high)
+  - { q: buf.dispensing, side: source, value: automated_dispensing }
+  - { q: buf.vessel_type, side: source, value: single_use_bag }
+  - { q: buf.vessel_capacity, side: source, value: { value: 500, unit: L } }
+  - q: buf.batch_volume
+    side: source
+    docs: [DEMO-CPV-217-01]
+    fields:
+      classification: non_critical
+      setPoint: { value: 400, unit: L }
+      par: { min: { value: 300, unit: L }, max: { value: 500, unit: L } }
+      rangeBasis: development_report
+  - { q: buf.mixer, side: source, value: single_use_impeller }
+  - q: buf.mixing_speed
+    side: source
+    docs: [DEMO-CPV-217-01]
+    fields:
+      classification: non_critical
+      setPoint: { value: 80, unit: rpm }
+      nor: { min: { value: 60, unit: rpm }, max: { value: 100, unit: rpm } }
+      par: { min: { value: 40, unit: rpm }, max: { value: 120, unit: rpm } }
+      rangeBasis: development_report
+  - q: buf.mixing_time
+    side: source
+    docs: [DEMO-CPV-217-01]
+    fields:
+      classification: non_critical
+      setPoint: { value: 45, unit: min }
+      nor: { min: { value: 40, unit: min }, max: { value: 50, unit: min } }
+      par: { min: { value: 30, unit: min }, max: { value: 60, unit: min } }
+      rangeBasis: development_report
+  - { q: buf.ipc, side: source, value: [ph, conductivity, bioburden] }
+  - { q: buf.hold_time, side: source, value: { value: 48, unit: h } }
+  - { q: buf.supplier, side: target, value: Buffer Supplier C (fictional) }
+  - { q: buf.storage, side: target, value: refrigerated }
+  - { q: buf.shelf_life, side: target, value: { value: 30, unit: d } }
+  - { q: buf.bbr_filtered, side: source, value: yes }
+  - { q: buf.bbr_filtered, side: target, value: no }                  # removed element: the RU does not BBR filter the buffer
+  - { q: buf.bbr_membrane, side: source, value: pes }
+  - { q: buf.bbr_pore, side: source, value: "0.2" }
+  - { q: buf.bbr_bioburden, side: source, value: { value: 10, unit: CFU/100 mL } }
+  - { q: buf.bbr_integrity, side: source, value: pre_and_post_use }
+  # milestone 3: supplier qualification and equipment qualification
+  - { q: buf.supplier_qual, side: target, value: in_progress }        # outside: supplier qualification not complete
+  - { q: buf.vessel_qual, side: source, value: pq_complete }
+  - { q: buf.mixer_qual, side: source, value: pq_complete }
+  - { q: buf.procedures, side: target, value: new_required }
 
   # ---------------------------------------------------------------- compounding
   - { q: comp.presence, side: source, value: yes }
@@ -120,6 +175,25 @@ answers:
       nor: { min: { value: 18, unit: "°C" }, max: { value: 22, unit: "°C" } }
   - { q: comp.ipc, side: source, value: [bioburden, ph, osmolality, protein_concentration] }
   - { q: comp.ipc, side: target, same: true }
+  # dilution questions (shown because dilution = yes)
+  - { q: comp.diluent, side: source, value: Formulation buffer FB-1 (fictional) }
+  - { q: comp.diluent, side: target, same: true }
+  - { q: comp.diluent_volume, side: source, value: { value: 30, unit: L } }
+  - { q: comp.diluent_volume, side: target, value: { value: 75, unit: L } }       # scale change with the larger RU batch
+  - q: comp.target_conc
+    side: source
+    docs: [DEMO-CPV-217-01]
+    fields:
+      classification: KPP
+      setPoint: { value: 50, unit: mg/mL }
+      nor: { min: { value: 48, unit: mg/mL }, max: { value: 52, unit: mg/mL } }
+      par: { min: { value: 45, unit: mg/mL }, max: { value: 55, unit: mg/mL } }
+      rangeBasis: PPQ
+  - q: comp.target_conc
+    side: target
+    fields:
+      setPoint: { value: 50, unit: mg/mL }
+      nor: { min: { value: 48, unit: mg/mL }, max: { value: 52, unit: mg/mL } }
   # milestone 3: equipment qualification (cleaning questions stay hidden: the target vessel is single-use)
   - { q: comp.vessel_qual, side: source, value: pq_complete }
   - { q: comp.vessel_qual, side: target, value: oq_complete }                                                    # new requirement (PQ outstanding)
@@ -129,11 +203,50 @@ answers:
   - { q: comp.mixer_range, side: target, value: { min: { value: 100, unit: rpm }, max: { value: 200, unit: rpm } } }
   - { q: comp.procedures, side: target, value: update_required }
 
+  # ---------------------------------------------------------------- BBR filtration
+  # Both sites use a BBR filter. The RU filter has a different part number, so the validation coverage question appears.
+  - { q: bbr.presence, side: source, value: yes }
+  - { q: bbr.presence, side: target, value: yes }
+  - { q: bbr.membrane, side: source, value: pes }
+  - { q: bbr.membrane, side: target, same: true }
+  - { q: bbr.pore, side: source, value: "0.45" }
+  - { q: bbr.pore, side: target, same: true }
+  - { q: bbr.supplier, side: source, value: Filter Vendor A (fictional) }
+  - { q: bbr.supplier, side: target, same: true }
+  - { q: bbr.part, side: source, value: BBR-0001-DEMO }
+  - { q: bbr.part, side: target, value: BBR-0002-DEMO }               # different part number
+  - { q: bbr.validation, side: target, value: bridging_required }     # milestone 3: validation data cover the SU filter only
+  - { q: bbr.area, side: source, value: { value: 0.2, unit: "m²" } }
+  - { q: bbr.area, side: target, value: { value: 0.4, unit: "m²" } }
+  - q: bbr.pressure
+    side: source
+    docs: [DEMO-FV-217-05]
+    fields:
+      classification: non_critical
+      setPoint: { value: 1.0, unit: bar }
+      nor: { min: { value: 0.5, unit: bar }, max: { value: 1.5, unit: bar } }
+      par: { min: { value: 0.3, unit: bar }, max: { value: 2.0, unit: bar } }
+      rangeBasis: characterization
+  - { q: bbr.pressure, side: target, same: true }
+  - q: bbr.duration
+    side: source
+    docs: [DEMO-FV-217-05]
+    fields:
+      classification: non_critical
+      setPoint: { value: 2, unit: h }
+      nor: { min: { value: 1, unit: h }, max: { value: 3, unit: h } }
+      par: { min: { value: 0.5, unit: h }, max: { value: 4, unit: h } }
+      rangeBasis: characterization
+  - { q: bbr.duration, side: target, same: true }
+  - { q: bbr.bioburden_limit, side: source, value: { value: 100, unit: CFU/100 mL } }
+  - { q: bbr.bioburden_limit, side: target, same: true }
+  - { q: bbr.integrity, side: source, value: pre_and_post_use }
+  - { q: bbr.integrity, side: target, value: post_use_only }          # the RU drops the pre-use test
+  - { q: bbr.procedures, side: target, value: update_required }
+
   # ---------------------------------------------------------------- sterile filtration
   - { q: filt.presence, side: source, value: yes }
   - { q: filt.presence, side: target, value: yes }
-  - { q: filt.prefilter, side: source, value: yes }
-  - { q: filt.prefilter, side: target, value: yes }
   - { q: filt.redundant, side: source, value: no }
   - { q: filt.redundant, side: target, value: no }
   - { q: filt.membrane, side: source, value: pes, docs: [DEMO-FV-217-05] }
@@ -164,8 +277,14 @@ answers:
       par: { min: { value: 0.5, unit: bar }, max: { value: 2.5, unit: bar } }
       rangeBasis: characterization
   - { q: filt.pressure, side: target, same: true }
-  - { q: filt.integrity, side: source, value: [pupsit, post_use] }
-  - { q: filt.integrity, side: target, value: [post_use] }            # removed element (PUPSIT)
+  - { q: filt.integrity, side: source, value: [post_use] }
+  - { q: filt.integrity, side: target, same: true }
+  # PUPSIT: performed at the SU, not performed at the RU and no documented justification (removed control, high)
+  - { q: filt.pupsit, side: source, value: performed }
+  - { q: filt.pupsit, side: target, value: not_performed_unjustified }
+  - { q: filt.pupsit_method, side: source, value: bubble_point }
+  - { q: filt.pupsit_fluid, side: source, value: wfi }
+  - { q: filt.pupsit_downstream, side: source, value: closed_assembly }
   - { q: filt.bioburden_limit, side: source, value: { value: 10, unit: CFU/100 mL } }
   - { q: filt.bioburden_limit, side: target, value: { value: 10, unit: CFU/100 mL } }
   - { q: filt.integrity_method, side: source, value: bubble_point }
@@ -411,7 +530,7 @@ overlays:
     notes: Pump vendor has offered a loan unit for a fill-accuracy trial (fictional). Confirm the trial window with the RU planner.
   - gapKey: R-BATCH-SIZE:uo.compounding.param.batch_size
     notes: The RU batch is planned at a larger size than any SU batch; check the mixing and hold studies against this scale-up (fictional).
-  - gapKey: R-INTEGRITY-TESTS:uo.sterile_filtration.ipc.integrity.tests#pupsit
+  - gapKey: R-PUPSIT:uo.sterile_filtration.ipc.pupsit.status
     notes: RU filtration skid is not yet set up for PUPSIT; the filter vendor visit is booked for next quarter (fictional).
 
 # Milestone 4: traceability and verification. All names, dates and documents are fictional.

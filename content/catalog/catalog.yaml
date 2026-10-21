@@ -6,7 +6,7 @@
 # not answered yet, uses the second. Quote any value that holds a marker when it sits inside a { } mapping.
 catalog:
   id: fill-finish-catalog
-  version: 1.3.0
+  version: 1.4.0
 
 unitOperations:
   - key: ds_receipt_thaw
@@ -27,6 +27,33 @@ unitOperations:
       - { coll: study, key: freeze_thaw, label: Freeze-thaw and thaw study }
       - { coll: study, key: thaw_homogeneity, label: Post-thaw homogeneity study }
       - { coll: doc, key: procedures, label: Receipt and thaw procedures }
+  - key: buffer_prep
+    label: Buffer preparation
+    sequence: 15
+    milestone: 4
+    description: Preparation, thaw or receipt of the buffer or diluent used to dilute or formulate the product. Applies only when the program involves dilution.
+    applicableWhen: { isTrue: scope.dilution }
+    items:
+      - { coll: param, key: batch_volume, label: Buffer batch volume }
+      - { coll: param, key: mixing_speed, label: Buffer mixing speed }
+      - { coll: param, key: mixing_time, label: Buffer mixing time }
+      - { coll: param, key: max_hold_time, label: Buffer hold time }
+      - { coll: param, key: storage_temperature, label: Buffer storage temperature }
+      - { coll: param, key: thaw_temperature, label: Buffer thaw temperature }
+      - { coll: param, key: thaw_duration, label: Buffer thaw duration }
+      - { coll: equip, key: dispensing, label: Raw material dispensing and weighing }
+      - { coll: equip, key: prep_vessel, label: Buffer preparation vessel }
+      - { coll: equip, key: prep_mixer, label: Buffer mixer }
+      - { coll: equip, key: thaw_unit, label: Buffer thaw system }
+      - { coll: equip, key: thaw_mixer, label: Post-thaw buffer mixing }
+      - { coll: mat, key: buffer, label: Buffer }
+      - { coll: mat, key: buffer_bbr_filter, label: Buffer bioburden-reduction filter }
+      - { coll: ipc, key: panel, label: Buffer in-process controls }
+      - { coll: ipc, key: bioburden, label: Buffer pre-filtration bioburden }
+      - { coll: ipc, key: integrity, label: Buffer BBR filter integrity testing }
+      - { coll: study, key: hold_time, label: Buffer hold time study }
+      - { coll: study, key: cleaning, label: Cleaning validation (buffer preparation equipment) }
+      - { coll: doc, key: procedures, label: Buffer preparation procedures }
   - key: compounding
     label: Pooling, compounding and dilution
     sequence: 20
@@ -38,34 +65,51 @@ unitOperations:
       - { coll: param, key: mixing_time, label: Mixing time }
       - { coll: param, key: temperature, label: Compounding temperature }
       - { coll: param, key: max_hold_time, label: Formulated bulk hold time }
+      - { coll: param, key: target_concentration, label: Target protein concentration after dilution }
       - { coll: equip, key: vessel, label: Compounding vessel }
       - { coll: equip, key: mixer, label: Mixer }
+      - { coll: mat, key: diluent, label: Buffer or diluent }
       - { coll: ipc, key: panel, label: Compounding in-process controls }
       - { coll: study, key: mixing, label: Mixing study }
       - { coll: study, key: hold_time, label: Formulated bulk hold time study }
       - { coll: study, key: cleaning, label: Cleaning validation (compounding equipment) }
       - { coll: doc, key: procedures, label: Compounding procedures }
+  - key: bbr_filtration
+    label: Bioburden reduction (BBR) filtration
+    sequence: 25
+    milestone: 4
+    description: Bioburden-reduction filtration of the formulated bulk ahead of the sterilizing-grade filter. Some processes have no BBR step.
+    items:
+      - { coll: param, key: differential_pressure, label: BBR filtration differential pressure }
+      - { coll: param, key: max_filtration_time, label: BBR filtration duration }
+      - { coll: mat, key: bbr_filter, label: Bioburden-reduction filter }
+      - { coll: ipc, key: integrity, label: BBR filter integrity testing }
+      - { coll: ipc, key: bioburden, label: Pre-filtration bioburden (BBR inlet) }
+      - { coll: study, key: bbr_validation, label: BBR filter validation }
+      - { coll: doc, key: procedures, label: BBR filtration procedures }
   - key: sterile_filtration
-    label: Bioburden reduction and sterile filtration
+    label: Sterile filtration
     sequence: 30
     milestone: 1
-    description: Bioburden-reduction and sterilizing-grade filtration of the formulated bulk.
+    description: Sterilizing-grade filtration of the formulated bulk, including redundant filtration and integrity testing.
     items:
       - { coll: param, key: differential_pressure, label: Filtration differential pressure }
       - { coll: param, key: max_filtration_time, label: Filtration duration }
-      - { coll: mat, key: prefilter, label: Bioburden-reduction filter }
       - { coll: mat, key: redundant_filter, label: Redundant sterilizing filter }
       - { coll: mat, key: sterilizing_filter, label: Sterilizing-grade filter }
       - { coll: mat, key: sua, label: Single-use filtration assembly }
       - { coll: equip, key: integrity_tester, label: Filter integrity tester }
       - { coll: ipc, key: integrity, label: Filter integrity testing }
-      - { coll: ipc, key: bioburden, label: Pre-filtration bioburden }
+      - { coll: ipc, key: pupsit, label: Pre-use post-sterilization integrity test (PUPSIT) }
+      - { coll: ipc, key: bioburden, label: Bioburden before the sterilizing filter }
       - { coll: study, key: bacterial_retention, label: Bacterial retention validation }
       - { coll: study, key: filter_compatibility, label: Filter compatibility }
       - { coll: study, key: filter_extractables, label: Filter extractables }
       - { coll: study, key: sua_el, label: Single-use assembly E&L }
       - { coll: study, key: filter_sizing, label: Filter sizing }
       - { coll: study, key: integrity_validation, label: Integrity test validation (product-wet specification) }
+      - { coll: study, key: pupsit_assembly, label: PUPSIT assembly qualification }
+      - { coll: doc, key: pupsit_risk_assessment, label: PUPSIT risk assessment }
       - { coll: doc, key: procedures, label: Filtration procedures }
   - key: aseptic_filling
     label: Aseptic filling and stoppering
@@ -78,11 +122,15 @@ unitOperations:
       - { coll: param, key: max_fill_duration, label: Filling duration }
       - { coll: param, key: max_filtered_hold, label: Filtered (sterile) bulk hold time }
       - { coll: param, key: max_interventions, label: Maximum interventions per batch }
+      - { coll: param, key: stopper_position, label: Plunger stopper position (depth from the reference) }
+      - { coll: param, key: max_headspace, label: Headspace or air bubble size }
       - { coll: equip, key: filler, label: Filling machine }
+      - { coll: equip, key: stopper_placement_unit, label: Plunger stopper placement unit }
       - { coll: equip, key: bulk_vessel, label: Sterile bulk holding vessel }
       - { coll: mat, key: container, label: Primary container }
       - { coll: mat, key: stopper, label: Stopper }
       - { coll: ipc, key: fill_check, label: Fill weight check }
+      - { coll: ipc, key: stopper_position_check, label: Plunger stopper position check }
       - { coll: study, key: fill_accuracy, label: Fill accuracy study }
       - { coll: study, key: pump_product_impact, label: Pump product-quality impact assessment }
       - { coll: study, key: ppq, label: Process performance qualification }
@@ -90,6 +138,7 @@ unitOperations:
       - { coll: study, key: filtered_hold, label: Filtered bulk hold time study }
       - { coll: study, key: cleaning, label: Cleaning validation (filling equipment) }
       - { coll: study, key: container_el, label: Container closure E&L }
+      - { coll: study, key: stopper_position_study, label: Plunger stopper position capability and device fit study }
       - { coll: doc, key: procedures, label: Filling procedures }
   - key: stoppering
     label: Stoppering (stand-alone)
@@ -206,6 +255,7 @@ fieldLabels:
   productContactMaterials: Product-contact materials
   technology: Single-use or stainless
   qualificationStatus: Qualification status
+  supplierQualification: Supplier and material qualification
   description: Description
   supplier: Supplier
   partNumber: Part number
@@ -229,6 +279,14 @@ fieldLabels:
   storageCondition: Storage condition
   siliconization: Stopper siliconization
   route: Route
+  supplyRoute: Buffer supply route
+  shelfLife: Use-by period or shelf life
+  volume: Volume
+  wettingFluid: Wetting fluid
+  downstreamProtection: Protection of the sterile downstream side
+  flushVolume: Flush or wetting volume
+  justificationBasis: Basis of the justification
+  approach: Integrity testing approach
   # ---- milestone 3: validation studies and equipment qualification
   qualifiedRange: Qualified range
   qualifiedRange_speed: Qualified speed range
@@ -342,9 +400,65 @@ optionSets:
     - { value: "0.2", label: 0.2 µm }
     - { value: "0.22", label: 0.22 µm }
   integrityTests:
-    - { value: pupsit, label: Pre-use post-sterilization integrity test (PUPSIT) }
     - { value: pre_use_pre_sterilization, label: Pre-use pre-sterilization integrity test }
     - { value: post_use, label: Post-use integrity test }
+  # ---- buffer preparation, BBR filtration and PUPSIT (bank 1.4.0)
+  bufferSupplyRoute:
+    - { value: prepared_on_site, label: Prepared on site from raw materials }
+    - { value: received_frozen, label: Received frozen and thawed on site }
+    - { value: received_rtu, label: Received as ready-to-use liquid }
+  bufferDispensing:
+    - { value: manual_weighing, label: Manual weighing in a dispensing area }
+    - { value: automated_dispensing, label: Automated or gravimetric dispensing system }
+    - { value: preweighed_kits, label: Pre-weighed kits from the warehouse }
+  bufferIpc:
+    - { value: ph, label: pH }
+    - { value: conductivity, label: Conductivity }
+    - { value: osmolality, label: Osmolality }
+    - { value: appearance, label: Appearance }
+    - { value: temperature, label: Temperature }
+    - { value: bioburden, label: Bioburden }
+    - { value: endotoxin, label: Endotoxin }
+  bbrPoreRating:
+    - { value: "0.2", label: 0.2 µm }
+    - { value: "0.22", label: 0.22 µm }
+    - { value: "0.45", label: 0.45 µm }
+    - { value: "0.65", label: 0.65 µm }
+  bbrIntegrity:
+    - { value: pre_and_post_use, label: Pre-use and post-use integrity test }
+    - { value: post_use_only, label: Post-use integrity test only }
+    - { value: pre_use_only, label: Pre-use integrity test only }
+    - { value: none, label: Not integrity tested }
+  supplierQualification:
+    - { value: qualified, label: "Supplier and material qualified (audit or quality agreement in place)" }
+    - { value: in_progress, label: Qualification in progress }
+    - { value: not_qualified, label: Not qualified }
+  pupsitStatus:
+    - { value: performed, label: Performed }
+    - { value: not_performed_justified, label: "Not performed; justified by a documented risk assessment" }
+    - { value: not_performed_unjustified, label: "Not performed; no documented justification" }
+  pupsitFluid:
+    - { value: product, label: Product }
+    - { value: buffer, label: Buffer }
+    - { value: wfi, label: Water for injection }
+    - { value: other, label: Other fluid }
+  pupsitDownstream:
+    - { value: closed_assembly, label: Closed pre-sterilized assembly with a downstream waste or drain bag }
+    - { value: manual_connections, label: Sterile-side manual connections }
+    - { value: other, label: Other approach }
+  pupsitFlush:
+    - { value: defined_assessed, label: "Defined; effect on the product assessed" }
+    - { value: defined_not_assessed, label: "Defined; effect on the product not assessed" }
+    - { value: not_defined, label: Not defined }
+  pupsitJustification:
+    - { value: masking_study, label: Filter masking or blocking study shows low risk }
+    - { value: supplier_data, label: Supplier data for a pre-sterilized single-use assembly }
+    - { value: process_history, label: Process history and bioburden data }
+    - { value: other, label: Other basis }
+  riskAssessmentStatus:
+    - { value: approved, label: Approved and current }
+    - { value: draft, label: Draft or under review }
+    - { value: not_started, label: Not yet written }
   fillingPrinciple:
     - { value: rotary_piston, label: Rotary piston pump }
     - { value: peristaltic, label: Peristaltic pump }
@@ -422,6 +536,17 @@ optionSets:
     - { value: siliconized, label: Siliconized }
     - { value: low_silicone, label: Low-silicone or reduced-silicone }
     - { value: coated, label: Fluoropolymer-coated (no silicone) }
+  # ---- plunger stopper placement in prefilled syringes and cartridges (aseptic filling)
+  plungerPlacement:
+    - { value: vacuum_placement, label: Vacuum placement (under reduced pressure) }
+    - { value: vent_tube, label: Vent-tube (sleeve) placement }
+    - { value: mechanical_insertion, label: Mechanical insertion (pin or rod) }
+    - { value: other, label: Other method }
+  plungerPositionCheck:
+    - { value: height_measurement, label: Stopper position or height measurement on samples }
+    - { value: camera_sampling, label: Camera check of stopper position on samples }
+    - { value: camera_inline_100, label: 100% in-line camera check of stopper position }
+    - { value: manual_visual, label: Manual visual check }
   stopperCheck:
     - { value: height_measurement, label: Stopper height or protrusion measurement }
     - { value: camera_position, label: Camera check of stopper position }
@@ -611,6 +736,11 @@ activities:
   - { key: equipment_requalification, label: Equipment requalification, description: "Requalify or extend the qualified range of RU equipment so it covers the planned operating range (OQ re-execution, or a documented assessment and delta qualification)." }
   - { key: cleaning_validation, label: Cleaning validation, description: "Validate cleaning of the RU product-contact equipment (worst-case selection, residue and microbial limits, sampling and hold times).", studies: [cleaning] }
   - { key: cci_method_validation, label: CCI test method validation, description: "Validate the container closure integrity test method for the RU container (sensitivity, positive and negative controls, repeatability).", studies: [cci_method_validation] }
+  - { key: bbr_filter_validation, label: BBR filter validation, description: "Confirm that the RU bioburden-reduction filter, with this product, reduces bioburden to the level the sterilizing filter was challenged with (performance, compatibility and extractables).", studies: [bbr_validation] }
+  - { key: buffer_supply_assessment, label: Buffer supply route assessment, description: "Assess the quality and microbial control of the buffer at the RU for the chosen supply route (on-site preparation, thaw of a received frozen buffer, or a ready-to-use liquid), including hold and storage." }
+  - { key: supplier_qualification, label: Supplier and material qualification, description: "Qualify the buffer supplier and the material specification at the RU (audit or quality agreement, certificates and incoming testing)." }
+  - { key: stopper_position_study, label: Stopper position capability study, description: "Show on the RU filler that the plunger stopper placement method holds the planned position range (position capability, headspace or air bubble, and fit with the plunger rod, autoinjector or device).", studies: [stopper_position_study] }
+  - { key: pupsit_assembly_qualification, label: PUPSIT assembly qualification, description: "Show that the PUPSIT assembly and procedure work as intended and do not compromise the sterile boundary (closed assembly or aseptic connection, flush volume and product effect).", studies: [pupsit_assembly] }
   - { key: filter_integrity_validation, label: Filter integrity test validation, description: "Establish and validate the product-wet integrity test specification and procedure for the RU filter and tester.", studies: [integrity_validation] }
 
 categories:

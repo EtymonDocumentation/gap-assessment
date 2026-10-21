@@ -532,27 +532,27 @@ describe("set comparator (R-INTEGRITY-TESTS)", () => {
   const sets = (s: string[], t: string[]) => pair(base(), "filt.integrity", s, t);
 
   it("equivalent: same elements in a different order", () => {
-    const g = gap(run(sets(["pupsit", "post_use"], ["post_use", "pupsit"])), INTEGRITY);
+    const g = gap(run(sets(["pre_use_pre_sterilization", "post_use"], ["post_use", "pre_use_pre_sterilization"])), INTEGRITY);
     expect(g).toMatchObject({ category: "equivalent", detail: "Same elements at SU and RU." });
     expect(g.subKey).toBeUndefined();
   });
 
   it("removed_element: one gap per removed element, keyed with the element and keeping the rule severity", () => {
-    const a = run(sets(["pupsit", "post_use"], ["post_use"]));
-    const g = gap(a, `${INTEGRITY}#pupsit`);
+    const a = run(sets(["pre_use_pre_sterilization", "post_use"], ["post_use"]));
+    const g = gap(a, `${INTEGRITY}#pre_use_pre_sterilization`);
     expect(g).toMatchObject({
       category: "removed_element",
-      subKey: "pupsit",
+      subKey: "pre_use_pre_sterilization",
       severity: "high",
       regulatoryNote: REGULATORY_NOTE,
-      attribute: "Filter integrity tests: Pre-use post-sterilization integrity test (PUPSIT)",
-      detail: "Pre-use post-sterilization integrity test (PUPSIT): present at SU, absent at RU.",
+      attribute: "Filter integrity tests: Pre-use pre-sterilization integrity test",
+      detail: "Pre-use pre-sterilization integrity test: present at SU, absent at RU.",
     });
     expect(a.gaps.filter((x) => x.questionId === "filt.integrity")).toHaveLength(1);
   });
 
   it("new_requirement: an added element uses the outcome's low severity, no regulatory note, own activities", () => {
-    const g = gap(run(sets(["post_use"], ["post_use", "pupsit"])), `${INTEGRITY}#pupsit`);
+    const g = gap(run(sets(["post_use"], ["post_use", "pre_use_pre_sterilization"])), `${INTEGRITY}#pre_use_pre_sterilization`);
     expect(g).toMatchObject({
       category: "new_requirement",
       severity: "low",
@@ -563,11 +563,11 @@ describe("set comparator (R-INTEGRITY-TESTS)", () => {
   });
 
   it("reports additions before removals, one gap per element, with consecutive display ids", () => {
-    const a = run(sets(["pupsit", "post_use"], ["post_use", "pre_use_pre_sterilization"]));
+    const a = run(sets(["post_use"], ["pre_use_pre_sterilization"]));
     const mine = a.gaps.filter((x) => x.questionId === "filt.integrity");
     expect(mine.map((x) => [x.subKey, x.category])).toEqual([
       ["pre_use_pre_sterilization", "new_requirement"],
-      ["pupsit", "removed_element"],
+      ["post_use", "removed_element"],
     ]);
     const n = (x: Gap) => Number(x.displayId.slice(2));
     expect(n(mine[1]!)).toBe(n(mine[0]!) + 1);
@@ -583,7 +583,7 @@ describe("set comparator (R-INTEGRITY-TESTS)", () => {
   });
 
   it("information_required when a side is unknown", () => {
-    const p = unk(v(base(), "filt.integrity", "source", ["pupsit"]), "filt.integrity", "target");
+    const p = unk(v(base(), "filt.integrity", "source", ["post_use"]), "filt.integrity", "target");
     expect(gap(run(p), INTEGRITY).category).toBe("information_required");
   });
 });
@@ -773,7 +773,7 @@ describe("not_applicable handling", () => {
   it("works for quantity, presence and set questions too", () => {
     const cap = gap(run(v(na(base(), "comp.vessel_capacity", "source", "n/a (fictional)"), "comp.vessel_capacity", "target", q(10, "L"))), CAPACITY);
     expect(cap.category).toBe("new_requirement");
-    const integrity = gap(run(na(v(base(), "filt.integrity", "source", ["pupsit"]), "filt.integrity", "target", "Not tested (fictional)")), INTEGRITY);
+    const integrity = gap(run(na(v(base(), "filt.integrity", "source", ["post_use"]), "filt.integrity", "target", "Not tested (fictional)")), INTEGRITY);
     expect(integrity.category).toBe("removed_element");
   });
 });
@@ -884,8 +884,8 @@ describe("regulatory note rules", () => {
   });
 
   it("an outcome flag applies only to its own category (set elements)", () => {
-    const a = run(pair(base(), "filt.integrity", ["pupsit"], ["post_use"]));
-    expect(gap(a, `${INTEGRITY}#pupsit`).regulatoryNote).toBe(REGULATORY_NOTE); // removed: rule flag
+    const a = run(pair(base(), "filt.integrity", ["pre_use_pre_sterilization"], ["post_use"]));
+    expect(gap(a, `${INTEGRITY}#pre_use_pre_sterilization`).regulatoryNote).toBe(REGULATORY_NOTE); // removed: rule flag
     expect(gap(a, `${INTEGRITY}#post_use`).regulatoryNote).toBeUndefined(); // added: outcome says false
   });
 });
@@ -1043,7 +1043,7 @@ describe("riskRanked", () => {
     p = pair(p, "fill.pump", "rotary_piston", "peristaltic");
     p = pair(p, "comp.vessel_type", "glass", "stainless_tank");
     p = pair(p, "comp.mixer", "rocking", "rocking");
-    p = pair(p, "filt.integrity", ["pupsit", "post_use"], ["post_use", "pre_use_pre_sterilization"]);
+    p = pair(p, "filt.integrity", ["post_use"], ["pre_use_pre_sterilization"]);
     const a = run(p);
     const ranked = riskRanked(a.gaps);
     expect(ranked.some((g) => g.category === "equivalent")).toBe(false);
@@ -1163,10 +1163,10 @@ describe("gap overlays", () => {
   });
 
   it("accepted_no_action is a valid status and overlays on set elements are keyed by element", () => {
-    let p = pair(base(), "filt.integrity", ["pupsit", "post_use"], ["post_use", "pre_use_pre_sterilization"]);
-    p = setGapOverlay(p, `${INTEGRITY}#pupsit`, { status: "accepted_no_action", notes: "Justified (fictional)" }, ACTOR);
+    let p = pair(base(), "filt.integrity", ["post_use"], ["pre_use_pre_sterilization"]);
+    p = setGapOverlay(p, `${INTEGRITY}#post_use`, { status: "accepted_no_action", notes: "Justified (fictional)" }, ACTOR);
     const a = run(p);
-    expect(gap(a, `${INTEGRITY}#pupsit`).status).toBe("accepted_no_action");
+    expect(gap(a, `${INTEGRITY}#post_use`).status).toBe("accepted_no_action");
     expect(gap(a, `${INTEGRITY}#pre_use_pre_sterilization`).status).toBe("open");
   });
 });

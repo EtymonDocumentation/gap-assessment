@@ -1,0 +1,428 @@
+# Buffer preparation. The whole section is shown only when scope.dilution is yes.
+# Several questions depend on the buffer supply route of the SAME side (an own-side reference, "uo.<...>"
+# without "source." or "target."), so the SU can prepare a buffer on site while the RU receives it ready to use.
+questions:
+  - id: buf.presence
+    section: uo.buffer_prep
+    prompt: Is buffer or diluent preparation, thaw or receipt performed at this site?
+    label: Buffer preparation performed
+    why: Establishes whether the unit operation exists at each site. A site that does not handle a buffer or diluent has no buffer step of its own, which changes where the {{validated|current}} buffer controls sit.
+    sides: paired
+    binds: uo.buffer_prep.presence
+    input: { type: yes_no }
+
+  - id: buf.route
+    section: uo.buffer_prep
+    prompt: How is the buffer or diluent supplied at this site?
+    label: Buffer supply route
+    why: Preparing a buffer on site, thawing a frozen buffer and receiving a ready-to-use liquid carry different quality and microbial risks and need different controls. The route decides which of the following questions apply to each site.
+    sides: paired
+    binds: uo.buffer_prep.mat.buffer.supplyRoute
+    input: { type: choice, optionsFrom: bufferSupplyRoute }
+
+  # ---------------------------------------------------------------- prepared on site
+  - id: buf.dispensing
+    section: uo.buffer_prep
+    prompt: How are the raw materials dispensed and weighed?
+    label: Raw material dispensing
+    why: Dispensing and weighing decide the accuracy of the buffer composition and the risk of mix-ups and contamination. A different approach is a design change.
+    triggerNote: Asked because the buffer is prepared on site.
+    sides: paired
+    binds: uo.buffer_prep.equip.dispensing.operatingPrinciple
+    input: { type: choice, optionsFrom: bufferDispensing }
+    showWhen: &onsite { eq: [uo.buffer_prep.mat.buffer.supplyRoute, prepared_on_site] }
+
+  - id: buf.vessel_type
+    section: uo.buffer_prep
+    prompt: Buffer preparation vessel or single-use mixing bag type
+    label: Buffer vessel type
+    why: Vessel material and construction affect product contact, mixing behaviour and cleaning or single-use E&L requirements.
+    triggerNote: Asked because the buffer is prepared on site.
+    sides: paired
+    binds: uo.buffer_prep.equip.prep_vessel.type
+    input: { type: choice, optionsFrom: vesselType }
+    showWhen: *onsite
+
+  - id: buf.vessel_capacity
+    section: uo.buffer_prep
+    prompt: Buffer preparation vessel working capacity
+    label: Buffer vessel working capacity
+    why: Vessel capacity relative to the buffer batch volume affects mixing efficiency and minimum stir volume.
+    triggerNote: Asked because the buffer is prepared on site.
+    sides: paired
+    binds: uo.buffer_prep.equip.prep_vessel.capacity
+    input: { type: quantity, units: [L, mL] }
+    showWhen: *onsite
+
+  - id: buf.batch_volume
+    section: uo.buffer_prep
+    prompt: Buffer batch volume
+    label: Buffer batch volume
+    why: Buffer batch volume drives mixing, hold time and filtration. A change outside the {{validated|demonstrated}} range is a scale change for the {{validated|current}} state.
+    help: SU — nominal buffer batch volume and the range covered by validation. RU — planned nominal volume and planned range.
+    triggerNote: Asked because the buffer is prepared on site.
+    sides: paired
+    binds: uo.buffer_prep.param.batch_volume
+    input:
+      type: parameter
+      units: [L, mL]
+      sourceFields: [setPoint, par, rangeBasis]
+      targetFields: [setPoint, nor]
+    showWhen: *onsite
+
+  - id: buf.mixer
+    section: uo.buffer_prep
+    prompt: Buffer mixer operating principle
+    label: Buffer mixer principle
+    why: The mixing principle decides how fast and how completely the raw materials dissolve and how much foaming there is. A change is a design change, not a parameter adjustment.
+    triggerNote: Asked because the buffer is prepared on site.
+    sides: paired
+    binds: uo.buffer_prep.equip.prep_mixer.operatingPrinciple
+    input: { type: choice, optionsFrom: mixerPrinciple }
+    showWhen: *onsite
+
+  - id: buf.mixing_speed
+    section: uo.buffer_prep
+    prompt: Buffer mixing speed
+    label: Buffer mixing speed
+    why: Mixing speed affects dissolution time and homogeneity of the buffer. The RU operating range is compared with the SU proven acceptable range.
+    triggerNote: Asked because the buffer is prepared on site.
+    sides: paired
+    binds: uo.buffer_prep.param.mixing_speed
+    input: { type: parameter, units: [rpm] }
+    showWhen: *onsite
+
+  - id: buf.mixing_time
+    section: uo.buffer_prep
+    prompt: Buffer mixing time
+    label: Buffer mixing time
+    why: Mixing time must be long enough for complete dissolution and a uniform buffer.
+    triggerNote: Asked because the buffer is prepared on site.
+    sides: paired
+    binds: uo.buffer_prep.param.mixing_time
+    input: { type: parameter, units: [min, h] }
+    showWhen: *onsite
+
+  - id: buf.ipc
+    section: uo.buffer_prep
+    prompt: Which in-process controls are performed on the prepared buffer?
+    label: Buffer in-process controls
+    why: In-process controls (for example pH and conductivity) confirm the buffer meets its specification before use. Removing a control, or adding one, changes the control strategy.
+    triggerNote: Asked because the buffer is prepared on site.
+    sides: paired
+    binds: uo.buffer_prep.ipc.panel.tests
+    input: { type: multi_choice, optionsFrom: bufferIpc }
+    showWhen: *onsite
+
+  - id: buf.hold_time
+    section: uo.buffer_prep
+    prompt: Maximum hold time of the prepared buffer before use
+    label: Buffer hold time (maximum)
+    why: The RU maximum must stay within the {{validated|demonstrated}} buffer hold time, or a hold time study is needed.
+    triggerNote: Asked because the buffer is prepared on site.
+    sideLabels: { source: "{{Validated|Demonstrated}} maximum buffer hold time", target: Planned maximum buffer hold time }
+    sides: paired
+    binds: uo.buffer_prep.param.max_hold_time.max
+    input: { type: quantity, units: [h, min, d] }
+    showWhen: *onsite
+
+  # ---------------------------------------------------------------- received frozen
+  - id: buf.storage_temp
+    section: uo.buffer_prep
+    prompt: Storage temperature of the frozen buffer before thaw
+    label: Frozen buffer storage temperature
+    why: The storage temperature is the condition supported by the buffer stability data. An RU range wider than the {{validated|demonstrated}} one is not covered by those data.
+    triggerNote: Asked because the buffer is received frozen.
+    sides: paired
+    binds: uo.buffer_prep.param.storage_temperature
+    input: { type: parameter, units: ["°C"] }
+    showWhen: &frozen { eq: [uo.buffer_prep.mat.buffer.supplyRoute, received_frozen] }
+
+  - id: buf.thaw_principle
+    section: uo.buffer_prep
+    prompt: Buffer thaw system operating principle
+    label: Buffer thaw principle
+    why: The thaw method sets the thaw rate and temperature gradient, which can affect solute distribution in the frozen buffer. A change is a design change.
+    triggerNote: Asked because the buffer is received frozen.
+    sides: paired
+    binds: uo.buffer_prep.equip.thaw_unit.operatingPrinciple
+    input: { type: choice, optionsFrom: thawPrinciple }
+    showWhen: *frozen
+
+  - id: buf.thaw_temp
+    section: uo.buffer_prep
+    prompt: Buffer thaw temperature (thaw medium or chamber set point)
+    label: Buffer thaw temperature
+    why: The thaw temperature sets the thaw rate and the maximum buffer temperature. A higher temperature than {{validated|demonstrated}} can degrade buffer components.
+    triggerNote: Asked because the buffer is received frozen.
+    sides: paired
+    binds: uo.buffer_prep.param.thaw_temperature
+    input: { type: parameter, units: ["°C"] }
+    showWhen: *frozen
+
+  - id: buf.thaw_duration
+    section: uo.buffer_prep
+    prompt: Buffer thaw duration
+    label: Buffer thaw duration
+    why: Thaw duration is the time the buffer spends between frozen and fully thawed. It sets the time before mixing and use, and the microbial exposure.
+    triggerNote: Asked because the buffer is received frozen.
+    sides: paired
+    binds: uo.buffer_prep.param.thaw_duration
+    input: { type: parameter, units: [h, min] }
+    showWhen: *frozen
+
+  - id: buf.mixing
+    section: uo.buffer_prep
+    prompt: How is the thawed buffer mixed before use?
+    label: Buffer post-thaw mixing
+    why: A thawed buffer is concentration-stratified. The mixing method decides whether the buffer is homogeneous before it is used to dilute the product.
+    triggerNote: Asked because the buffer is received frozen.
+    sides: paired
+    binds: uo.buffer_prep.equip.thaw_mixer.operatingPrinciple
+    input: { type: choice, optionsFrom: postThawMixing }
+    showWhen: *frozen
+
+  # ---------------------------------------------------------------- received ready to use
+  - id: buf.supplier
+    section: uo.buffer_prep
+    prompt: Supplier of the ready-to-use buffer
+    label: Buffer supplier
+    why: The buffer specification, quality agreement and microbial control are supplier-specific. A supplier change is a change of material source.
+    triggerNote: Asked because the buffer is received as a ready-to-use liquid.
+    sides: paired
+    binds: uo.buffer_prep.mat.buffer.supplier
+    input: { type: text, placeholder: e.g. Buffer Supplier C (fictional) }
+    showWhen: &rtu { eq: [uo.buffer_prep.mat.buffer.supplyRoute, received_rtu] }
+
+  - id: buf.supplier_qual
+    section: uo.buffer_prep
+    prompt: What is the qualification status of the ready-to-use buffer supplier and material at the RU?
+    label: Buffer supplier and material qualification
+    why: A buffer received ready to use is released on the supplier's data. The supplier and the material specification must be qualified (for example audit or quality agreement and incoming testing) before GMP use.
+    triggerNote: Asked because the buffer is received as a ready-to-use liquid.
+    tags: [m3]
+    sides: target
+    binds: uo.buffer_prep.mat.buffer.supplierQualification
+    input: { type: choice, optionsFrom: supplierQualification }
+    showWhen: { eq: [target.uo.buffer_prep.mat.buffer.supplyRoute, received_rtu] }
+
+  - id: buf.storage
+    section: uo.buffer_prep
+    prompt: Storage condition of the ready-to-use buffer
+    label: Buffer storage condition
+    why: Storage conditions are part of the supplier's shelf life claim and the microbial control of the buffer.
+    triggerNote: Asked because the buffer is received as a ready-to-use liquid.
+    sides: paired
+    binds: uo.buffer_prep.mat.buffer.storageCondition
+    input: { type: choice, optionsFrom: storageCondition }
+    showWhen: *rtu
+
+  - id: buf.shelf_life
+    section: uo.buffer_prep
+    prompt: Use-by period (shelf life) of the ready-to-use buffer
+    label: Buffer use-by period
+    why: The use-by period is the time the buffer is supported from supply until use. The RU period must stay within the {{validated|demonstrated}} one.
+    triggerNote: Asked because the buffer is received as a ready-to-use liquid.
+    sides: paired
+    binds: uo.buffer_prep.mat.buffer.shelfLife
+    input: { type: quantity, units: [d, h] }
+    showWhen: *rtu
+
+  # ---------------------------------------------------------------- buffer BBR filtration (all routes)
+  - id: buf.bbr_filtered
+    section: uo.buffer_prep
+    prompt: Is the buffer bioburden-reduction (BBR) filtered on site before use?
+    label: Buffer BBR filtered on site
+    why: A buffer is often filtered through a BBR filter before it meets the product. Preparing, thawing or receiving the buffer does not by itself say whether this filter is used, so it is asked for every route.
+    sides: paired
+    binds: uo.buffer_prep.mat.buffer_bbr_filter.present
+    input: { type: yes_no }
+
+  - id: buf.bbr_membrane
+    section: uo.buffer_prep
+    parent: buf.bbr_filtered
+    prompt: Buffer BBR filter membrane material
+    label: Buffer BBR filter membrane
+    why: Membrane chemistry affects adsorption and extractables. Filter data are specific to the membrane.
+    triggerNote: Asked because the buffer is BBR filtered on site.
+    sides: paired
+    binds: uo.buffer_prep.mat.buffer_bbr_filter.materialOfConstruction
+    input: { type: choice, optionsFrom: membrane }
+    showWhen: &bufBbr { isTrue: uo.buffer_prep.mat.buffer_bbr_filter.present }
+
+  - id: buf.bbr_pore
+    section: uo.buffer_prep
+    parent: buf.bbr_filtered
+    prompt: Buffer BBR filter pore rating
+    label: Buffer BBR filter pore rating
+    why: The pore rating decides how much bioburden the filter removes from the buffer.
+    triggerNote: Asked because the buffer is BBR filtered on site.
+    sides: paired
+    binds: uo.buffer_prep.mat.buffer_bbr_filter.poreRating
+    input: { type: choice, optionsFrom: bbrPoreRating }
+    showWhen: *bufBbr
+
+  - id: buf.bbr_bioburden
+    section: uo.buffer_prep
+    parent: buf.bbr_filtered
+    prompt: Pre-filtration bioburden limit of the buffer at the BBR filter inlet
+    label: Buffer BBR inlet bioburden limit
+    why: The inlet limit is tied to the challenge the BBR filter was shown to handle. A higher RU limit is outside the {{validated|demonstrated}} basis.
+    triggerNote: Asked because the buffer is BBR filtered on site.
+    sides: paired
+    binds: uo.buffer_prep.ipc.bioburden.limit
+    input: { type: quantity, units: [CFU/100 mL, CFU/mL] }
+    showWhen: *bufBbr
+
+  - id: buf.bbr_integrity
+    section: uo.buffer_prep
+    parent: buf.bbr_filtered
+    prompt: How is the integrity of the buffer BBR filter tested?
+    label: Buffer BBR filter integrity testing
+    why: Integrity testing confirms the buffer BBR filter performed as {{validated|intended}}. It applies where the filter is integrity tested.
+    triggerNote: Asked because the buffer is BBR filtered on site.
+    sides: paired
+    binds: uo.buffer_prep.ipc.integrity.approach
+    input: { type: choice, optionsFrom: bbrIntegrity }
+    showWhen: *bufBbr
+
+  # ================================================================== milestone 3: validation studies and equipment qualification
+  - id: buf.hold_cov
+    section: uo.buffer_prep
+    parent: buf.hold_time
+    prompt: What maximum hold duration do the buffer hold time study data cover at the RU conditions (vessel, temperature, container)?
+    label: Buffer hold study coverage (RU)
+    why: Buffer hold-time data are specific to the vessel, temperature and buffer composition studied. The longest planned hold must be covered by that study.
+    triggerNote: Asked because the planned buffer hold time is longer than the SU.
+    tags: [m3]
+    sides: target
+    binds: uo.buffer_prep.study.hold_time.coverage
+    input: { type: quantity, units: [h, min, d] }
+    showWhen: &bufHoldIncreased
+      all:
+        - { eq: [target.uo.buffer_prep.mat.buffer.supplyRoute, prepared_on_site] }
+        - { increased: uo.buffer_prep.param.max_hold_time.max }
+
+  - id: buf.hold_basis
+    section: uo.buffer_prep
+    parent: buf.hold_time
+    prompt: What endpoints does the buffer hold time study use to support the planned hold?
+    label: Buffer hold study basis
+    why: A buffer hold claim needs chemical, physical and microbial evidence. A study with only some endpoints supports only part of the claim.
+    triggerNote: Asked because the planned buffer hold time is longer than the SU.
+    tags: [m3]
+    sides: target
+    binds: uo.buffer_prep.study.hold_time.basis
+    input: { type: choice, optionsFrom: holdBasis }
+    showWhen: *bufHoldIncreased
+
+  - id: buf.cleaning
+    section: uo.buffer_prep
+    prompt: Is cleaning validation complete for the RU reusable buffer preparation vessel and product-contact parts?
+    label: Cleaning validation coverage (buffer equipment)
+    why: A reusable stainless or glass vessel at the RU must have validated cleaning (limits, worst-case location, hold times) before GMP use.
+    triggerNote: Asked because the RU buffer vessel is reusable (stainless steel or glass).
+    tags: [m3]
+    sides: target
+    binds: uo.buffer_prep.study.cleaning.status
+    input: { type: choice, optionsFrom: validationCoverage }
+    showWhen:
+      all:
+        - { eq: [target.uo.buffer_prep.mat.buffer.supplyRoute, prepared_on_site] }
+        - { in: [target.uo.buffer_prep.equip.prep_vessel.type, [stainless_tank, glass]] }
+
+  - id: buf.vessel_qual
+    section: uo.buffer_prep
+    prompt: Qualification status of the buffer preparation vessel
+    label: Buffer vessel qualification status
+    why: Equipment used for GMP manufacture must be qualified. An RU vessel that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    triggerNote: Asked because the buffer is prepared on site.
+    tags: [m3]
+    sides: paired
+    sameAsSource: false
+    binds: uo.buffer_prep.equip.prep_vessel.qualificationStatus
+    input: { type: choice, optionsFrom: equipQualification }
+    showWhen: *onsite
+
+  - id: buf.vessel_range
+    section: uo.buffer_prep
+    parent: buf.vessel_qual
+    prompt: Qualified working volume range of the RU buffer preparation vessel
+    label: Buffer vessel qualified working volume
+    why: Qualification covers a stated working volume range. A planned buffer batch volume outside that range is not supported by the qualification.
+    triggerNote: Asked because the RU vessel is qualified or has a qualification planned.
+    tags: [m3]
+    sides: target
+    binds: uo.buffer_prep.equip.prep_vessel.qualifiedRange
+    input: { type: range, units: [L, mL] }
+    showWhen:
+      all:
+        - { eq: [target.uo.buffer_prep.mat.buffer.supplyRoute, prepared_on_site] }
+        - { in: [target.uo.buffer_prep.equip.prep_vessel.qualificationStatus, [planned, iq_complete, oq_complete, pq_complete, requalification_due]] }
+
+  - id: buf.mixer_qual
+    section: uo.buffer_prep
+    prompt: Qualification status of the buffer mixer
+    label: Buffer mixer qualification status
+    why: Equipment used for GMP manufacture must be qualified. An RU mixer that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    triggerNote: Asked because the buffer is prepared on site.
+    tags: [m3]
+    sides: paired
+    sameAsSource: false
+    binds: uo.buffer_prep.equip.prep_mixer.qualificationStatus
+    input: { type: choice, optionsFrom: equipQualification }
+    showWhen: *onsite
+
+  - id: buf.mixer_range
+    section: uo.buffer_prep
+    parent: buf.mixer_qual
+    prompt: Qualified speed range of the RU buffer mixer
+    label: Buffer mixer qualified speed range
+    why: Mixer qualification covers a defined speed range. Planned mixing speeds outside that range are not supported by the qualification.
+    triggerNote: Asked because the RU mixer is qualified or has a qualification planned.
+    tags: [m3]
+    sides: target
+    binds: uo.buffer_prep.equip.prep_mixer.qualifiedRange
+    input: { type: range, units: [rpm] }
+    showWhen:
+      all:
+        - { eq: [target.uo.buffer_prep.mat.buffer.supplyRoute, prepared_on_site] }
+        - { in: [target.uo.buffer_prep.equip.prep_mixer.qualificationStatus, [planned, iq_complete, oq_complete, pq_complete, requalification_due]] }
+
+  - id: buf.thaw_qual
+    section: uo.buffer_prep
+    prompt: Qualification status of the buffer thaw system
+    label: Buffer thaw system qualification status
+    why: Equipment used for GMP manufacture must be qualified. An RU thaw system that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    triggerNote: Asked because the buffer is received frozen.
+    tags: [m3]
+    sides: paired
+    sameAsSource: false
+    binds: uo.buffer_prep.equip.thaw_unit.qualificationStatus
+    input: { type: choice, optionsFrom: equipQualification }
+    showWhen: *frozen
+
+  - id: buf.thaw_range
+    section: uo.buffer_prep
+    parent: buf.thaw_qual
+    prompt: Qualified temperature range of the RU buffer thaw system
+    label: Buffer thaw system qualified temperature range
+    why: Thermal qualification covers a stated range. A planned thaw temperature outside that range is not supported by the qualification.
+    triggerNote: Asked because the RU thaw system is qualified or has a qualification planned.
+    tags: [m3]
+    sides: target
+    binds: uo.buffer_prep.equip.thaw_unit.qualifiedRange
+    input: { type: range, units: ["°C"] }
+    showWhen:
+      all:
+        - { eq: [target.uo.buffer_prep.mat.buffer.supplyRoute, received_frozen] }
+        - { in: [target.uo.buffer_prep.equip.thaw_unit.qualificationStatus, [planned, iq_complete, oq_complete, pq_complete, requalification_due]] }
+
+  - id: buf.procedures
+    section: uo.buffer_prep
+    prompt: Status of RU procedures for buffer preparation, thaw or receipt
+    label: RU buffer procedures
+    why: Procedures and batch record instructions for the buffer must reflect the RU route, equipment and limits before GMP manufacture.
+    sides: target
+    binds: uo.buffer_prep.doc.procedures.status
+    input: { type: choice, optionsFrom: procedureStatus }

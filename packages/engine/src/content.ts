@@ -163,7 +163,8 @@ function conditionRefs(c: Condition, out: { refs: string[]; paths: string[]; uos
 }
 
 function isValidFullRef(ref: string): boolean {
-  if (ref.startsWith("scope.")) return isValidContentPath(ref);
+  // "uo.<...>" and "site.<...>" mean the question's own side (see conditions.ts).
+  if (ref.startsWith("scope.") || ref.startsWith("uo.") || ref.startsWith("site.")) return isValidContentPath(ref);
   const [side, ...rest] = ref.split(".");
   return (side === "source" || side === "target") && isValidContentPath(rest.join("."));
 }
@@ -249,6 +250,17 @@ function crossCheck(b: ContentBundle): string[] {
     const acts = [...r.activities, ...Object.values(r.outcomes).flatMap((o) => o?.activities ?? [])];
     for (const a of acts) if (!activityKeys.has(a)) p.push(`rule ${r.id}: unknown activity "${a}"`);
     if (r.comparator === "evidence" && !r.config.map) p.push(`rule ${r.id}: evidence comparator needs config.map`);
+    if (r.comparator === "transition" && !r.config.transitions?.length) p.push(`rule ${r.id}: transition comparator needs config.transitions`);
+    if (r.comparator === "transition") {
+      // Every answer named in a transition must be an option of each question the rule applies to.
+      for (const q of b.questions) {
+        if (q.sides === "shared" || findRule(b.rules, q.binds) !== r) continue;
+        const values = new Set(optionsFor(b, q).map((o) => o.value));
+        for (const tr of r.config.transitions ?? []) {
+          for (const v of [...(tr.from ?? []), ...(tr.to ?? [])]) if (!values.has(v)) p.push(`rule ${r.id}: transition answer "${v}" is not an option of question ${q.id}`);
+        }
+      }
+    }
     if (r.comparator === "coverage" && (!r.config.against || !r.config.coverageSide)) {
       p.push(`rule ${r.id}: coverage comparator needs config.against and config.coverageSide`);
     }

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SCHEMA_VERSION } from "./entries";
+import { SCHEMA_VERSION, newId } from "./entries";
 import { isValidCustomKey } from "./custom";
 import type { Project } from "./types";
 
@@ -327,7 +327,113 @@ const MIGRATIONS: { from: string; to: string; migrate: (raw: Record<string, unkn
     to: "1.5.0",
     migrate: (raw) => ({ ...raw, schemaVersion: "1.5.0" }),
   },
+  // 1.5.0 -> 1.6.0: bioburden-reduction (BBR) filtration is its own unit operation, and PUPSIT is its own question.
+  //   - The old "BBR filter used" answer (uo.sterile_filtration.mat.prefilter.present) moves to uo.bbr_filtration.presence.
+  //     The entry keeps its id, value, sources and verification; only its path changes. Any other field of the old item moves to
+  //     the new BBR filter item. The old item is removed from the sterile filtration unit.
+  //   - "pupsit" is taken out of the filter integrity tests answer. When an answer listed it, uo.sterile_filtration.ipc.pupsit.status
+  //     is set to "performed" with the same sources, recorder and date. An answer without it leaves the PUPSIT question
+  //     unanswered: no option fits "not performed" without inventing whether a justification exists.
+  //   - Stored answers, gap overlays, reviewer comment anchors and change log paths follow the moved paths.
+  //   - The stored labels of the sterile filtration unit and of its bioburden item follow the new names.
+  //   - The dilution question (scope.dilution) and the buffer preparation unit start empty.
+  {
+    from: "1.5.0",
+    to: "1.6.0",
+    migrate: (raw) => migrateTo160(raw),
+  },
 ];
+
+const OLD_PREFILTER_PATH = "uo.sterile_filtration.mat.prefilter";
+const OLD_GAP_KEY_PREFILTER = "R-FILTER-TRAIN:uo.sterile_filtration.mat.prefilter.present";
+const NEW_GAP_KEY_PREFILTER = "R-BBR-PRESENCE:uo.bbr_filtration.presence";
+const OLD_GAP_KEY_PUPSIT = "R-INTEGRITY-TESTS:uo.sterile_filtration.ipc.integrity.tests#pupsit";
+const NEW_GAP_KEY_PUPSIT = "R-PUPSIT:uo.sterile_filtration.ipc.pupsit.status";
+
+function remapGapKey(key: string): string {
+  if (key === OLD_GAP_KEY_PREFILTER) return NEW_GAP_KEY_PREFILTER;
+  if (key === OLD_GAP_KEY_PUPSIT) return NEW_GAP_KEY_PUPSIT;
+  return key;
+}
+
+function remapEntryPath(path: string): string {
+  const m = /^(source|target)\.(.*)$/.exec(path);
+  if (!m) return path;
+  const rest = m[2]!;
+  if (rest === `${OLD_PREFILTER_PATH}.present`) return `${m[1]}.uo.bbr_filtration.presence`;
+  if (rest.startsWith(`${OLD_PREFILTER_PATH}.`)) return `${m[1]}.uo.bbr_filtration.mat.bbr_filter.${rest.slice(OLD_PREFILTER_PATH.length + 1)}`;
+  return path;
+}
+
+function migrateTo160(raw: Record<string, unknown>): Record<string, unknown> {
+  const next = structuredClone(raw) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  next.schemaVersion = "1.6.0";
+  const original = structuredClone(raw) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+  for (const side of ["source", "target"] as const) {
+    const model = next.processes?.[side];
+    const uos = model?.unitOperations;
+    const sterile = uos?.sterile_filtration;
+    if (!sterile) continue;
+    if (sterile.label === "Bioburden reduction and sterile filtration") sterile.label = "Sterile filtration";
+    const bioburden = sterile.collections?.ipc?.bioburden;
+    if (bioburden && bioburden.label === "Pre-filtration bioburden") bioburden.label = "Bioburden before the sterilizing filter";
+
+    // BBR filter used -> uo.bbr_filtration.presence
+    const prefilter = sterile.collections?.mat?.prefilter;
+    if (prefilter) {
+      const bbr = (uos.bbr_filtration ??= {
+        key: "bbr_filtration",
+        label: "Bioburden reduction (BBR) filtration",
+        sequence: 25,
+        fields: {},
+        collections: { param: {}, equip: {}, mat: {}, ipc: {}, study: {}, doc: {} },
+      });
+      for (const [field, entry] of Object.entries<any>(prefilter.fields ?? {})) {
+        entry.path = remapEntryPath(entry.path);
+        if (field === "present") bbr.fields.presence = entry;
+        else {
+          bbr.collections.mat.bbr_filter ??= { key: "bbr_filter", label: "Bioburden-reduction filter", fields: {} };
+          bbr.collections.mat.bbr_filter.fields[field] = entry;
+        }
+      }
+      delete sterile.collections.mat.prefilter;
+    }
+
+    // "pupsit" in the integrity tests answer -> ipc.pupsit.status = performed
+    const tests = sterile.collections?.ipc?.integrity?.fields?.tests;
+    if (tests && tests.status === "established") {
+      let list: unknown = tests.value;
+      if (tests.sameAsSource) list = original.processes?.source?.unitOperations?.sterile_filtration?.collections?.ipc?.integrity?.fields?.tests?.value;
+      if (Array.isArray(list) && list.includes("pupsit")) {
+        if (!tests.sameAsSource) tests.value = (tests.value as string[]).filter((v) => v !== "pupsit");
+        const entry: Record<string, unknown> = {
+          id: newId("ent"),
+          path: `${side}.uo.sterile_filtration.ipc.pupsit.status`,
+          status: "established",
+          sourceIds: [...tests.sourceIds],
+          recordedBy: tests.recordedBy,
+          recordedAt: tests.recordedAt,
+          revision: 1,
+        };
+        if (tests.sameAsSource) entry.sameAsSource = true;
+        else entry.value = "performed";
+        sterile.collections.ipc.pupsit ??= { key: "pupsit", label: "Pre-use post-sterilization integrity test (PUPSIT)", fields: {} };
+        sterile.collections.ipc.pupsit.fields.status = entry;
+      }
+    }
+  }
+
+  // The source side is migrated first, so a target answer that is "same as SU" now follows the source's new PUPSIT answer.
+  for (const o of next.gapOverlays ?? []) if (typeof o?.gapKey === "string") o.gapKey = remapGapKey(o.gapKey);
+  for (const c of next.document?.comments ?? []) {
+    if (typeof c?.anchor?.gapKey === "string") c.anchor.gapKey = remapGapKey(c.anchor.gapKey);
+  }
+  for (const e of next.changeLog ?? []) if (typeof e?.path === "string") e.path = remapEntryPath(e.path);
+  // The stored answer of the old "BBR filter used" question belongs to the new BBR presence question.
+  for (const a of next.answers ?? []) if (a?.questionId === "filt.prefilter") a.questionId = "bbr.presence";
+  return next;
+}
 
 function sameNameRaw(a: string, b: string): boolean {
   const n = (x: string) => x.trim().replace(/\s+/g, " ").toLowerCase();

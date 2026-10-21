@@ -3,7 +3,9 @@ import catalog from "./catalog/catalog.yaml";
 import demoArx217 from "./demo/arx-217.yaml";
 import q00 from "./questions/00-scoping-and-site.yaml";
 import q10 from "./questions/10-ds-receipt-thaw.yaml";
+import q15 from "./questions/15-buffer-prep.yaml";
 import q20 from "./questions/20-compounding.yaml";
+import q25 from "./questions/25-bbr-filtration.yaml";
 import q30 from "./questions/30-sterile-filtration.yaml";
 import q40 from "./questions/40-aseptic-filling.yaml";
 import q45 from "./questions/45-stoppering.yaml";
@@ -21,7 +23,9 @@ export const rawContent: RawContent = {
   questionFiles: {
     "questions/00-scoping-and-site.yaml": q00,
     "questions/10-ds-receipt-thaw.yaml": q10,
+    "questions/15-buffer-prep.yaml": q15,
     "questions/20-compounding.yaml": q20,
+    "questions/25-bbr-filtration.yaml": q25,
     "questions/30-sterile-filtration.yaml": q30,
     "questions/40-aseptic-filling.yaml": q40,
     "questions/45-stoppering.yaml": q45,

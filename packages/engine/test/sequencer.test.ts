@@ -29,6 +29,7 @@ const SCOPING_IDS = [
   "scope.dosage_form",
   "scope.presentation",
   "scope.ds_state",
+  "scope.dilution",
   "scope.containment",
   "scope.markets",
   "scope.transfer_type",
@@ -56,6 +57,8 @@ describe("empty project", () => {
       "rt.presence@target",
       "comp.presence@source",
       "comp.presence@target",
+      "bbr.presence@source",
+      "bbr.presence@target",
       "filt.presence@source",
       "filt.presence@target",
       "fill.presence@source",
@@ -122,7 +125,7 @@ describe("entry sequence modes", () => {
     expect(sides.slice(0, firstSource).every((s) => s === "shared")).toBe(true);
     expect(sides.slice(firstSource, firstTarget).every((s) => s === "source")).toBe(true);
     expect(sides.slice(firstTarget).every((s) => s === "target")).toBe(true);
-    expect(sides.filter((s) => s === "shared")).toHaveLength(8);
+    expect(sides.filter((s) => s === "shared")).toHaveLength(9);
   });
 
   it("sequential mode is the paired list regrouped by side, with the same instances", () => {
@@ -419,9 +422,9 @@ describe("progress", () => {
     const list = visibleInstances(content, p, "paired");
     const prog = progress(content, p, list);
     const scoping = prog.find((s) => s.section.id === "scoping")!;
-    expect(scoping.total).toBe(8);
+    expect(scoping.total).toBe(9);
     expect(scoping.answered).toBe(2);
-    expect(scoping.bySide.shared).toEqual({ total: 8, answered: 2 });
+    expect(scoping.bySide.shared).toEqual({ total: 9, answered: 2 });
     expect(scoping.bySide.source).toEqual({ total: 0, answered: 0 });
     const site = prog.find((s) => s.section.id === "site")!;
     expect(site.total).toBe(12);
@@ -433,6 +436,7 @@ describe("progress", () => {
       "site",
       "uo.ds_receipt_thaw",
       "uo.compounding",
+      "uo.bbr_filtration",
       "uo.sterile_filtration",
       "uo.aseptic_filling",
       "uo.visual_inspection",

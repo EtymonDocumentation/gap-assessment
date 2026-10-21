@@ -16,7 +16,7 @@ import {
   type Side,
 } from "@gap/process-model";
 import { findRule, optionLabel, type ContentBundle } from "./content";
-import type { Category, Question, Rule } from "./content-schema";
+import type { Category, Outcome, Question, Rule } from "./content-schema";
 import { formatQuestionSide, questionLabel, STATUS_TEXT } from "./format";
 import { inactiveEntries, instanceRefs, visibleInstances, type QuestionInstance } from "./sequencer";
 import { sourceValidated, stagedFor } from "./stage";
@@ -35,6 +35,14 @@ export interface ComparatorResult {
   detail: string;
   /** Target/source magnitude ratio for scale changes. */
   ratio?: number;
+  /** Outcome fields that apply to this result only (transition comparator); they take precedence over the rule outcome for the category. */
+  outcome?: Outcome;
+}
+
+/** The outcome text, activities, severity and regulatory flag for a result: its own fields first, then the rule outcome for its category. */
+function outcomeOf(rule: Rule, res: ComparatorResult): Outcome | undefined {
+  const base = rule.outcomes[res.category];
+  return res.outcome ? { ...base, ...res.outcome } : base;
 }
 
 export interface Gap {
@@ -324,6 +332,27 @@ function cmpEvidence(ctx: Ctx, side: Side): ComparatorResult[] {
   return [{ category: cat, detail: `Answer: ${optionLabel(ctx.content, ctx.q, String(r.value))}.` }];
 }
 
+function cmpTransition(ctx: Ctx): ComparatorResult[] {
+  const s = ctx.get("source");
+  const t = ctx.get("target");
+  if (!est(s) || !est(t)) return [info(["SU", s], ["RU", t])];
+  const sv = String(s.value);
+  const tv = String(t.value);
+  const label = (v: string) => optionLabel(ctx.content, ctx.q, v);
+  for (const tr of ctx.rule.config.transitions ?? []) {
+    if (tr.from && !tr.from.includes(sv)) continue;
+    if (tr.to && !tr.to.includes(tv)) continue;
+    const outcome: Outcome = {};
+    if (tr.why !== undefined) outcome.why = tr.why;
+    if (tr.activities !== undefined) outcome.activities = tr.activities;
+    if (tr.severity !== undefined) outcome.severity = tr.severity;
+    if (tr.regulatory !== undefined) outcome.regulatory = tr.regulatory;
+    return [{ category: tr.category, detail: tr.detail ?? `SU: ${label(sv)}. RU: ${label(tv)}.`, ...(Object.keys(outcome).length ? { outcome } : {}) }];
+  }
+  if (sv === tv) return [{ category: "equivalent", detail: "SU and RU are the same." }];
+  return [{ category: ctx.rule.config.differentAs ?? "different_principle", detail: `SU: ${label(sv)}. RU: ${label(tv)}.` }];
+}
+
 function runComparator(ctx: Ctx, onlySide?: Side): ComparatorResult[] {
   const kind = ctx.rule.comparator;
   if (kind === "evidence") return cmpEvidence(ctx, onlySide ?? "target");
@@ -348,6 +377,8 @@ function runComparator(ctx: Ctx, onlySide?: Side): ComparatorResult[] {
       return cmpPresence(ctx);
     case "set":
       return cmpSet(ctx);
+    case "transition":
+      return cmpTransition(ctx);
     default:
       return [];
   }
@@ -360,7 +391,7 @@ const RANK: Record<Severity, number> = { none: 0, low: 1, medium: 2, high: 3 };
 function ruleSeverity(ctx: Ctx, res: ComparatorResult): { severity: Severity; note?: string } {
   const { rule } = ctx;
   if (res.category === "equivalent") return { severity: "none" };
-  const outcome = rule.outcomes[res.category];
+  const outcome = outcomeOf(rule, res);
   if (outcome?.severity) return { severity: outcome.severity };
   if (res.category === "within_validated_range") return { severity: "low" };
   if (res.category === "scale_change" && rule.config.ratioSeverity && res.ratio !== undefined) {
@@ -449,7 +480,7 @@ export function assess(raw: ContentBundle, project: Project): Assessment {
     const results = runComparator(ctx, onlySide);
     for (const res of results) {
       const key = `${rule.id}:${q.binds}${res.subKey ? `#${res.subKey}` : ""}`;
-      const outcome = rule.outcomes[res.category];
+      const outcome = outcomeOf(rule, res);
       const sev = ruleSeverity(ctx, res);
       const ov = overlays.get(key);
       const regulatory =

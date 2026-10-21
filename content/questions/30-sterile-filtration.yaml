@@ -1,20 +1,11 @@
 questions:
   - id: filt.presence
     section: uo.sterile_filtration
-    prompt: Is sterile filtration of the bulk performed at this site?
+    prompt: Is sterile (sterilizing-grade) filtration of the bulk performed at this site?
     label: Sterile filtration performed
     why: Establishes whether the unit operation exists at each site.
     sides: paired
     binds: uo.sterile_filtration.presence
-    input: { type: yes_no }
-
-  - id: filt.prefilter
-    section: uo.sterile_filtration
-    prompt: Is a bioburden-reduction filter used upstream of the sterilizing filter?
-    label: Bioburden-reduction filter used
-    why: A bioburden-reduction filter protects the sterilizing filter and is part of the {{validated|current}} filtration train.
-    sides: paired
-    binds: uo.sterile_filtration.mat.prefilter.present
     input: { type: yes_no }
 
   - id: filt.redundant
@@ -173,19 +164,115 @@ questions:
     section: uo.sterile_filtration
     prompt: Which filter integrity tests are performed?
     label: Filter integrity tests
-    why: Integrity testing confirms the sterilizing filter performed as {{validated|intended}}; EU GMP Annex 1 sets expectations for pre-use post-sterilization testing.
+    why: Integrity testing confirms the sterilizing filter performed as {{validated|intended}}; the pre-use post-sterilization test (PUPSIT) is asked separately below.
     sides: paired
     binds: uo.sterile_filtration.ipc.integrity.tests
     input: { type: multi_choice, optionsFrom: integrityTests }
 
   - id: filt.bioburden_limit
     section: uo.sterile_filtration
-    prompt: Pre-filtration bioburden limit
-    label: Pre-filtration bioburden limit
-    why: The bioburden limit is tied to the bacterial retention challenge level; a higher RU limit is outside the {{validated|demonstrated}} basis.
+    prompt: Bioburden limit of the bulk before the sterilizing filter
+    label: Bioburden limit before the sterilizing filter
+    why: The bioburden limit before the sterilizing filter is tied to the bacterial retention challenge level; a higher RU limit is outside the {{validated|demonstrated}} basis. Where a BBR filter is used, its inlet limit is asked in the BBR filtration section.
     sides: paired
     binds: uo.sterile_filtration.ipc.bioburden.limit
     input: { type: quantity, units: [CFU/100 mL, CFU/mL] }
+
+  # ---- PUPSIT (pre-use post-sterilization integrity test)
+  - id: filt.pupsit
+    section: uo.sterile_filtration
+    prompt: Is a pre-use post-sterilization integrity test (PUPSIT) performed on the sterilizing filter?
+    label: PUPSIT performed
+    why: EU GMP Annex 1 (2022), point 8.87, expects the integrity of the sterilized filter assembly to be verified before use, and PUPSIT is the usual way to detect a filter damaged or blocked during sterilization or assembly. Not performing it needs a documented risk assessment. Answers are compared between SU and RU.
+    sides: paired
+    binds: uo.sterile_filtration.ipc.pupsit.status
+    input: { type: choice, optionsFrom: pupsitStatus }
+
+  - id: filt.pupsit_method
+    section: uo.sterile_filtration
+    parent: filt.pupsit
+    prompt: PUPSIT test method
+    label: PUPSIT test method
+    why: Bubble point, diffusive flow, water intrusion and pressure hold work on different principles and have their own specifications. A change of PUPSIT method needs its own validated specification.
+    triggerNote: Asked because PUPSIT is performed at this site.
+    sides: paired
+    binds: uo.sterile_filtration.ipc.pupsit.method
+    input: { type: choice, optionsFrom: integrityMethod }
+    showWhen: &pupsitDone { eq: [uo.sterile_filtration.ipc.pupsit.status, performed] }
+
+  - id: filt.pupsit_fluid
+    section: uo.sterile_filtration
+    parent: filt.pupsit
+    prompt: Which fluid is used to wet the filter for PUPSIT?
+    label: PUPSIT wetting fluid
+    why: The wetting fluid decides the integrity test limit, the flush volume and the contact of the product with the filter before filtration. A different fluid needs its own specification.
+    triggerNote: Asked because PUPSIT is performed at this site.
+    sides: paired
+    binds: uo.sterile_filtration.ipc.pupsit.wettingFluid
+    input: { type: choice, optionsFrom: pupsitFluid }
+    showWhen: *pupsitDone
+
+  - id: filt.pupsit_downstream
+    section: uo.sterile_filtration
+    parent: filt.pupsit
+    prompt: How is the sterile downstream side protected during PUPSIT?
+    label: PUPSIT downstream protection
+    why: PUPSIT is run with the upstream side wet and the downstream side open to the test. A manual connection on the sterile side can compromise the sterile boundary, so the approach is part of the contamination control strategy.
+    triggerNote: Asked because PUPSIT is performed at this site.
+    sides: paired
+    binds: uo.sterile_filtration.ipc.pupsit.downstreamProtection
+    input: { type: choice, optionsFrom: pupsitDownstream }
+    showWhen: *pupsitDone
+
+  - id: filt.pupsit_assembly
+    section: uo.sterile_filtration
+    parent: filt.pupsit
+    prompt: Is the RU PUPSIT assembly design qualified and shown not to compromise the sterile boundary?
+    label: PUPSIT assembly qualification (RU)
+    why: The PUPSIT assembly (tubing, waste or drain bag, connections) sits on the sterile side. Its design must be qualified, and its effect on the sterile boundary shown, before it is used in GMP manufacture.
+    triggerNote: Asked because PUPSIT is performed at the RU.
+    tags: [m3]
+    sides: target
+    binds: uo.sterile_filtration.study.pupsit_assembly.status
+    input: { type: choice, optionsFrom: evidenceAvailability }
+    showWhen: { eq: [target.uo.sterile_filtration.ipc.pupsit.status, performed] }
+
+  - id: filt.pupsit_flush
+    section: uo.sterile_filtration
+    parent: filt.pupsit
+    prompt: Are the PUPSIT flush or wetting volume and its effect on the product (dilution, yield, discard volume) defined?
+    label: PUPSIT flush volume and product effect (RU)
+    why: Wetting the filter for PUPSIT leaves fluid in the filter that mixes with or displaces the product. The volume and its effect on dilution, yield and discard must be defined for the RU process.
+    triggerNote: Asked because PUPSIT is performed at the RU.
+    sides: target
+    binds: uo.sterile_filtration.ipc.pupsit.flushVolume
+    input: { type: choice, optionsFrom: pupsitFlush }
+    showWhen: { eq: [target.uo.sterile_filtration.ipc.pupsit.status, performed] }
+
+  - id: filt.pupsit_basis
+    section: uo.sterile_filtration
+    parent: filt.pupsit
+    prompt: What is the basis of the justification for not performing PUPSIT?
+    label: PUPSIT justification basis
+    why: A decision not to perform PUPSIT must rest on a documented risk assessment. The basis shows what evidence supports it; the tool does not judge whether it is sufficient.
+    triggerNote: Asked because PUPSIT is not performed at this site and a justification is recorded.
+    sides: paired
+    binds: uo.sterile_filtration.ipc.pupsit.justificationBasis
+    input: { type: multi_choice, optionsFrom: pupsitJustification }
+    showWhen: { eq: [uo.sterile_filtration.ipc.pupsit.status, not_performed_justified] }
+
+  - id: filt.pupsit_ra
+    section: uo.sterile_filtration
+    parent: filt.pupsit
+    prompt: What is the status of the RU risk assessment document that justifies not performing PUPSIT?
+    label: PUPSIT risk assessment status (RU)
+    why: The justification is only as good as its documented risk assessment. A draft or missing document leaves the justification open.
+    triggerNote: Asked because PUPSIT is not performed at the RU and a justification is recorded.
+    tags: [m3]
+    sides: target
+    binds: uo.sterile_filtration.doc.pupsit_risk_assessment.status
+    input: { type: choice, optionsFrom: riskAssessmentStatus }
+    showWhen: { eq: [target.uo.sterile_filtration.ipc.pupsit.status, not_performed_justified] }
 
   # ================================================================== milestone 3: validation studies
   # ---- filter validation (extension of bacterial retention)

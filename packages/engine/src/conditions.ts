@@ -8,7 +8,19 @@ export interface EvalContext {
   side?: Side | "shared";
 }
 
-function established(ctx: EvalContext, ref: string) {
+/**
+ * A reference that starts with "uo." or "site." (no side) means the same side as the question being evaluated, so one paired
+ * question can depend on its own side's answer ("uo.buffer_prep.mat.buffer.supplyRoute" is the SU route on the SU card and the
+ * RU route on the RU card). Without a source or target side to resolve against, it cannot be determined.
+ */
+function ownSide(ctx: EvalContext, ref: string): string | undefined {
+  if (!ref.startsWith("uo.") && !ref.startsWith("site.")) return ref;
+  return ctx.side === "source" || ctx.side === "target" ? `${ctx.side}.${ref}` : undefined;
+}
+
+function established(ctx: EvalContext, rawRef: string) {
+  const ref = ownSide(ctx, rawRef);
+  if (!ref) return undefined;
   const r = resolveEntry(ctx.project, ref);
   return r.status === "established" ? r : undefined;
 }
@@ -44,8 +56,14 @@ export function evaluate(cond: Condition, ctx: EvalContext): boolean {
     const r = established(ctx, cond.includes[0]);
     return !!r && Array.isArray(r.value) && r.value.includes(cond.includes[1]);
   }
-  if ("answered" in cond) return resolveEntry(ctx.project, cond.answered).status !== "not_established";
-  if ("isUnknown" in cond) return resolveEntry(ctx.project, cond.isUnknown).status === "unknown";
+  if ("answered" in cond) {
+    const ref = ownSide(ctx, cond.answered);
+    return !!ref && resolveEntry(ctx.project, ref).status !== "not_established";
+  }
+  if ("isUnknown" in cond) {
+    const ref = ownSide(ctx, cond.isUnknown);
+    return !!ref && resolveEntry(ctx.project, ref).status === "unknown";
+  }
   if ("isTrue" in cond) return established(ctx, cond.isTrue)?.value === true;
   if ("uoPresent" in cond) {
     const present = (side: Side) => established(ctx, `${side}.uo.${cond.uoPresent}.presence`)?.value === true;

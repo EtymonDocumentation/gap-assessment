@@ -132,6 +132,80 @@ questions:
     binds: uo.aseptic_filling.mat.stopper.partNumber
     input: { type: text, placeholder: "e.g. Stopper Vendor D, STP-20-DEMO" }
 
+  # ------------------------------------------------------------------ plunger stopper position (prefilled syringes and cartridges)
+  # Shown only when the presentation is a prefilled syringe or a cartridge, where the plunger stopper is placed in this unit.
+  # Nothing is assumed while the presentation is unanswered: the questions stay hidden until the scoping answer exists.
+  - id: fill.stopper_method
+    section: uo.aseptic_filling
+    prompt: How is the plunger stopper placed in the syringe or cartridge?
+    label: Plunger stopper placement method
+    why: The placement method sets how the stopper seats and how much air is trapped, and the stopper travels over the barrel area that is not sterile-filled. A different method is a design change.
+    sides: paired
+    binds: uo.aseptic_filling.equip.stopper_placement_unit.operatingPrinciple
+    input: { type: choice, optionsFrom: plungerPlacement }
+    showWhen: &plungerContainer { in: [scope.presentation, [prefilled_syringe, cartridge]] }
+
+  - id: fill.stopper_position
+    section: uo.aseptic_filling
+    prompt: Target plunger stopper position (depth from the flange or barrel reference) with its tolerance
+    label: Plunger stopper position
+    why: The stopper position sets the headspace or air bubble, dose accuracy, the sterility of the stopper path (the stopper travels over barrel area that was not filled with product) and the fit with the plunger rod, autoinjector or device. The RU range is compared with the SU {{validated|demonstrated}} range.
+    sideLabels: { source: "{{Validated|Demonstrated}} stopper position range", target: Planned stopper position range }
+    sides: paired
+    binds: uo.aseptic_filling.param.stopper_position
+    input: { type: parameter, units: [mm] }
+    showWhen: *plungerContainer
+
+  - id: fill.headspace
+    section: uo.aseptic_filling
+    prompt: Maximum headspace or air bubble size allowed after stopper placement
+    label: Headspace or air bubble limit
+    why: A larger air bubble affects dose accuracy, the stability of the product at the air interface and the force needed to start the plunger. The limit must stay within the {{validated|demonstrated}} value.
+    sideLabels: { source: "{{Validated|Demonstrated}} maximum headspace", target: Planned maximum headspace }
+    sides: paired
+    binds: uo.aseptic_filling.param.max_headspace.max
+    input: { type: quantity, units: [mm] }
+    showWhen: *plungerContainer
+
+  - id: fill.stopper_checks
+    section: uo.aseptic_filling
+    prompt: Which in-process checks confirm the plunger stopper position?
+    label: Plunger stopper position checks
+    why: In-process position checks (height measurement, camera check, 100% in-line or sampling) are part of the control strategy. Removing a check, or moving from 100% in-line to sampling, changes what is detected and rejected.
+    sides: paired
+    binds: uo.aseptic_filling.ipc.stopper_position_check.tests
+    input: { type: multi_choice, optionsFrom: plungerPositionCheck }
+    showWhen: *plungerContainer
+
+  - id: fill.stopper_criterion
+    section: uo.aseptic_filling
+    prompt: Describe the stopper position acceptance criterion (method, frequency and limit)
+    label: Stopper position acceptance criterion
+    why: The method, frequency and limit decide which units are rejected. A different criterion changes the control strategy and the batch record.
+    sides: paired
+    binds: uo.aseptic_filling.ipc.stopper_position_check.description
+    input: { type: text, placeholder: "e.g. 100% camera check, position within 1.0 to 2.0 mm" }
+    showWhen: *plungerContainer
+
+  - id: fill.stopper_study
+    section: uo.aseptic_filling
+    parent: fill.stopper_position
+    prompt: Has the RU placement method and position range been demonstrated on the RU filler (stopper position capability and device fit study)?
+    label: Stopper position capability and device fit (RU filler)
+    why: Position capability depends on the machine, the placement method and the components. SU data do not cover a different method or a different position range on the RU filler.
+    triggerNote: Asked because the RU placement method or stopper position range differs from the SU.
+    sides: target
+    binds: uo.aseptic_filling.study.stopper_position_study.status
+    input: { type: choice, optionsFrom: evidenceAvailability }
+    showWhen:
+      all:
+        - *plungerContainer
+        - any:
+            - { changed: uo.aseptic_filling.equip.stopper_placement_unit.operatingPrinciple }
+            - { changed: uo.aseptic_filling.param.stopper_position.setPoint }
+            - { changed: uo.aseptic_filling.param.stopper_position.nor }
+            - { changed: uo.aseptic_filling.param.stopper_position.par }
+
   # ================================================================== milestone 3: validation studies
   # ---- process performance qualification (PPQ)
   - id: fill.ppq_strategy

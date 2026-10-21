@@ -15,7 +15,8 @@ export function formatValue(content: ContentBundle, q: Question | undefined, v: 
   const label = (s: string) =>
     optionSet ? (content.catalog.optionSets[optionSet]?.find((o) => o.value === s)?.label ?? s) : optionLabel(content, q, s);
   if (typeof v === "string") return q?.input.type === "text" && !optionSet ? v : label(v);
-  if (Array.isArray(v)) return v.map(label).join("; ");
+  // An empty list can only come from a migrated answer (for example "only PUPSIT" after PUPSIT moved to its own question).
+  if (Array.isArray(v)) return v.length ? v.map(label).join("; ") : "None selected";
   if (typeof v === "number") return String(v);
   if (isQuantity(v)) return formatQuantity(v);
   if (isRange(v)) return formatRange(v);

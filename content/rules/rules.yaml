@@ -5,7 +5,7 @@
 # flagged. Regulatory wording is fixed: "Requires regulatory affairs assessment."
 ruleset:
   id: gap-core-rules
-  version: 1.3.0
+  version: 1.4.0
 
 rules:
   # ------------------------------------------------------------------ site
@@ -55,6 +55,481 @@ rules:
     severity: medium
     why: A different batch record system changes data capture, review and data integrity controls for the process.
     activities: [csv_assessment, procedure_update, training]
+
+  # ------------------------------------------------------------------ buffer preparation, BBR filtration and PUPSIT (ruleset 1.4.0)
+  # These specific rules sit ahead of the generic unit operation presence, limit, component and set rules below.
+
+  # ---- buffer preparation
+  - id: R-BUFFER-PRESENCE
+    version: 1.0.0
+    title: Buffer preparation presence
+    match: [uo.buffer_prep.presence]
+    comparator: presence
+    severity: high
+    regulatory: true
+    why: Adding or removing the buffer step changes how the diluent is made, tested and released, and the process flow covered by the {{validated|current}} state.
+    activities: [buffer_supply_assessment, risk_assessment_update, procedure_update, training]
+
+  - id: R-BUFFER-ROUTE
+    version: 1.0.0
+    title: Buffer supply route
+    match: [uo.buffer_prep.mat.buffer.supplyRoute]
+    comparator: enum
+    severity: high
+    regulatory: true
+    why: Preparing a buffer on site, thawing a frozen buffer and receiving a ready-to-use liquid carry different quality and microbial risks. A different supply route changes who controls the buffer quality, the hold and storage conditions and the evidence the {{validated|current}} state rests on.
+    activities: [buffer_supply_assessment, supplier_qualification, hold_time_study, risk_assessment_update, procedure_update, training]
+
+  - id: R-BUFFER-DISPENSING
+    version: 1.0.0
+    title: Buffer raw material dispensing
+    match: [uo.buffer_prep.equip.dispensing.operatingPrinciple]
+    comparator: enum
+    severity: medium
+    why: Manual, automated and pre-weighed dispensing differ in accuracy, contamination risk and data integrity controls. A different approach is a design change to the buffer process.
+    activities: [equipment_qualification, risk_assessment_update, procedure_update, training]
+
+  - id: R-BUFFER-VESSEL-TYPE
+    version: 1.0.0
+    title: Buffer preparation vessel type
+    match: [uo.buffer_prep.equip.prep_vessel.type]
+    comparator: enum
+    severity: medium
+    why: A different vessel type changes product-contact materials and mixing geometry, and moves the cleaning or single-use E&L burden.
+    activities: [extractables_leachables, cleaning_validation, equipment_qualification]
+
+  - id: R-BUFFER-MIXER
+    version: 1.0.0
+    title: Buffer mixer operating principle
+    match: [uo.buffer_prep.equip.prep_mixer.operatingPrinciple]
+    comparator: enum
+    severity: medium
+    why: A different mixing principle changes dissolution time, foaming and homogeneity of the buffer, and is not covered by the SU buffer data.
+    activities: [equipment_qualification, procedure_update]
+
+  - id: R-BUFFER-THAW
+    version: 1.0.0
+    title: Buffer thaw and post-thaw mixing method
+    match: [uo.buffer_prep.equip.thaw_unit.operatingPrinciple, uo.buffer_prep.equip.thaw_mixer.operatingPrinciple]
+    comparator: enum
+    severity: medium
+    why: The thaw method and the mixing after thaw decide the thaw rate and whether the buffer is homogeneous before use. A different method is a design change that SU buffer data do not cover.
+    activities: [buffer_supply_assessment, equipment_qualification, procedure_update, training]
+
+  - id: R-BUFFER-VOLUME
+    version: 1.0.0
+    title: Buffer batch volume
+    match: [uo.buffer_prep.param.batch_volume]
+    comparator: scale
+    config:
+      ratioSeverity:
+        - { atLeast: 2, severity: medium }
+        - { atLeast: 1, severity: low }
+    severity: low
+    regulatory: true
+    why: A buffer batch volume outside the {{validated|demonstrated}} range affects mixing, hold time and filtration of the buffer.
+    activities: [hold_time_study, engineering_run, procedure_update]
+    outcomes:
+      within_validated_range:
+        why: The RU buffer batch volume lies within the range covered by the SU buffer data.
+
+  - id: R-BUFFER-SUPPLIER
+    version: 1.0.0
+    title: Ready-to-use buffer supplier
+    match: [uo.buffer_prep.mat.buffer.supplier]
+    comparator: text
+    severity: medium
+    regulatory: true
+    why: The buffer specification, quality agreement and microbial control are specific to the supplier. A different supplier is a change of material source.
+    activities: [supplier_qualification, buffer_supply_assessment, procedure_update]
+
+  - id: R-BUFFER-STORAGE
+    version: 1.0.0
+    title: Ready-to-use buffer storage condition
+    match: [uo.buffer_prep.mat.buffer.storageCondition]
+    comparator: enum
+    severity: medium
+    why: Storage conditions are part of the shelf life claim and the microbial control of the buffer. A different condition is not covered by the SU buffer data.
+    activities: [buffer_supply_assessment, scientific_justification, procedure_update]
+
+  - id: R-BUFFER-SHELF-LIFE
+    version: 1.0.0
+    title: Ready-to-use buffer use-by period
+    match: [uo.buffer_prep.mat.buffer.shelfLife]
+    comparator: upper_limit
+    severity: medium
+    why: A use-by period longer than the {{validated|demonstrated}} one is not supported by the buffer stability and microbial data.
+    activities: [hold_time_study, scientific_justification, supplier_qualification]
+    outcomes:
+      within_validated_range:
+        why: The RU use-by period is within the {{validated|demonstrated}} period.
+
+  - id: R-EV-BUFFER-SUPPLIER
+    version: 1.0.0
+    title: Ready-to-use buffer supplier and material qualification
+    match: [uo.buffer_prep.mat.buffer.supplierQualification]
+    comparator: evidence
+    config:
+      map: { qualified: within_validated_range, in_progress: outside_validated_range, not_qualified: outside_validated_range }
+    severity: high
+    regulatory: true
+    why: A buffer received ready to use is released on the supplier's data. Until the supplier and the material are qualified at the RU, the buffer quality is not assured.
+    activities: [supplier_qualification, buffer_supply_assessment]
+
+  - id: R-BUFFER-BBR-PRESENCE
+    version: 1.0.0
+    title: Buffer BBR filtration
+    match: [uo.buffer_prep.mat.buffer_bbr_filter.present]
+    comparator: presence
+    severity: medium
+    regulatory: true
+    why: A BBR filter on the buffer limits the bioburden that reaches the product. Adding or removing it changes the microbial control of the buffer.
+    activities: [bbr_filter_validation, risk_assessment_update, procedure_update, training]
+    outcomes:
+      removed_element:
+        why: Removing the BBR filtration of the buffer removes a bioburden control. The RU must show that the buffer meets its bioburden limit without it.
+        activities: [buffer_supply_assessment, risk_assessment_update, scientific_justification, procedure_update, training]
+
+  - id: R-HOLD-COVERAGE-BUFFER
+    version: 1.0.0
+    title: Hold study coverage of buffer hold
+    match: [uo.buffer_prep.study.hold_time.coverage]
+    comparator: coverage
+    config:
+      coverageSide: target
+      against: { side: target, path: uo.buffer_prep.param.max_hold_time.max }
+    severity: high
+    why: Buffer hold-time data cover only the durations studied. The longest planned buffer hold must fall within that coverage.
+    activities: [hold_time_study]
+
+  - id: R-EQ-RANGE-BUFFER-VESSEL
+    version: 1.0.0
+    title: Buffer vessel qualified working volume
+    match: [uo.buffer_prep.equip.prep_vessel.qualifiedRange]
+    comparator: coverage
+    config:
+      coverageSide: target
+      against: { side: target, path: uo.buffer_prep.param.batch_volume }
+    severity: medium
+    why: Vessel qualification supports only the working volume range tested. A planned buffer batch volume outside it is not qualified.
+    activities: [equipment_qualification, equipment_requalification]
+
+  - id: R-EQ-RANGE-BUFFER-MIXER
+    version: 1.0.0
+    title: Buffer mixer qualified speed range
+    match: [uo.buffer_prep.equip.prep_mixer.qualifiedRange]
+    comparator: coverage
+    config:
+      coverageSide: target
+      against: { side: target, path: uo.buffer_prep.param.mixing_speed }
+    severity: medium
+    why: Mixer qualification supports only the speed range tested. A planned buffer mixing speed outside it is not qualified.
+    activities: [equipment_qualification, equipment_requalification]
+
+  - id: R-EQ-RANGE-BUFFER-THAW
+    version: 1.0.0
+    title: Buffer thaw system qualified temperature range
+    match: [uo.buffer_prep.equip.thaw_unit.qualifiedRange]
+    comparator: coverage
+    config:
+      coverageSide: target
+      against: { side: target, path: uo.buffer_prep.param.thaw_temperature }
+    severity: medium
+    why: Thaw system qualification supports only the temperature range tested. A planned buffer thaw temperature outside it is not qualified.
+    activities: [equipment_qualification, equipment_requalification]
+
+  # ---- dilution questions in compounding
+  - id: R-DILUENT
+    version: 1.0.0
+    title: Buffer or diluent used for dilution
+    match: [uo.compounding.mat.diluent.description]
+    comparator: text
+    severity: high
+    regulatory: true
+    why: The buffer or diluent decides the final formulation. A different buffer is a formulation change that affects product quality, stability and compatibility.
+    activities: [product_quality_impact, comparability_assessment, scientific_justification, procedure_update]
+
+  - id: R-DILUENT-VOLUME
+    version: 1.0.0
+    title: Buffer or diluent volume added
+    match: [uo.compounding.mat.diluent.volume]
+    comparator: scale
+    config:
+      ratioSeverity:
+        - { atLeast: 2, severity: medium }
+        - { atLeast: 1, severity: low }
+    severity: low
+    why: The buffer volume added, with the drug substance volume, sets the dilution ratio and the batch size. A different volume changes the final concentration and the mixing and hold conditions.
+    activities: [mixing_study, procedure_update]
+
+  # ---- bioburden-reduction (BBR) filtration
+  - id: R-BBR-PRESENCE
+    version: 1.0.0
+    title: BBR filtration presence
+    match: [uo.bbr_filtration.presence]
+    comparator: presence
+    severity: high
+    regulatory: true
+    why: The BBR filter is part of the {{validated|current}} filtration train. Adding or removing it changes the bioburden the sterilizing filter sees and the validation behind it.
+    activities: [filter_bacterial_retention, risk_assessment_update, procedure_update]
+    outcomes:
+      removed_element:
+        why: Without a BBR filter the sterilizing filter receives bulk with a higher bioburden unless the process shows otherwise. The bioburden limit and the bacterial retention challenge must be reviewed.
+        activities: [filter_bacterial_retention, risk_assessment_update, scientific_justification, procedure_update, training]
+      new_requirement:
+        why: A BBR filter new at the RU adds a filtration step that needs validation, compatibility and extractables data, procedures and training.
+        activities: [bbr_filter_validation, extractables_leachables, filter_compatibility, procedure_update, training]
+
+  - id: R-BBR-FILTER-DESIGN
+    version: 1.0.0
+    title: BBR filter design
+    match:
+      - uo.bbr_filtration.mat.bbr_filter.materialOfConstruction
+      - uo.bbr_filtration.mat.bbr_filter.poreRating
+      - uo.bbr_filtration.mat.bbr_filter.supplier
+      - uo.bbr_filtration.mat.bbr_filter.partNumber
+      - uo.buffer_prep.mat.buffer_bbr_filter.materialOfConstruction
+      - uo.buffer_prep.mat.buffer_bbr_filter.poreRating
+    comparator: text
+    severity: medium
+    regulatory: true
+    why: BBR filter validation (bioburden reduction, compatibility, extractables) is specific to the membrane and device.
+    activities: [bbr_filter_validation, filter_compatibility, extractables_leachables, procedure_update]
+
+  - id: R-BBR-AREA
+    version: 1.0.0
+    title: BBR filter area
+    match: [uo.bbr_filtration.mat.bbr_filter.area]
+    comparator: scale
+    config:
+      ratioSeverity:
+        - { atLeast: 2, severity: medium }
+        - { atLeast: 1, severity: low }
+    severity: low
+    why: Filter area relative to batch volume determines filter loading and filtration time.
+    activities: [filter_sizing, bbr_filter_validation]
+
+  - id: R-BBR-BIOBURDEN
+    version: 1.0.0
+    title: BBR inlet bioburden limit
+    match: [uo.bbr_filtration.ipc.bioburden.limit, uo.buffer_prep.ipc.bioburden.limit]
+    comparator: upper_limit
+    severity: high
+    regulatory: true
+    why: The bioburden limit at the BBR inlet must remain within the challenge the BBR filter was shown to handle.
+    activities: [bbr_filter_validation, risk_assessment_update]
+
+  - id: R-BBR-INTEGRITY
+    version: 1.0.0
+    title: BBR filter integrity testing approach
+    match: [uo.bbr_filtration.ipc.integrity.approach, uo.buffer_prep.ipc.integrity.approach]
+    comparator: enum
+    severity: medium
+    why: Integrity testing of the BBR filter confirms it performed as {{validated|intended}}. A different approach (for example dropping the pre-use test) changes the control on the filtration train.
+    activities: [risk_assessment_update, procedure_update, training]
+
+  - id: R-EV-BBR
+    version: 1.0.0
+    title: BBR filter validation for RU filter
+    match: [uo.bbr_filtration.study.bbr_validation.status]
+    comparator: evidence
+    config:
+      map: { covered: within_validated_range, bridging_required: outside_validated_range, not_covered: outside_validated_range }
+    severity: medium
+    regulatory: true
+    why: Bioburden reduction, compatibility and extractables are not demonstrated for the RU BBR filter with this product until validation data cover it.
+    activities: [bbr_filter_validation]
+
+  # ---- PUPSIT (pre-use post-sterilization integrity test)
+  - id: R-PUPSIT
+    version: 1.0.0
+    title: PUPSIT on the sterilizing filter
+    match: [uo.sterile_filtration.ipc.pupsit.status]
+    comparator: transition
+    severity: high
+    regulatory: true
+    why: PUPSIT verifies the integrity of the sterilized filter assembly before use. EU GMP Annex 1 (2022), point 8.87, expects it unless a documented risk assessment justifies not performing it.
+    activities: [risk_assessment_update, scientific_justification, procedure_update, training]
+    config:
+      transitions:
+        - from: [performed]
+          to: [not_performed_justified]
+          category: removed_element
+          detail: PUPSIT is performed at the SU and not performed at the RU. The RU records a documented risk assessment as the justification.
+          why: PUPSIT is a control at the SU that is removed at the RU. The RU risk assessment must cover the RU filter, assembly, product and bioburden, and be approved. The tool does not judge whether it is sufficient.
+          activities: [risk_assessment_update, scientific_justification, procedure_update, training]
+        - from: [performed]
+          to: [not_performed_unjustified]
+          category: removed_element
+          detail: PUPSIT is performed at the SU and not performed at the RU, and the RU has no documented justification.
+          why: A control performed at the SU is removed at the RU with no documented justification. Either PUPSIT is introduced at the RU or a documented risk assessment is written and approved.
+          activities: [risk_assessment_update, scientific_justification, pupsit_assembly_qualification, procedure_update, training]
+        - from: [not_performed_justified, not_performed_unjustified]
+          to: [performed]
+          category: new_requirement
+          detail: PUPSIT is not performed at the SU and is performed at the RU.
+          severity: medium
+          regulatory: false
+          why: PUPSIT at the RU is an added control. The RU needs procedures, training and a qualified PUPSIT assembly.
+          activities: [pupsit_assembly_qualification, procedure_update, training]
+        - to: [not_performed_unjustified]
+          category: new_requirement
+          detail: PUPSIT is not performed at the RU and the RU has no documented justification.
+          why: Not performing PUPSIT without a documented justification is not in line with the EU GMP Annex 1 (2022), point 8.87, expectation. A risk assessment must be written and approved, or PUPSIT introduced.
+          activities: [risk_assessment_update, scientific_justification, pupsit_assembly_qualification, procedure_update]
+        - from: [not_performed_unjustified]
+          to: [not_performed_justified]
+          category: equivalent
+          detail: PUPSIT is not performed at either site. The RU records a documented risk assessment as the justification, the SU does not.
+          severity: low
+          regulatory: false
+          why: The RU holds a documented justification. Confirm that the risk assessment is approved and covers the RU filter and process.
+          activities: [risk_assessment_update]
+      differentAs: different_principle
+
+  - id: R-PUPSIT-METHOD
+    version: 1.0.0
+    title: PUPSIT test method and wetting fluid
+    match: [uo.sterile_filtration.ipc.pupsit.method, uo.sterile_filtration.ipc.pupsit.wettingFluid]
+    comparator: enum
+    severity: medium
+    why: The PUPSIT method and the wetting fluid decide the test specification and the flush. A different method or fluid needs its own validated specification and procedure.
+    activities: [filter_integrity_validation, equipment_qualification, procedure_update, training]
+
+  - id: R-PUPSIT-DOWNSTREAM
+    version: 1.0.0
+    title: Protection of the sterile downstream side during PUPSIT
+    match: [uo.sterile_filtration.ipc.pupsit.downstreamProtection]
+    comparator: enum
+    severity: high
+    regulatory: true
+    why: The way the sterile downstream side is protected during PUPSIT is part of the contamination control strategy. A manual sterile-side connection is a risk to the sterile boundary compared with a closed assembly.
+    activities: [risk_assessment_update, media_fill, pupsit_assembly_qualification, procedure_update, training]
+
+  - id: R-PUPSIT-BASIS
+    version: 1.0.0
+    title: Basis of the PUPSIT justification
+    match: [uo.sterile_filtration.ipc.pupsit.justificationBasis]
+    comparator: set
+    severity: medium
+    why: The basis shows what evidence supports not performing PUPSIT. A different basis at the RU must be reviewed against the RU filter, assembly and process.
+    activities: [risk_assessment_update, scientific_justification]
+    outcomes:
+      new_requirement:
+        severity: low
+        why: The RU cites an additional basis for its justification. Confirm the evidence is referenced in the risk assessment.
+        activities: [risk_assessment_update]
+
+  - id: R-EV-PUPSIT-ASSEMBLY
+    version: 1.0.0
+    title: PUPSIT assembly qualification at RU
+    match: [uo.sterile_filtration.study.pupsit_assembly.status]
+    comparator: evidence
+    config:
+      map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
+    severity: high
+    regulatory: true
+    why: The PUPSIT assembly sits on the sterile side. Until it is qualified and shown not to compromise the sterile boundary, its use in GMP manufacture is not supported.
+    activities: [pupsit_assembly_qualification]
+
+  - id: R-EV-PUPSIT-FLUSH
+    version: 1.0.0
+    title: PUPSIT flush volume and product effect at RU
+    match: [uo.sterile_filtration.ipc.pupsit.flushVolume]
+    comparator: evidence
+    config:
+      map: { defined_assessed: within_validated_range, defined_not_assessed: outside_validated_range, not_defined: outside_validated_range }
+    severity: medium
+    why: The PUPSIT wetting fluid mixes with or displaces product. Its volume and effect on dilution, yield and discard are not established until they are defined and assessed.
+    activities: [pupsit_assembly_qualification, product_quality_impact, procedure_update]
+
+  - id: R-EV-PUPSIT-RA
+    version: 1.0.0
+    title: PUPSIT risk assessment document at RU
+    match: [uo.sterile_filtration.doc.pupsit_risk_assessment.status]
+    comparator: evidence
+    config:
+      map: { approved: within_validated_range, draft: outside_validated_range, not_started: outside_validated_range }
+    severity: medium
+    regulatory: true
+    why: A justification for not performing PUPSIT is only supported by an approved, documented risk assessment. A draft or missing document leaves it open.
+    activities: [risk_assessment_update, scientific_justification]
+
+  # ---- plunger stopper position in prefilled syringes and cartridges (shown only for those presentations)
+  - id: R-PFS-STOPPER-METHOD
+    version: 1.0.0
+    title: Plunger stopper placement method
+    match: [uo.aseptic_filling.equip.stopper_placement_unit.operatingPrinciple]
+    comparator: enum
+    severity: high
+    regulatory: true
+    why: The placement method (vacuum, vent-tube or mechanical) decides stopper seating, trapped air and the stopper path over the barrel. A change is a design change that SU data do not cover.
+    activities: [stopper_position_study, engineering_run, equipment_qualification, media_fill, procedure_update, training]
+
+  - id: R-PFS-STOPPER-POSITION
+    version: 1.0.0
+    title: Plunger stopper position range
+    match: [uo.aseptic_filling.param.stopper_position]
+    comparator: range
+    severity: high
+    regulatory: true
+    why: A stopper position range outside the SU {{validated|demonstrated}} range changes headspace, dose accuracy, the stopper path over non-sterile barrel area and device fit.
+    activities: [stopper_position_study, scientific_justification, engineering_run, ppq_coverage_assessment]
+    outcomes:
+      within_validated_range:
+        why: The RU stopper position range lies within the SU {{validated|demonstrated}} range. Record it in procedures and the batch record.
+        activities: [procedure_update]
+
+  - id: R-PFS-HEADSPACE
+    version: 1.0.0
+    title: Headspace or air bubble limit
+    match: [uo.aseptic_filling.param.max_headspace.max]
+    comparator: upper_limit
+    severity: medium
+    why: A larger permitted headspace or air bubble than the SU {{validated|demonstrated}} limit affects dose accuracy and product stability at the air interface.
+    activities: [stopper_position_study, risk_assessment_update]
+    outcomes:
+      outside_validated_range:
+        severity: high
+        regulatory: true
+        why: The RU headspace limit is larger than the SU {{validated|demonstrated}} limit, so dose accuracy and stability at the air interface are not supported by existing data.
+        activities: [stopper_position_study, risk_assessment_update, comparability_assessment]
+
+  - id: R-PFS-STOPPER-CHECK
+    version: 1.0.0
+    title: Plunger stopper position checks
+    match: [uo.aseptic_filling.ipc.stopper_position_check.tests]
+    comparator: set
+    severity: medium
+    regulatory: true
+    why: Removing a stopper position check, or replacing 100% in-line checking with sampling, changes the control strategy demonstrated in validation.
+    activities: [risk_assessment_update, procedure_update, training]
+    outcomes:
+      new_requirement:
+        severity: low
+        regulatory: false
+        why: An additional stopper position check requires a method, procedure and training at the RU.
+        activities: [procedure_update, training]
+
+  - id: R-PFS-STOPPER-CRITERION
+    version: 1.0.0
+    title: Stopper position acceptance criterion
+    match: [uo.aseptic_filling.ipc.stopper_position_check.description]
+    comparator: text
+    severity: medium
+    why: A different method, frequency or limit for the stopper position check changes which units are rejected.
+    activities: [risk_assessment_update, procedure_update]
+
+  - id: R-EV-PFS-STOPPER-POSITION
+    version: 1.0.0
+    title: Stopper position capability on the RU filler
+    match: [uo.aseptic_filling.study.stopper_position_study.status]
+    comparator: evidence
+    config:
+      map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
+    severity: high
+    why: Stopper position capability and device fit have not been demonstrated for the RU placement method and position range on the RU filler.
+    activities: [stopper_position_study, engineering_run]
 
   # ------------------------------------------------------------------ unit operation presence
   - id: R-UO-PRESENCE
@@ -1006,8 +1481,8 @@ rules:
 
   - id: R-EV-HOLD-BASIS
     version: 1.0.0
-    title: Endpoints of the bulk hold time study
-    match: [uo.compounding.study.hold_time.basis]
+    title: Endpoints of the bulk or buffer hold time study
+    match: [uo.compounding.study.hold_time.basis, uo.buffer_prep.study.hold_time.basis]
     comparator: evidence
     config:
       map: { full_study: within_validated_range, partial_study: outside_validated_range, extrapolated: outside_validated_range, none: outside_validated_range }
