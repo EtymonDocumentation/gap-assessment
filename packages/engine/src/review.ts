@@ -159,9 +159,16 @@ function cleanTemplate(t: TemplateRecord): TemplateRecord {
 
 // ------------------------------------------------------------------ exports
 
+const EXPORT_FORMATS: readonly DocumentExport["format"][] = ["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html"];
+
+/** True for the three TRD seed outputs (the seed JSON and its Word and HTML outlines). */
+export function isTrdFormat(format: DocumentExport["format"]): boolean {
+  return format.startsWith("trd-");
+}
+
 /** Appends an export record. No change-log entry: downloading the document does not change the project. */
 export function recordExport(project: Project, record: DocumentExport): Project {
-  if (record.format !== "markdown" && record.format !== "html" && record.format !== "docx") {
+  if (!EXPORT_FORMATS.includes(record.format)) {
     throw new ReviewError(`Unknown export format ${String(record.format)}`);
   }
   if (!record.fingerprint) throw new ReviewError("An export record needs the document fingerprint");
@@ -169,10 +176,13 @@ export function recordExport(project: Project, record: DocumentExport): Project 
   // The export keeps which optional sections it left out. A record that does not say takes the project's current choice;
   // an empty list is stored as no field at all, so "nothing omitted" reads the same as before this setting existed.
   const { omittedSections, changedSincePrevious: given, ...rest } = structuredClone(record);
-  const left = omittedSections ?? omittedSectionIds(project);
+  // A TRD output is not the gap assessment document, so the document's omitted-section choice does not apply to it.
+  const isTrd = isTrdFormat(record.format);
+  const left = omittedSections ?? (isTrd ? [] : omittedSectionIds(project));
   // Whether the answers changed since the previous download is worked out here, from the fingerprints, so every caller records it
   // the same way. The first download has nothing to compare with and records nothing.
-  const previous = project.document.exports.at(-1);
+  // A TRD output is compared with the previous TRD output only: a gap document download says nothing about whether the seed changed.
+  const previous = [...project.document.exports].reverse().find((e) => isTrdFormat(e.format) === isTrd);
   const changedSincePrevious = given ?? (previous ? previous.fingerprint !== record.fingerprint : undefined);
   next.document.exports.push({
     ...rest,

@@ -9,7 +9,7 @@
     "admin": "node dist/admin.mjs"
   },
   "dependencies": {
-    "@gap/process-model": "^0.1.0",
+    "@gap/process-model": "^1.0.0",
     "zod": "^4.6.7"
   }
 }

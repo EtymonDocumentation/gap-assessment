@@ -7,7 +7,7 @@
   "types": "src/index.ts",
   "dependencies": {
     "@gap/engine": "^0.1.0",
-    "@gap/process-model": "^0.1.0",
+    "@gap/process-model": "^1.0.0",
     "@xmldom/xmldom": "^0.9.12",
     "docxtemplater": "^3.71.1",
     "pdfjs-dist": "^6.4.299",

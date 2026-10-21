@@ -25,3 +25,5 @@ export * from "./tbd";
 export * from "./drafting";
 export * from "./tailoring";
 export * from "./scope";
+export * from "./trd-seed";
+export * from "./trd-outline";

@@ -204,7 +204,7 @@ A static single-page app with no backend, organized as npm workspaces:
 
 | Path | Package | Role |
 |---|---|---|
-| `packages/process-model` | `@gap/process-model` | Types and Zod schemas for the project, entries, sources, verification, units and conversion, and schema migrations. **Shared with the later TRD and MBR modules.** |
+| `packages/process-model` | `@gap/process-model` | Types and Zod schemas for the project, entries, sources, verification, units and conversion, and schema migrations, plus the unit-operation catalog and the TRD seed format. Version 1.0.0, see its README. **Shared with the later TRD and MBR modules.** |
 | `packages/engine` | `@gap/engine` | Content loading and cross-checks, condition evaluator, sequencer (paired and sequential), answer application, comparators and gap derivation, overlays, document model, CSV, demo builder. No UI code. |
 | `packages/renderers` | `@gap/renderers` | Document model to Markdown and print HTML (all text is escaped). |
 | `packages/docx` | `@gap/docx` | Word export and template handling: reading `.docx`, `.dotx`, `.docm` and PDF templates, the analysis report, the four export options, placeholder tags and the heading mapping. The web app loads it only when needed (a separate chunk), so the first page load stays small. |
@@ -255,13 +255,24 @@ Every page has light and dark themes. The layout works from phone width up. Acce
 
 Unit conversion uses the units table in `packages/process-model/src/units.ts` (volume, mass, time, temperature, pressure, flow, speed, area and others). Values in different units, for example 1.2 mL and 1200 µL, compare as equal.
 
+## Suite foundation: the process model and the TRD seed
+
+The gap assessment is the first tool of a planned suite (gap assessment, technology transfer document, master batch record). Milestone 6 prepares the shared part.
+
+- **`@gap/process-model` 1.0.0** holds the catalog of unit operations, the schemas and the TRD seed format. Its only runtime dependency is `zod`, a test checks that, and another test snapshots the public API so a change to it needs a version decision. See `packages/process-model/README.md` and `CHANGELOG.md`. It is still `private`; nothing is published.
+- **TRD seed.** The page "TRD seed" (after Document in the menu) exports the planned process of the receiving unit (RU) as JSON in the format `gap-assessment.trd-seed` 1.0.0. It carries only RU values as values. SU values appear only as a reference, for traceability. Nothing is filled in by default: a value nobody recorded is "not established", and a TBD best guess is marked provisional. Process steps and topics left out in the Scope step are not exported. The tool never names a filing category.
+- **Draft outline.** The same page offers a draft outline of a technology transfer document, in Word and HTML, built from the seed alone. It uses the built-in style only. It is not an approved TRD. The Traceability section is on by default and can be switched off.
+- **Export history.** All three downloads are recorded with the process model, catalog and seed format versions and a fingerprint of the seed.
+- The seed builder (`buildTrdSeed`) and the outline builder (`buildTrdOutline`) are in `@gap/engine`; the schema and the reader (`parseTrdSeed`) are in `@gap/process-model`.
+
 ## Editing content
 
 All domain content lives in `content/` as YAML. Each file carries a semantic version, which is recorded in every project and printed in the document. Content is validated against Zod schemas when it loads and in the test suite, so a bad edit fails `npm test` and CI before it can be deployed.
 
 | File | Contents |
 |---|---|
-| `content/catalog/catalog.yaml` | Pick-list options, unit operations, activities, category labels and descriptions |
+| `packages/process-model/catalog/catalog.yaml` | Pick-list options, stage groups, unit operations with their items and topics, field labels (the shared process model catalog) |
+| `content/catalog/gap-overlay.yaml` | Validation activities and comparison category labels and descriptions (only the gap assessment needs them) |
 | `content/questions/*.yaml` | Sections, then questions per section (`00` scoping and site, `15` buffer preparation, `20` compounding, `25` BBR filtration, `30` sterile filtration including the PUPSIT block, `40` aseptic filling including the plunger stopper position questions, `60` capping) |
 | `content/rules/rules.yaml` | Comparison rules, evaluated in order; the first rule whose pattern matches a path wins (`*` matches one path segment) |
 | `content/templates/gap-assessment.yaml` | Document title pattern, banner, fixed text and approval roles |

@@ -322,7 +322,8 @@ export interface ReviewComment {
 export interface DocumentExport {
   at: string;
   by?: string;
-  format: "markdown" | "html" | "docx";
+  /** The gap assessment document formats, and the three TRD seed outputs (kind "trd-*": see the TRD seed page). */
+  format: "markdown" | "html" | "docx" | "trd-seed-json" | "trd-outline-docx" | "trd-outline-html";
   /** Markdown and HTML always use mode "builtin". */
   template: TemplateRecord;
   /** Latest issued revision number at export time. */
@@ -339,6 +340,11 @@ export interface DocumentExport {
   omittedSections?: string[];
   /** How many TBD values the exported document listed (added in schema 1.7.0). */
   tbdCount?: number;
+  /**
+   * Versions behind a TRD seed output (process model, catalog, seed format), so the history says which model produced a file.
+   * Present only on the "trd-*" formats; optional, so the project schema version did not change.
+   */
+  versions?: { processModel: string; catalog: string; format: string };
 }
 
 /**

@@ -1,3 +1,4 @@
+import { conditionSchema, optionSchema, type Catalog as ModelCatalog, type Condition, type Option } from "@gap/process-model";
 import { z } from "zod";
 
 /** The eight comparison categories (brief section 4). */
@@ -14,109 +15,21 @@ export const CATEGORIES = [
 export type Category = (typeof CATEGORIES)[number];
 
 export const SEVERITIES = ["high", "medium", "low", "none"] as const;
-
-const quantity = z.object({ value: z.number(), unit: z.string() });
-const literal = z.union([z.string(), z.number(), z.boolean()]);
-
-export type Condition =
-  | { all: Condition[] }
-  | { any: Condition[] }
-  | { not: Condition }
-  | { eq: [string, string | number | boolean] }
-  | { in: [string, (string | number | boolean)[]] }
-  | { includes: [string, string] }
-  | { answered: string }
-  | { isTbd: string }
-  | { isTrue: string }
-  | { uoPresent: string }
-  | { changed: string }
-  | { increased: string }
-  | { decreased: string }
-  | { ratioAbove: [string, number] }
-  | { gt: [string, string | number | { value: number; unit: string }] }
-  | { gte: [string, string | number | { value: number; unit: string }] }
-  | { lt: [string, string | number | { value: number; unit: string }] }
-  | { lte: [string, string | number | { value: number; unit: string }] };
-
-const cmpOperand = z.union([z.string(), z.number(), quantity]);
-
-export const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
-  z.union([
-    z.object({ all: z.array(conditionSchema).min(1) }).strict(),
-    z.object({ any: z.array(conditionSchema).min(1) }).strict(),
-    z.object({ not: conditionSchema }).strict(),
-    z.object({ eq: z.tuple([z.string(), literal]) }).strict(),
-    z.object({ in: z.tuple([z.string(), z.array(literal).min(1)]) }).strict(),
-    z.object({ includes: z.tuple([z.string(), z.string()]) }).strict(),
-    z.object({ answered: z.string() }).strict(),
-    z.object({ isTbd: z.string() }).strict(),
-    z.object({ isTrue: z.string() }).strict(),
-    z.object({ uoPresent: z.string() }).strict(),
-    z.object({ changed: z.string() }).strict(),
-    z.object({ increased: z.string() }).strict(),
-    z.object({ decreased: z.string() }).strict(),
-    z.object({ ratioAbove: z.tuple([z.string(), z.number()]) }).strict(),
-    z.object({ gt: z.tuple([z.string(), cmpOperand]) }).strict(),
-    z.object({ gte: z.tuple([z.string(), cmpOperand]) }).strict(),
-    z.object({ lt: z.tuple([z.string(), cmpOperand]) }).strict(),
-    z.object({ lte: z.tuple([z.string(), cmpOperand]) }).strict(),
-  ]),
-) as z.ZodType<Condition>;
-
-export const optionSchema = z.object({
-  value: z.string(),
-  label: z.string(),
-  description: z.string().optional(),
-});
-export type Option = z.infer<typeof optionSchema>;
+// The condition language and option lists belong to the shared process model (they are part of its catalog). They are re-exported
+// here so the rest of the engine, the content package and the web app keep importing them from one place.
+export { conditionSchema, optionSchema };
+export type { Condition, Option };
 
 const versionString = z.string().regex(/^\d+\.\d+\.\d+$/, "must be semver x.y.z");
 
 // ---------------------------------------------------------------- catalog
 
-export const catalogSchema = z.object({
-  catalog: z.object({ id: z.string(), version: versionString }),
-  /** The broad process stages of the Scope step, in process order. Every unit operation is in exactly one group. */
-  stageGroups: z.array(
-    z.object({
-      key: z.string().regex(/^[a-z0-9_]+$/),
-      label: z.string(),
-      description: z.string(),
-      unitOperations: z.array(z.string()).min(1),
-    }),
-  ),
-  unitOperations: z.array(
-    z.object({
-      key: z.string(),
-      label: z.string(),
-      sequence: z.number(),
-      description: z.string(),
-      /** First milestone in which the unit operation has questions. */
-      milestone: z.number().int(),
-      applicableWhen: conditionSchema.optional(),
-      /**
-       * Hides the whole unit operation for a side when the condition is true for that side. Unlike applicableWhen it may
-       * read the side's own site answers ("site.labellingLocation"), so one side can be out of scope while the other is not.
-       */
-      hiddenWhen: conditionSchema.optional(),
-      /**
-       * Explicit tailoring topics. Without them the topics are the item collections (parameters, equipment, materials, ...)
-       * the unit operation's questions bind to. When declared, every non-presence question of the unit operation names one.
-       */
-      topics: z.array(z.object({ key: z.string().regex(/^[a-z0-9_]+$/), label: z.string(), description: z.string().optional() })).optional(),
-      items: z
-        .array(
-          z.object({
-            coll: z.enum(["param", "equip", "mat", "ipc", "study", "doc"]),
-            key: z.string(),
-            label: z.string(),
-          }),
-        )
-        .default([]),
-    }),
-  ),
-  fieldLabels: z.record(z.string(), z.string()),
-  optionSets: z.record(z.string(), z.array(optionSchema).min(1)),
+/**
+ * What only the gap assessment adds to the process-model catalog: the validation activities that gaps imply and the comparison
+ * categories. It is a separate file (content/catalog/gap-overlay.yaml) so the shared catalog stays free of gap logic.
+ */
+export const catalogOverlaySchema = z.object({
+  overlay: z.object({ id: z.string(), version: versionString }),
   activities: z.array(
     z.object({
       key: z.string(),
@@ -128,7 +41,10 @@ export const catalogSchema = z.object({
   ),
   categories: z.array(z.object({ key: z.enum(CATEGORIES), label: z.string(), description: z.string() })),
 });
-export type Catalog = z.infer<typeof catalogSchema>;
+export type CatalogOverlay = z.infer<typeof catalogOverlaySchema>;
+
+/** The catalog the gap engine works with: the shared process-model catalog plus the gap overlay's activities and categories. */
+export type Catalog = ModelCatalog & Pick<CatalogOverlay, "activities" | "categories">;
 
 // ---------------------------------------------------------------- questions
 

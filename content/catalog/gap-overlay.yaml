@@ -1,0 +1,63 @@
+# Gap overlay: the parts of the catalog that only the gap assessment uses (validation activities that gaps imply, and the
+# comparison categories). The side-agnostic catalog (unit operations, items, option lists, stage groups) is in
+# packages/process-model/catalog/catalog.yaml. Editable without code changes. Bump overlay.version on any change.
+#
+# Stage-aware wording works as in the model catalog: {{validated wording|other wording}}.
+overlay:
+  id: gap-overlay
+  version: 1.0.0
+
+activities:
+  - { key: information_gathering, label: Information gathering, description: Establish the missing SU or RU information before the comparison can be completed. }
+  - { key: risk_assessment_update, label: Risk assessment update, description: Update the process or contamination control risk assessment for the change. }
+  - { key: engineering_run, label: Engineering run, description: Non-GMP run at the RU to confirm equipment and process performance before PPQ. }
+  - { key: scientific_justification, label: Scientific justification or characterization, description: Document a scientific rationale or perform characterization work to support the RU range. }
+  - { key: comparability_assessment, label: Comparability assessment, description: Assess product comparability between SU and RU processes. }
+  - { key: ppq, label: Process performance qualification, description: PPQ at the RU covering the changed element., studies: [ppq] }
+  - { key: ppq_coverage_assessment, label: PPQ coverage assessment, description: Determine whether existing PPQ data cover the RU condition or whether additional PPQ is needed., studies: [ppq] }
+  - { key: mixing_study, label: Mixing study, description: Demonstrate homogeneity at the RU batch volume and mixing configuration., studies: [mixing] }
+  - { key: hold_time_study, label: Hold time study, description: "Establish or extend the {{validated|demonstrated}} hold time for the RU condition.", studies: [hold_time, filtered_hold] }
+  - { key: filter_bacterial_retention, label: Filter validation (bacterial retention), description: Bacterial retention validation for the RU filter with product under worst-case conditions., studies: [bacterial_retention] }
+  - { key: filter_compatibility, label: Filter compatibility study, description: Chemical compatibility of the RU filter with the product., studies: [filter_compatibility] }
+  - { key: extractables_leachables, label: Extractables and leachables assessment, description: E&L assessment of the RU product-contact materials., studies: [sua_el, filter_extractables, container_el] }
+  - { key: filter_sizing, label: Filter sizing confirmation, description: Confirm filter area and throughput for the RU batch volume., studies: [filter_sizing] }
+  - { key: fill_accuracy_study, label: Fill accuracy study, description: Demonstrate fill accuracy and precision of the RU filling system with product or a justified surrogate., studies: [fill_accuracy] }
+  - { key: product_quality_impact, label: Product-quality impact assessment, description: "Assess shear and other stress effects of the RU equipment on product quality (for example, subvisible particles, aggregation).", studies: [pump_product_impact] }
+  - { key: media_fill, label: Aseptic process simulation (media fill), description: "Media fill covering the RU line, duration, container format and interventions.", studies: [aps] }
+  - { key: equipment_qualification, label: Equipment qualification, description: IQ/OQ/PQ of RU equipment. }
+  - { key: cci_study, label: Container closure integrity study, description: "CCI demonstration for the RU container, closure, seal and capping process.", studies: [cci] }
+  - { key: rsf_study, label: Residual seal force study, description: Establish the RSF range for the RU capping equipment and correlate it with CCI., studies: [rsf_cci_correlation] }
+  - { key: environmental_monitoring_assessment, label: Environmental monitoring assessment, description: Assess the environmental monitoring programme for the RU barrier and room classification. }
+  - { key: csv_assessment, label: Computerized system assessment, description: Assess validation status and data flows of the RU computerized systems. }
+  - { key: procedure_update, label: Procedure update, description: Create or update procedures and batch record instructions at the RU. }
+  - { key: training, label: Training, description: Train RU personnel on the changed or new procedures. }
+  - { key: freeze_thaw_study, label: Freeze-thaw and thaw study, description: "Demonstrate that the RU container, freezer and thaw method give acceptable product quality (for example, no aggregation or concentration gradient) across the {{validated|demonstrated}} freeze-thaw conditions.", studies: [freeze_thaw, thaw_homogeneity] }
+  - { key: lyo_cycle_verification, label: Lyophilization cycle verification, description: "Run and verify the lyophilization cycle at the RU (shelf mapping, product temperature, residual moisture, cake appearance) to show the cycle performs as {{validated|run at the SU}}.", studies: [cycle_verification, aps_loading] }
+  - { key: avi_qualification, label: Automated inspection qualification, description: "Qualify the automated inspection system against a defect kit (detection probability compared with manual inspection, for example a Knapp-style study) and set the rejection criteria.", studies: [avi_qualification] }
+  - { key: inspector_qualification, label: Inspector qualification, description: "Qualify and periodically requalify manual inspectors against the defect library, with documented acceptance criteria.", studies: [inspector_qualification] }
+  - { key: shipping_validation, label: Shipping validation, description: "Qualify the shipping configuration and lane (thermal performance over the worst-case transit time and seasonal profiles).", studies: [shipping_validation] }
+  - { key: serialization_verification, label: Serialization verification, description: "Verify serialization and aggregation (code quality, data transfer and reporting) for the RU markets.", studies: [serialization_verification] }
+  - { key: stability_assessment, label: Stability assessment, description: "Assess whether available stability data support the RU storage condition, time out of refrigeration or excursion allowance.", studies: [stability_support, tor_stability] }
+  - { key: temperature_mapping, label: Temperature mapping, description: Map and qualify storage areas and monitoring points for the RU storage condition. }
+  - { key: equipment_requalification, label: Equipment requalification, description: "Requalify or extend the qualified range of RU equipment so it covers the planned operating range (OQ re-execution, or a documented assessment and delta qualification)." }
+  - { key: cleaning_validation, label: Cleaning validation, description: "Validate cleaning of the RU product-contact equipment (worst-case selection, residue and microbial limits, sampling and hold times).", studies: [cleaning] }
+  - { key: cci_method_validation, label: CCI test method validation, description: "Validate the container closure integrity test method for the RU container (sensitivity, positive and negative controls, repeatability).", studies: [cci_method_validation] }
+  - { key: bbr_filter_validation, label: BBR filter validation, description: "Confirm that the RU bioburden-reduction filter, with this product, reduces bioburden to the level the sterilizing filter was challenged with (performance, compatibility and extractables).", studies: [bbr_validation] }
+  - { key: buffer_supply_assessment, label: Buffer supply route assessment, description: "Assess the quality and microbial control of the buffer at the RU for the chosen supply route (on-site preparation, thaw of a received frozen buffer, or a ready-to-use liquid), including hold and storage." }
+  - { key: supplier_qualification, label: Supplier and material qualification, description: "Qualify the buffer supplier and the material specification at the RU (audit or quality agreement, certificates and incoming testing)." }
+  - { key: stopper_position_study, label: Stopper position capability study, description: "Show on the RU filler that the plunger stopper placement method holds the planned position range (position capability, headspace or air bubble, and fit with the plunger rod, autoinjector or device).", studies: [stopper_position_study] }
+  - { key: pupsit_assembly_qualification, label: PUPSIT assembly qualification, description: "Show that the PUPSIT assembly and procedure work as intended and do not compromise the sterile boundary (closed assembly or aseptic connection, flush volume and product effect).", studies: [pupsit_assembly] }
+  - { key: filter_integrity_validation, label: Filter integrity test validation, description: "Establish and validate the product-wet integrity test specification and procedure for the RU filter and tester.", studies: [integrity_validation] }
+  - { key: ds_lane_qualification, label: Drug substance lane qualification, description: "Qualify the shipper and lane that bring drug substance to the fill site (temperature over the longest planned transit, seasonal profiles).", studies: [lane_qualification] }
+  - { key: bulk_pack_verification, label: Bulk pack verification, description: "Show that the bulk container, seal and pack configuration protect the filled product through hold and transport, and that units are counted and identified correctly.", studies: [pack_verification] }
+  - { key: quality_agreement_review, label: Quality agreement review, description: "Confirm in the quality or technical agreement who is responsible for labelling and secondary packaging at the other site, and what is handed over." }
+
+categories:
+  - { key: equivalent, label: Equivalent, description: SU and RU are the same. }
+  - { key: within_validated_range, label: "Within {{validated|SU}} range", description: "RU differs but lies within the SU PAR or {{validated|demonstrated}} range, or is covered by {{existing validation|the SU data}}." }
+  - { key: outside_validated_range, label: "Outside {{validated|SU}} range", description: "RU lies outside the SU PAR or {{validated|demonstrated}} range, or is not covered by {{existing validation|the SU data}}." }
+  - { key: different_principle, label: Different operating principle or design, description: "Equipment, component or design differs in kind rather than in value." }
+  - { key: scale_change, label: Scale change, description: Batch size or equipment capacity differs. }
+  - { key: new_requirement, label: New requirement, description: "Present at RU, absent from SU." }
+  - { key: removed_element, label: Removed element, description: "Present at SU, absent from RU." }
+  - { key: information_required, label: Information required, description: The SU or RU value is TBD (to be determined) or not established. }

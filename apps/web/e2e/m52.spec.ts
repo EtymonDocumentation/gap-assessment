@@ -92,6 +92,8 @@ test("a gap note edited on Compare shows on the Document page and in the Markdow
 });
 
 test("leaving out Risk ranking and Approval removes them and the document says so", async ({ page }) => {
+  // The demo document is rendered several times here (preview, download, reload); about 11 s alone, more under a full parallel run.
+  test.slow();
   await loadDemo(page);
   await go(page, "#/document");
   await expect(page.getByRole("heading", { level: 1, name: "Document" })).toBeVisible();

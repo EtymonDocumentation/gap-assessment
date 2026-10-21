@@ -1,5 +1,6 @@
 import { buildContent, parseGuidance, type ContentBundle, type GuidanceLibrary, type RawContent } from "@gap/engine";
-import catalog from "./catalog/catalog.yaml";
+import { catalog } from "@gap/process-model/catalog";
+import catalogOverlay from "./catalog/gap-overlay.yaml";
 import demoArx217 from "./demo/arx-217.yaml";
 import guidanceRaw from "./guidance/guidance.yaml";
 import q00 from "./questions/00-scoping-and-site.yaml";
@@ -22,7 +23,10 @@ import templates from "./templates/gap-assessment.yaml";
 
 /** Raw parsed YAML, keyed by file name so validation errors name the file. */
 export const rawContent: RawContent = {
+  // The shared catalog comes from the process-model package (validated when it loads); buildContent checks it again together
+  // with the questions and rules, so a bad pairing is reported by file.
   catalog,
+  catalogOverlay,
   questionFiles: {
     "questions/00-scoping-and-site.yaml": q00,
     "questions/05-ds-shipping-inbound.yaml": q05,

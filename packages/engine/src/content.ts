@@ -1,11 +1,20 @@
-import { isCustomKey, isValidContentPath, pathMatches, unitDef, type CollectionKind, type LabelResolver } from "@gap/process-model";
 import {
-  catalogSchema,
+  CatalogError,
+  conditionRefs,
+  isCustomKey,
+  isValidContentPath,
+  loadCatalog,
+  pathMatches,
+  unitDef,
+  type CollectionKind,
+  type LabelResolver,
+} from "@gap/process-model";
+import {
+  catalogOverlaySchema,
   questionFileSchema,
   rulesFileSchema,
   templateSchema,
   type Catalog,
-  type Condition,
   type Option,
   type ParameterField,
   type Question,
@@ -21,7 +30,10 @@ export interface ContentBundle {
   questions: Question[];
   rules: Rule[];
   templates: Templates;
+  /** `catalog` is the version of the shared process-model catalog. */
   versions: { catalog: string; questions: string; rules: string; templates: string };
+  /** Version of the gap overlay (activities and categories). Kept out of `versions` because that object is stored in every project. */
+  overlayVersion: string;
   questionById: Map<string, Question>;
   sectionById: Map<string, Section>;
   /** Set only on bundles made by effectiveContent(): the loaded bundle they were derived from. */
@@ -43,7 +55,10 @@ function zodProblems(file: string, err: { issues: { path: PropertyKey[]; message
 }
 
 export interface RawContent {
+  /** The shared process-model catalog (packages/process-model/catalog/catalog.yaml). */
   catalog: unknown;
+  /** The gap overlay (content/catalog/gap-overlay.yaml): activities and comparison categories. */
+  catalogOverlay: unknown;
   questionFiles: Record<string, unknown>;
   ruleFiles: Record<string, unknown>;
   templates: unknown;
@@ -76,8 +91,16 @@ export function sameAsSourceAllowed(q: Question): boolean {
 export function buildContent(raw: RawContent): ContentBundle {
   const problems: string[] = [];
 
-  const cat = catalogSchema.safeParse(raw.catalog);
-  if (!cat.success) problems.push(...zodProblems("catalog", cat.error));
+  // The shared catalog checks itself (schema, stage groups, topics, conditions); its problems are listed with the others.
+  let modelCatalog: ReturnType<typeof loadCatalog> | undefined;
+  try {
+    modelCatalog = loadCatalog(raw.catalog);
+  } catch (e) {
+    if (!(e instanceof CatalogError)) throw e;
+    problems.push(...e.problems);
+  }
+  const ovl = catalogOverlaySchema.safeParse(raw.catalogOverlay);
+  if (!ovl.success) problems.push(...zodProblems("catalog overlay", ovl.error));
   const tpl = templateSchema.safeParse(raw.templates);
   if (!tpl.success) problems.push(...zodProblems("templates", tpl.error));
 
@@ -115,8 +138,8 @@ export function buildContent(raw: RawContent): ContentBundle {
   }
   if (!rulesVersion) problems.push("rules: no file declares the ruleset header (ruleset.id, ruleset.version)");
 
-  if (problems.length || !cat.success || !tpl.success) throw new ContentError(problems);
-  const catalog = cat.data;
+  if (problems.length || !modelCatalog || !ovl.success || !tpl.success) throw new ContentError(problems);
+  const catalog: Catalog = { ...modelCatalog, activities: ovl.data.activities, categories: ovl.data.categories };
   const templates = tpl.data;
 
   sections.sort((a, b) => a.order - b.order);
@@ -126,6 +149,7 @@ export function buildContent(raw: RawContent): ContentBundle {
     questions,
     rules,
     templates,
+    overlayVersion: ovl.data.overlay.version,
     versions: {
       catalog: catalog.catalog.version,
       questions: questionsVersion,
@@ -140,30 +164,6 @@ export function buildContent(raw: RawContent): ContentBundle {
   return bundle;
 }
 
-function conditionRefs(c: Condition, out: { refs: string[]; paths: string[]; uos: string[] }): void {
-  if ("all" in c) c.all.forEach((x) => conditionRefs(x, out));
-  else if ("any" in c) c.any.forEach((x) => conditionRefs(x, out));
-  else if ("not" in c) conditionRefs(c.not, out);
-  else if ("eq" in c) out.refs.push(c.eq[0]);
-  else if ("in" in c) out.refs.push(c.in[0]);
-  else if ("includes" in c) out.refs.push(c.includes[0]);
-  else if ("answered" in c) out.refs.push(c.answered);
-  else if ("isTbd" in c) out.refs.push(c.isTbd);
-  else if ("isTrue" in c) out.refs.push(c.isTrue);
-  else if ("uoPresent" in c) out.uos.push(c.uoPresent);
-  else if ("changed" in c) out.paths.push(c.changed);
-  else if ("increased" in c) out.paths.push(c.increased);
-  else if ("decreased" in c) out.paths.push(c.decreased);
-  else if ("ratioAbove" in c) out.paths.push(c.ratioAbove[0]);
-  else {
-    const pair = "gt" in c ? c.gt : "gte" in c ? c.gte : "lt" in c ? c.lt : c.lte;
-    out.refs.push(pair[0]);
-    if (typeof pair[1] === "string") out.refs.push(pair[1]);
-  }
-}
-
-const COLLECTION_KEYS = new Set(["param", "equip", "mat", "ipc", "study", "doc"]);
-
 function isValidFullRef(ref: string): boolean {
   // "uo.<...>" and "site.<...>" mean the question's own side (see conditions.ts).
   if (ref.startsWith("scope.") || ref.startsWith("uo.") || ref.startsWith("site.")) return isValidContentPath(ref);
@@ -175,18 +175,6 @@ function crossCheck(b: ContentBundle): string[] {
   const p: string[] = [];
   const uoKeys = new Set(b.catalog.unitOperations.map((u) => u.key));
   const activityKeys = new Set(b.catalog.activities.map((a) => a.key));
-
-  // The Scope step shows the unit operations by stage group; one that is in no group could never be left out, and one in two
-  // groups would have two ticks for one decision.
-  const groupOf = new Map<string, string>();
-  for (const g of b.catalog.stageGroups) {
-    for (const u of g.unitOperations) {
-      if (!uoKeys.has(u)) p.push(`stage group ${g.key}: unknown unit operation "${u}"`);
-      else if (groupOf.has(u)) p.push(`unit operation ${u} is in two stage groups (${groupOf.get(u)} and ${g.key})`);
-      else groupOf.set(u, g.key);
-    }
-  }
-  for (const u of uoKeys) if (!groupOf.has(u)) p.push(`unit operation ${u} is in no stage group`);
 
   const studyKeys = new Set(b.catalog.unitOperations.flatMap((u) => u.items.filter((i) => i.coll === "study").map((i) => i.key)));
   for (const a of b.catalog.activities) {
@@ -285,22 +273,9 @@ function crossCheck(b: ContentBundle): string[] {
     }
   }
   for (const u of b.catalog.unitOperations) {
-    if (u.applicableWhen) {
-      const refs = { refs: [] as string[], paths: [] as string[], uos: [] as string[] };
-      conditionRefs(u.applicableWhen, refs);
-      for (const r of refs.refs) if (!r.startsWith("scope.")) p.push(`unit operation ${u.key}: applicableWhen may only use scope.* references`);
-    }
-    if (u.hiddenWhen) {
-      const refs = { refs: [] as string[], paths: [] as string[], uos: [] as string[] };
-      conditionRefs(u.hiddenWhen, refs);
-      for (const r of refs.refs) if (!r.startsWith("site.")) p.push(`unit operation ${u.key}: hiddenWhen may only use site.* references`);
-      if (refs.paths.length || refs.uos.length) p.push(`unit operation ${u.key}: hiddenWhen may only compare site.* answers`);
-    }
-    // Tailoring topics: explicit topics must not shadow an item collection key, and once a unit operation declares topics
-    // every question except the presence question must name one, otherwise a question could not be switched off with its topic.
+    // Tailoring topics: once a unit operation declares topics (the catalog checks the declaration itself), every question except
+    // the presence question must name one, otherwise a question could not be switched off with its topic.
     const topicKeys = new Set((u.topics ?? []).map((t) => t.key));
-    if (topicKeys.size !== (u.topics ?? []).length) p.push(`unit operation ${u.key}: duplicate topic key`);
-    for (const k of topicKeys) if (COLLECTION_KEYS.has(k)) p.push(`unit operation ${u.key}: topic "${k}" collides with an item collection name`);
     for (const q of b.questions) {
       const sec = b.sectionById.get(q.section);
       if (sec?.kind !== "uo" || sec.uo !== u.key) continue;

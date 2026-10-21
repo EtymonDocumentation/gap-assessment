@@ -190,7 +190,7 @@ export const documentStateSchema = z.object({
     z.object({
       at: z.string(),
       by: z.string().optional(),
-      format: z.enum(["markdown", "html", "docx"]),
+      format: z.enum(["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html"]),
       template: templateRecord,
       revision: z.number().int().positive().optional(),
       fingerprint: z.string(),
@@ -198,6 +198,7 @@ export const documentStateSchema = z.object({
       changedSincePrevious: z.boolean().optional(),
       omittedSections: z.array(z.string()).optional(),
       tbdCount: z.number().int().nonnegative().optional(),
+      versions: z.object({ processModel: z.string(), catalog: z.string(), format: z.string() }).optional(),
     }),
   ),
   omittedSections: z.array(z.string()).optional(),

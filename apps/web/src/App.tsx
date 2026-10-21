@@ -10,6 +10,7 @@ import { ChangesPage } from "./pages/ChangesPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { SourcesPage } from "./pages/SourcesPage";
 import { TbdPage } from "./pages/TbdPage";
+import { TrdSeedPage } from "./pages/TrdSeedPage";
 import { MappingPage } from "./pages/MappingPage";
 import { TemplatesPage } from "./pages/TemplatesPage";
 import { ValidationPage } from "./pages/ValidationPage";
@@ -27,6 +28,7 @@ const NAV = [
   { path: "/register", label: "Gap register" },
   { path: "/validation", label: "Validation" },
   { path: "/document", label: "Document" },
+  { path: "/trd-seed", label: "TRD seed" },
   { path: "/templates", label: "Templates" },
   { path: "/guidance", label: "Guidance" },
   { path: "/builder", label: "Builder" },
@@ -102,6 +104,7 @@ function AppShell() {
   else if (route.path === "/register") page = <RegisterPage />;
   else if (route.path === "/validation") page = <ValidationPage />;
   else if (route.path === "/document") page = <DocumentPage />;
+  else if (route.path === "/trd-seed") page = <TrdSeedPage />;
   else if (route.path === "/builder" || route.path === "/model") page = <BuilderPage />;
   else if (route.path === "/sources") page = <SourcesPage />;
   else if (route.path === "/tbd") page = <TbdPage />;

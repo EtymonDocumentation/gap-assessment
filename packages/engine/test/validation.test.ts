@@ -197,6 +197,10 @@ function fixtureRaw(mutate?: (r: Record<string, any>) => void): RawContent { // 
     },
     templates: rawContent.templates,
   };
+  // The gap-only parts of the catalog (activities, categories) are their own raw file, as in the shipped content.
+  raw.catalogOverlay = { overlay: { id: "fixture-overlay", version: "1.0.0" }, activities: raw.catalog.activities, categories: raw.catalog.categories };
+  delete raw.catalog.activities;
+  delete raw.catalog.categories;
   mutate?.(raw);
   return raw as RawContent;
 }
@@ -317,7 +321,7 @@ describe("validation plan: study status and readiness", () => {
   it("takes the worst readiness when several studies are linked", () => {
     const wide = buildContent(
       fixtureRaw((r) => {
-        r.catalog.activities.find((a: { key: string }) => a.key === "act_ppq").studies = ["ppq", "imp"];
+        r.catalogOverlay.activities.find((a: { key: string }) => a.key === "act_ppq").studies = ["ppq", "imp"];
       }),
     );
     const k = makeKit(wide);
@@ -333,7 +337,7 @@ describe("validation plan: study status and readiness", () => {
   it("shows the other recorded fields of a study as details", () => {
     const wide = buildContent(
       fixtureRaw((r) => {
-        r.catalog.activities.find((a: { key: string }) => a.key === "act_ppq").studies = ["ppq", "aps"];
+        r.catalogOverlay.activities.find((a: { key: string }) => a.key === "act_ppq").studies = ["ppq", "aps"];
       }),
     );
     const k = makeKit(wide);
@@ -560,7 +564,7 @@ describe("content cross-check for activity studies", () => {
     const build = () =>
       buildContent(
         fixtureRaw((r) => {
-          r.catalog.activities.find((a: { key: string }) => a.key === "act_ppq").studies = ["ppq", "no_such_study"];
+          r.catalogOverlay.activities.find((a: { key: string }) => a.key === "act_ppq").studies = ["ppq", "no_such_study"];
         }),
       );
     expect(build).toThrow(ContentError);
@@ -571,7 +575,7 @@ describe("content cross-check for activity studies", () => {
     expect(() =>
       buildContent(
         fixtureRaw((r) => {
-          r.catalog.activities.find((a: { key: string }) => a.key === "act_ppq").studies = ["filler"];
+          r.catalogOverlay.activities.find((a: { key: string }) => a.key === "act_ppq").studies = ["filler"];
         }),
       ),
     ).toThrow(/unknown study "filler"/);

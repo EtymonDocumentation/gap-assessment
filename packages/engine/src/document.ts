@@ -125,6 +125,26 @@ function severityText(g: Gap): string {
 const STATUS_LABEL = { open: "Open", in_progress: "In progress", closed: "Closed", accepted_no_action: "Accepted, no action" } as const;
 
 /** Builds the structured gap assessment document. Renderers turn it into Markdown or HTML. */
+/** The register number the document prints for the i-th listed source (S-001, S-002, ...). */
+export function sourceRegisterRef(i: number): string {
+  return `S-${String(i + 1).padStart(3, "0")}`;
+}
+
+/** The sources the document's register lists, in its order. */
+function documentSourceRegister(all: ReturnType<typeof sourceRegisterRows>): ReturnType<typeof sourceRegisterRows> {
+  // A source that only supports recorded values no longer asked about is not listed (the document shows only current values).
+  return all.filter((r) => r.state !== "in_use" || r.citing.some((c) => c.active));
+}
+
+/**
+ * Source id -> the register number the gap assessment document gives it. The TRD outline cites the same numbers, so a
+ * reader moving between the two documents finds the same source under the same number. `content` must be the staged
+ * content the document is built from.
+ */
+export function documentSourceRefs(content: ContentBundle, project: Project): Map<string, string> {
+  return new Map(documentSourceRegister(sourceRegisterRows(content, project)).map((r, i) => [r.source.id, sourceRegisterRef(i)]));
+}
+
 export function buildDocument(rawContent: ContentBundle, project: Project, a: Assessment, generatedAt: string): DocModel {
   // Texts, headings and labels follow the program stage of the source (see stage.ts).
   const content = stagedFor(rawContent, project);
@@ -442,8 +462,7 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
     return parts.join("; ") || "—";
   };
   const allRegister = sourceRegisterRows(content, project);
-  // A source that only supports recorded values no longer asked about is not listed (the document shows only current values).
-  const register = allRegister.filter((r) => r.state !== "in_use" || r.citing.some((c) => c.active));
+  const register = documentSourceRegister(allRegister);
   const hiddenSourceCount = allRegister.length - register.length;
   appendix("source-register", "Source register", [
     { type: "paragraph", text: fill(t.sourceRegisterIntro, vars) },
@@ -452,7 +471,7 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
           type: "table",
           columns: ["ID", "Type", "Identifier, title, version", "Responder", "Date", "State", "Cited by"],
           rows: register.map((r, i) => [
-            `S-${String(i + 1).padStart(3, "0")}`,
+            sourceRegisterRef(i),
             r.typeLabel,
             r.source.docRef ? [r.source.docRef.identifier, r.source.docRef.title, r.source.docRef.version ? `version ${r.source.docRef.version}` : ""].filter(Boolean).join(", ") : sourceLabel(r.source),
             r.responder,

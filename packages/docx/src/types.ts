@@ -70,7 +70,8 @@ export interface TemplateMapping {
 
 export interface RenderDocxInput {
   doc: DocModel;
-  tagData: import("./tags").TagData;
+  /** Needed only for a tagged template (mode "tags"); the built-in look and the other template modes ignore it. */
+  tagData?: import("./tags").TagData;
   mode: TemplateMode;
   /** ISO timestamp; used for the document properties so the output is the same every time. */
   generatedAt: string;

@@ -73,12 +73,14 @@ export function coverXml(ctx: WriterCtx): string {
     spacing: { before: 0, after: 420 },
   });
   const c = d.cover;
+  // A one-sided document (the TRD outline describes the RU only) leaves the SU cover fields empty, and those rows are
+  // dropped rather than printed blank. The gap assessment always fills them (at worst "[site not established]").
+  const su: [string, string][] = c.sourceSite || c.sourceStage ? [[COVER_LABELS.suSite, c.sourceSite], [COVER_LABELS.suStage, c.sourceStage]] : [];
   const facts: [string, string][] = [
     ["Program", c.program],
     ["Product", c.product],
     // The cover spells the two terms out once; the tables in the rest of the document use the short forms SU and RU.
-    [COVER_LABELS.suSite, c.sourceSite],
-    [COVER_LABELS.suStage, c.sourceStage],
+    ...su,
     [COVER_LABELS.ruSite, c.targetSite],
     [COVER_LABELS.ruStage, c.targetStage],
     ["Status", d.status],

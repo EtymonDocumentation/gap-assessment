@@ -1,4 +1,5 @@
 import type { Category } from "@gap/engine";
+import pkg from "../package.json";
 import { fullRef, getEntry, type Project, type Severity } from "@gap/process-model";
 
 export function download(filename: string, data: string | Uint8Array, type: string): void {
@@ -19,6 +20,9 @@ export function slug(s: string): string {
     .replace(/^-|-$/g, "")
     .slice(0, 60);
 }
+
+/** Version of this web app (package.json); written into the generator field of a TRD seed. */
+export const APP_VERSION: string = pkg.version;
 
 export const SEVERITY_TEXT: Record<Severity, string> = { high: "High", medium: "Medium", low: "Low", none: "None" };
 
@@ -87,7 +91,14 @@ export const MODE_HELP = {
   tags: "A template with placeholder tags such as {program}. The tool fills them in.",
 } as const;
 
-export const FORMAT_LABEL = { markdown: "Markdown", html: "HTML", docx: "Word" } as const;
+export const FORMAT_LABEL = {
+  markdown: "Markdown",
+  html: "HTML",
+  docx: "Word",
+  "trd-seed-json": "TRD seed (JSON)",
+  "trd-outline-docx": "TRD outline (Word)",
+  "trd-outline-html": "TRD outline (HTML)",
+} as const;
 
 /** First 12 characters of a SHA-256 value, for tables. The full value goes in a title or an expandable. */
 export function shortHash(h: string): string {

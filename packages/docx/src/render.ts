@@ -286,6 +286,7 @@ function renderTags(input: RenderDocxInput, record: TemplateRecord, warnings: st
 
   const opened = openTemplate(doc, t.bytes);
   const { ctx } = opened;
+  if (!input.tagData) throw new TemplateError("Internal error: a tagged template needs the tag data.");
   const data = plainData(input.tagData) as Record<string, unknown>;
   // Raw tags are written on demand, so only the sections the template really uses are written.
   const lazy = (name: string, make: () => string) => {
