@@ -345,6 +345,29 @@ export function removeSource(project: Project, sourceId: string, actor: Actor): 
   return { project: next, reverted };
 }
 
+/**
+ * Clears recorded answers on purpose (the user withdrew them, as opposed to a source going away). Each entry that holds
+ * anything (a value, unknown, not applicable, same as source) reverts to "not_established", its source links are removed
+ * the same way a revert does it, and the old value is kept only in the change log. The source records themselves stay
+ * in the register. Verification is not deleted: its fingerprint no longer matches, so it shows as withdrawn.
+ * Entries that are missing or already "not_established" are skipped, so clearing twice logs nothing.
+ */
+export function clearEntries(project: Project, refs: string[], actor: Actor): { project: Project; cleared: string[] } {
+  const todo = [...new Set(refs)].filter((r) => {
+    const e = getEntry(project, r);
+    return !!e && e.status !== "not_established";
+  });
+  if (!todo.length) return { project, cleared: [] };
+  const next = structuredClone(project);
+  for (const ref of todo) {
+    const e = getEntry(next, ref)!;
+    revertEntry(next, e, actor, "answer_cleared");
+    next.changeLog[next.changeLog.length - 1]!.detail = "Answer cleared. The value is kept only in this log.";
+    e.sourceIds = [];
+  }
+  return { project: next, cleared: todo };
+}
+
 /** Detaches one source from one entry. Detaching the last source reverts the entry exactly like removing the source does. */
 export function detachSource(project: Project, ref: string, sourceId: string, actor: Actor): { project: Project; reverted: boolean } {
   const e0 = getEntry(project, ref);

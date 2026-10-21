@@ -1,4 +1,5 @@
 import {
+  clearEntries,
   compareQuantities,
   fullRef,
   getEntry,
@@ -16,7 +17,7 @@ import {
 } from "@gap/process-model";
 import { fieldLabel, labelResolver, optionsFor, parameterFields, sameAsSourceAllowed, type ContentBundle } from "./content";
 import type { ParameterField, Question } from "./content-schema";
-import type { QuestionInstance } from "./sequencer";
+import { instanceRefs, type QuestionInstance } from "./sequencer";
 import { isQuantity, isRange } from "./values";
 
 export type FieldAnswer =
@@ -265,4 +266,26 @@ export function confirmSection(project: Project, sectionId: string, side: "sourc
     after: { sectionId, side },
   });
   return next;
+}
+
+// ------------------------------------------------------------------ clearing answers
+
+/** Entry references behind some instances that hold something (a value, unknown, not applicable, same as source). */
+export function clearableRefs(project: Project, insts: QuestionInstance[]): string[] {
+  const refs = [...new Set(insts.flatMap(instanceRefs))];
+  return refs.filter((r) => {
+    const e = getEntry(project, r);
+    return !!e && e.status !== "not_established";
+  });
+}
+
+/**
+ * Clears the answers of the given instances (one side, both sides, or a whole section's list). Pass only visible
+ * instances: a question hidden by scoping is not in that list, so its recorded values are left exactly as the hide
+ * logic keeps them. Clearing a scoping answer therefore never deletes the values of the questions it hides.
+ * Returns how many entries were cleared; clearing what is already empty changes nothing and logs nothing.
+ */
+export function clearInstances(project: Project, insts: QuestionInstance[], actor: Actor): { project: Project; cleared: number } {
+  const res = clearEntries(project, clearableRefs(project, insts), actor);
+  return { project: res.project, cleared: res.cleared.length };
 }

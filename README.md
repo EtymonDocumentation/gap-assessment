@@ -117,6 +117,10 @@ Other commands (run from the repository root):
    Unknown, Same as SU and Not applicable record that side straight away; the card stays open when the other side still needs an answer. A link to either side of a question (progress map, Compare, Register, a section summary) opens the same card with focus in that side's panel.
 
    You can cite supporting documents on any answer that has a value (open **Cite supporting documents**): tick documents already in the register and/or add a new reference ID with a title and document type. A cited document then appears as the source of the value instead of the interview. Use the progress map to jump between sections and **Review** to see a section summary.
+
+   **Moving on.** **Save and continue** (and the save buttons on a paired card) always go to the next question in order, answered or not, so you can click through a section and re-check its answers. The section summary appears after the last question of a section, or whenever you choose **Review** in the progress map. *Skip for now* and links such as `#/interview?q=...` work as before.
+
+   **Clearing answers.** A side that holds an answer (a value, Unknown, Not applicable or Same as SU) has a **Clear SU answer** or **Clear RU answer** button (**Clear answer** on a one-sided question), and a paired card with both sides answered also has **Clear both**. The section summary has **Clear section answers**. Every clear asks for confirmation first and names the question or section, the side and how many entries it clears. Cleared entries go back to *Not established*, one change-log entry each keeps the old value (the only place it is kept), the source link of each entry is removed the same way a source removal does it (the source records stay in the register), and any verification is withdrawn because the value no longer matches. Gaps, Side by side and the register recompute. Clearing a scoping answer does not delete the values of the sections it then hides; they are kept as inactive values, like any other hidden question.
 3. **Side by side.** Check the comparison row by row. Select a value to change it in the interview, or a marker to open the register row.
 4. **Gap register.** Work the differences: assign owners and statuses, and adjust severity with a justification. Equivalent rows are hidden by default; tick *Show equivalent* to see them.
 5. **Sources, verification and change log.**
@@ -284,7 +288,7 @@ The `transition` comparator (used by the PUPSIT rule) reads an ordered list in `
 - **Browser smoke tests** (`npm run e2e`):
   - The suite runs against the production build at desktop (1366 px), tablet (820 px) and phone (390 px) widths.
   - It loads the demo and checks all eight categories, then exercises register filtering, sorting, search, details and CSV export.
-  - In the interview it checks the progress-map jump, "Why is this asked?", SU and RU on one card in both entry orders (`sides.spec.ts` covers the panels, saving one or both sides, deep links, banners, phone layout and accessibility), section summaries and branch closing.
+  - In the interview it checks the progress-map jump, "Why is this asked?", SU and RU on one card in both entry orders (`sides.spec.ts` covers the panels, saving one or both sides, deep links, banners, phone layout and accessibility), section summaries and branch closing. `clear-nav.spec.ts` covers clearing (one side, both sides, a section, cancel, the change log) and the Save and continue order.
   - It runs a new project through scoping, Unknown and Not applicable validation.
   - It follows side-by-side markers and checks the document downloads.
   - It lists the sources, removes one after reading its impact, and checks that the value becomes Not established and the register changes.

@@ -1,5 +1,7 @@
 import {
   applyAnswer,
+  clearableRefs,
+  clearInstances,
   confirmSection,
   isCustomQuestion,
   formatQuestionSide,
@@ -58,6 +60,86 @@ function groupOf(list: QuestionInstance[], inst: QuestionInstance): QuestionInst
 function cardKey(current: QuestionInstance, group: QuestionInstance[], project: Project): string {
   if (group.length < 2) return `${current.key}:${project.answers.length}`;
   return `${current.question.id}:${group.length}:${project.answers.filter((a) => a.questionId !== current.question.id).length}`;
+}
+
+/** What the user is asked to confirm before answers are cleared. */
+interface ClearRequest {
+  title: string;
+  /** Label and value rows naming exactly what will be cleared. */
+  facts: [string, string][];
+  insts: QuestionInstance[];
+  /** Entries that will go back to Not established. */
+  count: number;
+  /** True when a scoping answer is among them: it decides which sections are asked. */
+  scoping: boolean;
+}
+
+function entriesText(n: number): string {
+  return `${n} ${n === 1 ? "entry" : "entries"}`;
+}
+
+function clearRequest(project: Project, insts: QuestionInstance[], title: string, facts: [string, string][]): ClearRequest {
+  return { title, facts: [...facts, ["Entries to clear", String(clearableRefs(project, insts).length)]], insts, count: clearableRefs(project, insts).length, scoping: insts.some((i) => i.side === "shared") };
+}
+
+/**
+ * Every clear is confirmed first: it removes recorded answers, and in a GMP record that must be deliberate. The dialog names
+ * what goes and says what is kept (the old value in the change log, the source records) and what is withdrawn (verification).
+ */
+function ClearDialog({ request, onClose, onDone, restoreFocus }: { request: ClearRequest; onClose: () => void; onDone: () => void; restoreFocus: () => HTMLElement | null }) {
+  const update = useStore((s) => s.update);
+  const [error, setError] = useState("");
+  return (
+    <Modal open onOpenChange={(o) => !o && onClose()} title={request.title} description="Nothing is cleared until you confirm." restoreFocus={restoreFocus}>
+      <div className="stack">
+        <dl className="clear-facts">
+          {request.facts.map(([k, v]) => (
+            <div key={k}>
+              <dt>{k}</dt>
+              <dd>{v}</dd>
+            </div>
+          ))}
+        </dl>
+        <ul className="impact" aria-label="What happens when you clear">
+          <li>Each of these entries goes back to “Not established”.</li>
+          <li>The old values stay in the change log, so the history is kept.</li>
+          <li>Any verification of these entries is withdrawn.</li>
+          <li>The source records stay in the source register; they are no longer cited by these entries.</li>
+          {request.scoping && <li>A scoping answer decides which sections are asked. Values in sections that become hidden are kept, but are not asked about.</li>}
+        </ul>
+        {error && (
+          <p className="error" role="alert">
+            {error}
+          </p>
+        )}
+        <div className="row end">
+          <button type="button" className="btn" onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="btn danger"
+            onClick={() => {
+              let cleared = 0;
+              const err = update((p, actor) => {
+                const res = clearInstances(p, request.insts, actor);
+                cleared = res.cleared;
+                return res.project;
+              }, "Answers cleared");
+              if (err) {
+                setError(err);
+                return;
+              }
+              useStore.setState({ status: `Cleared ${entriesText(cleared)}. The old values are in the change log.` });
+              onDone();
+            }}
+          >
+            Clear {entriesText(request.count)}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
 }
 
 /** What a card for this instance is headed: the side prefix appears only on a card that asks one side of a paired question. */
@@ -123,7 +205,10 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
     const idx = list.findIndex((i) => i.key === items[items.length - 1]!.inst.key);
     const from = list[idx];
     const after = list.slice(idx + 1).filter((i) => !from || i.question.id !== from.question.id);
-    const next = after.find((i) => !isAnswered(saved, i)) ?? after[0] ?? nextInstance(list, saved);
+    // Save and continue always goes to the NEXT question in order, answered or not, so a reviewer can click through and re-check
+    // answers. Jumping to the next unanswered one would skip the answered ones and land on the summary far too early. Only when
+    // nothing follows does it fall back to the first open question anywhere.
+    const next = after[0] ?? (from ? undefined : nextInstance(list, saved));
     if (from && (!next || next.section.id !== from.section.id)) {
       useStore.setState({ status: `${done} Next: section summary, ${from.section.title}.` });
       navigate("/interview", { summary: from.section.id, ...(next ? { then: next.key } : {}) });
@@ -298,10 +383,10 @@ function QuestionCard({
   const combined = group.length > 1;
   // Documents cited with an answer: register documents already backing the current value stay ticked; one new reference can be added.
   const registerDocs = useMemo(() => project.sources.filter((s) => s.type === "document_reference" && s.docRef && !s.supersededBy), [project.sources]);
-  const makeState = (inst: QuestionInstance): SideState => {
-    const ids = new Set(instanceRefs(inst).flatMap((r) => getEntry(project, r)?.sourceIds ?? []));
+  const makeState = (inst: QuestionInstance, proj: Project = project): SideState => {
+    const ids = new Set(instanceRefs(inst).flatMap((r) => getEntry(proj, r)?.sourceIds ?? []));
     return {
-      form: initialForm(content, project, inst),
+      form: initialForm(content, proj, inst),
       error: "",
       naOpen: false,
       naText: "",
@@ -314,6 +399,7 @@ function QuestionCard({
   const [states, setStates] = useState<Record<string, SideState>>(() => Object.fromEntries(group.map((i) => [i.key, makeState(i)])));
   const [summaryError, setSummaryError] = useState("");
   const [nonce, setNonce] = useState(0);
+  const [clearing, setClearing] = useState<ClearRequest | null>(null);
   const st = (i: QuestionInstance): SideState => states[i.key] ?? makeState(i);
   const patch = (i: QuestionInstance, p: Partial<SideState>) => setStates((cur) => ({ ...cur, [i.key]: { ...(cur[i.key] ?? makeState(i)), ...p } }));
 
@@ -431,6 +517,21 @@ function QuestionCard({
     finish(onSave(items, { quick: true, otherPending }), items);
   };
 
+  // Clearing asks first (see ClearDialog). Which sides: one panel's own, or every answered side of a paired card.
+  const askClear = (insts: QuestionInstance[]) => {
+    const who = insts.map((i) => (i.side === "shared" ? "" : SIDE_SHORT[i.side])).filter(Boolean).join(" and ");
+    const title = insts.length > 1 ? "Clear both answers?" : who ? `Clear ${who} answer?` : "Clear answer?";
+    setClearing(clearRequest(project, insts, title, [["Question", questionLabel(q)], ["Side", who || "SU and RU (one answer for both)"]]));
+  };
+  const clearable = (i: QuestionInstance) => clearableRefs(project, [i]).length > 0;
+  // The cleared sides are rebuilt from the new project, so the form shows Not established; unsaved input on the other side stays.
+  const afterClear = (insts: QuestionInstance[]) => {
+    const np = useStore.getState().project!;
+    setStates((cur) => ({ ...cur, ...Object.fromEntries(insts.map((i) => [i.key, makeState(i, np)])) }));
+    setSummaryError("");
+    setClearing(null);
+  };
+
   const side = current.side;
   const sideLabel = side !== "shared" ? q.sideLabels?.[side] : undefined;
   const heading = combined ? q.prompt : side === "shared" ? q.prompt : `${SIDE_SHORT[side]}: ${sideLabel ?? q.prompt}`;
@@ -448,6 +549,7 @@ function QuestionCard({
       registerDocs={registerDocs}
       answered={answeredHere(inst)}
       onQuick={(input) => quickSave(inst, input)}
+      onClear={clearable(inst) ? () => askClear([inst]) : undefined}
       panelRef={(el) => {
         panels.current[inst.side] = el;
       }}
@@ -503,6 +605,11 @@ function QuestionCard({
               <button type="submit" className="btn primary">
                 {primaryLabel}
               </button>
+              {group.every(clearable) && (
+                <button type="button" className="btn ghost" onClick={() => askClear(group)}>
+                  Clear both
+                </button>
+              )}
             </div>
           </>
         )}
@@ -535,6 +642,7 @@ function QuestionCard({
           </a>
         )}
       </div>
+      {clearing && <ClearDialog request={clearing} onClose={() => setClearing(null)} onDone={() => afterClear(clearing.insts)} restoreFocus={() => headingRef.current} />}
     </article>
   );
 }
@@ -578,6 +686,7 @@ function SidePanel({
   registerDocs,
   answered,
   onQuick,
+  onClear,
   panelRef,
   primary,
 }: {
@@ -590,6 +699,8 @@ function SidePanel({
   registerDocs: Source[];
   answered: boolean;
   onQuick: (input: AnswerInput) => void;
+  /** Set only while this side holds something to clear. */
+  onClear: (() => void) | undefined;
   panelRef: (el: HTMLElement | null) => void;
   /** Single-panel cards put the Save button first in the action row. */
   primary?: ReactNode;
@@ -697,6 +808,11 @@ function SidePanel({
         <button type="button" className="btn ghost" aria-expanded={state.naOpen} onClick={() => patch({ naOpen: !state.naOpen })}>
           Not applicable…
         </button>
+        {onClear && (
+          <button type="button" className="btn ghost" onClick={onClear}>
+            {combined ? `Clear ${who} answer` : "Clear answer"}
+          </button>
+        )}
       </div>
       {state.naOpen && (
         <div className="na-box">
@@ -752,6 +868,9 @@ function SectionSummary({ sectionId, instances, thenKey }: { sectionId: string; 
   const confirmed = project.interview.confirmations.find((c) => c.sectionId === sectionId);
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => headingRef.current?.focus(), [sectionId]);
+  const [clearing, setClearing] = useState<ClearRequest | null>(null);
+  // Only the questions shown now: ones hidden by scoping keep their values.
+  const clearableCount = clearableRefs(project, mine).length;
 
   return (
     <article className="card" aria-labelledby="sum-h">
@@ -815,6 +934,22 @@ function SectionSummary({ sectionId, instances, thenKey }: { sectionId: string; 
             {confirmed ? `Confirmed by ${confirmed.by} — confirm again` : "Confirm section"}
           </button>
         )}
+        {!all && clearableCount > 0 && (
+          <button
+            className="btn ghost"
+            onClick={() =>
+              setClearing(
+                clearRequest(project, mine, `Clear all answers in ${section?.title ?? sectionId}?`, [
+                  ["Section", section?.title ?? sectionId],
+                  ["Sides", "SU and RU"],
+                  ["Questions asked", String(questions.length)],
+                ]),
+              )
+            }
+          >
+            Clear section answers
+          </button>
+        )}
         {thenKey ? (
           <a className="btn primary" href={href("/interview", { q: thenKey })} onClick={() => markHeadingFocus(thenKey)}>
             Continue to next section →
@@ -830,6 +965,7 @@ function SectionSummary({ sectionId, instances, thenKey }: { sectionId: string; 
           </>
         )}
       </div>
+      {clearing && <ClearDialog request={clearing} onClose={() => setClearing(null)} onDone={() => setClearing(null)} restoreFocus={() => headingRef.current} />}
     </article>
   );
 }

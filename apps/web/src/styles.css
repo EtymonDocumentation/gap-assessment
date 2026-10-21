@@ -1366,6 +1366,26 @@ table.equipment-qualification td {
 .impact li {
   margin-bottom: 4px;
 }
+/* Clear-answers dialog: what exactly will be cleared, as label and value pairs. */
+.clear-facts {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+.clear-facts div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+.clear-facts dt {
+  min-width: 8.5rem;
+  color: var(--muted);
+}
+.clear-facts dd {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
 .vs-table td.num {
   font-variant-numeric: tabular-nums;
   text-align: right;

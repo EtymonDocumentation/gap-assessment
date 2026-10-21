@@ -23,6 +23,7 @@ export const ACTION_LABELS: Record<string, string> = {
   detach_source: "Source detached",
   revert_on_source_removal: "Value reverted (source removed)",
   revert_on_source_detach: "Value reverted (last source detached)",
+  answer_cleared: "Answer cleared",
   gap_update: "Gap updated",
   confirm_section: "Section confirmed",
   set_responder: "Responder changed",
@@ -180,7 +181,8 @@ function toRow(content: ContentBundle, project: Project, ev: ChangeEvent, i: num
   switch (ev.action) {
     case "answer":
     case "revert_on_source_removal":
-    case "revert_on_source_detach": {
+    case "revert_on_source_detach":
+    case "answer_cleared": {
       if (isEntryRef(ev.path)) {
         const l = entryLabel(content, project, ev.path);
         row.subject = l.text;
