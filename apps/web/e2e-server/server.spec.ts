@@ -37,7 +37,7 @@ test("sign-up with an invite, sign out, a wrong password, sign in again", async 
   // The sign-in page carries the banner and the rules.
   await expect(page.getByRole("heading", { level: 1, name: "Sign in" })).toBeVisible();
   await expect(page.getByText(BANNER).first()).toBeVisible();
-  await expect(page.getByText("Use at least 12 characters.")).toBeVisible();
+  await expect(page.getByText("Use at least 7 characters.")).toBeVisible();
 
   const account = newAccount("signup");
   const invite = makeInvite();
@@ -51,7 +51,7 @@ test("sign-up with an invite, sign out, a wrong password, sign in again", async 
   await form.getByLabel("Display name").fill(account.displayName);
   await form.getByLabel("Choose a password", { exact: true }).fill("short");
   await form.getByRole("button", { name: "Create account" }).click();
-  await expect(form.getByRole("alert")).toContainText("at least 12 characters");
+  await expect(form.getByRole("alert")).toContainText("at least 7 characters");
 
   // A wrong invite code gives one plain answer.
   await form.getByLabel("Choose a password", { exact: true }).fill(account.password);

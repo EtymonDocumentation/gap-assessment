@@ -10,7 +10,7 @@ export const SCRYPT_R = 8;
 export const SCRYPT_P = 1;
 const KEY_LEN = 64;
 const SALT_LEN = 16;
-export const MIN_PASSWORD = 12;
+export const MIN_PASSWORD = 7;
 export const MAX_PASSWORD = 256;
 
 export interface ScryptParams {

@@ -450,7 +450,7 @@ Funnel must be allowed for your tailnet (an admin switch in the Tailscale admin 
 
 ### Security notes
 
-- **Only invited people get in.** There is no open sign-up; a code is single-use, expires, and can be revoked. Passwords are at least 12 characters, hashed with scrypt (N=2^15, r=8, p=1, 64-byte key, per-password salt) and compared in constant time. An unknown user name takes as long to check as a real one, and every sign-in failure gives the same message.
+- **Only invited people get in.** There is no open sign-up; a code is single-use, expires, and can be revoked. Passwords are at least 7 characters (no other character rules), hashed with scrypt (N=2^15, r=8, p=1, 64-byte key, per-password salt) and compared in constant time. An unknown user name takes as long to check as a real one, and every sign-in failure gives the same message.
 - **Sessions** are random 32-byte tokens in an `HttpOnly; Secure; SameSite=Strict` cookie, valid 14 days. Only a SHA-256 hash of the token is stored, so a copy of the data folder does not contain usable sessions. Changing the password signs the account out of its other sessions.
 - **Cross-site requests** are blocked: every change needs the `X-Gap-Request: 1` header, and an `Origin` header, when present, must match the address the request came to.
 - **Rate limits** (in memory, reset on restart): 5 failed sign-ins per user name and 20 per address in 15 minutes; 10 sign-up attempts per address per hour. The address is taken from `X-Forwarded-For` only when the connection comes from this machine (Tailscale), otherwise the real peer address is used. Because failures are counted per user name, anyone can briefly lock a known user name out by guessing wrongly; the lock ends after 15 minutes.

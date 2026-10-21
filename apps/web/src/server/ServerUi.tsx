@@ -72,7 +72,7 @@ function messageOf(e: unknown): string {
   return err.message || "Something went wrong. Try again.";
 }
 
-const PASSWORD_RULES = "Use at least 12 characters. A few words in a row is easy to remember and hard to guess. Do not use a password from another site.";
+const PASSWORD_RULES = "Use at least 7 characters. Do not use a password from another site.";
 
 function SignInPage() {
   const storage = useSession((s) => s.storage);
@@ -167,7 +167,7 @@ function CreateAccountForm() {
         if (!invite.trim()) return setError("Enter your invite code.");
         if (!/^[a-z0-9._-]{3,40}$/i.test(username.trim())) return setError("The username must be 3 to 40 characters: letters, numbers, dots, dashes or underscores.");
         if (!displayName.trim()) return setError("Enter the name to show next to your account.");
-        if (password.length < 12) return setError("The password must be at least 12 characters.");
+        if (password.length < 7) return setError("The password must be at least 7 characters.");
         if (password !== confirm) return setError("The two passwords are not the same.");
         setBusy(true);
         setError("");
@@ -304,7 +304,7 @@ function ChangePasswordDialog({ onClose, restoreFocus }: { onClose: () => void; 
           onSubmit={(e) => {
             e.preventDefault();
             if (!current) return setError("Enter your current password.");
-            if (next.length < 12) return setError("The new password must be at least 12 characters.");
+            if (next.length < 7) return setError("The new password must be at least 7 characters.");
             if (next !== confirm) return setError("The two new passwords are not the same.");
             setBusy(true);
             setError("");
