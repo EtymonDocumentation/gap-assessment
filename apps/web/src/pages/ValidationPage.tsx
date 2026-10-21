@@ -13,7 +13,7 @@ import {
 } from "@gap/engine";
 import type { GapStatus, Severity } from "@gap/process-model";
 import { useMemo, useState } from "react";
-import { CategoryChip, Empty, SeverityBadge } from "../components";
+import { CategoryChip, Empty, ProvisionalFlag, SeverityBadge } from "../components";
 import { download, SEVERITY_TEXT, slug, today } from "../lib";
 import { href } from "../router";
 import { useAssessment, useContent, useStageWording, useStore } from "../store";
@@ -212,6 +212,7 @@ function PlanRowView({ r }: { r: PlanRow }) {
     <tr id={`activity-${r.activityKey}`}>
       <th scope="row">
         {r.label}
+        <ProvisionalFlag item={r} />
         <div className="small muted normal">{r.description}</div>
         {r.stageNote && <div className="small muted normal">Program stage: {r.stageNote}</div>}
         {r.openGaps === 0 && <div className="small muted normal">All implying gaps are closed or accepted.</div>}

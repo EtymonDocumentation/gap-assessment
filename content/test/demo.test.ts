@@ -1,4 +1,4 @@
-import { assess, buildDemoProject, buildDocument, CATEGORIES, commentDisplayId, DOCUMENT_SECTION_IDS, documentFingerprint, gapsToCsv, revisionState, verificationSummary } from "@gap/engine";
+import { assess, buildDemoProject, buildDocument, CATEGORIES, commentDisplayId, DOCUMENT_SECTION_IDS, documentFingerprint, gapsToCsv, revisionState, tbdItems, tbdSummary, verificationSummary } from "@gap/engine";
 import { getEntry, removeSource, sourceUsage, verificationState } from "@gap/process-model";
 import { renderHtml, renderMarkdown } from "@gap/renderers";
 import { describe, expect, it } from "vitest";
@@ -28,6 +28,14 @@ describe("ARX-217 demo (golden)", () => {
   it("exercises all eight categories", () => {
     const cats = new Set(a.gaps.map((g) => g.category));
     for (const c of CATEGORIES) expect(cats, c).toContain(c);
+  });
+
+  it("carries two TBD values: one with a best guess (a provisional gap) and one overdue without", () => {
+    const items = tbdItems(content, project, a);
+    expect(items).toHaveLength(2);
+    expect(items.filter((i) => i.bestGuess !== undefined)).toHaveLength(1);
+    expect(tbdSummary(items, "2026-10-21")).toMatchObject({ total: 2, overdue: 1 });
+    expect(a.gaps.filter((g) => g.provisional)).toHaveLength(1);
   });
 
   it("classifies the scripted changes as intended", () => {

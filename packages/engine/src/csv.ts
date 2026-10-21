@@ -2,6 +2,8 @@ import { activityLabel, categoryLabel, type ContentBundle } from "./content";
 import type { Project } from "@gap/process-model";
 import type { Gap } from "./compare";
 import { stagedFor } from "./stage";
+import { citationNames } from "./labels";
+import { PROVISIONAL_LABEL } from "./validation";
 import { cellVerification } from "./verification";
 
 export function cell(v: string): string {
@@ -32,6 +34,8 @@ export const CSV_COLUMNS = [
   "Notes",
   "Rule",
   "Inputs",
+  "Documents cited",
+  "Provisional",
 ] as const;
 
 function sideVerification(project: Project, refs: string[], side: "source" | "target"): string {
@@ -62,6 +66,9 @@ export function gapsToCsv(rawContent: ContentBundle, gaps: Gap[], project: Proje
     g.notes ?? "",
     `${g.ruleId} v${g.ruleVersion}`,
     g.inputRefs.join(" | "),
+    // Each source carries the place it was cited at ("<doc> §4.2 p.12") when one was recorded.
+    citationNames(project, g.inputRefs).join("; "),
+    g.provisional ? PROVISIONAL_LABEL : "",
   ]);
   return [CSV_COLUMNS as readonly string[], ...rows].map((r) => r.map(cell).join(",")).join("\r\n") + "\r\n";
 }

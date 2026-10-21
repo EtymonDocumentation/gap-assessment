@@ -74,12 +74,17 @@ export function readinessOf(r: Pick<Resolved, "status" | "value">): Readiness {
 
 // ------------------------------------------------------------------ shared
 
-export type SideEntryState = "established" | "unknown" | "not_established" | "not_applicable" | "not_asked";
+export type SideEntryState = "established" | "unknown" | "tbd" | "not_established" | "not_applicable" | "not_asked";
+
+/** The one wording used wherever something depends on a TBD best guess (Compare, tables, plan, document, CSV). */
+export const PROVISIONAL_LABEL = "Provisional — based on a TBD value";
 
 export interface SideValue {
   /** Text for the cell: the answer, "Unknown (to be confirmed)", "Not established", or "—" when the side is not asked. */
   display: string;
   entry: SideEntryState;
+  /** True when the shown value is a TBD best guess (the display says so as well). */
+  provisional?: boolean;
 }
 
 export interface LinkedGap {
@@ -89,10 +94,11 @@ export interface LinkedGap {
   severity: Severity;
   status: GapStatus;
   attribute: string;
+  provisional?: boolean;
 }
 
 function linkedGap(g: Gap): LinkedGap {
-  return { key: g.key, displayId: g.displayId, category: g.category, severity: g.severity, status: g.status, attribute: g.attribute };
+  return { key: g.key, displayId: g.displayId, category: g.category, severity: g.severity, status: g.status, attribute: g.attribute, ...(g.provisional ? { provisional: true } : {}) };
 }
 
 const NOT_ASKED: SideValue = { display: "—", entry: "not_asked" };
@@ -117,7 +123,7 @@ function sideValue(content: ContentBundle, project: Project, shown: Set<string>,
   if (!shown.has(`${side}:${path}`) && !recorded) return NOT_ASKED;
   const display = formatResolved(content, questionFor(content, path), r);
   if (r.status === "established" && r.value === undefined) return { display: STATUS_TEXT.not_established, entry: "not_established" };
-  return { display, entry: r.status };
+  return { display, entry: r.status, ...(r.provisional ? { provisional: true } : {}) };
 }
 
 function highest(severities: Severity[]): Severity {
@@ -143,6 +149,8 @@ export interface PlanStudy {
   readiness: Readiness | "not_asked" | "not_applicable";
   /** Other recorded fields of the study (for example the covered range). */
   details: StudyDetail[];
+  /** The readiness was read from a TBD best guess. */
+  provisional?: boolean;
 }
 
 export interface PlanRow {
@@ -160,8 +168,13 @@ export interface PlanRow {
   readinessLabel: string;
   /** Gaps that are Open or In progress. A row whose gaps are all closed or accepted is still listed. */
   openGaps: number;
-  /** Linked studies whose target status is unknown or not established. */
+  /** Linked studies whose target status is unknown, TBD or not established. */
   openItems: number;
+  /**
+   * The activity, or the readiness of a study behind it, depends on a TBD best guess. Set when any implying gap is
+   * provisional or when the readiness was read from a guessed study status.
+   */
+  provisional?: boolean;
 }
 
 /**
@@ -204,8 +217,9 @@ export function buildValidationPlan(content: ContentBundle, project: Project, as
       readiness,
       readinessLabel: READINESS_LABEL[readiness],
       openGaps: gaps.filter((g) => g.status === "open" || g.status === "in_progress").length,
-      openItems: studies.filter((s) => s.target.entry === "unknown" || s.target.entry === "not_established").length,
+      openItems: studies.filter((s) => s.target.entry === "unknown" || s.target.entry === "not_established" || s.target.entry === "tbd").length,
     };
+    if (gaps.some((g) => g.provisional) || studies.some((s) => s.provisional)) row.provisional = true;
     if (regulatory) row.regulatoryNote = regulatory;
     const stageNote = activityStageNote(act.key, wording);
     if (stageNote) row.stageNote = stageNote;
@@ -234,7 +248,9 @@ function planStudy(content: ContentBundle, project: Project, shown: Set<string>,
     source: sideValue(content, project, shown, "source", `${base}.${f}`),
     target: sideValue(content, project, shown, "target", `${base}.${f}`),
   }));
-  return { uoKey: uo, uoLabel, key, label, source, target, readiness, details };
+  const study: PlanStudy = { uoKey: uo, uoLabel, key, label, source, target, readiness, details };
+  if (target.provisional) study.provisional = true;
+  return study;
 }
 
 function detailLabel(content: ContentBundle, path: string, field: string): string {
@@ -255,6 +271,7 @@ export const PLAN_CSV_COLUMNS = [
   "RU study status",
   "Open gaps",
   "Open information items",
+  "Provisional",
 ] as const;
 
 export function validationPlanToCsv(plan: PlanRow[]): string {
@@ -272,6 +289,7 @@ export function validationPlanToCsv(plan: PlanRow[]): string {
     r.studies.map((s) => `${studyName(s)}: ${s.target.display}`).join("; "),
     String(r.openGaps),
     String(r.openItems),
+    r.provisional ? PROVISIONAL_LABEL : "",
   ]);
   return [PLAN_CSV_COLUMNS as readonly string[], ...rows].map((x) => x.map(cell).join(",")).join("\r\n") + "\r\n";
 }

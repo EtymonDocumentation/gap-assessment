@@ -14,6 +14,11 @@ export type EntryStatus =
   | "established"
   /** The user answered "Unknown / to be confirmed". Becomes an open information item. */
   | "unknown"
+  /**
+   * To be determined (added in schema 1.7.0). Unlike "unknown" it is a commitment: someone may name an owner and a due
+   * date, and may record a best guess. The best guess is NOT a value (see Entry.tbd); it only drives a provisional comparison.
+   */
+  | "tbd"
   /** The user stated the attribute does not apply (justification required). */
   | "not_applicable"
   /** Nothing has been recorded, or the supporting source was removed. */
@@ -31,6 +36,23 @@ export interface Range {
 }
 
 export type EntryValue = string | number | boolean | string[] | Quantity | Range;
+
+/** What is known about a TBD entry. Every field is optional and none is ever pre-filled. */
+export interface TbdInfo {
+  /** Same shape as the question's value. Drives the comparison, which labels the result provisional. Never counts as established. */
+  bestGuess?: EntryValue;
+  /** Free text. Not an authenticated identity. */
+  owner?: string;
+  /** Calendar date, YYYY-MM-DD. Overdue is judged against the viewer's local date, never stored. */
+  due?: string;
+  note?: string;
+}
+
+/** Where inside a cited document a value is found (added in schema 1.7.0). Both parts are optional free text. */
+export interface SourceLocation {
+  section?: string;
+  page?: string;
+}
 
 export interface Verification {
   by: string;
@@ -58,6 +80,10 @@ export interface Entry<T extends EntryValue = EntryValue> {
   sameAsSource?: boolean;
   /** Required when status is "not_applicable". */
   justification?: string;
+  /** Present exactly when status is "tbd". */
+  tbd?: TbdInfo;
+  /** Optional place inside a cited document, keyed by source id (added in schema 1.7.0). Only for ids in sourceIds. */
+  sourceLocations?: Record<string, SourceLocation>;
   /** Sources supporting this entry. An established entry with no sources reverts to not_established. */
   sourceIds: string[];
   recordedBy: string;
@@ -182,6 +208,14 @@ export interface SectionConfirmation {
   at: string;
 }
 
+/** The document the interview is currently citing, and which side(s) it applies to. */
+export interface AnsweringFrom {
+  sourceId: string;
+  sides: "source" | "target" | "both";
+  section?: string;
+  page?: string;
+}
+
 /** Collections a user can add custom items to. */
 export type CustomItemKind = "param" | "equip" | "mat" | "ipc";
 
@@ -248,6 +282,8 @@ export interface DocumentRevision {
   fingerprint: string;
   /** Template chosen on the Document page at that time, if any. */
   template?: TemplateRecord;
+  /** How many TBD values the document listed when the revision was issued (added in schema 1.7.0). */
+  tbdCount?: number;
 }
 
 export interface ReviewCommentReply {
@@ -285,6 +321,8 @@ export interface DocumentExport {
   changedSinceRevision: boolean;
   /** Ids of the optional sections left out of this export (added in schema 1.5.0). Absent means none were left out. */
   omittedSections?: string[];
+  /** How many TBD values the exported document listed (added in schema 1.7.0). */
+  tbdCount?: number;
 }
 
 /** Revision history, reviewer comments and export records (added in schema 1.3.0). */
@@ -315,6 +353,8 @@ export interface Project {
   interview: {
     responder?: { name: string; role?: string };
     confirmations: SectionConfirmation[];
+    /** The "Answering from" bar of the interview (added in schema 1.7.0). Kept in the project so it survives a reload. */
+    answeringFrom?: AnsweringFrom;
   };
   /** Shared scoping answers (not compared). */
   scope: Record<string, Entry>;

@@ -38,6 +38,7 @@ const hostile: DocModel = {
       replies: [{ kind: "reply", by: "<i>Author</i>", at: "2026-10-06T10:00:00.000Z", text: "Reply <img src=x onerror=alert(10)>" }],
     },
   ],
+  tbdCount: 0,
   sections: [
     {
       id: "one",
@@ -159,7 +160,7 @@ describe("renderMarkdown", () => {
   });
 
   it("renders a document with no sections and no metadata", () => {
-    const out = renderMarkdown({ title: "T", banner: "B", status: "DRAFT", meta: [], cover: EMPTY_COVER, sections: [], revisions: [], comments: [] });
+    const out = renderMarkdown({ title: "T", banner: "B", status: "DRAFT", meta: [], cover: EMPTY_COVER, sections: [], revisions: [], comments: [], tbdCount: 0 });
     expect(out).toBe("> **B**\n\n# T\n\n**Status:** DRAFT\n\n\n---\n\n_B_\n");
   });
 });
@@ -323,8 +324,8 @@ const COL = (name: (typeof CSV_COLUMNS)[number]) => CSV_COLUMNS.indexOf(name);
 describe("gapsToCsv", () => {
   const csv = gapsToCsv(content, assessment.gaps, project);
 
-  it("has one header row plus one row per gap, 20 columns each, CRLF line endings and a final CRLF", () => {
-    expect(CSV_COLUMNS).toHaveLength(20);
+  it("has one header row plus one row per gap, 22 columns each, CRLF line endings and a final CRLF", () => {
+    expect(CSV_COLUMNS).toHaveLength(22);
     const rows = parseCsv(csv);
     expect(rows).toHaveLength(assessment.gaps.length + 1);
     for (const r of rows) expect(r).toHaveLength(CSV_COLUMNS.length);
@@ -572,7 +573,7 @@ describe("revision history and reviewer comments in the rendered document", () =
   it("renders appendices C and D from the demo with their tables", () => {
     const md = renderMarkdown(doc);
     expect(md).toContain("| Revision | Status | Date | By | Summary of change | Template |");
-    expect(md).toContain("| 1 | Draft | 2026-10-05 | A. Reviewer (fictional) (MSAT lead (fictional)) | First draft for internal review | — |");
+    expect(md).toContain("| 1 | Draft; 2 TBD values open | 2026-10-05 | A. Reviewer (fictional) (MSAT lead (fictional)) | First draft for internal review | — |");
     expect(md).toContain("| ID | Location | Comment | By | Date | Status | Responses |");
     expect(md).toMatch(/\| C-001 \| 6\. Detailed gap table, G-\d+ \|/);
     expect(md).toContain("Resolution by A. Reviewer (fictional), 2026-10-06:");
@@ -598,7 +599,7 @@ describe("revision history and reviewer comments in the rendered document", () =
     expect(md).toContain('Summary <script>alert("x")</script> & "q" \\| pipe');
     const row = md.split("\n").find((l) => l.startsWith("| C-001 |"))!;
     expect((row.match(/(?<!\\)\|/g) ?? []).length).toBe(8); // 7 columns + 1
-    const revRow = md.split("\n").find((l) => l.startsWith("| 1 | Issued for review |"))!;
+    const revRow = md.split("\n").find((l) => l.startsWith("| 1 | Issued for review"))!;
     expect((revRow.match(/(?<!\\)\|/g) ?? []).length).toBe(7); // 6 columns + 1
   });
 

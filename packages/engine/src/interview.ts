@@ -14,6 +14,7 @@ import {
   type Quantity,
   type Range,
   type Source,
+  type TbdInfo,
 } from "@gap/process-model";
 import { fieldLabel, labelResolver, optionsFor, parameterFields, sameAsSourceAllowed, type ContentBundle } from "./content";
 import type { ParameterField, Question } from "./content-schema";
@@ -24,7 +25,12 @@ export type FieldAnswer =
   | { kind: "value"; value: EntryValue }
   | { kind: "unknown" }
   | { kind: "same_as_source" }
-  | { kind: "not_applicable"; justification: string };
+  | { kind: "not_applicable"; justification: string }
+  /**
+   * To be determined. Every detail is optional and none is ever filled in for the user. The best guess has the same shape
+   * as the question's value; it is checked like a value but is stored under `tbd`, never as the entry's value.
+   */
+  | { kind: "tbd"; bestGuess?: EntryValue; owner?: string; due?: string; note?: string };
 
 export type AnswerInput = FieldAnswer | { kind: "composite"; fields: Partial<Record<ParameterField, FieldAnswer>> };
 
@@ -94,6 +100,31 @@ function normalizeParamField(content: ContentBundle, q: Question, field: Paramet
   return checkRange(q, v, field === "nor" ? "NOR" : field === "par" ? "PAR" : fieldLabel(content, "validatedRange"));
 }
 
+/** True for a real calendar date written YYYY-MM-DD (so "2026-02-31" is refused rather than silently shifted). */
+export function isIsoDate(s: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const d = new Date(`${s}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+}
+
+type TbdAnswer = Extract<FieldAnswer, { kind: "tbd" }>;
+
+/** Checks a TBD answer and returns the details to store. Empty text is dropped, not stored as an empty value. */
+function tbdInfoOf(a: TbdAnswer, normalizeGuess: (v: unknown) => EntryValue): TbdInfo {
+  const info: TbdInfo = {};
+  if (a.bestGuess !== undefined) info.bestGuess = normalizeGuess(a.bestGuess);
+  const owner = a.owner?.trim();
+  if (owner) info.owner = owner;
+  const due = a.due?.trim();
+  if (due) {
+    if (!isIsoDate(due)) throw new AnswerError("TBD due date: enter a real date");
+    info.due = due;
+  }
+  const note = a.note?.trim();
+  if (note) info.note = note;
+  return info;
+}
+
 export interface AnswerOptions {
   /** Supporting documents cited for this answer (e.g., a PPQ report). Become document_reference sources. */
   docRefs?: DocRef[];
@@ -118,24 +149,29 @@ export function applyAnswer(
 ): Project {
   const q = inst.question;
   const side = inst.side;
-  const writes: { path: string; ans: FieldAnswer }[] = [];
+  type Write = { path: string; ans: Exclude<FieldAnswer, { kind: "tbd" }> | { kind: "tbd"; info: TbdInfo } };
+  const writes: Write[] = [];
+  const normalizeAnswer = (a: FieldAnswer, norm: (v: unknown) => EntryValue): Write["ans"] =>
+    a.kind === "value" ? { kind: "value", value: norm(a.value) } : a.kind === "tbd" ? { kind: "tbd", info: tbdInfoOf(a, norm) } : a;
 
   if (q.input.type === "parameter") {
     if (side === "shared") throw new AnswerError("Parameter questions are not shared");
     if (input.kind === "value") throw new AnswerError("Parameter questions take a composite answer");
     if (input.kind !== "composite") {
       // A whole-question answer (unknown / same as source / N/A) applies to every field.
-      for (const f of parameterFields(q, side)) writes.push({ path: `${q.binds}.${f}`, ans: input });
+      // One guess cannot fit every field of a parameter (set point, NOR, PAR...), so guesses are entered per field.
+      if (input.kind === "tbd" && input.bestGuess !== undefined) throw new AnswerError("A best guess for a parameter is entered per field");
+      for (const f of parameterFields(q, side)) writes.push({ path: `${q.binds}.${f}`, ans: normalizeAnswer(input, (v) => normalizeParamField(content, q, f, v)) });
     } else {
       for (const f of parameterFields(q, side)) {
         const a = input.fields[f];
         if (!a) throw new AnswerError(`Answer every field (missing: ${content.catalog.fieldLabels[f] ?? f}), or mark it unknown`);
-        writes.push({ path: `${q.binds}.${f}`, ans: a.kind === "value" ? { kind: "value", value: normalizeParamField(content, q, f, a.value) } : a });
+        writes.push({ path: `${q.binds}.${f}`, ans: normalizeAnswer(a, (v) => normalizeParamField(content, q, f, v)) });
       }
     }
   } else {
     if (input.kind === "composite") throw new AnswerError("Composite answers are only for parameter questions");
-    writes.push({ path: q.binds, ans: input.kind === "value" ? { kind: "value", value: normalizeValue(content, q, input.value) } : input });
+    writes.push({ path: q.binds, ans: normalizeAnswer(input, (v) => normalizeValue(content, q, v)) });
   }
 
   for (const w of writes) {
@@ -192,6 +228,11 @@ export function applyAnswer(
       case "value":
         entry.value = w.ans.value;
         entry.sourceIds.push(...docSourceIds);
+        // A document that stays cited keeps the place in it that was recorded; re-saving a value must not lose that.
+        if (existing?.sourceLocations) {
+          const kept = Object.fromEntries(docSourceIds.filter((id) => existing.sourceLocations![id]).map((id) => [id, existing.sourceLocations![id]!]));
+          if (Object.keys(kept).length) entry.sourceLocations = kept;
+        }
         break;
       case "same_as_source":
         entry.sameAsSource = true;
@@ -203,6 +244,11 @@ export function applyAnswer(
         entry.status = "not_applicable";
         entry.justification = w.ans.justification.trim();
         break;
+      case "tbd":
+        entry.status = "tbd";
+        // w.ans.info was checked when the answer was normalised.
+        entry.tbd = w.ans.info;
+        break;
     }
     putEntry(next, entry, labels);
     next.changeLog.push({
@@ -210,10 +256,11 @@ export function applyAnswer(
       by: actor.name,
       action: "answer",
       path: ref,
+      // Everything recorded about a TBD (best guess, owner, due date, note) is in the log, so every TBD change is traceable.
       before: existing
-        ? { status: existing.status, value: existing.value, sameAsSource: existing.sameAsSource, ...(existing.justification ? { justification: existing.justification } : {}) }
+        ? { status: existing.status, value: existing.value, sameAsSource: existing.sameAsSource, ...(existing.justification ? { justification: existing.justification } : {}), ...(existing.tbd ? { tbd: structuredClone(existing.tbd) } : {}) }
         : undefined,
-      after: { status: entry.status, value: entry.value, sameAsSource: entry.sameAsSource, ...(entry.justification ? { justification: entry.justification } : {}) },
+      after: { status: entry.status, value: entry.value, sameAsSource: entry.sameAsSource, ...(entry.justification ? { justification: entry.justification } : {}), ...(entry.tbd ? { tbd: structuredClone(entry.tbd) } : {}) },
     });
   }
 

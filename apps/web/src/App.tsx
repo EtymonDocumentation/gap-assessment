@@ -8,6 +8,7 @@ import { BuilderPage } from "./pages/BuilderPage";
 import { ChangesPage } from "./pages/ChangesPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { SourcesPage } from "./pages/SourcesPage";
+import { TbdPage } from "./pages/TbdPage";
 import { MappingPage } from "./pages/MappingPage";
 import { TemplatesPage } from "./pages/TemplatesPage";
 import { ValidationPage } from "./pages/ValidationPage";
@@ -100,6 +101,7 @@ function AppShell() {
   else if (route.path === "/document") page = <DocumentPage />;
   else if (route.path === "/builder" || route.path === "/model") page = <BuilderPage />;
   else if (route.path === "/sources") page = <SourcesPage />;
+  else if (route.path === "/tbd") page = <TbdPage />;
   else if (route.path === "/changes") page = <ChangesPage />;
   else if (route.path === "/templates") page = <TemplatesPage />;
   else if (route.path === "/guidance") page = <GuidancePage />;

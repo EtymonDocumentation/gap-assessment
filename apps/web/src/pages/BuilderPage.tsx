@@ -1125,6 +1125,9 @@ function EditDialog({
           <button type="button" className="btn" onClick={() => submit({ kind: "unknown" })}>
             Mark unknown
           </button>
+          <button type="button" className="btn" onClick={() => submit({ kind: "tbd" })} title="Records the value as TBD without a best guess. Add the owner, due date and best guess from the Interview.">
+            Mark TBD
+          </button>
           {sameAllowed && (
             <button type="button" className="btn" onClick={() => submit({ kind: "same_as_source" })}>
               Same as SU

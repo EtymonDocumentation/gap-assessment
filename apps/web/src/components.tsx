@@ -1,4 +1,4 @@
-import type { Category, Gap } from "@gap/engine";
+import { PROVISIONAL_LABEL, type Category, type Gap } from "@gap/engine";
 import type { Severity } from "@gap/process-model";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useState, type ReactNode } from "react";
@@ -29,6 +29,15 @@ export function RegulatoryFlag({ gap }: { gap: Pick<Gap, "regulatoryNote"> }) {
       <span className="visually-hidden"> — {gap.regulatoryNote}</span>
     </span>
   );
+}
+
+/**
+ * "Provisional — based on a TBD value": shown wherever a result depends on a TBD best guess. Words, not colour, so it reads
+ * the same in print and for screen readers.
+ */
+export function ProvisionalFlag({ item }: { item: { provisional?: boolean | undefined } }) {
+  if (!item.provisional) return null;
+  return <span className="tag tag-provisional">{PROVISIONAL_LABEL}</span>;
 }
 
 /** The permanent banner at the top of every screen, the sign-in page included. */

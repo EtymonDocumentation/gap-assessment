@@ -15,7 +15,7 @@ import { assess, type Gap } from "./compare";
 import { categoryLabel, type ContentBundle } from "./content";
 import { effectiveStaged } from "./custom";
 import { sourceLabel, sourceShort } from "./labels";
-import { entryDisplay, entryLabel, type EntryLabel } from "./labels";
+import { entryDisplay, entryLabel, locationText, type EntryLabel } from "./labels";
 import { activeRefs, visibleInstances } from "./sequencer";
 
 /**
@@ -44,6 +44,8 @@ export interface CitingEntry extends EntryLabel {
   /** False when the entry belongs to a question that is no longer applicable (kept, but not compared). */
   active: boolean;
   display: string;
+  /** Where in the source this entry cites it, "§4.2 p.12"; empty when no location was recorded. */
+  location: string;
 }
 
 export interface SourceRow {
@@ -78,7 +80,7 @@ export function sourceRegisterRows(content: ContentBundle, project: Project): So
       detail: docDetail(source),
       responder: source.responder ? `${source.responder.name}${source.responder.role ? ` (${source.responder.role})` : ""}` : "—",
       date: source.date.slice(0, 10),
-      citing: refs.map((ref) => ({ ...entryLabel(eff, project, ref), active: active.has(ref), display: entryDisplay(eff, project, ref) })),
+      citing: refs.map((ref) => ({ ...entryLabel(eff, project, ref), active: active.has(ref), display: entryDisplay(eff, project, ref), location: locationText(getEntry(project, ref)?.sourceLocations?.[source.id]) })),
       state,
       stateText: state === "in_use" ? "In use" : state === "superseded" ? "Superseded, no longer cited" : "Unused",
     };

@@ -204,6 +204,8 @@ export function issueRevision(project: Project, doc: DocModel, input: RevisionIn
     at: actor.at,
     fingerprint: documentFingerprint(doc),
     ...(template ? { template } : {}),
+    // Recorded for every revision, draft or issued: a later reader can see how many values were still TBD at that time.
+    tbdCount: doc.tbdCount,
   };
   next.document.revisions.push(rev);
   next.changeLog.push({

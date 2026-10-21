@@ -1,7 +1,7 @@
 import { activityLabel, CATEGORIES, gapsToCsv, SEVERITY_RANK, setGapOverlay, type Category, type ContentBundle, type Gap } from "@gap/engine";
 import { verificationState, type GapStatus, type Severity } from "@gap/process-model";
 import { useEffect, useMemo, useState } from "react";
-import { CategoryChip, Empty, RegulatoryFlag, SeverityBadge } from "../components";
+import { CategoryChip, Empty, ProvisionalFlag, RegulatoryFlag, SeverityBadge } from "../components";
 import { categoryShort, download, SEVERITY_TEXT, slug, today } from "../lib";
 import { href } from "../router";
 import { useAssessment, useContent, useStageWording, useStore } from "../store";
@@ -204,7 +204,7 @@ function GapRow({ g, open, onToggle }: { g: Gap; open: boolean; onToggle: () => 
         <td>{g.sourceDisplay}</td>
         <td>{g.targetDisplay}</td>
         <td>
-          <CategoryChip category={g.category} /> <RegulatoryFlag gap={g} />
+          <CategoryChip category={g.category} /> <RegulatoryFlag gap={g} /> <ProvisionalFlag item={g} />
         </td>
         <td>
           <SeverityBadge severity={g.severity} />
@@ -229,6 +229,11 @@ function GapRow({ g, open, onToggle }: { g: Gap; open: boolean; onToggle: () => 
                 <p>
                   <strong>Finding:</strong> {g.detail}
                 </p>
+                {g.provisional && (
+                  <p>
+                    <ProvisionalFlag item={g} /> This result uses a best guess recorded as TBD. It changes when the value is confirmed.
+                  </p>
+                )}
                 <p>
                   <strong>Rationale:</strong> {g.rationale}
                 </p>

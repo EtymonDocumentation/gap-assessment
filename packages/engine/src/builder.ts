@@ -12,7 +12,7 @@ import { fieldLabel, type ContentBundle } from "./content";
 import type { Question, Section } from "./content-schema";
 import { stagedFor } from "./stage";
 import { CUSTOM_KIND_LABELS, isCustomQuestion, isCustomSection, recordedEntries } from "./custom";
-import { displaySources, displaySourceNames, sourceShort } from "./labels";
+import { citationNames, displaySourceNames, displaySources, entryLocation, sourceWithLocation } from "./labels";
 import { cellVerification, type CellVerification } from "./verification";
 import { formatQuestionSide, formatResolved, questionLabel } from "./format";
 import { instanceRefs, type QuestionInstance } from "./sequencer";
@@ -32,7 +32,7 @@ export interface AttributeSide {
   status: AggregateStatus;
   statusText: string;
   sameAsSource: boolean;
-  /** Unknown or not yet established: an open information item. */
+  /** Unknown, TBD or not yet established: an open information item. */
   open: boolean;
   /** Sources shown for this value, documents first (see displaySources), with the entries that cite each (for attaching and detaching). */
   sourceLinks: { id: string; label: string; refs: string[] }[];
@@ -102,6 +102,7 @@ export interface ModelView {
 const STATUS_TEXT: Record<AggregateStatus, string> = {
   established: "Established",
   unknown: "Unknown",
+  tbd: "TBD (to be determined)",
   not_applicable: "Not applicable",
   not_established: "Not established",
   partial: "Partly recorded",
@@ -112,7 +113,8 @@ const FIELD_OPTION_SET: Record<string, string> = { classification: "classificati
 function sideOf(content: ContentBundle, project: Project, inst: QuestionInstance): AttributeSide {
   const refs = instanceRefs(inst);
   const resolved = refs.map((r) => resolveEntry(project, r));
-  const statuses = new Set(resolved.map((r) => r.status));
+  // A TBD with a best guess resolves as established (for the comparison) but is shown as TBD here, never as a fact.
+  const statuses = new Set<AggregateStatus>(resolved.map((r) => (r.tbd ? "tbd" : r.status)));
   const status: AggregateStatus = statuses.size === 1 ? [...statuses][0]! : "partial";
   const entries = refs.map((r) => getEntry(project, r)).filter((e) => !!e);
   const ids = new Set(entries.flatMap((e) => e!.sourceIds));
@@ -125,9 +127,14 @@ function sideOf(content: ContentBundle, project: Project, inst: QuestionInstance
     status,
     statusText: same && status === "established" ? "Same as SU" : STATUS_TEXT[status],
     sameAsSource: same,
-    open: resolved.some((r) => r.status === "unknown" || r.status === "not_established"),
-    sources: displaySourceNames(cited),
-    sourceLinks: displaySources(cited).map((s) => ({ id: s.id, label: sourceShort(s), refs: refs.filter((r) => getEntry(project, r)?.sourceIds.includes(s.id)) })),
+    open: resolved.some((r) => r.status === "unknown" || r.status === "not_established" || !!r.tbd),
+    sources: citationNames(project, refs),
+    sourceLinks: displaySources(cited).map((s) => {
+      const citing = refs.filter((r) => getEntry(project, r)?.sourceIds.includes(s.id));
+      // One label per link: the location is shown only when every citing entry records the same place.
+      const locs = [...new Set(citing.map((r) => JSON.stringify(entryLocation(getEntry(project, r), s.id) ?? null)))];
+      return { id: s.id, label: sourceWithLocation(s, locs.length === 1 ? (JSON.parse(locs[0]!) as ReturnType<typeof entryLocation>) ?? undefined : undefined), refs: citing };
+    }),
     hiddenSources: cited.length - displaySources(cited).length,
     verification: cellVerification(project, refs),
     revision: entries.reduce((m, e) => Math.max(m, e!.revision), 0),

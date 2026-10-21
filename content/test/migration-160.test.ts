@@ -108,9 +108,8 @@ function oldProject(opts: { sourceTests: string[]; targetSameAsSource?: boolean;
 }
 
 describe("migration 1.5.0 -> 1.6.0", () => {
-  it("is the current schema version", () => {
-    expect(SCHEMA_VERSION).toBe("1.6.0");
-    expect(parseProject(oldProject()).schemaVersion).toBe("1.6.0");
+  it("is read as the current schema version (the chain continues past 1.6.0)", () => {
+    expect(parseProject(oldProject()).schemaVersion).toBe(SCHEMA_VERSION);
   });
 
   describe("the BBR filter question moves to the new BBR filtration unit", () => {

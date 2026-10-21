@@ -8,12 +8,21 @@ const quantity = z.object({ value: z.number().finite(), unit: z.string().min(1) 
 const range = z.object({ min: quantity.optional(), max: quantity.optional() }).strict();
 const entryValue = z.union([z.string(), z.number(), z.boolean(), z.array(z.string()), quantity, range]);
 
+const tbdSchema = z.object({
+  bestGuess: entryValue.optional(),
+  owner: z.string().optional(),
+  due: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "a due date is YYYY-MM-DD").optional(),
+  note: z.string().optional(),
+});
+const locationSchema = z.object({ section: z.string().optional(), page: z.string().optional() });
+const STATUSES = ["established", "unknown", "tbd", "not_applicable", "not_established"] as const;
+
 const verificationSchema = z.object({
   by: z.string(),
   role: z.string().optional(),
   at: z.string(),
   fingerprint: z.string(),
-  status: z.enum(["established", "unknown", "not_applicable", "not_established"]).optional(),
+  status: z.enum(STATUSES).optional(),
   sameAsSource: z.boolean().optional(),
   selfVerification: z.boolean().optional(),
 });
@@ -22,10 +31,12 @@ export const entrySchema = z
   .object({
     id: z.string().min(1),
     path: z.string().min(1),
-    status: z.enum(["established", "unknown", "not_applicable", "not_established"]),
+    status: z.enum(STATUSES),
     value: entryValue.optional(),
     sameAsSource: z.boolean().optional(),
     justification: z.string().optional(),
+    tbd: tbdSchema.optional(),
+    sourceLocations: z.record(z.string(), locationSchema).optional(),
     sourceIds: z.array(z.string()),
     recordedBy: z.string(),
     recordedAt: z.string(),
@@ -41,6 +52,12 @@ export const entrySchema = z
     }
     if (e.status === "established" && e.sourceIds.length === 0) {
       ctx.addIssue({ code: "custom", message: `Established entry ${e.path} has no source` });
+    }
+    // A TBD best guess lives in `tbd`, never in `value`: a guess is not an established fact and must not be mistaken for one.
+    if (e.status === "tbd" && !e.tbd) ctx.addIssue({ code: "custom", message: `TBD entry ${e.path} has no TBD details` });
+    if (e.status !== "tbd" && e.tbd) ctx.addIssue({ code: "custom", message: `Entry ${e.path} has TBD details but status ${e.status}` });
+    for (const id of Object.keys(e.sourceLocations ?? {})) {
+      if (!e.sourceIds.includes(id)) ctx.addIssue({ code: "custom", message: `Entry ${e.path} has a location for a source it does not cite` });
     }
     if (e.status === "not_applicable" && !e.justification?.trim()) {
       ctx.addIssue({ code: "custom", message: `Not-applicable entry ${e.path} needs a justification` });
@@ -145,6 +162,7 @@ export const documentStateSchema = z
         at: z.string(),
         fingerprint: z.string().min(1),
         template: templateRecord.optional(),
+        tbdCount: z.number().int().nonnegative().optional(),
       }),
     ),
     comments: z.array(
@@ -169,6 +187,7 @@ export const documentStateSchema = z
         fingerprint: z.string(),
         changedSinceRevision: z.boolean(),
         omittedSections: z.array(z.string()).optional(),
+        tbdCount: z.number().int().nonnegative().optional(),
       }),
     ),
     omittedSections: z.array(z.string()).optional(),
@@ -202,6 +221,9 @@ export const projectSchema = z.object({
     confirmations: z.array(
       z.object({ sectionId: z.string(), side: z.enum(["source", "target", "shared", "both"]), by: z.string(), at: z.string() }),
     ),
+    answeringFrom: z
+      .object({ sourceId: z.string(), sides: z.enum(["source", "target", "both"]), section: z.string().optional(), page: z.string().optional() })
+      .optional(),
   }),
   scope: fields,
   processes: z.object({ source: processModel("source"), target: processModel("target") }),
@@ -341,6 +363,15 @@ const MIGRATIONS: { from: string; to: string; migrate: (raw: Record<string, unkn
     from: "1.5.0",
     to: "1.6.0",
     migrate: (raw) => migrateTo160(raw),
+  },
+  // 1.6.0 -> 1.7.0: TBD entries (status "tbd" with entry.tbd), optional citation locations (entry.sourceLocations),
+  // tbdCount on revisions and exports, and the interview's "Answering from" bar. All of it is optional, so the structure of
+  // an old file does not change and nothing is invented: old citations have no location, and an old "unknown" entry stays
+  // "unknown" (it was never a TBD, because nobody named an owner or a due date for it).
+  {
+    from: "1.6.0",
+    to: "1.7.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.7.0" }),
   },
 ];
 

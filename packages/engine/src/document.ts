@@ -1,12 +1,13 @@
 import { describeVerification, getEntry, resolveEntry, verificationState, type Project } from "@gap/process-model";
 import { activityLabel, categoryLabel, type ContentBundle } from "./content";
-import { buildEquipmentQualification, buildValidationPlan, type PlanRow } from "./validation";
+import { buildEquipmentQualification, buildValidationPlan, PROVISIONAL_LABEL, type PlanRow } from "./validation";
+import { tbdItems, tbdStatusText } from "./tbd";
 import { CATEGORIES } from "./content-schema";
 import type { Assessment, Gap } from "./compare";
 import { riskRanked } from "./compare";
 import { formatQuestionSide, formatResolved, questionLabel, STATUS_TEXT } from "./format";
 import { instanceRefs, type QuestionInstance } from "./sequencer";
-import { displaySourceNames, entryLabel, sourceLabel } from "./labels";
+import { citationNames, entryLabel, locationText, sourceLabel } from "./labels";
 import { cellVerification, verificationSummary } from "./verification";
 import { sourceRegisterRows } from "./source-register";
 import { changeLogActionCounts } from "./changelog";
@@ -41,6 +42,8 @@ export interface DocRevision {
   summary: string;
   /** Template used when the revision was issued, e.g. "Built-in default 1.0.0". */
   template?: string;
+  /** TBD values the document listed when the revision was issued. Absent for revisions made before TBD existed. */
+  tbdCount?: number;
 }
 
 export interface DocCommentReply {
@@ -93,6 +96,8 @@ export interface DocModel {
   revisions: DocRevision[];
   /** Reviewer comments, oldest first. */
   comments: DocComment[];
+  /** How many TBD values the document lists as open items (also the "TBD values" line). Date-independent by design. */
+  tbdCount: number;
 }
 
 const SEVERITY_TEXT = { high: "High", medium: "Medium", low: "Low", none: "None" } as const;
@@ -130,9 +135,9 @@ function sideVerificationText(project: Project, refs: string[], side: "source" |
 }
 
 function sourcesText(project: Project, refs: string[]): string {
-  const ids = new Set(refs.flatMap((r) => getEntry(project, r)?.sourceIds ?? []));
   // Documents first: when a document backs the value, only the documents are shown (see displaySources).
-  return displaySourceNames(project.sources.filter((s) => ids.has(s.id))).join("; ") || "—";
+  // Each carries the place it was cited at, when one was recorded.
+  return citationNames(project, refs).join("; ") || "—";
 }
 
 function sideRows(content: ContentBundle, project: Project, insts: QuestionInstance[]): string[][] {
@@ -214,7 +219,7 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
     },
   ];
   for (const s of secsWithGaps) {
-    const items = diffs.filter((g) => g.sectionId === s.id).map((g) => `${g.displayId} ${g.attribute}: ${categoryLabel(content, g.category)}. ${g.detail}`);
+    const items = diffs.filter((g) => g.sectionId === s.id).map((g) => `${g.displayId} ${g.attribute}: ${categoryLabel(content, g.category)}. ${g.detail}${g.provisional ? ` ${PROVISIONAL_LABEL}.` : ""}`);
     if (items.length) {
       diffBlocks.push({ type: "heading", text: s.title });
       diffBlocks.push({ type: "list", items });
@@ -237,7 +242,8 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
         `${g.sectionTitle} — ${g.attribute}`,
         g.sourceDisplay,
         g.targetDisplay,
-        `${categoryLabel(content, g.category)}. ${g.detail} Why it matters: ${g.rationale}`,
+        // The label is words, not colour: a gap computed from a TBD best guess must never read as a settled finding. It comes last so the cell still starts with the category (the Word look tints by it).
+        `${categoryLabel(content, g.category)}. ${g.detail} Why it matters: ${g.rationale}${g.provisional ? ` ${PROVISIONAL_LABEL}.` : ""}`,
         severityText(g),
         actionsText(g),
         g.notes ?? "—",
@@ -267,7 +273,7 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
       type: "table",
       columns: ["Activity", "Description", "Implied by gaps", "Severity", "Regulatory", "Linked studies: SU status", "Linked studies: RU status", "Readiness"],
       rows: plan.map((r) => [
-        r.label,
+        r.provisional ? `${r.label} (${PROVISIONAL_LABEL})` : r.label,
         r.stageNote ? `${r.description} Program stage: ${r.stageNote}` : r.description,
         gapIds(r),
         SEVERITY_TEXT[r.severity],
@@ -302,13 +308,20 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
       : { type: "paragraph", text: "No equipment qualification information has been recorded." },
   ]);
 
+  const tbdList = tbdItems(content, project, a);
+  const tbdByRef = new Map(tbdList.map((i) => [i.ref, i]));
   add("open-items", "Open information items", [
     { type: "paragraph", text: fill(t.openItemsIntro, vars) },
     a.openItems.length
       ? {
           type: "table",
           columns: ["No.", "Section", "Side", "Question", "Status"],
-          rows: a.openItems.map((o, i) => [String(i + 1), o.sectionTitle, o.side === "shared" ? "Scoping" : o.side === "source" ? "SU" : "RU", o.prompt, STATUS_TEXT[o.status]]),
+          rows: a.openItems.map((o, i) => {
+            const tbd = o.status === "tbd" ? tbdByRef.get(o.ref) : undefined;
+            // A TBD row carries its best guess, owner and due date as recorded. "Overdue" is deliberately not here: it depends
+            // on today's date and would make the document look changed from one day to the next.
+            return [String(i + 1), o.sectionTitle, o.side === "shared" ? "Scoping" : o.side === "source" ? "SU" : "RU", tbd ? tbd.attribute : o.prompt, tbd ? tbdStatusText(tbd) : STATUS_TEXT[o.status]];
+          }),
         }
       : { type: "paragraph", text: "No open information items." },
   ]);
@@ -319,7 +332,7 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
     {
       type: "table",
       columns: ["Rank", "ID", "Attribute", "Category", "Severity", "Regulatory"],
-      rows: ranked.map((g, i) => [String(i + 1), g.displayId, `${g.sectionTitle}: ${g.attribute}`, categoryLabel(content, g.category), severityText(g), g.regulatoryNote ? "Yes" : "No"]),
+      rows: ranked.map((g, i) => [String(i + 1), g.displayId, `${g.sectionTitle}: ${g.attribute}`, g.provisional ? `${categoryLabel(content, g.category)} (${PROVISIONAL_LABEL})` : categoryLabel(content, g.category), severityText(g), g.regulatoryNote ? "Yes" : "No"]),
     },
   ]);
 
@@ -419,8 +432,9 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
   ]);
 
   // Entries that are no longer asked about (inactive) are counted, not listed: the document shows only current values.
-  const citedBy = (citing: { text: string; active: boolean }[]) => {
-    const act = citing.filter((c) => c.active).map((c) => c.text);
+  const citedBy = (citing: { text: string; active: boolean; location: string }[]) => {
+    // The place inside the document follows each entry that cites it, "<entry> (§4.2 p.12)".
+    const act = citing.filter((c) => c.active).map((c) => (c.location ? `${c.text} (${c.location})` : c.text));
     const hidden = citing.length - act.length;
     const parts = [...act];
     if (hidden) parts.push(`${hidden} recorded value${hidden === 1 ? "" : "s"} not currently asked about`);
@@ -472,6 +486,7 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
     ...(r.role ? { role: r.role } : {}),
     summary: r.summary,
     ...(r.template ? { template: `${r.template.name} ${r.template.version}`.trim() } : {}),
+    ...(r.tbdCount !== undefined ? { tbdCount: r.tbdCount } : {}),
   }));
 
   const byText = (by: string, role?: string) => (role ? `${by} (${role})` : by);
@@ -481,7 +496,7 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
       ? {
           type: "table",
           columns: ["Revision", "Status", "Date", "By", "Summary of change", "Template"],
-          rows: revisions.map((r) => [String(r.number), r.statusLabel, r.date, byText(r.by, r.role), r.summary, r.template ?? "—"]),
+          rows: revisions.map((r) => [String(r.number), r.tbdCount ? `${r.statusLabel}; ${r.tbdCount} TBD value${r.tbdCount === 1 ? "" : "s"} open` : r.statusLabel, r.date, byText(r.by, r.role), r.summary, r.template ?? "—"]),
         }
       : { type: "paragraph", text: "No revision has been issued yet." },
     { type: "note", text: t.revisionStatement },
@@ -547,6 +562,7 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
       ["Generated", generatedAt.replace("T", " ").slice(0, 16) + " UTC"],
       ["Differences identified", String(diffs.length)],
       ["Open information items", String(a.openItems.length)],
+      ["TBD values", String(tbdList.length)],
       ["Entries verified", `${vs.all.verified} of ${vs.all.total}`],
       ["Sections omitted", omittedIds.length ? omittedIds.map((id) => optionalSectionTitle(id)).join("; ") : "None"],
       ["Verification", t.verificationStatement],
@@ -562,6 +578,7 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
     sections,
     revisions,
     comments,
+    tbdCount: tbdList.length,
   };
   // The Revision line goes right after "Generated". It is left out of the fingerprint, so adding it changes nothing.
   doc.meta.splice(doc.meta.findIndex(([k]) => k === "Generated") + 1, 0, ["Revision", revisionMetaText(project, doc)]);

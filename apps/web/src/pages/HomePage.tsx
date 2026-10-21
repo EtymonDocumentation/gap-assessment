@@ -1,11 +1,11 @@
-import { isAnswered } from "@gap/engine";
-import { useRef, useState } from "react";
+import { isAnswered, localDate, tbdItems, tbdSummary, tbdSummaryText } from "@gap/engine";
+import { useMemo, useRef, useState } from "react";
 import { Modal, ResponderForm } from "../components";
 import { download, slug, today } from "../lib";
 import { href, navigate } from "../router";
 import { CloseProjectButton, ProjectListCard, useIsRemote } from "../server/ServerUi";
 import { SERVER_MODE } from "../server/mode";
-import { content, useAssessment, useStageWording, useStore } from "../store";
+import { content, useAssessment, useContent, useStageWording, useStore } from "../store";
 
 export function HomePage({ notice }: { notice?: string }) {
   const { project, loadDemo, newProject, importJson, setProject } = useStore();
@@ -20,6 +20,8 @@ export function HomePage({ notice }: { notice?: string }) {
   const remote = SERVER_MODE && useIsRemote();
   const confirmReplace = () => remote || !project || window.confirm("This replaces the project currently open in this browser. Export it first if you want to keep it. Continue?");
 
+  const eff = useContent();
+  const tbd = useMemo(() => (project && a ? tbdSummary(tbdItems(eff, project, a), localDate()) : null), [eff, project, a]);
   const differences = a?.gaps.filter((g) => g.category !== "equivalent").length ?? 0;
 
   return (
@@ -58,6 +60,14 @@ export function HomePage({ notice }: { notice?: string }) {
               <dt>Open information items</dt>
               <dd>{a.openItems.length}</dd>
             </div>
+            {tbd && (
+              <div>
+                <dt>To be confirmed (TBD)</dt>
+                <dd>
+                  <a href={href("/tbd")}>{tbdSummaryText(tbd)}</a>
+                </dd>
+              </div>
+            )}
             <div>
               <dt>Program stage</dt>
               <dd>

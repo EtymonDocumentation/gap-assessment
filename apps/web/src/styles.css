@@ -25,6 +25,7 @@
   --c-new: #1a5fb4;
   --c-removed: #8a3a5c;
   --c-info: #8a6d00;
+  --provisional: #7a5c00;
 
   --radius: 8px;
   /* Compact spacing: tighter than before, text sizes unchanged (not below 13px). */
@@ -62,6 +63,7 @@
     --c-new: #8ab8ff;
     --c-removed: #f09ac0;
     --c-info: #e6c84d;
+  --provisional: #f0d46a;
   }
 }
 
@@ -89,6 +91,7 @@
   --c-new: #8ab8ff;
   --c-removed: #f09ac0;
   --c-info: #e6c84d;
+  --provisional: #f0d46a;
 }
 
 *,
@@ -1756,4 +1759,116 @@ details.report h4 {
   font-weight: 600;
   color: var(--c-info);
   background: var(--surface);
+}
+
+/* ---------------------------------------------------------------- drafting: answering-from bar, TBD, link values */
+
+/* The bar stays in view while the card scrolls. top matches the sticky banner above it. */
+.answering-bar {
+  position: sticky;
+  top: 36px;
+  z-index: 20;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.ab-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  min-width: 0;
+}
+.ab-doc {
+  flex: 1 1 12rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ab-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin: 8px 0 0;
+  padding: 6px 10px;
+  background: var(--accent-soft);
+  border-radius: 6px;
+}
+.ab-form {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+@media (max-width: 560px) {
+  /* Phone width: one compact line (label, document, buttons); the document name truncates instead of wrapping. */
+  .answering-bar {
+    padding: 6px 8px;
+  }
+  .ab-label {
+    font-size: 0.85rem;
+  }
+  .ab-doc {
+    flex-basis: 100%;
+    order: 3;
+  }
+}
+
+.tag-provisional {
+  border: 1px dashed var(--provisional);
+  color: var(--provisional);
+  font-weight: 600;
+  background: transparent;
+}
+.tag-overdue {
+  border: 2px solid var(--danger);
+  color: var(--danger);
+  font-weight: 600;
+  background: transparent;
+}
+.tag.status-tbd {
+  border-style: dashed;
+  border-color: var(--provisional);
+}
+.param-field.is-tbd .param-label span:first-child::after {
+  content: " (TBD)";
+  font-weight: 400;
+  color: var(--provisional);
+}
+.tbd-nav {
+  margin: 6px 0 0;
+  padding-left: 1.1rem;
+  overflow-wrap: anywhere;
+}
+.tbd-nav a {
+  display: inline-block;
+  min-height: 24px;
+  padding: 2px 0;
+}
+.tbd-box {
+  border-style: dashed;
+}
+.tbd-summary {
+  font-size: 1.05rem;
+}
+.link-list {
+  max-height: 45vh;
+  overflow: auto;
+}
+.link-values {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.link-values li {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+.link-values li:last-child {
+  border-bottom: 0;
 }

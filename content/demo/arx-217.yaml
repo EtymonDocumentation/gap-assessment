@@ -373,7 +373,9 @@ answers:
   - { q: cap.seal, side: source, value: "Seal Vendor E, SEAL-20-DEMO" }
   - { q: cap.seal, side: target, same: true }
   - { q: cap.cci, side: target, value: planned }
-  - { q: cap.rsf_correlation, side: target, unknown: true }           # information required
+  # TBD without a best guess behaves like unknown (information required) but carries an owner and a due date. The due date is
+  # long past, so the Home card and the TBD list show it as overdue.
+  - { q: cap.rsf_correlation, side: target, tbd: { owner: "Process Validation Lead (fictional)", due: "2026-10-01", note: "Study protocol not yet approved" } }
   - q: cap.rsf
     side: source
     fields:
@@ -389,7 +391,8 @@ answers:
   - { q: cap.ipc, side: target, value: [rsf_testing, camera_inspection] }
   # milestone 3: container closure integrity method (dye ingress at the source, HVLD at the target)
   - { q: cap.cci_method, side: source, value: dye_ingress }
-  - { q: cap.cci_method, side: target, value: hvld }                  # different principle
+  # TBD with a best guess: the gap is computed as if HVLD were established and carries the "Provisional" label.
+  - { q: cap.cci_method, side: target, tbd: { bestGuess: hvld, owner: "CCI Specialist (fictional)", due: "2031-06-30", note: "Awaiting vendor method feasibility" } }
   - { q: cap.cci_sensitivity, side: source, value: { value: 10, unit: µm } }
   - { q: cap.cci_sensitivity, side: target, value: { value: 5, unit: µm } }
   - { q: cap.cci_method_validation, side: target, value: bridging_required }

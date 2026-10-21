@@ -17,6 +17,8 @@ const answerSchema = z.object({
   value: z.unknown().optional(),
   unknown: z.boolean().optional(),
   same: z.boolean().optional(),
+  /** A TBD answer: the best guess (same shape as value) is optional, so is everything else. */
+  tbd: z.object({ bestGuess: z.unknown().optional(), owner: z.string().optional(), due: z.string().optional(), note: z.string().optional() }).optional(),
   fields: z.record(z.string(), fieldValue).optional(),
   docs: z.array(z.string()).optional(),
 });
@@ -90,6 +92,7 @@ function applyScripted(project: Project, content: ContentBundle, a: z.infer<type
   const inst: QuestionInstance = { key: `${q.id}@${a.side}`, question: q, side: a.side, section, depth: 0 };
   let input: AnswerInput;
   if (a.unknown) input = { kind: "unknown" };
+  else if (a.tbd) input = { kind: "tbd", ...(a.tbd.bestGuess !== undefined ? { bestGuess: a.tbd.bestGuess as never } : {}), ...(a.tbd.owner ? { owner: a.tbd.owner } : {}), ...(a.tbd.due ? { due: a.tbd.due } : {}), ...(a.tbd.note ? { note: a.tbd.note } : {}) };
   else if (a.same) input = { kind: "same_as_source" };
   else if (a.fields) {
     const fields: Partial<Record<ParameterField, FieldAnswer>> = {};

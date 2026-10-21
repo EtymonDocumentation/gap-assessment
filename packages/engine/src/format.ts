@@ -7,6 +7,7 @@ import { isQuantity, isRange } from "./values";
 export const STATUS_TEXT = {
   not_established: "Not established",
   unknown: "Unknown (to be confirmed)",
+  tbd: "To be determined (TBD)",
   not_applicable: "Not applicable",
 } as const;
 
@@ -27,10 +28,12 @@ export function formatResolved(content: ContentBundle, q: Question | undefined, 
   if (r.status === "established") {
     if (r.value === undefined) return STATUS_TEXT.not_established;
     const text = formatValue(content, q, r.value, optionSet);
-    return r.sameAsSource ? `${text} (same as SU)` : text;
+    // A TBD best guess is shown with its label wherever it is shown, so nobody reads it as a recorded fact.
+    const shown = r.provisional ? `${text} (TBD best guess, provisional)` : text;
+    return r.sameAsSource ? `${shown} (same as SU)` : shown;
   }
   if (r.status === "not_applicable") return r.justification ? `Not applicable: ${r.justification}` : STATUS_TEXT.not_applicable;
-  return r.sameAsSource && r.status === "unknown" ? `${STATUS_TEXT.unknown} (same as SU)` : STATUS_TEXT[r.status];
+  return r.sameAsSource && (r.status === "unknown" || r.status === "tbd") ? `${STATUS_TEXT[r.status]} (same as SU)` : STATUS_TEXT[r.status];
 }
 
 const FIELD_SHORT: Record<ParameterField, string> = {

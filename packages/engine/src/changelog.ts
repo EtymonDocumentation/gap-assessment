@@ -3,7 +3,7 @@ import { formatValue, STATUS_TEXT } from "./format";
 import { cell } from "./csv";
 import type { ContentBundle } from "./content";
 import { effectiveStaged } from "./custom";
-import { displaySideTags, entryLabel, sideName } from "./labels";
+import { displaySideTags, entryLabel, locationText, sideName } from "./labels";
 import { commentDisplayId } from "./review";
 
 /**
@@ -20,6 +20,8 @@ export const ACTION_LABELS: Record<string, string> = {
   update_source: "Source edited",
   remove_source: "Source removed",
   attach_source: "Source attached",
+  set_answering_from: "Answering-from bar set",
+  clear_answering_from: "Answering-from bar cleared",
   detach_source: "Source detached",
   revert_on_source_removal: "Value reverted (source removed)",
   revert_on_source_detach: "Value reverted (last source detached)",
@@ -96,6 +98,7 @@ interface ValueState {
   value?: EntryValue;
   sameAsSource?: boolean;
   justification?: string;
+  tbd?: { bestGuess?: EntryValue; owner?: string; due?: string; note?: string };
 }
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -114,6 +117,17 @@ function valueStateText(content: ContentBundle, project: Project, ref: string, v
   } else if (s.status === "not_applicable") {
     text = s.justification ? `Not applicable: ${s.justification}` : STATUS_TEXT.not_applicable;
   } else if (s.status === "unknown") text = STATUS_TEXT.unknown;
+  else if (s.status === "tbd") {
+    // Everything that was recorded about the TBD is part of the audit trail, so a change of owner or due date is visible.
+    const t = s.tbd ?? {};
+    const bits = [
+      t.bestGuess !== undefined ? `best guess ${formatValue(content, l.question, t.bestGuess, optionSet)} (provisional)` : "no best guess",
+      t.owner ? `owner ${t.owner}` : "",
+      t.due ? `due ${t.due}` : "",
+      t.note ? `note: ${t.note}` : "",
+    ].filter(Boolean);
+    text = `${STATUS_TEXT.tbd} — ${bits.join("; ")}`;
+  }
   else if (s.status === "not_established") text = STATUS_TEXT.not_established;
   else text = NONE;
   return text;
@@ -217,9 +231,11 @@ function toRow(content: ContentBundle, project: Project, ev: ChangeEvent, i: num
         withSection(l.sectionId, l.sectionTitle);
         const b = isObj(ev.before) ? ev.before.sourceIds : undefined;
         const a = isObj(ev.after) ? ev.after.sourceIds : undefined;
+        const locOf = (o: unknown) => (isObj(o) && isObj(o.location) ? locationText(o.location as { section?: string; page?: string }) : "");
+        const locAfter = locOf(ev.after) || locOf(ev.before);
         row.before = `Sources: ${sourceNames(project, b)}`;
         row.after = `Sources: ${sourceNames(project, a)}`;
-        row.detail = (ev.action === "attach_source" ? "Attached: " : "Detached: ") + (ev.detail ?? "");
+        row.detail = (ev.action === "attach_source" ? "Attached: " : "Detached: ") + (ev.detail ?? "") + (locAfter ? ` (${locAfter})` : "");
       }
       return row;
     }

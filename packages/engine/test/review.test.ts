@@ -201,6 +201,7 @@ describe("issueRevision", () => {
         at: "2026-10-05T09:00:00.000Z",
         fingerprint: documentFingerprint(d),
         template: BUILTIN,
+        tbdCount: 0,
       },
     ]);
   });
@@ -598,8 +599,8 @@ describe("the document: appendices after the gap details and the lists", () => {
     p = issueRevision(p, docOf(p), { status: "issued_for_review", summary: "For QA" }, { name: "Pat Placeholder (fictional)", at: "2026-10-08T10:00:00.000Z" });
     const d = docOf(p);
     expect(d.revisions).toEqual([
-      { number: 1, statusLabel: "Draft", date: "2026-10-05", by: AUTHOR.name, role: AUTHOR.role, summary: "First draft", template: "Built-in default 1.0.0" },
-      { number: 2, statusLabel: "Issued for review", date: "2026-10-08", by: "Pat Placeholder (fictional)", summary: "For QA" },
+      { number: 1, statusLabel: "Draft", date: "2026-10-05", by: AUTHOR.name, role: AUTHOR.role, summary: "First draft", template: "Built-in default 1.0.0", tbdCount: 0 },
+      { number: 2, statusLabel: "Issued for review", date: "2026-10-08", by: "Pat Placeholder (fictional)", summary: "For QA", tbdCount: 0 },
     ]);
     const table = sec(d, "revision-history").blocks[1]!;
     expect(table).toEqual({
@@ -810,7 +811,7 @@ describe("a project with a review survives a file round trip", () => {
 
   it("the project used here starts with an empty document block", () => {
     expect(project().document).toEqual({ revisions: [], comments: [], exports: [] });
-    expect(project().schemaVersion).toBe("1.6.0");
+    expect(project().schemaVersion).toBe("1.7.0");
     expect(ACTOR.name).toBeTruthy();
   });
 });

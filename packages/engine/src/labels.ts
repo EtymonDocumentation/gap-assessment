@@ -1,4 +1,4 @@
-import { contentPathOf, parseRef, resolveEntry, type Project, type Source } from "@gap/process-model";
+import { contentPathOf, getEntry, parseRef, resolveEntry, type Entry, type Project, type Source, type SourceLocation } from "@gap/process-model";
 import { boundPaths, fieldLabel, type ContentBundle } from "./content";
 import type { Question } from "./content-schema";
 import { sidesOf } from "./sequencer";
@@ -139,6 +139,47 @@ export function sourceShort(s: Source): string {
 export function displaySources(sources: Source[]): Source[] {
   const docs = sources.filter((s) => s.type === "document_reference" && s.docRef);
   return docs.length ? docs : sources;
+}
+
+/**
+ * Where inside a cited document a value is found, as people write it: "§4.2 p.12". A part that already starts with the
+ * symbol or the abbreviation is not doubled. Empty text when no location was recorded (nothing is ever invented).
+ */
+export function locationText(loc: SourceLocation | undefined): string {
+  if (!loc) return "";
+  const section = loc.section?.trim();
+  const page = loc.page?.trim();
+  const parts: string[] = [];
+  if (section) parts.push(section.startsWith("§") ? section : `§${section}`);
+  if (page) parts.push(/^p{1,2}\.?\s*\d/i.test(page) ? page : `p.${page}`);
+  return parts.join(" ");
+}
+
+/** "DOC-1 — Title §4.2 p.12": the short name of a source followed by the location of this particular citation. */
+export function sourceWithLocation(s: Source, loc: SourceLocation | undefined): string {
+  const l = locationText(loc);
+  return l ? `${sourceShort(s)} ${l}` : sourceShort(s);
+}
+
+/** The location of one entry's citation of a source, if one was recorded. */
+export function entryLocation(e: Entry | undefined, sourceId: string): SourceLocation | undefined {
+  return e?.sourceLocations?.[sourceId];
+}
+
+/**
+ * Sources to show for the entries behind one table cell, each followed by its location ("<doc> §4.2 p.12"). The same
+ * document cited at two different places by two entries of the cell is listed twice, once per place.
+ */
+export function citationNames(project: Project, refs: string[]): string[] {
+  // A reference that is not an entry path (hand-made input) simply has no citations.
+  const entries = refs.map((r) => { try { return getEntry(project, r); } catch { return undefined; } }).filter((e): e is Entry => !!e);
+  const ids = new Set(entries.flatMap((e) => e.sourceIds));
+  const shown = displaySources(project.sources.filter((s) => ids.has(s.id)));
+  const out: string[] = [];
+  for (const s of shown) {
+    for (const e of entries) if (e.sourceIds.includes(s.id)) out.push(sourceWithLocation(s, entryLocation(e, s.id)));
+  }
+  return [...new Set(out)];
 }
 
 /** The short names of the sources to show for a value (see displaySources), without duplicates. */

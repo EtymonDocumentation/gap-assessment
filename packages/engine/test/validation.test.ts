@@ -423,7 +423,7 @@ describe("validation plan: CSV", () => {
     const csv = validationPlanToCsv(planOf(p));
     const lines = csv.trimEnd().split("\r\n");
     expect(lines).toHaveLength(planOf(p).length + 1);
-    expect(lines[0]).toBe('"Activity","Description","Implied by gaps","Gap statuses","Highest severity","Regulatory","Readiness","Linked studies","SU study status","RU study status","Open gaps","Open information items"');
+    expect(lines[0]).toBe('"Activity","Description","Implied by gaps","Gap statuses","Highest severity","Regulatory","Readiness","Linked studies","SU study status","RU study status","Open gaps","Open information items","Provisional"');
     expect(csv.endsWith("\r\n")).toBe(true);
     expect(csv).toContain('"PPQ activity"');
     expect(csv).toContain("PPQ (Filling X): Not covered");

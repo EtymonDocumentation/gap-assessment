@@ -1,10 +1,15 @@
 import {
+  answeringFrom,
   applyAnswer,
+  autoCiteAnswer,
   clearableRefs,
   clearInstances,
   confirmSection,
   isCustomQuestion,
   formatQuestionSide,
+  locationText,
+  undoCitations,
+  type CitedRef,
   isAnswered,
   instanceRefs,
   nextInstance,
@@ -21,11 +26,12 @@ import {
 } from "@gap/engine";
 import { getEntry, type DocRef, type Project, type Source } from "@gap/process-model";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { CategoryChip, Modal, ResponderForm, SeverityBadge } from "../components";
+import { CategoryChip, Modal, ProvisionalFlag, ResponderForm, SeverityBadge } from "../components";
 import { SIDE_SHORT, sideDescription, type UnitSide } from "../lib";
 import { href, navigate } from "../router";
 import { useAssessment, useContent, useStageWording, useStore } from "../store";
-import { QuestionInput, formTouched, initialForm, sameForm, toAnswer, type FormState } from "./question-inputs";
+import { AnsweringBar, type CiteNotice } from "./AnsweringBar";
+import { QuestionInput, formTouched, initialForm, initialTbd, sameForm, toAnswer, toTbdAnswer, type FormState, type TbdMeta } from "./question-inputs";
 
 /** One answer to record: the instance, what was entered, and any cited documents. */
 interface SaveItem {
@@ -60,6 +66,11 @@ function groupOf(list: QuestionInstance[], inst: QuestionInstance): QuestionInst
 function cardKey(current: QuestionInstance, group: QuestionInstance[], project: Project): string {
   if (group.length < 2) return `${current.key}:${project.answers.length}`;
   return `${current.question.id}:${group.length}:${project.answers.filter((a) => a.questionId !== current.question.id).length}`;
+}
+
+/** True when any entry of this question and side is recorded as TBD. */
+function isTbdInstance(project: Project, inst: QuestionInstance): boolean {
+  return instanceRefs(inst).some((r) => getEntry(project, r)?.status === "tbd");
 }
 
 /** What the user is asked to confirm before answers are cleared. */
@@ -155,21 +166,27 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
   const update = useStore((s) => s.update);
   const a = useAssessment()!;
   const mode = project.settings.entrySequence;
-  const instances = useMemo(() => visibleInstances(content, project, mode), [content, project, mode]);
-  const prog = useMemo(() => progress(content, project, instances), [content, project, instances]);
+  const allInstances = useMemo(() => visibleInstances(content, project, mode), [content, project, mode]);
+  const prog = useMemo(() => progress(content, project, allInstances), [content, project, allInstances]);
   const [editingResponder, setEditingResponder] = useState(false);
+  // "Show only TBD" narrows the questions the card moves through to those recorded as TBD. Progress still counts all of them.
+  const [onlyTbd, setOnlyTbd] = useState(false);
+  const tbdInstances = useMemo(() => allInstances.filter((i) => isTbdInstance(project, i)), [allInstances, project]);
+  const instances = onlyTbd ? tbdInstances : allInstances;
+  const [notice, setNotice] = useState<CiteNotice | null>(null);
 
   const summaryId = params.get("summary");
   const requested = params.get("q");
-  const current = (requested && instances.find((i) => i.key === requested)) || (!summaryId ? nextInstance(instances, project) : undefined);
+  const current =
+    (requested && allInstances.find((i) => i.key === requested)) || (!summaryId ? (onlyTbd ? tbdInstances[0] : nextInstance(allInstances, project)) : undefined);
 
-  const group = current ? groupOf(instances, current) : [];
+  const group = current ? groupOf(allInstances, current) : [];
   const needsResponder = !project.interview.responder;
-  const answeredCount = instances.filter((i) => isAnswered(project, i)).length;
+  const answeredCount = allInstances.filter((i) => isAnswered(project, i)).length;
 
   /** Records one or more answers in a single store update, then moves on (or stays, see SaveResult). */
   function save(group: QuestionInstance[], items: SaveItem[], opts: { quick: boolean; otherPending: boolean }): SaveResult {
-    const out: { project?: Project; failed?: string } = {};
+    const out: { project?: Project; failed?: string; cited: CitedRef[] } = { cited: [] };
     const err = update((p, actor) => {
       let cur = p;
       for (const it of items) {
@@ -179,12 +196,24 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
           out.failed = it.inst.key;
           throw e;
         }
+        // After the answer, never before: saving an answer replaces the entry's sources, so a citation added first would be lost.
+        const cite = autoCiteAnswer(cur, it.inst, actor);
+        cur = cite.project;
+        out.cited.push(...cite.cited);
       }
       out.project = cur;
       return cur;
     }, "Answer saved");
     if (err || !out.project) return { error: err ?? "The answer could not be saved.", ...(out.failed ? { failedKey: out.failed } : {}) };
     const saved = out.project;
+    const bar = answeringFrom(saved);
+    if (bar && out.cited.length) {
+      const loc = locationText(bar);
+      setNotice({
+        text: `Cited to ${sourceShort(bar.source)}${loc ? ` ${loc}` : ""}${out.cited.length > 1 ? ` (${out.cited.length} entries)` : ""}`,
+        token: out.cited,
+      });
+    } else setNotice(null);
     const names = items.map((it) => it.inst.side).filter((x): x is UnitSide => x !== "shared").map((x) => SIDE_SHORT[x]);
     const done = names.length ? `Saved ${names.join(" and ")}.` : "Saved.";
 
@@ -201,7 +230,8 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
       }
     }
 
-    const list = visibleInstances(content, saved, saved.settings.entrySequence);
+    const full = visibleInstances(content, saved, saved.settings.entrySequence);
+    const list = onlyTbd ? full.filter((i) => isTbdInstance(saved, i)) : full;
     const idx = list.findIndex((i) => i.key === items[items.length - 1]!.inst.key);
     const from = list[idx];
     const after = list.slice(idx + 1).filter((i) => !from || i.question.id !== from.question.id);
@@ -228,10 +258,10 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
       <aside className="interview-aside" aria-label="Interview progress">
         <div className="card tight">
           <p className="small muted">
-            {answeredCount} of {instances.length} answered
+            {answeredCount} of {allInstances.length} answered
           </p>
           <div className="progress" aria-hidden="true">
-            <span style={{ width: `${instances.length ? (100 * answeredCount) / instances.length : 0}%` }} />
+            <span style={{ width: `${allInstances.length ? (100 * answeredCount) / allInstances.length : 0}%` }} />
           </div>
           <fieldset className="segmented" aria-describedby="mode-help">
             <legend className="small">Entry order</legend>
@@ -252,7 +282,32 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
             </button>
           </p>
         </div>
-        <ProgressMap prog={prog} instances={instances} project={project} currentSection={summaryId ?? current?.section.id} />
+        <div className="card tight">
+          <label className="check">
+            <input type="checkbox" checked={onlyTbd} onChange={(e) => setOnlyTbd(e.target.checked)} />
+            <span>Show only TBD</span>
+          </label>
+          {onlyTbd && (
+            <>
+              <p className="small muted" role="status">
+                {tbdInstances.length} {tbdInstances.length === 1 ? "question is" : "questions are"} recorded as TBD.
+              </p>
+              {tbdInstances.length > 0 && (
+                <ul className="tbd-nav" aria-label="Questions recorded as TBD">
+                  {tbdInstances.map((i) => (
+                    <li key={i.key}>
+                      <a href={href("/interview", { q: i.key })} aria-current={current?.key === i.key ? "step" : undefined}>
+                        {i.side === "shared" ? "" : `${SIDE_SHORT[i.side]}: `}
+                        {questionLabel(i.question)}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
+        </div>
+        <ProgressMap prog={prog} instances={allInstances} project={project} currentSection={summaryId ?? current?.section.id} />
         {a.inactive.length > 0 && (
           <p className="notice small">
             {a.inactive.length} earlier answer{a.inactive.length === 1 ? "" : "s"} belong to questions that no longer apply. They are kept but
@@ -262,20 +317,35 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
       </aside>
 
       <div className="interview-main">
+        <AnsweringBar
+          notice={notice}
+          onDismissNotice={() => setNotice(null)}
+          onUndo={() => {
+            const cited = (notice?.token ?? []) as CitedRef[];
+            let undone = 0;
+            const err = update((p, actor) => {
+              const r = undoCitations(p, cited, actor);
+              undone = r.undone.length;
+              return r.project;
+            }, "Citation undone");
+            useStore.setState({ status: err ? err : undone ? `Citation undone for ${undone} ${undone === 1 ? "entry" : "entries"}. It is in the change log.` : "Nothing to undo: the answer was changed since." });
+            setNotice(null);
+          }}
+        />
         {summaryId ? (
-          <SectionSummary sectionId={summaryId} instances={instances} thenKey={params.get("then")} />
+          <SectionSummary sectionId={summaryId} instances={allInstances} thenKey={params.get("then")} />
         ) : current ? (
           <QuestionCard
             key={cardKey(current, group, project)}
             current={current}
             group={group}
-            requestedKey={requested && instances.some((i) => i.key === requested) ? requested : null}
+            requestedKey={requested && allInstances.some((i) => i.key === requested) ? requested : null}
             instances={instances}
             mode={mode}
             onSave={(items, opts) => save(group, items, opts)}
           />
         ) : (
-          <SectionSummary sectionId="all" instances={instances} thenKey={null} />
+          <SectionSummary sectionId="all" instances={allInstances} thenKey={null} />
         )}
       </div>
 
@@ -356,6 +426,11 @@ interface SideState {
   docId: string;
   docTitle: string;
   docType: string;
+  /** The TBD box: open or not, owner / due date / note, the optional best guess, and whether a TBD is already recorded. */
+  tbdOpen: boolean;
+  tbd: TbdMeta;
+  tbdGuess: FormState;
+  tbdRecorded: boolean;
 }
 
 const FIRST_INPUT = "input:not([type=checkbox]), .chips input, select, textarea";
@@ -385,6 +460,7 @@ function QuestionCard({
   const registerDocs = useMemo(() => project.sources.filter((s) => s.type === "document_reference" && s.docRef && !s.supersededBy), [project.sources]);
   const makeState = (inst: QuestionInstance, proj: Project = project): SideState => {
     const ids = new Set(instanceRefs(inst).flatMap((r) => getEntry(proj, r)?.sourceIds ?? []));
+    const tbd = initialTbd(proj, inst);
     return {
       form: initialForm(content, proj, inst),
       error: "",
@@ -394,6 +470,10 @@ function QuestionCard({
       docId: "",
       docTitle: "",
       docType: "",
+      tbdOpen: false,
+      tbd: tbd.meta,
+      tbdGuess: tbd.guess,
+      tbdRecorded: tbd.recorded,
     };
   };
   const [states, setStates] = useState<Record<string, SideState>>(() => Object.fromEntries(group.map((i) => [i.key, makeState(i)])));
@@ -478,7 +558,7 @@ function QuestionCard({
     if (res.stayOn) {
       setStates((cur) => {
         const nextStates = { ...cur };
-        for (const it of items) nextStates[it.inst.key] = { ...(cur[it.inst.key] ?? makeState(it.inst)), error: "", naOpen: false, naText: "" };
+        for (const it of items) nextStates[it.inst.key] = { ...(cur[it.inst.key] ?? makeState(it.inst)), error: "", naOpen: false, naText: "", tbdOpen: false };
         return nextStates;
       });
       pendingFocus.current = res.stayOn;
@@ -488,7 +568,7 @@ function QuestionCard({
 
   const savePrimary = () => {
     if (!toSave.length) {
-      failWith({}, "Enter an answer for SU, RU or both, or choose Unknown — to be confirmed for a side.");
+      failWith({}, "Enter an answer for SU, RU or both, or choose Unknown or TBD for a side.");
       if (combined) {
         pendingFocus.current = "source";
         setNonce((n) => n + 1);
@@ -499,7 +579,7 @@ function QuestionCard({
     const errors: Record<string, string> = {};
     for (const i of toSave) {
       const s = st(i);
-      const r = toAnswer(q, s.form);
+      const r = toAnswer(q, s.form, s.tbd);
       if ("error" in r) errors[i.key] = r.error;
       else if (!s.docId.trim() && (s.docTitle.trim() || s.docType.trim())) errors[i.key] = "Enter the reference ID of the new document, or clear its title and type.";
       else items.push({ inst: i, input: r.input, docRefs: docRefsOf(s) });
@@ -546,6 +626,7 @@ function QuestionCard({
       mode={mode}
       state={st(inst)}
       patch={(p) => patch(inst, p)}
+      onTbd={(input) => quickSave(inst, input)}
       registerDocs={registerDocs}
       answered={answeredHere(inst)}
       onQuick={(input) => quickSave(inst, input)}
@@ -622,6 +703,7 @@ function QuestionCard({
             <span key={g.key} className="row inline">
               <CategoryChip category={g.category} />
               <SeverityBadge severity={g.severity} />
+              <ProvisionalFlag item={g} />
               {g.subKey && <span className="small">{g.attribute.split(": ").pop()}</span>}
             </span>
           ))}
@@ -686,6 +768,7 @@ function SidePanel({
   registerDocs,
   answered,
   onQuick,
+  onTbd,
   onClear,
   panelRef,
   primary,
@@ -699,6 +782,8 @@ function SidePanel({
   registerDocs: Source[];
   answered: boolean;
   onQuick: (input: AnswerInput) => void;
+  /** Records the TBD box (the same save as a quick action). */
+  onTbd: (input: AnswerInput) => void;
   /** Set only while this side holds something to clear. */
   onClear: (() => void) | undefined;
   panelRef: (el: HTMLElement | null) => void;
@@ -719,6 +804,10 @@ function SidePanel({
   const sourceInst = group.find((i) => i.side === "source");
   // The SU answer sits above the RU input. On a combined card it is shown once SU has one recorded, so "Same as SU" has something to refer to.
   const showSu = side === "target" && q.sides === "paired" && (!combined || (!!sourceInst && isAnswered(project, sourceInst)));
+  // Where in a ticked document this side's entries cite it (recorded by the Answering from bar or Link values).
+  const citedPlace = (sourceId: string): string =>
+    [...new Set(instanceRefs(inst).map((r) => locationText(getEntry(project, r)?.sourceLocations?.[sourceId])).filter(Boolean))].join("; ");
+  const paramQuestion = q.input.type === "parameter" && side !== "shared";
   const secondPassNote = combined && mode === "sequential" && side === "target" && !answered;
 
   const body = (
@@ -751,7 +840,7 @@ function SidePanel({
         </summary>
         <div className="stack">
           <p className="small muted" id={`cite-help-${inst.key}`}>
-            Where a document backs this value, the document is shown as its source instead of the interview. Documents are recorded with a value, not with Unknown or Not applicable.
+            Where a document backs this value, the document is shown as its source instead of the interview. Documents are recorded with a value (or a TBD best guess), not with Unknown or Not applicable.
           </p>
           {registerDocs.length > 0 && (
             <fieldset className="cite-pick" aria-describedby={`cite-help-${inst.key}`}>
@@ -763,7 +852,10 @@ function SidePanel({
                     checked={state.citedIds.includes(s.id)}
                     onChange={(e) => patch({ citedIds: e.target.checked ? [...state.citedIds, s.id] : state.citedIds.filter((x) => x !== s.id) })}
                   />
-                  <span>{sourceShort(s)}</span>
+                  <span>
+                    {sourceShort(s)}
+                    {citedPlace(s.id) && <span className="small muted"> — {citedPlace(s.id)}</span>}
+                  </span>
                 </label>
               ))}
             </fieldset>
@@ -805,6 +897,9 @@ function SidePanel({
             Same as SU
           </button>
         )}
+        <button type="button" className="btn" aria-expanded={state.tbdOpen} onClick={() => patch({ tbdOpen: !state.tbdOpen })}>
+          To be determined (TBD)…
+        </button>
         <button type="button" className="btn ghost" aria-expanded={state.naOpen} onClick={() => patch({ naOpen: !state.naOpen })}>
           Not applicable…
         </button>
@@ -814,6 +909,48 @@ function SidePanel({
           </button>
         )}
       </div>
+      {state.tbdOpen && (
+        <div className="na-box tbd-box">
+          <p className="small muted">
+            TBD means the value is not decided yet. It is listed as an open item with its owner and due date. A best guess is optional: it is compared as if it were established but
+            every result that depends on it is labelled “Provisional”, and a TBD value cannot be verified.
+          </p>
+          {state.tbdRecorded && <p className="small">A TBD is already recorded here; recording again replaces it.</p>}
+          {paramQuestion ? (
+            <p className="small muted">To record a best guess for a parameter, tick TBD on the field above and type the guess there. The button below records the whole parameter as TBD without a guess.</p>
+          ) : (
+            <div className="stack">
+              <span className="small">Best guess (optional){who ? ` for ${who}` : ""}</span>
+              <QuestionInput q={q} side={side} form={state.tbdGuess} setForm={(f) => patch({ tbdGuess: f })} label={`${who ? `${who} ` : ""}TBD best guess`} />
+            </div>
+          )}
+          <div className="row wrap">
+            <label className="field">
+              <span>Owner (optional)</span>
+              <input value={state.tbd.owner} onChange={(e) => patch({ tbd: { ...state.tbd, owner: e.target.value } })} />
+            </label>
+            <label className="field compact">
+              <span>Due date (optional)</span>
+              <input type="date" value={state.tbd.due} onChange={(e) => patch({ tbd: { ...state.tbd, due: e.target.value } })} />
+            </label>
+          </div>
+          <label className="field">
+            <span>Note (optional)</span>
+            <textarea value={state.tbd.note} onChange={(e) => patch({ tbd: { ...state.tbd, note: e.target.value } })} rows={2} />
+          </label>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => {
+              const r = toTbdAnswer(q, state.tbdGuess, state.tbd);
+              if ("error" in r) patch({ error: r.error });
+              else onTbd(r.input);
+            }}
+          >
+            Record as TBD
+          </button>
+        </div>
+      )}
       {state.naOpen && (
         <div className="na-box">
           <label className="field">

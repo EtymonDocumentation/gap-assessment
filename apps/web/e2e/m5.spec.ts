@@ -350,6 +350,8 @@ test("revisions: the demo has revision 1; issue revision 2; a change shows the c
   await dlg.getByLabel("Issued by (required)").fill("Q. Tester (fictional)");
   await dlg.getByLabel("Issued for review").check();
   await dlg.getByRole("button", { name: "Issue revision" }).click();
+  // The demo has TBD values open, so issuing for review asks first (see drafting.spec.ts).
+  await page.getByRole("dialog", { name: "Issue for review with TBD values?" }).getByRole("button", { name: "Issue anyway" }).click();
   await expect(page.getByRole("dialog")).toBeHidden();
   await expect(state).toHaveText(/^Revision 2, issued for review on \d{4}-\d{2}-\d{2}\.$/);
   await expect(table.locator("tbody tr")).toHaveCount(2);

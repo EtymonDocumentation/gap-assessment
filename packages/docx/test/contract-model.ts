@@ -166,5 +166,6 @@ export function contractModel(o: ContractOptions = {}): DocModel {
     sections,
     revisions: [],
     comments: [],
+    tbdCount: 0,
   };
 }

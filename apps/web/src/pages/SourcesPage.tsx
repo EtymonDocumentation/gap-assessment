@@ -13,8 +13,9 @@ import { href } from "../router";
 import { ProjectFilesSection, SourceFiles, useIsRemote } from "../server/ServerUi";
 import { SERVER_MODE } from "../server/mode";
 import { useContent, useStore } from "../store";
+import { LinkValuesDialog } from "./LinkValuesDialog";
 
-type Dialog = { kind: "add" } | { kind: "edit"; row: SourceRow } | { kind: "remove"; row: SourceRow } | null;
+type Dialog = { kind: "add" } | { kind: "link"; row: SourceRow } | { kind: "edit"; row: SourceRow } | { kind: "remove"; row: SourceRow } | null;
 
 /** The register of every source: who said or wrote what, and which entries rely on it. */
 export function SourcesPage() {
@@ -150,6 +151,20 @@ export function SourcesPage() {
                       </td>
                       <td>
                         <div className="row wrap">
+                          {r.source.type === "document_reference" && !r.source.supersededBy && (
+                            <button
+                              type="button"
+                              id={`link-values-${r.source.id}`}
+                              className="btn small"
+                              aria-label={`Link values to ${sourceLabel(r.source)}`}
+                              onClick={() => {
+                                returnFocus.current = `link-values-${r.source.id}`;
+                                setDialog({ kind: "link", row: r });
+                              }}
+                            >
+                              Link values…
+                            </button>
+                          )}
                           {editable && (
                             <button
                               type="button"
@@ -194,6 +209,7 @@ export function SourcesPage() {
                                     c.text
                                   )}
                                   : {c.display}
+                                  {c.location && <span className="small muted"> ({c.location})</span>}
                                   {!c.active && <span className="tag">Inactive</span>}
                                 </li>
                               ))}
@@ -226,6 +242,8 @@ export function SourcesPage() {
           }}
         />
       )}
+
+      {dialog?.kind === "link" && <LinkValuesDialog source={dialog.row.source} restoreFocus={restoreFocus} onClose={() => setDialog(null)} />}
 
       {dialog?.kind === "edit" && (
         <EditSourceDialog

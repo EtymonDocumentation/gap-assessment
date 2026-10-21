@@ -26,7 +26,18 @@ export interface Scalar {
 
 export interface FieldForm extends Scalar {
   unknown: boolean;
+  /** The field is recorded as TBD; anything typed in it is then its best guess (optional). */
+  tbd: boolean;
 }
+
+/** Owner, due date and note typed in the TBD box. They go with every TBD recorded from that panel. */
+export interface TbdMeta {
+  owner: string;
+  due: string;
+  note: string;
+}
+
+export const emptyTbdMeta = (): TbdMeta => ({ owner: "", due: "", note: "" });
 
 export interface FormState {
   simple: Scalar;
@@ -68,7 +79,9 @@ export function initialForm(c: ContentBundle, project: Project, inst: QuestionIn
     const fields: FormState["fields"] = {};
     for (const f of parameterFields(q, inst.side)) {
       const e = getEntry(project, fullRef(inst.side, `${q.binds}.${f}`));
-      fields[f] = { ...scalarFrom(valueOf(e), unit), unknown: e?.status === "unknown" && !e.sameAsSource };
+      // A TBD field shows its best guess in the field, ticked as TBD, so saving the card keeps it TBD. It is never turned into a value by saving.
+      const tbd = e?.status === "tbd" && !e.sameAsSource;
+      fields[f] = { ...scalarFrom(tbd ? e.tbd?.bestGuess : valueOf(e), unit), unknown: e?.status === "unknown" && !e.sameAsSource, tbd };
     }
     return { simple: emptyScalar(unit), fields };
   }
@@ -76,11 +89,26 @@ export function initialForm(c: ContentBundle, project: Project, inst: QuestionIn
   return { simple: scalarFrom(valueOf(getEntry(project, fullRef(inst.side, q.binds))), unit), fields: {} };
 }
 
+/** The TBD details already recorded for this question and side, to prefill the TBD box (never a default: empty when none). */
+export function initialTbd(project: Project, inst: QuestionInstance): { meta: TbdMeta; guess: FormState; recorded: boolean } {
+  const q = inst.question;
+  const unit = q.input.units?.[0] ?? "";
+  const paramQ = q.input.type === "parameter" && inst.side !== "shared";
+  const refs = paramQ ? parameterFields(q, inst.side as "source" | "target").map((f) => fullRef(inst.side, `${q.binds}.${f}`)) : [fullRef(inst.side, q.binds)];
+  const e = refs.map((r) => getEntry(project, r)).find((x) => x?.status === "tbd" && !x.sameAsSource);
+  if (!e?.tbd) return { meta: emptyTbdMeta(), guess: { simple: emptyScalar(unit), fields: {} }, recorded: false };
+  return {
+    meta: { owner: e.tbd.owner ?? "", due: e.tbd.due ?? "", note: e.tbd.note ?? "" },
+    guess: { simple: paramQ ? emptyScalar(unit) : scalarFrom(e.tbd.bestGuess, unit), fields: {} },
+    recorded: true,
+  };
+}
+
 const scalarTouched = (s: Scalar): boolean => !!s.choice || s.multi.length > 0 || !!s.text.trim() || !!s.num.trim() || !!s.min.trim() || !!s.max.trim();
 
 /** True when the form holds any input at all (a chosen option, text, a number, or a field marked Unknown). */
 export function formTouched(q: Question, form: FormState): boolean {
-  if (q.input.type === "parameter") return Object.values(form.fields).some((f) => !!f && (f.unknown || scalarTouched(f)));
+  if (q.input.type === "parameter") return Object.values(form.fields).some((f) => !!f && (f.unknown || f.tbd || scalarTouched(f)));
   return scalarTouched(form.simple);
 }
 
@@ -144,12 +172,23 @@ const FIELD_TYPE: Record<ParameterField, string> = {
 };
 
 /** Converts the form to an engine answer, or returns a message naming what is missing. */
-export function toAnswer(q: Question, form: FormState): { input: AnswerInput } | { error: string } {
+export function toAnswer(q: Question, form: FormState, tbd: TbdMeta = emptyTbdMeta()): { input: AnswerInput } | { error: string } {
   if (q.input.type === "parameter") {
     const fields: Partial<Record<ParameterField, FieldAnswer>> = {};
     for (const [f, s] of Object.entries(form.fields) as [ParameterField, FieldForm][]) {
       if (s.unknown) {
         fields[f] = { kind: "unknown" };
+        continue;
+      }
+      if (s.tbd) {
+        // The best guess is optional: a TBD field with nothing typed is recorded without one, never with a default.
+        let guess: { bestGuess: EntryValue } | Record<string, never> = {};
+        if (scalarTouched(s)) {
+          const r = scalarValue(FIELD_TYPE[f], s, `${fieldLabel(content, f)} best guess`);
+          if ("error" in r) return { error: r.error };
+          guess = { bestGuess: r.value };
+        }
+        fields[f] = { kind: "tbd", ...guess, ...tbdDetails(tbd) };
         continue;
       }
       const r = scalarValue(FIELD_TYPE[f], s, fieldLabel(content, f));
@@ -161,6 +200,22 @@ export function toAnswer(q: Question, form: FormState): { input: AnswerInput } |
   const r = scalarValue(q.input.type, form.simple, "Answer");
   if ("error" in r) return { error: `${r.error.replace(/^Answer: /, "")}. Or choose “Unknown — to be confirmed”.` };
   return { input: { kind: "value", value: r.value } };
+}
+
+/** The owner, due date and note that were typed, leaving out what is empty. */
+export function tbdDetails(m: TbdMeta): { owner?: string; due?: string; note?: string } {
+  return { ...(m.owner.trim() ? { owner: m.owner.trim() } : {}), ...(m.due.trim() ? { due: m.due.trim() } : {}), ...(m.note.trim() ? { note: m.note.trim() } : {}) };
+}
+
+/** The whole-question TBD answer from the TBD box. The best guess form is read only when something was typed in it. */
+export function toTbdAnswer(q: Question, guess: FormState, meta: TbdMeta): { input: AnswerInput } | { error: string } {
+  let bestGuess: { bestGuess: EntryValue } | Record<string, never> = {};
+  if (q.input.type !== "parameter" && scalarTouched(guess.simple)) {
+    const r = scalarValue(q.input.type, guess.simple, "Best guess");
+    if ("error" in r) return r;
+    bestGuess = { bestGuess: r.value };
+  }
+  return { input: { kind: "tbd", ...bestGuess, ...tbdDetails(meta) } };
 }
 
 // ------------------------------------------------------------------ rendering
@@ -294,11 +349,14 @@ export function QuestionInput({
   setForm,
   sideName,
   errorId,
+  label: labelOverride,
 }: {
   q: Question;
   side: QuestionInstance["side"];
   form: FormState;
   setForm: (f: FormState) => void;
+  /** Accessible name of the input, when it is not the answer itself (the TBD best guess). */
+  label?: string;
   /** "SU" or "RU": put in every input's accessible name ("RU answer"). Omit for shared (scoping) questions. */
   sideName?: string;
   /** Id of the visible error text; the inputs point at it while it is shown. */
@@ -310,7 +368,7 @@ export function QuestionInput({
         type={q.input.type}
         q={q}
         s={form.simple}
-        label={sideName ? `${sideName} answer` : (q.label ?? q.prompt)}
+        label={labelOverride ?? (sideName ? `${sideName} answer` : (q.label ?? q.prompt))}
         describedBy={errorId}
         set={(patch) => setForm({ ...form, simple: { ...form.simple, ...patch } })}
       />
@@ -324,11 +382,14 @@ export function QuestionInput({
         const set = (patch: Partial<FieldForm>) => setForm({ ...form, fields: { ...form.fields, [f]: { ...s, ...patch } } });
         const optSet = f === "classification" ? "classification" : f === "rangeBasis" ? "rangeBasis" : undefined;
         return (
-          <div key={f} className={`param-field${s.unknown ? " is-unknown" : ""}`}>
+          <div key={f} className={`param-field${s.unknown ? " is-unknown" : ""}${s.tbd ? " is-tbd" : ""}`}>
             <div className="param-label">
               <span>{fieldLabel(content, f)}</span>
               <label className="small unknown-toggle">
-                <input type="checkbox" checked={s.unknown} onChange={(e) => set({ unknown: e.target.checked })} aria-label={sideName ? `${sideName} ${fieldLabel(content, f)}: unknown` : `${fieldLabel(content, f)}: unknown`} /> Unknown
+                <input type="checkbox" checked={s.tbd} disabled={s.unknown} onChange={(e) => set({ tbd: e.target.checked })} aria-label={sideName ? `${sideName} ${fieldLabel(content, f)}: TBD` : `${fieldLabel(content, f)}: TBD`} /> TBD
+              </label>
+              <label className="small unknown-toggle">
+                <input type="checkbox" checked={s.unknown} onChange={(e) => set({ unknown: e.target.checked, ...(e.target.checked ? { tbd: false } : {}) })} aria-label={sideName ? `${sideName} ${fieldLabel(content, f)}: unknown` : `${fieldLabel(content, f)}: unknown`} /> Unknown
               </label>
             </div>
             {!s.unknown && (

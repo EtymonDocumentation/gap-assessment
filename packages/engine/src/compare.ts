@@ -13,6 +13,7 @@ import {
   type Range,
   type Resolved,
   type Severity,
+  type TbdInfo,
   type Side,
 } from "@gap/process-model";
 import { findRule, optionLabel, type ContentBundle } from "./content";
@@ -67,6 +68,13 @@ export interface Gap {
   /** Entry references and ids that produced this result (traceability). */
   inputRefs: string[];
   inputEntryIds: string[];
+  /**
+   * True when at least one input is a TBD best guess. The comparison was run on the guess as if it were established (the
+   * product owner's choice), so every display of this gap says "Provisional" and must not be read as a settled finding.
+   */
+  provisional?: boolean;
+  /** The inputs that are TBD best guesses (subset of inputRefs). */
+  provisionalRefs?: string[];
   rationale: string;
   activities: string[];
   ruleSeverity: Severity;
@@ -88,7 +96,9 @@ export interface OpenItem {
   prompt: string;
   sectionId: string;
   sectionTitle: string;
-  status: "unknown" | "not_established";
+  status: "unknown" | "not_established" | "tbd";
+  /** Present for status "tbd": best guess, owner, due date and note exactly as recorded. */
+  tbd?: TbdInfo;
 }
 
 // ------------------------------------------------------------------ comparators
@@ -104,6 +114,14 @@ interface Ctx {
   used: Set<string>;
   /** Entry references used. */
   refs: Set<string>;
+  /** Used references whose value is a TBD best guess. */
+  provisional: Set<string>;
+}
+
+/** Marks a resolved input that is a TBD best guess, so the gap built from it is labelled provisional. */
+function trackProvisional(ctx: Ctx, r: Resolved): Resolved {
+  if (r.provisional) ctx.provisional.add(r.ref);
+  return r;
 }
 
 const est = (r: Resolved) => r.status === "established" && r.value !== undefined;
@@ -311,6 +329,7 @@ function cmpCoverage(ctx: Ctx): ComparatorResult[] {
   }
   val.entryIds.forEach((id) => ctx.used.add(id));
   ctx.refs.add(val.ref);
+  trackProvisional(ctx, val);
   if (!est(cov) || !est(val)) return [info([`Covered range (${SIDE_WORD[coverageSide!]})`, cov], [`compared value (${SIDE_WORD[against!.side]})`, val])];
   const covRange = isQuantity(cov.value) ? { max: cov.value } : (cov.value as Range);
   const v = asRange(val.value)!;
@@ -402,7 +421,7 @@ function ruleSeverity(ctx: Ctx, res: ComparatorResult): { severity: Severity; no
   }
   if (rule.severityBy?.classification && ctx.q.input.type === "parameter") {
     const map = rule.severityBy.classification;
-    const cls = resolveEntry(ctx.project, `source.${ctx.q.binds}.classification`);
+    const cls = trackProvisional(ctx, resolveEntry(ctx.project, `source.${ctx.q.binds}.classification`));
     if (est(cls) && map[String(cls.value)]) {
       const label = ctx.content.catalog.optionSets.classification?.find((o) => o.value === cls.value)?.label ?? String(cls.value);
       return { severity: map[String(cls.value)]!, note: `Parameter classified as ${label} at SU.` };
@@ -458,6 +477,7 @@ export function assess(raw: ContentBundle, project: Project): Assessment {
 
     const used = new Set<string>();
     const usedRefs = new Set<string>();
+    const provisionalRefs = new Set<string>();
     const ctx: Ctx = {
       project,
       content,
@@ -465,11 +485,13 @@ export function assess(raw: ContentBundle, project: Project): Assessment {
       rule,
       used,
       refs: usedRefs,
+      provisional: provisionalRefs,
       get(side, sub) {
         const ref = `${side}.${q.binds}${sub ? `.${sub}` : ""}`;
         const r = resolveEntry(project, ref);
         usedRefs.add(ref);
         r.entryIds.forEach((id) => used.add(id));
+        if (r.provisional) provisionalRefs.add(ref);
         return r;
       },
     };
@@ -536,6 +558,11 @@ export function assess(raw: ContentBundle, project: Project): Assessment {
         severity: ov?.severityOverride?.value ?? sev.severity,
         status: ov?.status ?? (res.category === "equivalent" ? "closed" : "open"),
       };
+      // A result that only says "information required" was not computed from the guess, so it is not provisional.
+      if (provisionalRefs.size && res.category !== "information_required") {
+        gap.provisional = true;
+        gap.provisionalRefs = [...provisionalRefs];
+      }
       if (inst.section.uo) gap.uoKey = inst.section.uo;
       if (res.subKey) gap.subKey = res.subKey;
       if (sev.note) gap.severityNote = sev.note;
@@ -558,7 +585,9 @@ export function assess(raw: ContentBundle, project: Project): Assessment {
   for (const inst of instances) {
     for (const ref of instanceRefs(inst)) {
       const r = resolveEntry(project, ref);
-      if (r.status === "unknown" || r.status === "not_established") {
+      // A TBD is an open item even with a best guess: the guess drives a provisional comparison but the value is not confirmed.
+      // "Same as SU" on a TBD is not a second TBD: the SU entry is the one to resolve, so it is listed once, on the SU side.
+      if (r.tbd ? !r.sameAsSource : r.status === "unknown" || r.status === "not_established") {
         openItems.push({
           key: ref,
           ref,
@@ -567,7 +596,8 @@ export function assess(raw: ContentBundle, project: Project): Assessment {
           prompt: inst.question.prompt,
           sectionId: inst.section.id,
           sectionTitle: inst.section.title,
-          status: r.status,
+          status: r.tbd ? "tbd" : (r.status as "unknown" | "not_established"),
+          ...(r.tbd ? { tbd: r.tbd } : {}),
         });
       }
     }

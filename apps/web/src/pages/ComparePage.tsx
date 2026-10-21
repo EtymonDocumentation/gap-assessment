@@ -1,6 +1,6 @@
 import { formatQuestionSide, questionLabel, setGapOverlay, sidesOf, type Gap } from "@gap/engine";
 import { useState } from "react";
-import { CategoryChip, Empty, RegulatoryFlag, SeverityBadge } from "../components";
+import { CategoryChip, Empty, ProvisionalFlag, RegulatoryFlag, SeverityBadge } from "../components";
 import { href } from "../router";
 import { useAssessment, useContent, useStageWording, useStore } from "../store";
 
@@ -82,6 +82,7 @@ export function ComparePage() {
                                 <CategoryChip category={g.category} compact />
                                 {g.category !== "equivalent" && <SeverityBadge severity={g.severity} />}
                                 <RegulatoryFlag gap={g} />
+                                <ProvisionalFlag item={g} />
                                 {g.subKey && <span className="small">{g.attribute.split(": ").pop()}</span>}
                               </a>
                             ))}

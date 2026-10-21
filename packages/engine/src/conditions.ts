@@ -62,7 +62,9 @@ export function evaluate(cond: Condition, ctx: EvalContext): boolean {
   }
   if ("isUnknown" in cond) {
     const ref = ownSide(ctx, cond.isUnknown);
-    return !!ref && resolveEntry(ctx.project, ref).status === "unknown";
+    const s = ref ? resolveEntry(ctx.project, ref).status : undefined;
+    // A TBD without a best guess is just as undetermined as an unknown.
+    return s === "unknown" || s === "tbd";
   }
   if ("isTrue" in cond) return established(ctx, cond.isTrue)?.value === true;
   if ("uoPresent" in cond) {

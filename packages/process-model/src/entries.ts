@@ -1,7 +1,7 @@
 import { allEntries, getEntry, parseRef } from "./paths";
-import type { Actor, Entry, EntryStatus, EntryValue, Project, Source } from "./types";
+import type { Actor, Entry, EntryStatus, EntryValue, Project, Source, SourceLocation, TbdInfo } from "./types";
 
-export const SCHEMA_VERSION = "1.6.0";
+export const SCHEMA_VERSION = "1.7.0";
 
 let counter = 0;
 /** Short unique id. Uses crypto.randomUUID where available. */
@@ -47,6 +47,27 @@ export interface Resolved {
   entryIds: string[];
   sameAsSource: boolean;
   justification?: string;
+  /**
+   * True when the value is a TBD best guess. The resolved status is then "established" so that comparison, validation and
+   * conditions can run on it (the product owner's choice), but everything built from it must be labelled provisional.
+   */
+  provisional?: boolean;
+  /** Set for every TBD entry, with or without a best guess, so verification and displays can still tell it from a fact. */
+  tbd?: TbdInfo;
+}
+
+/** What one entry says by itself, before following "same as source". */
+function ownView(e: Entry): { status: EntryStatus; value?: EntryValue; justification?: string; provisional?: boolean; tbd?: TbdInfo } {
+  if (e.status === "tbd") {
+    const info = e.tbd ?? {};
+    // A best guess is read as if established, but it is never stored as a value and never counts as verified.
+    if (info.bestGuess !== undefined) return { status: "established", value: info.bestGuess, provisional: true, tbd: info };
+    return { status: "tbd", tbd: info };
+  }
+  const out: { status: EntryStatus; value?: EntryValue; justification?: string } = { status: e.status };
+  if (e.value !== undefined) out.value = e.value;
+  if (e.justification) out.justification = e.justification;
+  return out;
 }
 
 export function resolveEntry(project: Project, ref: string): Resolved {
@@ -58,14 +79,20 @@ export function resolveEntry(project: Project, ref: string): Resolved {
     const srcRef = "source" + ref.slice("target".length);
     const src = getEntry(project, srcRef);
     if (!src || src.sameAsSource) return { ref, status: "not_established", entryIds: [e.id], sameAsSource: true };
-    const out: Resolved = { ref, status: src.status, entryIds: [e.id, src.id], sameAsSource: true };
-    if (src.value !== undefined) out.value = src.value;
-    if (src.justification) out.justification = src.justification;
+    const v = ownView(src);
+    const out: Resolved = { ref, status: v.status, entryIds: [e.id, src.id], sameAsSource: true };
+    if (v.value !== undefined) out.value = v.value;
+    if (v.justification) out.justification = v.justification;
+    if (v.provisional) out.provisional = true;
+    if (v.tbd) out.tbd = v.tbd;
     return out;
   }
-  const out: Resolved = { ref, status: e.status, entryIds: [e.id], sameAsSource: false };
-  if (e.value !== undefined) out.value = e.value;
-  if (e.justification) out.justification = e.justification;
+  const v = ownView(e);
+  const out: Resolved = { ref, status: v.status, entryIds: [e.id], sameAsSource: false };
+  if (v.value !== undefined) out.value = v.value;
+  if (v.justification) out.justification = v.justification;
+  if (v.provisional) out.provisional = true;
+  if (v.tbd) out.tbd = v.tbd;
   return out;
 }
 
@@ -93,7 +120,8 @@ export function fnv1a(s: string): string {
 }
 
 export function fingerprintResolved(r: Resolved): string {
-  return fnv1a(stableStringify({ status: r.status, value: r.value ?? null, justification: r.justification ?? null }));
+  // "provisional" is added only when true, so every fingerprint made before TBD existed stays exactly the same.
+  return fnv1a(stableStringify({ status: r.status, value: r.value ?? null, justification: r.justification ?? null, provisional: r.provisional ? true : undefined }));
 }
 
 // ------------------------------------------------------------------ verification
@@ -117,7 +145,7 @@ export function verificationState(project: Project, ref: string): VerificationSt
   if (fingerprintResolved(r) === v.fingerprint) return { state: "verified", ...who };
   let reason: WithdrawnReason = "changed";
   if (v.status !== undefined) {
-    if (r.status !== v.status) reason = "status_changed";
+    if (r.status !== v.status || r.tbd) reason = "status_changed";
     else if (v.sameAsSource && r.sameAsSource) reason = "source_changed";
     else reason = "value_changed";
   }
@@ -167,6 +195,8 @@ export function verificationProblem(project: Project, ref: string): string | und
   const e = getEntry(project, ref);
   if (!e) return `No entry at ${ref}`;
   const r = resolveEntry(project, ref);
+  // Checked before the status: a TBD with a best guess resolves as "established" for the comparison, but a guess is not a fact.
+  if (r.tbd) return "An entry marked TBD (to be determined) cannot be verified";
   if (r.status === "not_established") return "An entry that is not established cannot be verified";
   if (r.status === "unknown") return "An entry marked Unknown is an open information item and cannot be verified";
   return undefined;
@@ -301,10 +331,12 @@ function revertEntry(next: Project, e: Entry, actor: Actor, action: string): voi
     by: actor.name,
     action,
     path: e.path,
-    before: { status: e.status, value: e.value, sameAsSource: e.sameAsSource, ...(e.justification ? { justification: e.justification } : {}) },
+    before: { status: e.status, value: e.value, sameAsSource: e.sameAsSource, ...(e.justification ? { justification: e.justification } : {}), ...(e.tbd ? { tbd: structuredClone(e.tbd) } : {}) },
     after: { status: "not_established" },
   });
   e.status = "not_established";
+  delete e.tbd;
+  delete e.sourceLocations;
   delete e.value;
   delete e.sameAsSource;
   delete e.justification;
@@ -327,6 +359,7 @@ export function removeSource(project: Project, sourceId: string, actor: Actor): 
   for (const e of allEntries(next)) {
     if (!e.sourceIds.includes(sourceId)) continue;
     e.sourceIds = e.sourceIds.filter((id) => id !== sourceId);
+    dropLocation(e, sourceId);
     detached++;
     if (e.sourceIds.length === 0 && e.status !== "not_established") {
       revertEntry(next, e, actor, "revert_on_source_removal");
@@ -368,6 +401,21 @@ export function clearEntries(project: Project, refs: string[], actor: Actor): { 
   return { project: next, cleared: todo };
 }
 
+/** Forgets the place in a document when the citation of that document goes away. Mutates the draft. */
+function dropLocation(e: Entry, sourceId: string): void {
+  if (!e.sourceLocations) return;
+  delete e.sourceLocations[sourceId];
+  if (!Object.keys(e.sourceLocations).length) delete e.sourceLocations;
+}
+
+/** Keeps only the parts that were really typed; returns undefined when nothing was. Nothing is ever invented. */
+export function cleanLocation(loc?: SourceLocation): SourceLocation | undefined {
+  const section = loc?.section?.trim();
+  const page = loc?.page?.trim();
+  if (!section && !page) return undefined;
+  return { ...(section ? { section } : {}), ...(page ? { page } : {}) };
+}
+
 /** Detaches one source from one entry. Detaching the last source reverts the entry exactly like removing the source does. */
 export function detachSource(project: Project, ref: string, sourceId: string, actor: Actor): { project: Project; reverted: boolean } {
   const e0 = getEntry(project, ref);
@@ -378,13 +426,14 @@ export function detachSource(project: Project, ref: string, sourceId: string, ac
   const next = structuredClone(project);
   const e = getEntry(next, ref)!;
   e.sourceIds = e.sourceIds.filter((id) => id !== sourceId);
+  dropLocation(e, sourceId);
   next.changeLog.push({
     at: actor.at,
     by: actor.name,
     action: "detach_source",
     path: ref,
     detail: `${src.type}: ${src.label}`,
-    before: { sourceIds: [...e0.sourceIds] },
+    before: { sourceIds: [...e0.sourceIds], ...(e0.sourceLocations?.[sourceId] ? { location: { ...e0.sourceLocations[sourceId] } } : {}) },
     after: { sourceIds: [...e.sourceIds] },
   });
   let reverted = false;
@@ -396,7 +445,7 @@ export function detachSource(project: Project, ref: string, sourceId: string, ac
 }
 
 /** Attaches an existing source to an entry that has a recorded status. Does not touch the value or its verification. */
-export function attachSource(project: Project, ref: string, sourceId: string, actor: Actor): Project {
+export function attachSource(project: Project, ref: string, sourceId: string, actor: Actor, location?: SourceLocation): Project {
   const e0 = getEntry(project, ref);
   if (!e0) throw new Error(`No entry at ${ref}`);
   if (e0.status === "not_established") throw new Error("Nothing is recorded for this entry, so there is nothing to cite a source for");
@@ -405,18 +454,50 @@ export function attachSource(project: Project, ref: string, sourceId: string, ac
   if (src.supersededBy) throw new Error("That source was superseded by a later answer and cannot be attached");
   if (e0.sourceIds.includes(sourceId)) throw new Error("This entry already cites that source");
   const next = structuredClone(project);
-  const e = getEntry(next, ref)!;
-  e.sourceIds = [...e.sourceIds, sourceId];
+  attachInPlace(next, getEntry(next, ref)!, src, actor, location);
+  return next;
+}
+
+/** Adds the source to one entry of the draft and logs it. One log record per entry, with the location when there is one. */
+function attachInPlace(next: Project, e: Entry, src: Source, actor: Actor, location?: SourceLocation): void {
+  const before = [...e.sourceIds];
+  e.sourceIds = [...e.sourceIds, src.id];
+  const loc = cleanLocation(location);
+  if (loc) e.sourceLocations = { ...e.sourceLocations, [src.id]: loc };
   next.changeLog.push({
     at: actor.at,
     by: actor.name,
     action: "attach_source",
-    path: ref,
+    path: e.path,
     detail: `${src.type}: ${src.label}`,
-    before: { sourceIds: [...e0.sourceIds] },
-    after: { sourceIds: [...e.sourceIds] },
+    before: { sourceIds: before },
+    after: { sourceIds: [...e.sourceIds], ...(loc ? { location: loc } : {}) },
   });
-  return next;
+}
+
+/**
+ * Attaches one source to many entries in one pass (the project is copied once, not once per entry). Each entry gets its own
+ * change-log record. Entries that already cite the source are left exactly as they are and reported, so repeating the
+ * call changes nothing. An entry with nothing recorded is an error: a citation must back a recorded status.
+ */
+export function attachSourceMany(project: Project, refs: string[], sourceId: string, actor: Actor, location?: SourceLocation): { project: Project; attached: string[]; alreadyCited: string[] } {
+  const src = project.sources.find((s) => s.id === sourceId);
+  if (!src) throw new Error(`Unknown source ${sourceId}`);
+  if (src.supersededBy) throw new Error("That source was superseded by a later answer and cannot be attached");
+  const next = structuredClone(project);
+  const attached: string[] = [];
+  const alreadyCited: string[] = [];
+  for (const ref of [...new Set(refs)]) {
+    const e = getEntry(next, ref);
+    if (!e) throw new Error(`No entry at ${ref}`);
+    if (e.status === "not_established") throw new Error("Nothing is recorded for this entry, so there is nothing to cite a source for");
+    if (e.sourceIds.includes(sourceId)) alreadyCited.push(ref);
+    else {
+      attachInPlace(next, e, src, actor, location);
+      attached.push(ref);
+    }
+  }
+  return { project: attached.length ? next : project, attached, alreadyCited };
 }
 
 /** One source with the entries that cite it (every entry, including inactive ones). Sources nobody cites are flagged unused. */

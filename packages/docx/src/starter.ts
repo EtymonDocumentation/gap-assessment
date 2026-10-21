@@ -29,7 +29,7 @@ const COLUMNS: Record<string, string[]> = {
 /** An empty document model: the starter template only needs the shell of the built-in look. */
 const SHELL: DocModel = { title: "{title}", banner: "{banner}", status: "{status}", meta: [],
   cover: { program: "{program}", product: "", sourceSite: "{sourceSite}", targetSite: "{targetSite}", sourceStage: "", targetStage: "" },
-  sections: [], revisions: [], comments: [] };
+  sections: [], revisions: [], comments: [], tbdCount: 0 };
 
 /** The appendices of a document, in order, with their letters. Without a document, those of a document that leaves nothing out. */
 function appendicesOf(doc?: Pick<DocModel, "sections">): { id: string; number: string; title: string }[] {

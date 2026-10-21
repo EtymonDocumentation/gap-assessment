@@ -481,7 +481,10 @@ export function RevisionsPanel({
               {revisions.map((r) => (
                 <tr key={r.number}>
                   <th scope="row">{r.number}</th>
-                  <td>{revisionStatusLabel(r.status)}</td>
+                  <td>
+                    {revisionStatusLabel(r.status)}
+                    {r.tbdCount ? <div className="small muted">{r.tbdCount} TBD {r.tbdCount === 1 ? "value" : "values"} open</div> : null}
+                  </td>
                   <td className="small">{r.at.slice(0, 10)}</td>
                   <td className="small">
                     {r.by}
@@ -506,6 +509,41 @@ function IssueRevisionDialog({ doc, choice, onClose, restoreFocus }: { doc: DocM
   const [status, setStatus] = useState<RevisionStatus>("draft");
   const [summary, setSummary] = useState("");
   const [error, setError] = useState("");
+  // Issuing for review with TBD values still open is allowed, but only after the person has seen the count.
+  const [confirmingTbd, setConfirmingTbd] = useState(false);
+  const issue = () => {
+    const err = act(person, (p, actor) => issueRevision(p, doc, { status, summary, ...(choice.record ? { template: choice.record } : {}) }, actor), "Revision issued");
+    if (err) {
+      setConfirmingTbd(false);
+      setError(err);
+    } else onClose();
+  };
+  const n = doc.tbdCount;
+  if (confirmingTbd) {
+    return (
+      <Modal
+        open
+        onOpenChange={(o) => !o && onClose()}
+        title="Issue for review with TBD values?"
+        description={`This document still lists ${n} TBD ${n === 1 ? "value" : "values"}. They are open items, not confirmed values, and every result that uses a best guess is labelled Provisional.`}
+        restoreFocus={restoreFocus}
+      >
+        <div className="stack">
+          <p>
+            The revision will record that <strong>{n} TBD {n === 1 ? "value was" : "values were"}</strong> open when it was issued.
+          </p>
+          <div className="row end">
+            <button type="button" className="btn" autoFocus onClick={() => setConfirmingTbd(false)}>
+              Go back
+            </button>
+            <button type="button" className="btn primary" onClick={issue}>
+              Issue anyway
+            </button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
   return (
     <Modal
       open
@@ -520,13 +558,9 @@ function IssueRevisionDialog({ doc, choice, onClose, restoreFocus }: { doc: DocM
           e.preventDefault();
           if (!person.name.trim()) return setError("Enter your name.");
           if (!summary.trim()) return setError("Enter a summary of what changed or why this revision is issued.");
-          const err = act(
-            person,
-            (p, actor) => issueRevision(p, doc, { status, summary, ...(choice.record ? { template: choice.record } : {}) }, actor),
-            "Revision issued",
-          );
-          if (err) setError(err);
-          else onClose();
+          // Draft revisions get no warning (a draft is expected to be incomplete); the count is still recorded.
+          if (status === "issued_for_review" && n > 0) return setConfirmingTbd(true);
+          issue();
         }}
       >
         <fieldset className="stack">
