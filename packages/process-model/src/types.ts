@@ -337,6 +337,23 @@ export interface DocumentState {
   omittedSections?: string[];
 }
 
+/**
+ * One topic of a unit-operation section that the project has switched off (added in schema 1.8.0). GMP: leaving a topic
+ * out of an assessment is a scope decision, so it always carries a reason, the person and the time. Values recorded for
+ * the topic are kept (inactive), never deleted, so switching the topic back on restores them.
+ */
+export interface TailoredTopic {
+  uo: string;
+  topic: string;
+  reason: string;
+  by: string;
+  at: string;
+}
+
+export interface Tailoring {
+  excluded: TailoredTopic[];
+}
+
 export interface Project {
   schemaVersion: string;
   meta: {
@@ -361,6 +378,8 @@ export interface Project {
   processes: { source: ProcessModel; target: ProcessModel };
   /** User-defined unit operations and items. Values recorded against them live in `processes` like any other entry. */
   custom: CustomDefinitions;
+  /** Topics switched off for this project (schema 1.8.0). Default and migration: nothing excluded. */
+  tailoring: Tailoring;
   /** Revision history, reviewer comments and export records for the generated document. */
   document: DocumentState;
   sources: Source[];

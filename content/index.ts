@@ -3,6 +3,7 @@ import catalog from "./catalog/catalog.yaml";
 import demoArx217 from "./demo/arx-217.yaml";
 import guidanceRaw from "./guidance/guidance.yaml";
 import q00 from "./questions/00-scoping-and-site.yaml";
+import q05 from "./questions/05-ds-shipping-inbound.yaml";
 import q10 from "./questions/10-ds-receipt-thaw.yaml";
 import q15 from "./questions/15-buffer-prep.yaml";
 import q20 from "./questions/20-compounding.yaml";
@@ -13,6 +14,7 @@ import q45 from "./questions/45-stoppering.yaml";
 import q50 from "./questions/50-lyophilization.yaml";
 import q60 from "./questions/60-capping.yaml";
 import q70 from "./questions/70-visual-inspection.yaml";
+import q75 from "./questions/75-bulk-packaging.yaml";
 import q80 from "./questions/80-labeling-packaging.yaml";
 import q90 from "./questions/90-storage-shipping.yaml";
 import rules from "./rules/rules.yaml";
@@ -23,6 +25,7 @@ export const rawContent: RawContent = {
   catalog,
   questionFiles: {
     "questions/00-scoping-and-site.yaml": q00,
+    "questions/05-ds-shipping-inbound.yaml": q05,
     "questions/10-ds-receipt-thaw.yaml": q10,
     "questions/15-buffer-prep.yaml": q15,
     "questions/20-compounding.yaml": q20,
@@ -33,6 +36,7 @@ export const rawContent: RawContent = {
     "questions/50-lyophilization.yaml": q50,
     "questions/60-capping.yaml": q60,
     "questions/70-visual-inspection.yaml": q70,
+    "questions/75-bulk-packaging.yaml": q75,
     "questions/80-labeling-packaging.yaml": q80,
     "questions/90-storage-shipping.yaml": q90,
   },

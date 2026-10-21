@@ -1,15 +1,36 @@
 questions:
   - id: ss.presence
     section: uo.storage_shipping
-    prompt: Is finished-product storage and distribution handled at this site?
+    prompt: Is the filled product stored and shipped away from this site?
     label: Storage and shipping performed
     why: Establishes whether the unit operation exists at each site. If storage or shipping moves to another site or a logistics partner, the {{validated|current}} storage and shipping controls move with it.
     sides: paired
     binds: uo.storage_shipping.presence
     input: { type: yes_no }
 
+  - id: ss.shipped_item
+    section: uo.storage_shipping
+    topic: shipped
+    prompt: What is shipped from this site?
+    label: What is shipped
+    why: Unlabelled bulk and labelled finished product have different protection, identity and traceability needs in transit. Bulk still needs labelling, so a different form changes which controls travel with the product.
+    sides: paired
+    binds: uo.storage_shipping.mat.shipped_product.form
+    input: { type: choice, optionsFrom: shippedItem }
+
+  - id: ss.destination
+    section: uo.storage_shipping
+    topic: shipped
+    prompt: Where is the product shipped to?
+    label: Destination
+    why: Shipping to a labelling and packaging site and shipping to distribution are different lanes with different receivers and controls. A different destination type needs its own lane qualification and quality agreement.
+    sides: paired
+    binds: uo.storage_shipping.doc.shipping_lane.destination
+    input: { type: choice, optionsFrom: shipDestination }
+
   - id: ss.condition
     section: uo.storage_shipping
+    topic: storage
     prompt: Labeled storage condition of the finished product
     label: Storage condition
     why: The storage condition is the one supported by the stability data and normally appears in the registered product information. A different condition is not covered by those data.
@@ -31,6 +52,7 @@ questions:
 
   - id: ss.storage_unit
     section: uo.storage_shipping
+    topic: storage
     prompt: Storage equipment type
     label: Storage equipment
     why: Cold rooms, reach-in units and automated storage differ in temperature uniformity, recovery after door opening and alarm behaviour. Mapping and qualification are specific to the equipment.
@@ -40,6 +62,7 @@ questions:
 
   - id: ss.storage_monitoring
     section: uo.storage_shipping
+    topic: storage
     prompt: How is storage temperature monitored?
     label: Storage temperature monitoring
     why: Continuous monitoring, alarms and a qualified (mapped) set-up detect excursions that can affect product quality. Removing a measure weakens the control of stored product.
@@ -49,6 +72,7 @@ questions:
 
   - id: ss.shipper
     section: uo.storage_shipping
+    topic: transport
     prompt: Shipping configuration
     label: Shipping configuration
     why: Passive, active and refrigerated-vehicle shipments protect the product by different mechanisms and have different qualified durations. A change of configuration is a change in principle that needs its own qualification.
@@ -58,6 +82,7 @@ questions:
 
   - id: ss.lane
     section: uo.storage_shipping
+    topic: transport
     prompt: Primary shipping lane (origin and destination)
     label: Primary shipping lane
     why: Thermal qualification is specific to the lane, because transit time, handling and climate differ by route. A new lane has no qualification evidence yet.
@@ -82,6 +107,7 @@ questions:
 
   - id: ss.transit
     section: uo.storage_shipping
+    topic: transport
     prompt: Maximum transit time
     label: Maximum transit time
     why: The maximum transit time is the duration for which the shipping configuration was qualified. A longer planned time is not covered by that qualification.
@@ -92,6 +118,7 @@ questions:
 
   - id: ss.excursion
     section: uo.storage_shipping
+    topic: transport
     prompt: Temperature excursion allowance (maximum cumulative time outside the labeled storage condition)
     label: Temperature excursion allowance
     why: The allowance defines how long product may be outside its labeled condition during distribution and still be released. It is derived from stability data, so a longer allowance needs data to support it.
@@ -102,6 +129,7 @@ questions:
 
   - id: ss.shipping_monitoring
     section: uo.storage_shipping
+    topic: transport
     prompt: How is shipment temperature monitored?
     label: Shipping temperature monitoring
     why: Data loggers and real-time telemetry give the evidence used to release shipments after a deviation. A change in monitoring changes the available evidence and the decision process.
@@ -113,6 +141,7 @@ questions:
   # ---- shipping validation
   - id: ss.modes
     section: uo.storage_shipping
+    topic: transport
     prompt: Which transport modes does the primary shipping lane use?
     label: Lane transport modes
     why: Air, road, sea and rail differ in temperature exposure, vibration, pressure and handling. Each mode on the lane needs to be represented in the shipping qualification.
@@ -123,6 +152,7 @@ questions:
 
   - id: ss.ship_scope
     section: uo.storage_shipping
+    topic: transport
     prompt: What testing supports the shipping qualification of the RU configuration and lane?
     label: Shipping qualification scope (RU)
     why: A desk-based assessment or thermal chamber test alone does not show performance on the real lane (handling, dwell time and ambient extremes). The scope decides how much of the lane is proven.
@@ -139,6 +169,7 @@ questions:
 
   - id: ss.ship_profiles
     section: uo.storage_shipping
+    topic: transport
     prompt: Which seasonal temperature profiles does the RU shipping qualification cover?
     label: Shipping seasonal profiles (RU)
     why: Ambient extremes in summer and winter set the worst-case thermal load. A qualification with one profile does not cover the other season.
@@ -152,6 +183,7 @@ questions:
   # ---- equipment qualification
   - id: ss.storage_qual
     section: uo.storage_shipping
+    topic: storage
     prompt: Qualification status of the finished-product storage equipment
     label: Storage equipment qualification status
     why: Storage equipment must be qualified and mapped before GMP storage. An RU store that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
@@ -163,6 +195,7 @@ questions:
 
   - id: ss.shipper_qual
     section: uo.storage_shipping
+    topic: transport
     prompt: Qualification status of the shipping configuration
     label: Shipper qualification status
     why: A shipping configuration is qualified for a defined duration and temperature profile. An RU configuration that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
@@ -187,6 +220,7 @@ questions:
 
   - id: ss.procedures
     section: uo.storage_shipping
+    topic: procedures
     prompt: Status of RU procedures for storage and shipping
     label: RU storage and shipping procedures
     why: Storage, pack-out, shipping and excursion-handling procedures must reflect the RU set-up before GMP distribution.

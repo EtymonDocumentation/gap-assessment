@@ -85,6 +85,16 @@ export const catalogSchema = z.object({
       /** First milestone in which the unit operation has questions. */
       milestone: z.number().int(),
       applicableWhen: conditionSchema.optional(),
+      /**
+       * Hides the whole unit operation for a side when the condition is true for that side. Unlike applicableWhen it may
+       * read the side's own site answers ("site.labellingLocation"), so one side can be out of scope while the other is not.
+       */
+      hiddenWhen: conditionSchema.optional(),
+      /**
+       * Explicit tailoring topics. Without them the topics are the item collections (parameters, equipment, materials, ...)
+       * the unit operation's questions bind to. When declared, every non-presence question of the unit operation names one.
+       */
+      topics: z.array(z.object({ key: z.string().regex(/^[a-z0-9_]+$/), label: z.string(), description: z.string().optional() })).optional(),
       items: z
         .array(
           z.object({
@@ -149,6 +159,8 @@ export const questionSchema = z.object({
   sideLabels: z.object({ source: z.string().optional(), target: z.string().optional() }).optional(),
   showWhen: conditionSchema.optional(),
   tags: z.array(z.string()).optional(),
+  /** Tailoring topic key (see the unit operation's topics). Defaults to the item collection the question binds to. */
+  topic: z.string().optional(),
 });
 export type Question = z.infer<typeof questionSchema>;
 

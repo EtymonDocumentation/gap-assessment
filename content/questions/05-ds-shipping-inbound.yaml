@@ -1,0 +1,132 @@
+# Drug substance shipping TO the fill site (milestone 5.5). Applies to frozen and liquid drug substance.
+# Receipt and thaw (10-ds-receipt-thaw.yaml) follow it and stay frozen-only where they are today.
+# Every question names a tailoring topic (declared on the unit operation in the catalog), so a project can switch a
+# topic off with a reason. The presence question has no topic.
+questions:
+  - id: dsi.presence
+    section: uo.ds_shipping_inbound
+    prompt: Is drug substance shipped to this site from another site?
+    label: Drug substance shipping performed
+    why: Establishes whether the unit operation exists at each site. A site that makes its own drug substance has no inbound transport, so the {{validated|current}} shipper, lane and excursion controls disappear or move with the drug substance.
+    sides: paired
+    binds: uo.ds_shipping_inbound.presence
+    input: { type: yes_no }
+
+  - id: dsi.shipper
+    section: uo.ds_shipping_inbound
+    topic: shipper
+    prompt: Drug substance shipping configuration
+    label: Shipping configuration
+    why: Dry shippers, passive insulated shippers, active containers and refrigerated trucks protect the drug substance by different mechanisms and for different durations. A change of configuration is a change in principle that needs its own qualification.
+    sides: paired
+    binds: uo.ds_shipping_inbound.equip.shipper.operatingPrinciple
+    input: { type: choice, optionsFrom: dsShippingConfig }
+
+  - id: dsi.shipper_qual
+    section: uo.ds_shipping_inbound
+    topic: shipper
+    prompt: Qualification status of the drug substance shipper
+    label: Shipper qualification status
+    why: A shipper is qualified for a defined duration and temperature profile. An RU shipper that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
+    sides: paired
+    sameAsSource: false
+    binds: uo.ds_shipping_inbound.equip.shipper.qualificationStatus
+    input: { type: choice, optionsFrom: equipQualification }
+
+  - id: dsi.transit
+    section: uo.ds_shipping_inbound
+    topic: transit
+    prompt: Maximum transit time of drug substance to the fill site
+    label: Maximum transit time
+    why: The maximum transit time is the duration for which the shipper was qualified and for which the drug substance stability supports transport. A longer planned time is not covered by that qualification.
+    sideLabels: { source: Qualified maximum transit time, target: Planned maximum transit time }
+    sides: paired
+    binds: uo.ds_shipping_inbound.param.max_transit_time.max
+    input: { type: quantity, units: [h, d] }
+
+  - id: dsi.temperature
+    section: uo.ds_shipping_inbound
+    topic: transit
+    prompt: Transport temperature of the drug substance
+    label: Transport temperature
+    why: The transport temperature range is the condition supported by drug substance stability data. A wider range at the RU is not covered by those data.
+    help: SU, the transport temperature and the range supported by drug substance stability data. RU, the planned set point and range.
+    sides: paired
+    binds: uo.ds_shipping_inbound.param.transport_temperature
+    input: { type: parameter, units: ["°C"] }
+
+  - id: dsi.monitoring
+    section: uo.ds_shipping_inbound
+    topic: transit
+    prompt: How is drug substance temperature monitored in transit?
+    label: Transport temperature monitoring
+    why: Data loggers and real-time telemetry give the evidence used to accept a shipment after a deviation. A change in monitoring changes the available evidence and the acceptance decision.
+    sides: paired
+    binds: uo.ds_shipping_inbound.ipc.transport_monitoring.tests
+    input: { type: multi_choice, optionsFrom: shippingMonitoring }
+
+  - id: dsi.lane
+    section: uo.ds_shipping_inbound
+    topic: lane
+    prompt: Drug substance shipping lane (origin and destination)
+    label: Drug substance shipping lane
+    why: Thermal qualification is specific to the lane, because transit time, handling and climate differ by route. A new lane has no qualification evidence yet.
+    sides: paired
+    binds: uo.ds_shipping_inbound.doc.shipping_lane.name
+    input: { type: text, placeholder: e.g. Drug Substance Site West to Site North (fictional) }
+
+  - id: dsi.lane_qualification
+    section: uo.ds_shipping_inbound
+    parent: dsi.lane
+    prompt: Is lane qualification available for the RU shipper and lane (worst-case transit time and seasonal profiles)?
+    label: Drug substance lane qualification (RU)
+    why: Lane qualification shows that the shipper holds the drug substance temperature for the longest planned transit under summer and winter profiles. Without it the lane is not qualified.
+    triggerNote: Asked because the RU shipper or lane differs from the SU.
+    sides: target
+    binds: uo.ds_shipping_inbound.study.lane_qualification.status
+    input: { type: choice, optionsFrom: evidenceAvailability }
+    showWhen:
+      any:
+        - { changed: uo.ds_shipping_inbound.equip.shipper.operatingPrinciple }
+        - { changed: uo.ds_shipping_inbound.doc.shipping_lane.name }
+
+  - id: dsi.custody
+    section: uo.ds_shipping_inbound
+    topic: custody
+    prompt: Which chain-of-custody controls apply to the drug substance shipment?
+    label: Chain of custody controls
+    why: Custody records and seal checks show that the drug substance was not opened, mixed up or left uncontrolled between sites. Removing a control weakens the traceability of the shipment.
+    sides: paired
+    binds: uo.ds_shipping_inbound.ipc.custody.tests
+    input: { type: multi_choice, optionsFrom: custodyControls }
+
+  - id: dsi.excursion
+    section: uo.ds_shipping_inbound
+    topic: custody
+    prompt: Temperature excursion allowance (maximum cumulative time outside the transport temperature range)
+    label: Temperature excursion allowance
+    why: The allowance defines how long drug substance may be outside its range in transit and still be accepted. It is derived from stability data, so a longer allowance needs data to support it.
+    sideLabels: { source: Supported excursion allowance, target: Planned excursion allowance }
+    sides: paired
+    binds: uo.ds_shipping_inbound.param.excursion_allowance.max
+    input: { type: quantity, units: [h, d] }
+
+  - id: dsi.excursion_handling
+    section: uo.ds_shipping_inbound
+    topic: custody
+    prompt: How is a temperature excursion in transit handled?
+    label: Excursion handling
+    why: The decision rule for an excursion decides whether a shipment is used, assessed or rejected. A different rule changes which drug substance reaches the process.
+    sides: paired
+    binds: uo.ds_shipping_inbound.doc.excursion_handling.approach
+    input: { type: choice, optionsFrom: excursionHandling }
+
+  - id: dsi.procedures
+    section: uo.ds_shipping_inbound
+    topic: procedures
+    prompt: Status of RU procedures for receiving drug substance shipments
+    label: RU drug substance shipping procedures
+    why: Shipping, receipt inspection, logger review and excursion-handling procedures must reflect the RU set-up before GMP manufacture.
+    sides: target
+    binds: uo.ds_shipping_inbound.doc.procedures.status
+    input: { type: choice, optionsFrom: procedureStatus }

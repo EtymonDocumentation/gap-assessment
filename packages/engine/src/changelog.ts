@@ -36,6 +36,8 @@ export const ACTION_LABELS: Record<string, string> = {
   custom_item_add: "Custom item added",
   custom_item_rename: "Custom item renamed",
   custom_item_remove: "Custom item removed",
+  tailor_exclude: "Topic switched off (scope)",
+  tailor_include: "Topic switched on (scope)",
   issue_revision: "Revision issued",
   add_comment: "Comment added",
   reply_comment: "Comment reply",
@@ -309,7 +311,15 @@ function toRow(content: ContentBundle, project: Project, ev: ChangeEvent, i: num
       return row;
     }
     default: {
-      if (ev.action.startsWith("custom_")) {
+      if (ev.action.startsWith("tailor_")) {
+        row.subject = ev.detail ?? ev.path ?? "";
+        const uo = ev.path?.split(".")[1];
+        const sec = uo ? content.sections.find((s) => s.kind === "uo" && s.uo === uo) : undefined;
+        withSection(sec?.id, sec?.title);
+        const reason = (o: unknown) => (isObj(o) && typeof o.reason === "string" ? `Excluded: ${o.reason}` : NONE);
+        row.before = reason(ev.before);
+        row.after = reason(ev.after);
+      } else if (ev.action.startsWith("custom_")) {
         row.subject = ev.detail ?? ev.path ?? "";
         const uo = ev.path?.split(".")[1];
         const sec = uo ? content.sections.find((s) => s.kind === "uo" && s.uo === uo) : undefined;

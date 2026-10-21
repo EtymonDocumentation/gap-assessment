@@ -162,6 +162,8 @@ function conditionRefs(c: Condition, out: { refs: string[]; paths: string[]; uos
   }
 }
 
+const COLLECTION_KEYS = new Set(["param", "equip", "mat", "ipc", "study", "doc"]);
+
 function isValidFullRef(ref: string): boolean {
   // "uo.<...>" and "site.<...>" mean the question's own side (see conditions.ts).
   if (ref.startsWith("scope.") || ref.startsWith("uo.") || ref.startsWith("site.")) return isValidContentPath(ref);
@@ -275,6 +277,25 @@ function crossCheck(b: ContentBundle): string[] {
       const refs = { refs: [] as string[], paths: [] as string[], uos: [] as string[] };
       conditionRefs(u.applicableWhen, refs);
       for (const r of refs.refs) if (!r.startsWith("scope.")) p.push(`unit operation ${u.key}: applicableWhen may only use scope.* references`);
+    }
+    if (u.hiddenWhen) {
+      const refs = { refs: [] as string[], paths: [] as string[], uos: [] as string[] };
+      conditionRefs(u.hiddenWhen, refs);
+      for (const r of refs.refs) if (!r.startsWith("site.")) p.push(`unit operation ${u.key}: hiddenWhen may only use site.* references`);
+      if (refs.paths.length || refs.uos.length) p.push(`unit operation ${u.key}: hiddenWhen may only compare site.* answers`);
+    }
+    // Tailoring topics: explicit topics must not shadow an item collection key, and once a unit operation declares topics
+    // every question except the presence question must name one, otherwise a question could not be switched off with its topic.
+    const topicKeys = new Set((u.topics ?? []).map((t) => t.key));
+    if (topicKeys.size !== (u.topics ?? []).length) p.push(`unit operation ${u.key}: duplicate topic key`);
+    for (const k of topicKeys) if (COLLECTION_KEYS.has(k)) p.push(`unit operation ${u.key}: topic "${k}" collides with an item collection name`);
+    for (const q of b.questions) {
+      const sec = b.sectionById.get(q.section);
+      if (sec?.kind !== "uo" || sec.uo !== u.key) continue;
+      if (q.topic && !topicKeys.has(q.topic)) p.push(`question ${q.id}: unknown topic "${q.topic}" for ${u.key}`);
+      if (topicKeys.size && !q.topic && q.binds !== `uo.${u.key}.presence` && !q.parent) {
+        p.push(`question ${q.id}: ${u.key} declares topics, so the question needs a topic`);
+      }
     }
   }
   return p;

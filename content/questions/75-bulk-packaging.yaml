@@ -1,0 +1,164 @@
+# Bulk packaging (milestone 5.5): inspected containers packed into trays, tubs, nests or bags, before labelling.
+# Always part of the process. Transport of the packed bulk is NOT asked here: shipping the bulk away is in
+# Storage and shipping from the fill site, so shipper, lane, temperature monitoring and transit time exist once.
+# Topics (declared in the catalog): pack, hold, checks, procedures.
+questions:
+  - id: bp.presence
+    section: uo.bulk_packaging
+    prompt: Are inspected containers packed into bulk containers at this site?
+    label: Bulk packaging performed
+    why: Establishes whether the unit operation exists at each site. If packing moves to another site, the {{validated|current}} bulk container, hold and count controls move with it.
+    sides: paired
+    binds: uo.bulk_packaging.presence
+    input: { type: yes_no }
+
+  - id: bp.container
+    section: uo.bulk_packaging
+    topic: pack
+    prompt: Bulk container type
+    label: Bulk container
+    why: Trays, tubs, nests and bags protect the containers differently against knocks, light and particles, and decide how many units are handled together. A different bulk container is a design change of the pack.
+    sides: paired
+    binds: uo.bulk_packaging.mat.bulk_container.type
+    input: { type: choice, optionsFrom: bulkContainer }
+
+  - id: bp.units
+    section: uo.bulk_packaging
+    topic: pack
+    prompt: Units per bulk container
+    label: Units per bulk container
+    why: The number of units per bulk container sets the load on the units at the bottom, the hold footprint and the count that is reconciled. A different number needs the pack to be confirmed again.
+    sides: paired
+    binds: uo.bulk_packaging.mat.bulk_container.unitsPerContainer
+    input: { type: quantity, units: [count] }
+
+  - id: bp.seal
+    section: uo.bulk_packaging
+    topic: pack
+    prompt: Seal or closure of the bulk container
+    label: Bulk container seal or closure
+    why: The seal or closure keeps the units clean and shows tampering during hold and transport. A different seal needs to be shown to hold through the same hold and transport conditions.
+    sides: paired
+    binds: uo.bulk_packaging.mat.bulk_container.seal
+    input: { type: choice, optionsFrom: bulkSeal }
+
+  - id: bp.pack_evidence
+    section: uo.bulk_packaging
+    parent: bp.container
+    prompt: Has the RU bulk container and seal been verified for hold and transport (protection, closure and cleanliness)?
+    label: Bulk pack verification (RU)
+    why: Verification shows that the bulk container and seal protect the units through hold and transport. Without it the RU pack is not shown to be fit for its purpose.
+    triggerNote: Asked because the RU bulk container or seal differs from the SU.
+    sides: target
+    binds: uo.bulk_packaging.study.pack_verification.status
+    input: { type: choice, optionsFrom: evidenceAvailability }
+    showWhen:
+      any:
+        - { changed: uo.bulk_packaging.mat.bulk_container.type }
+        - { changed: uo.bulk_packaging.mat.bulk_container.seal }
+
+  - id: bp.identity
+    section: uo.bulk_packaging
+    topic: pack
+    prompt: Which identity labels are put on each bulk container (batch and status labels, not product labels)?
+    label: Bulk container identity labelling
+    why: Bulk containers are not yet labelled as product. Batch and status labels keep batches apart and show that the bulk is on hold until released. Removing one weakens the control against mix-ups.
+    sides: paired
+    binds: uo.bulk_packaging.ipc.bulk_identity.tests
+    input: { type: multi_choice, optionsFrom: bulkIdentity }
+
+  - id: bp.hold_time
+    section: uo.bulk_packaging
+    topic: hold
+    prompt: Maximum hold time of the packed bulk before labelling
+    label: Bulk hold time
+    why: Packed bulk waits for labelling or shipping. The hold time must stay within what stability and the closure of the bulk container have been shown to support.
+    sideLabels: { source: "{{Validated|Demonstrated}} bulk hold time", target: Planned bulk hold time }
+    sides: paired
+    binds: uo.bulk_packaging.param.max_hold_time.max
+    input: { type: quantity, units: [h, d] }
+
+  - id: bp.hold_evidence
+    section: uo.bulk_packaging
+    parent: bp.hold_time
+    prompt: Do available hold data support the RU bulk hold time?
+    label: Bulk hold time evidence (RU)
+    why: A longer bulk hold is acceptable only where hold or stability data cover the temperature and the total time the packed bulk experiences.
+    triggerNote: Asked because the RU bulk hold time is longer than the SU.
+    sides: target
+    binds: uo.bulk_packaging.study.hold_time.status
+    input: { type: choice, optionsFrom: evidenceAvailability }
+    showWhen: { increased: uo.bulk_packaging.param.max_hold_time.max }
+
+  - id: bp.time_out
+    section: uo.bulk_packaging
+    topic: hold
+    prompt: Maximum time out of refrigeration during bulk packing
+    label: Maximum time out of refrigeration (bulk packing)
+    why: Refrigerated product warms while it is packed. The time out of refrigeration must stay within what the stability data support.
+    sideLabels: { source: "{{Validated|Demonstrated}} maximum time out of refrigeration", target: Planned maximum time out of refrigeration }
+    sides: paired
+    binds: uo.bulk_packaging.param.max_time_out_of_refrigeration.max
+    input: { type: quantity, units: [h, min] }
+
+  - id: bp.tor_evidence
+    section: uo.bulk_packaging
+    parent: bp.time_out
+    prompt: Do available stability or in-use data support the RU maximum time out of refrigeration during bulk packing?
+    label: Time-out-of-refrigeration evidence, bulk packing (RU)
+    why: A longer time out of refrigeration is acceptable only where stability data or a documented assessment cover the temperature and total time the product experiences.
+    triggerNote: Asked because the RU maximum time out of refrigeration is longer than the SU.
+    sides: target
+    binds: uo.bulk_packaging.study.tor_stability.status
+    input: { type: choice, optionsFrom: evidenceAvailability }
+    showWhen: { increased: uo.bulk_packaging.param.max_time_out_of_refrigeration.max }
+
+  - id: bp.storage
+    section: uo.bulk_packaging
+    topic: hold
+    prompt: Storage condition of the packed bulk while it waits
+    label: Bulk storage condition
+    why: The bulk storage condition is the one supported by the stability data. A different condition is not covered by those data and needs mapped, qualified storage.
+    sides: paired
+    binds: uo.bulk_packaging.mat.bulk_product.storageCondition
+    input: { type: choice, optionsFrom: storageCondition }
+
+  - id: bp.reconciliation
+    section: uo.bulk_packaging
+    topic: checks
+    prompt: How are inspected and packed units reconciled (counts)?
+    label: Reconciliation of inspected and packed units
+    why: Reconciling the units that passed inspection with the units packed shows that no unit was lost, added or mixed in from another batch. A weaker reconciliation changes the control strategy.
+    sides: paired
+    binds: uo.bulk_packaging.ipc.bulk_reconciliation.description
+    input: { type: text, placeholder: e.g. Count of accepted units against packed units signed by two persons (fictional) }
+
+  - id: bp.integrity
+    section: uo.bulk_packaging
+    topic: checks
+    prompt: Which container integrity checks are done on the packed bulk containers?
+    label: Bulk container integrity check
+    why: Checks of the seal, leak tightness or pack weight show that the bulk container is closed and complete before it leaves the packing area. Removing a check changes the control strategy.
+    sides: paired
+    binds: uo.bulk_packaging.ipc.container_integrity.tests
+    input: { type: multi_choice, optionsFrom: bulkIntegrity }
+
+  - id: bp.check
+    section: uo.bulk_packaging
+    topic: checks
+    prompt: Sampling plan for the visual check of the packed bulk
+    label: Check of the packed bulk (AQL)
+    why: A visual or AQL check of the packed bulk confirms that packing did not damage the units or leave a defect behind. A different plan changes the sample size and the acceptance numbers.
+    sides: paired
+    binds: uo.bulk_packaging.ipc.bulk_aql.frequency
+    input: { type: choice, optionsFrom: aqlPlan }
+
+  - id: bp.procedures
+    section: uo.bulk_packaging
+    topic: procedures
+    prompt: Status of RU procedures for bulk packaging
+    label: RU bulk packaging procedures
+    why: Line clearance, pack-out, identity labelling and reconciliation procedures must reflect the RU packing set-up before GMP manufacture.
+    sides: target
+    binds: uo.bulk_packaging.doc.procedures.status
+    input: { type: choice, optionsFrom: procedureStatus }

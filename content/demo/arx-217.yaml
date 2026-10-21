@@ -12,7 +12,7 @@
 demo:
   id: arx-217
   title: "ARX-217 transfer: Site North Line 2 to Site South Line 4 (fictional demo)"
-  version: 1.4.0
+  version: 1.5.0
 
 responder: { name: Alex Example (fictional), role: MSAT engineer }
 date: "2026-10-01T09:00:00.000Z"
@@ -53,6 +53,9 @@ answers:
   - { q: site.background_grade, side: target, value: D }
   - { q: site.batch_record, side: source, value: paper }
   - { q: site.batch_record, side: target, value: electronic }        # different principle
+  # milestone 5.5: both sides label and package at their own site, so the labelling section applies on both sides
+  - { q: site.labelling_location, side: source, value: this_site }
+  - { q: site.labelling_location, side: target, value: this_site }
 
   # ---------------------------------------------------------------- buffer preparation (dilution = yes)
   # The SU prepares the buffer on site from raw materials; the RU receives it as a ready-to-use liquid. The supply route
@@ -402,6 +405,39 @@ answers:
   - { q: cap.procedures, side: target, value: new_required }
 
 
+  # ---------------------------------------------------------------- drug substance shipping to the fill site (milestone 5.5)
+  # The drug substance is liquid and travels in a passive shipper to the SU and in an active container to the RU.
+  - { q: dsi.presence, side: source, value: yes }
+  - { q: dsi.presence, side: target, value: yes }
+  - { q: dsi.shipper, side: source, value: passive_insulated_liquid }
+  - { q: dsi.shipper, side: target, value: active_container }          # different principle
+  - { q: dsi.shipper_qual, side: source, value: pq_complete }
+  - { q: dsi.shipper_qual, side: target, value: oq_complete }
+  - { q: dsi.transit, side: source, value: { value: 36, unit: h } }
+  - { q: dsi.transit, side: target, value: { value: 36, unit: h } }    # equivalent
+  - q: dsi.temperature                                               # equivalent
+    side: source
+    docs: [DEMO-PPQ-217-01]
+    fields:
+      classification: KPP
+      setPoint: { value: 5, unit: "°C" }
+      nor: { min: { value: 2, unit: "°C" }, max: { value: 8, unit: "°C" } }
+      par: { min: { value: 2, unit: "°C" }, max: { value: 8, unit: "°C" } }
+      rangeBasis: development_report
+  - { q: dsi.temperature, side: target, same: true }
+  - { q: dsi.monitoring, side: source, value: [data_logger] }
+  - { q: dsi.monitoring, side: target, value: [data_logger, real_time] }   # new requirement (real-time telemetry)
+  - { q: dsi.lane, side: source, value: Drug Substance Site West to Site North (fictional) }
+  - { q: dsi.lane, side: target, value: Drug Substance Site West to Site South (fictional) }
+  - { q: dsi.lane_qualification, side: target, value: planned }
+  - { q: dsi.custody, side: source, value: [signed_handover, receipt_inspection] }
+  - { q: dsi.custody, side: target, same: true }
+  - { q: dsi.excursion, side: source, value: { value: 12, unit: h } }
+  - { q: dsi.excursion, side: target, same: true }
+  - { q: dsi.excursion_handling, side: source, value: stability_assessment }
+  - { q: dsi.excursion_handling, side: target, same: true }
+  - { q: dsi.procedures, side: target, value: update_required }
+
   # ---------------------------------------------------------------- drug substance receipt and thaw
   # The drug substance is liquid, so the thaw system, ambient-time, mixing and homogeneity questions stay hidden.
   - { q: rt.presence, side: source, value: yes }
@@ -458,6 +494,34 @@ answers:
   - { q: vi.rate_range, side: target, value: { min: { value: 100, unit: units/min }, max: { value: 250, unit: units/min } } }
   - { q: vi.procedures, side: target, value: new_required }
 
+  # ---------------------------------------------------------------- bulk packaging (milestone 5.5)
+  # The SU packs into trays; the RU packs into a tub with a longer bulk hold than the SU hold study covers.
+  - { q: bp.presence, side: source, value: yes }
+  - { q: bp.presence, side: target, value: yes }
+  - { q: bp.container, side: source, value: tray }
+  - { q: bp.container, side: target, value: nest_in_tub }              # different principle
+  - { q: bp.units, side: source, value: { value: 100, unit: count } }
+  - { q: bp.units, side: target, value: { value: 200, unit: count } }  # scale change
+  - { q: bp.seal, side: source, value: heat_seal }
+  - { q: bp.seal, side: target, same: true }
+  - { q: bp.pack_evidence, side: target, value: planned }
+  - { q: bp.identity, side: source, value: [batch_label, status_label] }
+  - { q: bp.identity, side: target, same: true }
+  - { q: bp.hold_time, side: source, value: { value: 24, unit: h } }
+  - { q: bp.hold_time, side: target, value: { value: 48, unit: h } }   # outside the demonstrated hold time
+  - { q: bp.hold_evidence, side: target, value: planned }
+  - { q: bp.time_out, side: source, value: { value: 2, unit: h } }
+  - { q: bp.time_out, side: target, same: true }
+  - { q: bp.storage, side: source, value: refrigerated }
+  - { q: bp.storage, side: target, same: true }
+  - { q: bp.reconciliation, side: source, value: Count of accepted units against packed units signed by two persons (fictional) }
+  - { q: bp.reconciliation, side: target, same: true }
+  - { q: bp.integrity, side: source, value: [seal_visual, weight_check] }
+  - { q: bp.integrity, side: target, value: [seal_visual] }            # removed element (weight check)
+  - { q: bp.check, side: source, value: iso2859_standard }
+  - { q: bp.check, side: target, same: true }
+  - { q: bp.procedures, side: target, value: new_required }
+
   # ---------------------------------------------------------------- labeling and packaging
   - { q: lp.presence, side: source, value: yes }
   - { q: lp.presence, side: target, value: yes }
@@ -498,6 +562,10 @@ answers:
   # ---------------------------------------------------------------- storage and shipping
   - { q: ss.presence, side: source, value: yes }
   - { q: ss.presence, side: target, value: yes }
+  - { q: ss.shipped_item, side: source, value: labelled_product }
+  - { q: ss.shipped_item, side: target, same: true }
+  - { q: ss.destination, side: source, value: distribution }
+  - { q: ss.destination, side: target, same: true }
   - { q: ss.condition, side: source, value: refrigerated }
   - { q: ss.condition, side: target, same: true }                    # storage unchanged
   - { q: ss.storage_unit, side: source, value: walk_in_cold_room }

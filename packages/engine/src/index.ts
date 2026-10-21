@@ -23,3 +23,4 @@ export * from "./adapters";
 export * from "./guidance";
 export * from "./tbd";
 export * from "./drafting";
+export * from "./tailoring";

@@ -5,7 +5,7 @@
 # flagged. Regulatory wording is fixed: "Requires regulatory affairs assessment."
 ruleset:
   id: gap-core-rules
-  version: 1.4.0
+  version: 1.5.0
 
 rules:
   # ------------------------------------------------------------------ site
@@ -13,7 +13,7 @@ rules:
     version: 1.1.0
     title: Site identification and program stage (informational)
     # The program stage is not compared as a difference. It sets the wording and the validation expectations (see stage.ts).
-    match: [site.name, site.line, site.programStage]
+    match: [site.name, site.line, site.programStage, site.labellingSite]
     comparator: informational
     severity: none
     why: Identification and program stage only; not compared.
@@ -55,6 +55,15 @@ rules:
     severity: medium
     why: A different batch record system changes data capture, review and data integrity controls for the process.
     activities: [csv_assessment, procedure_update, training]
+
+  - id: R-SITE-LABELLING
+    version: 1.0.0
+    title: Where labelling and secondary packaging are done
+    match: [site.labellingLocation]
+    comparator: enum
+    severity: medium
+    why: Labelling and secondary packaging at another site move label control, reconciliation and serialization to a different site and quality agreement. If SU and RU differ, the controls held at one site are not held at the other.
+    activities: [quality_agreement_review, risk_assessment_update, procedure_update]
 
   # ------------------------------------------------------------------ buffer preparation, BBR filtration and PUPSIT (ruleset 1.4.0)
   # These specific rules sit ahead of the generic unit operation presence, limit, component and set rules below.
@@ -1815,6 +1824,176 @@ rules:
     severity: high
     why: The shipping configuration is qualified to hold temperature for a stated duration. A planned transit time beyond it is not qualified.
     activities: [equipment_qualification, equipment_requalification, shipping_validation]
+
+  # ================================================================== milestone 5.5: shipping to the fill site and bulk packaging
+  # Specific rules ahead of the generic fallbacks. Parameters and in-process sets that need nothing special (transport
+  # temperature range, monitoring, custody controls, bulk identity labels, integrity checks) use the generic rules above.
+
+  # ---- drug substance shipping to the fill site
+  - id: R-DSI-CONFIG
+    version: 1.0.0
+    title: Drug substance shipping configuration
+    match: [uo.ds_shipping_inbound.equip.shipper.operatingPrinciple]
+    comparator: enum
+    severity: high
+    why: Dry shippers, passive insulated shippers, active containers and refrigerated trucks protect the drug substance by different mechanisms and for different durations. A change of configuration needs its own qualification.
+    activities: [ds_lane_qualification, risk_assessment_update, procedure_update, training]
+
+  - id: R-DSI-TRANSIT
+    version: 1.0.0
+    title: Drug substance maximum transit time
+    match: [uo.ds_shipping_inbound.param.max_transit_time.max]
+    comparator: upper_limit
+    severity: high
+    why: A transit time longer than the qualified duration of the shipper, or than the drug substance stability supports, is not covered by the lane qualification.
+    activities: [ds_lane_qualification, stability_assessment]
+
+  - id: R-DSI-LANE
+    version: 1.0.0
+    title: Drug substance shipping lane
+    match: [uo.ds_shipping_inbound.doc.shipping_lane.name]
+    comparator: text
+    config:
+      differentAs: new_requirement
+    severity: medium
+    why: Thermal qualification is specific to the lane (route, transit time, handling and climate). A new lane needs qualification evidence of its own.
+    activities: [ds_lane_qualification, risk_assessment_update]
+
+  - id: R-EV-DSI-LANE
+    version: 1.0.0
+    title: Drug substance lane qualification at RU
+    match: [uo.ds_shipping_inbound.study.lane_qualification.status]
+    comparator: evidence
+    config:
+      map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
+    severity: high
+    why: The RU shipper and lane are not qualified for drug substance until lane qualification is available.
+    activities: [ds_lane_qualification]
+
+  - id: R-DSI-EXCURSION
+    version: 1.0.0
+    title: Drug substance temperature excursion allowance
+    match: [uo.ds_shipping_inbound.param.excursion_allowance.max]
+    comparator: upper_limit
+    severity: high
+    regulatory: true
+    why: The excursion allowance comes from drug substance stability data. A longer allowance than the supported one is not covered by those data.
+    activities: [stability_assessment, risk_assessment_update]
+
+  - id: R-DSI-EXCURSION-HANDLING
+    version: 1.0.0
+    title: Drug substance excursion handling
+    match: [uo.ds_shipping_inbound.doc.excursion_handling.approach]
+    comparator: enum
+    severity: medium
+    why: The decision rule for an excursion decides whether a shipment is used, assessed or rejected. A different rule changes which drug substance reaches the process and needs a procedure and training.
+    activities: [risk_assessment_update, procedure_update, training]
+
+  # ---- bulk packaging
+  - id: R-BP-CONTAINER
+    version: 1.0.0
+    title: Bulk container type
+    match: [uo.bulk_packaging.mat.bulk_container.type]
+    comparator: enum
+    severity: medium
+    why: Trays, tubs, nests and bags protect the units differently and decide how many are handled together. A different bulk container is a design change of the pack.
+    activities: [bulk_pack_verification, risk_assessment_update, procedure_update, training]
+
+  - id: R-BP-UNITS
+    version: 1.0.0
+    title: Units per bulk container
+    match: [uo.bulk_packaging.mat.bulk_container.unitsPerContainer]
+    comparator: scale
+    config:
+      ratioSeverity:
+        - { atLeast: 2, severity: medium }
+        - { atLeast: 1, severity: low }
+    severity: low
+    why: More units per bulk container raise the load on the units at the bottom and change the count that is reconciled.
+    activities: [bulk_pack_verification, risk_assessment_update]
+
+  - id: R-BP-SEAL
+    version: 1.0.0
+    title: Bulk container seal or closure
+    match: [uo.bulk_packaging.mat.bulk_container.seal]
+    comparator: enum
+    severity: medium
+    why: The seal or closure keeps the units clean and shows tampering during hold and transport. A different seal must be shown to hold through the same conditions.
+    activities: [bulk_pack_verification, risk_assessment_update, procedure_update]
+
+  - id: R-EV-BP-PACK
+    version: 1.0.0
+    title: Bulk pack verification at RU
+    match: [uo.bulk_packaging.study.pack_verification.status]
+    comparator: evidence
+    config:
+      map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
+    severity: medium
+    why: The RU bulk container and seal have not been verified for hold and transport.
+    activities: [bulk_pack_verification]
+
+  - id: R-EV-BP-HOLD
+    version: 1.0.0
+    title: Bulk hold time evidence at RU
+    match: [uo.bulk_packaging.study.hold_time.status]
+    comparator: evidence
+    config:
+      map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
+    severity: high
+    regulatory: true
+    why: Hold or stability data do not yet support the longer planned bulk hold time.
+    activities: [hold_time_study, stability_assessment]
+
+  - id: R-BP-TIME-OUT
+    version: 1.0.0
+    title: Maximum time out of refrigeration during bulk packing
+    match: [uo.bulk_packaging.param.max_time_out_of_refrigeration.max]
+    comparator: upper_limit
+    severity: high
+    regulatory: true
+    why: Product is warmed while it is packed. A longer time out of refrigeration is not supported unless stability data cover it.
+    activities: [stability_assessment, hold_time_study]
+
+  - id: R-EV-BP-TOR
+    version: 1.0.0
+    title: Time-out-of-refrigeration evidence for bulk packing at RU
+    match: [uo.bulk_packaging.study.tor_stability.status]
+    comparator: evidence
+    config:
+      map: { available: within_validated_range, planned: outside_validated_range, not_planned: outside_validated_range }
+    severity: high
+    regulatory: true
+    why: Stability data do not yet support the longer planned time out of refrigeration during bulk packing.
+    activities: [stability_assessment, hold_time_study]
+
+  - id: R-BP-STORAGE
+    version: 1.0.0
+    title: Bulk storage condition
+    match: [uo.bulk_packaging.mat.bulk_product.storageCondition]
+    comparator: enum
+    severity: high
+    regulatory: true
+    why: The bulk storage condition is the one supported by the stability data. A different condition is not covered by those data.
+    activities: [stability_assessment, temperature_mapping, risk_assessment_update, procedure_update]
+
+  # ---- shipping from the fill site: what is shipped and where to
+  - id: R-SS-SHIPPED
+    version: 1.0.0
+    title: What is shipped from the fill site
+    match: [uo.storage_shipping.mat.shipped_product.form]
+    comparator: enum
+    severity: medium
+    why: Unlabelled bulk and labelled finished product need different protection, identity and traceability in transit. Bulk still has to be labelled, so a different form changes which controls travel with the product.
+    activities: [shipping_validation, quality_agreement_review, risk_assessment_update, procedure_update]
+
+  - id: R-SS-DESTINATION
+    version: 1.0.0
+    title: Shipping destination type
+    match: [uo.storage_shipping.doc.shipping_lane.destination]
+    comparator: enum
+    severity: medium
+    why: Shipping to a labelling and packaging site and shipping to distribution are different lanes with different receivers and controls.
+    activities: [shipping_validation, quality_agreement_review, risk_assessment_update]
 
   # ------------------------------------------------------------------ generic fallbacks (custom and catalog items)
   # Placed last so every specific rule above wins. Custom items use keys starting with x_.

@@ -81,6 +81,8 @@ export function ArtFigure({ art, className, sizes }: { art: string; className: s
 
 /** Unit-operation section id -> picture. Stoppering and lyophilization share one picture (the freeze-dryer loading the partly stoppered vials). */
 const SECTION_ART: Record<string, string> = {
+  // Both shipping steps (to the fill site and away from it) share the shipping picture until a separate one is made.
+  "uo.ds_shipping_inbound": "uo-storage-shipping",
   "uo.ds_receipt_thaw": "uo-ds-receipt-thaw",
   "uo.buffer_prep": "uo-buffer-prep",
   "uo.compounding": "uo-compounding",
@@ -91,6 +93,7 @@ const SECTION_ART: Record<string, string> = {
   "uo.lyophilization": "uo-stoppering-lyo",
   "uo.capping": "uo-capping",
   "uo.visual_inspection": "uo-visual-inspection",
+  "uo.bulk_packaging": "uo-bulk-packaging",
   "uo.labeling_packaging": "uo-labeling-packaging",
   "uo.storage_shipping": "uo-storage-shipping",
 };
@@ -112,7 +115,7 @@ const CLOSEUPS: { art: string; ids: RegExp }[] = [
   { art: "uo-mixing-bag", ids: /^(comp|buf)\.vessel_(type|capacity)$/ },
   { art: "uo-mixing-bag-closeup", ids: /^(comp\.(mixing_coverage|mixing_demonstrated)|buf\.mixing|rt\.mixing)$/ },
   { art: "uo-mixing-tank", ids: /^(comp|buf)\.mixer|^(comp|buf)\.mixing_(speed|time)$/ },
-  // There is no bulk-packaging unit operation; the closest is labeling and packaging, and the pack configuration is the question it fits.
+  // The pack configuration question of labelling and packaging still fits the bulk-packaging picture (trays, tubs and nests).
   { art: "uo-bulk-packaging", ids: /^lp\.pack_config$/ },
 ];
 

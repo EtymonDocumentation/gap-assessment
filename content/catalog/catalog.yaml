@@ -6,9 +6,31 @@
 # not answered yet, uses the second. Quote any value that holds a marker when it sits inside a { } mapping.
 catalog:
   id: fill-finish-catalog
-  version: 1.4.0
+  version: 1.5.0
 
 unitOperations:
+  - key: ds_shipping_inbound
+    label: Drug substance shipping to the fill site
+    sequence: 5
+    milestone: 5
+    description: Transport of drug substance (frozen or liquid) from the drug substance site to the fill site, before receipt. Always part of the process; receipt and thaw follow it.
+    topics:
+      - { key: shipper, label: Shipper and configuration, description: "The shipper, its configuration and its qualification status." }
+      - { key: transit, label: Transit time and temperature control, description: "Maximum transit time, transport temperature range and how the temperature is monitored." }
+      - { key: lane, label: Lane qualification, description: "The shipping lane and the evidence that it is qualified." }
+      - { key: custody, label: Chain of custody and excursions, description: "Custody records, the excursion allowance and how an excursion is handled." }
+      - { key: procedures, label: Procedures, description: "Shipping and receipt procedures for the fill site." }
+    items:
+      - { coll: param, key: max_transit_time, label: Maximum transit time }
+      - { coll: param, key: transport_temperature, label: Transport temperature }
+      - { coll: param, key: excursion_allowance, label: Temperature excursion allowance }
+      - { coll: equip, key: shipper, label: Drug substance shipping configuration }
+      - { coll: ipc, key: transport_monitoring, label: Transport temperature monitoring }
+      - { coll: ipc, key: custody, label: Chain of custody controls }
+      - { coll: study, key: lane_qualification, label: Drug substance lane qualification }
+      - { coll: doc, key: shipping_lane, label: Drug substance shipping lane }
+      - { coll: doc, key: excursion_handling, label: Excursion handling }
+      - { coll: doc, key: procedures, label: Drug substance shipping procedures }
   - key: ds_receipt_thaw
     label: Drug substance receipt and thaw
     sequence: 10
@@ -205,11 +227,35 @@ unitOperations:
       - { coll: study, key: avi_qualification, label: Automated inspection qualification }
       - { coll: study, key: inspector_qualification, label: Inspector qualification }
       - { coll: doc, key: procedures, label: Inspection procedures }
+  - key: bulk_packaging
+    label: Bulk packaging
+    sequence: 75
+    milestone: 5
+    description: Packing of the inspected containers into trays, tubs, nests or bags for hold and transport to labelling and packaging. Always part of the process, because unpackaged product cannot be labelled.
+    topics:
+      - { key: pack, label: Pack and container, description: "Bulk container type, units per container, seal or closure and bulk identity labels." }
+      - { key: hold, label: Hold and temperature, description: "Bulk hold time, time out of refrigeration during packing and bulk storage." }
+      - { key: checks, label: Counts and checks, description: "Reconciliation of inspected and packed units, container integrity and the check of the packed bulk." }
+      - { key: procedures, label: Procedures, description: "Bulk packaging procedures." }
+    items:
+      - { coll: param, key: max_hold_time, label: Bulk hold time }
+      - { coll: param, key: max_time_out_of_refrigeration, label: Maximum time out of refrigeration during bulk packing }
+      - { coll: mat, key: bulk_container, label: Bulk container }
+      - { coll: mat, key: bulk_product, label: Packed bulk product }
+      - { coll: ipc, key: bulk_identity, label: Bulk container identity labelling }
+      - { coll: ipc, key: bulk_reconciliation, label: Reconciliation of inspected and packed units }
+      - { coll: ipc, key: container_integrity, label: Bulk container integrity check }
+      - { coll: ipc, key: bulk_aql, label: Check of the packed bulk }
+      - { coll: study, key: pack_verification, label: Bulk pack verification }
+      - { coll: study, key: hold_time, label: Bulk hold time evidence }
+      - { coll: study, key: tor_stability, label: Time-out-of-refrigeration evidence (bulk packing) }
+      - { coll: doc, key: procedures, label: Bulk packaging procedures }
   - key: labeling_packaging
     label: Labeling and packaging
     sequence: 80
     milestone: 2
-    description: Labeling, serialization and secondary packaging.
+    description: Labeling, serialization and secondary packaging. Hidden for a side when labelling and secondary packaging are done at another site (site.labellingLocation).
+    hiddenWhen: { eq: [site.labellingLocation, another_site] }
     items:
       - { coll: param, key: labeling_speed, label: Labeling speed }
       - { coll: param, key: max_time_out_of_refrigeration, label: Maximum time out of refrigeration during packaging }
@@ -222,11 +268,17 @@ unitOperations:
       - { coll: study, key: tor_stability, label: Time-out-of-refrigeration evidence }
       - { coll: doc, key: procedures, label: Labeling and packaging procedures }
   - key: storage_shipping
-    label: Storage and shipping
+    label: Storage and shipping from the fill site
     sequence: 90
     milestone: 2
-    description: Finished-product storage and distribution, including shipping validation.
+    description: Storage of the filled product at the fill site and shipping it away, either as unlabelled bulk to a labelling and packaging site or as labelled finished product to distribution. Holds the transport topics (shipper, lane qualification, temperature monitoring, transit time) for both cases.
+    topics:
+      - { key: storage, label: Storage at the fill site, description: "Storage condition, storage equipment and monitoring." }
+      - { key: shipped, label: What is shipped and where to, description: "Unlabelled bulk or labelled finished product, and the destination." }
+      - { key: transport, label: Transport and lane qualification, description: "Shipper, lane, transit time, excursions, temperature monitoring and the evidence that the lane is qualified." }
+      - { key: procedures, label: Procedures, description: "Storage and shipping procedures." }
     items:
+      - { coll: mat, key: shipped_product, label: What is shipped }
       - { coll: param, key: max_transit_time, label: Maximum transit time }
       - { coll: param, key: excursion_allowance, label: Temperature excursion allowance }
       - { coll: equip, key: storage_unit, label: Storage equipment }
@@ -308,8 +360,56 @@ fieldLabels:
   carryover: Carryover limits
   dataSource: Source of data
   riskOutcome: Risk assessment outcome
+  # ---- milestone 5.5
+  unitsPerContainer: Units per container
+  seal: Seal or closure
+  destination: Destination
+  form: Form shipped
+  labellingLocation: Labelling and secondary packaging location
+  labellingSite: Site that does the labelling
 
 optionSets:
+  labellingLocation:
+    - { value: this_site, label: At this (filling) site }
+    - { value: another_site, label: At another site (outside this assessment) }
+  dsShippingConfig:
+    - { value: dry_shipper_frozen, label: Dry-vapour or dry-ice shipper (frozen) }
+    - { value: passive_insulated_liquid, label: Passive insulated shipper with coolant (liquid) }
+    - { value: active_container, label: Active temperature-controlled container }
+    - { value: refrigerated_truck, label: Refrigerated truck or reefer }
+  custodyControls:
+    - { value: signed_handover, label: Signed handover at each transfer }
+    - { value: electronic_tracking, label: Electronic tracking of the shipment }
+    - { value: tamper_seal, label: Tamper-evident seal checked on receipt }
+    - { value: receipt_inspection, label: Documented inspection on receipt }
+  excursionHandling:
+    - { value: stability_assessment, label: Documented assessment against stability data before use }
+    - { value: qa_case_by_case, label: Case-by-case quality decision without predefined limits }
+    - { value: reject_on_excursion, label: Reject any shipment with an excursion }
+  bulkContainer:
+    - { value: tray, label: Tray }
+    - { value: tub, label: Tub or box }
+    - { value: nest_in_tub, label: Nest in a tub }
+    - { value: bag, label: Bag }
+  bulkSeal:
+    - { value: heat_seal, label: Heat seal }
+    - { value: lid_closure, label: Lid or snap closure }
+    - { value: tamper_evident, label: Tamper-evident closure }
+    - { value: bag_closure, label: Bag closure (tie or clip) }
+  bulkIdentity:
+    - { value: batch_label, label: Batch identity label on every bulk container }
+    - { value: status_label, label: "Status label (for example quarantine until release)" }
+    - { value: second_person_check, label: Second-person check of the label }
+  bulkIntegrity:
+    - { value: seal_visual, label: Visual check of the seal or closure }
+    - { value: leak_test, label: Leak test of the bulk container }
+    - { value: weight_check, label: Weight check against the expected pack weight }
+  shippedItem:
+    - { value: unlabelled_bulk, label: Unlabelled bulk (to a labelling and packaging site) }
+    - { value: labelled_product, label: Labelled finished product }
+  shipDestination:
+    - { value: labelling_site, label: Labelling and packaging site }
+    - { value: distribution, label: Distribution }
   # The program stage of one side. The values and labels are tied to packages/engine/src/stage.ts by a test.
   programStage:
     - { value: commercial, label: "Commercial (process validated)" }
@@ -742,6 +842,9 @@ activities:
   - { key: stopper_position_study, label: Stopper position capability study, description: "Show on the RU filler that the plunger stopper placement method holds the planned position range (position capability, headspace or air bubble, and fit with the plunger rod, autoinjector or device).", studies: [stopper_position_study] }
   - { key: pupsit_assembly_qualification, label: PUPSIT assembly qualification, description: "Show that the PUPSIT assembly and procedure work as intended and do not compromise the sterile boundary (closed assembly or aseptic connection, flush volume and product effect).", studies: [pupsit_assembly] }
   - { key: filter_integrity_validation, label: Filter integrity test validation, description: "Establish and validate the product-wet integrity test specification and procedure for the RU filter and tester.", studies: [integrity_validation] }
+  - { key: ds_lane_qualification, label: Drug substance lane qualification, description: "Qualify the shipper and lane that bring drug substance to the fill site (temperature over the longest planned transit, seasonal profiles).", studies: [lane_qualification] }
+  - { key: bulk_pack_verification, label: Bulk pack verification, description: "Show that the bulk container, seal and pack configuration protect the filled product through hold and transport, and that units are counted and identified correctly.", studies: [pack_verification] }
+  - { key: quality_agreement_review, label: Quality agreement review, description: "Confirm in the quality or technical agreement who is responsible for labelling and secondary packaging at the other site, and what is handed over." }
 
 categories:
   - { key: equivalent, label: Equivalent, description: SU and RU are the same. }

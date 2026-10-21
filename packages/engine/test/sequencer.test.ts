@@ -47,12 +47,16 @@ describe("empty project", () => {
       "site.line@target",
       "site.stage@source",
       "site.stage@target",
+      "site.labelling_location@source",
+      "site.labelling_location@target",
       "site.barrier@source",
       "site.barrier@target",
       "site.background_grade@source",
       "site.background_grade@target",
       "site.batch_record@source",
       "site.batch_record@target",
+      "dsi.presence@source",
+      "dsi.presence@target",
       "rt.presence@source",
       "rt.presence@target",
       "comp.presence@source",
@@ -65,6 +69,8 @@ describe("empty project", () => {
       "fill.presence@target",
       "vi.presence@source",
       "vi.presence@target",
+      "bp.presence@source",
+      "bp.presence@target",
       "lp.presence@source",
       "lp.presence@target",
       "ss.presence@source",
@@ -427,19 +433,21 @@ describe("progress", () => {
     expect(scoping.bySide.shared).toEqual({ total: 9, answered: 2 });
     expect(scoping.bySide.source).toEqual({ total: 0, answered: 0 });
     const site = prog.find((s) => s.section.id === "site")!;
-    expect(site.total).toBe(12);
-    expect(site.bySide.source).toEqual({ total: 6, answered: 1 });
-    expect(site.bySide.target).toEqual({ total: 6, answered: 0 });
+    expect(site.total).toBe(14);
+    expect(site.bySide.source).toEqual({ total: 7, answered: 1 });
+    expect(site.bySide.target).toEqual({ total: 7, answered: 0 });
     // Capping, stoppering and lyophilization are not applicable on an empty project (vial presentation and lyophilized product are not yet known).
     expect(prog.map((s) => s.section.id)).toEqual([
       "scoping",
       "site",
+      "uo.ds_shipping_inbound",
       "uo.ds_receipt_thaw",
       "uo.compounding",
       "uo.bbr_filtration",
       "uo.sterile_filtration",
       "uo.aseptic_filling",
       "uo.visual_inspection",
+      "uo.bulk_packaging",
       "uo.labeling_packaging",
       "uo.storage_shipping",
     ]);

@@ -38,7 +38,7 @@ describe("projects", () => {
     const list = await c.get("/api/projects");
     expect(list.status).toBe(200);
     expect(list.json.projects.map((p: { title: string }) => p.title)).toEqual(["Second", "First"]);
-    expect(list.json.projects[0]).toEqual({ id: second.json.id, title: "Second", updatedAt: second.json.updatedAt, revision: 1, schemaVersion: "1.7.0" });
+    expect(list.json.projects[0]).toEqual({ id: second.json.id, title: "Second", updatedAt: second.json.updatedAt, revision: 1, schemaVersion: "1.8.0" });
 
     const got = await c.get(`/api/projects/${first.json.id}`);
     expect(got.json).toEqual({

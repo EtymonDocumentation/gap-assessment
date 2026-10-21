@@ -80,6 +80,14 @@ M1 covers these unit operations (the list has grown since M1, see the later mile
 - **Issuing a revision.** Issuing a revision **for review** while TBD values are open shows a warning naming the count; proceeding records `tbdCount` on the revision. Draft revisions get no warning, but the count is recorded as well.
 - **Migration.** Files from 1.6.0 and older load unchanged: all new fields are optional, no old answer is rewritten.
 
+### Process coverage and tailoring (schema 1.8.0)
+
+- **Two new always-present unit operations.** *Drug substance shipping to the fill site* (`ds_shipping_inbound`, frozen and liquid drug substance; receipt and thaw stay frozen-only) sits before receipt and thaw. *Bulk packaging* (`bulk_packaging`) sits between visual inspection and labeling and packaging. Neither has a scoping switch: the presence question is asked on every project. Both have catalog items, paired SU/RU questions, rules and validation activities (`content/questions/05-ds-shipping-inbound.yaml`, `75-bulk-packaging.yaml`).
+- **Shipping away from the fill site** stays in *Storage and shipping from the fill site*. Shipper, lane, qualification, monitoring and transit time exist once there (bulk packaging asks none of them). New questions there ask what is shipped (unlabelled bulk or labelled product) and where to (labelling site or distribution).
+- **Where labelling is done.** A site question per side: at this site, at another site, or unknown. No default. "Another site" hides the labeling and packaging questions for that side, asks which site, and the document scope states that it is out of scope and where it happens. Unknown or unanswered keeps the questions visible and stays an open item, so nothing is dropped silently.
+- **Tailor this section.** Each unit-operation section groups its questions into topics (declared per unit operation in the catalog with `topics`, and `topic` on each question; otherwise derived from parameters, equipment, materials, controls, studies and documents). **Tailor this section** (on the card and the section review) switches topics off with a **required reason**. The default is every topic included. A switched-off topic is hidden and leaves compare, the gap register, open items and the validation plan. Values already recorded are kept as inactive entries and come back when the topic is switched on again. Both changes are change-logged and every excluded topic is listed with its reason in the document scope (Markdown, HTML and Word). The presence question and follow-up questions have no topic of their own.
+- **Migration.** Files from 1.7.0 load with nothing switched off and the labelling location unanswered. Catalog, questions and rules are 1.5.0.
+
 ## Ground rules the tool enforces
 
 | Rule | How |
@@ -209,6 +217,10 @@ Every page has light and dark themes. The layout works from phone width up. Acce
 - labelled controls
 - keyboard-reachable scroll regions
 - colour never used alone
+
+**Planned, not built yet.** Product-owner decisions recorded for later:
+- Final assembly and packaging into the final pack or medical device.
+- Final labelling at another site (beyond stating where it happens).
 
 **Planned AI extension points, none of them built yet.** These need no model changes:
 - `IngestionAdapter` (in `packages/engine/src/adapters.ts`) would return *proposed* entries from a document. A person must accept each one before it enters the model.
@@ -353,7 +365,7 @@ The build uses relative asset paths (`base: "./"`) and a hash router, so it work
   - the Change log page with filters and CSV export
   - verification status for every entry in the document, a *Verification status* section, the source register and change log summary appendices (lettered A and B at the time; now B and C after the Gap details appendix), and verification columns in the gap register CSV
   - project schema 1.2.0 (older files migrate on load)
-- **Project schema 1.7.0** (TBD, citation locations, the Answering from bar; older files migrate on load, see the drafting section above). Schema 1.6.0 (dilution, buffer preparation, BBR filtration, PUPSIT, plunger stopper position):
+- **Project schema 1.8.0** (process coverage and tailoring, see the section above). Schema 1.7.0 (TBD, citation locations, the Answering from bar; older files migrate on load, see the drafting section above). Schema 1.6.0 (dilution, buffer preparation, BBR filtration, PUPSIT, plunger stopper position):
   - older files migrate on load. The old BBR filter answer (`uo.sterile_filtration.mat.prefilter.*`) moves to `uo.bbr_filtration.*` with its sources, verification, recorder and revision; gap overlays, reviewer comment anchors, change log paths and the stored answer ids follow
   - an old integrity answer that included PUPSIT becomes PUPSIT = performed (same sources, recorder and date) and PUPSIT leaves the tests; an old answer without PUPSIT leaves the PUPSIT question unanswered, so it shows as an open item. No justification is ever invented
   - `scope.dilution` starts unanswered; the Buffer preparation unit and the plunger stopper position questions start empty

@@ -6,6 +6,7 @@ import { CATEGORIES } from "./content-schema";
 import type { Assessment, Gap } from "./compare";
 import { riskRanked } from "./compare";
 import { formatQuestionSide, formatResolved, questionLabel, STATUS_TEXT } from "./format";
+import { scopeExclusions } from "./tailoring";
 import { instanceRefs, type QuestionInstance } from "./sequencer";
 import { citationNames, entryLabel, locationText, sourceLabel } from "./labels";
 import { cellVerification, verificationSummary } from "./verification";
@@ -115,6 +116,16 @@ function siteText(project: Project, side: "source" | "target"): string {
   return line.status === "established" ? `${n}, ${String(line.value)}` : n;
 }
 
+/** Where labelling and secondary packaging happen for one side, in words for the Scope section. */
+export function labellingScopeText(content: ContentBundle, project: Project, side: "source" | "target"): string {
+  const loc = resolveEntry(project, `${side}.site.labellingLocation`);
+  if (loc.status !== "established") return `${STAGE_NOT_ESTABLISHED}: where labelling and secondary packaging are done is an open item.`;
+  if (loc.value === "this_site") return "done at this site and assessed in the labelling and packaging section.";
+  const where = resolveEntry(project, `${side}.site.labellingSite`);
+  const name = where.status === "established" ? ` (${String(where.value)})` : "";
+  return `out of scope: labelling and secondary packaging are done at another site${name}; they are not assessed here.`;
+}
+
 function fill(template: string, vars: Record<string, string>): string {
   return template.replace(/\{(\w+)\}/g, (m, k: string) => vars[k] ?? m);
 }
@@ -189,10 +200,29 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
   add("purpose", "Purpose", [{ type: "paragraph", text: fill(t.purpose, vars) }]);
 
   const scoping = a.instances.filter((i) => i.side === "shared");
-  add("scope", "Scope", [
+  // What is out of scope is stated in the document itself (GMP: a reader must not assume labelling or a topic was assessed
+  // when it was not). Both blocks sit inside the Scope section so section numbers stay stable.
+  const exclusions = scopeExclusions(content, project);
+  const scopeBlocks: Block[] = [
     { type: "paragraph", text: fill(t.scope, vars) },
     { type: "table", columns: ["Scoping attribute", "Response", "Source", "Verification"], rows: sideRows(content, project, scoping) },
-  ]);
+    { type: "heading", text: "Labelling and secondary packaging" },
+    { type: "list", items: (["source", "target"] as const).map((side) => `${side === "source" ? "SU" : "RU"}: ${labellingScopeText(content, project, side)}`) },
+    { type: "heading", text: "Scope exclusions" },
+  ];
+  if (exclusions.length) {
+    scopeBlocks.push(
+      { type: "paragraph", text: "The following topics were switched off for this assessment. They are not compared and not part of the gap table or the validation plan. Values recorded for them are kept in the project and return when the topic is switched on again." },
+      {
+        type: "table",
+        columns: ["Section", "Topic left out", "Reason", "Recorded by", "Date"],
+        rows: exclusions.map((e) => [e.uoLabel, e.topicLabel, e.reason, e.by, shortDate(e.at)]),
+      },
+    );
+  } else {
+    scopeBlocks.push({ type: "paragraph", text: "No topics were left out of this assessment." });
+  }
+  add("scope", "Scope", scopeBlocks);
 
   const sectionBlocks = (side: "source" | "target"): Block[] => {
     const blocks: Block[] = [];

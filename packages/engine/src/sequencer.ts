@@ -2,6 +2,7 @@ import { allEntries, fullRef, getEntry, type Entry, type Project, type Side } fr
 import { evaluate } from "./conditions";
 import { boundPaths, type ContentBundle } from "./content";
 import type { Question, Section } from "./content-schema";
+import { excludedSet, topicOf } from "./tailoring";
 
 export type InstanceSide = Side | "shared";
 
@@ -26,7 +27,10 @@ export function sidesOf(q: Question): InstanceSide[] {
 export function uoApplicable(content: ContentBundle, project: Project, uo: string): boolean {
   const def = content.catalog.unitOperations.find((u) => u.key === uo);
   if (!def) return false;
-  return def.applicableWhen ? evaluate(def.applicableWhen, { project, side: "shared" }) : true;
+  if (def.applicableWhen && !evaluate(def.applicableWhen, { project, side: "shared" })) return false;
+  // Out of scope on BOTH sides (e.g. labelling is done at another site for SU and RU): the section is not shown at all.
+  if (def.hiddenWhen && (["source", "target"] as const).every((side) => evaluate(def.hiddenWhen!, { project, side }))) return false;
+  return true;
 }
 
 export function isPresenceQuestion(q: Question, section: Section): boolean {
@@ -53,11 +57,14 @@ export function treeOrder(content: ContentBundle, sectionId: string): { q: Quest
 export class Visibility {
   private cache = new Map<string, boolean>();
   private applicable = new Map<string, boolean>();
+  private excluded: Set<string>;
 
   constructor(
     private content: ContentBundle,
     private project: Project,
-  ) {}
+  ) {
+    this.excluded = excludedSet(project);
+  }
 
   uoApplicable(uo: string): boolean {
     let v = this.applicable.get(uo);
@@ -91,6 +98,16 @@ export class Visibility {
     const section = this.content.sectionById.get(q.section);
     if (!section || !this.sectionApplicable(section)) return false;
     const ctx = { project: this.project, side };
+    if (section.kind === "uo") {
+      // Scope of one side only (the step is done at another site for that side): nothing of it is asked, compared or planned.
+      const hidden = this.content.catalog.unitOperations.find((u) => u.key === section.uo)?.hiddenWhen;
+      if (hidden && (side === "source" || side === "target") && evaluate(hidden, ctx)) return false;
+      // Tailoring: a topic the project switched off. Values stay in the project as inactive entries.
+      if (this.excluded.size) {
+        const topic = topicOf(this.content, q);
+        if (topic && this.excluded.has(`${section.uo}/${topic}`)) return false;
+      }
+    }
     if (section.kind === "uo" && !isPresenceQuestion(q, section)) {
       if (!evaluate({ uoPresent: section.uo! }, ctx)) return false;
     }

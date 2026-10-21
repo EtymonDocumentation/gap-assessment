@@ -21,7 +21,7 @@ function oldFile() {
 describe("migration 1.6.0 -> 1.7.0", () => {
   it("reads the old file and stamps the current schema version", () => {
     expect(parseProject(oldFile()).schemaVersion).toBe(SCHEMA_VERSION);
-    expect(SCHEMA_VERSION).toBe("1.7.0");
+    expect(SCHEMA_VERSION).toBe("1.8.0");
   });
 
   it("leaves an old 'unknown' as unknown; it is not turned into a TBD", () => {

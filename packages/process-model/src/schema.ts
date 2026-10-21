@@ -134,6 +134,28 @@ export const customSchema = z
     }
   });
 
+// A scope exclusion without a reason is not allowed: the document must be able to justify every omission.
+export const tailoringSchema = z
+  .object({
+    excluded: z.array(
+      z.object({
+        uo: z.string().min(1),
+        topic: z.string().min(1),
+        reason: z.string().trim().min(1, "an excluded topic needs a reason"),
+        by: z.string(),
+        at: z.string(),
+      }),
+    ),
+  })
+  .superRefine((t, ctx) => {
+    const seen = new Set<string>();
+    for (const e of t.excluded) {
+      const id = `${e.uo}/${e.topic}`;
+      if (seen.has(id)) ctx.addIssue({ code: "custom", message: `Topic ${id} is excluded twice` });
+      seen.add(id);
+    }
+  });
+
 const templateRecord = z.object({
   mode: z.enum(["builtin", "their_look", "mapped", "tags"]),
   name: z.string().trim().min(1),
@@ -228,6 +250,7 @@ export const projectSchema = z.object({
   scope: fields,
   processes: z.object({ source: processModel("source"), target: processModel("target") }),
   custom: customSchema,
+  tailoring: tailoringSchema,
   document: documentStateSchema,
   sources: z.array(
     z.object({
@@ -372,6 +395,16 @@ const MIGRATIONS: { from: string; to: string; migrate: (raw: Record<string, unkn
     from: "1.6.0",
     to: "1.7.0",
     migrate: (raw) => ({ ...raw, schemaVersion: "1.7.0" }),
+  },
+  // 1.7.0 -> 1.8.0: tailoring (project.tailoring.excluded: topics switched off with a reason), two new unit operations
+  // (DS shipping to the fill site, bulk packaging) and the labelling location question (site.labellingLocation). The new
+  // unit operations and the location answer are ordinary entries that simply do not exist in an old file, so they stay
+  // unanswered and visible as open items. Nothing is excluded and no location is assumed: a default would hide the
+  // labelling questions without anyone having decided that.
+  {
+    from: "1.7.0",
+    to: "1.8.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.8.0", tailoring: raw.tailoring ?? { excluded: [] } }),
   },
 ];
 

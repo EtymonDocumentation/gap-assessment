@@ -32,6 +32,7 @@ import { SIDE_SHORT, sideDescription, type UnitSide } from "../lib";
 import { href, navigate } from "../router";
 import { useAssessment, useContent, useStageWording, useStore } from "../store";
 import { AnsweringBar, type CiteNotice } from "./AnsweringBar";
+import { TailorButton } from "./TailorDialog";
 import { QuestionInput, formTouched, initialForm, initialTbd, sameForm, toAnswer, toTbdAnswer, type FormState, type TbdMeta } from "./question-inputs";
 
 /** One answer to record: the instance, what was entered, and any cited documents. */
@@ -648,6 +649,7 @@ function QuestionCard({
         <span className="small muted">{current.section.title}</span>
         {sectionArt(current.section.id) && <ArtFigure art={sectionArt(current.section.id)!} className="art-uo" sizes="96px" />}
         {isCustomQuestion(q) && <span className="tag tag-custom">Custom item</span>}
+        <TailorButton sectionId={current.section.id} className="btn ghost small tailor-link" />
         {single && answeredHere(single) && <span className="tag">Answered</span>}
       </div>
       {current.depth > 0 && q.triggerNote && <p className="trigger">↳ {q.triggerNote}</p>}
@@ -1081,6 +1083,7 @@ function SectionSummary({ sectionId, instances, thenKey }: { sectionId: string; 
             {confirmed ? `Confirmed by ${confirmed.by} — confirm again` : "Confirm section"}
           </button>
         )}
+        {!all && <TailorButton sectionId={sectionId} />}
         {!all && clearableCount > 0 && (
           <button
             className="btn ghost"

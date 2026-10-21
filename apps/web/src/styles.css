@@ -2028,3 +2028,37 @@ details.report h4 {
     display: none;
   }
 }
+
+/* Tailor dialog (milestone 5.5): topics that can be left out of a unit-operation section, each with a required reason. */
+.tailor-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.tailor-item {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--surface);
+  display: grid;
+  gap: 6px;
+}
+.tailor-item.is-off {
+  border-style: dashed;
+  border-color: var(--text);
+}
+.tailor-item .block {
+  display: block;
+}
+.tailor-reason {
+  margin: 0;
+}
+.tailor-link {
+  margin-left: auto;
+}
+.tailor-item textarea[aria-invalid="true"] {
+  border-color: var(--danger, var(--text));
+  border-width: 2px;
+}
