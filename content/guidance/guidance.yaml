@@ -1,0 +1,2285 @@
+# Guidance library: official links to regulations and guidance for sterile injectable fill-finish, tech transfer and
+# post-approval changes. Official agency domains only (see content/test/guidance.test.ts).
+# Edit by hand after reviewing the agency page; run `npm run check:guidance-links` first, then bump `checked`.
+version: 1.0.0
+checked: "2026-10-20"
+items:
+  - id: us-21cfr210
+    jurisdiction: US
+    agency: "US FDA"
+    title: "21 CFR Part 210 - Current Good Manufacturing Practice in Manufacturing, Processing, Packing, or Holding of Drugs; General"
+    reference: "21 CFR 210"
+    type: regulation
+    status: final
+    date: "current (eCFR)"
+    language: en
+    access: free
+    url: "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-210"
+    topics: [gmp]
+    verified: ok
+    notes: "eCFR is updated continuously."
+  - id: us-21cfr211
+    jurisdiction: US
+    agency: "US FDA"
+    title: "21 CFR Part 211 - Current Good Manufacturing Practice for Finished Pharmaceuticals"
+    reference: "21 CFR 211"
+    type: regulation
+    status: final
+    date: "current (eCFR)"
+    language: en
+    access: free
+    url: "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-C/part-211"
+    topics: [gmp, aseptic, validation, visual-inspection]
+    verified: ok
+    notes: "Includes 211.113 (microbiological contamination), 211.166 (stability), 211.192 (investigations)."
+  - id: us-21cfr600
+    jurisdiction: US
+    agency: "US FDA"
+    title: "21 CFR Part 600 - Biological Products: General"
+    reference: "21 CFR 600"
+    type: regulation
+    status: final
+    date: "current (eCFR)"
+    language: en
+    access: free
+    url: "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-F/part-600"
+    topics: [gmp, biologics]
+    verified: ok
+    notes: ""
+  - id: us-21cfr601
+    jurisdiction: US
+    agency: "US FDA"
+    title: "21 CFR Part 601 - Licensing (BLA)"
+    reference: "21 CFR 601"
+    type: regulation
+    status: final
+    date: "current (eCFR)"
+    language: en
+    access: free
+    url: "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-F/part-601"
+    topics: [biologics, changes]
+    verified: ok
+    notes: ""
+  - id: us-21cfr601-12
+    jurisdiction: US
+    agency: "US FDA"
+    title: "21 CFR 601.12 - Changes to an approved application (biologics)"
+    reference: "21 CFR 601.12"
+    type: regulation
+    status: final
+    date: "current (eCFR)"
+    language: en
+    access: free
+    url: "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-F/part-601/subpart-C/section-601.12"
+    topics: [changes, biologics, tech-transfer]
+    verified: ok
+    notes: "Reporting categories: PAS, CBE-30, CBE-0, annual report."
+  - id: us-21cfr610
+    jurisdiction: US
+    agency: "US FDA"
+    title: "21 CFR Part 610 - General Biological Products Standards"
+    reference: "21 CFR 610"
+    type: regulation
+    status: final
+    date: "current (eCFR)"
+    language: en
+    access: free
+    url: "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-F/part-610"
+    topics: [biologics, gmp, aseptic]
+    verified: ok
+    notes: "Includes 610.12 sterility."
+  - id: us-21cfr314-70
+    jurisdiction: US
+    agency: "US FDA"
+    title: "21 CFR 314.70 - Supplements and other changes to an approved NDA"
+    reference: "21 CFR 314.70"
+    type: regulation
+    status: final
+    date: "current (eCFR)"
+    language: en
+    access: free
+    url: "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-D/part-314/subpart-B/section-314.70"
+    topics: [changes, tech-transfer]
+    verified: ok
+    notes: "ANDA changes are in 314.97."
+  - id: us-21cfr11
+    jurisdiction: US
+    agency: "US FDA"
+    title: "21 CFR Part 11 - Electronic Records; Electronic Signatures"
+    reference: "21 CFR 11"
+    type: regulation
+    status: final
+    date: "current (eCFR)"
+    language: en
+    access: free
+    url: "https://www.ecfr.gov/current/title-21/chapter-I/subchapter-A/part-11"
+    topics: [data-integrity]
+    verified: ok
+    notes: ""
+  - id: us-aseptic-2004
+    jurisdiction: US
+    agency: "US FDA"
+    title: "Sterile Drug Products Produced by Aseptic Processing - Current Good Manufacturing Practice"
+    reference: "FDA guidance for industry"
+    type: guidance
+    status: final
+    date: "2004-09"
+    language: en
+    access: free
+    url: "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/sterile-drug-products-produced-aseptic-processing-current-good-manufacturing-practice"
+    pdf: "https://www.fda.gov/media/71026/download"
+    topics: [aseptic, gmp, sterile-filtration, validation, qualification, visual-inspection]
+    verified: ok
+    notes: "No 2024-2026 revision found. Confirm date on the landing page before citing."
+  - id: us-pv-2011
+    jurisdiction: US
+    agency: "US FDA"
+    title: "Process Validation: General Principles and Practices"
+    reference: "FDA guidance for industry"
+    type: guidance
+    status: final
+    date: "2011-01"
+    language: en
+    access: free
+    url: "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/process-validation-general-principles-and-practices"
+    topics: [validation, qualification, tech-transfer]
+    verified: ok
+    notes: ""
+  - id: us-changes-nda-anda
+    jurisdiction: US
+    agency: "US FDA"
+    title: "Changes to an Approved NDA or ANDA"
+    reference: "FDA guidance for industry"
+    type: guidance
+    status: final
+    date: "2004-04"
+    language: en
+    access: free
+    url: "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/changes-approved-nda-or-anda"
+    topics: [changes, tech-transfer]
+    verified: ok
+    notes: "confirm: date on landing page."
+  - id: us-cmc-changes-bio
+    jurisdiction: US
+    agency: "US FDA"
+    title: "Chemistry, Manufacturing, and Controls Changes to an Approved Application: Certain Biological Products"
+    reference: "FDA guidance for industry"
+    type: guidance
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/chemistry-manufacturing-and-controls-changes-approved-application-certain-biological-products"
+    topics: [changes, biologics, tech-transfer]
+    verified: ok
+    notes: "confirm: status and issue date (not captured)."
+  - id: us-comparability-protocols
+    jurisdiction: US
+    agency: "US FDA"
+    title: "Comparability Protocols for Postapproval Changes to the Chemistry, Manufacturing, and Controls Information in an NDA, ANDA, or BLA"
+    reference: "FDA guidance for industry"
+    type: guidance
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/comparability-protocols-postapproval-changes-chemistry-manufacturing-and-controls-information-nda"
+    topics: [changes, tech-transfer, biologics]
+    verified: ok
+    notes: "confirm: status and issue date (not captured)."
+  - id: us-biosimilar-pmc-qa
+    jurisdiction: US
+    agency: "US FDA"
+    title: "Postapproval Manufacturing Changes to Biosimilar and Interchangeable Biosimilar Products: Questions and Answers"
+    reference: "FDA guidance for industry (PDF media/180206)"
+    type: q&a
+    status: final
+    date: "2026-10"
+    language: en
+    access: free
+    url: "https://www.fda.gov/media/180206/download"
+    topics: [changes, biologics, tech-transfer]
+    verified: ok
+    notes: "PDF only; no landing-page URL found (guessed slugs 404). Cover read with pdftotext. confirm: exact issue date."
+  - id: us-cci-lieu-sterility
+    jurisdiction: US
+    agency: "US FDA"
+    title: "Container and Closure System Integrity Testing in Lieu of Sterility Testing as a Component of the Stability Protocol for Sterile Products"
+    reference: "FDA guidance for industry"
+    type: guidance
+    status: final
+    date: "2008-02"
+    language: en
+    access: free
+    url: "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/container-and-closure-system-integrity-testing-lieu-sterility-testing-component-stability-protocol"
+    topics: [cci, aseptic, stability]
+    verified: ok
+    notes: "confirm: date on landing page."
+  - id: us-visible-particulates
+    jurisdiction: US
+    agency: "US FDA"
+    title: "Inspection of Injectable Products for Visible Particulates"
+    reference: "FDA guidance for industry"
+    type: guidance
+    status: draft
+    date: ""
+    language: en
+    access: free
+    url: "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/inspection-injectable-products-visible-particulates"
+    topics: [visual-inspection, aseptic]
+    verified: ok
+    notes: "confirm: draft or final, and date."
+  - id: us-data-integrity-qa
+    jurisdiction: US
+    agency: "US FDA"
+    title: "Data Integrity and Compliance With Drug CGMP: Questions and Answers"
+    reference: "FDA guidance for industry"
+    type: q&a
+    status: final
+    date: "2018-12"
+    language: en
+    access: free
+    url: "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/data-integrity-and-compliance-drug-cgmp-questions-and-answers"
+    topics: [data-integrity, gmp]
+    verified: ok
+    notes: "confirm: date on landing page."
+  - id: us-qsa-2006
+    jurisdiction: US
+    agency: "US FDA"
+    title: "Quality Systems Approach to Pharmaceutical Current Good Manufacturing Practice Regulations"
+    reference: "FDA guidance for industry"
+    type: guidance
+    status: final
+    date: "2006-09"
+    language: en
+    access: free
+    url: "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/quality-systems-approach-pharmaceutical-current-good-manufacturing-practice-regulations"
+    topics: [gmp, risk]
+    verified: ok
+    notes: "confirm: date on landing page."
+  - id: us-pat-2004
+    jurisdiction: US
+    agency: "US FDA"
+    title: "PAT - A Framework for Innovative Pharmaceutical Development, Manufacturing, and Quality Assurance"
+    reference: "FDA guidance for industry"
+    type: guidance
+    status: final
+    date: "2004-09"
+    language: en
+    access: free
+    url: "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/pat-framework-innovative-pharmaceutical-development-manufacturing-and-quality-assurance"
+    topics: [validation, risk]
+    verified: ok
+    notes: "confirm: date on landing page."
+  - id: us-quality-agreements
+    jurisdiction: US
+    agency: "US FDA"
+    title: "Contract Manufacturing Arrangements for Drugs: Quality Agreements"
+    reference: "FDA guidance for industry"
+    type: guidance
+    status: final
+    date: "2016-11"
+    language: en
+    access: free
+    url: "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/contract-manufacturing-arrangements-drugs-quality-agreements"
+    topics: [gmp, tech-transfer]
+    verified: ok
+    notes: "confirm: date on landing page."
+  - id: us-ccs-1999
+    jurisdiction: US
+    agency: "US FDA"
+    title: "Container Closure Systems for Packaging Human Drugs and Biologics"
+    reference: "FDA guidance for industry"
+    type: guidance
+    status: final
+    date: "1999-05"
+    language: en
+    access: free
+    url: "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/container-closure-systems-packaging-human-drugs-and-biologics"
+    topics: [cci, stability]
+    verified: ok
+    notes: "confirm: date on landing page."
+  - id: us-cgmp-qa-211
+    jurisdiction: US
+    agency: "US FDA"
+    title: "Questions and Answers on Current Good Manufacturing Practice Regulations: Production and Process Controls"
+    reference: "FDA Q&A page"
+    type: q&a
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.fda.gov/drugs/guidances-drugs/questions-and-answers-current-good-manufacturing-practice-regulations-production-and-process"
+    topics: [gmp, validation]
+    verified: ok
+    notes: ""
+  - id: us-lyophilization-guide
+    jurisdiction: US
+    agency: "US FDA"
+    title: "Lyophilization of Parenterals (7/93) - FDA Inspection Guide"
+    reference: "FDA Inspection Guide"
+    type: guidance
+    status: final
+    date: "1993-07"
+    language: en
+    access: free
+    url: "https://www.fda.gov/inspections-compliance-enforcement-and-criminal-investigations/inspection-guides/lyophilization-parenteral-793"
+    topics: [lyophilization, aseptic]
+    verified: ok
+    notes: "Old inspection guide, still on the FDA site."
+  - id: us-amt-designation
+    jurisdiction: US
+    agency: "US FDA"
+    title: "Advanced Manufacturing Technologies Designation Program"
+    reference: "FDA guidance for industry"
+    type: guidance
+    status: final
+    date: "2024-12"
+    language: en
+    access: free
+    url: "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/advanced-manufacturing-technologies-designation-program"
+    topics: [changes, tech-transfer]
+    verified: ok
+    notes: "confirm: date on landing page."
+  - id: us-cgmp-regs-page
+    jurisdiction: US
+    agency: "US FDA"
+    title: "Current Good Manufacturing Practice (CGMP) Regulations - FDA hub page"
+    reference: "FDA hub"
+    type: index
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.fda.gov/drugs/pharmaceutical-quality-resources/current-good-manufacturing-practice-cgmp-regulations"
+    topics: [index, gmp]
+    verified: ok
+    notes: ""
+  - id: us-guidance-search
+    jurisdiction: US
+    agency: "US FDA"
+    title: "Search for FDA Guidance Documents"
+    reference: "FDA guidance search page"
+    type: index
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.fda.gov/regulatory-information/search-fda-guidance-documents"
+    topics: [index]
+    verified: ok
+    notes: ""
+  - id: us-ich-q1a
+    jurisdiction: US
+    agency: "US FDA"
+    title: "Q1A(R2) Stability Testing of New Drug Substances and Products (FDA page)"
+    reference: "ICH Q1A(R2)"
+    type: guidance
+    status: final
+    date: "2003-11"
+    language: en
+    access: free
+    url: "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/q1ar2-stability-testing-new-drug-substances-and-products"
+    topics: [stability]
+    verified: ok
+    notes: "confirm: date."
+  - id: us-ich-q1-draft
+    jurisdiction: US
+    agency: "US FDA"
+    title: "Q1 Stability Testing of Drug Substances and Drug Products (draft, consolidated)"
+    reference: "ICH Q1 Step 2"
+    type: guidance
+    status: draft
+    date: "2025"
+    language: en
+    access: free
+    url: "https://www.fda.gov/media/187161/download"
+    topics: [stability, biologics]
+    verified: ok
+    notes: "FDA draft PDF. confirm: date and whether a final FDA version exists."
+  - id: us-ich-q5e
+    jurisdiction: US
+    agency: "US FDA"
+    title: "Q5E Comparability of Biotechnological/Biological Products Subject to Changes in Their Manufacturing Process (FDA page)"
+    reference: "ICH Q5E"
+    type: guidance
+    status: final
+    date: "2005-06"
+    language: en
+    access: free
+    url: "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/q5e-comparability-biotechnologicalbiological-products-subject-changes-their-manufacturing-process"
+    topics: [changes, biologics, tech-transfer]
+    verified: ok
+    notes: "confirm: date."
+  - id: us-ich-q8
+    jurisdiction: US
+    agency: "US FDA"
+    title: "Q8(R2) Pharmaceutical Development (FDA page)"
+    reference: "ICH Q8(R2)"
+    type: guidance
+    status: final
+    date: "2009-11"
+    language: en
+    access: free
+    url: "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/q8r2-pharmaceutical-development"
+    topics: [risk, validation]
+    verified: ok
+    notes: "confirm: date."
+  - id: us-ich-q9
+    jurisdiction: US
+    agency: "US FDA"
+    title: "Q9(R1) Quality Risk Management (FDA page)"
+    reference: "ICH Q9(R1)"
+    type: guidance
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/q9r1-quality-risk-management"
+    topics: [risk]
+    verified: ok
+    notes: "confirm: FDA issue date."
+  - id: us-ich-q10
+    jurisdiction: US
+    agency: "US FDA"
+    title: "Q10 Pharmaceutical Quality System (FDA page)"
+    reference: "ICH Q10"
+    type: guidance
+    status: final
+    date: "2009-04"
+    language: en
+    access: free
+    url: "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/q10-pharmaceutical-quality-system"
+    topics: [gmp, risk, changes]
+    verified: ok
+    notes: "confirm: date."
+  - id: us-ich-q11
+    jurisdiction: US
+    agency: "US FDA"
+    title: "Q11 Development and Manufacture of Drug Substances (FDA page)"
+    reference: "ICH Q11"
+    type: guidance
+    status: final
+    date: "2012-11"
+    language: en
+    access: free
+    url: "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/q11-development-and-manufacture-drug-substances"
+    topics: [biologics, validation]
+    verified: ok
+    notes: "confirm: date."
+  - id: us-ich-q12
+    jurisdiction: US
+    agency: "US FDA"
+    title: "Q12 Technical and Regulatory Considerations for Pharmaceutical Product Lifecycle Management (PDF)"
+    reference: "ICH Q12"
+    type: guidance
+    status: final
+    date: "2021-05"
+    language: en
+    access: free
+    url: "https://www.fda.gov/media/148476/download"
+    pdf: "https://www.fda.gov/media/148477/download"
+    topics: [changes, tech-transfer, risk]
+    verified: ok
+    notes: "No FDA landing page found (guessed slugs 404). The pdf field is the annexes. confirm: date."
+  - id: us-ich-q12-impl
+    jurisdiction: US
+    agency: "US FDA"
+    title: "ICH Q12: Implementation Considerations for FDA-Regulated Products"
+    reference: "FDA guidance for industry"
+    type: guidance
+    status: draft
+    date: ""
+    language: en
+    access: free
+    url: "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/ich-q12-implementation-considerations-fda-regulated-products"
+    topics: [changes, risk]
+    verified: ok
+    notes: "confirm: draft or final, and date."
+  - id: us-ich-q14
+    jurisdiction: US
+    agency: "US FDA"
+    title: "Q14 Analytical Procedure Development (FDA page)"
+    reference: "ICH Q14"
+    type: guidance
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/q14-analytical-procedure-development"
+    topics: [validation, changes]
+    verified: ok
+    notes: "confirm: FDA issue date."
+  - id: ich-q1a-r2
+    jurisdiction: ICH
+    agency: "ICH"
+    title: "Q1A(R2) Stability Testing of New Drug Substances and Products"
+    reference: "Q1A(R2)"
+    type: guideline
+    status: final
+    date: "2003-02"
+    language: en
+    access: free
+    url: "https://database.ich.org/sites/default/files/Q1A%28R2%29%20Guideline.pdf"
+    topics: [stability]
+    verified: ok
+    notes: ""
+  - id: ich-q1e
+    jurisdiction: ICH
+    agency: "ICH"
+    title: "Q1E Evaluation of Stability Data"
+    reference: "Q1E"
+    type: guideline
+    status: final
+    date: "2003-02"
+    language: en
+    access: free
+    url: "https://database.ich.org/sites/default/files/Q1E_Guideline.pdf"
+    topics: [stability]
+    verified: ok
+    notes: ""
+  - id: ich-q1-draft
+    jurisdiction: ICH
+    agency: "ICH"
+    title: "Q1 Guideline on Stability Testing of Drug Substances and Drug Products (consolidated draft)"
+    reference: "Q1 Step 2b"
+    type: guideline
+    status: draft
+    date: "2025-04-11"
+    language: en
+    access: free
+    url: "https://database.ich.org/sites/default/files/ICH_Q1EWG_Step2_Draft_Guideline_2025_0411.pdf"
+    topics: [stability, biologics]
+    verified: ok
+    notes: "Consolidates Q1A-F and Q5C. Step 4 timing not confirmed (ICH work plan: https://database.ich.org/sites/default/files/ICH52_Q1_EWG_WorkPlan_2026_0318.pdf). confirm: check ich.org for final status."
+  - id: ich-q5a-r2
+    jurisdiction: ICH
+    agency: "ICH"
+    title: "Q5A(R2) Viral Safety Evaluation of Biotechnology Products Derived from Cell Lines of Human or Animal Origin"
+    reference: "Q5A(R2)"
+    type: guideline
+    status: final
+    date: "2023-11"
+    language: en
+    access: free
+    url: "https://database.ich.org/sites/default/files/ICH_Q5A(R2)_Guideline_2023_1101.pdf"
+    topics: [biologics]
+    verified: ok
+    notes: "Date taken from the file name."
+  - id: ich-q5c
+    jurisdiction: ICH
+    agency: "ICH"
+    title: "Q5C Quality of Biotechnological Products: Stability Testing of Biotechnological/Biological Products"
+    reference: "Q5C"
+    type: guideline
+    status: final
+    date: "1995-11"
+    language: en
+    access: free
+    url: "https://database.ich.org/sites/default/files/Q5C%20Guideline.pdf"
+    topics: [stability, biologics]
+    verified: ok
+    notes: "To be folded into the consolidated Q1 draft."
+  - id: ich-q5e
+    jurisdiction: ICH
+    agency: "ICH"
+    title: "Q5E Comparability of Biotechnological/Biological Products Subject to Changes in Their Manufacturing Process"
+    reference: "Q5E"
+    type: guideline
+    status: final
+    date: "2004-11"
+    language: en
+    access: free
+    url: "https://database.ich.org/sites/default/files/Q5E%20Guideline.pdf"
+    topics: [changes, biologics, tech-transfer]
+    verified: ok
+    notes: ""
+  - id: ich-q7
+    jurisdiction: ICH
+    agency: "ICH"
+    title: "Q7 Good Manufacturing Practice Guide for Active Pharmaceutical Ingredients"
+    reference: "Q7"
+    type: guideline
+    status: final
+    date: "2000-11"
+    language: en
+    access: free
+    url: "https://database.ich.org/sites/default/files/Q7%20Guideline.pdf"
+    topics: [gmp]
+    verified: ok
+    notes: ""
+  - id: ich-q8-r2
+    jurisdiction: ICH
+    agency: "ICH"
+    title: "Q8(R2) Pharmaceutical Development"
+    reference: "Q8(R2)"
+    type: guideline
+    status: final
+    date: "2009-08"
+    language: en
+    access: free
+    url: "https://database.ich.org/sites/default/files/Q8_R2_Guideline.pdf"
+    topics: [risk, validation]
+    verified: ok
+    notes: ""
+  - id: ich-q9-r1
+    jurisdiction: ICH
+    agency: "ICH"
+    title: "Q9(R1) Quality Risk Management"
+    reference: "Q9(R1)"
+    type: guideline
+    status: final
+    date: "2022-12-19"
+    language: en
+    access: free
+    url: "https://database.ich.org/sites/default/files/ICH_Q9%28R1%29_Guideline_Step4_2022_1219.pdf"
+    topics: [risk]
+    verified: ok
+    notes: "Date taken from the file name."
+  - id: ich-q10
+    jurisdiction: ICH
+    agency: "ICH"
+    title: "Q10 Pharmaceutical Quality System"
+    reference: "Q10"
+    type: guideline
+    status: final
+    date: "2008-06"
+    language: en
+    access: free
+    url: "https://database.ich.org/sites/default/files/Q10%20Guideline.pdf"
+    topics: [gmp, risk, changes]
+    verified: ok
+    notes: ""
+  - id: ich-q11
+    jurisdiction: ICH
+    agency: "ICH"
+    title: "Q11 Development and Manufacture of Drug Substances"
+    reference: "Q11"
+    type: guideline
+    status: final
+    date: "2012-05"
+    language: en
+    access: free
+    url: "https://database.ich.org/sites/default/files/Q11%20Guideline.pdf"
+    topics: [biologics, validation]
+    verified: ok
+    notes: ""
+  - id: ich-q12
+    jurisdiction: ICH
+    agency: "ICH"
+    title: "Q12 Technical and Regulatory Considerations for Pharmaceutical Product Lifecycle Management"
+    reference: "Q12"
+    type: guideline
+    status: final
+    date: "2019-11-19"
+    language: en
+    access: free
+    url: "https://database.ich.org/sites/default/files/Q12_Guideline_Step4_2019_1119.pdf"
+    pdf: "https://database.ich.org/sites/default/files/Q12_Annexes_Step4_2019_1119.pdf"
+    topics: [changes, tech-transfer, risk]
+    verified: ok
+    notes: "The pdf field is the Annexes (Step 4). Date taken from the file name."
+  - id: ich-q13
+    jurisdiction: ICH
+    agency: "ICH"
+    title: "Q13 Continuous Manufacturing of Drug Substances and Drug Products"
+    reference: "Q13"
+    type: guideline
+    status: final
+    date: "2022-11-16"
+    language: en
+    access: free
+    url: "https://database.ich.org/sites/default/files/ICH_Q13_Step4_Guideline_2022_1116.pdf"
+    topics: [validation, tech-transfer]
+    verified: ok
+    notes: "Date taken from the file name."
+  - id: ich-q14
+    jurisdiction: ICH
+    agency: "ICH"
+    title: "Q14 Analytical Procedure Development"
+    reference: "Q14"
+    type: guideline
+    status: final
+    date: "2023-11-16"
+    language: en
+    access: free
+    url: "https://database.ich.org/sites/default/files/ICH_Q14_Guideline_2023_1116.pdf"
+    topics: [validation, changes]
+    verified: ok
+    notes: "Date taken from the file name."
+  - id: ich-q2-r2
+    jurisdiction: ICH
+    agency: "ICH"
+    title: "Q2(R2) Validation of Analytical Procedures"
+    reference: "Q2(R2)"
+    type: guideline
+    status: final
+    date: "2023-11-30"
+    language: en
+    access: free
+    url: "https://database.ich.org/sites/default/files/ICH_Q2(R2)_Guideline_2023_1130.pdf"
+    topics: [validation]
+    verified: ok
+    notes: "Date taken from the file name."
+  - id: ich-quality-index
+    jurisdiction: ICH
+    agency: "ICH"
+    title: "ICH Quality Guidelines (index)"
+    reference: "ich.org"
+    type: index
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.ich.org/page/quality-guidelines"
+    topics: [index]
+    verified: ok
+    notes: "Page is JavaScript-rendered; opens fine in a browser."
+  - id: ich-all-index
+    jurisdiction: ICH
+    agency: "ICH"
+    title: "ICH Guidelines (all topics, index)"
+    reference: "ich.org"
+    type: index
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.ich.org/page/ich-guidelines"
+    topics: [index]
+    verified: ok
+    notes: ""
+  - id: eu-vol4-index
+    jurisdiction: EU
+    agency: "European Commission (EudraLex)"
+    title: "EudraLex Volume 4 - GMP Guidelines (index)"
+    reference: "EudraLex Vol 4"
+    type: index
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://health.ec.europa.eu/medicinal-products/eudralex/eudralex-volume-4_en"
+    topics: [index, gmp]
+    verified: ok
+    notes: ""
+  - id: eu-part1-ch1
+    jurisdiction: EU
+    agency: "European Commission (EudraLex)"
+    title: "EU GMP Part I, Chapter 1 - Pharmaceutical Quality System"
+    reference: "EudraLex Vol 4 Part I Ch 1"
+    type: guideline
+    status: final
+    date: "2013-01"
+    language: en
+    access: free
+    url: "https://health.ec.europa.eu/document/download/e458c423-f564-4171-b344-030a461c567f_en?filename=vol4-chap1_2013-01_en.pdf"
+    topics: [gmp, risk, changes]
+    verified: ok
+    notes: "Revision draft in consultation (see eu-ch1-draft). Date from file name."
+  - id: eu-ch1-draft
+    jurisdiction: EU
+    agency: "European Commission (EudraLex)"
+    title: "EU GMP Chapter 1 - Pharmaceutical Quality System (revised draft, consultation)"
+    reference: "EudraLex Vol 4 Ch 1 draft"
+    type: guideline
+    status: draft
+    date: "2025-09-03"
+    language: en
+    access: free
+    url: "https://health.ec.europa.eu/consultations/stakeholders-consultation-eudralex-volume-4-good-manufacturing-practice-guidelines-chapter-1_en"
+    topics: [gmp, risk]
+    verified: ok
+    notes: "Consultation 3 Sep to 3 Dec 2025. PIC/S parallel draft: https://picscheme.org/docview/10051"
+  - id: eu-part1-ch3
+    jurisdiction: EU
+    agency: "European Commission (EudraLex)"
+    title: "EU GMP Part I, Chapter 3 - Premises and Equipment"
+    reference: "EudraLex Vol 4 Part I Ch 3"
+    type: guideline
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://health.ec.europa.eu/document/download/18d76565-137b-41d2-a602-794527f708c1_en?filename=chapter_3.pdf"
+    topics: [gmp, qualification]
+    verified: ok
+    notes: ""
+  - id: eu-part1-ch4
+    jurisdiction: EU
+    agency: "European Commission (EudraLex)"
+    title: "EU GMP Part I, Chapter 4 - Documentation"
+    reference: "EudraLex Vol 4 Part I Ch 4"
+    type: guideline
+    status: final
+    date: "2011-01"
+    language: en
+    access: free
+    url: "https://health.ec.europa.eu/document/download/104b3eb8-81a7-4858-9419-cb06562adb66_en?filename=chapter4_01-2011_en.pdf"
+    topics: [gmp, data-integrity]
+    verified: ok
+    notes: "Revision draft in consultation (see eu-ch4-draft)."
+  - id: eu-part1-ch5
+    jurisdiction: EU
+    agency: "European Commission (EudraLex)"
+    title: "EU GMP Part I, Chapter 5 - Production"
+    reference: "EudraLex Vol 4 Part I Ch 5"
+    type: guideline
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://health.ec.europa.eu/document/download/4a1fdb4f-6f6f-49c4-b264-8056e5bbe078_en?filename=chapter_5.pdf"
+    topics: [gmp]
+    verified: ok
+    notes: ""
+  - id: eu-part1-ch7
+    jurisdiction: EU
+    agency: "European Commission (EudraLex)"
+    title: "EU GMP Part I, Chapter 7 - Outsourced Activities"
+    reference: "EudraLex Vol 4 Part I Ch 7"
+    type: guideline
+    status: final
+    date: "2012-06"
+    language: en
+    access: free
+    url: "https://health.ec.europa.eu/document/download/58b5106a-cf6f-4352-9dca-1caf5d27d97e_en?filename=vol4-chap7_2012-06_en.pdf"
+    topics: [gmp, tech-transfer]
+    verified: ok
+    notes: ""
+  - id: eu-part2
+    jurisdiction: EU
+    agency: "European Commission (EudraLex)"
+    title: "EU GMP Part II - Basic Requirements for Active Substances used as Starting Materials"
+    reference: "EudraLex Vol 4 Part II"
+    type: guideline
+    status: final
+    date: "2014-08-13"
+    language: en
+    access: free
+    url: "https://health.ec.europa.eu/document/download/bd537ccf-9271-4230-bca1-2d8cb655fd83_en?filename=2014-08_gmp_part1.pdf"
+    topics: [gmp]
+    verified: ok
+    notes: "Date from the cover page."
+  - id: eu-annex1
+    jurisdiction: EU
+    agency: "European Commission (EudraLex)"
+    title: "EU GMP Annex 1 - Manufacture of Sterile Medicinal Products"
+    reference: "EudraLex Vol 4 Annex 1"
+    type: annex
+    status: final
+    date: "2022-08-25"
+    language: en
+    access: free
+    url: "https://health.ec.europa.eu/document/download/e05af55b-38e9-42bf-8495-194bbf0b9262_en?filename=20220825_gmp-an1_en_0.pdf"
+    pdf: "https://health.ec.europa.eu/system/files/2022-08/20220825_gmp-an1_en_0.pdf"
+    topics: [aseptic, sterile-filtration, pupsit, cci, qualification, gmp, risk, visual-inspection, lyophilization, single-use]
+    verified: ok
+    notes: "In operation 25 Aug 2023 (lyophilizer loading provision 25 Aug 2024). Second link is the older system/files copy."
+  - id: eu-annex2
+    jurisdiction: EU
+    agency: "European Commission (EudraLex)"
+    title: "EU GMP Annex 2 - Manufacture of Biological Active Substances and Medicinal Products for Human Use"
+    reference: "EudraLex Vol 4 Annex 2"
+    type: annex
+    status: final
+    date: "2018"
+    language: en
+    access: free
+    url: "https://health.ec.europa.eu/document/download/380fdf24-8a1e-4f65-809b-e08d990d5f9e_en?filename=2018_annex2_en.pdf"
+    topics: [biologics, gmp]
+    verified: ok
+    notes: "Year from file name."
+  - id: eu-annex11
+    jurisdiction: EU
+    agency: "European Commission (EudraLex)"
+    title: "EU GMP Annex 11 - Computerised Systems"
+    reference: "EudraLex Vol 4 Annex 11"
+    type: annex
+    status: final
+    date: "2011-01"
+    language: en
+    access: free
+    url: "https://health.ec.europa.eu/document/download/8d305550-dd22-4dad-8463-2ddb4a1345f1_en?filename=annex11_01-2011_en.pdf"
+    pdf: "https://health.ec.europa.eu/system/files/2016-11/annex11_01-2011_en_0.pdf"
+    topics: [data-integrity, gmp]
+    verified: ok
+    notes: "Revision draft in consultation (see eu-annex11-draft)."
+  - id: eu-annex15
+    jurisdiction: EU
+    agency: "European Commission (EudraLex)"
+    title: "EU GMP Annex 15 - Qualification and Validation"
+    reference: "EudraLex Vol 4 Annex 15"
+    type: annex
+    status: final
+    date: "2015-10"
+    language: en
+    access: free
+    url: "https://health.ec.europa.eu/document/download/7c6c5b3c-4902-46ea-b7ab-7608682fb68d_en?filename=2015-10_annex15.pdf"
+    pdf: "https://health.ec.europa.eu/system/files/2016-11/2015-10_annex15_0.pdf"
+    topics: [qualification, validation, tech-transfer, changes]
+    verified: ok
+    notes: "PIC/S concept paper (2026) to revise the equivalent annex: https://picscheme.org/docview/11269"
+  - id: eu-annex16
+    jurisdiction: EU
+    agency: "European Commission (EudraLex)"
+    title: "EU GMP Annex 16 - Certification by a Qualified Person and Batch Release"
+    reference: "EudraLex Vol 4 Annex 16"
+    type: annex
+    status: final
+    date: "2015-10"
+    language: en
+    access: free
+    url: "https://health.ec.europa.eu/document/download/20c41532-33d5-4635-ae80-8735d3d09fe0_en?filename=v4_an16_201510_en.pdf"
+    topics: [gmp]
+    verified: ok
+    notes: ""
+  - id: eu-annex17
+    jurisdiction: EU
+    agency: "European Commission (EudraLex)"
+    title: "EU GMP Annex 17 - Parametric Release"
+    reference: "EudraLex Vol 4 Annex 17"
+    type: annex
+    status: final
+    date: "2018"
+    language: en
+    access: free
+    url: "https://health.ec.europa.eu/document/download/78d31fc9-760f-4fe9-9ccd-95595ef48a71_en?filename=2018_annex17_en.pdf"
+    topics: [gmp, validation]
+    verified: ok
+    notes: "Year from file name."
+  - id: eu-annex19-rev
+    jurisdiction: EU
+    agency: "European Commission (EudraLex)"
+    title: "EU GMP Annex 19 - Reference and Retention Samples (revised)"
+    reference: "C(2026) 4135 final"
+    type: annex
+    status: final
+    date: "2026-06-23"
+    language: en
+    access: free
+    url: "https://health.ec.europa.eu/document/download/831d392e-bcc4-4552-8011-2b724b8655de_en?filename=c2026-4135_en_act_en.pdf"
+    topics: [gmp]
+    verified: ok
+    notes: "Commission act dated 23 Jun 2026. Earlier research notes say it applies from 24 Sep 2026; confirm."
+  - id: eu-ch4-draft
+    jurisdiction: EU
+    agency: "European Commission (EudraLex)"
+    title: "EU GMP Chapter 4 - Documentation (revised draft, consultation)"
+    reference: "EudraLex Vol 4 Ch 4 draft"
+    type: guideline
+    status: draft
+    date: "2025-07-07"
+    language: en
+    access: free
+    url: "https://health.ec.europa.eu/document/download/fa336a6e-753b-46fc-b53b-9178bacd8878_en?filename=mp_vol4_chap4_consultation_guideline_en.pdf"
+    topics: [gmp, data-integrity]
+    verified: ok
+    notes: "Consultation 7 Jul to 7 Oct 2025. Consultation page: https://health.ec.europa.eu/consultations/stakeholders-consultation-eudralex-volume-4-good-manufacturing-practice-guidelines-chapter-4-annex_en"
+  - id: eu-annex11-draft
+    jurisdiction: EU
+    agency: "European Commission (EudraLex)"
+    title: "EU GMP Annex 11 - Computerised Systems (revised draft, consultation)"
+    reference: "EudraLex Vol 4 Annex 11 draft"
+    type: annex
+    status: draft
+    date: "2025-07-07"
+    language: en
+    access: free
+    url: "https://health.ec.europa.eu/document/download/40231f18-e564-4043-94de-c031f813d38b_en?filename=mp_vol4_chap4_annex11_consultation_guideline_en.pdf"
+    topics: [data-integrity, gmp]
+    verified: ok
+    notes: "Consultation 7 Jul to 7 Oct 2025."
+  - id: eu-annex22-draft
+    jurisdiction: EU
+    agency: "European Commission (EudraLex)"
+    title: "EU GMP Annex 22 - Artificial Intelligence (new draft, consultation)"
+    reference: "EudraLex Vol 4 Annex 22 draft"
+    type: annex
+    status: draft
+    date: "2025-07-07"
+    language: en
+    access: free
+    url: "https://health.ec.europa.eu/document/download/5f38a92d-bb8e-4264-8898-ea076e926db6_en?filename=mp_vol4_chap4_annex22_consultation_guideline_en.pdf"
+    topics: [data-integrity, gmp]
+    verified: ok
+    notes: "Consultation 7 Jul to 7 Oct 2025."
+  - id: eu-glossary
+    jurisdiction: EU
+    agency: "European Commission (EudraLex)"
+    title: "EU GMP Glossary"
+    reference: "EudraLex Vol 4 Glossary"
+    type: guideline
+    status: final
+    date: "2008-04"
+    language: en
+    access: free
+    url: "https://health.ec.europa.eu/document/download/e99884fd-2b52-470b-9453-10346ddb6cbd_en?filename=glos4en200408_en.pdf"
+    topics: [gmp]
+    verified: ok
+    notes: "Year from file name (glos4en200408). confirm: still the current glossary."
+  - id: eu-sterilisation-ema
+    jurisdiction: EU
+    agency: "EMA"
+    title: "Guideline on the Sterilisation of the Medicinal Product, Active Substance, Excipient and Primary Container"
+    reference: "EMA/CHMP/CVMP/QWP/850374/2015"
+    type: guideline
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.ema.europa.eu/en/sterilisation-medicinal-product-active-substance-excipient-primary-container-scientific-guideline"
+    pdf: "https://www.ema.europa.eu/en/documents/scientific-guideline/guideline-sterilisation-medicinal-product-active-substance-excipient-and-primary-container_en.pdf"
+    topics: [aseptic, sterile-filtration, validation]
+    verified: ok
+    notes: "confirm: reference number and effective date on the EMA page."
+  - id: eu-pv-finished-product
+    jurisdiction: EU
+    agency: "EMA"
+    title: "Guideline on Process Validation for Finished Products - Information and Data to be Provided in Regulatory Submissions"
+    reference: "EMA/CHMP/CVMP/QWP/BWP/70278/2012"
+    type: guideline
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.ema.europa.eu/en/process-validation-finished-products-information-data-be-provided-regulatory-submissions-scientific-guideline"
+    topics: [validation, changes]
+    verified: ok
+    notes: "confirm: reference number and date on the EMA page."
+  - id: eu-pv-biotech-as
+    jurisdiction: EU
+    agency: "EMA"
+    title: "Guideline on Process Validation for the Manufacture of Biotechnology-Derived Active Substances and Data to be Provided in the Regulatory Submission"
+    reference: "EMA/CHMP/BWP/187338/2014"
+    type: guideline
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.ema.europa.eu/en/process-validation-manufacture-biotechnology-derived-active-substances-data-be-provided-regulatory-submission-scientific-guideline"
+    topics: [validation, biologics]
+    verified: ok
+    notes: "confirm: reference number and date on the EMA page."
+  - id: eu-q1-ema
+    jurisdiction: EU
+    agency: "EMA"
+    title: "ICH Q1 Guideline on Stability Testing of Drug Substances and Drug Products (Step 2b)"
+    reference: "EMA/CHMP/ICH/130561/2025"
+    type: guideline
+    status: draft
+    date: "2025-04-25"
+    language: en
+    access: free
+    url: "https://www.ema.europa.eu/en/ich-q1-guideline-stability-testing-drug-substances-drug-products"
+    pdf: "https://www.ema.europa.eu/en/documents/scientific-guideline/draft-ich-q1-guideline-stability-testing-drug-substances-drug-products-step-2b_en.pdf"
+    topics: [stability, biologics]
+    verified: ok
+    notes: "Consultation ended 30 Jul 2025."
+  - id: eu-q14-ema
+    jurisdiction: EU
+    agency: "EMA"
+    title: "ICH Q14 Analytical Procedure Development - Scientific guideline"
+    reference: "ICH Q14"
+    type: guideline
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.ema.europa.eu/en/ich-q14-analytical-procedure-development-scientific-guideline"
+    topics: [validation, changes]
+    verified: ok
+    notes: ""
+  - id: eu-ema-gmp
+    jurisdiction: EU
+    agency: "EMA"
+    title: "Good Manufacturing Practice (EMA hub page)"
+    reference: "EMA"
+    type: index
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.ema.europa.eu/en/human-regulatory-overview/research-development/compliance-research-development/good-manufacturing-practice"
+    topics: [index, gmp]
+    verified: ok
+    notes: ""
+  - id: eu-gmp-qa
+    jurisdiction: EU
+    agency: "EMA"
+    title: "Guidance on GMP and GDP: Questions and Answers"
+    reference: "EMA Q&A"
+    type: q&a
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.ema.europa.eu/en/human-regulatory-overview/research-development/compliance-research-development/good-manufacturing-practice/guidance-good-manufacturing-practice-good-distribution-practice-questions-answers"
+    topics: [gmp, aseptic, gdp]
+    verified: ok
+    notes: "confirm: the page contents (expected to include the Annex 1 Q&A)."
+  - id: eu-variations-page
+    jurisdiction: EU
+    agency: "EMA"
+    title: "Variations including extensions of marketing authorisations (EMA hub page)"
+    reference: "EMA"
+    type: index
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.ema.europa.eu/en/human-regulatory-overview/post-authorisation/variations-including-extensions-marketing-authorisations"
+    topics: [index, changes]
+    verified: ok
+    notes: ""
+  - id: eu-variations-guidance
+    jurisdiction: EU
+    agency: "EMA"
+    title: "Variations: regulatory and procedural guidance"
+    reference: "EMA"
+    type: guideline
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.ema.europa.eu/en/human-regulatory-overview/post-authorisation/variations-including-extensions-marketing-authorisations/variations-regulation-regulatory-procedural-guidance"
+    topics: [changes]
+    verified: blocked-but-official
+    notes: "Returns 403 to scripts but is an official EMA page. confirm in a browser."
+  - id: eu-classification-qa
+    jurisdiction: EU
+    agency: "EMA"
+    title: "Classification of changes: questions and answers"
+    reference: "EMA Q&A"
+    type: q&a
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.ema.europa.eu/en/human-regulatory-overview/post-authorisation/classification-changes-questions-answers"
+    topics: [changes]
+    verified: ok
+    notes: ""
+  - id: eu-variations-news
+    jurisdiction: EU
+    agency: "EMA"
+    title: "New variations guidelines to streamline lifecycle management of medicines (EMA news)"
+    reference: "EMA news"
+    type: index
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.ema.europa.eu/en/news/new-variations-guidelines-streamline-lifecycle-management-medicines"
+    topics: [changes]
+    verified: ok
+    notes: "Announcement page for the new guidelines; confirm date."
+  - id: eu-reg-1234-2008
+    jurisdiction: EU
+    agency: "EU (EUR-Lex)"
+    title: "Commission Regulation (EC) No 1234/2008 - Variations to the Terms of Marketing Authorisations"
+    reference: "Regulation (EC) 1234/2008"
+    type: regulation
+    status: final
+    date: "2008-11-24"
+    language: en
+    access: free
+    url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32008R1234"
+    topics: [changes]
+    verified: blocked-but-official
+    notes: "EUR-Lex returns 202 to scripts; opens in a browser. Being supplemented by Delegated Regulation (EU) 2024/1701."
+  - id: eu-del-reg-2024-1701
+    jurisdiction: EU
+    agency: "EU (EUR-Lex)"
+    title: "Commission Delegated Regulation (EU) 2024/1701 amending Regulation (EC) No 1234/2008 (variations)"
+    reference: "Delegated Regulation (EU) 2024/1701"
+    type: regulation
+    status: final
+    date: "2024"
+    language: en
+    access: free
+    url: "https://eur-lex.europa.eu/eli/reg_del/2024/1701/oj/eng"
+    topics: [changes]
+    verified: blocked-but-official
+    notes: "EUR-Lex bot-block. confirm: exact date."
+  - id: eu-variations-guidelines-2025
+    jurisdiction: EU
+    agency: "EU (EUR-Lex)"
+    title: "Commission Guidelines on the details of the various categories of variations (C/2025/5045)"
+    reference: "C/2025/5045"
+    type: guideline
+    status: final
+    date: "2025"
+    language: en
+    access: free
+    url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ%3AC_202505045"
+    topics: [changes]
+    verified: blocked-but-official
+    notes: "Apply from 15 Jan 2026 per earlier research notes. EUR-Lex bot-block. confirm: date."
+  - id: eu-gdp-2013
+    jurisdiction: EU
+    agency: "EU (EUR-Lex)"
+    title: "Guidelines of 5 November 2013 on Good Distribution Practice of Medicinal Products for Human Use"
+    reference: "2013/C 343/01"
+    type: guideline
+    status: final
+    date: "2013-11-05"
+    language: en
+    access: free
+    url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:52013XC1123(01)"
+    topics: [gdp]
+    verified: blocked-but-official
+    notes: "EUR-Lex bot-block (HTTP 202)."
+  - id: eu-dir-2003-94
+    jurisdiction: EU
+    agency: "EU (EUR-Lex)"
+    title: "Commission Directive 2003/94/EC - Principles and Guidelines of GMP for Medicinal Products for Human Use"
+    reference: "Directive 2003/94/EC"
+    type: regulation
+    status: final
+    date: "2003-10-08"
+    language: en
+    access: free
+    url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32003L0094"
+    topics: [gmp]
+    verified: blocked-but-official
+    notes: "EUR-Lex bot-block (HTTP 202)."
+  - id: uk-gmp-gdp
+    jurisdiction: UK
+    agency: "UK MHRA"
+    title: "Good manufacturing practice and good distribution practice (MHRA guidance hub)"
+    reference: "GOV.UK"
+    type: index
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.gov.uk/guidance/good-manufacturing-practice-and-good-distribution-practice"
+    topics: [index, gmp, gdp]
+    verified: ok
+    notes: "The Orange Guide full text is sold by Pharmaceutical Press; no free official copy found."
+  - id: uk-data-integrity
+    jurisdiction: UK
+    agency: "UK MHRA"
+    title: "MHRA GxP data integrity guidance and definitions"
+    reference: "MHRA"
+    type: guidance
+    status: final
+    date: "2018-03"
+    language: en
+    access: free
+    url: "https://www.gov.uk/government/publications/guidance-on-gxp-data-integrity"
+    pdf: "https://assets.publishing.service.gov.uk/media/5aa2b9ede5274a3e391e37f3/MHRA_GxP_data_integrity_guide_March_edited_Final.pdf"
+    topics: [data-integrity]
+    verified: ok
+    notes: "confirm: title and date on the GOV.UK page."
+  - id: uk-variations
+    jurisdiction: UK
+    agency: "UK MHRA"
+    title: "Variations to marketing authorisations"
+    reference: "GOV.UK"
+    type: guidance
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.gov.uk/guidance/variations-to-marketing-authorisations-mas"
+    topics: [changes]
+    verified: ok
+    notes: "Related page: https://www.gov.uk/guidance/medicines-apply-for-a-variation-to-your-marketing-authorisation"
+  - id: pics-pe009-intro
+    jurisdiction: PICS
+    agency: "PIC/S"
+    title: "PE 009-18 Guide to GMP for Medicinal Products - Introduction"
+    reference: "PE 009-18"
+    type: guideline
+    status: final
+    date: "2026-09-24"
+    language: en
+    access: free
+    url: "https://picscheme.org/docview/11331"
+    topics: [gmp]
+    verified: ok
+    notes: "PE 009-18 published 24 Sep 2026."
+  - id: pics-pe009-part1
+    jurisdiction: PICS
+    agency: "PIC/S"
+    title: "PE 009-18 Guide to GMP for Medicinal Products - Part I"
+    reference: "PE 009-18 Part I"
+    type: guideline
+    status: final
+    date: "2026-09-24"
+    language: en
+    access: free
+    url: "https://picscheme.org/docview/11332"
+    topics: [gmp, aseptic]
+    verified: ok
+    notes: ""
+  - id: pics-pe009-annexes
+    jurisdiction: PICS
+    agency: "PIC/S"
+    title: "PE 009-18 Guide to GMP for Medicinal Products - Annexes (incl. Annex 1)"
+    reference: "PE 009-18 Annexes"
+    type: annex
+    status: final
+    date: "2026-09-24"
+    language: en
+    access: free
+    url: "https://picscheme.org/docview/11333"
+    topics: [gmp, aseptic, sterile-filtration, biologics, qualification]
+    verified: ok
+    notes: ""
+  - id: pics-pe009-part2
+    jurisdiction: PICS
+    agency: "PIC/S"
+    title: "PE 009-18 Guide to GMP for Medicinal Products - Part II"
+    reference: "PE 009-18 Part II"
+    type: guideline
+    status: final
+    date: "2026-09-24"
+    language: en
+    access: free
+    url: "https://picscheme.org/docview/11334"
+    topics: [gmp]
+    verified: ok
+    notes: ""
+  - id: pics-pi006-4
+    jurisdiction: PICS
+    agency: "PIC/S"
+    title: "PI 006-4 Recommendations on Qualification and Validation"
+    reference: "PI 006-4"
+    type: guideline
+    status: final
+    date: "2026-10-01"
+    language: en
+    access: free
+    url: "https://picscheme.org/docview/11277"
+    topics: [qualification, validation]
+    verified: ok
+    notes: ""
+  - id: pics-pi006-3
+    jurisdiction: PICS
+    agency: "PIC/S"
+    title: "PI 006-3 Validation Master Plan, IQ/OQ, Non-Sterile Process Validation, Cleaning Validation"
+    reference: "PI 006-3"
+    type: guideline
+    status: superseded
+    date: "2007-09-25"
+    language: en
+    access: free
+    url: "https://picscheme.org/docview/3447"
+    topics: [qualification, validation]
+    verified: ok
+    notes: "Superseded by PI 006-4."
+  - id: pics-pi007-6
+    jurisdiction: PICS
+    agency: "PIC/S"
+    title: "PI 007-6 Validation of Aseptic Processes"
+    reference: "PI 007-6"
+    type: guideline
+    status: final
+    date: "2011-01-01"
+    language: en
+    access: free
+    url: "https://picscheme.org/docview/3446"
+    topics: [aseptic, validation]
+    verified: ok
+    notes: "Date from the PIC/S publications list."
+  - id: pics-pi041
+    jurisdiction: PICS
+    agency: "PIC/S"
+    title: "PI 041-1 Good Practices for Data Management and Integrity in Regulated GMP/GDP Environments"
+    reference: "PI 041-1"
+    type: guideline
+    status: final
+    date: "2021-07-01"
+    language: en
+    access: free
+    url: "https://picscheme.org/docview/4234"
+    topics: [data-integrity]
+    verified: ok
+    notes: ""
+  - id: pics-pi014
+    jurisdiction: PICS
+    agency: "PIC/S"
+    title: "PI 014-3 Isolators Used for Aseptic Processing and Sterility Testing"
+    reference: "PI 014-3"
+    type: guideline
+    status: final
+    date: "2007-09-25"
+    language: en
+    access: free
+    url: "https://picscheme.org/docview/3441"
+    topics: [aseptic]
+    verified: ok
+    notes: ""
+  - id: pics-pe011
+    jurisdiction: PICS
+    agency: "PIC/S"
+    title: "PE 011-1 PIC/S Guide to Good Distribution Practice for Medicinal Products"
+    reference: "PE 011-1"
+    type: guideline
+    status: final
+    date: "2014-06-01"
+    language: en
+    access: free
+    url: "https://picscheme.org/docview/3450"
+    topics: [gdp]
+    verified: ok
+    notes: ""
+  - id: pics-pi054
+    jurisdiction: PICS
+    agency: "PIC/S"
+    title: "PI 054-1 Recommendation: How to Evaluate and Demonstrate the Effectiveness of the PQS with Regard to Risk-Based Change Management"
+    reference: "PI 054-1"
+    type: guideline
+    status: final
+    date: "2021-07-15"
+    language: en
+    access: free
+    url: "https://picscheme.org/docview/4294"
+    topics: [changes, risk]
+    verified: ok
+    notes: ""
+  - id: pics-aide-qrm
+    jurisdiction: PICS
+    agency: "PIC/S"
+    title: "Aide Memoire on Assessment of Quality Risk Management (QRM) Implementation"
+    reference: "PIC/S aide memoire"
+    type: guideline
+    status: final
+    date: "2021-01-01"
+    language: en
+    access: free
+    url: "https://picscheme.org/docview/3823"
+    topics: [risk]
+    verified: ok
+    notes: "confirm: document number not captured."
+  - id: pics-ch1-draft
+    jurisdiction: PICS
+    agency: "PIC/S"
+    title: "Draft Revised Chapter 1 - Pharmaceutical Quality System"
+    reference: "PIC/S draft"
+    type: guideline
+    status: draft
+    date: "2025-09-03"
+    language: en
+    access: free
+    url: "https://picscheme.org/docview/10051"
+    topics: [gmp, risk]
+    verified: ok
+    notes: ""
+  - id: pics-annex11-draft
+    jurisdiction: PICS
+    agency: "PIC/S"
+    title: "Draft Revised Annex 11 - Computerised Systems"
+    reference: "PIC/S draft"
+    type: annex
+    status: draft
+    date: "2025-07-07"
+    language: en
+    access: free
+    url: "https://picscheme.org/docview/9714"
+    topics: [data-integrity]
+    verified: ok
+    notes: ""
+  - id: pics-annex22-draft
+    jurisdiction: PICS
+    agency: "PIC/S"
+    title: "Draft New Annex 22 - Artificial Intelligence"
+    reference: "PIC/S draft"
+    type: annex
+    status: draft
+    date: "2025-07-07"
+    language: en
+    access: free
+    url: "https://picscheme.org/docview/9715"
+    topics: [data-integrity]
+    verified: ok
+    notes: ""
+  - id: pics-annex15-concept
+    jurisdiction: PICS
+    agency: "PIC/S"
+    title: "Concept Paper on the Revision of the GMP Guide: Annex 15 - Qualification and Validation - Corrigendum"
+    reference: "PIC/S concept paper"
+    type: guideline
+    status: draft
+    date: "2026-07-15"
+    language: en
+    access: free
+    url: "https://picscheme.org/docview/11269"
+    topics: [qualification, validation]
+    verified: ok
+    notes: "Concept paper only."
+  - id: pics-publications
+    jurisdiction: PICS
+    agency: "PIC/S"
+    title: "PIC/S publications list"
+    reference: "picscheme.org"
+    type: index
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://picscheme.org/en/publications"
+    topics: [index]
+    verified: ok
+    notes: ""
+  - id: who-trs1044-a2
+    jurisdiction: WHO
+    agency: "WHO"
+    title: "WHO good manufacturing practices for sterile pharmaceutical products (TRS 1044, Annex 2)"
+    reference: "TRS 1044 Annex 2"
+    type: annex
+    status: final
+    date: "2022"
+    language: en
+    access: free
+    url: "https://www.who.int/publications/m/item/trs1044-annex2"
+    pdf: "https://cdn.who.int/media/docs/default-source/medicines/norms-and-standards/guidelines/production/trs1044-annex-2-gmp-for-sterile-pharmaceutical-products.pdf"
+    topics: [aseptic, gmp, sterile-filtration, pupsit]
+    verified: ok
+    notes: "confirm: date on the WHO page."
+  - id: who-trs1044
+    jurisdiction: WHO
+    agency: "WHO"
+    title: "WHO Expert Committee on Specifications for Pharmaceutical Preparations: Fifty-sixth report (TRS 1044)"
+    reference: "TRS 1044"
+    type: index
+    status: final
+    date: "2022"
+    language: en
+    access: free
+    url: "https://www.who.int/publications/i/item/9789240063822"
+    topics: [index, gmp]
+    verified: ok
+    notes: "confirm: title and date."
+  - id: who-trs1044-a4
+    jurisdiction: WHO
+    agency: "WHO"
+    title: "WHO Technical Report Series 1044, Annex 4"
+    reference: "TRS 1044 Annex 4"
+    type: annex
+    status: final
+    date: "2022"
+    language: en
+    access: free
+    url: "https://www.who.int/publications/m/item/trs1044-annex4"
+    topics: [gmp]
+    verified: ok
+    notes: "confirm: Annex 4 title on the WHO page."
+  - id: who-trs986-a2
+    jurisdiction: WHO
+    agency: "WHO"
+    title: "WHO good manufacturing practices for pharmaceutical products: main principles (TRS 986, Annex 2)"
+    reference: "TRS 986 Annex 2"
+    type: annex
+    status: final
+    date: "2014"
+    language: en
+    access: free
+    url: "https://www.who.int/publications/m/item/trs986-annex2"
+    topics: [gmp]
+    verified: ok
+    notes: "confirm: date."
+  - id: who-trs1019-a3
+    jurisdiction: WHO
+    agency: "WHO"
+    title: "WHO Technical Report Series 1019, Annex 3 (GMP for pharmaceutical products: main principles)"
+    reference: "TRS 1019 Annex 3"
+    type: annex
+    status: final
+    date: "2019"
+    language: en
+    access: free
+    url: "https://www.who.int/publications/m/item/trs1019-annex3"
+    topics: [gmp]
+    verified: ok
+    notes: "confirm: title and date on the WHO page."
+  - id: who-trs999-a2
+    jurisdiction: WHO
+    agency: "WHO"
+    title: "WHO good manufacturing practices for biological products (TRS 999, Annex 2)"
+    reference: "TRS 999 Annex 2"
+    type: annex
+    status: final
+    date: "2016"
+    language: en
+    access: free
+    url: "https://www.who.int/publications/m/item/annex-2-trs-no-999-WHO-gmp-for-biological-products"
+    topics: [biologics, gmp]
+    verified: ok
+    notes: "confirm: date; a newer revision may exist."
+  - id: who-trs992-a5
+    jurisdiction: WHO
+    agency: "WHO"
+    title: "WHO Technical Report Series 992, Annex 5"
+    reference: "TRS 992 Annex 5"
+    type: annex
+    status: final
+    date: "2015"
+    language: en
+    access: free
+    url: "https://www.who.int/publications/m/item/trs992-annex5"
+    topics: [gmp]
+    verified: ok
+    notes: "confirm: title on the WHO page."
+  - id: who-trs961-a7
+    jurisdiction: WHO
+    agency: "WHO"
+    title: "WHO guidelines on transfer of technology in pharmaceutical manufacturing (TRS 961, Annex 7)"
+    reference: "TRS 961 Annex 7"
+    type: annex
+    status: final
+    date: "2011"
+    language: en
+    access: free
+    url: "https://www.who.int/docs/default-source/medicines/norms-and-standards/guidelines/production/trs961-annex7-transfer-technology-pharmaceutical-manufacturing.pdf?sfvrsn=2e302838_0"
+    topics: [tech-transfer]
+    verified: ok
+    notes: "PDF only; the WHO item-page slug was not found. See the TRS 1025 Annex 7 update (who-trs1025-a7)."
+  - id: who-trs1025-a7
+    jurisdiction: WHO
+    agency: "WHO"
+    title: "WHO Technical Report Series 1025, Annex 7 (technology transfer update)"
+    reference: "TRS 1025 Annex 7"
+    type: annex
+    status: final
+    date: "2020"
+    language: en
+    access: free
+    url: "https://www.who.int/publications/m/item/trs-1025-annex-7"
+    topics: [tech-transfer]
+    verified: ok
+    notes: "confirm: title on the WHO page matches the technology-transfer update."
+  - id: who-trs1033-a4
+    jurisdiction: WHO
+    agency: "WHO"
+    title: "WHO Technical Report Series 1033, Annex 4"
+    reference: "TRS 1033 Annex 4"
+    type: annex
+    status: final
+    date: "2021"
+    language: en
+    access: free
+    url: "https://www.who.int/publications/m/item/annex-4-trs-1033"
+    topics: [gdp]
+    verified: ok
+    notes: "confirm: Annex 4 title on the WHO page."
+  - id: who-trs1010-a9
+    jurisdiction: WHO
+    agency: "WHO"
+    title: "WHO Technical Report Series 1010, Annex 9"
+    reference: "TRS 1010 Annex 9"
+    type: annex
+    status: final
+    date: "2018"
+    language: en
+    access: free
+    url: "https://www.who.int/publications/m/item/trs1010-annex9"
+    topics: [gdp]
+    verified: ok
+    notes: "confirm: title on the WHO page."
+  - id: who-gmp-hub
+    jurisdiction: WHO
+    agency: "WHO"
+    title: "WHO norms and standards for pharmaceuticals: production (GMP) guidelines"
+    reference: "WHO hub"
+    type: index
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.who.int/teams/health-product-and-policy-standards/standards-and-specifications/norms-and-standards-for-pharmaceuticals/guidelines/production"
+    topics: [index, gmp]
+    verified: ok
+    notes: ""
+  - id: who-gdp-hub
+    jurisdiction: WHO
+    agency: "WHO"
+    title: "WHO norms and standards for pharmaceuticals: distribution (GDP) guidelines"
+    reference: "WHO hub"
+    type: index
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.who.int/teams/health-product-and-policy-standards/standards-and-specifications/norms-and-standards-for-pharmaceuticals/guidelines/distribution"
+    topics: [index, gdp]
+    verified: ok
+    notes: ""
+  - id: jp-pmda-aseptic
+    jurisdiction: JP
+    agency: "PMDA / MHLW research group"
+    title: "Guidance on the Manufacture of Sterile Pharmaceutical Products by Aseptic Processing (English)"
+    reference: "Japan aseptic guidance"
+    type: guidance
+    status: final
+    date: "2011"
+    language: en
+    access: free
+    url: "https://www.pmda.go.jp/files/000153543.pdf"
+    topics: [aseptic, gmp]
+    verified: ok
+    notes: "Research-group guidance hosted on the PMDA site. confirm: issue year."
+  - id: jp-pmda-gmp
+    jurisdiction: JP
+    agency: "PMDA"
+    title: "GMP compliance inspection (PMDA English page)"
+    reference: "PMDA"
+    type: index
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.pmda.go.jp/english/review-services/gmp-qms-gctp/0001.html"
+    topics: [index, gmp]
+    verified: ok
+    notes: ""
+  - id: jp-pmda-regs
+    jurisdiction: JP
+    agency: "PMDA"
+    title: "Ministerial Ordinances (PMDA English regulatory information)"
+    reference: "PMDA"
+    type: index
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.pmda.go.jp/english/review-services/regulatory-info/0001.html"
+    topics: [index, gmp]
+    verified: ok
+    notes: ""
+  - id: ca-gui0001
+    jurisdiction: CA
+    agency: "Health Canada"
+    title: "Good manufacturing practices guide for drug products (GUI-0001)"
+    reference: "GUI-0001"
+    type: guidance
+    status: final
+    date: "2020-07"
+    language: en
+    access: free
+    url: "https://www.canada.ca/en/health-canada/services/drugs-health-products/compliance-enforcement/good-manufacturing-practices/guidance-documents/gmp-guidelines-0001/document.html"
+    topics: [gmp]
+    verified: ok
+    notes: "Page read successfully; direct automated requests time out."
+  - id: ca-gui0119
+    jurisdiction: CA
+    agency: "Health Canada"
+    title: "Annex 1 to the GMP guide - Manufacture of sterile drugs (GUI-0119)"
+    reference: "GUI-0119"
+    type: annex
+    status: final
+    date: "2023-09-11"
+    language: en
+    access: free
+    url: "https://www.canada.ca/en/health-canada/services/drugs-health-products/compliance-enforcement/good-manufacturing-practices/guidance-documents/gmp-guidelines-annex-1-manufacture-sterile-drugs-0119.html"
+    topics: [aseptic, gmp, sterile-filtration, cci]
+    verified: ok
+    notes: "Page read successfully; direct automated requests time out. Implementation 1 Apr 2024 (lyophilization section 25 Aug 2024)."
+  - id: ca-gui0027
+    jurisdiction: CA
+    agency: "Health Canada"
+    title: "Annex 2 to the GMP guide - Manufacture of biologics (GUI-0027)"
+    reference: "GUI-0027"
+    type: annex
+    status: final
+    date: "2024-04-07"
+    language: en
+    access: free
+    url: "https://www.canada.ca/en/health-canada/services/drugs-health-products/compliance-enforcement/good-manufacturing-practices/guidance-documents/annex-2-current-edition-guidelines-schedule-drugs-biological-drugs-0027.html"
+    topics: [biologics, gmp]
+    verified: ok
+    notes: "Page read successfully; direct automated requests time out."
+  - id: ca-postnoc-index
+    jurisdiction: CA
+    agency: "Health Canada"
+    title: "Post-notice of compliance changes (guidance index)"
+    reference: "Health Canada"
+    type: index
+    status: final
+    date: "2026-05-15"
+    language: en
+    access: free
+    url: "https://www.canada.ca/en/health-canada/services/drugs-health-products/drug-products/applications-submissions/guidance-documents/post-notice-compliance-changes.html"
+    topics: [index, changes, biologics]
+    verified: ok
+    notes: "Page read successfully; direct automated requests time out. Biologics documents on it dated 15 May 2026."
+  - id: ca-postnoc-framework-bio
+    jurisdiction: CA
+    agency: "Health Canada"
+    title: "Post-notice of compliance changes: Framework for biologic and Schedule C drugs for human use"
+    reference: "Health Canada"
+    type: guidance
+    status: final
+    date: "2026-05-15"
+    language: en
+    access: free
+    url: "https://www.canada.ca/en/health-canada/services/drugs-health-products/drug-products/applications-submissions/guidance-documents/post-notice-compliance-changes/framework-biologic-schedule-c-drugs-human-use.html"
+    topics: [changes, biologics]
+    verified: ok
+    notes: "URL and date taken from the index page; the page itself was not opened."
+  - id: ca-postnoc-quality-bio
+    jurisdiction: CA
+    agency: "Health Canada"
+    title: "Post-notice of compliance changes: Quality for biologics"
+    reference: "Health Canada"
+    type: guidance
+    status: final
+    date: "2026-05-15"
+    language: en
+    access: free
+    url: "https://www.canada.ca/en/health-canada/services/drugs-health-products/drug-products/applications-submissions/guidance-documents/post-notice-compliance-changes/quality-biologics.html"
+    topics: [changes, biologics, tech-transfer]
+    verified: ok
+    notes: "URL and date taken from the index page; the page itself was not opened."
+  - id: au-tga-annex1
+    jurisdiction: AU
+    agency: "TGA"
+    title: "Interpretation of the manufacture of sterile medicine products (Annex 1)"
+    reference: "TGA"
+    type: guidance
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://tga.gov.au/resources/publication/publications/compounded-medicines-and-good-manufacturing-practice-gmp/interpretation-manufacture-sterile-medicine-products-annex-1"
+    topics: [aseptic, gmp]
+    verified: blocked-but-official
+    notes: "tga.gov.au times out or redirects in a loop for automated requests; seen in search results. confirm in a browser."
+  - id: au-tga-pics
+    jurisdiction: AU
+    agency: "TGA"
+    title: "Complying with the PIC/S Guide to GMP for Medicinal Products (TGA)"
+    reference: "TGA"
+    type: guidance
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.tga.gov.au/products/medicines/manufacturing/manufacture-medicine/good-manufacturing-practice-gmp/complying-pics-guide-good-manufacturing-practice-medicinal-products"
+    topics: [gmp]
+    verified: blocked-but-official
+    notes: "Seen in search results only; times out here. confirm. TGA adoption of PE 009-18 not confirmed."
+  - id: au-tga-pe009-17
+    jurisdiction: AU
+    agency: "TGA"
+    title: "GMP requirements for medicinal products: PIC/S Guide to GMP PE 009-17"
+    reference: "TGA / PE 009-17"
+    type: guidance
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.tga.gov.au/resources/guidance/good-manufacturing-practice-gmp-requirements-medicinal-products-pics-guide-gmp-pe009-17"
+    topics: [gmp]
+    verified: blocked-but-official
+    notes: "Seen in search results only; times out here. confirm."
+  - id: ch-an1-interpretation
+    jurisdiction: CH
+    agency: "Swissmedic"
+    title: "Interpretation of GMP Annex 1 (I-SMI.TI.25e)"
+    reference: "I-SMI.TI.25e"
+    type: guidance
+    status: final
+    date: "2022"
+    language: en
+    access: free
+    url: "https://www.swissmedic.ch/dam/swissmedic/en/dokumente/bewilligungen/inspektorat/-smi-ti-25e_interpretation_gmp-annex_1_2022.pdf.download.pdf/I-SMI.TI.25e_Interpretation_GMP_Annex1.pdf"
+    topics: [aseptic, gmp]
+    verified: ok
+    notes: "Year taken from the file name; confirm."
+  - id: ch-inspectorates
+    jurisdiction: CH
+    agency: "Swissmedic"
+    title: "Inspectorates (Swissmedic)"
+    reference: "Swissmedic"
+    type: index
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.swissmedic.ch/swissmedic/en/home/humanarzneimittel/bewilligungen_zertifikate/authorisations/inspectorates.html"
+    topics: [index, gmp]
+    verified: ok
+    notes: ""
+  - id: ch-hmv4
+    jurisdiction: CH
+    agency: "Swissmedic"
+    title: "Human medicinal products - documents (HMV4)"
+    reference: "Swissmedic"
+    type: index
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.swissmedic.ch/swissmedic/en/home/services/documents/humanarzneimittel_hmv4.html"
+    topics: [index, changes]
+    verified: ok
+    notes: ""
+  - id: ch-variations-qa
+    jurisdiction: CH
+    agency: "Swissmedic"
+    title: "Questions and answers on variations and extensions (HMP)"
+    reference: "Swissmedic"
+    type: q&a
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.swissmedic.ch/swissmedic/en/home/services/documents/fragenundantworten_aeundzulassungserweiterungen.html"
+    topics: [changes]
+    verified: ok
+    notes: "Revised variations list effective 1 Feb 2026 per earlier research notes; confirm."
+  - id: br-in127
+    jurisdiction: BR
+    agency: "ANVISA"
+    title: "Normative Instruction (IN) 127/2022 - Complementary GMP for biological inputs and medicinal products (English)"
+    reference: "IN 127/2022"
+    type: regulation
+    status: final
+    date: "2022-03-30"
+    language: en
+    access: free
+    url: "https://www.gov.br/anvisa/en/rules-and-regulations/arquivos/in-127_2022.pdf/@@download/file"
+    topics: [biologics, gmp]
+    verified: ok
+    notes: ""
+  - id: br-qa-gmp
+    jurisdiction: BR
+    agency: "ANVISA"
+    title: "Perguntas e respostas - RDC 301/2019 (GMP)"
+    reference: "ANVISA Q&A"
+    type: q&a
+    status: superseded
+    date: ""
+    language: pt
+    access: free
+    url: "https://www.gov.br/anvisa/pt-br/centraisdeconteudo/publicacoes/certificacao-e-fiscalizacao/perguntas-e-respostas/perguntas-e-respostas-rdc-301-de-2019.pdf/view"
+    topics: [gmp]
+    verified: ok
+    notes: "RDC 301/2019 was replaced by RDC 658/2022; confirm relevance."
+  - id: cn-nmpa-english
+    jurisdiction: CN
+    agency: "NMPA"
+    title: "NMPA English home"
+    reference: "NMPA"
+    type: index
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://english.nmpa.gov.cn/index.html"
+    topics: [index, gmp]
+    verified: ok
+    notes: "GMP text and appendices are in Chinese on nmpa.gov.cn."
+  - id: cn-nmpa-sterile-draft
+    jurisdiction: CN
+    agency: "NMPA"
+    title: "GMP Appendix - Sterile Drugs (revised draft for comment)"
+    reference: "NMPA draft (Mar 2025)"
+    type: annex
+    status: draft
+    date: "2025-03"
+    language: zh
+    access: free
+    url: "https://www.nmpa.gov.cn/directory/web/nmpa/xxgk/zhqyj/zhqyjyp/20250317155644123.html"
+    topics: [aseptic, gmp]
+    verified: blocked-but-official
+    notes: "NMPA returns 412 to scripts; seen in search results; confirm in a browser."
+  - id: kr-mfds-regs
+    jurisdiction: KR
+    agency: "MFDS"
+    title: "Regulations (MFDS English, Drugs) - includes Regulation on GMP for Medicinal Products (No. 2021-87)"
+    reference: "MFDS"
+    type: index
+    status: final
+    date: "2021-11-04"
+    language: en
+    access: free
+    url: "https://mfds.go.kr/eng/brd/m_18/view.do?seq=71530"
+    topics: [index, gmp]
+    verified: ok
+    notes: "List page only; no direct PDF found. confirm: the GMP regulation entry."
+  - id: in-schedule-m
+    jurisdiction: IN
+    agency: "CDSCO"
+    title: "Schedule M - Good Manufacturing Practices (Drugs Rules 1945), older text"
+    reference: "Schedule M"
+    type: regulation
+    status: superseded
+    date: ""
+    language: en
+    access: free
+    url: "https://cdsco.gov.in/opencms/resources/UploadCDSCOWeb/2018/UploadReportsFiles/ScheduleM(GMP)_5.pdf"
+    topics: [gmp]
+    verified: ok
+    notes: "Revised Schedule M notified Dec 2023 (timelines extended to Dec 2025) per earlier notes; this file is the older text."
+  - id: in-drug-rules
+    jurisdiction: IN
+    agency: "CDSCO"
+    title: "Drugs Rules 1945 (updated 2024-09)"
+    reference: "Drugs Rules 1945"
+    type: regulation
+    status: final
+    date: "2024-09"
+    language: en
+    access: free
+    url: "https://cdsco.gov.in/opencms/resources/UploadCDSCOWeb/2022/drug_rules/Drugs%20Rules%201945_2024%2009.pdf"
+    topics: [gmp]
+    verified: ok
+    notes: ""
+  - id: sg-hsa-gmp
+    jurisdiction: SG
+    agency: "HSA"
+    title: "GMP conformity assessment of overseas drug product manufacturers"
+    reference: "HSA"
+    type: guidance
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.hsa.gov.sg/therapeutic-products/register/gmp-conformity-assessment"
+    topics: [gmp]
+    verified: ok
+    notes: ""
+  - id: sg-hsa-gmp-gdp
+    jurisdiction: SG
+    agency: "HSA"
+    title: "Good Manufacturing Practice and Good Distribution Practice standards"
+    reference: "HSA"
+    type: guidance
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.hsa.gov.sg/chinese-proprietary-medicines/manufacturing-import-wholesale/dealers-licence/gmp-gdp-standards/"
+    topics: [gmp, gdp]
+    verified: ok
+    notes: ""
+  - id: sa-sfda-gmp
+    jurisdiction: SA
+    agency: "SFDA"
+    title: "SFDA GMP Guideline"
+    reference: "SFDA"
+    type: guideline
+    status: final
+    date: "2024-07"
+    language: en
+    access: free
+    url: "https://www.sfda.gov.sa/sites/default/files/2024-07/SFDA-GMP-Guideline.pdf"
+    topics: [gmp]
+    verified: blocked-but-official
+    notes: "First check returned a PDF; a later check returned a WAF \"Request Rejected\" page. confirm in a browser."
+  - id: sa-sfda-variation
+    jurisdiction: SA
+    agency: "SFDA"
+    title: "SFDA Variation guideline"
+    reference: "SFDA"
+    type: guideline
+    status: final
+    date: "2025-03"
+    language: en
+    access: free
+    url: "https://www.sfda.gov.sa/sites/default/files/2025-03/Variation_0.pdf"
+    topics: [changes]
+    verified: blocked-but-official
+    notes: "First check returned a PDF; a later check returned a WAF \"Request Rejected\" page. confirm in a browser."
+  - id: mx-nom059-2015
+    jurisdiction: MX
+    agency: "COFEPRIS / Secretaria de Salud"
+    title: "NOM-059-SSA1-2015 Buenas practicas de fabricacion de medicamentos"
+    reference: "NOM-059-SSA1-2015"
+    type: regulation
+    status: final
+    date: "2016-02-05"
+    language: es
+    access: free
+    url: "https://diariooficial.gob.mx/nota_detalle.php?codigo=5424575&fecha=05%2F02%2F2016"
+    pdf: "https://www.gob.mx/cms/uploads/attachment/file/745132/NOM-059-SSA1-2015.pdf"
+    topics: [gmp]
+    verified: ok
+    notes: "Published in the DOF on 5 Feb 2016."
+  - id: mx-nom059-mod2025
+    jurisdiction: MX
+    agency: "COFEPRIS / Secretaria de Salud"
+    title: "Modificacion de diversos puntos de la NOM-059-SSA1-2015"
+    reference: "DOF modification"
+    type: regulation
+    status: final
+    date: "2025-03-19"
+    language: es
+    access: free
+    url: "https://dof.gob.mx/normasOficiales/9495/salud/salud.html"
+    topics: [gmp]
+    verified: ok
+    notes: "Page confirmed to be the modification; confirm: date (19 Mar 2025 per earlier research notes)."
+  - id: usp-1207
+    jurisdiction: Pharmacopoeia
+    agency: "USP"
+    title: "<1207> Package Integrity Evaluation - Sterile Products"
+    reference: "USP <1207>"
+    type: pharmacopoeia
+    status: final
+    date: "current"
+    language: en
+    access: subscription
+    url: "https://doi.usp.org/USPNF/USPNF_M99926_01_01.html"
+    topics: [cci]
+    verified: ok
+    notes: "Landing page shows a free preview; full text needs a USP-NF subscription."
+  - id: usp-1207-1
+    jurisdiction: Pharmacopoeia
+    agency: "USP"
+    title: "<1207.1> Package Integrity Testing in the Product Life Cycle - Test Method Selection and Validation"
+    reference: "USP <1207.1>"
+    type: pharmacopoeia
+    status: final
+    date: "current"
+    language: en
+    access: subscription
+    url: "https://doi.usp.org/USPNF/USPNF_M9407_02_01.html"
+    topics: [cci]
+    verified: ok
+    notes: "Landing page shows a free preview; full text needs a USP-NF subscription."
+  - id: usp-1207-2
+    jurisdiction: Pharmacopoeia
+    agency: "USP"
+    title: "<1207.2> Package Integrity Leak Test Technologies"
+    reference: "USP <1207.2>"
+    type: pharmacopoeia
+    status: final
+    date: "current"
+    language: en
+    access: subscription
+    url: "https://doi.usp.org/USPNF/USPNF_M9408_01_01.html"
+    topics: [cci]
+    verified: ok
+    notes: "Landing page shows a free preview; full text needs a USP-NF subscription."
+  - id: usp-1207-3
+    jurisdiction: Pharmacopoeia
+    agency: "USP"
+    title: "<1207.3> Package Seal Quality Test Technologies"
+    reference: "USP <1207.3>"
+    type: pharmacopoeia
+    status: final
+    date: "current"
+    language: en
+    access: subscription
+    url: "https://doi.usp.org/USPNF/USPNF_M9409_01_01.html"
+    topics: [cci]
+    verified: ok
+    notes: "Landing page shows a free preview; full text needs a USP-NF subscription."
+  - id: usp-1211
+    jurisdiction: Pharmacopoeia
+    agency: "USP"
+    title: "<1211> Sterility Assurance"
+    reference: "USP <1211>"
+    type: pharmacopoeia
+    status: final
+    date: "current"
+    language: en
+    access: subscription
+    url: "https://doi.usp.org/USPNF/USPNF_M99930_05_01.html"
+    topics: [aseptic]
+    verified: ok
+    notes: "Landing page shows a free preview; full text needs a USP-NF subscription."
+  - id: usp-1229
+    jurisdiction: Pharmacopoeia
+    agency: "USP"
+    title: "<1229> Sterilization of Compendial Articles"
+    reference: "USP <1229>"
+    type: pharmacopoeia
+    status: final
+    date: "current"
+    language: en
+    access: subscription
+    url: "https://doi.usp.org/USPNF/USPNF_M7408_01_01.html"
+    topics: [aseptic]
+    verified: ok
+    notes: "Landing page shows a free preview; full text needs a USP-NF subscription."
+  - id: usp-1229-4
+    jurisdiction: Pharmacopoeia
+    agency: "USP"
+    title: "<1229.4> Sterilizing Filtration of Liquids"
+    reference: "USP <1229.4>"
+    type: pharmacopoeia
+    status: final
+    date: "current"
+    language: en
+    access: subscription
+    url: "https://doi.usp.org/USPNF/USPNF_M7413_02_01.html"
+    topics: [sterile-filtration]
+    verified: ok
+    notes: "Landing page shows a free preview; full text needs a USP-NF subscription."
+  - id: usp-85
+    jurisdiction: Pharmacopoeia
+    agency: "USP"
+    title: "<85> Bacterial Endotoxins Test"
+    reference: "USP <85>"
+    type: pharmacopoeia
+    status: final
+    date: "current"
+    language: en
+    access: subscription
+    url: "https://doi.usp.org/USPNF/USPNF_M98830_02_01.html"
+    topics: [aseptic]
+    verified: ok
+    notes: "Landing page shows a free preview; full text needs a USP-NF subscription."
+  - id: usp-790
+    jurisdiction: Pharmacopoeia
+    agency: "USP"
+    title: "<790> Visible Particulates in Injections"
+    reference: "USP <790>"
+    type: pharmacopoeia
+    status: final
+    date: "current"
+    language: en
+    access: subscription
+    url: "https://doi.usp.org/USPNF/USPNF_M7197_01_01.html"
+    topics: [visual-inspection]
+    verified: ok
+    notes: "Landing page shows a free preview; full text needs a USP-NF subscription."
+  - id: usp-1790
+    jurisdiction: Pharmacopoeia
+    agency: "USP"
+    title: "<1790> Visual Inspection of Injections"
+    reference: "USP <1790>"
+    type: pharmacopoeia
+    status: final
+    date: "current"
+    language: en
+    access: subscription
+    url: "https://doi.usp.org/USPNF/USPNF_M7198_06_01.html"
+    topics: [visual-inspection]
+    verified: ok
+    notes: "Landing page shows a free preview; full text needs a USP-NF subscription."
+  - id: usp-nf-home
+    jurisdiction: Pharmacopoeia
+    agency: "USP"
+    title: "USP-NF online (home)"
+    reference: "USP-NF"
+    type: index
+    status: final
+    date: "current"
+    language: en
+    access: subscription
+    url: "https://www.uspnf.com/"
+    topics: [index]
+    verified: blocked-but-official
+    notes: "Returns 403 to scripts; opens in a browser."
+  - id: ph-eur-12th
+    jurisdiction: Pharmacopoeia
+    agency: "EDQM"
+    title: "European Pharmacopoeia 12th Edition (all-digital)"
+    reference: "Ph. Eur. 12th Ed."
+    type: pharmacopoeia
+    status: final
+    date: "2025-06"
+    language: en
+    access: subscription
+    url: "https://www.edqm.eu/en/web/edqm/european-pharmacopoeia-new-online-only-12th-edition"
+    topics: [index]
+    verified: blocked-but-official
+    notes: "EDQM returns 403 to scripts. Direct pages for 2.6.1 (sterility) and 5.1.1 not found. confirm in a browser."

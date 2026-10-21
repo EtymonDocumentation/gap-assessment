@@ -1,6 +1,7 @@
-import { buildContent, type ContentBundle, type RawContent } from "@gap/engine";
+import { buildContent, parseGuidance, type ContentBundle, type GuidanceLibrary, type RawContent } from "@gap/engine";
 import catalog from "./catalog/catalog.yaml";
 import demoArx217 from "./demo/arx-217.yaml";
+import guidanceRaw from "./guidance/guidance.yaml";
 import q00 from "./questions/00-scoping-and-site.yaml";
 import q10 from "./questions/10-ds-receipt-thaw.yaml";
 import q15 from "./questions/15-buffer-prep.yaml";
@@ -44,3 +45,9 @@ export const content: ContentBundle = buildContent(rawContent);
 
 /** Raw demo scripts; build with buildDemoProject(content, raw). */
 export const demos = { "arx-217": demoArx217 } as const;
+
+/**
+ * The Guidance library (links to official regulatory text). Reference material: it is not part of the question and rule
+ * content, needs no project, and is validated here so a bad link or an unknown topic stops the build.
+ */
+export const guidance: GuidanceLibrary = parseGuidance(guidanceRaw);

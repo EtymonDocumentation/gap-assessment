@@ -19,6 +19,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "validate:content": "vitest run content",
+    "check:guidance-links": "node scripts/check-guidance-links.mjs",
     "e2e": "npm run e2e -w @gap/web",
     "e2e:server": "npm run build:server && npm run e2e:server -w @gap/web",
     "ci": "npm run typecheck && npm test && npm run build"

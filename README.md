@@ -24,7 +24,8 @@ Live site: `https://<your-github-user>.github.io/gap-assessment/` (after the dep
 10. [Deployment to GitHub Pages](#deployment-to-github-pages)
 11. [Scope of this milestone and known limitations](#scope-of-this-milestone-and-known-limitations)
 12. [Word templates](#word-templates)
-13. [Running on your own machine (server mode)](#running-on-your-own-machine-server-mode)
+13. [Guidance library](#guidance-library)
+14. [Running on your own machine (server mode)](#running-on-your-own-machine-server-mode)
 
 ---
 
@@ -393,6 +394,19 @@ The Document page can make a Word file in four ways. Pick the one that fits:
 **Heading mapping.** To use "Map to their headings", open the template's mapping from the Templates page. This needs an open project, because the mapping lists that project's content. Assign the tool's content to the template's headings with the Add, Up, Down and Remove buttons, or use **Suggest a mapping** and adjust it. For each heading choose whether the template's own text is kept or replaced. Content you do not map is added at the end, or left out if you tick "I understand this content will be left out of the Word document". The report beside the editor updates as you work, and the mapping is saved with the template.
 
 **Fictional samples.** **Add the fictional sample templates** adds four Brightwater Biologics (fictional) templates: a Word template, a tag template, a macro-enabled template and a PDF outline. They are there for trying the feature. Samples already in the library are skipped.
+
+## Guidance library
+
+The **Guidance** page (`#/guidance`) is a list of links to the official text of regulations and guidance for sterile injectable fill-finish, technology transfer and post-approval changes: FDA, ICH, the EU (including Annex 1), MHRA, PIC/S, WHO, Japan, Canada, other markets and the pharmacopoeias. It opens without a project, in the static build and in server mode, and makes no network calls of its own: every title is a plain link that opens the agency's own site in a new tab. You can search (title, reference, agency, notes) and filter by jurisdiction, agency, topic, type and status. Items the research could not fully pin down carry a "Details to confirm" badge, and subscription-only texts say "Subscription needed". The page always tells the reader to confirm they are reading the current version on the agency site, and shows the date the list was last reviewed.
+
+The value of the page is keeping it current. To do that:
+
+1. Run `npm run check:guidance-links`. It requests every link (20 second timeout, six at a time) and lists failures, redirects and warnings. It exits with an error only when a link marked `verified: ok` fails. Links marked `blocked-but-official` (EUR-Lex, EDQM, USP-NF, NMPA and others refuse scripts) are warnings, so open those in a browser. It never edits the file. It is **not** part of `npm run ci` or the GitHub workflow on purpose: it needs the network, and agency sites are slow or down at times, so it would fail builds for reasons unrelated to a change.
+2. Review the agency pages for new or revised guidance, drafts that became final, and superseded texts.
+3. Edit `content/guidance/guidance.yaml` by hand (fields: `id`, `jurisdiction`, `agency`, `title`, `reference`, `type`, `status`, `date`, `language`, `access`, `url`, optional `pdf`, `topics`, `verified`, `notes`). Remove "confirm" from the notes only once you have confirmed the detail on the agency page.
+4. Bump `checked` (the "Last checked" date on the page) and `version`.
+
+`npm test` validates the file: unique ids and links, https only, jurisdictions, types, statuses and topics from fixed lists, and every link on the official-source host list (`OFFICIAL_GUIDANCE_HOSTS` in `packages/engine/src/guidance.ts`). A new agency means adding its host to that list on purpose.
 
 ## Running on your own machine (server mode)
 

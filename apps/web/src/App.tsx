@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ComparePage } from "./pages/ComparePage";
 import { DocumentPage } from "./pages/DocumentPage";
+import { GuidancePage } from "./pages/GuidancePage";
 import { HomePage } from "./pages/HomePage";
 import { InterviewPage } from "./pages/InterviewPage";
 import { BuilderPage } from "./pages/BuilderPage";
@@ -24,6 +25,7 @@ const NAV = [
   { path: "/validation", label: "Validation" },
   { path: "/document", label: "Document" },
   { path: "/templates", label: "Templates" },
+  { path: "/guidance", label: "Guidance" },
   { path: "/builder", label: "Builder" },
   { path: "/sources", label: "Sources" },
   { path: "/changes", label: "Change log" },
@@ -84,8 +86,9 @@ function AppShell() {
     window.scrollTo(0, 0);
   }, [route.path]);
 
-  // The template library belongs to the browser, not to a project, so it opens without one.
-  const needsProject = route.path !== "/" && route.path !== "/templates";
+  // The template library belongs to the browser, not to a project, so it opens without one. So does the guidance library,
+  // which is reference material and has nothing to do with the open project.
+  const needsProject = route.path !== "/" && route.path !== "/templates" && route.path !== "/guidance";
   const mappingId = /^\/templates\/([^/]+)\/mapping$/.exec(route.path)?.[1];
   let page: React.ReactNode;
   if (!ready) page = <p className="muted">Loading…</p>;
@@ -99,6 +102,7 @@ function AppShell() {
   else if (route.path === "/sources") page = <SourcesPage />;
   else if (route.path === "/changes") page = <ChangesPage />;
   else if (route.path === "/templates") page = <TemplatesPage />;
+  else if (route.path === "/guidance") page = <GuidancePage />;
   else if (mappingId) page = <MappingPage id={decodeURIComponent(mappingId)} />;
   else page = <HomePage />;
 
