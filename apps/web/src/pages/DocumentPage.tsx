@@ -2,6 +2,7 @@ import { buildDocument, documentFingerprint, OPTIONAL_SECTIONS, omittedSectionId
 import type { DocumentExport, TemplateRecord } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlBody, renderMarkdown } from "@gap/renderers";
 import { useMemo, useState } from "react";
+import { PageBanner } from "../art";
 import { download, sideText, slug, today } from "../lib";
 import { href } from "../router";
 import { useAssessment, useContent, useStageWording, useStore } from "../store";
@@ -60,8 +61,10 @@ export function DocumentPage() {
 
   return (
     <div className="stack-lg">
-      <div className="row between wrap no-print">
+      <PageBanner art="page-document">
         <h1>Document</h1>
+      </PageBanner>
+      <div className="row between wrap no-print">
         <div className="row wrap">
           <button
             className="btn"

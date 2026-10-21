@@ -60,7 +60,9 @@ export async function serveStatic(root: string, req: IncomingMessage, res: Serve
   const info = await stat(file);
   const type = TYPES[extname(file).toLowerCase()] ?? "application/octet-stream";
   // Built asset names carry a content hash, so they may be cached for good; the page itself must stay fresh.
-  const cache = pathname.startsWith("/assets/") ? "public, max-age=31536000, immutable" : "no-cache";
+  // The pictures in /art/ keep fixed names (no hash), so they get a day: long enough not to download 2 MB again on every visit,
+  // short enough that a replaced picture shows up the next day.
+  const cache = pathname.startsWith("/assets/") ? "public, max-age=31536000, immutable" : pathname.startsWith("/art/") ? "public, max-age=86400" : "no-cache";
   res.writeHead(200, { "Content-Type": type, "Content-Length": info.size, "Cache-Control": cache });
   if (req.method === "HEAD") {
     res.end();

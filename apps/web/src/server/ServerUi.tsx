@@ -1,5 +1,6 @@
 import { sourceLabel } from "@gap/engine";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { PageBanner } from "../art";
 import { Modal, PocBanner, PocFooter } from "../components";
 import { dateTime, shortHash, slug, today, download } from "../lib";
 import { useStore } from "../store";
@@ -80,10 +81,12 @@ function SignInPage() {
   const headingRef = useRef<HTMLHeadingElement>(null);
   return (
     <div className="stack-lg">
-      <div>
+      <PageBanner art="page-signin" size="hero">
         <h1 ref={headingRef} tabIndex={-1}>
           Sign in
         </h1>
+      </PageBanner>
+      <div>
         <p className="muted">
           This copy of the Gap Assessment Generator needs an account. Accounts are by invitation only.{" "}
           {storage === "client"

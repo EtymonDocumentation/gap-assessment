@@ -8,6 +8,7 @@ import {
 } from "@gap/engine";
 import { addSource, removeSource, updateSource, type SourceType } from "@gap/process-model";
 import { Fragment, useMemo, useRef, useState } from "react";
+import { PageBanner } from "../art";
 import { Empty, Modal } from "../components";
 import { href } from "../router";
 import { ProjectFilesSection, SourceFiles, useIsRemote } from "../server/ServerUi";
@@ -48,10 +49,12 @@ export function SourcesPage() {
 
   return (
     <div className="stack-lg">
-      <div>
+      <PageBanner art="page-sources">
         <h1 ref={headingRef} tabIndex={-1}>
           Sources
         </h1>
+      </PageBanner>
+      <div>
         <p className="muted">
           Every value in the assessment cites at least one source. Removing a source cannot leave a value without one: a value that loses its only source
           becomes Not established, its old value is kept only in the change log, and the gaps are recalculated.

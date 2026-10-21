@@ -16,6 +16,8 @@
   --banner-bg: #7a1717;
   --banner-text: #ffffff;
   --row-diff: #fff8ec;
+  /* Space-separated RGB of the scrim laid over the page art, so the banner title keeps AA contrast (see .art-banner). */
+  --scrim-rgb: 255 255 255;
 
   --c-equivalent: #4b6b55;
   --c-within: #0f6e6e;
@@ -55,6 +57,7 @@
     --ok: #7fd49b;
     --banner-bg: #5c1010;
     --row-diff: #2a2417;
+    --scrim-rgb: 24 32 42;
     --c-equivalent: #8fbf9c;
     --c-within: #5ed0d0;
     --c-outside: #ff8a80;
@@ -83,6 +86,7 @@
   --ok: #7fd49b;
   --banner-bg: #5c1010;
   --row-diff: #2a2417;
+  --scrim-rgb: 24 32 42;
   --c-equivalent: #8fbf9c;
   --c-within: #5ed0d0;
   --c-outside: #ff8a80;
@@ -1129,6 +1133,8 @@ table.data tr.inactive {
   .app-footer,
   .skip-link,
   .no-print,
+  .art-banner,
+  .art-fig,
   .alert {
     display: none !important;
   }
@@ -1349,6 +1355,9 @@ table.equipment-qualification td {
 .section-head h2 {
   margin: 0;
 }
+.section-head .art-uo + h2 {
+  flex: 1 1 auto;
+}
 .plan-list {
   max-height: 11rem;
   overflow: auto;
@@ -1514,7 +1523,8 @@ details.report h4 {
 .map-layout {
   display: grid;
   gap: 20px;
-  grid-template-columns: 1fr;
+  /* minmax(0, 1fr), not 1fr: a plain 1fr column grows to its widest content and made the phone page scroll sideways. */
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
 }
 @media (min-width: 960px) {
@@ -1528,6 +1538,13 @@ details.report h4 {
 }
 .map-heading {
   margin: 0;
+}
+/* A select sizes itself to its longest option; keep it inside the card on a phone. */
+.map-row .field {
+  min-width: 0;
+}
+.map-row select {
+  max-width: 100%;
 }
 .map-blocks li {
   display: flex;
@@ -1871,4 +1888,143 @@ details.report h4 {
 }
 .link-values li:last-child {
   border-bottom: 0;
+}
+
+/* ---------------------------------------------------------------- art (pictures are decoration only)
+   Banners: the picture fills the box, the title sits over the left third on a scrim made from the page surface colour. The scrim is
+   nearly opaque behind the text and fades out to the right, so the text is dark-on-light (or light-on-dark) in both themes and the
+   picture still shows. The box has a fixed height, so a late-loading picture never moves the page. */
+
+.art-banner {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  height: clamp(120px, 13vw, 168px);
+  display: flex;
+  align-items: center;
+}
+.art-banner.art-hero {
+  height: clamp(200px, 22vw, 300px);
+}
+.art-banner.art-slim {
+  grid-column: 1 / -1;
+  height: clamp(84px, 8vw, 108px);
+}
+.art-banner-img,
+.art-banner-img img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.art-banner-img img {
+  object-fit: cover;
+  object-position: center 40%;
+}
+.art-banner-img::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgb(var(--scrim-rgb) / 0.95) 0%,
+    rgb(var(--scrim-rgb) / 0.9) 36%,
+    rgb(var(--scrim-rgb) / 0.4) 58%,
+    rgb(var(--scrim-rgb) / 0) 80%
+  );
+}
+.art-banner-body {
+  position: relative;
+  max-width: 42%;
+  padding: 12px 20px;
+  color: var(--text);
+}
+.art-banner-body h1,
+.art-banner-title {
+  margin: 0;
+  font-size: 1.6rem;
+  line-height: 1.2;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.art-hero .art-banner-body h1 {
+  font-size: clamp(1.7rem, 2.6vw, 2.3rem);
+}
+.art-slim .art-banner-title {
+  font-size: 1.35rem;
+}
+
+/* Phone and narrow windows: a short strip, text across the full width on a uniform scrim. */
+@media (max-width: 760px) {
+  .art-banner,
+  .art-banner.art-hero,
+  .art-banner.art-slim {
+    height: auto;
+    min-height: 64px;
+    max-height: 120px;
+  }
+  .art-banner-img::after {
+    background: linear-gradient(90deg, rgb(var(--scrim-rgb) / 0.92) 0%, rgb(var(--scrim-rgb) / 0.82) 100%);
+  }
+  .art-banner-body {
+    max-width: 100%;
+    padding: 10px 14px;
+  }
+  .art-banner-body h1,
+  .art-banner-title,
+  .art-hero .art-banner-body h1,
+  .art-slim .art-banner-title {
+    font-size: 1.25rem;
+  }
+}
+
+/* Small figures: the unit-operation picture beside the section title, close-ups beside the question they match. */
+.art-fig {
+  margin: 0;
+  overflow: hidden;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  flex: none;
+  aspect-ratio: 1600 / 893;
+}
+.art-fig img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.art-uo {
+  width: 80px;
+}
+.q-meta .art-uo {
+  margin-left: auto;
+}
+.art-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+.art-head > :first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.art-closeup {
+  width: 200px;
+}
+@media (max-width: 760px) {
+  /* On a narrow screen the form comes first; the close-up is decoration and is left out. */
+  .art-closeup {
+    display: none;
+  }
+}
+
+/* Forced colours remove the scrim, so the text would sit on the photo: show no picture there. Data-saver users get none from art.tsx. */
+@media (forced-colors: active) {
+  .art-banner-img,
+  .art-fig {
+    display: none;
+  }
 }

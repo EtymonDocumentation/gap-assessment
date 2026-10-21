@@ -26,6 +26,7 @@ import {
 } from "@gap/engine";
 import { getEntry, type DocRef, type Project, type Source } from "@gap/process-model";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { ArtFigure, PageBanner, closeupArt, sectionArt } from "../art";
 import { CategoryChip, Modal, ProvisionalFlag, ResponderForm, SeverityBadge } from "../components";
 import { SIDE_SHORT, sideDescription, type UnitSide } from "../lib";
 import { href, navigate } from "../router";
@@ -255,6 +256,8 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
 
   return (
     <div className="interview">
+      {/* The h1 on this page is the question itself, so the banner carries a plain-text label, not a heading. */}
+      <PageBanner art="page-interview" size="slim" label="Interview" />
       <aside className="interview-aside" aria-label="Interview progress">
         <div className="card tight">
           <p className="small muted">
@@ -643,13 +646,17 @@ function QuestionCard({
       {single && (single.side === "shared" ? <SharedBanner /> : <SideBanner side={single.side} text={sideDescription(project, single.side, wording)} />)}
       <div className="q-meta">
         <span className="small muted">{current.section.title}</span>
+        {sectionArt(current.section.id) && <ArtFigure art={sectionArt(current.section.id)!} className="art-uo" sizes="96px" />}
         {isCustomQuestion(q) && <span className="tag tag-custom">Custom item</span>}
         {single && answeredHere(single) && <span className="tag">Answered</span>}
       </div>
       {current.depth > 0 && q.triggerNote && <p className="trigger">↳ {q.triggerNote}</p>}
-      <h1 id="q-prompt" ref={headingRef} tabIndex={-1} className="q-prompt">
-        {heading}
-      </h1>
+      <div className={closeupArt(q.id) ? "art-head" : undefined}>
+        <h1 id="q-prompt" ref={headingRef} tabIndex={-1} className="q-prompt">
+          {heading}
+        </h1>
+        {closeupArt(q.id) && <ArtFigure art={closeupArt(q.id)!} className="art-closeup" sizes="(min-width: 761px) 200px, 0px" />}
+      </div>
       {!combined && sideLabel && <p className="muted small">{q.prompt}</p>}
       <details className="why">
         <summary>Why is this asked?</summary>
@@ -1011,9 +1018,12 @@ function SectionSummary({ sectionId, instances, thenKey }: { sectionId: string; 
 
   return (
     <article className="card" aria-labelledby="sum-h">
-      <h1 id="sum-h" ref={headingRef} tabIndex={-1}>
-        {all ? (unanswered.length ? "Interview summary" : "Interview complete") : `Section summary: ${section?.title ?? sectionId}`}
-      </h1>
+      <div className={!all && sectionArt(sectionId) ? "art-head" : undefined}>
+        <h1 id="sum-h" ref={headingRef} tabIndex={-1}>
+          {all ? (unanswered.length ? "Interview summary" : "Interview complete") : `Section summary: ${section?.title ?? sectionId}`}
+        </h1>
+        {!all && sectionArt(sectionId) && <ArtFigure art={sectionArt(sectionId)!} className="art-closeup" sizes="(min-width: 761px) 200px, 0px" />}
+      </div>
       {unanswered.length > 0 ? (
         <p className="notice">
           {unanswered.length} question{unanswered.length === 1 ? "" : "s"} still unanswered.{" "}

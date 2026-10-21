@@ -25,7 +25,8 @@ Live site: `https://<your-github-user>.github.io/gap-assessment/` (after the dep
 11. [Scope of this milestone and known limitations](#scope-of-this-milestone-and-known-limitations)
 12. [Word templates](#word-templates)
 13. [Guidance library](#guidance-library)
-14. [Running on your own machine (server mode)](#running-on-your-own-machine-server-mode)
+14. [Pictures and credits](#pictures-and-credits)
+15. [Running on your own machine (server mode)](#running-on-your-own-machine-server-mode)
 
 ---
 
@@ -421,6 +422,10 @@ The value of the page is keeping it current. To do that:
 4. Bump `checked` (the "Last checked" date on the page) and `version`.
 
 `npm test` validates the file: unique ids and links, https only, jurisdictions, types, statuses and topics from fixed lists, and every link on the official-source host list (`OFFICIAL_GUIDANCE_HOSTS` in `packages/engine/src/guidance.ts`). A new agency means adding its host to that list on purpose.
+
+## Pictures and credits
+
+The page banners and unit-operation pictures are **AI-generated, fictional illustrations**: no real site, product, person or brand is shown, and no picture contains text. They are decoration only (empty alt text), carry no information the page does not also say in words, and have all metadata removed. They are kept in `apps/web/public/art/` (two widths each, 1600 and 800 px webp) and are loaded on demand, not bundled into the JavaScript. `scripts/make-site-art.py` rebuilds the files from the review copies and fails if any EXIF, XMP, ICC or C2PA data is left. Banners are hidden when printing, in forced-colours mode and for browsers that ask to save data.
 
 ## Running on your own machine (server mode)
 

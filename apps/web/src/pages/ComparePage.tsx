@@ -1,5 +1,6 @@
 import { formatQuestionSide, questionLabel, setGapOverlay, sidesOf, type Gap } from "@gap/engine";
 import { useState } from "react";
+import { PageBanner } from "../art";
 import { CategoryChip, Empty, ProvisionalFlag, RegulatoryFlag, SeverityBadge } from "../components";
 import { href } from "../router";
 import { useAssessment, useContent, useStageWording, useStore } from "../store";
@@ -18,8 +19,10 @@ export function ComparePage() {
 
   return (
     <div className="stack-lg">
-      <div className="row between wrap">
+      <PageBanner art="page-compare">
         <h1>Side by side</h1>
+      </PageBanner>
+      <div className="row between wrap">
         <label className="row inline">
           <input type="checkbox" checked={hideEqual} onChange={(e) => setHideEqual(e.target.checked)} /> Hide equivalent rows
         </label>

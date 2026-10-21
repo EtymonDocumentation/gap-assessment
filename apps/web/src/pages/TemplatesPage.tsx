@@ -1,5 +1,6 @@
 import type { ImportedTemplate, TemplateAnalysis, TemplateMode } from "@gap/docx";
 import { useEffect, useRef, useState } from "react";
+import { PageBanner } from "../art";
 import { Empty, Modal } from "../components";
 import { loadDocx, useDocx } from "../docx-loader";
 import { dateTime, download, MODE_LABEL, shortHash, slug } from "../lib";
@@ -131,10 +132,12 @@ export function TemplatesPage() {
 
   return (
     <div className="stack-lg">
-      <div>
+      <PageBanner art="page-templates">
         <h1 ref={headingRef} tabIndex={-1}>
           Templates
         </h1>
+      </PageBanner>
+      <div>
         <p className="muted">
           Keep your own Word or PDF templates here and choose one when you create a Word document.{" "}
           {remote

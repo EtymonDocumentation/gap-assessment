@@ -17,6 +17,7 @@ import {
   type GuidanceItem,
 } from "@gap/engine";
 import { useMemo, useState } from "react";
+import { PageBanner } from "../art";
 import { Empty } from "../components";
 
 const NO_FILTER: Required<GuidanceFilter> = { text: "", jurisdiction: "all", agency: "all", topic: "all", type: "all", status: "all" };
@@ -83,8 +84,10 @@ export function GuidancePage() {
 
   return (
     <div className="stack-lg">
-      <div>
+      <PageBanner art="page-guidance">
         <h1>Guidance</h1>
+      </PageBanner>
+      <div>
         <p className="muted lede">
           Official regulations and guidance for sterile injectable fill-finish, technology transfer and post-approval changes, from regulators and
           pharmacopoeias around the world. Use it to read the source text behind a gap.

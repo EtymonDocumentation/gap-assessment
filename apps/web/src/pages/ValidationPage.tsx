@@ -13,6 +13,7 @@ import {
 } from "@gap/engine";
 import type { GapStatus, Severity } from "@gap/process-model";
 import { useMemo, useState } from "react";
+import { PageBanner } from "../art";
 import { CategoryChip, Empty, ProvisionalFlag, SeverityBadge } from "../components";
 import { download, SEVERITY_TEXT, slug, today } from "../lib";
 import { href } from "../router";
@@ -84,7 +85,9 @@ export function ValidationPage() {
   const name = slug(project.meta.title);
   return (
     <div className="stack-lg">
-      <h1>Validation</h1>
+      <PageBanner art="page-validation">
+        <h1>Validation</h1>
+      </PageBanner>
       <p className="lede muted">
         What the differences in the gap register imply for validation, and how the receiving unit (RU) equipment is qualified. Everything here is derived from the answers; nothing is assumed.
       </p>

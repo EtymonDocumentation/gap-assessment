@@ -1,5 +1,6 @@
 import { changeLogOptions, changeLogToCsv, changeLogView } from "@gap/engine";
 import { useMemo, useState } from "react";
+import { PageBanner } from "../art";
 import { Empty } from "../components";
 import { download, slug, today } from "../lib";
 import { useContent, useStore } from "../store";
@@ -23,9 +24,11 @@ export function ChangesPage() {
 
   return (
     <div className="stack-lg">
+      <PageBanner art="page-changes">
+        <h1>Change log</h1>
+      </PageBanner>
       <div className="row between wrap">
         <div>
-          <h1>Change log</h1>
           <p className="muted">
             Every change to the project, newest first: answers, sources, verifications and gap decisions, each with the value before and after. Names are free
             text without a login, so they are not attributable in a GMP sense.

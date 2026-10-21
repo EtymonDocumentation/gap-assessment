@@ -1,6 +1,7 @@
 import { buildDocument } from "@gap/engine";
 import type { HeadingMapping, OutlineHeading, TemplateMapping } from "@gap/docx";
 import { useEffect, useMemo, useState } from "react";
+import { PageBanner } from "../art";
 import { Empty } from "../components";
 import { useDocx } from "../docx-loader";
 import { href } from "../router";
@@ -114,7 +115,9 @@ function Editor({ t }: { t: StoredTemplate }) {
         <p className="small">
           <a href={href("/templates")}>Back to templates</a>
         </p>
-        <h1>Heading mapping: {t.name}</h1>
+        <PageBanner art="page-mapping">
+          <h1>Heading mapping: {t.name}</h1>
+        </PageBanner>
         <p className="muted">
           For each heading of the template, choose which content from this project's gap assessment goes under it. Version {t.version}, {t.fileName}. The list of content comes from the open project
           ({project.meta.title}). Nothing changes until you save, and the same mapping is used for every Word document made with "Map to their headings".

@@ -1,6 +1,7 @@
 import { activityLabel, CATEGORIES, gapsToCsv, SEVERITY_RANK, setGapOverlay, type Category, type ContentBundle, type Gap } from "@gap/engine";
 import { verificationState, type GapStatus, type Severity } from "@gap/process-model";
 import { useEffect, useMemo, useState } from "react";
+import { PageBanner } from "../art";
 import { CategoryChip, Empty, ProvisionalFlag, RegulatoryFlag, SeverityBadge } from "../components";
 import { categoryShort, download, SEVERITY_TEXT, slug, today } from "../lib";
 import { href } from "../router";
@@ -79,8 +80,10 @@ export function RegisterPage() {
 
   return (
     <div className="stack-lg">
-      <div className="row between wrap">
+      <PageBanner art="page-register">
         <h1>Gap register</h1>
+      </PageBanner>
+      <div className="row end wrap">
         <button className="btn" onClick={() => download(`${slug(project.meta.title)}-gap-register-${today()}.csv`, gapsToCsv(content, rows, project), "text/csv;charset=utf-8")}>
           Export CSV ({rows.length} rows)
         </button>

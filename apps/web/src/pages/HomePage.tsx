@@ -1,5 +1,6 @@
 import { isAnswered, localDate, tbdItems, tbdSummary, tbdSummaryText } from "@gap/engine";
 import { useMemo, useRef, useState } from "react";
+import { PageBanner } from "../art";
 import { Modal, ResponderForm } from "../components";
 import { download, slug, today } from "../lib";
 import { href, navigate } from "../router";
@@ -26,7 +27,9 @@ export function HomePage({ notice }: { notice?: string }) {
 
   return (
     <div className="stack-lg">
-      <h1>Gap assessment for technology transfer</h1>
+      <PageBanner art="page-home-hero" size="hero">
+        <h1>Gap assessment for technology transfer</h1>
+      </PageBanner>
       {notice && (
         <p className="notice" role="status">
           {notice}
