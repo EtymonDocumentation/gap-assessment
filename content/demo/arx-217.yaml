@@ -12,7 +12,7 @@
 demo:
   id: arx-217
   title: "ARX-217 transfer: Site North Line 2 to Site South Line 4 (fictional demo)"
-  version: 1.5.0
+  version: 1.6.0
 
 responder: { name: Alex Example (fictional), role: MSAT engineer }
 date: "2026-10-01T09:00:00.000Z"
@@ -376,7 +376,7 @@ answers:
   - { q: cap.seal, side: source, value: "Seal Vendor E, SEAL-20-DEMO" }
   - { q: cap.seal, side: target, same: true }
   - { q: cap.cci, side: target, value: planned }
-  # TBD without a best guess behaves like unknown (information required) but carries an owner and a due date. The due date is
+  # TBD without a best guess is an open information item (information required); this one also carries an owner and a due date. The due date is
   # long past, so the Home card and the TBD list show it as overdue.
   - { q: cap.rsf_correlation, side: target, tbd: { owner: "Process Validation Lead (fictional)", due: "2026-10-01", note: "Study protocol not yet approved" } }
   - q: cap.rsf
@@ -387,7 +387,7 @@ answers:
       nor: { min: { value: 50, unit: N }, max: { value: 90, unit: N } }
       par: { min: { value: 40, unit: N }, max: { value: 100, unit: N } }
       rangeBasis: characterization
-  - { q: cap.rsf, side: target, unknown: true }                       # information required
+  - { q: cap.rsf, side: target, tbd: {} }                             # information required (TBD, no details)
   - { q: cap.environment, side: source, value: grade_a_air_supply }
   - { q: cap.environment, side: target, same: true }
   - { q: cap.ipc, side: source, value: [rsf_testing, crimp_visual] }

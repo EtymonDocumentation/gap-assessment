@@ -12,7 +12,7 @@ type Step = [id: string, side: Side, input: AnswerInput];
 
 const val = (value: unknown): AnswerInput => ({ kind: "value", value: value as never });
 const same: AnswerInput = { kind: "same_as_source" };
-const unknown: AnswerInput = { kind: "unknown" };
+const unknown: AnswerInput = { kind: "tbd" };
 const q = (value: number, unit: string) => ({ value, unit });
 const fv = (value: unknown): FieldAnswer => ({ kind: "value", value: value as never });
 

@@ -76,7 +76,11 @@ export const useStore = create<State>((setState, getState) => ({
     }
     try {
       const raw = await get(STORAGE_KEY);
-      setState({ project: raw ? parseProject(raw) : null, ready: true });
+      const project = raw ? parseProject(raw) : null;
+      setState({ project, ready: true });
+      // An older project was migrated on load (for example "Unknown" became TBD, with change-log records). Save the converted copy so those records
+      // keep the time they were written instead of being made again, with a new time, on every start.
+      if (project && (raw as { schemaVersion?: unknown }).schemaVersion !== project.schemaVersion) await persist(project).catch(() => undefined);
     } catch (e) {
       setState({ ready: true, error: `The saved project could not be loaded: ${(e as Error).message}` });
     }

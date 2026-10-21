@@ -26,7 +26,7 @@ export type Condition =
   | { in: [string, (string | number | boolean)[]] }
   | { includes: [string, string] }
   | { answered: string }
-  | { isUnknown: string }
+  | { isTbd: string }
   | { isTrue: string }
   | { uoPresent: string }
   | { changed: string }
@@ -49,7 +49,7 @@ export const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
     z.object({ in: z.tuple([z.string(), z.array(literal).min(1)]) }).strict(),
     z.object({ includes: z.tuple([z.string(), z.string()]) }).strict(),
     z.object({ answered: z.string() }).strict(),
-    z.object({ isUnknown: z.string() }).strict(),
+    z.object({ isTbd: z.string() }).strict(),
     z.object({ isTrue: z.string() }).strict(),
     z.object({ uoPresent: z.string() }).strict(),
     z.object({ changed: z.string() }).strict(),

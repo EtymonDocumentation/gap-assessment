@@ -12,17 +12,23 @@ export type Side = "source" | "target";
 export type EntryStatus =
   /** A value exists and is supported by at least one live source. */
   | "established"
-  /** The user answered "Unknown / to be confirmed". Becomes an open information item. */
-  | "unknown"
   /**
-   * To be determined (added in schema 1.7.0). Unlike "unknown" it is a commitment: someone may name an owner and a due
-   * date, and may record a best guess. The best guess is NOT a value (see Entry.tbd); it only drives a provisional comparison.
+   * To be determined (schema 1.7.0): the one "not known yet" answer. Becomes an open information item. Every detail is
+   * optional: with none it is exactly what the retired "Unknown" answer was (schema 1.9.0 converts those); someone may also
+   * name an owner and a due date, and record a best guess. The best guess is NOT a value (see Entry.tbd); it only drives a
+   * provisional comparison.
    */
   | "tbd"
   /** The user stated the attribute does not apply (justification required). */
   | "not_applicable"
   /** Nothing has been recorded, or the supporting source was removed. */
   | "not_established";
+
+/**
+ * A status as it may appear in OLD records (change-log history, answers). "unknown" was retired in schema 1.9.0; history is
+ * never rewritten (GMP: a record stays as it was written), so only code that renders old records still reads this word.
+ */
+export type RecordedStatus = EntryStatus | "unknown";
 
 export interface Quantity {
   value: number;
@@ -170,7 +176,7 @@ export interface AnswerRecord {
   id: string;
   questionId: string;
   side: Side | "shared";
-  /** "value" | "unknown" | "same_as_source" | "not_applicable" | "composite" */
+  /** "value" | "tbd" | "same_as_source" | "not_applicable" | "composite" ("unknown" in answers recorded before schema 1.9.0) */
   kind: string;
   raw: unknown;
   sourceId: string;

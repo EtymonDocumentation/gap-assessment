@@ -573,7 +573,7 @@ describe("revision history and reviewer comments in the rendered document", () =
   it("renders appendices C and D from the demo with their tables", () => {
     const md = renderMarkdown(doc);
     expect(md).toContain("| Revision | Status | Date | By | Summary of change | Template |");
-    expect(md).toContain("| 1 | Draft; 2 TBD values open | 2026-10-05 | A. Reviewer (fictional) (MSAT lead (fictional)) | First draft for internal review | — |");
+    expect(md).toContain("| 1 | Draft; 4 TBD values open | 2026-10-05 | A. Reviewer (fictional) (MSAT lead (fictional)) | First draft for internal review | — |");
     expect(md).toContain("| ID | Location | Comment | By | Date | Status | Responses |");
     expect(md).toMatch(/\| C-001 \| 6\. Detailed gap table, G-\d+ \|/);
     expect(md).toContain("Resolution by A. Reviewer (fictional), 2026-10-06:");

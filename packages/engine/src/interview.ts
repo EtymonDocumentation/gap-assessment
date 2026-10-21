@@ -23,7 +23,6 @@ import { isQuantity, isRange } from "./values";
 
 export type FieldAnswer =
   | { kind: "value"; value: EntryValue }
-  | { kind: "unknown" }
   | { kind: "same_as_source" }
   | { kind: "not_applicable"; justification: string }
   /**
@@ -158,14 +157,14 @@ export function applyAnswer(
     if (side === "shared") throw new AnswerError("Parameter questions are not shared");
     if (input.kind === "value") throw new AnswerError("Parameter questions take a composite answer");
     if (input.kind !== "composite") {
-      // A whole-question answer (unknown / same as source / N/A) applies to every field.
+      // A whole-question answer (TBD / same as source / N/A) applies to every field.
       // One guess cannot fit every field of a parameter (set point, NOR, PAR...), so guesses are entered per field.
       if (input.kind === "tbd" && input.bestGuess !== undefined) throw new AnswerError("A best guess for a parameter is entered per field");
       for (const f of parameterFields(q, side)) writes.push({ path: `${q.binds}.${f}`, ans: normalizeAnswer(input, (v) => normalizeParamField(content, q, f, v)) });
     } else {
       for (const f of parameterFields(q, side)) {
         const a = input.fields[f];
-        if (!a) throw new AnswerError(`Answer every field (missing: ${content.catalog.fieldLabels[f] ?? f}), or mark it unknown`);
+        if (!a) throw new AnswerError(`Answer every field (missing: ${content.catalog.fieldLabels[f] ?? f}), or mark it TBD`);
         writes.push({ path: `${q.binds}.${f}`, ans: normalizeAnswer(a, (v) => normalizeParamField(content, q, f, v)) });
       }
     }
@@ -236,9 +235,6 @@ export function applyAnswer(
         break;
       case "same_as_source":
         entry.sameAsSource = true;
-        break;
-      case "unknown":
-        entry.status = "unknown";
         break;
       case "not_applicable":
         entry.status = "not_applicable";
@@ -317,7 +313,7 @@ export function confirmSection(project: Project, sectionId: string, side: "sourc
 
 // ------------------------------------------------------------------ clearing answers
 
-/** Entry references behind some instances that hold something (a value, unknown, not applicable, same as source). */
+/** Entry references behind some instances that hold something (a value, TBD, not applicable, same as source). */
 export function clearableRefs(project: Project, insts: QuestionInstance[]): string[] {
   const refs = [...new Set(insts.flatMap(instanceRefs))];
   return refs.filter((r) => {

@@ -9,7 +9,7 @@ import {
   BANNER,
   CLIENT_URL,
   answerFirst,
-  answerUnknown,
+  answerTbd,
   answeredCount,
   expect,
   expectAccessible,
@@ -199,14 +199,14 @@ test("two computers editing the same project: the conflict dialog offers both wa
   await expect(other.locator("#q-prompt")).toBeVisible();
 
   // The first computer moves on: three more answers.
-  for (let i = 0; i < 3; i++) await answerUnknown(page);
+  for (let i = 0; i < 3; i++) await answerTbd(page);
   const latest = await serverRevision(page, title);
   await expect.poll(() => serverRevision(page, title)).toBeGreaterThanOrEqual(latest);
   await expect(page.getByRole("status").filter({ hasText: "Saved to server" })).toBeVisible();
   const mine = await answeredCount(page);
 
   // The second computer answers from the old version: its save is refused and it must choose.
-  await answerUnknown(other);
+  await answerTbd(other);
   const dialog = other.getByRole("dialog", { name: "This project was changed on another computer" });
   await expect(dialog).toBeVisible();
   await expect(dialog).toContainText("Nothing is changed until you choose.");
@@ -223,12 +223,12 @@ test("two computers editing the same project: the conflict dialog offers both wa
 
   // Again: the first computer moves on twice, the second answers once and chooses Keep mine.
   await go(page, "#/interview");
-  await answerUnknown(page);
-  await answerUnknown(page);
+  await answerTbd(page);
+  await answerTbd(page);
   await expect(page.getByRole("status").filter({ hasText: "Saved to server" })).toBeVisible();
   const afterA = await serverRevision(page, title);
   await go(other, "#/interview");
-  await answerUnknown(other);
+  await answerTbd(other);
   await expect(dialog).toBeVisible();
   await dialog.getByRole("button", { name: "Keep mine (overwrite)" }).click();
   await expect(dialog).toBeHidden();
@@ -259,7 +259,7 @@ test("when the session ends, the app returns to sign-in and the unsaved change i
   expect(changed.status()).toBe(204);
   await other.context().close();
   account.password = "an entirely different passphrase";
-  await answerUnknown(page);
+  await answerTbd(page);
   await expect(page.getByRole("heading", { level: 1, name: "Sign in" })).toBeVisible();
   await expect(page.getByRole("status").filter({ hasText: /signed out|session/i })).toBeVisible();
   await expect(page.getByText(BANNER).first()).toBeVisible();

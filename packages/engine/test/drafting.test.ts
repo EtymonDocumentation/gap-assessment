@@ -44,7 +44,7 @@ function withDoc(p: Project = base()): { project: Project; doc: Source } {
 }
 
 describe("TBD comparison", () => {
-  it("a TBD without a best guess behaves like unknown: information required, not provisional, an open item", () => {
+  it("a TBD without a best guess behaves like not known: information required, not provisional, an open item", () => {
     let p = v(base(), "fill.pump", "source", "rotary_piston");
     p = ask(p, "fill.pump", "target", { kind: "tbd", owner: "Process lead (fictional)", due: "2026-12-01" });
     const e = getEntry(p, PUMP_RU)!;
@@ -102,7 +102,7 @@ describe("TBD comparison", () => {
   });
 
   it("a per-field TBD on a parameter keeps the other fields as values", () => {
-    const U = { kind: "unknown" as const };
+    const U = { kind: "tbd" as const };
     const p = ask(base(), "comp.mixing_speed", "target", {
       kind: "composite",
       fields: {
@@ -114,7 +114,7 @@ describe("TBD comparison", () => {
       },
     });
     const root = "target.uo.compounding.param.mixing_speed";
-    expect(getEntry(p, `${root}.nor`)).toMatchObject({ status: "unknown" });
+    expect(getEntry(p, `${root}.nor`)).toMatchObject({ status: "tbd" });
     expect(getEntry(p, `${root}.setPoint`)).toMatchObject({ status: "tbd" });
     expect(resolveEntry(p, `${root}.setPoint`)).toMatchObject({ status: "established", provisional: true, value: { value: 150, unit: "rpm" } });
   });
@@ -174,11 +174,11 @@ describe("overdue", () => {
     expect(localDate(new Date(2026, 0, 1, 0, 0))).toBe("2026-01-01");
   });
 
-  it("summarises 'N to be confirmed (M overdue)'", () => {
+  it("summarises 'N TBD (M overdue)'", () => {
     let p = ask(base(), "fill.pump", "target", { kind: "tbd", due: "2026-10-01" });
     p = ask(p, "fill.pump", "source", { kind: "tbd", due: "2026-12-01", bestGuess: "rotary_piston" });
     const items = tbdItems(content, p, assess(content, p));
-    expect(tbdSummaryText(tbdSummary(items, "2026-10-21"))).toBe("2 to be confirmed (1 overdue)");
+    expect(tbdSummaryText(tbdSummary(items, "2026-10-21"))).toBe("2 TBD (1 overdue)");
     expect(tbdSummary(items, "2026-10-21").withBestGuess).toBe(1);
   });
 });
@@ -288,7 +288,7 @@ describe("the Answering from bar", () => {
     expect(cites({ kind: "value", value: "peristaltic" })).toBe(1);
     expect(cites({ kind: "not_applicable", justification: "Not used (fictional)" })).toBe(1);
     expect(cites({ kind: "tbd", bestGuess: "peristaltic" })).toBe(1);
-    expect(cites({ kind: "unknown" })).toBe(0);
+    expect(cites({ kind: "tbd" })).toBe(0);
     expect(cites({ kind: "tbd", owner: "O" })).toBe(0);
     expect(cites({ kind: "same_as_source" })).toBe(0);
   });
@@ -332,7 +332,7 @@ describe("bulk cite (Link values)", () => {
   function scene() {
     const { project, doc } = withDoc(v(v(base(), "fill.pump", "source", "rotary_piston"), "fill.pump", "target", "peristaltic"));
     // One valueless entry (unknown) and one TBD without a guess, which must never be cited.
-    let p = ask(project, "fill.container", "source", { kind: "unknown" });
+    let p = ask(project, "fill.container", "source", { kind: "tbd" });
     p = ask(p, "fill.container", "target", { kind: "tbd", owner: "O" });
     return { project: p, doc };
   }

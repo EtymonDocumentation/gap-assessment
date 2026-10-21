@@ -1,7 +1,7 @@
 # Fixed wording for the generated gap assessment document.
 # Placeholders: {program} {modality} {dosageForm} {presentation} {transferType}
-# {markets} {sourceSite} {targetSite} {sourceStage} {targetStage} {date}. Unknown values appear as written
-# by the engine (for example "Unknown — to be confirmed", or "[not established]" for a program stage);
+# {markets} {sourceSite} {targetSite} {sourceStage} {targetStage} {date}. Values that are not known appear as written
+# by the engine (for example "To be determined (TBD)", or "[not established]" for a program stage);
 # nothing is invented.
 #
 # Stage-aware wording: {{validated wording|other wording}}. The first variant is used only when the source
@@ -9,7 +9,7 @@
 # stage, uses the second. Quote a value that holds a marker if it would otherwise start with a brace.
 templates:
   id: gap-assessment-document
-  version: 1.3.0
+  version: 1.4.0
 
 document:
   title: "Gap assessment: {program} — {sourceSite} to {targetSite}"
@@ -29,7 +29,7 @@ document:
     not assessed in this version.
   sourceSummaryIntro: >-
     The SU process {{as validated|as it currently stands}}, as recorded in the interview. Each value shows
-    its source and verification state. Values marked "Unknown — to be confirmed" or
+    its source and verification state. Values marked "To be determined (TBD)" or
     "Not established" are open information items.
   targetSummaryIntro: >-
     The planned RU process, as recorded in the interview. Values marked "same as
@@ -56,17 +56,17 @@ document:
     that drive each, most severe first. Where a study provides evidence for an
     activity, its SU and RU status are shown, and the readiness column
     summarises the RU status: evidence available, planned, not planned,
-    bridging or action required, or information required (the status is unknown or
+    bridging or action required, or information required (the status is TBD or
     not established). Activities whose gaps are closed or accepted in the register
     remain listed with that status. The list is a starting point for the transfer
     plan; it does not replace a documented risk assessment.
   equipmentQualificationIntro: >-
     Qualification status of the equipment at each site, and the range the RU
     equipment is qualified for compared with the range the RU process needs.
-    Unknown or missing values are shown as such; none is assumed. Related gaps are
+    TBD or missing values are shown as such; none is assumed. Related gaps are
     the differences recorded for the same equipment.
   openItemsIntro: >-
-    Information that is unknown or not established. Each item must be resolved before
+    Information that is TBD (to be determined) or not established. Each item must be resolved before
     the related comparison can be completed. Until then the comparison is classified
     as "Information required".
   riskIntro: >-
@@ -97,7 +97,7 @@ document:
     Verification status section.
   verificationStatusIntro: >-
     Counts of the entries behind this document by verification state, for each
-    section and side. "Not verifiable" means the entry is Unknown or not
+    section and side. "Not verifiable" means the entry is TBD or not
     established, so there is no value to confirm yet. A verification covers the
     value and status at the time it was given; a later change withdraws it.
   identityStatement: >-

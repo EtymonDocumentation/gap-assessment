@@ -6,7 +6,6 @@ import { isQuantity, isRange } from "./values";
 
 export const STATUS_TEXT = {
   not_established: "Not established",
-  unknown: "Unknown (to be confirmed)",
   tbd: "To be determined (TBD)",
   not_applicable: "Not applicable",
 } as const;
@@ -33,7 +32,7 @@ export function formatResolved(content: ContentBundle, q: Question | undefined, 
     return r.sameAsSource ? `${shown} (same as SU)` : shown;
   }
   if (r.status === "not_applicable") return r.justification ? `Not applicable: ${r.justification}` : STATUS_TEXT.not_applicable;
-  return r.sameAsSource && (r.status === "unknown" || r.status === "tbd") ? `${STATUS_TEXT[r.status]} (same as SU)` : STATUS_TEXT[r.status];
+  return r.sameAsSource && r.status === "tbd" ? `${STATUS_TEXT.tbd} (same as SU)` : STATUS_TEXT[r.status];
 }
 
 const FIELD_SHORT: Record<ParameterField, string> = {

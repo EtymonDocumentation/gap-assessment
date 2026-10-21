@@ -129,15 +129,15 @@ describe("range comparator (process parameter, R-PARAM-RANGE)", () => {
   });
 
   it("uses the set point when the RU NOR is unknown", () => {
-    const g = gap(run(speed(kit, {}, { sp: rpm(150), nor: "unknown" })), MS);
+    const g = gap(run(speed(kit, {}, { sp: rpm(150), nor: "tbd" })), MS);
     expect(g.category).toBe("within_validated_range");
     expect(g.detail).toBe("The RU set point 150 rpm lies within the SU PAR 100–200 rpm.");
-    const out = gap(run(speed(kit, {}, { sp: rpm(250), nor: "unknown" })), MS);
+    const out = gap(run(speed(kit, {}, { sp: rpm(250), nor: "tbd" })), MS);
     expect(out.category).toBe("outside_validated_range");
   });
 
   it("an unknown classification applies the most conservative severity and says so", () => {
-    const g = gap(run(speed(kit, { cls: "unknown" }, { nor: rr(90, 170) })), MS);
+    const g = gap(run(speed(kit, { cls: "tbd" }, { nor: rr(90, 170) })), MS);
     expect(g).toMatchObject({
       category: "outside_validated_range",
       severity: "high",
@@ -146,26 +146,26 @@ describe("range comparator (process parameter, R-PARAM-RANGE)", () => {
   });
 
   it("information_required when the RU set point and NOR are both unknown", () => {
-    const g = gap(run(speed(kit, {}, { sp: "unknown", nor: "unknown" })), MS);
+    const g = gap(run(speed(kit, {}, { sp: "tbd", nor: "tbd" })), MS);
     expect(g).toMatchObject({ category: "information_required", activities: ["information_gathering"], status: "open" });
-    expect(g.detail).toBe("RU set point unknown (to be confirmed); RU NOR unknown (to be confirmed).");
+    expect(g.detail).toBe("RU set point TBD (to be determined); RU NOR TBD (to be determined).");
     expect(g.regulatoryNote).toBeUndefined();
     expect(g.rationale).toBe("The comparison cannot be completed until the missing information is established. No value is assumed.");
   });
 
   it("information_required when the SU PAR is unknown", () => {
-    const noPar = gap(run(speed(kit, { par: "unknown" }, { nor: rr(130, 170) })), MS);
+    const noPar = gap(run(speed(kit, { par: "tbd" }, { nor: rr(130, 170) })), MS);
     expect(noPar).toMatchObject({ category: "information_required" });
-    expect(noPar.detail).toBe("SU PAR unknown (to be confirmed).");
+    expect(noPar.detail).toBe("SU PAR TBD (to be determined).");
   });
 
   it("a matching set point is not enough for 'equivalent' when the RU NOR is unknown but the SU NOR is known", () => {
-    expect(categoryOf(speed(kit, {}, { sp: rpm(150), nor: "unknown" }), MS)).toBe("within_validated_range");
+    expect(categoryOf(speed(kit, {}, { sp: rpm(150), nor: "tbd" }), MS)).toBe("within_validated_range");
   });
 
   it("the information_required severity for a parameter also follows the classification", () => {
-    const cpp = gap(run(speed(kit, { cls: "CPP" }, { sp: "unknown", nor: "unknown" })), MS);
-    const free = gap(run(speed(kit, { cls: "non_critical" }, { sp: "unknown", nor: "unknown" })), MS);
+    const cpp = gap(run(speed(kit, { cls: "CPP" }, { sp: "tbd", nor: "tbd" })), MS);
+    const free = gap(run(speed(kit, { cls: "non_critical" }, { sp: "tbd", nor: "tbd" })), MS);
     expect([cpp.severity, free.severity]).toEqual(["high", "low"]);
   });
 
@@ -197,7 +197,7 @@ describe("range comparator (process parameter, R-PARAM-RANGE)", () => {
     expect(withVr.category).toBe("within_validated_range");
     expect(withVr.detail).toBe("The RU NOR 220–280 rpm lies within the SU validated range 100–300 rpm.");
     // Validated range unknown: falls back to the PAR, which does not cover the target.
-    const fallback = gap(k.run(speed(k, { vr: "unknown" }, target)), MS);
+    const fallback = gap(k.run(speed(k, { vr: "tbd" }, target)), MS);
     expect(fallback.category).toBe("outside_validated_range");
     expect(fallback.detail).toContain("SU PAR 100–200 rpm");
     // Without the field at all the same target is outside.
@@ -279,13 +279,13 @@ describe("scale comparator", () => {
     });
 
     it("information_required when the RU set point is unknown and the NOR is outside the PAR", () => {
-      const g = gap(run(batch(kit, { sp: L(100) }, { sp: "unknown", nor: rng(200, 300, "L") })), BATCH);
+      const g = gap(run(batch(kit, { sp: L(100) }, { sp: "tbd", nor: rng(200, 300, "L") })), BATCH);
       expect(g.category).toBe("information_required");
-      expect(g.detail).toBe("RU nominal value unknown (to be confirmed).");
+      expect(g.detail).toBe("RU nominal value TBD (to be determined).");
     });
 
     it("information_required when both RU values are unknown", () => {
-      const g = gap(run(batch(kit, { sp: L(100) }, { sp: "unknown", nor: "unknown" })), BATCH);
+      const g = gap(run(batch(kit, { sp: L(100) }, { sp: "tbd", nor: "tbd" })), BATCH);
       expect(g.category).toBe("information_required");
     });
   });
@@ -318,7 +318,7 @@ describe("scale comparator", () => {
       const p = v(unk(base(), "comp.vessel_capacity", "source"), "comp.vessel_capacity", "target", q(100, "L"));
       const g = gap(run(p), CAPACITY);
       expect(g).toMatchObject({ category: "information_required", severity: "low" });
-      expect(g.detail).toBe("SU value unknown (to be confirmed).");
+      expect(g.detail).toBe("SU value TBD (to be determined).");
     });
   });
 });
@@ -439,10 +439,10 @@ describe("enum comparator", () => {
 
   it("information_required when a side is unknown, with the missing side named", () => {
     const g = gap(run(v(unk(base(), "fill.pump", "source"), "fill.pump", "target", "peristaltic")), PUMP);
-    expect(g).toMatchObject({ category: "information_required", detail: "SU value unknown (to be confirmed).", activities: ["information_gathering"] });
+    expect(g).toMatchObject({ category: "information_required", detail: "SU value TBD (to be determined).", activities: ["information_gathering"] });
     expect(g.regulatoryNote).toBeUndefined();
     const both = gap(run(unk(unk(base(), "fill.pump", "source"), "fill.pump", "target")), PUMP);
-    expect(both.detail).toBe("SU value unknown (to be confirmed); RU value unknown (to be confirmed).");
+    expect(both.detail).toBe("SU value TBD (to be determined); RU value TBD (to be determined).");
   });
 
   it("information_required when a side was never answered", () => {
@@ -612,14 +612,14 @@ describe("coverage comparator", () => {
 
     it("uses the RU set point when the NOR is unknown", () => {
       const p = v(
-        batch(kit, { sp: L(100) }, { sp: L(250), nor: "unknown" }),
+        batch(kit, { sp: L(100) }, { sp: L(250), nor: "tbd" }),
         "comp.mixing_coverage",
         "source",
         rng(20, 300, "L"),
       );
       const g = gap(run(p), MIX_COV);
       expect(g).toMatchObject({ category: "within_validated_range", detail: "250 L is within the covered range 20–300 L." });
-      expect(categoryOf(v(batch(kit, { sp: L(100) }, { sp: L(250), nor: "unknown" }), "comp.mixing_coverage", "source", rng(20, 200, "L")), MIX_COV)).toBe("outside_validated_range");
+      expect(categoryOf(v(batch(kit, { sp: L(100) }, { sp: L(250), nor: "tbd" }), "comp.mixing_coverage", "source", rng(20, 200, "L")), MIX_COV)).toBe("outside_validated_range");
     });
 
     it("shows the checked value in the RU column and nothing in the SU column of other rows", () => {
@@ -631,7 +631,7 @@ describe("coverage comparator", () => {
     it("information_required when the coverage is unknown, naming the missing item", () => {
       const g = gap(run(unk(grown(), "comp.mixing_coverage", "source")), MIX_COV);
       expect(g.category).toBe("information_required");
-      expect(g.detail).toContain("Covered range (SU) unknown (to be confirmed)");
+      expect(g.detail).toContain("Covered range (SU) TBD (to be determined)");
     });
 
   });
@@ -664,7 +664,7 @@ describe("coverage comparator", () => {
       const p = v(unk(grown(), "fill.duration", "target"), "fill.aps", "target", q(48, "h"));
       const g = gap(run(v(p, "fill.duration", "source", q(24, "h"))), APS);
       expect(g.category).toBe("information_required");
-      expect(g.detail).toBe("Compared value (RU) unknown (to be confirmed).");
+      expect(g.detail).toBe("Compared value (RU) TBD (to be determined).");
     });
 
     it("is an RU-only row: the SU column is a dash", () => {
@@ -723,7 +723,7 @@ describe("evidence comparator (RU-side answer mapped to a category)", () => {
   });
 
   it("information_required when the answer is unknown or missing", () => {
-    expect(gap(run(unk(pumpChanged(), "fill.accuracy", "target")), ACCURACY)).toMatchObject({ category: "information_required", detail: "Evidence status unknown (to be confirmed)." });
+    expect(gap(run(unk(pumpChanged(), "fill.accuracy", "target")), ACCURACY)).toMatchObject({ category: "information_required", detail: "Evidence status TBD (to be determined)." });
     expect(gap(run(pumpChanged()), ACCURACY)).toMatchObject({ category: "information_required", detail: "Evidence status not established." });
   });
 
@@ -1016,24 +1016,25 @@ describe("gap records", () => {
 });
 
 describe("open items", () => {
-  it("lists unknown and not-established entries of visible questions, not N/A or established ones", () => {
+  it("lists TBD and not-established entries of visible questions, not N/A or established ones", () => {
     let p = base();
     p = unk(v(p, "fill.pump", "source", "rotary_piston"), "fill.pump", "target");
     p = na(p, "comp.vessel_type", "source", "Not used (fictional)");
     const items = run(p).openItems;
     const pump = items.find((o) => o.ref === "target.uo.aseptic_filling.equip.filler.operatingPrinciple")!;
-    expect(pump).toMatchObject({ status: "unknown", side: "target", questionId: "fill.pump", prompt: "Filling pump operating principle", sectionId: "uo.aseptic_filling" });
+    expect(pump).toMatchObject({ status: "tbd", tbd: {}, side: "target", questionId: "fill.pump", prompt: "Filling pump operating principle", sectionId: "uo.aseptic_filling" });
     expect(items.some((o) => o.ref === "source.uo.aseptic_filling.equip.filler.operatingPrinciple")).toBe(false);
     expect(items.some((o) => o.ref === "source.uo.compounding.equip.vessel.type")).toBe(false);
     const unanswered = items.find((o) => o.ref === "target.uo.compounding.equip.vessel.type")!;
     expect(unanswered.status).toBe("not_established");
   });
 
-  it("a same-as-SU answer whose SU is unknown is an open item on the RU", () => {
+  it("a same-as-SU answer whose SU is TBD is listed once, on the SU, where it has to be resolved", () => {
+    // The retired "Unknown" was listed on both sides. A TBD is a commitment with an owner, so the RU row would only repeat the SU's.
     let p = unk(base(), "fill.pump", "source");
     p = same(p, "fill.pump");
     const items = run(p).openItems.filter((o) => o.questionId === "fill.pump");
-    expect(items.map((o) => `${o.side}:${o.status}`).sort()).toEqual(["source:unknown", "target:unknown"]);
+    expect(items.map((o) => `${o.side}:${o.status}`).sort()).toEqual(["source:tbd"]);
   });
 });
 

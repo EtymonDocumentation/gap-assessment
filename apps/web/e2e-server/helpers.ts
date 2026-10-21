@@ -146,16 +146,16 @@ export async function startProject(page: Page, title: string): Promise<void> {
   await expect(page.locator("#q-prompt")).toHaveText("Program or product code");
 }
 
-/** Answers the first question with text, then each further question with "Unknown". */
+/** Answers the first question with text, then each further question with "TBD". */
 export async function answerFirst(page: Page, text: string): Promise<void> {
   await page.locator(".question-card input").first().fill(text);
   await page.getByRole("button", { name: "Save and continue" }).click();
   await expect(page.locator("#q-prompt")).not.toHaveText("Program or product code");
 }
 
-export async function answerUnknown(page: Page): Promise<void> {
+export async function answerTbd(page: Page): Promise<void> {
   const before = await page.locator("#q-prompt").textContent();
-  await page.getByRole("button", { name: "Unknown — to be confirmed" }).click();
+  await page.getByRole("button", { name: "TBD (to be determined)" }).click();
   await expect(page.locator("#q-prompt")).not.toHaveText(before ?? "");
 }
 

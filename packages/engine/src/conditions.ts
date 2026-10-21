@@ -60,11 +60,11 @@ export function evaluate(cond: Condition, ctx: EvalContext): boolean {
     const ref = ownSide(ctx, cond.answered);
     return !!ref && resolveEntry(ctx.project, ref).status !== "not_established";
   }
-  if ("isUnknown" in cond) {
-    const ref = ownSide(ctx, cond.isUnknown);
+  if ("isTbd" in cond) {
+    const ref = ownSide(ctx, cond.isTbd);
     const s = ref ? resolveEntry(ctx.project, ref).status : undefined;
-    // A TBD without a best guess is just as undetermined as an unknown.
-    return s === "unknown" || s === "tbd";
+    // TBD is the one not-known answer. With a best guess the entry resolves as established (provisional), so it is not "TBD" here.
+    return s === "tbd";
   }
   if ("isTrue" in cond) return established(ctx, cond.isTrue)?.value === true;
   if ("uoPresent" in cond) {

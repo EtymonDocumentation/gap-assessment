@@ -878,16 +878,11 @@ fieldset.side-panel.side-target {
   gap: 8px;
   font-weight: 600;
 }
-.unknown-toggle {
+.tbd-toggle {
   font-weight: 400;
   display: inline-flex;
   gap: 4px;
   align-items: center;
-}
-.param-field.is-unknown .param-label span:first-child::after {
-  content: " — unknown";
-  color: var(--c-info);
-  font-weight: 600;
 }
 .q-actions {
   padding-top: 4px;
@@ -1186,7 +1181,7 @@ table.data tr.inactive {
 .tag.status-established {
   border-color: var(--ok);
 }
-.tag.status-unknown,
+.tag.status-tbd,
 .tag.status-not_established,
 .tag.status-partial {
   border-style: dashed;

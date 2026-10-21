@@ -38,7 +38,7 @@ export function HomePage({ notice }: { notice?: string }) {
       <p className="lede">
         Compare a <strong>sending unit</strong> (SU) process with a planned <strong>receiving unit</strong> (RU) site through a guided interview. The tool
         classifies every difference, builds a gap register and drafts a gap assessment document. Values are never filled in for you: anything
-        unknown stays visible as an open item.
+        not yet known stays visible as an open item (TBD).
       </p>
 
       {project && a ? (
@@ -65,7 +65,7 @@ export function HomePage({ notice }: { notice?: string }) {
             </div>
             {tbd && (
               <div>
-                <dt>To be confirmed (TBD)</dt>
+                <dt>TBD values</dt>
                 <dd>
                   <a href={href("/tbd")}>{tbdSummaryText(tbd)}</a>
                 </dd>

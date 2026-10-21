@@ -129,10 +129,10 @@ describe("applyAnswer: re-answering", () => {
     expect(p.sources.every((s) => s.supersededBy === undefined)).toBe(true);
   });
 
-  it("can replace a value with Unknown and back", () => {
+  it("can replace a value with TBD and back", () => {
     let p = v(newProject(), "comp.vessel_type", "source", "stainless_tank");
     p = unk(p, "comp.vessel_type", "source");
-    expect(getEntry(p, VESSEL_S)).toMatchObject({ status: "unknown" });
+    expect(getEntry(p, VESSEL_S)).toMatchObject({ status: "tbd" });
     expect(getEntry(p, VESSEL_S)!.value).toBeUndefined();
     p = v(p, "comp.vessel_type", "source", "glass");
     expect(resolveEntry(p, VESSEL_S)).toMatchObject({ status: "established", value: "glass" });
@@ -166,14 +166,14 @@ describe("applyAnswer: document references", () => {
     expect(p.sources.find((s) => s.type === "document_reference")!.label).toBe("TEST-DOC-009");
   });
 
-  it("does not attach a document to Unknown, Not applicable or Same-as-source entries", () => {
+  it("does not attach a document to TBD, Not applicable or Same-as-source entries", () => {
     const withDoc = (input: AnswerInput, side: "source" | "target", prior?: Project): Project =>
       ask(prior ?? newProject(), "comp.vessel_type", side, input, ACTOR, [DOC_A]);
-    const unknown = withDoc({ kind: "unknown" }, "source");
+    const tbdOnly = withDoc({ kind: "tbd" }, "source");
     const notApplicable = withDoc({ kind: "not_applicable", justification: "Not used (fictional)" }, "source");
     const sameAs = withDoc({ kind: "same_as_source" }, "target", v(newProject(), "comp.vessel_type", "source", "glass"));
     for (const [p, ref] of [
-      [unknown, VESSEL_S],
+      [tbdOnly, VESSEL_S],
       [notApplicable, VESSEL_S],
       [sameAs, VESSEL_T],
     ] as const) {
@@ -187,7 +187,7 @@ describe("applyAnswer: document references", () => {
     const p = par(newProject(), "comp.mixing_speed", "source", {
       classification: "KPP",
       setPoint: q(150, "rpm"),
-      nor: "unknown",
+      nor: "tbd",
       par: rng(100, 200, "rpm"),
       rangeBasis: "characterization",
     }, ACTOR, [DOC_A]);
@@ -195,7 +195,7 @@ describe("applyAnswer: document references", () => {
     const ref = (f: string) => `source.uo.compounding.param.mixing_speed.${f}`;
     expect(getEntry(p, ref("setPoint"))!.sourceIds).toContain(docId);
     expect(getEntry(p, ref("par"))!.sourceIds).toContain(docId);
-    expect(getEntry(p, ref("nor"))!.status).toBe("unknown");
+    expect(getEntry(p, ref("nor"))!.status).toBe("tbd");
     expect(getEntry(p, ref("nor"))!.sourceIds).not.toContain(docId);
   });
 });
@@ -216,10 +216,10 @@ describe("applyAnswer: kinds of answer", () => {
     expect(getEntry(p, VESSEL_S)).toMatchObject({ status: "not_applicable", justification: "Vessel not used (fictional)" });
   });
 
-  it("a whole-question Unknown on a parameter marks every field unknown", () => {
+  it("a whole-question TBD on a parameter marks every field TBD", () => {
     const p = unk(newProject(), "comp.mixing_speed", "source");
     for (const f of ["classification", "setPoint", "nor", "par", "rangeBasis"]) {
-      expect(getEntry(p, `source.uo.compounding.param.mixing_speed.${f}`)?.status, f).toBe("unknown");
+      expect(getEntry(p, `source.uo.compounding.param.mixing_speed.${f}`)?.status, f).toBe("tbd");
     }
     expect(p.sources).toHaveLength(1); // one source for the whole answer
   });
@@ -240,7 +240,7 @@ describe("applyAnswer: kinds of answer", () => {
     expect(resolveEntry(p, "target.uo.compounding.param.mixing_speed.setPoint").value).toEqual(q(150, "rpm"));
   });
 
-  it("a composite answer can mix values, unknowns and same-as-source per field", () => {
+  it("a composite answer can mix values, TBDs and same-as-source per field", () => {
     let p = par(newProject(), "comp.mixing_speed", "source", {
       classification: "KPP",
       setPoint: q(150, "rpm"),
@@ -248,9 +248,9 @@ describe("applyAnswer: kinds of answer", () => {
       par: rng(100, 200, "rpm"),
       rangeBasis: "PPQ",
     });
-    p = par(p, "comp.mixing_speed", "target", { setPoint: "same", nor: "unknown" });
+    p = par(p, "comp.mixing_speed", "target", { setPoint: "same", nor: "tbd" });
     expect(getEntry(p, "target.uo.compounding.param.mixing_speed.setPoint")).toMatchObject({ status: "established", sameAsSource: true });
-    expect(getEntry(p, "target.uo.compounding.param.mixing_speed.nor")?.status).toBe("unknown");
+    expect(getEntry(p, "target.uo.compounding.param.mixing_speed.nor")?.status).toBe("tbd");
   });
 
   it("yes_no answers are stored as booleans", () => {
@@ -380,7 +380,7 @@ describe("applyAnswer: rejected answers", () => {
     rejects(() => v(P, "scope.program", "shared", 42), /Enter text/);
     rejects(() => v(P, "comp.presence", "source", "maybe"), /Answer yes or no/);
     rejects(() => v(P, "comp.mixing_speed", "shared", q(1, "rpm")), /Parameter questions are not shared|composite/);
-    rejects(() => ask(P, "comp.mixing_speed", "shared", { kind: "unknown" }), /Parameter questions are not shared/);
+    rejects(() => ask(P, "comp.mixing_speed", "shared", { kind: "tbd" }), /Parameter questions are not shared/);
   });
 
   it("normalizeValue validates against the question without touching a project", () => {

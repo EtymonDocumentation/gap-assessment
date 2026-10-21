@@ -1,9 +1,10 @@
 # Question bank: header, sections, scoping and site questions.
 # Paths: scope.<key> (shared), site.<field>, uo.<uo>.<field>, uo.<uo>.<collection>.<item>.<field>
-# "Unknown / to be confirmed" is added to every question by the engine.
+# "To be determined (TBD)" is added to every question by the engine: it is the one not-known answer, so no question
+# offers an option such as "unknown" or "not yet known" of its own.
 bank:
   id: gap-core
-  version: 1.5.0
+  version: 1.6.0
 
 sections:
   - { id: scoping, title: Scoping, kind: scoping, order: 0, intro: These answers decide which unit operations and questions apply. They are shared by SU and RU. }
@@ -146,7 +147,7 @@ questions:
     why: >-
       Many products leave the filling site as unlabelled packed bulk and are labelled and packaged at another site. If so,
       the labelling and packaging questions are out of scope for that side, and the document says where they happen. Nothing
-      is assumed: an unanswered or unknown location is listed as an open item, and the labelling questions stay visible
+      is assumed: an unanswered or TBD location is listed as an open item, and the labelling questions stay visible
       until the location is known.
     sides: paired
     sameAsSource: false

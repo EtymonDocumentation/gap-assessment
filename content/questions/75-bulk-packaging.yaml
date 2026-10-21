@@ -27,7 +27,7 @@ questions:
     topic: pack
     prompt: Units per bulk container
     label: Units per bulk container
-    why: The number of units per bulk container sets the load on the units at the bottom, the hold footprint and the count that is reconciled. A different number needs the pack to be confirmed again.
+    why: The number of units per bulk container sets the load on the units at the bottom, the hold footprint and the count that is reconciled. A different number means the pack must be checked again.
     sides: paired
     binds: uo.bulk_packaging.mat.bulk_container.unitsPerContainer
     input: { type: quantity, units: [count] }

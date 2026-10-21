@@ -98,7 +98,7 @@ export function DocumentPage() {
         <p className="small">
           {vs.all.verified} of {vs.all.total} entries are verified. {vs.all.withdrawn} {vs.all.withdrawn === 1 ? "verification is" : "verifications are"} withdrawn
           after a change, {vs.all.unverified} {vs.all.unverified === 1 ? "entry is" : "entries are"} unverified and {vs.all.notVerifiable}{" "}
-          {vs.all.notVerifiable === 1 ? "has" : "have"} no value to verify yet (Unknown, TBD or Not established). Verify entries in the{" "}
+          {vs.all.notVerifiable === 1 ? "has" : "have"} no value to verify yet (TBD or Not established). Verify entries in the{" "}
           <a href={href("/builder")}>Builder</a>.
         </p>
         <div className="table-scroll" role="region" aria-label="Verification counts by side" tabIndex={0}>

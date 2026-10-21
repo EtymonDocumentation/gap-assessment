@@ -90,7 +90,7 @@ export interface DocModel {
   banner: string;
   status: string;
   meta: [string, string][];
-  /** Facts for renderers that draw a cover page (the built-in Word template). Unknown values read "[not established]". */
+  /** Facts for renderers that draw a cover page (the built-in Word template). Values not established read "[not established]". */
   cover: DocCover;
   sections: DocSection[];
   /** Issued revisions, oldest first. */

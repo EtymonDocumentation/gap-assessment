@@ -30,11 +30,11 @@ describe("ARX-217 demo (golden)", () => {
     for (const c of CATEGORIES) expect(cats, c).toContain(c);
   });
 
-  it("carries two TBD values: one with a best guess (a provisional gap) and one overdue without", () => {
+  it("carries four TBD entries: one with a best guess (a provisional gap), one overdue, and the two fields of the RSF answer that was Unknown before 1.9.0", () => {
     const items = tbdItems(content, project, a);
-    expect(items).toHaveLength(2);
+    expect(items).toHaveLength(4);
     expect(items.filter((i) => i.bestGuess !== undefined)).toHaveLength(1);
-    expect(tbdSummary(items, "2026-10-21")).toMatchObject({ total: 2, overdue: 1 });
+    expect(tbdSummary(items, "2026-10-21")).toMatchObject({ total: 4, overdue: 1 });
     expect(a.gaps.filter((g) => g.provisional)).toHaveLength(1);
   });
 
@@ -76,7 +76,7 @@ describe("ARX-217 demo (golden)", () => {
     expect(a.instances.some((i) => i.question.id.startsWith("fill.stopper_") || i.question.id === "fill.headspace")).toBe(false);
   });
 
-  it("lists target unknowns as open items", () => {
+  it("lists target TBDs as open items", () => {
     const refs = a.openItems.map((o) => o.ref);
     expect(refs).toContain("target.uo.capping.param.rsf.setPoint");
     expect(refs).toContain("target.uo.capping.study.rsf_cci_correlation.status");

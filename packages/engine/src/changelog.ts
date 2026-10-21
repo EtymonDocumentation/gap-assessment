@@ -13,6 +13,7 @@ import { commentDisplayId } from "./review";
 
 export const ACTION_LABELS: Record<string, string> = {
   answer: "Answer recorded",
+  migrate_status: "Status converted (file update)",
   verify: "Verified",
   unverify: "Verification withdrawn",
   verify_many: "Bulk verification",
@@ -83,6 +84,8 @@ export interface ChangeLogFilter {
 }
 
 const NONE = "—";
+/** How the retired "Unknown" answer reads in old change-log records. Not used for anything the tool shows as current. */
+const RETIRED_UNKNOWN_TEXT = "Unknown";
 
 function isEntryRef(path: string | undefined): path is string {
   if (!path) return false;
@@ -118,8 +121,10 @@ function valueStateText(content: ContentBundle, project: Project, ref: string, v
     else if (s.sameAsSource) text = "Same as SU";
   } else if (s.status === "not_applicable") {
     text = s.justification ? `Not applicable: ${s.justification}` : STATUS_TEXT.not_applicable;
-  } else if (s.status === "unknown") text = STATUS_TEXT.unknown;
-  else if (s.status === "tbd") {
+  } else if (s.status === "unknown") {
+    // History is shown as it was recorded: "Unknown" was a separate answer until schema 1.9.0, and old log records are never rewritten.
+    text = RETIRED_UNKNOWN_TEXT;
+  } else if (s.status === "tbd") {
     // Everything that was recorded about the TBD is part of the audit trail, so a change of owner or due date is visible.
     const t = s.tbd ?? {};
     const bits = [
@@ -196,6 +201,7 @@ function toRow(content: ContentBundle, project: Project, ev: ChangeEvent, i: num
 
   switch (ev.action) {
     case "answer":
+    case "migrate_status":
     case "revert_on_source_removal":
     case "revert_on_source_detach":
     case "answer_cleared": {

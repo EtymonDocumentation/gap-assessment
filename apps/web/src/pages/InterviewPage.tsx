@@ -219,7 +219,7 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
     const names = items.map((it) => it.inst.side).filter((x): x is UnitSide => x !== "shared").map((x) => SIDE_SHORT[x]);
     const done = names.length ? `Saved ${names.join(" and ")}.` : "Saved.";
 
-    // A quick action (Unknown, Same as SU, Not applicable) on one panel stays on the card while the other side still needs an answer.
+    // A quick action (TBD, Same as SU, Not applicable) on one panel stays on the card while the other side still needs an answer.
     if (opts.quick) {
       const savedKeys = items.map((it) => it.inst.key);
       const others = group.filter((i) => !savedKeys.includes(i.key));
@@ -572,7 +572,7 @@ function QuestionCard({
 
   const savePrimary = () => {
     if (!toSave.length) {
-      failWith({}, "Enter an answer for SU, RU or both, or choose Unknown or TBD for a side.");
+      failWith({}, "Enter an answer for SU, RU or both, or choose TBD for a side.");
       if (combined) {
         pendingFocus.current = "source";
         setNonce((n) => n + 1);
@@ -766,7 +766,7 @@ function SharedBanner() {
   );
 }
 
-/** One side's answer: its own input, document citations and Unknown / Same as SU / Not applicable actions. */
+/** One side's answer: its own input, document citations and TBD / Same as SU / Not applicable actions. */
 function SidePanel({
   inst,
   group,
@@ -808,6 +808,7 @@ function SidePanel({
   const sideLabel = side !== "shared" ? q.sideLabels?.[side] : undefined;
   const sameAllowed = side === "target" && q.sides === "paired" && q.sameAsSource !== false;
   const errId = `err-${inst.key}`;
+  const tbdBoxId = `tbd-box-${inst.key}`;
   const textId = `qtext-${inst.key}`;
   const citedCount = state.citedIds.length + (state.docId.trim() ? 1 : 0);
   const sourceInst = group.find((i) => i.side === "source");
@@ -849,7 +850,7 @@ function SidePanel({
         </summary>
         <div className="stack">
           <p className="small muted" id={`cite-help-${inst.key}`}>
-            Where a document backs this value, the document is shown as its source instead of the interview. Documents are recorded with a value (or a TBD best guess), not with Unknown or Not applicable.
+            Where a document backs this value, the document is shown as its source instead of the interview. Documents are recorded with a value (or a TBD best guess), not with TBD (without a best guess) or Not applicable.
           </p>
           {registerDocs.length > 0 && (
             <fieldset className="cite-pick" aria-describedby={`cite-help-${inst.key}`}>
@@ -898,16 +899,17 @@ function SidePanel({
 
       <div className="row wrap q-actions">
         {primary}
-        <button type="button" className="btn" onClick={() => onQuick({ kind: "unknown" })}>
-          Unknown — to be confirmed
+        {/* One click records a TBD with no details, as fast as the retired "Unknown" answer was. Details are optional (see below). */}
+        <button type="button" className="btn" onClick={() => onQuick({ kind: "tbd" })}>
+          TBD (to be determined)
         </button>
         {sameAllowed && (
           <button type="button" className="btn" onClick={() => onQuick({ kind: "same_as_source" })}>
             Same as SU
           </button>
         )}
-        <button type="button" className="btn" aria-expanded={state.tbdOpen} onClick={() => patch({ tbdOpen: !state.tbdOpen })}>
-          To be determined (TBD)…
+        <button type="button" className="btn ghost" aria-expanded={state.tbdOpen} aria-controls={tbdBoxId} onClick={() => patch({ tbdOpen: !state.tbdOpen })}>
+          Add details
         </button>
         <button type="button" className="btn ghost" aria-expanded={state.naOpen} onClick={() => patch({ naOpen: !state.naOpen })}>
           Not applicable…
@@ -919,14 +921,14 @@ function SidePanel({
         )}
       </div>
       {state.tbdOpen && (
-        <div className="na-box tbd-box">
+        <div className="na-box tbd-box" id={tbdBoxId} role="group" aria-label={`TBD details${who ? ` for ${who}` : ""} (all optional)`}>
           <p className="small muted">
-            TBD means the value is not decided yet. It is listed as an open item with its owner and due date. A best guess is optional: it is compared as if it were established but
+            Optional. TBD alone already records the value as not known yet and lists it as an open item. Add an owner, a due date or a note to track it, or a best guess: a best guess is compared as if it were established but
             every result that depends on it is labelled “Provisional”, and a TBD value cannot be verified.
           </p>
           {state.tbdRecorded && <p className="small">A TBD is already recorded here; recording again replaces it.</p>}
           {paramQuestion ? (
-            <p className="small muted">To record a best guess for a parameter, tick TBD on the field above and type the guess there. The button below records the whole parameter as TBD without a guess.</p>
+            <p className="small muted">To record a best guess for a parameter, tick TBD on the field above and type the guess there. The button below records the whole parameter as TBD with the details above and no guess.</p>
           ) : (
             <div className="stack">
               <span className="small">Best guess (optional){who ? ` for ${who}` : ""}</span>
@@ -956,7 +958,7 @@ function SidePanel({
               else onTbd(r.input);
             }}
           >
-            Record as TBD
+            Record TBD with these details
           </button>
         </div>
       )}

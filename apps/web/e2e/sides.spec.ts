@@ -70,7 +70,7 @@ test("a paired question shows SU and RU together, each in its own labelled group
   await expect(panel(page, "source").getByRole("button", { name: "Same as SU" })).toHaveCount(0);
   await expect(panel(page, "target").getByRole("button", { name: "Same as SU" })).toBeVisible();
   for (const side of ["source", "target"] as const) {
-    await expect(panel(page, side).getByRole("button", { name: "Unknown — to be confirmed" })).toBeVisible();
+    await expect(panel(page, side).getByRole("button", { name: "TBD (to be determined)" })).toBeVisible();
     await expect(panel(page, side).getByRole("button", { name: "Not applicable…" })).toBeVisible();
     await expect(panel(page, side).locator("details.cite")).toHaveCount(1);
   }
@@ -175,7 +175,7 @@ test("scoping questions say they apply to both units, with no side prefix", asyn
   await expect(page.locator("#q-prompt")).toHaveText("Program or product code");
 });
 
-test("saving one side with Unknown stays on the card for the other side; site names show in the legends", async ({ page }) => {
+test("saving one side with TBD stays on the card for the other side; site names show in the legends", async ({ page }) => {
   test.setTimeout(90_000);
   await newProject(page);
   await go(page, "#/interview?q=site.name%40source");
@@ -194,14 +194,14 @@ test("saving one side with Unknown stays on the card for the other side; site na
   await expect(page.getByRole("group", { name: "Sending unit (SU) — Site North (fictional) · current state" })).toBeVisible();
   await expect(page.getByRole("group", { name: "Receiving unit (RU) — Site South (fictional) · planned state" })).toBeVisible();
 
-  // Unknown for SU keeps the card open and moves focus to RU, which still needs an answer.
-  await panel(page, "source").getByRole("button", { name: "Unknown — to be confirmed" }).click();
+  // TBD for SU keeps the card open and moves focus to RU, which still needs an answer.
+  await panel(page, "source").getByRole("button", { name: "TBD (to be determined)" }).click();
   await expect(status(page)).toHaveText("Saved SU. RU still needs an answer.");
   await expect(prompt).toHaveText("Filling line");
   await expect(panel(page, "source")).toContainText("Recorded SU:");
   await expect(panel(page, "target").locator(":focus")).toHaveCount(1);
-  // Unknown for RU completes the question, and the interview moves on.
-  await panel(page, "target").getByRole("button", { name: "Unknown — to be confirmed" }).click();
+  // TBD for RU completes the question, and the interview moves on.
+  await panel(page, "target").getByRole("button", { name: "TBD (to be determined)" }).click();
   await expect(status(page)).toHaveText(/^Saved RU\. Next: .+\.$/);
   await expect(prompt).not.toHaveText("Filling line");
 });

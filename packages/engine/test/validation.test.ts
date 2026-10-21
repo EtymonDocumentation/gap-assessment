@@ -298,11 +298,11 @@ describe("validation plan: study status and readiness", () => {
     expect(row(v(scenario(), "f.ppq", "target", "covered"), "act_ppq").readiness).toBe("evidence_available");
   });
 
-  it("an unknown or unanswered study status reads as information required, with an open item", () => {
+  it("a TBD or unanswered study status reads as information required, with an open item", () => {
     const unknown = unk(scenario(), "f.ppq", "target");
     const r = row(unknown, "act_ppq");
     expect(r.readiness).toBe("information_required");
-    expect(r.studies[0]!.target).toEqual({ display: "Unknown (to be confirmed)", entry: "unknown" });
+    expect(r.studies[0]!.target).toEqual({ display: "To be determined (TBD)", entry: "tbd" });
     expect(r.openItems).toBe(1);
 
     let blank = present();
@@ -367,7 +367,7 @@ describe("validation plan: study status and readiness", () => {
       }
     }
     expect(readinessOf({ status: "established", value: "not_a_known_option" })).toBe("information_required");
-    expect(readinessOf({ status: "unknown" })).toBe("information_required");
+    expect(readinessOf({ status: "tbd" })).toBe("information_required");
     expect(readinessOf({ status: "not_established" })).toBe("information_required");
     expect(readinessOf({ status: "not_applicable" })).toBe("information_required");
     expect(readinessOf({ status: "established", value: "available" })).toBe("evidence_available");
@@ -482,11 +482,11 @@ describe("equipment qualification", () => {
     expect(filler.gaps.map((g) => g.key)).toContain("R-FX-QUAL:uo.fill_x.equip.filler.qualificationStatus");
   });
 
-  it("shows unknown and not established values as such, never a value", () => {
+  it("shows TBD and not established values as such, never a value", () => {
     let p = present();
     p = unk(p, "f.qual", "source");
     const filler = eq(p)[0]!;
-    expect(filler.source).toEqual({ display: "Unknown (to be confirmed)", entry: "unknown" });
+    expect(filler.source).toEqual({ display: "To be determined (TBD)", entry: "tbd" });
     expect(filler.target).toEqual({ display: "Not established", entry: "not_established" });
     expect(filler.ranges[0]!.qualified).toEqual({ display: "Not established", entry: "not_established" });
     expect(filler.ranges[0]!.required).toMatchObject({ display: "Not established", entry: "not_established" });

@@ -142,10 +142,10 @@ test("the save-conflict dialog", async ({ page, browser, problems }, info) => {
   await expect(other.getByText("Open now")).toBeVisible();
   await go(other, "#/interview");
 
-  await page.getByRole("button", { name: "Unknown — to be confirmed" }).click();
+  await page.getByRole("button", { name: "TBD (to be determined)" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Saved to server" })).toBeVisible();
   await expect(page.locator("#q-prompt")).not.toHaveText("What is the product modality?");
-  await other.getByRole("button", { name: "Unknown — to be confirmed" }).click();
+  await other.getByRole("button", { name: "TBD (to be determined)" }).click();
   const dialog = other.getByRole("dialog", { name: "This project was changed on another computer" });
   await expect(dialog).toBeVisible();
   await checkBoth(other, "conflict dialog");

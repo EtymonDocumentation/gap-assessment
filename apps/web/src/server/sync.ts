@@ -232,14 +232,23 @@ async function settle(): Promise<void> {
   if (s.phase === "error") throw new Error(`The open project could not be saved yet, so it cannot be closed. ${s.error ?? ""} Download it from the Project page if you need a copy.`.trim());
 }
 
+/**
+ * True when reading a stored project changed its schema version, i.e. an older file was migrated on load. The converted
+ * copy (with the change-log records the migration wrote) is then saved back to the server, so the stored project, the
+ * browser copy and every other computer show the same record instead of each re-converting the old file with its own time.
+ */
+const wasMigrated = (raw: unknown, parsed: Project): boolean => (raw as { schemaVersion?: unknown } | null)?.schemaVersion !== parsed.schemaVersion;
+
 export async function openProject(id: string): Promise<void> {
   if (H().getProject()) await settle();
   const r = await api.getProject(id);
   const project = parseProject(r.project);
+  const migrated = wasMigrated(r.project, project);
   reset();
-  patch({ projectId: r.id, revision: r.revision, phase: "saved" });
+  patch({ projectId: r.id, revision: r.revision, phase: migrated ? "dirty" : "saved" });
   H().replace(project, "Project opened");
-  await writeCache(project, false);
+  await writeCache(project, migrated);
+  if (migrated) schedule(0);
 }
 
 export async function closeProject(): Promise<void> {
@@ -269,10 +278,12 @@ export async function loadNewerVersion(saveBackup: (mine: Project) => void): Pro
   saveBackup(mine);
   const r = await api.getProject(id);
   const project = parseProject(r.project);
+  const migrated = wasMigrated(r.project, project);
   clearTimer();
-  patch({ revision: r.revision, phase: "saved", error: null, conflict: null });
+  patch({ revision: r.revision, phase: migrated ? "dirty" : "saved", error: null, conflict: null });
   H().replace(project, "The newer version was loaded");
-  await writeCache(project, false);
+  await writeCache(project, migrated);
+  if (migrated) schedule(0);
 }
 
 /** Overwrites the server's newer version with this computer's version. */
@@ -336,9 +347,12 @@ export async function restore(): Promise<void> {
     return;
   }
   if (!cache.dirty) {
-    patch({ projectId: remote.id, revision: remote.revision, phase: "saved" });
-    H().replace(parseProject(remote.project), "");
-    await writeCache(parseProject(remote.project), false).catch(() => undefined);
+    const fresh = parseProject(remote.project);
+    const migrated = wasMigrated(remote.project, fresh);
+    patch({ projectId: remote.id, revision: remote.revision, phase: migrated ? "dirty" : "saved" });
+    H().replace(fresh, "");
+    await writeCache(fresh, migrated).catch(() => undefined);
+    if (migrated) schedule(0);
   } else if (remote.revision === cache.revision) {
     patch({ projectId: remote.id, revision: remote.revision, phase: "dirty" });
     H().replace(local, "Unsaved changes restored from this browser");

@@ -43,7 +43,7 @@ describe("change log: every mutation leaves an event with before and after", () 
     expect(row.sectionTitle).toBeTruthy();
   });
 
-  it("first answers have no 'before' and unknown, N/A and same-as-source read as words", () => {
+  it("first answers have no 'before' and TBD, N/A and same-as-source read as words", () => {
     let p = base();
     p = unk(p, "comp.vessel_type", "source");
     p = na(p, "comp.mixer", "source", "Not used in this fictional line");
@@ -52,10 +52,10 @@ describe("change log: every mutation leaves an event with before and after", () 
     p = same(p, "comp.vessel_type");
     const rows = view(p).filter((r) => r.action === "answer");
     const text = rows.map((r) => `${r.before} | ${r.after}`).join("\n");
-    expect(text).toMatch(/Unknown/);
+    expect(text).toMatch(/TBD/);
     expect(text).toMatch(/Not applicable: Not used in this fictional line/);
     expect(text).toMatch(/same as SU/i);
-    const first = view(p).find((r) => r.after.match(/Unknown/))!;
+    const first = view(p).find((r) => r.after.match(/TBD/))!;
     expect(first.before).toBe("—");
   });
 
@@ -279,3 +279,29 @@ function scenario2(): Project {
   p = verifyEntry(p, VESSEL_S, REVIEWER);
   return p;
 }
+
+describe("change log: the retired Unknown answer (schema 1.9.0)", () => {
+  const withHistory = () => {
+    const p = structuredClone(base());
+    p.changeLog.push(
+      { at: T1, by: ACTOR.name, action: "answer", path: VESSEL_S, before: { status: "established", value: "glass" }, after: { status: "unknown" } },
+      { at: T1, by: "System (file update)", action: "migrate_status", path: VESSEL_S, detail: "Unknown converted to TBD (schema 1.9.0, no change in meaning)", before: { status: "unknown" }, after: { status: "tbd", tbd: {} } },
+    );
+    return p;
+  };
+
+  it("keeps rendering an old record as recorded: Unknown", () => {
+    const rows = view(withHistory());
+    const old = rows.find((r) => r.action === "answer")!;
+    expect(old.after).toBe("Unknown");
+  });
+
+  it("shows the conversion record: Unknown before, TBD after, by the system", () => {
+    const row = view(withHistory()).find((r) => r.action === "migrate_status")!;
+    expect(row.by).toBe("System (file update)");
+    expect(row.before).toBe("Unknown");
+    expect(row.after).toMatch(/^To be determined \(TBD\)/);
+    expect(row.actionLabel).toBe("Status converted (file update)");
+    expect(row.detail).toMatch(/no change in meaning/);
+  });
+});

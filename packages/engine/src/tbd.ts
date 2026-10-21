@@ -93,9 +93,9 @@ export function tbdSummary(items: TbdItem[], today: string): TbdSummary {
   };
 }
 
-/** "N to be confirmed (M overdue)" for the Home card. */
+/** "N TBD (M overdue)" for the Home card. */
 export function tbdSummaryText(s: TbdSummary): string {
-  return `${s.total} to be confirmed (${s.overdue} overdue)`;
+  return `${s.total} TBD (${s.overdue} overdue)`;
 }
 
 /**

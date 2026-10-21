@@ -9,15 +9,14 @@ import { addComment, issueRevision, replyToComment, resolveComment } from "./rev
 import { setGapOverlay } from "./overlays";
 import type { QuestionInstance } from "./sequencer";
 
-const fieldValue = z.union([z.literal("unknown"), z.literal("same"), z.unknown()]);
+const fieldValue = z.union([z.literal("tbd"), z.literal("same"), z.unknown()]);
 
 const answerSchema = z.object({
   q: z.string(),
   side: z.enum(["shared", "source", "target"]),
   value: z.unknown().optional(),
-  unknown: z.boolean().optional(),
   same: z.boolean().optional(),
-  /** A TBD answer: the best guess (same shape as value) is optional, so is everything else. */
+  /** A TBD answer: the best guess (same shape as value) is optional, so is everything else; `tbd: {}` is a TBD with no details. */
   tbd: z.object({ bestGuess: z.unknown().optional(), owner: z.string().optional(), due: z.string().optional(), note: z.string().optional() }).optional(),
   fields: z.record(z.string(), fieldValue).optional(),
   docs: z.array(z.string()).optional(),
@@ -80,7 +79,7 @@ const demoSchema = z.object({
 export type DemoScript = z.infer<typeof demoSchema>;
 
 function fieldAnswer(v: unknown): FieldAnswer {
-  if (v === "unknown") return { kind: "unknown" };
+  if (v === "tbd") return { kind: "tbd" };
   if (v === "same") return { kind: "same_as_source" };
   return { kind: "value", value: v as never };
 }
@@ -91,8 +90,7 @@ function applyScripted(project: Project, content: ContentBundle, a: z.infer<type
   const section = content.sectionById.get(q.section)!;
   const inst: QuestionInstance = { key: `${q.id}@${a.side}`, question: q, side: a.side, section, depth: 0 };
   let input: AnswerInput;
-  if (a.unknown) input = { kind: "unknown" };
-  else if (a.tbd) input = { kind: "tbd", ...(a.tbd.bestGuess !== undefined ? { bestGuess: a.tbd.bestGuess as never } : {}), ...(a.tbd.owner ? { owner: a.tbd.owner } : {}), ...(a.tbd.due ? { due: a.tbd.due } : {}), ...(a.tbd.note ? { note: a.tbd.note } : {}) };
+  if (a.tbd) input = { kind: "tbd", ...(a.tbd.bestGuess !== undefined ? { bestGuess: a.tbd.bestGuess as never } : {}), ...(a.tbd.owner ? { owner: a.tbd.owner } : {}), ...(a.tbd.due ? { due: a.tbd.due } : {}), ...(a.tbd.note ? { note: a.tbd.note } : {}) };
   else if (a.same) input = { kind: "same_as_source" };
   else if (a.fields) {
     const fields: Partial<Record<ParameterField, FieldAnswer>> = {};

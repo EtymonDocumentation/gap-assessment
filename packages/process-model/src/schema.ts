@@ -15,7 +15,8 @@ const tbdSchema = z.object({
   note: z.string().optional(),
 });
 const locationSchema = z.object({ section: z.string().optional(), page: z.string().optional() });
-const STATUSES = ["established", "unknown", "tbd", "not_applicable", "not_established"] as const;
+// "unknown" was retired in schema 1.9.0 (merged into "tbd"): new writes of it are rejected, and an old file is converted on load.
+const STATUSES = ["established", "tbd", "not_applicable", "not_established"] as const;
 
 const verificationSchema = z.object({
   by: z.string(),
@@ -313,7 +314,8 @@ export const projectSchema = z.object({
 });
 
 /** Ordered migrations from older schema versions. Each takes and returns raw JSON. */
-const MIGRATIONS: { from: string; to: string; migrate: (raw: Record<string, unknown>) => Record<string, unknown> }[] = [
+type Migrate = (raw: Record<string, unknown>, now: string) => Record<string, unknown>;
+const MIGRATIONS: { from: string; to: string; migrate: Migrate }[] = [
   // 1.0.0 -> 1.1.0: custom unit operations and items. Older projects have none.
   {
     from: "1.0.0",
@@ -390,7 +392,7 @@ const MIGRATIONS: { from: string; to: string; migrate: (raw: Record<string, unkn
   // 1.6.0 -> 1.7.0: TBD entries (status "tbd" with entry.tbd), optional citation locations (entry.sourceLocations),
   // tbdCount on revisions and exports, and the interview's "Answering from" bar. All of it is optional, so the structure of
   // an old file does not change and nothing is invented: old citations have no location, and an old "unknown" entry stays
-  // "unknown" (it was never a TBD, because nobody named an owner or a due date for it).
+  // "unknown" until schema 1.9.0 (it was never a TBD, because nobody named an owner or a due date for it).
   {
     from: "1.6.0",
     to: "1.7.0",
@@ -406,7 +408,60 @@ const MIGRATIONS: { from: string; to: string; migrate: (raw: Record<string, unkn
     to: "1.8.0",
     migrate: (raw) => ({ ...raw, schemaVersion: "1.8.0", tailoring: raw.tailoring ?? { excluded: [] } }),
   },
+  // 1.8.0 -> 1.9.0: "Unknown (to be confirmed)" is retired and merged into TBD. A TBD with no details already behaved
+  // exactly like Unknown (an open information item, no gap invented, cannot be verified), so nothing is lost and the
+  // product owner asked for one not-known answer. Every unknown entry becomes a TBD with empty details; nothing is invented
+  // (no owner, no due date, no guess). Each conversion is written to the change log (GMP: a status change is never silent).
+  {
+    from: "1.8.0",
+    to: "1.9.0",
+    migrate: (raw, now) => migrateTo190(raw, now),
+  },
 ];
+
+/** Actor name on change-log records written by a file update rather than by a person. */
+export const SYSTEM_ACTOR = "System (file update)";
+
+function migrateTo190(raw: Record<string, unknown>, now: string): Record<string, unknown> {
+  const next = structuredClone(raw) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  next.schemaVersion = "1.9.0";
+  const log: Record<string, unknown>[] = [];
+  const convert = (fields: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+    if (!fields || typeof fields !== "object") return;
+    for (const e of Object.values<any>(fields)) { // eslint-disable-line @typescript-eslint/no-explicit-any
+      if (!e || typeof e !== "object") continue;
+      // A verification can only name the status it verified; unknown entries could not be verified, but a stray record is mapped too.
+      if (e.verification?.status === "unknown") e.verification.status = "tbd";
+      if (e.status !== "unknown") continue;
+      const snapshot = (status: string, tbd?: object) => ({ status, ...(e.sameAsSource ? { sameAsSource: true } : {}), ...(tbd ? { tbd } : {}) });
+      e.status = "tbd";
+      e.tbd = {};
+      log.push({
+        at: now,
+        by: SYSTEM_ACTOR,
+        action: "migrate_status",
+        path: e.path,
+        detail: "Unknown converted to TBD (schema 1.9.0, no change in meaning)",
+        before: snapshot("unknown"),
+        after: snapshot("tbd", {}),
+      });
+    }
+  };
+  convert(next.scope);
+  for (const side of ["source", "target"]) {
+    const model = next.processes?.[side];
+    convert(model?.site?.fields);
+    for (const uo of Object.values<any>(model?.unitOperations ?? {})) { // eslint-disable-line @typescript-eslint/no-explicit-any
+      convert(uo?.fields);
+      for (const coll of Object.values<any>(uo?.collections ?? {})) { // eslint-disable-line @typescript-eslint/no-explicit-any
+        for (const item of Object.values<any>(coll ?? {})) convert(item?.fields); // eslint-disable-line @typescript-eslint/no-explicit-any
+      }
+    }
+  }
+  // The old records stay as they were written (they keep saying "Unknown"); the conversions are appended after them.
+  next.changeLog = [...(Array.isArray(next.changeLog) ? next.changeLog : []), ...log];
+  return next;
+}
 
 const OLD_PREFILTER_PATH = "uo.sterile_filtration.mat.prefilter";
 const OLD_GAP_KEY_PREFILTER = "R-FILTER-TRAIN:uo.sterile_filtration.mat.prefilter.present";
@@ -513,15 +568,19 @@ export class ImportError extends Error {
   }
 }
 
-/** Parses, migrates and validates project JSON (e.g., from a file import or browser storage). */
-export function parseProject(input: unknown): Project {
+/**
+ * Parses, migrates and validates project JSON (a file import, browser storage or the laptop server's store).
+ * `now` stamps the change-log records a migration writes; it defaults to the current time.
+ */
+export function parseProject(input: unknown, opts: { now?: string } = {}): Project {
+  const now = opts.now ?? new Date().toISOString();
   if (typeof input !== "object" || input === null) throw new ImportError("Not a project file");
   let raw = input as Record<string, unknown>;
   let version = String(raw.schemaVersion ?? "");
   if (!version) throw new ImportError("The file has no schemaVersion; it is not a project export");
   for (const m of MIGRATIONS) {
     if (version === m.from) {
-      raw = m.migrate(raw);
+      raw = m.migrate(raw, now);
       version = m.to;
     }
   }

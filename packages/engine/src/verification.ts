@@ -98,7 +98,7 @@ export interface VerificationCounts {
   verified: number;
   withdrawn: number;
   unverified: number;
-  /** Unknown or not established: there is no value to confirm yet. */
+  /** TBD or not established: there is no value to confirm yet. */
   notVerifiable: number;
 }
 
@@ -128,7 +128,7 @@ function addTo(c: VerificationCounts, d: VerificationCounts): void {
 /**
  * Counts of the entries behind the questions that are currently asked (active, in scope), per section and side.
  * Every entry falls in exactly one of: verified, withdrawn (a verification exists but no longer applies),
- * unverified (could be verified, is not), not verifiable (Unknown or not established, no verification held).
+ * unverified (could be verified, is not), not verifiable (TBD or not established, no verification held).
  */
 export function verificationSummary(content: ContentBundle, project: Project): VerificationSummary {
   const eff = effectiveStaged(content, project);

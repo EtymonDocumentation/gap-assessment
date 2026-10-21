@@ -158,20 +158,20 @@ test("a TBD with a best guess is compared, and every result that uses it says Pr
 test("the interview records a TBD with a best guess, owner and due date; the Home card and list show it", async ({ page }) => {
   test.setTimeout(90_000);
   await newProject(page);
-  await page.getByRole("button", { name: "To be determined (TBD)…" }).click();
+  await page.getByRole("button", { name: "Add details" }).click();
   await page.getByLabel("TBD best guess").fill("TST-3 (fictional)");
   await page.getByLabel("Owner (optional)").fill("Process lead (fictional)");
   await page.getByLabel("Due date (optional)").fill("2020-01-15");
   await page.getByLabel("Note (optional)").fill("Waiting for the code from regulatory");
   await expectAccessible(page, "TBD box open");
   await expectNoHorizontalScroll(page, "TBD box open");
-  await page.getByRole("button", { name: "Record as TBD" }).click();
+  await page.getByRole("button", { name: "Record TBD with these details" }).click();
   await expect(page.locator("#q-prompt")).not.toHaveText("Program or product code");
   await go(page, "#/");
-  const card = page.getByRole("link", { name: "1 to be confirmed (1 overdue)" });
+  const card = page.getByRole("link", { name: "1 TBD (1 overdue)" });
   await expect(card).toBeVisible();
   await card.click();
-  await expect(page.getByRole("heading", { level: 1, name: "To be confirmed (TBD)" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "TBD (to be determined)" })).toBeVisible();
   const row = page.locator("tbody tr").first();
   await expect(row).toContainText("TST-3 (fictional)");
   await expect(row).toContainText("Process lead (fictional)");
@@ -189,17 +189,17 @@ test("the demo's Home card counts its TBD values and the overdue one; Show only 
   test.setTimeout(90_000);
   await loadDemo(page);
   await go(page, "#/");
-  await expect(page.getByRole("link", { name: "2 to be confirmed (1 overdue)" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "4 TBD (1 overdue)" })).toBeVisible();
   await expectAccessible(page, "home with TBD card");
   await expectNoHorizontalScroll(page, "home with TBD card");
   await go(page, "#/tbd");
-  await expect(page.locator("tbody tr")).toHaveCount(2);
+  await expect(page.locator("tbody tr")).toHaveCount(4);
   await expect(page.locator("tbody tr .tag-overdue")).toHaveCount(1);
 
   await go(page, "#/interview");
   await page.getByLabel("Show only TBD").check();
   const list = page.getByRole("list", { name: "Questions recorded as TBD" });
-  await expect(list.getByRole("listitem")).toHaveCount(2);
+  await expect(list.getByRole("listitem")).toHaveCount(3);
   await list.getByRole("link").first().click();
   await expect(page.locator(".question-card")).toBeVisible();
   await expectAccessible(page, "interview with Show only TBD");
@@ -218,7 +218,7 @@ test("issuing for review with TBD values asks first and names the count; a draft
   await dlg.getByLabel("Issued by (required)").fill("Q. Tester (fictional)");
   await dlg.getByRole("button", { name: "Issue revision" }).click();
   await expect(page.getByRole("dialog")).toBeHidden();
-  await expect(table.locator("tbody tr").first()).toContainText("2 TBD values open");
+  await expect(table.locator("tbody tr").first()).toContainText("4 TBD values open");
 
   // Issued for review: a warning that names the count. Go back changes nothing; Issue anyway records it.
   await page.getByRole("button", { name: "Issue revision" }).click();
@@ -228,7 +228,7 @@ test("issuing for review with TBD values asks first and names the count; a draft
   await dlg.getByLabel("Issued for review").check();
   await dlg.getByRole("button", { name: "Issue revision" }).click();
   const warn = page.getByRole("dialog", { name: "Issue for review with TBD values?" });
-  await expect(warn).toContainText("2 TBD values");
+  await expect(warn).toContainText("4 TBD values");
   await expectAccessible(page, "TBD warning dialog");
   await warn.getByRole("button", { name: "Go back" }).click();
   // Back at the Issue revision dialog with nothing issued yet.
@@ -237,7 +237,7 @@ test("issuing for review with TBD values asks first and names the count; a draft
   await page.getByRole("dialog", { name: "Issue for review with TBD values?" }).getByRole("button", { name: "Issue anyway" }).click();
   await expect(page.getByRole("dialog")).toBeHidden();
   await expect(table.locator("tbody tr")).toHaveCount(3);
-  await expect(table.locator("tbody tr").first()).toContainText("2 TBD values open");
+  await expect(table.locator("tbody tr").first()).toContainText("4 TBD values open");
 });
 
 test("the Interview page with the bar is accessible, keyboard operable and does not scroll sideways", async ({ page }) => {

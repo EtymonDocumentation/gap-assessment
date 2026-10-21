@@ -157,7 +157,7 @@ export function instanceRefs(inst: QuestionInstance): string[] {
   return boundPaths(inst.question, inst.side).map((p) => fullRef(inst.side, p));
 }
 
-/** Answered means every bound entry has been recorded (a value, unknown, not applicable or same as source). */
+/** Answered means every bound entry has been recorded (a value, TBD, not applicable or same as source). */
 export function isAnswered(project: Project, inst: QuestionInstance): boolean {
   return instanceRefs(inst).every((ref) => {
     const e = getEntry(project, ref);

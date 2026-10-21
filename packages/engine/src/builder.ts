@@ -32,7 +32,7 @@ export interface AttributeSide {
   status: AggregateStatus;
   statusText: string;
   sameAsSource: boolean;
-  /** Unknown, TBD or not yet established: an open information item. */
+  /** TBD or not yet established: an open information item. */
   open: boolean;
   /** Sources shown for this value, documents first (see displaySources), with the entries that cite each (for attaching and detaching). */
   sourceLinks: { id: string; label: string; refs: string[] }[];
@@ -101,7 +101,6 @@ export interface ModelView {
 
 const STATUS_TEXT: Record<AggregateStatus, string> = {
   established: "Established",
-  unknown: "Unknown",
   tbd: "TBD (to be determined)",
   not_applicable: "Not applicable",
   not_established: "Not established",
@@ -127,7 +126,7 @@ function sideOf(content: ContentBundle, project: Project, inst: QuestionInstance
     status,
     statusText: same && status === "established" ? "Same as SU" : STATUS_TEXT[status],
     sameAsSource: same,
-    open: resolved.some((r) => r.status === "unknown" || r.status === "not_established" || !!r.tbd),
+    open: resolved.some((r) => r.status === "not_established" || !!r.tbd),
     sources: citationNames(project, refs),
     sourceLinks: displaySources(cited).map((s) => {
       const citing = refs.filter((r) => getEntry(project, r)?.sourceIds.includes(s.id));

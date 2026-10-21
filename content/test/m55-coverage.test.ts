@@ -115,9 +115,9 @@ describe("labelling location per side", () => {
     expect(assess(content, p).openItems.some((o) => o.questionId === "site.labelling_location")).toBe(true);
   });
 
-  it("'not yet known' is the built-in unknown answer: still an open item, section still visible", () => {
-    const p = kit.ask(kit.newProject(), "site.labelling_location", "target", { kind: "unknown" });
-    expect(assess(content, p).openItems.some((o) => o.questionId === "site.labelling_location" && o.status === "unknown")).toBe(true);
+  it("TBD is the one not-known answer for the location: still an open item, section still visible", () => {
+    const p = kit.ask(kit.newProject(), "site.labelling_location", "target", { kind: "tbd" });
+    expect(assess(content, p).openItems.some((o) => o.questionId === "site.labelling_location" && o.status === "tbd")).toBe(true);
     expect(visibleInstances(content, p, "paired").some((i) => i.question.id === "lp.presence" && i.side === "target")).toBe(true);
     expect(labellingScopeText(content, p, "target")).toMatch(/not established/);
   });

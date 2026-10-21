@@ -148,7 +148,7 @@ function conditionRefs(c: Condition, out: { refs: string[]; paths: string[]; uos
   else if ("in" in c) out.refs.push(c.in[0]);
   else if ("includes" in c) out.refs.push(c.includes[0]);
   else if ("answered" in c) out.refs.push(c.answered);
-  else if ("isUnknown" in c) out.refs.push(c.isUnknown);
+  else if ("isTbd" in c) out.refs.push(c.isTbd);
   else if ("isTrue" in c) out.refs.push(c.isTrue);
   else if ("uoPresent" in c) out.uos.push(c.uoPresent);
   else if ("changed" in c) out.paths.push(c.changed);

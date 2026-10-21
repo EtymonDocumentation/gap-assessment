@@ -13,7 +13,7 @@ type Step = [id: string, side: Side, input: AnswerInput];
 
 const val = (value: unknown): AnswerInput => ({ kind: "value", value: value as never });
 const same: AnswerInput = { kind: "same_as_source" };
-const unknown: AnswerInput = { kind: "unknown" };
+const unknown: AnswerInput = { kind: "tbd" };
 const q = (value: number, unit: string) => ({ value, unit });
 const range = (min: number, max: number, unit: string) => val({ min: q(min, unit), max: q(max, unit) });
 const fv = (value: unknown): FieldAnswer => ({ kind: "value", value: value as never });
@@ -151,7 +151,6 @@ describe("milestone 3 gating of the study families", () => {
     expect(run("full_ppq").has("fill.ppq_batches")).toBe(true);
     expect(run("reduced_bridging").has("fill.ppq_batches")).toBe(true);
     expect(run("source_data_leveraged").has("fill.ppq_batches")).toBe(false);
-    expect(run("not_decided").has("fill.ppq_batches")).toBe(false);
   });
 
   // APS
@@ -382,7 +381,8 @@ describe("milestone 3 classifications", () => {
     expect(ppq("full_ppq")).toBe("new_requirement");
     expect(ppq("reduced_bridging")).toBe("outside_validated_range");
     expect(ppq("source_data_leveraged")).toBe("within_validated_range");
-    expect(ppq("not_decided")).toBe("information_required");
+    // "Not yet decided" is not an option any more: the PPQ approach that is not decided is recorded as TBD.
+    expect(gapOf([...base, ...fill, ...pair("fill.pump", "rotary_piston", val("peristaltic")), ["fill.ppq_strategy", "target", unknown]], "R-PPQ-STRATEGY:uo.aseptic_filling.study.ppq.strategy")?.category).toBe("information_required");
 
     const el = (answer: string) => gapOf([...base, ...filt, ...pair("filt.sua", "no", val("yes")), ["filt.sua_el_source", "target", val(answer)]], "R-EL-DATA-SOURCE:uo.sterile_filtration.study.sua_el.dataSource")?.category;
     expect(el("product_specific_study")).toBe("within_validated_range");

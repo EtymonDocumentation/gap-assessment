@@ -80,7 +80,7 @@ describe("clearInstances: clearing answers on purpose", () => {
     const p = kit.par(base(), "comp.mixing_speed", "source", {
       classification: "KPP",
       setPoint: q(150, "rpm"),
-      nor: "unknown",
+      nor: "tbd",
       par: rng(100, 200, "rpm"),
       rangeBasis: "characterization",
     });

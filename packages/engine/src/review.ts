@@ -41,7 +41,7 @@ export const DOCUMENT_SECTION_IDS: readonly string[] = [
 
 /**
  * The sections a user may leave out of the document, in document order. Everything else is mandatory: the purpose, the
- * scope, the SU and RU summaries, the detailed gap table and the open information items (unknowns must stay visible).
+ * scope, the SU and RU summaries, the detailed gap table and the open information items (TBD values must stay visible).
  * The titles here are the titles buildDocument uses.
  */
 export const OPTIONAL_SECTIONS: readonly { id: string; title: string; appendix: boolean }[] = [

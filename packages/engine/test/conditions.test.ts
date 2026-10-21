@@ -120,7 +120,7 @@ describe("includes", () => {
   });
 });
 
-describe("answered / isUnknown / isTrue", () => {
+describe("answered / isTbd / isTrue", () => {
   it("answered is true for any recorded status, including unknown and not applicable", () => {
     expect(ev({ answered: "scope.markets" })).toBe(true);
     expect(ev({ answered: "target.uo.aseptic_filling.mat.container.format" })).toBe(true); // unknown
@@ -129,11 +129,11 @@ describe("answered / isUnknown / isTrue", () => {
     expect(ev({ answered: "target.uo.capping.mat.seal.partNumber" })).toBe(false);
   });
 
-  it("isUnknown is true only for entries answered Unknown", () => {
-    expect(ev({ isUnknown: "target.uo.aseptic_filling.mat.container.format" })).toBe(true);
-    expect(ev({ isUnknown: "source.uo.aseptic_filling.mat.container.format" })).toBe(false);
-    expect(ev({ isUnknown: "source.uo.compounding.equip.vessel.type" })).toBe(false);
-    expect(ev({ isUnknown: "target.uo.capping.mat.seal.partNumber" })).toBe(false);
+  it("isTbd is true only for entries answered Unknown", () => {
+    expect(ev({ isTbd: "target.uo.aseptic_filling.mat.container.format" })).toBe(true);
+    expect(ev({ isTbd: "source.uo.aseptic_filling.mat.container.format" })).toBe(false);
+    expect(ev({ isTbd: "source.uo.compounding.equip.vessel.type" })).toBe(false);
+    expect(ev({ isTbd: "target.uo.capping.mat.seal.partNumber" })).toBe(false);
   });
 
   it("isTrue is true only for an established boolean true", () => {
@@ -300,7 +300,7 @@ describe("undeterminable conditions evaluate to false", () => {
     ["in", { in: [MISSING, ["x"]] }],
     ["includes", { includes: [MISSING, "x"] }],
     ["isTrue", { isTrue: MISSING }],
-    ["isUnknown", { isUnknown: MISSING }],
+    ["isTbd", { isTbd: MISSING }],
     ["answered", { answered: MISSING }],
     ["uoPresent", { uoPresent: "capping" }],
     ["changed", { changed: "uo.capping.mat.seal.partNumber" }],

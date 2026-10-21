@@ -131,7 +131,7 @@ export function AnsweringBar({ notice, onUndo, onDismissNotice }: { notice: Cite
           }}
         >
           <p className="small muted">
-            While a document is chosen, each answer you save with a value is cited to it. Unknown, TBD without a best guess and “Same as SU” are not cited.
+            While a document is chosen, each answer you save with a value is cited to it. TBD without a best guess and “Same as SU” are not cited.
           </p>
           <div className="row wrap">
             <label className="field">

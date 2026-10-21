@@ -6,7 +6,7 @@
 # not answered yet, uses the second. Quote any value that holds a marker when it sits inside a { } mapping.
 catalog:
   id: fill-finish-catalog
-  version: 1.5.0
+  version: 1.6.0
 
 unitOperations:
   - key: ds_shipping_inbound
@@ -752,7 +752,6 @@ optionSets:
     - { value: full_ppq, label: Full PPQ at the RU (new batches) }
     - { value: reduced_bridging, label: Reduced or bridging PPQ with SU data leveraged }
     - { value: source_data_leveraged, label: SU PPQ data judged to cover the RU (no new PPQ) }
-    - { value: not_decided, label: Not yet decided }
   elDataSource:
     - { value: product_specific_study, label: Product-specific extractables and leachables study }
     - { value: supplier_data, label: "Supplier extractables data with a product risk assessment" }
@@ -854,4 +853,4 @@ categories:
   - { key: scale_change, label: Scale change, description: Batch size or equipment capacity differs. }
   - { key: new_requirement, label: New requirement, description: "Present at RU, absent from SU." }
   - { key: removed_element, label: Removed element, description: "Present at SU, absent from RU." }
-  - { key: information_required, label: Information required, description: The SU or RU value is unknown or not established. }
+  - { key: information_required, label: Information required, description: The SU or RU value is TBD (to be determined) or not established. }

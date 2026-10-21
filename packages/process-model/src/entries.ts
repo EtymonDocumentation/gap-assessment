@@ -1,7 +1,7 @@
 import { allEntries, getEntry, parseRef } from "./paths";
 import type { Actor, Entry, EntryStatus, EntryValue, Project, Source, SourceLocation, TbdInfo } from "./types";
 
-export const SCHEMA_VERSION = "1.8.0";
+export const SCHEMA_VERSION = "1.9.0";
 
 let counter = 0;
 /** Short unique id. Uses crypto.randomUUID where available. */
@@ -190,7 +190,7 @@ export function recordersOf(project: Project, ref: string): string[] {
 /**
  * Why an entry cannot be verified, or undefined when it can.
  * Decision: established and not-applicable entries are verifiable. An entry that is not established has no
- * value to confirm, and an Unknown entry is an open information item, so both are refused.
+ * value to confirm, and a TBD entry is an open information item, so both are refused.
  */
 export function verificationProblem(project: Project, ref: string): string | undefined {
   const e = getEntry(project, ref);
@@ -199,7 +199,6 @@ export function verificationProblem(project: Project, ref: string): string | und
   // Checked before the status: a TBD with a best guess resolves as "established" for the comparison, but a guess is not a fact.
   if (r.tbd) return "An entry marked TBD (to be determined) cannot be verified";
   if (r.status === "not_established") return "An entry that is not established cannot be verified";
-  if (r.status === "unknown") return "An entry marked Unknown is an open information item and cannot be verified";
   return undefined;
 }
 
@@ -305,7 +304,7 @@ export function planVerification(project: Project, refs: string[], verifier: str
 
 /**
  * Verifies every entry in `refs` that can be verified. Entries that cannot are skipped and reported:
- * not established, Unknown, already verified, or recorded by the verifier (unless `selfVerification` is set).
+ * not established, TBD, already verified, or recorded by the verifier (unless `selfVerification` is set).
  * Each verification is logged as its own event, followed by one summary event.
  */
 export function verifyEntries(project: Project, refs: string[], actor: Actor, opts: VerifyOptions = {}, label = "selection"): BulkVerifyResult {
@@ -381,7 +380,7 @@ export function removeSource(project: Project, sourceId: string, actor: Actor): 
 
 /**
  * Clears recorded answers on purpose (the user withdrew them, as opposed to a source going away). Each entry that holds
- * anything (a value, unknown, not applicable, same as source) reverts to "not_established", its source links are removed
+ * anything (a value, TBD, not applicable, same as source) reverts to "not_established", its source links are removed
  * the same way a revert does it, and the old value is kept only in the change log. The source records themselves stay
  * in the register. Verification is not deleted: its fingerprint no longer matches, so it shows as withdrawn.
  * Entries that are missing or already "not_established" are skipped, so clearing twice logs nothing.

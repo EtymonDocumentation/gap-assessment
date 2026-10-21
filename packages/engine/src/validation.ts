@@ -38,7 +38,7 @@ export const READINESS_ORDER: readonly Readiness[] = ["information_required", "n
 /**
  * THE readiness table: study status option value -> readiness. It covers the study-status option sets in the
  * catalog (evidenceAvailability, validationCoverage, impactAssessment). Option values are matched by key, so
- * the same word in different sets maps once. Any other value, "unknown" and "not established" fall back to
+ * the same word in different sets maps once. Any other value, TBD and "not established" fall back to
  * "information_required". Edit this table (and only this) to change how study answers read in the plan.
  */
 export const STUDY_STATUS_READINESS: Readonly<Record<string, Readiness>> = {
@@ -74,13 +74,13 @@ export function readinessOf(r: Pick<Resolved, "status" | "value">): Readiness {
 
 // ------------------------------------------------------------------ shared
 
-export type SideEntryState = "established" | "unknown" | "tbd" | "not_established" | "not_applicable" | "not_asked";
+export type SideEntryState = "established" | "tbd" | "not_established" | "not_applicable" | "not_asked";
 
 /** The one wording used wherever something depends on a TBD best guess (Compare, tables, plan, document, CSV). */
 export const PROVISIONAL_LABEL = "Provisional — based on a TBD value";
 
 export interface SideValue {
-  /** Text for the cell: the answer, "Unknown (to be confirmed)", "Not established", or "—" when the side is not asked. */
+  /** Text for the cell: the answer, "To be determined (TBD)", "Not established", or "—" when the side is not asked. */
   display: string;
   entry: SideEntryState;
   /** True when the shown value is a TBD best guess (the display says so as well). */
@@ -168,7 +168,7 @@ export interface PlanRow {
   readinessLabel: string;
   /** Gaps that are Open or In progress. A row whose gaps are all closed or accepted is still listed. */
   openGaps: number;
-  /** Linked studies whose target status is unknown, TBD or not established. */
+  /** Linked studies whose target status is TBD or not established. */
   openItems: number;
   /**
    * The activity, or the readiness of a study behind it, depends on a TBD best guess. Set when any implying gap is
@@ -217,7 +217,7 @@ export function buildValidationPlan(content: ContentBundle, project: Project, as
       readiness,
       readinessLabel: READINESS_LABEL[readiness],
       openGaps: gaps.filter((g) => g.status === "open" || g.status === "in_progress").length,
-      openItems: studies.filter((s) => s.target.entry === "unknown" || s.target.entry === "not_established" || s.target.entry === "tbd").length,
+      openItems: studies.filter((s) => s.target.entry === "not_established" || s.target.entry === "tbd").length,
     };
     if (gaps.some((g) => g.provisional) || studies.some((s) => s.provisional)) row.provisional = true;
     if (regulatory) row.regulatoryNote = regulatory;
@@ -299,7 +299,7 @@ export function validationPlanToCsv(plan: PlanRow[]): string {
 export interface QualifiedRange {
   /** Attribute the range applies to, e.g. "Fill volume". */
   attribute: string;
-  /** Target qualified range as recorded, or "Not established" / "Unknown (to be confirmed)" / "—". */
+  /** Target qualified range as recorded, or "Not established" / "To be determined (TBD)" / "—". */
   qualified: SideValue;
   /** Reference of the entry holding the qualified range. */
   ref: string;

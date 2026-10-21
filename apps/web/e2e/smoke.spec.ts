@@ -144,7 +144,7 @@ test("branching: making the target pump the same closes its follow-ups and keeps
   await expect(page.locator("table.register tbody tr").first()).toContainText("Equivalent");
 });
 
-test("new project: responder, scoping answers, unknown and not-applicable handling", async ({ page }) => {
+test("new project: responder, scoping answers, TBD and not-applicable handling", async ({ page }) => {
   await page.goto("./");
   await page.getByRole("button", { name: "New project…" }).click();
   const dialog = page.getByRole("dialog", { name: "New project" });
@@ -162,7 +162,7 @@ test("new project: responder, scoping answers, unknown and not-applicable handli
   await page.getByRole("button", { name: "Save and continue" }).click();
 
   await expect(prompt).toHaveText("What is the dosage form?");
-  await page.getByRole("button", { name: "Unknown — to be confirmed" }).click();
+  await page.getByRole("button", { name: "TBD (to be determined)" }).click();
   await expect(prompt).toHaveText("What is the primary container presentation?");
 
   // Not applicable needs a justification.
@@ -176,7 +176,7 @@ test("new project: responder, scoping answers, unknown and not-applicable handli
   await go(page, "#/builder");
   await expect(page.getByRole("heading", { level: 1, name: "Builder" })).toBeVisible();
   await expect(page.locator("main")).toContainText("SMOKE-1");
-  await expect(page.locator("main")).toContainText("Unknown");
+  await expect(page.locator("main")).toContainText("To be determined (TBD)");
 });
 
 test("side by side markers link to the register row", async ({ page }) => {

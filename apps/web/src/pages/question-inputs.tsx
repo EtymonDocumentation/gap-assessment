@@ -25,7 +25,6 @@ export interface Scalar {
 }
 
 export interface FieldForm extends Scalar {
-  unknown: boolean;
   /** The field is recorded as TBD; anything typed in it is then its best guess (optional). */
   tbd: boolean;
 }
@@ -70,7 +69,7 @@ function scalarFrom(v: EntryValue | undefined, unit: string): Scalar {
   return s;
 }
 
-/** Pre-fills the form from the entries already recorded (values only; unknown/same/N/A are shown as status). */
+/** Pre-fills the form from the entries already recorded (values only; TBD/same/N/A are shown as status). */
 export function initialForm(c: ContentBundle, project: Project, inst: QuestionInstance): FormState {
   const q = inst.question;
   const unit = q.input.units?.[0] ?? "";
@@ -81,7 +80,7 @@ export function initialForm(c: ContentBundle, project: Project, inst: QuestionIn
       const e = getEntry(project, fullRef(inst.side, `${q.binds}.${f}`));
       // A TBD field shows its best guess in the field, ticked as TBD, so saving the card keeps it TBD. It is never turned into a value by saving.
       const tbd = e?.status === "tbd" && !e.sameAsSource;
-      fields[f] = { ...scalarFrom(tbd ? e.tbd?.bestGuess : valueOf(e), unit), unknown: e?.status === "unknown" && !e.sameAsSource, tbd };
+      fields[f] = { ...scalarFrom(tbd ? e.tbd?.bestGuess : valueOf(e), unit), tbd };
     }
     return { simple: emptyScalar(unit), fields };
   }
@@ -106,9 +105,9 @@ export function initialTbd(project: Project, inst: QuestionInstance): { meta: Tb
 
 const scalarTouched = (s: Scalar): boolean => !!s.choice || s.multi.length > 0 || !!s.text.trim() || !!s.num.trim() || !!s.min.trim() || !!s.max.trim();
 
-/** True when the form holds any input at all (a chosen option, text, a number, or a field marked Unknown). */
+/** True when the form holds any input at all (a chosen option, text, a number, or a field marked TBD). */
 export function formTouched(q: Question, form: FormState): boolean {
-  if (q.input.type === "parameter") return Object.values(form.fields).some((f) => !!f && (f.unknown || f.tbd || scalarTouched(f)));
+  if (q.input.type === "parameter") return Object.values(form.fields).some((f) => !!f && (f.tbd || scalarTouched(f)));
   return scalarTouched(form.simple);
 }
 
@@ -176,10 +175,6 @@ export function toAnswer(q: Question, form: FormState, tbd: TbdMeta = emptyTbdMe
   if (q.input.type === "parameter") {
     const fields: Partial<Record<ParameterField, FieldAnswer>> = {};
     for (const [f, s] of Object.entries(form.fields) as [ParameterField, FieldForm][]) {
-      if (s.unknown) {
-        fields[f] = { kind: "unknown" };
-        continue;
-      }
       if (s.tbd) {
         // The best guess is optional: a TBD field with nothing typed is recorded without one, never with a default.
         let guess: { bestGuess: EntryValue } | Record<string, never> = {};
@@ -192,13 +187,13 @@ export function toAnswer(q: Question, form: FormState, tbd: TbdMeta = emptyTbdMe
         continue;
       }
       const r = scalarValue(FIELD_TYPE[f], s, fieldLabel(content, f));
-      if ("error" in r) return { error: `${r.error}, or tick “Unknown”.` };
+      if ("error" in r) return { error: `${r.error}, or tick “TBD”.` };
       fields[f] = { kind: "value", value: r.value };
     }
     return { input: { kind: "composite", fields } };
   }
   const r = scalarValue(q.input.type, form.simple, "Answer");
-  if ("error" in r) return { error: `${r.error.replace(/^Answer: /, "")}. Or choose “Unknown — to be confirmed”.` };
+  if ("error" in r) return { error: `${r.error.replace(/^Answer: /, "")}. Or choose “TBD (to be determined)”.` };
   return { input: { kind: "value", value: r.value } };
 }
 
@@ -382,18 +377,14 @@ export function QuestionInput({
         const set = (patch: Partial<FieldForm>) => setForm({ ...form, fields: { ...form.fields, [f]: { ...s, ...patch } } });
         const optSet = f === "classification" ? "classification" : f === "rangeBasis" ? "rangeBasis" : undefined;
         return (
-          <div key={f} className={`param-field${s.unknown ? " is-unknown" : ""}${s.tbd ? " is-tbd" : ""}`}>
+          <div key={f} className={`param-field${s.tbd ? " is-tbd" : ""}`}>
             <div className="param-label">
               <span>{fieldLabel(content, f)}</span>
-              <label className="small unknown-toggle">
-                <input type="checkbox" checked={s.tbd} disabled={s.unknown} onChange={(e) => set({ tbd: e.target.checked })} aria-label={sideName ? `${sideName} ${fieldLabel(content, f)}: TBD` : `${fieldLabel(content, f)}: TBD`} /> TBD
-              </label>
-              <label className="small unknown-toggle">
-                <input type="checkbox" checked={s.unknown} onChange={(e) => set({ unknown: e.target.checked, ...(e.target.checked ? { tbd: false } : {}) })} aria-label={sideName ? `${sideName} ${fieldLabel(content, f)}: unknown` : `${fieldLabel(content, f)}: unknown`} /> Unknown
+              <label className="small tbd-toggle">
+                <input type="checkbox" checked={s.tbd} onChange={(e) => set({ tbd: e.target.checked })} aria-label={sideName ? `${sideName} ${fieldLabel(content, f)}: TBD` : `${fieldLabel(content, f)}: TBD`} /> TBD
               </label>
             </div>
-            {!s.unknown && (
-              <ScalarInput
+            <ScalarInput
                 type={FIELD_TYPE[f]}
                 q={q}
                 s={s}
@@ -402,7 +393,6 @@ export function QuestionInput({
                 describedBy={errorId}
                 {...(optSet ? { options: content.catalog.optionSets[optSet] ?? [] } : {})}
               />
-            )}
           </div>
         );
       })}

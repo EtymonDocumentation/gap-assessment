@@ -5,7 +5,7 @@
 # flagged. Regulatory wording is fixed: "Requires regulatory affairs assessment."
 ruleset:
   id: gap-core-rules
-  version: 1.5.0
+  version: 1.6.0
 
 rules:
   # ------------------------------------------------------------------ site
@@ -1402,7 +1402,7 @@ rules:
     match: [uo.aseptic_filling.study.ppq.strategy]
     comparator: evidence
     config:
-      map: { full_ppq: new_requirement, reduced_bridging: outside_validated_range, source_data_leveraged: within_validated_range, not_decided: information_required }
+      map: { full_ppq: new_requirement, reduced_bridging: outside_validated_range, source_data_leveraged: within_validated_range }
     severity: high
     why: The PPQ approach decides what is demonstrated at the RU. New batches are needed for a full PPQ; a bridging approach needs a justified gap analysis; leveraging SU data needs a documented rationale that the SU PPQ covers the RU conditions.
     activities: [ppq, ppq_coverage_assessment, risk_assessment_update]

@@ -96,7 +96,7 @@ export interface OpenItem {
   prompt: string;
   sectionId: string;
   sectionTitle: string;
-  status: "unknown" | "not_established" | "tbd";
+  status: "not_established" | "tbd";
   /** Present for status "tbd": best guess, owner, due date and note exactly as recorded. */
   tbd?: TbdInfo;
 }
@@ -127,7 +127,8 @@ function trackProvisional(ctx: Ctx, r: Resolved): Resolved {
 const est = (r: Resolved) => r.status === "established" && r.value !== undefined;
 
 function statusText(r: Resolved): string {
-  return r.status === "established" ? "established" : STATUS_TEXT[r.status].toLowerCase();
+  // Read inside a sentence ("RU set point TBD (to be determined)"), so the TBD wording keeps its capitals.
+  return r.status === "established" ? "established" : r.status === "tbd" ? "TBD (to be determined)" : STATUS_TEXT[r.status].toLowerCase();
 }
 
 function info(...parts: [string, Resolved][]): ComparatorResult {
@@ -587,7 +588,7 @@ export function assess(raw: ContentBundle, project: Project): Assessment {
       const r = resolveEntry(project, ref);
       // A TBD is an open item even with a best guess: the guess drives a provisional comparison but the value is not confirmed.
       // "Same as SU" on a TBD is not a second TBD: the SU entry is the one to resolve, so it is listed once, on the SU side.
-      if (r.tbd ? !r.sameAsSource : r.status === "unknown" || r.status === "not_established") {
+      if (r.tbd ? !r.sameAsSource : r.status === "not_established") {
         openItems.push({
           key: ref,
           ref,
@@ -596,7 +597,7 @@ export function assess(raw: ContentBundle, project: Project): Assessment {
           prompt: inst.question.prompt,
           sectionId: inst.section.id,
           sectionTitle: inst.section.title,
-          status: r.tbd ? "tbd" : (r.status as "unknown" | "not_established"),
+          status: r.tbd ? "tbd" : (r.status as "not_established"),
           ...(r.tbd ? { tbd: r.tbd } : {}),
         });
       }

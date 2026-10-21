@@ -61,9 +61,9 @@ describe("resolveEntry", () => {
     expect(r.justification).toBeUndefined();
   });
 
-  it("resolves an unknown entry with no value", () => {
+  it("resolves a TBD entry with no value", () => {
     const r = resolveEntry(unk(newProject(), "comp.vessel_type", "source"), VESSEL_S);
-    expect(r.status).toBe("unknown");
+    expect(r.status).toBe("tbd");
     expect("value" in r).toBe(false);
   });
 
@@ -94,7 +94,7 @@ describe("resolveEntry", () => {
     p = v(p, "comp.vessel_type", "source", "glass");
     expect(resolveEntry(p, VESSEL_T).value).toBe("glass");
     p = unk(p, "comp.vessel_type", "source");
-    expect(resolveEntry(p, VESSEL_T)).toMatchObject({ status: "unknown", sameAsSource: true });
+    expect(resolveEntry(p, VESSEL_T)).toMatchObject({ status: "tbd", sameAsSource: true });
   });
 
   it("carries the source's not_applicable justification through sameAsSource", () => {
@@ -133,9 +133,9 @@ describe("resolveEntry", () => {
       par: rng(100, 200, "rpm"),
       rangeBasis: "PPQ",
     });
-    p = par(p, "comp.mixing_speed", "target", { setPoint: "same", nor: "unknown" });
+    p = par(p, "comp.mixing_speed", "target", { setPoint: "same", nor: "tbd" });
     expect(resolveEntry(p, "target.uo.compounding.param.mixing_speed.setPoint")).toMatchObject({ status: "established", value: q(150, "rpm") });
-    expect(resolveEntry(p, "target.uo.compounding.param.mixing_speed.nor").status).toBe("unknown");
+    expect(resolveEntry(p, "target.uo.compounding.param.mixing_speed.nor").status).toBe("tbd");
   });
 });
 
@@ -162,7 +162,7 @@ describe("fingerprints", () => {
     const b = fingerprintResolved({ ...base, entryIds: ["z", "y"], status: "established", value: { max: q(2, "L"), min: q(1, "L") } });
     expect(a).toBe(b);
     expect(fingerprintResolved({ ...base, status: "established", value: q(1, "L") })).not.toBe(fingerprintResolved({ ...base, status: "established", value: q(1, "mL") }));
-    expect(fingerprintResolved({ ...base, status: "unknown" })).not.toBe(fingerprintResolved({ ...base, status: "not_applicable", justification: "x" }));
+    expect(fingerprintResolved({ ...base, status: "tbd" })).not.toBe(fingerprintResolved({ ...base, status: "not_applicable", justification: "x" }));
     expect(fingerprintResolved({ ...base, status: "not_applicable", justification: "x" })).not.toBe(
       fingerprintResolved({ ...base, status: "not_applicable", justification: "y" }),
     );
@@ -203,14 +203,14 @@ describe("verification", () => {
     expect(verificationState(p, VESSEL_S).state).toBe("verified");
   });
 
-  it("is withdrawn when the status changes, for example to Unknown", () => {
+  it("is withdrawn when the status changes, for example to TBD", () => {
     let p = verifyEntry(v(newProject(), "comp.vessel_type", "source", "stainless_tank"), VESSEL_S, OTHER_ACTOR);
     p = unk(p, "comp.vessel_type", "source");
     expect(verificationState(p, VESSEL_S).state).toBe("withdrawn");
   });
 
-  it("refuses to verify an Unknown entry (an open information item) but can verify a Not-applicable one", () => {
-    expect(() => verifyEntry(unk(newProject(), "comp.vessel_type", "source"), VESSEL_S, OTHER_ACTOR)).toThrow(/Unknown/);
+  it("refuses to verify a TBD entry (an open information item) but can verify a Not-applicable one", () => {
+    expect(() => verifyEntry(unk(newProject(), "comp.vessel_type", "source"), VESSEL_S, OTHER_ACTOR)).toThrow(/TBD/);
     const n = verifyEntry(na(newProject(), "comp.vessel_type", "source", "Not used (fictional)"), VESSEL_S, OTHER_ACTOR);
     expect(verificationState(n, VESSEL_S).state).toBe("verified");
   });
@@ -332,7 +332,7 @@ describe("removeSource", () => {
     const p = par(newProject(), "comp.mixing_speed", "source", {
       classification: "KPP",
       setPoint: q(150, "rpm"),
-      nor: "unknown",
+      nor: "tbd",
       par: rng(100, 200, "rpm"),
       rangeBasis: "PPQ",
     });
@@ -556,8 +556,13 @@ describe("parseProject", () => {
   });
 
   it("rejects a value on an entry that is not established", () => {
-    const raw = mutated((r) => { r.scope.modality.status = "unknown"; });
-    expect(issuesOf(raw).join("\n")).toContain("has a value but status unknown");
+    const raw = mutated((r) => { r.scope.modality.status = "tbd"; });
+    expect(issuesOf(raw).join("\n")).toContain("has a value but status tbd");
+  });
+
+  it("rejects a new write of status unknown (retired in 1.9.0)", () => {
+    const raw = mutated((r) => { r.scope.modality.status = "unknown"; delete r.scope.modality.value; });
+    expect(issuesOf(raw).join("\n")).toContain("scope.modality.status");
   });
 
   it("rejects not_applicable without a justification (missing, empty or blank)", () => {
@@ -617,7 +622,7 @@ describe("parseProject", () => {
 
   it("rejects an unsupported or missing schema version", () => {
     const old = mutated((r) => { r.schemaVersion = "0.9.0"; });
-    expect(() => parseProject(old)).toThrow(/Unsupported schema version 0\.9\.0 \(this build reads 1.8.0\)/);
+    expect(() => parseProject(old)).toThrow(/Unsupported schema version 0\.9\.0 \(this build reads 1.9.0\)/);
     const future = mutated((r) => { r.schemaVersion = "2.0.0"; });
     expect(() => parseProject(future)).toThrow(ImportError);
     const none = mutated((r) => { delete r.schemaVersion; });

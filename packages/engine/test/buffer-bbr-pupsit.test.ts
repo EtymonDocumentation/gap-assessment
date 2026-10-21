@@ -293,7 +293,7 @@ describe("own-side condition references (uo.* and site.* without a side)", () =>
     expect(evaluate(onSite, { project: p })).toBe(false);
   });
 
-  it("work for in, answered, isTrue and isUnknown", () => {
+  it("work for in, answered, isTrue and isTbd", () => {
     expect(evaluate({ in: ["uo.buffer_prep.mat.buffer.supplyRoute", ["received_rtu", "received_frozen"]] }, { project: p, side: "target" })).toBe(true);
     expect(evaluate({ in: ["uo.buffer_prep.mat.buffer.supplyRoute", ["received_rtu", "received_frozen"]] }, { project: p, side: "source" })).toBe(false);
     expect(evaluate({ answered: "uo.buffer_prep.mat.buffer.supplyRoute" }, { project: p, side: "source" })).toBe(true);

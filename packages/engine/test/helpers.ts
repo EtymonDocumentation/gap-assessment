@@ -38,11 +38,11 @@ export const q = (value: number, unit: string): Quantity => ({ value, unit });
 export const rng = (min: number, max: number, unit: string): Range => ({ min: q(min, unit), max: q(max, unit) });
 
 /** A parameter field spec: a value, or the shortcuts "unknown" / "same" (same as source). */
-export type FieldSpec = EntryValue | "unknown" | "same";
+export type FieldSpec = EntryValue | "tbd" | "same";
 export type FieldSpecs = Partial<Record<ParameterField, FieldSpec>>;
 
 function fieldAnswer(v: FieldSpec): FieldAnswer {
-  if (v === "unknown") return { kind: "unknown" };
+  if (v === "tbd") return { kind: "tbd" };
   if (v === "same") return { kind: "same_as_source" };
   return { kind: "value", value: v };
 }
@@ -89,7 +89,7 @@ export function makeKit(content: ContentBundle) {
     ask(p, questionId, side, composite(fields), actor, docRefs);
 
   const unk = (p: Project, questionId: string, side: Side | "shared", actor: Actor = ACTOR): Project =>
-    ask(p, questionId, side, { kind: "unknown" }, actor);
+    ask(p, questionId, side, { kind: "tbd" }, actor);
 
   const same = (p: Project, questionId: string, actor: Actor = ACTOR): Project => ask(p, questionId, "target", { kind: "same_as_source" }, actor);
 

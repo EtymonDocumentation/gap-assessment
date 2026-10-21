@@ -28,7 +28,7 @@ export class DraftingError extends Error {}
 
 /**
  * An entry has a value to cite when it holds a stated value, a stated "not applicable" or a TBD best guess.
- * Unknown, a TBD without a best guess, "same as SU" (it has no value of its own: it follows the SU entry, which is the
+ * A TBD without a best guess, "same as SU" (it has no value of its own: it follows the SU entry, which is the
  * one to cite) and entries with nothing recorded do not.
  */
 export function hasCitableValue(e: Entry | undefined): boolean {
