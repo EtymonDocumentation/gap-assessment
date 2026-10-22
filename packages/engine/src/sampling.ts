@@ -390,6 +390,26 @@ export function addStep(project: Project, planId: string, draft: StepDraft, acto
   return { project: next, stepId: step.id };
 }
 
+/**
+ * Where a ticked catalog step goes in the plan's list: in catalog process order relative to the catalog steps already there, so
+ * ticking "Sterile filtration" after "Aseptic filling" still puts it before filling. It goes just before the first catalog step that
+ * comes later in the process; if none does, just after the last one that comes earlier. Custom steps are never reordered (they have
+ * no catalog position), and with no catalog step in the list yet the new one goes at the end.
+ */
+export function catalogInsertIndex(content: ContentBundle, steps: readonly Pick<PlanStep, "unitOp">[], unitOp: string): number {
+  const seq = (uo: string) => content.catalog.unitOperations.find((u) => u.key === uo)?.sequence;
+  const mine = seq(unitOp);
+  if (mine === undefined) return steps.length;
+  let lastEarlier = -1;
+  for (let i = 0; i < steps.length; i++) {
+    const other = steps[i]!.unitOp ? seq(steps[i]!.unitOp!) : undefined;
+    if (other === undefined) continue;
+    if (other > mine) return i;
+    lastEarlier = i;
+  }
+  return lastEarlier < 0 ? steps.length : lastEarlier + 1;
+}
+
 /** Renames a custom step or edits the notes of any step. A catalog step keeps its catalog name. */
 export function updateStep(project: Project, planId: string, stepId: string, patch: { label?: string; notes?: string }, actor: Actor): Project {
   const next = structuredClone(project);

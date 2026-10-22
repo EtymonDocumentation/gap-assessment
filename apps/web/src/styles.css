@@ -2479,3 +2479,111 @@ details > summary {
 .points-table tr[aria-current="true"] > th:first-child {
   box-shadow: inset 4px 0 0 var(--accent);
 }
+
+/* M7.2 part B: streamlined adding (short form, wizard) and the grouped point editor. Tokens only; wraps at 390 px. */
+.add-mode {
+  align-items: center;
+}
+.wizard-heading {
+  margin: 0;
+  font-size: 1.1rem;
+}
+.wizard-heading:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.wizard-types {
+  max-height: 22rem;
+  overflow: auto;
+}
+.wizard-type {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  min-width: 0;
+}
+.wizard-type input {
+  margin-top: 0.3rem;
+  flex: none;
+}
+.wizard-type > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.wizard-review {
+  display: grid;
+  gap: 0.375rem;
+  margin: 0;
+}
+.wizard-review > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+}
+.wizard-review dt {
+  color: var(--muted);
+  min-width: 9rem;
+}
+.wizard-review dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.point-group {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  min-width: 0;
+}
+.group-head {
+  margin: 0;
+  font-size: 1rem;
+}
+.group-head button {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 0;
+  border-radius: var(--radius);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.group-head button:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.group-title {
+  font-weight: 600;
+}
+.group-summary {
+  flex: 1 1 12rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+/* "N to fill" is words; the dashed border only reinforces it. */
+.group-count {
+  font-size: 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0 0.5rem;
+  white-space: nowrap;
+}
+.group-count.open {
+  border-style: dashed;
+  border-color: var(--provisional);
+  color: var(--provisional);
+  font-weight: 600;
+}
+.group-body {
+  padding: 0.75rem;
+  min-width: 0;
+}
+.group-body[hidden] {
+  display: none;
+}

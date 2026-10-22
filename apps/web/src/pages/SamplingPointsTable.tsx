@@ -1,5 +1,5 @@
 import { removePoint, updatePoint } from "@gap/engine";
-import { FLOW_POSITIONS, SAMPLING_TYPES, type FlowPosition, type SamplingPlan, type SamplingPoint, type SamplingType } from "@gap/process-model";
+import { FLOW_POSITIONS, SAMPLING_TYPES, reportOnlyAllowed, type FlowPosition, type SamplingPlan, type SamplingPoint, type SamplingType } from "@gap/process-model";
 import { METHOD_LABEL, NOT_ON_DIAGRAM, POSITION_NOT_SET, STATUS_TEXT, SLOT_LABEL, TYPE_LABEL, checkPoint, methodInputsText, tableOrder, typeCode, unitsPerBatch, usesSampleSizeMethod, stepOf } from "@gap/sampling";
 import { useMemo } from "react";
 import { movePoint, targetOf, type OpenAdd, type Run } from "./SamplingFlow";
@@ -131,11 +131,15 @@ function PointRow({ plan, point, selected, onSelect, run, onEdit }: { plan: Samp
           aria-label={`Type of ${point.id}`}
           data-testid={`row-type-${point.id}`}
           onChange={(e) => {
-            if (!e.target.value) return;
-            run((p, actor) => updatePoint(p, plan.id, point.id, { type: e.target.value as SamplingType }, actor), `Point ${point.id} type changed`);
+            const t = e.target.value as SamplingType | "";
+            // "Not chosen" is a state the model has (a migrated point has no type until it is classified), so the type can be cleared back to it;
+            // the point then shows the open item "Choose the study type". Report only is only allowed once a type that permits it is chosen, so
+            // a report-only acceptance is dropped with the type (the same rule the point editor applies when the type changes).
+            const acceptance = point.acceptance?.kind === "report_only" && !reportOnlyAllowed(t || undefined) ? { acceptance: undefined } : {};
+            run((p, actor) => updatePoint(p, plan.id, point.id, { type: t || undefined, ...acceptance }, actor), `Point ${point.id} type changed`);
           }}
         >
-          {!point.type && <option value="">Not chosen ({typeCode(undefined)})</option>}
+          <option value="">Not chosen ({typeCode(undefined)})</option>
           {SAMPLING_TYPES.map((t) => (
             <option key={t} value={t}>
               {typeCode(t)} {TYPE_LABEL[t]}

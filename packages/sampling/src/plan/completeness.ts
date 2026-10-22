@@ -8,10 +8,20 @@ import { TYPE_LABEL } from "./labels.js";
 export type PointStatus = "complete" | "incomplete";
 export const STATUS_TEXT: Record<PointStatus, string> = { complete: "Complete", incomplete: "Incomplete" };
 
+/**
+ * The groups the point editor ("More details") sorts its fields into. Each open item belongs to exactly one, so a closed group can
+ * say "N to fill" without the editor re-deriving anything. `type` is the study type and its own field group (only the chosen type's
+ * group is ever shown); the rest are the entries every type has.
+ */
+export type PointGroup = "type" | "sampling" | "testing" | "acceptance" | "reporting" | "sources";
+export const POINT_GROUPS: readonly PointGroup[] = ["type", "sampling", "testing", "acceptance", "reporting", "sources"];
+
 export interface PointCheck {
   status: PointStatus;
   /** One sentence per missing or wrong thing. Empty when complete. */
   problems: string[];
+  /** The same sentences sorted into the editor's groups. `problems` is these in the order they were found. */
+  byGroup: Record<PointGroup, string[]>;
   /** The fresh calculation, one entry per applicable batch. Empty for stability and retain points (no sample-size method). */
   perBatch: BatchResult[];
 }
@@ -110,41 +120,47 @@ function typeProblems(point: SamplingPoint): string[] {
  */
 export function checkPoint(plan: SamplingPlan, point: SamplingPoint): PointCheck {
   const problems: string[] = [];
+  const byGroup: Record<PointGroup, string[]> = { type: [], sampling: [], testing: [], acceptance: [], reporting: [], sources: [] };
+  // Only the grouping is new: every sentence below is the one M7.1 already said, in the same order. Nothing here adds a requirement.
+  const add = (group: PointGroup, text: string) => {
+    problems.push(text);
+    byGroup[group].push(text);
+  };
   const byMethod = usesSampleSizeMethod(point);
   const perBatch = byMethod ? calculatePoint(plan, point) : [];
 
-  if (!point.type) problems.push("Choose the study type (for a migrated routine point: in-process control or release).");
-  if (!point.attribute.trim()) problems.push("Name the attribute or test.");
-  if (!point.rationale.trim()) problems.push("Give the rationale: why this point is sampled.");
-  if (!point.responsible) problems.push("Say who is responsible for this sample (CMO, sponsor, contract laboratory or other).");
-  else if (point.responsible.party === "other" && blank(point.responsible.name)) problems.push('Name the responsible party ("other").');
+  if (!point.type) add("type", "Choose the study type (for a migrated routine point: in-process control or release).");
+  if (!point.attribute.trim()) add("testing", "Name the attribute or test.");
+  if (!point.rationale.trim()) add("acceptance", "Give the rationale: why this point is sampled.");
+  if (!point.responsible) add("sampling", "Say who is responsible for this sample (CMO, sponsor, contract laboratory or other).");
+  else if (point.responsible.party === "other" && blank(point.responsible.name)) add("sampling", 'Name the responsible party ("other").');
 
   if (byMethod) {
     const t = point.timing;
-    if (t.options.length === 0) problems.push("Choose when or where the samples are taken.");
-    if (t.options.includes("interval") && !t.interval) problems.push("Give the interval (a number and units or minutes).");
-    if (t.options.includes("other") && !t.other?.trim()) problems.push('Say what "other" timing means.');
-    if (point.locationsCount === undefined) problems.push("Give how many locations or time points are sampled per batch.");
+    if (t.options.length === 0) add("sampling", "Choose when or where the samples are taken.");
+    if (t.options.includes("interval") && !t.interval) add("sampling", "Give the interval (a number and units or minutes).");
+    if (t.options.includes("other") && !t.other?.trim()) add("sampling", 'Say what "other" timing means.');
+    if (point.locationsCount === undefined) add("sampling", "Give how many locations or time points are sampled per batch.");
   }
 
   if (!point.acceptance) {
-    problems.push("Choose an acceptance criterion, or report only where that is allowed.");
+    add("acceptance", "Choose an acceptance criterion, or report only where that is allowed.");
   } else if (point.acceptance.kind === "criterion" && !point.acceptance.text.trim()) {
-    problems.push("Write the acceptance criterion.");
+    add("acceptance", "Write the acceptance criterion.");
   } else if (point.acceptance.kind === "report_only") {
     if (!reportOnlyAllowed(point.type)) {
       // The schema refuses this too; the text here covers a point built in memory before it is saved.
-      problems.push(point.type ? `Report only is not allowed for ${TYPE_LABEL[point.type].toLowerCase()} points.` : "Report only is not allowed until the study type is chosen.");
+      add("acceptance", point.type ? `Report only is not allowed for ${TYPE_LABEL[point.type].toLowerCase()} points.` : "Report only is not allowed until the study type is chosen.");
     } else if (point.type === "stability" && point.detail?.stability?.reportedAgainstProtocol !== true) {
-      problems.push("Report only is allowed for stability only when the results are reported against the stability protocol. Confirm that, or write a criterion.");
+      add("acceptance", "Report only is allowed for stability only when the results are reported against the stability protocol. Confirm that, or write a criterion.");
     }
   }
 
   if (byMethod) {
     if (!point.sampleSize.method) {
-      problems.push("Choose a sample-size method.");
+      add("sampling", "Choose a sample-size method.");
     } else if (appliedBatches(plan, point).length === 0) {
-      problems.push(plan.batches.length === 0 ? "Add the PPQ batches first; sample sizes are worked out per batch." : "The point applies to no batch.");
+      add("sampling", plan.batches.length === 0 ? "Add the PPQ batches first; sample sizes are worked out per batch." : "The point applies to no batch.");
     } else {
       // A problem every batch has (a missing confidence) is said once. A problem only some batches have (one batch has no lot size,
       // or its lot size falls outside the table) names the batch, so the reader knows where to fix it.
@@ -158,22 +174,22 @@ export function checkPoint(plan: SamplingPlan, point: SamplingPoint): PointCheck
           const text = everywhere ? p : `${label(r.batchId)}: ${p}`;
           if (said.has(text)) continue;
           said.add(text);
-          problems.push(text);
+          add("sampling", text);
         }
-        if (!r.ok && r.problems.length === 0) problems.push(`${label(r.batchId)}: no sample size could be worked out.`);
+        if (!r.ok && r.problems.length === 0) add("sampling", `${label(r.batchId)}: no sample size could be worked out.`);
       }
     }
   } else if (appliedBatches(plan, point).length === 0) {
-    problems.push(plan.batches.length === 0 ? "Add the PPQ batches first." : "The point applies to no batch.");
+    add("sampling", plan.batches.length === 0 ? "Add the PPQ batches first." : "The point applies to no batch.");
   }
 
-  problems.push(...typeProblems(point));
+  for (const t of typeProblems(point)) add("type", t);
 
   const rep = point.reporting;
-  if (!rep?.what?.length) problems.push("Say what the CMO reports for this point (the reporting instructions).");
-  else if (rep.what.includes("other") && blank(rep.whatOther)) problems.push('Say what the "other" reporting item is.');
+  if (!rep?.what?.length) add("reporting", "Say what the CMO reports for this point (the reporting instructions).");
+  else if (rep.what.includes("other") && blank(rep.whatOther)) add("reporting", 'Say what the "other" reporting item is.');
 
-  return { status: problems.length === 0 ? "complete" : "incomplete", problems, perBatch };
+  return { status: problems.length === 0 ? "complete" : "incomplete", problems, byGroup, perBatch };
 }
 
 export interface OpenItem {

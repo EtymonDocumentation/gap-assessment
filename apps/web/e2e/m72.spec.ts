@@ -163,17 +163,17 @@ test("the keyboard moves a marker: Enter picks up, arrows choose, Enter drops, E
   await expect(page.getByTestId(`row-pos-${id}`)).toHaveValue("before");
 });
 
-test("the plus on a box and Add a sample use the existing add form", async ({ page }) => {
+test("the plus on a box and Add a sample use the one add dialog", async ({ page }) => {
   await openDemoPlan(page);
   const firstStep = (await page.getByTestId("step-list").locator("li").first().getAttribute("data-testid"))!.replace("step-", "");
   const ids = () => page.locator('[data-testid^="point-SP-"]').evaluateAll((els) => els.map((e) => e.getAttribute("data-testid")!.replace("point-", "")));
   const idsBefore = await ids();
   const before = idsBefore.length;
   await page.getByTestId(`flow-add-${firstStep}`).click();
-  await expect(page.getByTestId("manual-flow-step")).toHaveValue(firstStep);
-  await page.getByTestId("manual-type").selectOption("ipc");
-  await page.getByTestId("manual-attribute").fill("Plus-button check (fictional)");
-  await page.getByTestId("manual-add").click();
+  await expect(page.getByTestId("add-step")).toHaveValue(firstStep);
+  await page.getByTestId("add-type").selectOption("ipc");
+  await page.getByTestId("add-what").fill("Plus-button check (fictional)");
+  await page.getByTestId("add-submit").click();
   await expect(page.locator('[data-testid^="point-SP-"]')).toHaveCount(before + 1);
   await expect(page.locator('[data-testid^="marker-SP-"]')).toHaveCount(before + 1);
   // The new point sits on the box with its position not set (nothing is filled in for the person).
@@ -184,11 +184,10 @@ test("the plus on a box and Add a sample use the existing add form", async ({ pa
 
   // "Add a sample" goes to Not on the diagram: extras are never blocked and never forced onto a step.
   await page.getByTestId("add-sample").click();
-  await expect(page.getByTestId("manual-flow-step")).toHaveValue("");
-  await page.getByTestId("manual-unitop").selectOption("aseptic_filling");
-  await page.getByTestId("manual-type").selectOption("other");
-  await page.getByTestId("manual-attribute").fill("Extra sample (fictional)");
-  await page.getByTestId("manual-add").click();
+  await expect(page.getByTestId("add-step")).toHaveValue("");
+  await page.getByTestId("add-type").selectOption("other");
+  await page.getByTestId("add-what").fill("Extra sample (fictional)");
+  await page.getByTestId("add-submit").click();
   await page.getByTestId("tab-overview").click();
   const extraId = (await ids()).find((i) => !idsBefore.includes(i) && i !== newId)!;
   const extra = page.getByTestId(`point-${extraId}`);

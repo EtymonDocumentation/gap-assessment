@@ -1,5 +1,5 @@
 import { setPointFlow } from "@gap/engine";
-import type { FlowPosition, PointFlow, SamplingPlan, SamplingPoint } from "@gap/process-model";
+import type { FlowPosition, PointFlow, SamplingPlan, SamplingPoint, SamplingType } from "@gap/process-model";
 import {
   NOT_ON_DIAGRAM,
   SLOT_LABEL,
@@ -66,11 +66,11 @@ export function movePoint(run: Run, plan: SamplingPlan, pointId: string, target:
 }
 
 /**
- * The hook behind every "add" control of the flow ("+" on a box, "Add a sample" under the table). The page decides what it opens.
- * Today it opens the existing add form (a process step, a study type, optionally an attribute) with the target filled in; a later
- * change swaps in the short form here without touching the diagram or the table.
+ * The hook behind every "add" control ("+" on a box, "Add a sample" under the table, the add buttons of the interview). The page
+ * decides what it opens: the short form or the step-by-step wizard (SamplingAdd.tsx). Every field of the target is only a starting
+ * value for the form; `unitOp` is the catalog step an interview section stands for, used when the sample is not put on the diagram.
  */
-export type OpenAdd = (target: { stepId?: string; at?: FlowPosition }) => void;
+export type OpenAdd = (target: { stepId?: string; at?: FlowPosition; unitOp?: string; type?: SamplingType }) => void;
 
 // ------------------------------------------------------------------ layout (pure)
 

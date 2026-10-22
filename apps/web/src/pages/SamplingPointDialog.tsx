@@ -30,6 +30,7 @@ import {
 } from "@gap/process-model";
 import {
   FILTER_TEST_LABEL,
+  POINT_GROUPS,
   AQL_LEVELS,
   AQL_VALUES_105E,
   AQL_VALUES_414,
@@ -49,6 +50,8 @@ import {
   applyLoadout,
   calculatePoint,
   checkPoint,
+  groupSummary,
+  initialOpenGroups,
   placementText,
   requestTitle,
   reportingInstructions,
@@ -57,8 +60,12 @@ import {
   stabilityDerivation,
   stepOf,
   tableChangedSince,
+  toFillText,
+  typeChangeHidesValues,
+  typeGroupLabel,
   usesSampleSizeMethod,
   type LoadoutMode,
+  type PointGroup,
 } from "@gap/sampling";
 import { designLoadouts } from "@gap/content";
 import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
@@ -669,6 +676,33 @@ function DurationRows({ durations, onChange }: { durations: { value: number; uni
 
 // ------------------------------------------------------------------ the point editor
 
+/**
+ * One collapsible group of the point editor. The header is a button (aria-expanded) with a one-line summary and the "N to fill" count
+ * (words, never colour alone). The content stays mounted while closed (hidden), so a half-typed value is not lost by closing a group.
+ */
+function Group({ id, title, summary, count, open, onToggle, children }: { id: PointGroup; title: string; summary: string; count: number; open: boolean; onToggle: () => void; children: ReactNode }) {
+  const panel = useId();
+  return (
+    <section className="point-group" data-testid={`group-${id}`}>
+      <h5 className="group-head">
+        <button type="button" aria-expanded={open} aria-controls={panel} onClick={onToggle} data-testid={`group-toggle-${id}`}>
+          <span aria-hidden="true" className="group-caret">
+            {open ? "▾" : "▸"}
+          </span>
+          <span className="group-title">{title}</span>
+          <span className="group-summary muted small">{summary}</span>
+          <span className={count > 0 ? "group-count open" : "group-count"} data-testid={`group-count-${id}`}>
+            {toFillText(count)}
+          </span>
+        </button>
+      </h5>
+      <div id={panel} className="group-body stack" hidden={!open}>
+        {children}
+      </div>
+    </section>
+  );
+}
+
 /** Steps a point can belong to: the catalog's unit operations, finished product, and supporting work. */
 export function useStepChoices(): { key: string; label: string }[] {
   const content = useContent();
@@ -683,14 +717,40 @@ export function useStepChoices(): { key: string; label: string }[] {
  * reporting-instructions preview recalculate from the draft on every change. Nothing is preselected: an empty choice stays empty
  * and the point stays incomplete. Used inside a dialog (Overview) and inline in the interview, so both views edit the same point.
  */
-export function PointForm({ plan, point, onClose, onSave, inline }: { plan: SamplingPlan; point: SamplingPoint; onClose: () => void; onSave: (d: SamplingPoint) => string | null; inline?: boolean }) {
+export function PointForm({
+  plan,
+  point,
+  onClose,
+  onSave,
+  inline,
+  groups,
+}: {
+  plan: SamplingPlan;
+  point: SamplingPoint;
+  onClose: () => void;
+  onSave: (d: SamplingPoint) => string | null;
+  inline?: boolean;
+  /** Which groups are open, kept by the caller so a save (which remounts the form) does not close what the person had open. */
+  groups?: { open: PointGroup[] | undefined; onChange: (open: PointGroup[]) => void };
+}) {
   const project = useStore((s) => s.project)!;
   const tables = useSamplingTables((s) => s.items);
   const loadTables = useSamplingTables((s) => s.load);
   useEffect(() => void loadTables(), [loadTables]);
   const [d, setD] = useState<SamplingPoint>(() => structuredClone(point));
   const [error, setError] = useState("");
+  // Groups start closed, except the first one that still has something to fill (the person lands where the work is).
+  const [openGroups, setOpenGroups] = useState<PointGroup[]>(() => groups?.open ?? initialOpenGroups(checkPoint(plan, point).byGroup, POINT_GROUPS));
+  const [pendingType, setPendingType] = useState<SamplingType | "" | null>(null);
   const uid = useId();
+  const setGroups = (next: PointGroup[]) => {
+    setOpenGroups(next);
+    groups?.onChange(next);
+  };
+  const isOpen = (g: PointGroup) => openGroups.includes(g);
+  const toggleGroup = (g: PointGroup) => setGroups(isOpen(g) ? openGroups.filter((x) => x !== g) : [...openGroups, g]);
+  const allOpen = openGroups.length === POINT_GROUPS.length;
+  const setAllGroups = (open: boolean) => setGroups(open ? [...POINT_GROUPS] : []);
   const steps = useStepChoices();
   const set = (patch: Partial<SamplingPoint>) => setD((cur) => ({ ...cur, ...patch }));
   const setInputs = (patch: Partial<SamplingPoint["sampleSize"]["inputs"]>) => setD((cur) => ({ ...cur, sampleSize: { ...cur.sampleSize, inputs: { ...cur.sampleSize.inputs, ...patch } } }));
@@ -718,6 +778,8 @@ export function PointForm({ plan, point, onClose, onSave, inline }: { plan: Samp
 
   // Inputs of another method are dropped so a hidden value can never drive the number (no stale values).
   const changeMethod = (m: SamplingMethod | "") => setD((cur) => ({ ...cur, sampleSize: m ? { method: m, inputs: {} } : { inputs: {} } }));
+  // Changing the type hides the old type's field group. The entries stay in the data (nothing is deleted) but the person is told first.
+  const askType = (t: SamplingType | "") => (typeChangeHidesValues(d, t || undefined) ? setPendingType(t) : changeType(t));
   const changeType = (t: SamplingType | "") =>
     setD((cur) => {
       const next: SamplingPoint = { ...cur, acceptance: cur.acceptance?.kind === "report_only" && !reportOnlyAllowed(t || undefined) ? undefined : cur.acceptance };
@@ -749,55 +811,76 @@ export function PointForm({ plan, point, onClose, onSave, inline }: { plan: Samp
         if (err) setError(err);
       }}
     >
-      <fieldset className="stack fs">
-        <legend>What is sampled</legend>
-        <div className="row wrap">
-          <label className="field">
-            <span>Process step</span>
-            {/* A point on the plan's process flow takes its unit operation from that step, so the step is changed in the table or the diagram. */}
-            <select value={d.unitOp} onChange={(e) => set({ unitOp: e.target.value })} data-testid="point-unitop" disabled={!!stepOf(plan, d)} aria-describedby={stepOf(plan, d) ? `${uid}-flowstep` : undefined}>
-              {steps.map((s) => (
-                <option key={s.key} value={s.key}>
-                  {s.label}
-                </option>
-              ))}
-              {!steps.some((s) => s.key === d.unitOp) && <option value={d.unitOp}>{d.unitOp === UNIT_OP_CUSTOM_STEP ? (stepOf(plan, d)?.label ?? "Custom step") : d.unitOp}</option>}
-            </select>
-            {stepOf(plan, d) && (
-              <span id={`${uid}-flowstep`} className="muted small">
-                On the process flow: {placementText(plan, d)}. Change the step or position in the points table or on the diagram.
-              </span>
-            )}
-          </label>
-          <label className="field">
-            <span>Study type</span>
-            <select value={d.type ?? ""} onChange={(e) => changeType(e.target.value as SamplingType | "")} data-testid="point-type" aria-describedby={`${uid}-type`}>
-              <option value="">Not chosen yet</option>
-              {SAMPLING_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {TYPE_LABEL[t]}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
+      <div className="row wrap between">
+        <p className="muted small">Only the chosen study type's own fields are shown. Open a group to fill it in; "to fill" counts what the point still needs.</p>
+        <button type="button" className="btn small" onClick={() => setAllGroups(!allOpen)} data-testid="point-expand-all" aria-pressed={allOpen}>
+          {allOpen ? "Close all groups" : "Open all groups"}
+        </button>
+      </div>
+
+      <Group id="type" title={typeGroupLabel(d.type)} summary={groupSummary(d, "type")} count={check.byGroup.type.length} open={isOpen("type")} onToggle={() => toggleGroup("type")}>
+        <label className="field">
+          <span>Study type</span>
+          <select value={d.type ?? ""} onChange={(e) => askType(e.target.value as SamplingType | "")} data-testid="point-type" aria-describedby={`${uid}-type`}>
+            <option value="">Not chosen yet</option>
+            {SAMPLING_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {TYPE_LABEL[t]}
+              </option>
+            ))}
+          </select>
+        </label>
         <p id={`${uid}-type`} className="muted small">
           {d.type ? TYPE_HELP[d.type] : "Choose the study type. It decides which questions come next and where the point is printed. A point migrated from an older file has no type until you choose one."}
         </p>
+        {pendingType !== null && d.type && (
+          <div className="notice stack" role="alertdialog" aria-label="Change the study type" data-testid="type-change-confirm">
+            <p>
+              This point has entries for {TYPE_LABEL[d.type]}. Changing the type to {pendingType ? TYPE_LABEL[pendingType] : "not chosen"} hides them. They stay saved in the point and show again if you change back.
+            </p>
+            <div className="row wrap">
+              <button type="button" className="btn primary" autoFocus onClick={() => (changeType(pendingType), setPendingType(null))} data-testid="type-change-yes">
+                Change the type
+              </button>
+              <button type="button" className="btn" onClick={() => setPendingType(null)} data-testid="type-change-no">
+                Keep {TYPE_LABEL[d.type]}
+              </button>
+            </div>
+          </div>
+        )}
         <label className="field">
           <span>
             {d.type === "other" ? "What kind of sampling is this" : "Study type wording"} {d.type !== "other" && <span className="muted">(optional)</span>}
           </span>
           <input value={d.typeLabel ?? ""} onChange={(e) => set({ typeLabel: opt(e.target.value) })} data-testid="point-type-label" />
         </label>
+        {d.type && TypeCardHasFields(d.type) && (
+          <div className="stack" data-testid="type-card">
+            {/* Why only the chosen type's fields: the full form listed every type's fields at once and the product owner found it overwhelming. */}
+            <TypeCard d={d} plan={plan} steps={steps} setDetail={setDetail} />
+          </div>
+        )}
+      </Group>
+
+      <Group id="sampling" title="Sampling" summary={groupSummary(d, "sampling")} count={check.byGroup.sampling.length} open={isOpen("sampling")} onToggle={() => toggleGroup("sampling")}>
         <label className="field">
-          <span>Attribute or test</span>
-          <input value={d.attribute} onChange={(e) => set({ attribute: e.target.value })} data-testid="point-attribute" />
+          <span>Process step</span>
+          {/* A point on the plan's process flow takes its unit operation from that step, so the step is changed in the table or the diagram. */}
+          <select value={d.unitOp} onChange={(e) => set({ unitOp: e.target.value })} data-testid="point-unitop" disabled={!!stepOf(plan, d)} aria-describedby={stepOf(plan, d) ? `${uid}-flowstep` : undefined}>
+            {steps.map((s) => (
+              <option key={s.key} value={s.key}>
+                {s.label}
+              </option>
+            ))}
+            {!steps.some((s) => s.key === d.unitOp) && <option value={d.unitOp}>{d.unitOp === UNIT_OP_CUSTOM_STEP ? (stepOf(plan, d)?.label ?? "Custom step") : d.unitOp}</option>}
+          </select>
+          {stepOf(plan, d) && (
+            <span id={`${uid}-flowstep`} className="muted small">
+              On the process flow: {placementText(plan, d)}. Change the step or position in the points table or on the diagram.
+            </span>
+          )}
         </label>
-        <div className="row wrap">
-          <TextField label="Test method reference" value={d.testMethodRef} onChange={(v) => set({ testMethodRef: v })} optional />
-          <TextField label="Material" value={d.materialType} onChange={(v) => set({ materialType: v })} optional />
-        </div>
+        <TextField label="Material" value={d.materialType} onChange={(v) => set({ materialType: v })} optional />
         <div className="row wrap">
           <label className="field">
             <span>Responsible for this sample</span>
@@ -827,249 +910,289 @@ export function PointForm({ plan, point, onClose, onSave, inline }: { plan: Samp
             </label>
           )}
         </div>
-      </fieldset>
-
-      {d.type && TypeCardHasFields(d.type) && (
-        <fieldset className="stack fs" data-testid="type-card">
-          <legend>{TYPE_LABEL[d.type]}: details</legend>
-          <TypeCard d={d} plan={plan} steps={steps} setDetail={setDetail} />
-        </fieldset>
-      )}
-
-      {byMethod && (
-        <fieldset className="stack fs">
-          <legend>When and where</legend>
-          <div className="check-grid">
-            {TIMING_OPTIONS.map((o) => (
-              <label key={o} className="check">
-                <input type="checkbox" checked={d.timing.options.includes(o)} onChange={() => set({ timing: { ...d.timing, options: toggle(d.timing.options, o) } })} data-testid={`timing-${o}`} />
-                <span>{TIMING_LABEL[o]}</span>
-              </label>
-            ))}
-          </div>
-          {d.timing.options.includes("interval") && (
-            <div className="row wrap">
-              <NumField
-                label="Every"
-                value={d.timing.interval?.every}
-                onChange={(v) => set({ timing: { ...d.timing, interval: v === undefined || v <= 0 ? undefined : { every: v, unit: d.timing.interval?.unit ?? "units" } } })}
-              />
-              <label className="field">
-                <span>Interval in</span>
-                <select
-                  value={d.timing.interval?.unit ?? ""}
-                  disabled={!d.timing.interval}
-                  onChange={(e) => set({ timing: { ...d.timing, interval: d.timing.interval ? { ...d.timing.interval, unit: e.target.value as "units" | "minutes" } : undefined } })}
-                >
-                  {!d.timing.interval && <option value="">Enter the number first</option>}
-                  {INTERVAL_UNITS.map((u) => (
-                    <option key={u} value={u}>
-                      {u}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          )}
-          {d.timing.options.includes("other") && (
-            <label className="field">
-              <span>Other timing</span>
-              <input value={d.timing.other ?? ""} onChange={(e) => set({ timing: { ...d.timing, other: e.target.value || undefined } })} />
-            </label>
-          )}
-          <label className="field">
-            <span>
-              Timing note <span className="muted">(optional)</span>
-            </span>
-            <input value={d.timing.note ?? ""} onChange={(e) => set({ timing: { ...d.timing, note: e.target.value || undefined } })} />
-          </label>
-          <div className="row wrap">
-            <NumField label="Locations or time points per batch" value={d.locationsCount} onChange={(v) => set({ locationsCount: v === undefined ? undefined : Math.trunc(v) })} testId="point-locations" hint="Each location gets the sample size below." />
-            <NumField label="Containers per sample (optional)" value={d.containerUnitsPerSample} onChange={(v) => set({ containerUnitsPerSample: v === undefined ? undefined : Math.trunc(v) })} />
-          </div>
-        </fieldset>
-      )}
-
-      {byMethod && (
-        <fieldset className="stack fs">
-          <legend>How many samples</legend>
-          <label className="field">
-            <span>Sampling method</span>
-            <select value={method ?? ""} onChange={(e) => changeMethod(e.target.value as SamplingMethod | "")} data-testid="point-method" aria-describedby={method ? `${uid}-m` : undefined}>
-              <option value="">Not chosen yet</option>
-              {SAMPLING_METHODS.map((m) => (
-                <option key={m} value={m}>
-                  {METHOD_LABEL[m]}
-                </option>
+        {byMethod && (
+          <fieldset className="stack fs">
+            <legend>When and where</legend>
+            <div className="check-grid">
+              {TIMING_OPTIONS.map((o) => (
+                <label key={o} className="check">
+                  <input type="checkbox" checked={d.timing.options.includes(o)} onChange={() => set({ timing: { ...d.timing, options: toggle(d.timing.options, o) } })} data-testid={`timing-${o}`} />
+                  <span>{TIMING_LABEL[o]}</span>
+                </label>
               ))}
-            </select>
-          </label>
-          {method && (
-            <p id={`${uid}-m`} className="muted small" data-testid="method-help">
-              {METHOD_HELP[method]}
-            </p>
-          )}
-
-          {method === "company-table" && (
-            <div className="stack">
-              <label className="field">
-                <span>Company sampling table</span>
-                <select
-                  value={inputs.table?.id ?? ""}
-                  data-testid="point-table"
-                  onChange={(e) => {
-                    const t = tables.find((x) => x.id === e.target.value);
-                    setInputs({ table: t ? snapshotOf(t) : undefined, testKey: undefined });
-                  }}
-                >
-                  <option value="">Choose a table</option>
-                  {pickable.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name} (version {t.version})
-                    </option>
-                  ))}
-                  {inputs.table && !pickable.some((t) => t.id === inputs.table!.id) && (
-                    <option value={inputs.table.id}>
-                      {inputs.table.name} (version {inputs.table.version}, kept in this plan)
-                    </option>
-                  )}
-                </select>
-              </label>
-              {pickable.length === 0 && !inputs.table && (
-                <p className="muted small">
-                  No usable table yet. Add one on the <a href="#/sampling/tables">Sampling tables</a> page.
-                </p>
-              )}
-              {inputs.table && !inLibrary && (
-                <p className="notice" data-testid="table-missing">
-                  This table is no longer in your library. The copy kept in this plan is used.
-                </p>
-              )}
-              {changed && (
-                <div className="notice stack" data-testid="table-changed">
-                  <p>The library table changed after it was chosen for this point: {changed}</p>
-                  <div>
-                    <button type="button" className="btn small" onClick={() => setInputs({ table: snapshotOf(inLibrary!) })}>
-                      Use the updated table
-                    </button>
-                  </div>
-                </div>
-              )}
-              {testKeys.length > 0 && (
+            </div>
+            {d.timing.options.includes("interval") && (
+              <div className="row wrap">
+                <NumField
+                  label="Every"
+                  value={d.timing.interval?.every}
+                  onChange={(v) => set({ timing: { ...d.timing, interval: v === undefined || v <= 0 ? undefined : { every: v, unit: d.timing.interval?.unit ?? "units" } } })}
+                />
                 <label className="field">
-                  <span>Test key</span>
-                  <select value={inputs.testKey ?? ""} onChange={(e) => setInputs({ testKey: e.target.value || undefined })} data-testid="point-testkey">
-                    <option value="">Choose a test</option>
-                    {testKeys.map((k) => (
-                      <option key={k} value={k}>
-                        {k}
+                  <span>Interval in</span>
+                  <select
+                    value={d.timing.interval?.unit ?? ""}
+                    disabled={!d.timing.interval}
+                    onChange={(e) => set({ timing: { ...d.timing, interval: d.timing.interval ? { ...d.timing.interval, unit: e.target.value as "units" | "minutes" } : undefined } })}
+                  >
+                    {!d.timing.interval && <option value="">Enter the number first</option>}
+                    {INTERVAL_UNITS.map((u) => (
+                      <option key={u} value={u}>
+                        {u}
                       </option>
                     ))}
                   </select>
                 </label>
-              )}
-            </div>
-          )}
-
-          {method === "fixed" && (
-            <div className="stack">
-              <NumField label="Sample size (number of units)" value={inputs.count} onChange={(v) => setInputs({ count: v === undefined ? undefined : Math.trunc(v) })} testId="point-count" />
+              </div>
+            )}
+            {d.timing.options.includes("other") && (
               <label className="field">
-                <span>Written basis for this number</span>
-                <textarea rows={2} value={inputs.basis ?? ""} onChange={(e) => setInputs({ basis: e.target.value || undefined })} data-testid="point-basis" />
+                <span>Other timing</span>
+                <input value={d.timing.other ?? ""} onChange={(e) => set({ timing: { ...d.timing, other: e.target.value || undefined } })} />
               </label>
-            </div>
-          )}
-
-          {method === "conf-rel" && (
+            )}
+            <label className="field">
+              <span>
+                Timing note <span className="muted">(optional)</span>
+              </span>
+              <input value={d.timing.note ?? ""} onChange={(e) => set({ timing: { ...d.timing, note: e.target.value || undefined } })} />
+            </label>
             <div className="row wrap">
-              <NumField label="Confidence (%)" scale={100} value={inputs.confidence} onChange={(v) => setInputs({ confidence: v })} testId="point-confidence" />
-              <NumField label="Reliability (%)" scale={100} value={inputs.reliability} onChange={(v) => setInputs({ reliability: v })} testId="point-reliability" />
-              <NumField label="Allowed failures" value={inputs.allowedFailures} onChange={(v) => setInputs({ allowedFailures: v === undefined ? undefined : Math.trunc(v) })} testId="point-failures" />
+              <NumField label="Locations or time points per batch" value={d.locationsCount} onChange={(v) => set({ locationsCount: v === undefined ? undefined : Math.trunc(v) })} testId="point-locations" hint="Each location gets the sample size below." />
+              <NumField label="Containers per sample (optional)" value={d.containerUnitsPerSample} onChange={(v) => set({ containerUnitsPerSample: v === undefined ? undefined : Math.trunc(v) })} />
             </div>
-          )}
+          </fieldset>
+        )}
+        {byMethod && (
+          <fieldset className="stack fs">
+            <legend>How many samples</legend>
+            <label className="field">
+              <span>Sampling method</span>
+              <select value={method ?? ""} onChange={(e) => changeMethod(e.target.value as SamplingMethod | "")} data-testid="point-method" aria-describedby={method ? `${uid}-m` : undefined}>
+                <option value="">Not chosen yet</option>
+                {SAMPLING_METHODS.map((m) => (
+                  <option key={m} value={m}>
+                    {METHOD_LABEL[m]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {method && (
+              <p id={`${uid}-m`} className="muted small" data-testid="method-help">
+                {METHOD_HELP[method]}
+              </p>
+            )}
 
-          {(method === "aql-105e" || method === "var-414") && (
-            <div className="row wrap">
-              <label className="field">
-                <span>Inspection level</span>
-                <select value={inputs.level ?? ""} onChange={(e) => setInputs({ level: e.target.value || undefined })} data-testid="point-level">
-                  <option value="">Choose</option>
-                  {(method === "aql-105e" ? AQL_LEVELS : VAR_LEVELS).map((l) => (
-                    <option key={l} value={l}>
-                      {l}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>AQL (%)</span>
-                <select value={inputs.aql === undefined ? "" : String(inputs.aql)} onChange={(e) => setInputs({ aql: e.target.value === "" ? undefined : Number(e.target.value) })} data-testid="point-aql">
-                  <option value="">Choose</option>
-                  {/* The standards' own AQL values: the person picks one, nothing is preselected. */}
-                  {(method === "aql-105e" ? AQL_VALUES_105E : AQL_VALUES_414).map((a) => (
-                    <option key={a} value={String(a)}>
-                      {a}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>Inspection severity</span>
-                <select value={inputs.inspection ?? ""} onChange={(e) => setInputs({ inspection: (e.target.value || undefined) as typeof inputs.inspection })} data-testid="point-inspection">
-                  <option value="">Choose</option>
-                  {INSPECTIONS.map((i) => (
-                    <option key={i} value={i}>
-                      {i}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {method === "var-414" && (
+            {method === "company-table" && (
+              <div className="stack">
                 <label className="field">
-                  <span>Specification limits</span>
-                  <select value={inputs.limits ?? ""} onChange={(e) => setInputs({ limits: (e.target.value || undefined) as typeof inputs.limits })} data-testid="point-limits">
-                    <option value="">Choose</option>
-                    <option value="single">One limit</option>
-                    <option value="double">Two limits</option>
+                  <span>Company sampling table</span>
+                  <select
+                    value={inputs.table?.id ?? ""}
+                    data-testid="point-table"
+                    onChange={(e) => {
+                      const t = tables.find((x) => x.id === e.target.value);
+                      setInputs({ table: t ? snapshotOf(t) : undefined, testKey: undefined });
+                    }}
+                  >
+                    <option value="">Choose a table</option>
+                    {pickable.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} (version {t.version})
+                      </option>
+                    ))}
+                    {inputs.table && !pickable.some((t) => t.id === inputs.table!.id) && (
+                      <option value={inputs.table.id}>
+                        {inputs.table.name} (version {inputs.table.version}, kept in this plan)
+                      </option>
+                    )}
                   </select>
                 </label>
+                {pickable.length === 0 && !inputs.table && (
+                  <p className="muted small">
+                    No usable table yet. Add one on the <a href="#/sampling/tables">Sampling tables</a> page.
+                  </p>
+                )}
+                {inputs.table && !inLibrary && (
+                  <p className="notice" data-testid="table-missing">
+                    This table is no longer in your library. The copy kept in this plan is used.
+                  </p>
+                )}
+                {changed && (
+                  <div className="notice stack" data-testid="table-changed">
+                    <p>The library table changed after it was chosen for this point: {changed}</p>
+                    <div>
+                      <button type="button" className="btn small" onClick={() => setInputs({ table: snapshotOf(inLibrary!) })}>
+                        Use the updated table
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {testKeys.length > 0 && (
+                  <label className="field">
+                    <span>Test key</span>
+                    <select value={inputs.testKey ?? ""} onChange={(e) => setInputs({ testKey: e.target.value || undefined })} data-testid="point-testkey">
+                      <option value="">Choose a test</option>
+                      {testKeys.map((k) => (
+                        <option key={k} value={k}>
+                          {k}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+              </div>
+            )}
+
+            {method === "fixed" && (
+              <div className="stack">
+                <NumField label="Sample size (number of units)" value={inputs.count} onChange={(v) => setInputs({ count: v === undefined ? undefined : Math.trunc(v) })} testId="point-count" />
+                <label className="field">
+                  <span>Written basis for this number</span>
+                  <textarea rows={2} value={inputs.basis ?? ""} onChange={(e) => setInputs({ basis: e.target.value || undefined })} data-testid="point-basis" />
+                </label>
+              </div>
+            )}
+
+            {method === "conf-rel" && (
+              <div className="row wrap">
+                <NumField label="Confidence (%)" scale={100} value={inputs.confidence} onChange={(v) => setInputs({ confidence: v })} testId="point-confidence" />
+                <NumField label="Reliability (%)" scale={100} value={inputs.reliability} onChange={(v) => setInputs({ reliability: v })} testId="point-reliability" />
+                <NumField label="Allowed failures" value={inputs.allowedFailures} onChange={(v) => setInputs({ allowedFailures: v === undefined ? undefined : Math.trunc(v) })} testId="point-failures" />
+              </div>
+            )}
+
+            {(method === "aql-105e" || method === "var-414") && (
+              <div className="row wrap">
+                <label className="field">
+                  <span>Inspection level</span>
+                  <select value={inputs.level ?? ""} onChange={(e) => setInputs({ level: e.target.value || undefined })} data-testid="point-level">
+                    <option value="">Choose</option>
+                    {(method === "aql-105e" ? AQL_LEVELS : VAR_LEVELS).map((l) => (
+                      <option key={l} value={l}>
+                        {l}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>AQL (%)</span>
+                  <select value={inputs.aql === undefined ? "" : String(inputs.aql)} onChange={(e) => setInputs({ aql: e.target.value === "" ? undefined : Number(e.target.value) })} data-testid="point-aql">
+                    <option value="">Choose</option>
+                    {/* The standards' own AQL values: the person picks one, nothing is preselected. */}
+                    {(method === "aql-105e" ? AQL_VALUES_105E : AQL_VALUES_414).map((a) => (
+                      <option key={a} value={String(a)}>
+                        {a}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>Inspection severity</span>
+                  <select value={inputs.inspection ?? ""} onChange={(e) => setInputs({ inspection: (e.target.value || undefined) as typeof inputs.inspection })} data-testid="point-inspection">
+                    <option value="">Choose</option>
+                    {INSPECTIONS.map((i) => (
+                      <option key={i} value={i}>
+                        {i}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {method === "var-414" && (
+                  <label className="field">
+                    <span>Specification limits</span>
+                    <select value={inputs.limits ?? ""} onChange={(e) => setInputs({ limits: (e.target.value || undefined) as typeof inputs.limits })} data-testid="point-limits">
+                      <option value="">Choose</option>
+                      <option value="single">One limit</option>
+                      <option value="double">Two limits</option>
+                    </select>
+                  </label>
+                )}
+              </div>
+            )}
+
+            <section aria-labelledby={`${uid}-w`} className="working" data-testid="point-working" aria-live="polite">
+              <h3 id={`${uid}-w`}>Working</h3>
+              {!method ? (
+                <p className="muted">Choose a method to see the arithmetic.</p>
+              ) : plan.batches.length === 0 ? (
+                <p className="muted">Add the PPQ batches to the plan first. Most methods read the planned lot size of each batch.</p>
+              ) : (
+                results.map((r) => (
+                  <div key={r.batchId} className="working-batch">
+                    <p>
+                      <strong>{plan.batches.find((b) => b.id === r.batchId)?.label ?? r.batchId}:</strong> <span data-testid="working-result">{resultText(r)}</span>
+                    </p>
+                    {r.working.length > 0 && (
+                      <dl className="working-list">
+                        {r.working.map((w, i) => (
+                          <div key={i}>
+                            <dt>{w.label}</dt>
+                            <dd>{w.value}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    )}
+                    {r.citation && <p className="muted small">{r.citation}</p>}
+                  </div>
+                ))
               )}
+            </section>
+          </fieldset>
+        )}
+        <fieldset className="stack fs">
+          <legend>Handling and scope</legend>
+          <div className="row wrap">
+            <NumField label="Quantity per sample (optional)" value={d.quantity?.value} onChange={(v) => set({ quantity: v === undefined || v <= 0 ? undefined : { value: v, unit: d.quantity?.unit ?? "" } })} />
+            <label className="field">
+              <span>Quantity unit</span>
+              <input value={d.quantity?.unit ?? ""} onChange={(e) => set({ quantity: d.quantity ? { ...d.quantity, unit: e.target.value } : undefined })} placeholder="e.g. mL" />
+            </label>
+            <TextField label="Storage condition" value={d.storageCondition} onChange={(v) => set({ storageCondition: v })} optional />
+          </div>
+          <div className="row wrap">
+            <TextField label="Container" value={d.container} onChange={(v) => set({ container: v })} optional />
+            <TextField label="Closure" value={d.closure} onChange={(v) => set({ closure: v })} optional />
+            <TextField label="Transport condition" value={d.transportCondition} onChange={(v) => set({ transportCondition: v })} optional />
+            <TextField label="Chain of custody" value={d.chainOfCustody} onChange={(v) => set({ chainOfCustody: v })} optional />
+          </div>
+          {plan.batches.length > 0 && (
+            <div role="group" aria-label="Batches this point applies to" className="stack">
+              <span className="small">Applies to</span>
+              <div className="check-grid">
+                {plan.batches.map((b) => (
+                  <label key={b.id} className="check">
+                    <input
+                      type="checkbox"
+                      checked={batchIds.includes(b.id)}
+                      data-testid={`applies-${b.id}`}
+                      onChange={() => {
+                        const next = toggle(batchIds, b.id);
+                        // A point must apply to at least one batch: unticking the last one is ignored.
+                        if (next.length > 0) set({ appliesTo: next.length === plan.batches.length ? "all" : next });
+                      }}
+                    />
+                    <span>{b.label}</span>
+                  </label>
+                ))}
+              </div>
             </div>
           )}
-
-          <section aria-labelledby={`${uid}-w`} className="working" data-testid="point-working" aria-live="polite">
-            <h3 id={`${uid}-w`}>Working</h3>
-            {!method ? (
-              <p className="muted">Choose a method to see the arithmetic.</p>
-            ) : plan.batches.length === 0 ? (
-              <p className="muted">Add the PPQ batches to the plan first. Most methods read the planned lot size of each batch.</p>
-            ) : (
-              results.map((r) => (
-                <div key={r.batchId} className="working-batch">
-                  <p>
-                    <strong>{plan.batches.find((b) => b.id === r.batchId)?.label ?? r.batchId}:</strong> <span data-testid="working-result">{resultText(r)}</span>
-                  </p>
-                  {r.working.length > 0 && (
-                    <dl className="working-list">
-                      {r.working.map((w, i) => (
-                        <div key={i}>
-                          <dt>{w.label}</dt>
-                          <dd>{w.value}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                  )}
-                  {r.citation && <p className="muted small">{r.citation}</p>}
-                </div>
-              ))
-            )}
-          </section>
         </fieldset>
-      )}
+      </Group>
 
-      <fieldset className="stack fs">
-        <legend>Acceptance and rationale</legend>
+      <Group id="testing" title="Testing" summary={groupSummary(d, "testing")} count={check.byGroup.testing.length} open={isOpen("testing")} onToggle={() => toggleGroup("testing")}>
+        <label className="field">
+          <span>Attribute or test</span>
+          <input value={d.attribute} onChange={(e) => set({ attribute: e.target.value })} data-testid="point-attribute" />
+        </label>
+        <div className="row wrap">
+          <TextField label="Test method reference" value={d.testMethodRef} onChange={(v) => set({ testMethodRef: v })} optional />
+          <TextField label="Destination lab" value={d.destinationLab} onChange={(v) => set({ destinationLab: v })} optional />
+        </div>
+      </Group>
+
+      <Group id="acceptance" title="Acceptance and rationale" summary={groupSummary(d, "acceptance")} count={check.byGroup.acceptance.length} open={isOpen("acceptance")} onToggle={() => toggleGroup("acceptance")}>
         <label className="field">
           <span>Acceptance</span>
           <select
@@ -1097,85 +1220,49 @@ export function PointForm({ plan, point, onClose, onSave, inline }: { plan: Samp
           <span>Rationale: why is this point sampled</span>
           <textarea rows={3} value={d.rationale} onChange={(e) => set({ rationale: e.target.value })} data-testid="point-rationale" />
         </label>
-      </fieldset>
+      </Group>
 
-      <fieldset className="stack fs" data-testid="reporting-fields">
-        <legend>Reporting instructions (what the CMO reports)</legend>
-        <div role="group" aria-label="What to report" className="stack">
-          <span className="small">What to report</span>
-          <div className="check-grid">
-            {REPORT_WHAT.map((w) => (
-              <label key={w} className="check">
-                <input type="checkbox" checked={rep.what?.includes(w) ?? false} onChange={() => setRep({ what: toggle(rep.what ?? [], w) })} data-testid={`rep-what-${w}`} />
-                <span>{REPORT_WHAT_LABEL[w]}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-        {rep.what?.includes("other") && <TextField label="Other item to report" value={rep.whatOther} onChange={(v) => setRep({ whatOther: v })} />}
-        <div role="group" aria-label="How to present the results" className="stack">
-          <span className="small">How to present the results (optional)</span>
-          <div className="check-grid">
-            {REPORT_PRESENTATION.map((p) => (
-              <label key={p} className="check">
-                <input type="checkbox" checked={rep.presentation?.includes(p) ?? false} onChange={() => setRep({ presentation: toggle(rep.presentation ?? [], p) })} />
-                <span>{REPORT_PRESENTATION_LABEL[p]}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-        <TextField label="Deviation, OOS and OOT handling (the CMO's procedure)" value={rep.deviationRef} onChange={(v) => setRep({ deviationRef: v })} testId="rep-deviation" />
-        <TextField label="Additional wording for the acceptance statement" value={rep.acceptanceExtra} onChange={(v) => setRep({ acceptanceExtra: v })} optional area />
-        <TextField label="Additional instructions" value={rep.additional} onChange={(v) => setRep({ additional: v })} optional area />
-        <section className="working ri-preview" aria-label={`Preview of ${ri.heading}`} data-testid="ri-preview">
-          <h3>{ri.heading}</h3>
-          <p className="muted small">This is how the block reads in the export. The CMO can copy it as it is.</p>
-          {ri.paragraphs.map((p, i) => (
-            <p key={i}>{p}</p>
-          ))}
-          {ri.missing.length > 0 && <p className="small">Not given yet: {ri.missing.join("; ")}.</p>}
-        </section>
-      </fieldset>
-
-      <fieldset className="stack fs">
-        <legend>Handling and scope</legend>
-        <div className="row wrap">
-          <NumField label="Quantity per sample (optional)" value={d.quantity?.value} onChange={(v) => set({ quantity: v === undefined || v <= 0 ? undefined : { value: v, unit: d.quantity?.unit ?? "" } })} />
-          <label className="field">
-            <span>Quantity unit</span>
-            <input value={d.quantity?.unit ?? ""} onChange={(e) => set({ quantity: d.quantity ? { ...d.quantity, unit: e.target.value } : undefined })} placeholder="e.g. mL" />
-          </label>
-          <TextField label="Storage condition" value={d.storageCondition} onChange={(v) => set({ storageCondition: v })} optional />
-          <TextField label="Destination lab" value={d.destinationLab} onChange={(v) => set({ destinationLab: v })} optional />
-        </div>
-        <div className="row wrap">
-          <TextField label="Container" value={d.container} onChange={(v) => set({ container: v })} optional />
-          <TextField label="Closure" value={d.closure} onChange={(v) => set({ closure: v })} optional />
-          <TextField label="Transport condition" value={d.transportCondition} onChange={(v) => set({ transportCondition: v })} optional />
-          <TextField label="Chain of custody" value={d.chainOfCustody} onChange={(v) => set({ chainOfCustody: v })} optional />
-        </div>
-        {plan.batches.length > 0 && (
-          <div role="group" aria-label="Batches this point applies to" className="stack">
-            <span className="small">Applies to</span>
+      <Group id="reporting" title="Reporting instructions (what the CMO reports)" summary={groupSummary(d, "reporting")} count={check.byGroup.reporting.length} open={isOpen("reporting")} onToggle={() => toggleGroup("reporting")}>
+        <div className="stack" data-testid="reporting-fields">
+          <div role="group" aria-label="What to report" className="stack">
+            <span className="small">What to report</span>
             <div className="check-grid">
-              {plan.batches.map((b) => (
-                <label key={b.id} className="check">
-                  <input
-                    type="checkbox"
-                    checked={batchIds.includes(b.id)}
-                    data-testid={`applies-${b.id}`}
-                    onChange={() => {
-                      const next = toggle(batchIds, b.id);
-                      // A point must apply to at least one batch: unticking the last one is ignored.
-                      if (next.length > 0) set({ appliesTo: next.length === plan.batches.length ? "all" : next });
-                    }}
-                  />
-                  <span>{b.label}</span>
+              {REPORT_WHAT.map((w) => (
+                <label key={w} className="check">
+                  <input type="checkbox" checked={rep.what?.includes(w) ?? false} onChange={() => setRep({ what: toggle(rep.what ?? [], w) })} data-testid={`rep-what-${w}`} />
+                  <span>{REPORT_WHAT_LABEL[w]}</span>
                 </label>
               ))}
             </div>
           </div>
-        )}
+          {rep.what?.includes("other") && <TextField label="Other item to report" value={rep.whatOther} onChange={(v) => setRep({ whatOther: v })} />}
+          <div role="group" aria-label="How to present the results" className="stack">
+            <span className="small">How to present the results (optional)</span>
+            <div className="check-grid">
+              {REPORT_PRESENTATION.map((p) => (
+                <label key={p} className="check">
+                  <input type="checkbox" checked={rep.presentation?.includes(p) ?? false} onChange={() => setRep({ presentation: toggle(rep.presentation ?? [], p) })} />
+                  <span>{REPORT_PRESENTATION_LABEL[p]}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          <TextField label="Deviation, OOS and OOT handling (the CMO's procedure)" value={rep.deviationRef} onChange={(v) => setRep({ deviationRef: v })} testId="rep-deviation" />
+          <TextField label="Additional wording for the acceptance statement" value={rep.acceptanceExtra} onChange={(v) => setRep({ acceptanceExtra: v })} optional area />
+          <TextField label="Additional instructions" value={rep.additional} onChange={(v) => setRep({ additional: v })} optional area />
+          <section className="working ri-preview" aria-label={`Preview of ${ri.heading}`} data-testid="ri-preview">
+            <h3>{ri.heading}</h3>
+            <p className="muted small">This is how the block reads in the export. The CMO can copy it as it is.</p>
+            {ri.paragraphs.map((p, i) => (
+              <p key={i}>{p}</p>
+            ))}
+            {ri.missing.length > 0 && <p className="small">Not given yet: {ri.missing.join("; ")}.</p>}
+          </section>
+        </div>
+      </Group>
+
+      <Group id="sources" title="Sources and agency requests" summary={groupSummary(d, "sources")} count={check.byGroup.sources.length} open={isOpen("sources")} onToggle={() => toggleGroup("sources")}>
+        {plan.agencyRequests.length === 0 && sources.length === 0 && <p className="muted small">No sources in the register and no agency requests yet. Add sources on the Sources page; agency requests are recorded in the Agency requests section of the interview.</p>}
         {plan.agencyRequests.length > 0 && (
           <div role="group" aria-label="Agency requests this point answers" className="stack">
             <span className="small">Agency requests this point answers (optional)</span>
@@ -1215,7 +1302,7 @@ export function PointForm({ plan, point, onClose, onSave, inline }: { plan: Samp
             </div>
           </div>
         )}
-      </fieldset>
+      </Group>
 
       <div className="stack" aria-live="polite" data-testid="point-open">
         <p>

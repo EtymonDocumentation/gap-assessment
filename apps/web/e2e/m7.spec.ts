@@ -37,6 +37,21 @@ async function openDemoPlan(page: Page) {
   await expect(page.getByTestId("points-table")).toBeVisible();
 }
 
+/** Adds a sample through the short add dialog (4 fields). The card of the new point stays a summary line until "More details". */
+async function addSample(page: Page, o: { type: string; what: string; step?: string }) {
+  await page.getByTestId("add-sample").click();
+  if (o.step !== undefined) await page.getByTestId("add-step").selectOption(o.step);
+  await page.getByTestId("add-type").selectOption(o.type);
+  await page.getByTestId("add-what").fill(o.what);
+  await page.getByTestId("add-submit").click();
+}
+
+/** Groups start closed (only the first with open items is open); tests that need a field open them all. */
+async function expandAll(page: Page) {
+  const b = page.getByTestId("point-expand-all");
+  if ((await b.getAttribute("aria-pressed")) !== "true") await b.click();
+}
+
 async function expectAccessible(page: Page, label: string) {
   const result = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
   const serious = result.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
@@ -105,12 +120,14 @@ test("suggestions are added as incomplete points; a manual point can be built wi
   await expect(added).toContainText(/incomplete/i);
 
   // A manual point: nothing is preselected, then a fixed count shows its working per batch.
-  await page.getByTestId("manual-unitop").selectOption("aseptic_filling");
-  await page.getByTestId("manual-type").selectOption("ipc");
-  await page.getByTestId("manual-attribute").fill("Fill weight check (fictional)");
-  await page.getByTestId("manual-add").click();
+  const idsBeforeManual = await page.locator('[data-testid^="point-SP-"]').evaluateAll((els) => els.map((e) => e.getAttribute("data-testid")!.replace("point-", "")));
+  await addSample(page, { type: "ipc", what: "Fill weight check (fictional)" });
+  // The new point is selected and shows as a summary line; "More details" opens its editor.
+  const newId = (await page.locator('[data-testid^="point-SP-"]').evaluateAll((els) => els.map((e) => e.getAttribute("data-testid")!.replace("point-", "")))).find((i) => !idsBeforeManual.includes(i) && !idsBefore.includes(i))!;
+  await page.getByTestId(`card-open-${newId}`).click();
   const dialog = page.getByTestId("point-dialog");
   await expect(dialog).toBeVisible();
+  await expandAll(page);
   await expect(page.getByTestId("point-method")).toHaveValue("");
   await expect(page.getByTestId("point-working")).toContainText("Choose a method");
   await page.getByTestId("point-method").selectOption("fixed");
@@ -132,6 +149,7 @@ test("each method shows its working in the point dialog", async ({ page }) => {
   for (const [id, re] of Object.entries(expected)) {
     await page.getByTestId(`edit-${id}`).click();
     await expect(page.getByTestId("point-dialog")).toBeVisible();
+    await expandAll(page);
     await expect(page.getByTestId("working-result").first(), id).toContainText(re);
     await expect(page.getByTestId("method-help")).toBeVisible();
     // The form is part of the interview since M7.1; go back to the overview for the next point.
@@ -142,10 +160,11 @@ test("each method shows its working in the point dialog", async ({ page }) => {
 
 test("report only is refused for a routine point and offered for a characterization point", async ({ page }) => {
   await openDemoPlan(page);
-  await page.getByTestId("manual-unitop").selectOption("aseptic_filling");
-  await page.getByTestId("manual-type").selectOption("ipc");
-  await page.getByTestId("manual-attribute").fill("Routine check (fictional)");
-  await page.getByTestId("manual-add").click();
+  const known = await page.locator('[data-testid^="point-SP-"]').evaluateAll((els) => els.map((e) => e.getAttribute("data-testid")!.replace("point-", "")));
+  await addSample(page, { type: "ipc", what: "Routine check (fictional)" });
+  const fresh = (await page.locator('[data-testid^="point-SP-"]').evaluateAll((els) => els.map((e) => e.getAttribute("data-testid")!.replace("point-", "")))).find((i) => !known.includes(i))!;
+  await page.getByTestId(`card-open-${fresh}`).click();
+  await expandAll(page);
   await expect(page.getByTestId("report-only-rule")).toBeVisible();
   await expect(page.getByRole("option", { name: /Report only/ })).toHaveCount(0);
   await page.getByTestId("point-type").selectOption("characterization");
@@ -230,6 +249,7 @@ for (const name of ["layout"] as const) {
 
       await page.getByTestId("edit-SP-003").click();
       await expect(page.getByTestId("point-dialog")).toBeVisible();
+      await expandAll(page);
       await expectAccessible(page, `${name}/${scheme} point dialog`);
       await page.screenshot({ path: join(SHOTS, `m7-point-${test.info().project.name}-${scheme}.png`) });
       await page.getByTestId("tab-overview").click();

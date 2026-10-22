@@ -1,8 +1,8 @@
-// Milestone 7.1: the specialised sampling interview. Both views edit the same points, every study type has its card, the
+﻿// Milestone 7.1: the specialised sampling interview. Both views edit the same points, every study type has its card, the
 // reporting-instructions preview, plan subsections and the library, agency requests, the optional mixing load-outs, both exports,
 // and accessibility at 390 and 1280 px. All data are fictional.
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Download, type Page } from "@playwright/test";
+import { expect, test, type Download, type Locator, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -33,11 +33,18 @@ async function interview(page: Page, view: "step" | "type") {
   await expect(page.getByTestId(`view-${view}`)).toHaveAttribute("aria-pressed", "true");
 }
 
+/** Groups of the point editor start closed (only the first with open items is open); tests that need a field open them all. */
+async function expandAll(scope: Page | Locator) {
+  const b = scope.getByTestId("point-expand-all");
+  if ((await b.getAttribute("aria-pressed")) !== "true") await b.click();
+}
+
 /** Opens the first point card of a study-type section (view by study type). */
 async function openFirstOfType(page: Page, type: string) {
   const section = page.getByTestId(`type-${type}`);
   await section.locator('[data-testid^="card-open-"]').first().click();
   await expect(section.getByTestId("point-dialog")).toBeVisible();
+  await expandAll(section);
   return section;
 }
 
@@ -74,6 +81,7 @@ test("both views edit the same point", async ({ page }) => {
   await openDemoPlan(page);
   await interview(page, "step");
   await page.getByTestId("card-open-SP-002").click();
+  await expandAll(page);
   const text = "Edited in the step view (fictional).";
   await page.getByTestId("point-rationale").fill(text);
   await page.getByTestId("point-save").click();
@@ -148,6 +156,7 @@ test("an agency request is recorded and linked to a point", async ({ page }) => 
   await page.getByTestId("agency-add").click();
   await expect(page.getByTestId("agency-AR-002")).toBeVisible();
   await page.getByTestId("card-open-SP-002").click();
+  await expandAll(page);
   await page.getByTestId("link-AR-002").check();
   await page.getByTestId("point-save").click();
   await expect(page.getByTestId("agency-AR-002-coverage")).toContainText("SP-002");
@@ -221,6 +230,7 @@ for (const scheme of ["light", "dark"] as const) {
     const name = test.info().project.name;
     await interview(page, "step");
     await page.getByTestId("card-open-SP-001").click();
+    await expandAll(page);
     await expectAccessible(page, `${scheme} step view`);
     await page.screenshot({ path: join(SHOTS, `m71-step-${name}-${scheme}.png`), fullPage: true });
 

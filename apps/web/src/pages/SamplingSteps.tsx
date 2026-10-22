@@ -1,4 +1,4 @@
-import { addStep, copyStepsFromScope, moveStep, projectScopeSteps, removeStep, stepGroups, updateStep } from "@gap/engine";
+import { addStep, catalogInsertIndex, copyStepsFromScope, moveStep, projectScopeSteps, removeStep, stepGroups, updateStep } from "@gap/engine";
 import type { SamplingPlan } from "@gap/process-model";
 import { pointsOnStep } from "@gap/sampling";
 import { useState } from "react";
@@ -104,7 +104,8 @@ export function ProcessStepsCard({ plan, run }: { plan: SamplingPlan; run: Run }
                         checked={!!present}
                         data-testid={`step-check-${s.uo}`}
                         onChange={(e) => {
-                          if (e.target.checked) run((p, actor) => addStep(p, plan.id, { unitOp: s.uo, label: s.label }, actor).project, `${s.label} added`);
+                          // A ticked catalog step goes in process order among the catalog steps already there (custom steps keep their place), not at the end.
+                          if (e.target.checked) run((p, actor) => addStep(p, plan.id, { unitOp: s.uo, label: s.label }, actor, catalogInsertIndex(content, plan.steps, s.uo)).project, `${s.label} added`);
                           else if (present) askRemove(present.id);
                         }}
                       />{" "}

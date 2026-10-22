@@ -1,9 +1,10 @@
-import { acceptSuggestion, addAgencyRequest, addPoint, removeAgencyRequest, removePoint, setParties, updateAgencyRequest, updatePlan, updatePoint, type PointSuggestion } from "@gap/engine";
+import { acceptSuggestion, addAgencyRequest, removeAgencyRequest, removePoint, setParties, updateAgencyRequest, updatePlan, updatePoint, type PointSuggestion } from "@gap/engine";
 import {
   AGENCY_REQUEST_KINDS,
   AGENCY_REQUEST_STATUSES,
   RESPONSIBLE_PARTIES,
   SAMPLING_TYPES,
+  UNIT_OP_CUSTOM_STEP,
   UNIT_OP_FINISHED_PRODUCT,
   UNIT_OP_NONE,
   type AgencyRequest,
@@ -12,10 +13,11 @@ import {
   type SamplingPoint,
   type SamplingType,
 } from "@gap/process-model";
-import { AGENCY_KIND_LABEL, AGENCY_STATUS_LABEL, RESPONSIBLE_LABEL, STATUS_TEXT, TYPE_HELP, TYPE_LABEL, agencyCoverage, checkPoint, stepOf, typeText } from "@gap/sampling";
-import { useMemo, useState } from "react";
+import { AGENCY_KIND_LABEL, AGENCY_STATUS_LABEL, RESPONSIBLE_LABEL, STATUS_TEXT, TYPE_HELP, TYPE_LABEL, agencyCoverage, checkPoint, placementText, stepOf, typeText, type PointGroup } from "@gap/sampling";
+import { useMemo, useRef, useState } from "react";
 import { Empty } from "../components";
 import { useStore } from "../store";
+import type { OpenAdd } from "./SamplingFlow";
 import { PointForm, useStepChoices } from "./SamplingPointDialog";
 
 type Run = (fn: Parameters<ReturnType<typeof useStore.getState>["update"]>[0], status: string) => boolean;
@@ -236,41 +238,66 @@ function RequestEditor({ request, coverageText, sources, plan, run }: { request:
 
 // ------------------------------------------------------------------ the interview: both views edit the same points
 
-/** One point in the interview: a summary line, and the full editor when it is the selected point. */
-function PointCard({ plan, point, step, selected, onSelect, run, onRemove }: { plan: SamplingPlan; point: SamplingPoint; step: string; selected: boolean; onSelect: (id: string | null) => void; run: Run; onRemove: () => void }) {
+/**
+ * One point as a single summary line (id, type, what is tested, where it sits, status) with a button, like the PPQ batch rows. Only the
+ * expanded card shows the editor. Why: with every point's full editor open the interview was a wall of fields; now the person opens the
+ * one point they are working on, and a marker or table row that is selected on the Overview opens here.
+ */
+export function PointCard({
+  plan,
+  point,
+  step,
+  expanded,
+  onToggle,
+  run,
+  onRemove,
+  openLabel = "Open",
+}: {
+  plan: SamplingPlan;
+  point: SamplingPoint;
+  step: string;
+  expanded: boolean;
+  onToggle: () => void;
+  run: Run;
+  onRemove: () => void;
+  openLabel?: string;
+}) {
   const check = useMemo(() => checkPoint(plan, point), [plan, point]);
+  // The open groups are kept here, not in the form: saving remounts the form and must not close what the person had open.
+  const groupsOpen = useRef<PointGroup[] | undefined>(undefined);
+  const where = stepOf(plan, point) ? placementText(plan, point) : `${step}; ${placementText(plan, point)}`;
   return (
-    <article className="point-card" data-testid={`card-${point.id}`} aria-label={`Point ${point.id}`}>
+    <article className="point-card" data-testid={`card-${point.id}`} aria-label={`Point ${point.id}`} data-selected={expanded ? "true" : undefined}>
       <div className="row wrap between">
         <div>
           <h4>
             {point.id}: {point.attribute.trim() || "Not named"}
           </h4>
           <p className="small muted">
-            {step}; {typeText(point)}
+            {typeText(point)}; {where}
           </p>
         </div>
         <div className="row wrap">
           <span className={`sp-status sp-status-${check.status}`} data-testid={`card-status-${point.id}`}>
             <span aria-hidden="true">{check.status === "complete" ? "✓ " : "○ "}</span>
-            {STATUS_TEXT[check.status]}
-            {check.problems.length > 0 ? `, ${check.problems.length} open` : ""}
+            {check.status === "complete" ? STATUS_TEXT.complete : `${STATUS_TEXT.incomplete}: ${check.problems.length} to fill`}
           </span>
-          <button type="button" className="btn small" aria-expanded={selected} onClick={() => onSelect(selected ? null : point.id)} aria-label={`${selected ? "Close" : "Open"} point ${point.id}`} data-testid={`card-open-${point.id}`}>
-            {selected ? "Close" : "Open"}
+          <button type="button" className="btn small" aria-expanded={expanded} onClick={onToggle} aria-label={`${expanded ? "Close" : openLabel} point ${point.id}`} data-testid={`card-open-${point.id}`}>
+            {expanded ? "Close" : openLabel}
           </button>
           <button type="button" className="btn small danger" onClick={onRemove} aria-label={`Remove point ${point.id}`}>
             Remove
           </button>
         </div>
       </div>
-      {selected && (
+      {expanded && (
         <PointForm
           key={`${point.id}-${point.updatedAt}`}
           plan={plan}
           point={point}
           inline
-          onClose={() => onSelect(null)}
+          groups={{ open: groupsOpen.current, onChange: (o) => (groupsOpen.current = o) }}
+          onClose={onToggle}
           onSave={(d) => {
             const { id: _id, origin: _o, createdAt: _c, updatedAt: _u, ...patch } = d;
             const ok = run((p, actor) => updatePoint(p, plan.id, point.id, patch, actor), `Point ${d.id} saved`);
@@ -285,8 +312,9 @@ function PointCard({ plan, point, step, selected, onSelect, run, onRemove }: { p
 export function Interview({
   plan,
   suggestions,
-  selected,
-  onSelect,
+  expanded,
+  onToggle,
+  openAdd,
   view,
   onView,
   run,
@@ -294,8 +322,10 @@ export function Interview({
 }: {
   plan: SamplingPlan;
   suggestions: PointSuggestion[];
-  selected: string | null;
-  onSelect: (id: string | null) => void;
+  /** The one point whose editor is open; every other card is a summary line. */
+  expanded: string | null;
+  onToggle: (id: string) => void;
+  openAdd: OpenAdd;
   view: ViewBy;
   onView: (v: ViewBy) => void;
   run: Run;
@@ -328,14 +358,14 @@ export function Interview({
 
       {view === "step" ? (
         stepList.map((s) => (
-          <StepSection key={s.key} plan={plan} step={s} suggestions={suggestions.filter((x) => x.uo === s.key)} selected={selected} onSelect={onSelect} run={run} labelOf={labelOf} onRemove={remove} />
+          <StepSection key={s.key} plan={plan} step={s} suggestions={suggestions.filter((x) => x.uo === s.key)} expanded={expanded} onToggle={onToggle} openAdd={openAdd} run={run} labelOf={labelOf} onRemove={remove} />
         ))
       ) : (
         <>
           {SAMPLING_TYPES.map((t) => (
-            <TypeSection key={t} plan={plan} type={t} selected={selected} onSelect={onSelect} run={run} labelOf={labelOf} steps={steps} onRemove={remove} />
+            <TypeSection key={t} plan={plan} type={t} expanded={expanded} onToggle={onToggle} openAdd={openAdd} run={run} labelOf={labelOf} onRemove={remove} />
           ))}
-          <TypeSection plan={plan} type={null} selected={selected} onSelect={onSelect} run={run} labelOf={labelOf} steps={steps} onRemove={remove} />
+          <TypeSection plan={plan} type={null} expanded={expanded} onToggle={onToggle} openAdd={openAdd} run={run} labelOf={labelOf} onRemove={remove} />
         </>
       )}
     </div>
@@ -348,10 +378,10 @@ function progress(plan: SamplingPlan, points: SamplingPoint[]): string {
   return `${points.length} ${points.length === 1 ? "point" : "points"}, ${points.length - incomplete} complete, ${incomplete} incomplete`;
 }
 
-function StepSection({ plan, step, suggestions, selected, onSelect, run, labelOf, onRemove }: { plan: SamplingPlan; step: { key: string; label: string }; suggestions: PointSuggestion[]; selected: string | null; onSelect: (id: string | null) => void; run: Run; labelOf: (k: string) => string; onRemove: (p: SamplingPoint) => void }) {
+function StepSection({ plan, step, suggestions, expanded, onToggle, openAdd, run, labelOf, onRemove }: { plan: SamplingPlan; step: { key: string; label: string }; suggestions: PointSuggestion[]; expanded: string | null; onToggle: (id: string) => void; openAdd: OpenAdd; run: Run; labelOf: (k: string) => string; onRemove: (p: SamplingPoint) => void }) {
   const points = plan.points.filter((p) => p.unitOp === step.key);
-  const [type, setType] = useState<SamplingType | "">("");
-  const [attribute, setAttribute] = useState("");
+  // The plan's own step for this catalog step, if it has one: a sample added here then sits on that step of the diagram.
+  const planStep = plan.steps.find((x) => x.unitOp === step.key);
   return (
     <section className="card stack" aria-labelledby={`step-${step.key}`} data-testid={`step-${step.key}`}>
       <h3 id={`step-${step.key}`}>{step.label}</h3>
@@ -379,56 +409,20 @@ function StepSection({ plan, step, suggestions, selected, onSelect, run, labelOf
           </div>
         </div>
       )}
-      <form
-        className="row wrap end-align"
-        aria-label={`Add your own at ${step.label}`}
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!type) return;
-          let id = "";
-          const ok = run((p, actor) => {
-            const r = addPoint(p, plan.id, { unitOp: step.key, type, ...(attribute.trim() ? { attribute: attribute.trim() } : {}) }, actor);
-            id = r.pointId;
-            return r.project;
-          }, "Point added");
-          if (ok) {
-            setAttribute("");
-            onSelect(id);
-          }
-        }}
-      >
-        <label className="field">
-          <span>Add your own: study type</span>
-          <select value={type} onChange={(e) => setType(e.target.value as SamplingType | "")} data-testid={`own-type-${step.key}`}>
-            <option value="">Choose</option>
-            {SAMPLING_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {TYPE_LABEL[t]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field grow">
-          <span>
-            Attribute or test <span className="muted">(optional now)</span>
-          </span>
-          <input value={attribute} onChange={(e) => setAttribute(e.target.value)} data-testid={`own-attribute-${step.key}`} />
-        </label>
-        <button type="submit" className="btn" disabled={!type} data-testid={`own-add-${step.key}`}>
-          Add point
+      <div>
+        <button type="button" className="btn" onClick={() => openAdd(step.key === UNIT_OP_CUSTOM_STEP ? {} : { ...(planStep ? { stepId: planStep.id } : {}), unitOp: step.key })} data-testid={`own-add-${step.key}`} aria-label={`Add a sample here, at ${step.label}`}>
+          Add a sample here
         </button>
-      </form>
+      </div>
       {points.map((p) => (
-        <PointCard key={p.id} plan={plan} point={p} step={stepOf(plan, p)?.label ?? labelOf(p.unitOp)} selected={selected === p.id} onSelect={onSelect} run={run} onRemove={() => onRemove(p)} />
+        <PointCard key={p.id} plan={plan} point={p} step={stepOf(plan, p)?.label ?? labelOf(p.unitOp)} expanded={expanded === p.id} onToggle={() => onToggle(p.id)} run={run} onRemove={() => onRemove(p)} />
       ))}
     </section>
   );
 }
 
-function TypeSection({ plan, type, selected, onSelect, run, labelOf, steps, onRemove }: { plan: SamplingPlan; type: SamplingType | null; selected: string | null; onSelect: (id: string | null) => void; run: Run; labelOf: (k: string) => string; steps: { key: string; label: string }[]; onRemove: (p: SamplingPoint) => void }) {
+function TypeSection({ plan, type, expanded, onToggle, openAdd, run, labelOf, onRemove }: { plan: SamplingPlan; type: SamplingType | null; expanded: string | null; onToggle: (id: string) => void; openAdd: OpenAdd; run: Run; labelOf: (k: string) => string; onRemove: (p: SamplingPoint) => void }) {
   const points = plan.points.filter((p) => (type ? p.type === type : !p.type));
-  const [unitOp, setUnitOp] = useState("");
-  const [attribute, setAttribute] = useState("");
   // Points without a type only appear when there are some (migrated files); nothing is guessed for them.
   if (!type && points.length === 0) return null;
   const key = type ?? "none";
@@ -443,48 +437,14 @@ function TypeSection({ plan, type, selected, onSelect, run, labelOf, steps, onRe
         {progress(plan, points)}
       </p>
       {type && (
-        <form
-          className="row wrap end-align"
-          aria-label={`Add a ${title.toLowerCase()}`}
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!unitOp) return;
-            let id = "";
-            const ok = run((p, actor) => {
-              const r = addPoint(p, plan.id, { unitOp, type, ...(attribute.trim() ? { attribute: attribute.trim() } : {}) }, actor);
-              id = r.pointId;
-              return r.project;
-            }, "Point added");
-            if (ok) {
-              setAttribute("");
-              onSelect(id);
-            }
-          }}
-        >
-          <label className="field">
-            <span>Process step</span>
-            <select value={unitOp} onChange={(e) => setUnitOp(e.target.value)} data-testid={`add-step-${key}`}>
-              <option value="">Choose</option>
-              {steps.map((s) => (
-                <option key={s.key} value={s.key}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field grow">
-            <span>
-              Attribute or test <span className="muted">(optional now)</span>
-            </span>
-            <input value={attribute} onChange={(e) => setAttribute(e.target.value)} data-testid={`add-attribute-${key}`} />
-          </label>
-          <button type="submit" className="btn" disabled={!unitOp} data-testid={`add-${key}`}>
-            Add a {title.toLowerCase()} point
+        <div>
+          <button type="button" className="btn" onClick={() => openAdd({ type })} data-testid={`add-${key}`}>
+            Add a {title.toLowerCase()} sample
           </button>
-        </form>
+        </div>
       )}
       {points.map((p) => (
-        <PointCard key={p.id} plan={plan} point={p} step={stepOf(plan, p)?.label ?? labelOf(p.unitOp)} selected={selected === p.id} onSelect={onSelect} run={run} onRemove={() => onRemove(p)} />
+        <PointCard key={p.id} plan={plan} point={p} step={stepOf(plan, p)?.label ?? labelOf(p.unitOp)} expanded={expanded === p.id} onToggle={() => onToggle(p.id)} run={run} onRemove={() => onRemove(p)} />
       ))}
     </section>
   );
