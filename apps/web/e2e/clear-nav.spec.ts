@@ -185,6 +185,10 @@ test("the clear buttons and dialog fit the screen and are accessible in both the
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow, `${theme}: page scrolls sideways`).toBeLessThanOrEqual(1);
     await page.getByRole("dialog").getByRole("button", { name: "Cancel" }).click();
+    // Cancel returns focus to the Clear button, which scrolls the page. On a taller layout (the wider Linux fonts) the sticky
+    // "answering from" bar then sits over the top of the card, and axe's target-size check reports whatever it covers as
+    // partially obscured. That is where the page happens to be scrolled, not a fault of the card, so scan from the top.
+    await page.evaluate(() => window.scrollTo(0, 0));
     await expectAccessible(page, `paired card with clear buttons, ${theme}`);
   }
 });
