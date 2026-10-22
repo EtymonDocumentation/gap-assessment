@@ -17,6 +17,7 @@ import {
   recordExport,
   removeBatch,
   removePoint,
+  removeStep,
   samplingBasisText,
   samplingOpenItems,
   SamplingError,
@@ -88,8 +89,15 @@ describe("suggestions from the RU data", () => {
     const s = suggestPoints(content, cut, samplingSuggestions);
     expect(s.some((x) => x.uo === "capping")).toBe(false);
     expect(s.some((x) => x.uo === "aseptic_filling")).toBe(true);
-    const warn = samplingOpenItems(content, cut, cut.sampling.plans[0]!).filter((i) => /left out of the assessment/.test(i.text));
-    expect(warn.map((w) => w.ref)).toEqual(["SP-003"]);
+    const leftOut = (p: Project) => samplingOpenItems(content, p, p.sampling.plans[0]!).filter((i) => /left out of the assessment/.test(i.text)).map((w) => w.ref);
+    // The demo plan has its own "Capping and crimping" step (the plan's steps are separate from the gap Scope), so the container
+    // closure point sitting on it is not warned about.
+    expect(leftOut(cut)).toEqual([]);
+    // Take the plan's own step away (its point moves to Not on the diagram): now only the Scope speaks for the point, and it warns.
+    const plan = cut.sampling.plans[0]!;
+    const capStep = plan.steps.find((s) => s.unitOp === "capping")!;
+    const loose = removeStep(cut, plan.id, capStep.id, ACTOR, { movePointsToTray: true });
+    expect(leftOut(loose)).toEqual(["SP-003"]);
   });
 
   it("marks accepted suggestions as added", () => {
@@ -205,6 +213,21 @@ describe("the demo plan", () => {
     const open = samplingOpenItems(content, demo, plan);
     expect([...new Set(open.map((o) => o.ref))]).toEqual(["SP-007"]);
     expect(plan.points.find((p) => p.acceptance?.kind === "report_only")?.type).toBe("characterization");
+  });
+
+  it("has a process step for every point that belongs to one; only the three that belong to no single step are off the diagram", () => {
+    // Steps are in process order (capping, visual inspection, release testing, storage come after filling).
+    expect(plan.steps.map((s) => s.unitOp ?? s.label)).toEqual(["ds_receipt_thaw", "compounding", "Fictional hold step", "bbr_filtration", "sterile_filtration", "aseptic_filling", "capping", "visual_inspection", "QC release testing", "storage_shipping"]);
+    const stepName = (id: string) => {
+      const s = plan.steps.find((x) => x.id === plan.points.find((p) => p.id === id)!.flow?.stepId);
+      return s ? (s.unitOp ?? s.label) : undefined;
+    };
+    expect(stepName("SP-003")).toBe("capping"); // container closure integrity
+    expect(stepName("SP-004")).toBe("visual_inspection"); // visual inspection AQL
+    expect(stepName("SP-008")).toBe("QC release testing"); // sterility release test
+    expect(["SP-011", "SP-012", "SP-013"].map(stepName)).toEqual(["storage_shipping", "storage_shipping", "storage_shipping"]); // stability, retain, shipping
+    // Characterization report, agency request study and the operator sample have no process step: normal, not a problem.
+    expect(plan.points.filter((p) => !p.flow).map((p) => p.id)).toEqual(["SP-006", "SP-014", "SP-015"]);
   });
 
   it("reads each batch's lot size for the company table", () => {

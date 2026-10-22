@@ -432,8 +432,75 @@ function DetailsCard({ plan, run }: { plan: SamplingPlan; run: Run }) {
   const [notes, setNotes] = useState(plan.notes ?? "");
   const [why, setWhy] = useState(plan.batchRationale);
   const dirty = title !== plan.title || notes !== (plan.notes ?? "") || why !== plan.batchRationale;
+  // Same pattern as the batch rows: a plan whose details are filled shows a read-only summary with Edit. A brand-new plan (no
+  // batch rationale yet, the one detail the person still has to write) opens in the form, with nothing saved to go back to, so
+  // no Cancel until the first save. "first" = that opening state; "edit" = reopened with Edit.
+  const [mode, setMode] = useState<"first" | "edit" | undefined>(plan.batchRationale.trim() ? undefined : "first");
+  const rootRef = useRef<HTMLElement>(null);
+  // Where focus goes after the next render: Edit puts it in the first field, Save / Cancel put it back on Edit, so a keyboard
+  // user never loses their place when the form swaps for the summary.
+  const focusNext = useRef<"title" | "edit" | null>(null);
+  const editing = mode !== undefined;
+  useEffect(() => {
+    const f = focusNext.current;
+    if (!f) return;
+    rootRef.current?.querySelector<HTMLElement>(`[data-testid="${f === "title" ? "plan-title" : "plan-details-edit"}"]`)?.focus();
+    focusNext.current = null;
+  }, [editing]);
+  const close = () => {
+    focusNext.current = "edit";
+    setMode(undefined);
+  };
+
+  if (!editing) {
+    const n = plan.batches.length;
+    return (
+      <section className="card stack" aria-labelledby="sp-details" ref={rootRef}>
+        <h2 id="sp-details">Plan details</h2>
+        <div className="batch-summary" role="group" aria-label="Plan details summary" data-testid="plan-details-summary">
+          <dl>
+            <div>
+              <dt>Title:</dt>
+              <dd>
+                <strong data-testid="plan-details-title-text">{plan.title}</strong>
+              </dd>
+            </div>
+            <div>
+              <dt>PPQ batches:</dt>
+              <dd>{n === 0 ? "none yet" : `${n} (${plan.batches.map((b) => b.id).join(", ")})`}</dd>
+            </div>
+            <div>
+              <dt>Why this number of batches:</dt>
+              <dd data-testid="plan-details-rationale-text">{plan.batchRationale.trim() ? plan.batchRationale : "not given"}</dd>
+            </div>
+            {plan.notes ? (
+              <div>
+                <dt>Notes:</dt>
+                <dd className="muted">{plan.notes}</dd>
+              </div>
+            ) : null}
+          </dl>
+          <div className="batch-actions">
+            <button
+              type="button"
+              className="btn"
+              aria-label="Edit plan details"
+              data-testid="plan-details-edit"
+              onClick={() => {
+                focusNext.current = "title";
+                setMode("edit");
+              }}
+            >
+              Edit
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
-    <section className="card stack" aria-labelledby="sp-details">
+    <section className="card stack" aria-labelledby="sp-details" ref={rootRef}>
       <h2 id="sp-details">Plan details</h2>
       <label className="field">
         <span>Title</span>
@@ -450,16 +517,35 @@ function DetailsCard({ plan, run }: { plan: SamplingPlan; run: Run }) {
         <textarea rows={3} value={why} onChange={(e) => setWhy(e.target.value)} data-testid="plan-batch-rationale" />
         <span className="muted small">The tool does not suggest a number of batches. Write the reason your team decided on.</span>
       </label>
-      <div>
+      <div className="row wrap">
         <button
           type="button"
           className="btn primary"
-          disabled={!dirty || !title.trim()}
+          // A brand-new plan can be saved as it is to close the form; a saved one needs a change.
+          disabled={(!dirty && mode !== "first") || !title.trim()}
           data-testid="plan-details-save"
-          onClick={() => run((p, actor) => updatePlan(p, plan.id, { title: title.trim(), notes: notes.trim() || undefined, batchRationale: why }, actor), "Plan details saved")}
+          onClick={() => {
+            if (run((p, actor) => updatePlan(p, plan.id, { title: title.trim(), notes: notes.trim() || undefined, batchRationale: why }, actor), "Plan details saved")) close();
+          }}
         >
           Save plan details
         </button>
+        {mode === "first" ? null : (
+          <button
+            type="button"
+            className="btn"
+            data-testid="plan-details-cancel"
+            onClick={() => {
+              // Back to what was saved, so reopening never shows abandoned typing.
+              setTitle(plan.title);
+              setNotes(plan.notes ?? "");
+              setWhy(plan.batchRationale);
+              close();
+            }}
+          >
+            Cancel
+          </button>
+        )}
       </div>
     </section>
   );

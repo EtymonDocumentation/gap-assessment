@@ -710,8 +710,11 @@ sampling:
           includeInCmo: true
           blocks:
             - { type: paragraph, text: "For {pointId} ({pointTest}), take every sample from the same vessel and record the vessel number (fictional)." }
-      # The plan's own process steps (separate from the gap Scope). One is a custom step; two have no samples yet, and nine points
-      # are left off the diagram on purpose (the plan has no step for them): both are normal states.
+      # The plan's own process steps (separate from the gap Scope), listed in process order (the demo appends them one by one, so
+      # the order here IS the order on the diagram). One is a custom step ("Fictional hold step"; "QC release testing" is another,
+      # because the catalog has no release-testing step); two steps have no samples yet. Three points are left off the diagram on
+      # purpose because they belong to no single process step (characterization report, agency request study, operator sample):
+      # that is a normal state.
       steps:
         - { ref: receipt, unitOp: ds_receipt_thaw }
         - { ref: compounding, unitOp: compounding }
@@ -719,6 +722,10 @@ sampling:
         - { ref: bbr, unitOp: bbr_filtration }
         - { ref: sterile, unitOp: sterile_filtration }
         - { ref: filling, unitOp: aseptic_filling }
+        - { ref: capping, unitOp: capping }
+        - { ref: visual, unitOp: visual_inspection }
+        - { ref: release, custom: QC release testing }
+        - { ref: storage, unitOp: storage_shipping }
       batches:
         - { label: PPQ batch 1, plannedLotSizeUnits: 4200, batchSize: 21, batchSizeUnit: L }
         - { label: PPQ batch 2, plannedLotSizeUnits: 4200, batchSize: 21, batchSizeUnit: L }
@@ -751,6 +758,7 @@ sampling:
             responsible: { party: contract_lab, name: Example Test Laboratory (fictional) }
             reporting: { what: [individual, pass_fail], deviationRef: SOP-DEV-001 (fictional) }
         - suggestion: cat:container_closure_integrity
+          flow: { step: capping, at: after }
           originFrom: act:cci_study:act_cci
           docs: [DEMO-PPQ-217-01]
           patch:
@@ -763,6 +771,7 @@ sampling:
             detail: { enhanced: { interventions: Samples taken after the planned stoppage of the capper (fictional). } }
             reporting: { what: [pass_fail, raw_data_ref], deviationRef: SOP-DEV-001 (fictional) }
         - suggestion: cat:visual_aql
+          flow: { step: visual, at: after }
           originFrom: ipc:uo.visual_inspection.ipc.aql
           docs: [DEMO-VI-217-02]
           patch:
@@ -808,6 +817,7 @@ sampling:
           rangeText: ["Batch size 12 to 21 L (fictional values)."]
           patch: {}
         - suggestion: cat:release_sterility
+          flow: { step: release, at: during }
           docs: [DEMO-PPQ-217-01]
           patch:
             timing: { options: [end] }
@@ -843,6 +853,7 @@ sampling:
             detail: { filter: { filterRef: SF-217-A sterilizing filter (fictional), test: integrity_pre_post } }
             reporting: { what: [individual, pass_fail], deviationRef: SOP-DEV-001 (fictional) }
         - suggestion: cat:stability_pulls
+          flow: { step: storage, at: during }
           patch:
             acceptance: { kind: report_only }
             rationale: The PPQ batches are placed on stability; results are reported against the stability protocol.
@@ -850,6 +861,7 @@ sampling:
             detail: { stability: { protocolRef: STAB-PROT-217 (fictional), conditions: [{ label: 5 C, detail: "5 C +/- 3 C (fictional)" }, { label: 25 C / 60% RH, detail: "25 C +/- 2 C and 60% relative humidity +/- 5% (fictional)" }], orientation: Upright and inverted (fictional), timePoints: [{ label: 0 months }, { label: 3 months }, { label: 6 months }, { label: 12 months }], unitsPerPull: 6, reportedAgainstProtocol: true } }
             reporting: { what: [individual, trend], presentation: [by_time_point], deviationRef: SOP-DEV-001 (fictional) }
         - suggestion: cat:retain_samples
+          flow: { step: storage }
           patch:
             acceptance: { kind: criterion, text: The stated number of units is kept per batch (fictional). }
             rationale: Units kept from every PPQ batch for the retention period.
@@ -857,6 +869,7 @@ sampling:
             detail: { retain: { purpose: both, quantityBasis: "Twice the full release testing quantity (fictional).", retentionPeriod: "One year after expiry (fictional).", storage: 2 to 8 C (fictional), requirementRef: SOP-RET-005 (fictional), unitsPerBatch: 40 } }
             reporting: { what: [raw_data_ref], deviationRef: SOP-DEV-001 (fictional) }
         - suggestion: cat:shipping_study_units
+          flow: { step: storage, at: after }
           docs: [DEMO-SHIP-217-01]
           patch:
             timing: { options: [end] }
