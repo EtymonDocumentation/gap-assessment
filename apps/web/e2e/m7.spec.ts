@@ -92,13 +92,16 @@ test("a new plan starts with no batches and no points, and the open items say so
 
 test("suggestions are added as incomplete points; a manual point can be built with a method and its working", async ({ page }) => {
   await openDemoPlan(page);
-  const before = await page.locator('[data-testid^="point-SP-"]').count();
+  const idsBefore = await page.locator('[data-testid^="point-SP-"]').evaluateAll((els) => els.map((e) => e.getAttribute("data-testid")!.replace("point-", "")));
+  const before = idsBefore.length;
   await page.getByTestId("suggestions-toggle").click();
   const row = page.getByTestId("suggestion-row").first();
   await expect(row).toBeVisible();
   await row.getByRole("button", { name: /^Add point/ }).click();
   await expect(page.locator('[data-testid^="point-SP-"]')).toHaveCount(before + 1);
-  const added = page.locator('[data-testid^="status-SP-"]').last();
+  // The table is in process order now, so the new point is not necessarily the last row: find it by the id that was not there before.
+  const idsNow = await page.locator('[data-testid^="point-SP-"]').evaluateAll((els) => els.map((e) => e.getAttribute("data-testid")!.replace("point-", "")));
+  const added = page.getByTestId(`status-${idsNow.find((i) => !idsBefore.includes(i))}`);
   await expect(added).toContainText(/incomplete/i);
 
   // A manual point: nothing is preselected, then a fixed count shows its working per batch.

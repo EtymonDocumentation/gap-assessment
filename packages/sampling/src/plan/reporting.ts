@@ -5,6 +5,7 @@ import { retainDerivation, stabilityDerivation } from "./derive.js";
 import { FILTER_TEST_LABEL, REPORT_PRESENTATION_LABEL, REPORT_WHAT_LABEL, RESPONSIBLE_LABEL, methodInputsText, resultText, timingText, typeText } from "./labels.js";
 import { checkPoint } from "./completeness.js";
 import { mixingDesign } from "./mixing.js";
+import { SLOT_PHRASE, stepOf } from "./flow.js";
 
 const stripEnd = (t: string | undefined): string => (t ?? "").replace(/[.!?]+$/, "");
 
@@ -46,7 +47,10 @@ const given = (s: string | undefined): string => (s && s.trim() ? s.trim() : NOT
 const stop = (s: string): string => (/[.!?]$/.test(s.trimEnd()) ? s.trimEnd() : `${s.trimEnd()}.`);
 const joinList = (xs: string[]): string => xs.join(", ");
 
-export function stepText(point: SamplingPoint, ctx: ReportingContext): string {
+export function stepText(point: SamplingPoint, ctx: ReportingContext, plan?: Pick<SamplingPlan, "steps">): string {
+  // A point placed on the plan's process flow names that step (and where on it, when the person said), in the plan's own words.
+  const step = plan ? stepOf(plan, point) : undefined;
+  if (step) return point.flow?.at ? `${step.label}, ${SLOT_PHRASE[point.flow.at]}` : step.label;
   if (point.unitOp === UNIT_OP_FINISHED_PRODUCT) return "Finished product";
   if (point.unitOp === UNIT_OP_NONE) return "Supporting work (no single process step)";
   return ctx.unitOpLabel(point.unitOp);
@@ -135,7 +139,7 @@ export function reportingInstructions(plan: SamplingPlan, point: SamplingPoint, 
 
   const fields: { label: string; text: string }[] = [
     { label: "Reporting instructions", text: `${id} for sampling point ${point.id} of PPQ sampling plan ${plan.id} (${plan.title}).` },
-    { label: "Sample", text: `${test}; study type: ${typeText(point)}; process step: ${stepText(point, ctx)}${point.testMethodRef?.trim() ? `; test method ${point.testMethodRef.trim()}` : ""}${point.materialType?.trim() ? `; material ${point.materialType.trim()}` : ""}. Responsible: ${who}.` },
+    { label: "Sample", text: `${test}; study type: ${typeText(point)}; process step: ${stepText(point, ctx, plan)}${point.testMethodRef?.trim() ? `; test method ${point.testMethodRef.trim()}` : ""}${point.materialType?.trim() ? `; material ${point.materialType.trim()}` : ""}. Responsible: ${who}.` },
     { label: "Batches", text: `Applies to ${batchText}.` },
     { label: "Sampling", text: samplingSentence(plan, point) },
   ];

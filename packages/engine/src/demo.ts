@@ -4,7 +4,7 @@ import type { ContentBundle } from "./content";
 import { PARAMETER_FIELDS, type ParameterField } from "./content-schema";
 import { applyAnswer, type AnswerInput, type FieldAnswer } from "./interview";
 import { setGapOverlay } from "./overlays";
-import { acceptSuggestion, addAgencyRequest, addBatch, addPoint, addSubsection, applyDesignLoadout, createPlan, setParties, updatePlan, updatePoint, type PointPatch } from "./sampling";
+import { acceptSuggestion, addAgencyRequest, addBatch, addPoint, addStep, addSubsection, applyDesignLoadout, createPlan, setParties, setPointFlow, updatePlan, updatePoint, type PointPatch } from "./sampling";
 import { suggestPoints, type SamplingSuggestions } from "./sampling-seed";
 import type { QuestionInstance } from "./sequencer";
 
@@ -59,6 +59,8 @@ const samplingDemoSchema = z.object({
       agencyRequests: z.array(z.object({ ref: z.string(), agency: z.string(), marketCode: z.string().optional(), kind: z.string().optional(), reference: z.string().optional(), dateReceived: z.string().optional(), question: z.string(), response: z.string().optional(), responseDate: z.string().optional(), status: z.string().optional() })).default([]),
       /** Plan subsections. `library` names an item of `subsectionLibrary`: the plan gets a copy that remembers its id and version. `placement` may say `in_point:#N` (the N-th point of this plan, from 1). */
       subsections: z.array(z.object({ title: z.string(), blocks: z.array(subsectionBlockSchema), placement: z.string(), includeInCmo: z.boolean().default(false), library: z.string().optional() })).default([]),
+      /** The plan's process steps in order. `unitOp` is a catalog step (its label comes from the catalog); `custom` is the label of a step of the plan's own. `ref` is what a point's `flow.step` names. */
+      steps: z.array(z.object({ ref: z.string(), unitOp: z.string().optional(), custom: z.string().optional() })).default([]),
       batches: z.array(z.object({ label: z.string(), plannedLotSizeUnits: z.number().int().optional(), batchSize: z.number().optional(), batchSizeUnit: z.string().optional(), notes: z.string().optional() })),
       points: z.array(
         z.object({
@@ -73,6 +75,8 @@ const samplingDemoSchema = z.object({
           /** The words the person wrote on the load-out's range rows, in row order. */
           rangeText: z.array(z.string()).default([]),
           attribute: z.string().optional(),
+          /** Where the point sits on the plan's process flow: a step `ref` and, optionally, before / during / after. Left out = Not on the diagram. */
+          flow: z.object({ step: z.string(), at: z.enum(["before", "during", "after"]).optional() }).optional(),
           table: z.string().optional(),
           /** Id of an RU-data suggestion (e.g. "ipc:uo.x.ipc.y") whose item path, gap ids and activity this point is traced to. */
           originFrom: z.string().optional(),
@@ -203,6 +207,14 @@ function applySamplingDemo(project: Project, content: ContentBundle, s: z.infer<
     project = updatePlan(created.project, created.planId, { batchRationale: pl.batchRationale }, who);
     for (const b of pl.batches) project = addBatch(project, created.planId, b, who).project;
     if (pl.parties.length) project = setParties(project, created.planId, pl.parties, who);
+    const stepIds = new Map<string, string>();
+    for (const st of pl.steps) {
+      const def = st.unitOp ? content.catalog.unitOperations.find((u) => u.key === st.unitOp) : undefined;
+      if (st.unitOp && !def) throw new Error(`Demo sampling: unknown unit operation ${st.unitOp}`);
+      const added = addStep(project, created.planId, { ...(st.unitOp ? { unitOp: st.unitOp } : {}), label: def?.label ?? st.custom ?? "" }, who);
+      project = added.project;
+      stepIds.set(st.ref, added.stepId);
+    }
     const requestIds = new Map<string, string>();
     for (const r of pl.agencyRequests) {
       const { ref, ...input } = r;
@@ -246,6 +258,11 @@ function applySamplingDemo(project: Project, content: ContentBundle, s: z.infer<
         patch.sampleSize = { ...ss, inputs: { ...(ss.inputs ?? {}), table: t } };
       }
       if (Object.keys(patch).length > 0) project = updatePoint(project, created.planId, r.pointId, patch as PointPatch, who);
+      if (pt.flow) {
+        const stepId = stepIds.get(pt.flow.step);
+        if (!stepId) throw new Error(`Demo sampling: unknown process step ${pt.flow.step}`);
+        project = setPointFlow(project, created.planId, r.pointId, { stepId, ...(pt.flow.at ? { at: pt.flow.at } : {}) }, who);
+      }
       if (pt.loadout) {
         const lo = loadouts?.loadouts.find((l) => l.id === pt.loadout);
         if (!lo) throw new Error(`Demo sampling: unknown design load-out ${pt.loadout}`);

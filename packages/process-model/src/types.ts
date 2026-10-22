@@ -433,7 +433,7 @@ export interface Project {
   tailoring: Tailoring;
   /** Process steps left out of the assessment (schema 1.10.0). Default and migration: nothing left out. */
   stepScope: StepScope;
-  /** PPQ sampling plans (schema 1.11.0; plan format 1.1.0 since schema 1.12.0). Default and migration: none. */
+  /** PPQ sampling plans (schema 1.11.0; plan format 1.1.0 since schema 1.12.0, 1.2.0 since schema 1.13.0). Default and migration: none. */
   sampling: SamplingState;
   /** Export records and the optional-section choice for the generated document. */
   document: DocumentState;

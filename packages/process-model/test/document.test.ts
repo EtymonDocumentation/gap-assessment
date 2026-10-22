@@ -67,9 +67,9 @@ const issuesOf = (raw: unknown): string[] => {
 
 describe("schema 1.3.0 and later: the document block", () => {
   it("is the current version, and a new project starts with an empty document block", () => {
-    expect(SCHEMA_VERSION).toBe("1.12.0");
+    expect(SCHEMA_VERSION).toBe("1.13.0");
     const p = empty();
-    expect(p.schemaVersion).toBe("1.12.0");
+    expect(p.schemaVersion).toBe("1.13.0");
     expect(p.document).toEqual({ exports: [] });
   });
 
@@ -112,7 +112,7 @@ describe("migration to 1.3.0", () => {
   for (const version of ["1.0.0", "1.1.0", "1.2.0"]) {
     it(`reads a ${version} file and adds an empty document block`, () => {
       const p = parseProject(older(version));
-      expect(p.schemaVersion).toBe("1.12.0");
+      expect(p.schemaVersion).toBe("1.13.0");
       expect(p.document).toEqual({ exports: [] });
       // Nothing else is touched: the change log, sources and entries are as they were.
       expect(p.changeLog).toEqual(original.changeLog);
@@ -145,7 +145,7 @@ describe("migration to 1.3.0", () => {
   it("still refuses versions it does not know", () => {
     const raw = reviewed();
     raw.schemaVersion = "0.9.0";
-    expect(() => parseProject(raw)).toThrow(/Unsupported schema version 0\.9\.0 \(this build reads 1.12.0\)/);
+    expect(() => parseProject(raw)).toThrow(/Unsupported schema version 0\.9\.0 \(this build reads 1.13.0\)/);
     raw.schemaVersion = "2.0.0";
     expect(() => parseProject(raw)).toThrow(/Unsupported schema version 2.0.0/);
   });
@@ -170,7 +170,7 @@ describe("migration to 1.4.0: the program stage", () => {
 
   it("reads a 1.3.0 project as the current version and inserts no stage value", () => {
     const p = parseProject(v13());
-    expect(p.schemaVersion).toBe("1.12.0");
+    expect(p.schemaVersion).toBe("1.13.0");
     for (const side of ["source", "target"] as const) {
       expect(p.processes[side].site.fields.programStage).toBeUndefined();
       expect(resolveEntry(p, `${side}.site.programStage`).status).toBe("not_established");
@@ -191,7 +191,7 @@ describe("migration to 1.4.0: the program stage", () => {
     delete raw.document;
     delete raw.custom;
     const p = parseProject(raw);
-    expect(p.schemaVersion).toBe("1.12.0");
+    expect(p.schemaVersion).toBe("1.13.0");
     expect(p.document).toEqual({ exports: [] });
     expect(resolveEntry(p, "source.site.programStage").status).toBe("not_established");
     expect(resolveEntry(p, "target.site.programStage").status).toBe("not_established");
@@ -199,7 +199,7 @@ describe("migration to 1.4.0: the program stage", () => {
 
   it("accepts a current project with answered stages and round-trips it", () => {
     const raw = json(original);
-    expect(raw.schemaVersion).toBe("1.12.0");
+    expect(raw.schemaVersion).toBe("1.13.0");
     expect(parseProject(raw)).toEqual(raw);
     expect(resolveEntry(original, "source.site.programStage")).toMatchObject({ status: "established", value: "commercial" });
   });
@@ -219,7 +219,7 @@ describe("migration to 1.5.0: per-gap notes and omitted sections", () => {
   it("reads a 1.4.0 project as 1.5.0 and gives it no notes and no omitted sections", () => {
     const raw = v14();
     const p = parseProject(raw);
-    expect(p.schemaVersion).toBe("1.12.0");
+    expect(p.schemaVersion).toBe("1.13.0");
     for (const o of p.gapOverlays) expect(o.notes).toBeUndefined();
     expect(p.document.omittedSections).toBeUndefined();
   });
@@ -238,7 +238,7 @@ describe("migration to 1.5.0: per-gap notes and omitted sections", () => {
     for (const side of ["source", "target"]) delete raw.processes[side].site.fields.programStage;
     raw.answers = raw.answers.filter((a: { questionId: string }) => a.questionId !== "site.stage");
     const p = parseProject(raw);
-    expect(p.schemaVersion).toBe("1.12.0");
+    expect(p.schemaVersion).toBe("1.13.0");
     expect(p.document).toEqual({ exports: [] });
   });
 
@@ -291,7 +291,7 @@ describe("migration to 1.10.0: the review workflow is archived, not shown", () =
   it("moves revisions and comments, untouched, into document.archivedReview and logs it", () => {
     const raw = reviewed();
     const p = parseProject(raw);
-    expect(p.schemaVersion).toBe("1.12.0");
+    expect(p.schemaVersion).toBe("1.13.0");
     expect(p.document.archivedReview?.revisions).toEqual([REVISION]);
     expect(p.document.archivedReview?.comments).toEqual([COMMENT]);
     expect("revisions" in p.document).toBe(false);

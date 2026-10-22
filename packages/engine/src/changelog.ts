@@ -45,6 +45,12 @@ export const ACTION_LABELS: Record<string, string> = {
   sampling_point_add: "Sampling point added",
   sampling_point_update: "Sampling point edited",
   sampling_point_remove: "Sampling point removed",
+  sampling_step_add: "Process step added to a sampling plan",
+  sampling_step_update: "Process step of a sampling plan edited",
+  sampling_step_move: "Process step of a sampling plan moved",
+  sampling_step_remove: "Process step removed from a sampling plan",
+  sampling_steps_copy: "Process steps copied from the project scope",
+  migrate_sampling_steps: "Process steps added to a sampling plan (schema upgrade)",
   tailor_exclude: "Topic switched off (scope)",
   tailor_include: "Topic switched on (scope)",
   scope_exclude_uo: "Process step left out (scope)",
@@ -215,6 +221,11 @@ const SAMPLING_FIELD_TEXT: Record<string, string> = {
   rationale: "Rationale",
   appliesTo: "Applies to",
   sourceIds: "Sources",
+  flow: "Place on the process flow",
+  steps: "Process steps",
+  step: "Process step",
+  order: "Step order",
+  movedToTray: "Moved to Not on the diagram",
 };
 
 function samplingValueText(v: unknown): string {
@@ -383,7 +394,7 @@ function toRow(content: ContentBundle, project: Project, ev: ChangeEvent, i: num
       return row;
     }
     default: {
-      if (ev.action.startsWith("sampling_")) {
+      if (ev.action.startsWith("sampling_") || ev.action === "migrate_sampling_steps") {
         row.subject = ev.detail ?? ev.path ?? "";
         const d = samplingDiff(ev.before, ev.after);
         row.before = d.before;

@@ -44,6 +44,7 @@ function plan(points: SamplingPoint[], lots: (number | undefined)[] = [4000, 400
     title: "Test plan",
     runType: "ppq",
     status: "draft",
+    steps: [],
     batches: lots.map((l, i) => ({ id: `B-00${i + 1}`, label: `PPQ batch ${i + 1}`, ...(l !== undefined ? { plannedLotSizeUnits: l } : {}) })),
     batchRationale: "Three is the site rule (fictional).",
     parties: [],

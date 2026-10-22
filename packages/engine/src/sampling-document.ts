@@ -2,6 +2,7 @@ import {
   PROCESS_MODEL_VERSION,
   SAMPLING_PLAN_FORMAT_VERSION,
   SCHEMA_VERSION,
+  UNIT_OP_CUSTOM_STEP,
   UNIT_OP_FINISHED_PRODUCT,
   UNIT_OP_NONE,
   type Project,
@@ -22,7 +23,9 @@ import {
   mixingDesign,
   NO_TYPE_SECTION_KEY,
   openItems,
+  placementText,
   planTotals,
+  pointsAt,
   renderSubsection,
   reportingInstructions,
   requestLine,
@@ -30,11 +33,13 @@ import {
   RESPONSIBLE_LABEL,
   SAMPLING_STATS_VERSION,
   stabilityDerivation,
+  stepOf,
   subsectionProblems,
   subsectionsAt,
   tablesUsed,
   timingText,
   tokenContext,
+  trayPoints,
   TYPE_HELP,
   TYPE_LABEL,
   typeSectionKey,
@@ -102,6 +107,8 @@ export function samplingOpenItems(content: ContentBundle, project: Project, plan
   const live = new Set(seed.scope.included.map((u) => u.key));
   for (const p of plan.points) {
     if (p.unitOp === UNIT_OP_FINISHED_PRODUCT || p.unitOp === UNIT_OP_NONE) continue;
+    // A point on one of the plan's own steps follows the plan's step list, which is separate from the gap Scope: no warning.
+    if (stepOf(plan, p) || p.unitOp === UNIT_OP_CUSTOM_STEP) continue;
     if (!live.has(p.unitOp)) items.push({ ref: p.id, kind: "point", text: "Its process step is now left out of the assessment or does not apply. Keep the point on purpose, or remove it." });
   }
   const ctx = tokenContext(plan, { ...(seed.meta.product.program.display ? { productName: seed.meta.product.program.display } : {}), ...(seed.meta.receivingSite.name.display ? { ruSite: seed.meta.receivingSite.name.display } : {}) });
@@ -230,6 +237,34 @@ export function buildSamplingPlanDocument(
     ...subsAfter("batches"),
   ]);
 
+  // 3b. Process flow: the steps in order, which points sit on which step and position, and the points that are not on the diagram.
+  // "Position not set" and "Not on the diagram" are normal states here, listed plainly; neither is an open item.
+  const idLine = (ps: SamplingPoint[]): string => (ps.length ? ps.map((p) => `${p.id}${p.attribute.trim() ? ` ${p.attribute.trim()}` : ""}`).join("; ") : "");
+  const tray = trayPoints(plan);
+  add("process-flow", "Process flow", [
+    {
+      type: "paragraph",
+      text: plan.steps.length
+        ? `The plan follows ${plan.steps.length} process step${plan.steps.length === 1 ? "" : "s"}, in process order. Each sampling point is placed on a step, before, during or after it, or is not on the diagram. The team chose the steps and the positions.`
+        : "No process steps have been chosen for this plan yet. The sampling points are listed below as not on the diagram.",
+    },
+    ...(plan.steps.length
+      ? ([
+          {
+            type: "table",
+            columns: ["No.", "Process step", "Before", "During", "After", "Position not set"],
+            rows: plan.steps.map((s, i) => [String(i + 1), s.label, idLine(pointsAt(plan, s.id, "before")), idLine(pointsAt(plan, s.id, "during")), idLine(pointsAt(plan, s.id, "after")), idLine(pointsAt(plan, s.id, "unset"))]),
+            caption: "Sampling points per process step and position",
+          },
+        ] as Block[])
+      : []),
+    { type: "heading", text: "Points not on the diagram" },
+    tray.length
+      ? { type: "table", columns: ["Point", "Test", "Study type"], rows: tray.map((p) => [p.id, p.attribute.trim() || "Not given", typeText(p)]) }
+      : { type: "paragraph", text: "Every sampling point is placed on a process step." },
+    ...subsAfter("process-flow"),
+  ]);
+
   // 4. Statistical bases used, one sub-section per method used
   const used = [...new Set(plan.points.flatMap((p) => (p.sampleSize.method ? [p.sampleSize.method] : [])))];
   const basisBlocks: Block[] = [];
@@ -304,7 +339,8 @@ export function buildSamplingPlanDocument(
   const requestRef = (id: string) => plan.agencyRequests.find((r) => r.id === id);
   const commonFacts = (p: SamplingPoint): Block[] =>
     kv([
-      ["Process step", stepText(p.unitOp)],
+      ["Process step", stepOf(plan, p)?.label ?? stepText(p.unitOp)],
+      ["Position on the process flow", placementText(plan, p)],
       ["Purpose and rationale", p.rationale.trim() || NOT_GIVEN],
       ["Responsible", p.responsible ? `${RESPONSIBLE_LABEL[p.responsible.party]}${p.responsible.name?.trim() ? `, ${p.responsible.name.trim()}` : ""}` : NOT_GIVEN],
       ["Applies to", p.appliesTo === "all" ? "All batches" : p.appliesTo.map(batchLabel).join(", ")],
@@ -409,13 +445,24 @@ export function buildSamplingPlanDocument(
     const i = seed.scope.included.find((u) => u.key === uo)?.sequence;
     return i ?? (uo === UNIT_OP_FINISHED_PRODUCT ? 9000 : uo === UNIT_OP_NONE ? 9100 : 8000);
   };
+  // Points are grouped under the plan's own process steps, in the plan's step order; points that are not on the diagram follow,
+  // grouped by their unit operation as before.
+  const groupOf = (p: SamplingPoint): { key: string; rank: number; heading: string } => {
+    const step = stepOf(plan, p);
+    if (step) return { key: step.id, rank: plan.steps.indexOf(step), heading: step.label };
+    return { key: `uo:${p.unitOp}`, rank: 1000 + rank(p.unitOp), heading: stepText(p.unitOp) };
+  };
   const stepGroups = (points: SamplingPoint[]): Block[] => {
-    const steps = [...new Set(points.map((p) => p.unitOp))].sort((x, y) => rank(x) - rank(y));
+    const groups = new Map<string, { rank: number; heading: string; mine: SamplingPoint[] }>();
+    for (const p of points) {
+      const g = groupOf(p);
+      if (!groups.has(g.key)) groups.set(g.key, { rank: g.rank, heading: g.heading, mine: [] });
+      groups.get(g.key)!.mine.push(p);
+    }
     const out: Block[] = [];
-    for (const uo of steps) {
-      const mine = points.filter((p) => p.unitOp === uo);
-      out.push({ type: "heading", text: `Process step: ${stepText(uo)}` });
-      for (const p of mine) out.push(...pointBlocks(p));
+    for (const g of [...groups.values()].sort((x, y) => x.rank - y.rank)) {
+      out.push({ type: "heading", text: `Process step: ${g.heading}` });
+      for (const p of g.mine) out.push(...pointBlocks(p));
     }
     return out;
   };
@@ -441,8 +488,9 @@ export function buildSamplingPlanDocument(
   }
 
   // Agency requests and commitments
+  // Built here with the other point-related facts but PRINTED last, after the open items (the interview ends with it too).
   const cover = agencyCoverage(plan);
-  add("agency-requests", "Agency requests and commitments", [
+  const addAgency = () => add("agency-requests", "Agency requests and commitments", [
     {
       type: "paragraph",
       text: plan.agencyRequests.length
@@ -534,6 +582,8 @@ export function buildSamplingPlanDocument(
       : []),
     ...subsAfter("open-items"),
   ]);
+
+  addAgency();
 
   // Appendix A: traceability
   const trace = plan.points.map((p) => {

@@ -12,7 +12,7 @@ import {
   type SamplingPoint,
   type SamplingType,
 } from "@gap/process-model";
-import { AGENCY_KIND_LABEL, AGENCY_STATUS_LABEL, RESPONSIBLE_LABEL, STATUS_TEXT, TYPE_HELP, TYPE_LABEL, agencyCoverage, checkPoint, typeText } from "@gap/sampling";
+import { AGENCY_KIND_LABEL, AGENCY_STATUS_LABEL, RESPONSIBLE_LABEL, STATUS_TEXT, TYPE_HELP, TYPE_LABEL, agencyCoverage, checkPoint, stepOf, typeText } from "@gap/sampling";
 import { useMemo, useState } from "react";
 import { Empty } from "../components";
 import { useStore } from "../store";
@@ -419,7 +419,7 @@ function StepSection({ plan, step, suggestions, selected, onSelect, run, labelOf
         </button>
       </form>
       {points.map((p) => (
-        <PointCard key={p.id} plan={plan} point={p} step={labelOf(p.unitOp)} selected={selected === p.id} onSelect={onSelect} run={run} onRemove={() => onRemove(p)} />
+        <PointCard key={p.id} plan={plan} point={p} step={stepOf(plan, p)?.label ?? labelOf(p.unitOp)} selected={selected === p.id} onSelect={onSelect} run={run} onRemove={() => onRemove(p)} />
       ))}
     </section>
   );
@@ -484,7 +484,7 @@ function TypeSection({ plan, type, selected, onSelect, run, labelOf, steps, onRe
         </form>
       )}
       {points.map((p) => (
-        <PointCard key={p.id} plan={plan} point={p} step={labelOf(p.unitOp)} selected={selected === p.id} onSelect={onSelect} run={run} onRemove={() => onRemove(p)} />
+        <PointCard key={p.id} plan={plan} point={p} step={stepOf(plan, p)?.label ?? labelOf(p.unitOp)} selected={selected === p.id} onSelect={onSelect} run={run} onRemove={() => onRemove(p)} />
       ))}
     </section>
   );

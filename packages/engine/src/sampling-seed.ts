@@ -96,12 +96,20 @@ export const SUGGESTION_SOURCE_LABEL: Record<SuggestionSource, string> = {
 export function suggestPoints(content: ContentBundle, project: Project, library: SamplingSuggestions, plan?: SamplingPlan): PointSuggestion[] {
   const seed = buildTrdSeed(content, project, { exportedAt: "1970-01-01T00:00:00.000Z" });
   const included = new Map(seed.scope.included.map((u) => [u.key, u]));
-  const order = (uo: string): number => included.get(uo)?.sequence ?? (uo === UNIT_OP_FINISHED_PRODUCT ? 9000 : 9100);
-  const labelOf = (uo: string): string => (uo === UNIT_OP_FINISHED_PRODUCT ? "Finished product" : uo === UNIT_OP_NONE ? "Supporting work (no single step)" : (included.get(uo)?.label ?? uo));
-  const live = (uo: string): boolean => uo === UNIT_OP_FINISHED_PRODUCT || uo === UNIT_OP_NONE || included.has(uo);
+  const order = (uo: string): number => included.get(uo)?.sequence ?? content.catalog.unitOperations.find((u) => u.key === uo)?.sequence ?? (uo === UNIT_OP_FINISHED_PRODUCT ? 9000 : 9100);
+  const labelOf = (uo: string): string => (uo === UNIT_OP_FINISHED_PRODUCT ? "Finished product" : uo === UNIT_OP_NONE ? "Supporting work (no single step)" : (included.get(uo)?.label ?? content.catalog.unitOperations.find((u) => u.key === uo)?.label ?? uo));
+  const live = (uo: string): boolean => uo === UNIT_OP_FINISHED_PRODUCT || uo === UNIT_OP_NONE || included.has(uo) || (plan?.steps.some((s) => s.unitOp === uo) ?? false);
   const done = new Set((plan?.points ?? []).flatMap((p) => (p.origin.kind === "seeded" && p.origin.suggestionKey ? [p.origin.suggestionKey] : [])));
+  // With a plan, only suggestions for the plan's own process steps are offered, plus the ones that belong to no single step
+  // (finished product, supporting work). The rest are hidden, not deleted: add the step and they come back. Without a plan
+  // (the demo replay, tests of the catalog) the list is the whole project scope, as before.
+  const planOps = plan ? new Set(plan.steps.flatMap((s) => (s.unitOp ? [s.unitOp] : []))) : undefined;
+  const wanted = (uo: string): boolean => !planOps || uo === UNIT_OP_FINISHED_PRODUCT || uo === UNIT_OP_NONE || planOps.has(uo);
+  // The plan's steps are its own scope, so a catalog candidate of a plan step is offered even if the gap Scope left that step out.
   const out: PointSuggestion[] = [];
-  const add = (s: Omit<PointSuggestion, "added" | "uoLabel">) => out.push({ ...s, uoLabel: labelOf(s.uo), added: done.has(s.id) });
+  const add = (s: Omit<PointSuggestion, "added" | "uoLabel">) => {
+    if (wanted(s.uo)) out.push({ ...s, uoLabel: labelOf(s.uo), added: done.has(s.id) });
+  };
 
   // RU data: every IPC item and every CPP parameter of a step that is in scope. The seed has already dropped tailored-out topics.
   for (const uo of seed.unitOperations) {

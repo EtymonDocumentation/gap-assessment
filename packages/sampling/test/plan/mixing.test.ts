@@ -55,7 +55,7 @@ function mixingPoint(design?: SamplingPoint["detail"] extends infer D ? (D exten
   };
 }
 const plan = (p: SamplingPoint) =>
-  ({ id: "SPL-001", title: "T", runType: "ppq", status: "draft", batches: [{ id: "B-001", label: "PPQ batch 1", plannedLotSizeUnits: 100 }], batchRationale: "r", parties: [], agencyRequests: [], noAgencyRequests: true, points: [p], subsections: [], createdAt: at, updatedAt: at }) as never;
+  ({ id: "SPL-001", title: "T", runType: "ppq", status: "draft", steps: [], batches: [{ id: "B-001", label: "PPQ batch 1", plannedLotSizeUnits: 100 }], batchRationale: "r", parties: [], agencyRequests: [], noAgencyRequests: true, points: [p], subsections: [], createdAt: at, updatedAt: at }) as never;
 
 describe("optional mixing study design", () => {
   it("is never required: a mixing point with no design is complete", () => {

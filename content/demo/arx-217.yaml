@@ -710,12 +710,22 @@ sampling:
           includeInCmo: true
           blocks:
             - { type: paragraph, text: "For {pointId} ({pointTest}), take every sample from the same vessel and record the vessel number (fictional)." }
+      # The plan's own process steps (separate from the gap Scope). One is a custom step; two have no samples yet, and nine points
+      # are left off the diagram on purpose (the plan has no step for them): both are normal states.
+      steps:
+        - { ref: receipt, unitOp: ds_receipt_thaw }
+        - { ref: compounding, unitOp: compounding }
+        - { ref: hold, custom: Fictional hold step }
+        - { ref: bbr, unitOp: bbr_filtration }
+        - { ref: sterile, unitOp: sterile_filtration }
+        - { ref: filling, unitOp: aseptic_filling }
       batches:
         - { label: PPQ batch 1, plannedLotSizeUnits: 4200, batchSize: 21, batchSizeUnit: L }
         - { label: PPQ batch 2, plannedLotSizeUnits: 4200, batchSize: 21, batchSizeUnit: L }
         - { label: PPQ batch 3, plannedLotSizeUnits: 3000, batchSize: 15, batchSizeUnit: L, notes: Smaller lot planned (fictional). }
       points:
         - suggestion: cat:fill_weight
+          flow: { step: filling, at: during }
           originFrom: ipc:uo.aseptic_filling.ipc.fill_check
           docs: [DEMO-PPQ-217-01]
           table: 5d1c6a52-0000-4000-8000-0000000a0217
@@ -729,6 +739,7 @@ sampling:
             responsible: { party: cmo }
             reporting: { what: [individual, mean, range], presentation: [per_batch, by_location], deviationRef: SOP-DEV-001 (fictional) }
         - suggestion: cat:sf_prefiltration_bioburden
+          flow: { step: sterile, at: before }
           originFrom: ipc:uo.sterile_filtration.ipc.bioburden
           docs: [DEMO-FV-217-05]
           patch:
@@ -765,6 +776,7 @@ sampling:
         - unitOp: aseptic_filling
           type: ppq_enhanced
           attribute: Fill volume (measured value)
+          flow: { step: filling }
           docs: [DEMO-PPQ-217-01]
           patch:
             timing: { options: [beginning, middle, end] }
@@ -788,6 +800,7 @@ sampling:
         # The one incomplete point of the demo: the design is entered (fictional values, from the bracketing load-out) but the vessel,
         # criterion and the rest are not. The design itself is optional and never makes a point incomplete.
         - suggestion: cat:blend_uniformity
+          flow: { step: compounding, at: during }
           loadout: worst-case-bracketing
           runValues:
             - { batchSize: { value: 21, unit: L, tag: max }, speed: { value: 60, unit: rpm, tag: min }, mixTime: { value: 20, unit: min, tag: target }, attributes: "Concentration and pH at top, middle and bottom (fictional)." }
@@ -806,6 +819,7 @@ sampling:
             testMethodRef: SOP-STER-001 (fictional)
             reporting: { what: [pass_fail], deviationRef: SOP-DEV-001 (fictional) }
         - suggestion: cat:bulk_hold
+          flow: { step: hold, at: during }
           docs: [DEMO-HT-217-02]
           patch:
             timing: { options: [beginning, end] }
@@ -817,6 +831,7 @@ sampling:
             detail: { hold: { holdStep: compounding, start: End of bulk compounding (fictional), end: Start of sterile filtration (fictional), durations: [{ value: 24, unit: hours }, { value: 48, unit: hours }], condition: 2 to 8 C in the closed hold tank (fictional), supports: Proposed maximum hold of 48 hours (fictional). } }
             reporting: { what: [individual, trend], presentation: [by_time_point], deviationRef: SOP-DEV-001 (fictional) }
         - suggestion: cat:sf_filter_integrity
+          flow: { step: sterile, at: after }
           docs: [DEMO-FV-217-05]
           patch:
             timing: { options: [beginning, end] }

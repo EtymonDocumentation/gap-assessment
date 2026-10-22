@@ -6,6 +6,8 @@ import {
   type CustomSubsection,
   type DesignLoadout,
   type PlanParty,
+  type PlanStep,
+  type PointFlow,
   type Project,
   type SamplingBatch,
   type SamplingPlan,
@@ -14,7 +16,9 @@ import {
   type SubsectionBlock,
   type SubsectionOrigin,
 } from "@gap/process-model";
-import { applyLoadout, cleanText, isPlacement, snapshotResult, type LoadoutMode } from "@gap/sampling";
+import { applyLoadout, cleanText, isPlacement, snapshotResult, unitOpForStep, type LoadoutMode } from "@gap/sampling";
+import type { ContentBundle } from "./content";
+import { stepGroups } from "./scope";
 import type { PointSuggestion } from "./sampling-seed";
 
 /**
@@ -36,6 +40,8 @@ export interface PointDraft {
   typeLabel?: string;
   materialType?: string;
   origin?: SamplingPoint["origin"];
+  /** Place the new point on a step of the plan (the unit operation then follows the step). Without it the point is "Not on the diagram". */
+  flow?: PointFlow;
 }
 
 /** Fields of a point a person can change (the id, the origin and the time stamps cannot). */
@@ -56,7 +62,7 @@ export type BatchPatch = Partial<Omit<SamplingBatch, "id">>;
 const pad = (n: number) => String(n).padStart(3, "0");
 
 /** Next id of a kind inside a plan. Ids are never reused: an id that only survives in the change log still counts as taken. */
-function nextId(project: Project, prefix: "SPL" | "B" | "SP" | "AR" | "CS", planId: string | undefined, existing: readonly string[]): string {
+function nextId(project: Project, prefix: "SPL" | "B" | "SP" | "AR" | "CS" | "ST", planId: string | undefined, existing: readonly string[]): string {
   let max = 0;
   const take = (id: string) => {
     const m = new RegExp(`^${prefix}-(\\d+)$`).exec(id);
@@ -103,7 +109,14 @@ const clean = <T extends object>(o: T): T => {
 
 // ------------------------------------------------------------------ plans
 
-export function createPlan(project: Project, input: { title: string; notes?: string }, actor: Actor): { project: Project; planId: string } {
+/** A step to put on a plan: a catalog unit operation (key and its label) or a custom step (label only). */
+export interface StepDraft {
+  unitOp?: string;
+  label: string;
+  notes?: string;
+}
+
+export function createPlan(project: Project, input: { title: string; notes?: string; steps?: StepDraft[] }, actor: Actor): { project: Project; planId: string } {
   const title = (input.title ?? "").trim();
   if (!title) throw new SamplingError("The plan needs a title");
   const next = structuredClone(project);
@@ -114,6 +127,7 @@ export function createPlan(project: Project, input: { title: string; notes?: str
     runType: "ppq",
     status: "draft",
     notes: input.notes?.trim() || undefined,
+    steps: [],
     batches: [],
     batchRationale: "",
     parties: [],
@@ -123,8 +137,11 @@ export function createPlan(project: Project, input: { title: string; notes?: str
     createdAt: actor.at,
     updatedAt: actor.at,
   } as SamplingPlan);
+  // The one-time copy of the project scope (or whatever the caller passes). After this the plan's steps are its own.
+  for (const d of input.steps ?? []) plan.steps.push(newStep(next, plan, d));
+  assertValid(plan);
   next.sampling.plans.push(plan);
-  log(next, actor, { action: "sampling_plan_add", path: `sampling.${id}`, detail: `Sampling plan ${id}: ${title}`, after: { id, title } });
+  log(next, actor, { action: "sampling_plan_add", path: `sampling.${id}`, detail: `Sampling plan ${id}: ${title}${plan.steps.length ? ` (${plan.steps.length} process steps)` : ""}`, after: { id, title, ...(plan.steps.length ? { steps: plan.steps } : {}) } });
   return { project: next, planId: id };
 }
 
@@ -231,6 +248,7 @@ function newPoint(id: string, draft: PointDraft, at: string): SamplingPoint {
     type: draft.type,
     typeLabel: draft.typeLabel?.trim() || undefined,
     unitOp: draft.unitOp,
+    flow: draft.flow ? clean({ stepId: draft.flow.stepId, at: draft.flow.at }) : undefined,
     attribute: (draft.attribute ?? "").trim(),
     materialType: draft.materialType?.trim() || undefined,
     timing: { options: [] },
@@ -245,11 +263,15 @@ function newPoint(id: string, draft: PointDraft, at: string): SamplingPoint {
 }
 
 export function addPoint(project: Project, planId: string, draft: PointDraft, actor: Actor): { project: Project; pointId: string } {
-  if (!draft.unitOp) throw new SamplingError("Choose the process step the point belongs to");
   const next = structuredClone(project);
   const plan = planOf(next, planId);
+  // A point placed on a step takes the step's unit operation, so everything that reads `unitOp` agrees with the diagram.
+  const step = draft.flow ? plan.steps.find((s) => s.id === draft.flow!.stepId) : undefined;
+  if (draft.flow && !step) throw new SamplingError(`Step ${draft.flow.stepId} is not in plan ${planId}`);
+  const unitOp = step ? unitOpForStep(step) : draft.unitOp;
+  if (!unitOp) throw new SamplingError("Choose the process step the point belongs to");
   const id = nextId(next, "SP", planId, plan.points.map((p) => p.id));
-  const point = newPoint(id, draft, actor.at);
+  const point = newPoint(id, { ...draft, unitOp }, actor.at);
   plan.points.push(point);
   assertValid(plan);
   plan.updatedAt = actor.at;
@@ -266,11 +288,15 @@ export function addPoint(project: Project, planId: string, draft: PointDraft, ac
 export function acceptSuggestion(project: Project, planId: string, s: PointSuggestion, actor: Actor): { project: Project; pointId: string } {
   const existing = planOf(project, planId).points.find((p) => p.origin.kind === "seeded" && p.origin.suggestionKey === s.id);
   if (existing) throw new SamplingError(`Point ${existing.id} was already added from this suggestion`);
+  // A suggestion belongs to one catalog step. When the plan has that step, the point starts on it with the position NOT set
+  // (the suggestion says nothing about before / during / after); otherwise it starts under "Not on the diagram".
+  const onStep = planOf(project, planId).steps.find((st) => st.unitOp === s.uo);
   return addPoint(
     project,
     planId,
     {
       unitOp: s.uo,
+      ...(onStep ? { flow: { stepId: onStep.id } } : {}),
       ...(s.type ? { type: s.type } : {}),
       attribute: s.attribute,
       ...(s.materialType ? { materialType: s.materialType } : {}),
@@ -289,6 +315,9 @@ export function updatePoint(project: Project, planId: string, pointId: string, p
   const merged = clean({ ...structuredClone(before), ...structuredClone(patch) } as SamplingPoint);
   // Optional fields given as undefined are removed, so "clear the locations" really clears it (no stored default).
   for (const k of Object.keys(patch) as (keyof PointPatch)[]) if (patch[k] === undefined) delete (merged as unknown as Record<string, unknown>)[k];
+  // Keep `unitOp` in step with the diagram: a point on a step carries that step's unit operation (custom steps: UNIT_OP_CUSTOM_STEP).
+  const onStep = merged.flow ? plan.steps.find((s) => s.id === merged.flow!.stepId) : undefined;
+  if (onStep) merged.unitOp = unitOpForStep(onStep);
   plan.points[i] = merged;
   assertValid(plan);
   // The arithmetic note is taken after validation, from the point as it will be stored.
@@ -327,6 +356,154 @@ export function removePoint(project: Project, planId: string, pointId: string, a
   plan.points = plan.points.filter((p) => p.id !== pointId);
   plan.updatedAt = actor.at;
   log(next, actor, { action: "sampling_point_remove", path: `sampling.${planId}.${pointId}`, detail: `Point ${pointId} removed from ${planId}${point.attribute ? `: ${point.attribute}` : ""}`, before: point });
+  return next;
+}
+
+// ------------------------------------------------------------------ process steps and the flow
+
+/**
+ * Where a point sits is changed with one function so the diagram, the table and the keyboard all go the same way and every move is
+ * change-logged. `null` means "Not on the diagram" (the flow is removed; the point keeps its other fields and its unit operation).
+ * A step without a position is a normal state, so `at` may be left out.
+ */
+export function setPointFlow(project: Project, planId: string, pointId: string, flow: PointFlow | null, actor: Actor): Project {
+  return updatePoint(project, planId, pointId, { flow: flow ? clean({ stepId: flow.stepId, at: flow.at }) : undefined }, actor);
+}
+
+function newStep(project: Project, plan: SamplingPlan, d: StepDraft): PlanStep {
+  const label = (d.label ?? "").trim();
+  if (!label) throw new SamplingError("The step needs a name");
+  if (d.unitOp && plan.steps.some((s) => s.unitOp === d.unitOp)) throw new SamplingError(`${label} is already a step of this plan`);
+  const taken = [...plan.steps.map((s) => s.id)];
+  return clean({ id: nextId(project, "ST", plan.id, taken), unitOp: d.unitOp || undefined, label, notes: d.notes?.trim() || undefined }) as PlanStep;
+}
+
+/** Adds a step at the end (or at `index`). A catalog step names its unit operation and label; a custom step has only a label. */
+export function addStep(project: Project, planId: string, draft: StepDraft, actor: Actor, index?: number): { project: Project; stepId: string } {
+  const next = structuredClone(project);
+  const plan = planOf(next, planId);
+  const step = newStep(next, plan, draft);
+  plan.steps.splice(index === undefined ? plan.steps.length : Math.max(0, Math.min(index, plan.steps.length)), 0, step);
+  assertValid(plan);
+  plan.updatedAt = actor.at;
+  log(next, actor, { action: "sampling_step_add", path: `sampling.${planId}.${step.id}`, detail: `Process step ${step.id} added to ${planId}: ${step.label}`, after: step });
+  return { project: next, stepId: step.id };
+}
+
+/** Renames a custom step or edits the notes of any step. A catalog step keeps its catalog name. */
+export function updateStep(project: Project, planId: string, stepId: string, patch: { label?: string; notes?: string }, actor: Actor): Project {
+  const next = structuredClone(project);
+  const plan = planOf(next, planId);
+  const step = plan.steps.find((s) => s.id === stepId);
+  if (!step) throw new SamplingError(`Step ${stepId} is not in plan ${planId}`);
+  const before = structuredClone(step);
+  if (patch.label !== undefined) {
+    if (step.unitOp) throw new SamplingError("A step from the catalog keeps its catalog name. Use a custom step for a different name.");
+    const label = patch.label.trim();
+    if (!label) throw new SamplingError("The step needs a name");
+    step.label = label;
+  }
+  if (patch.notes !== undefined) {
+    if (patch.notes.trim()) step.notes = patch.notes.trim();
+    else delete step.notes;
+  }
+  if (JSON.stringify(before) === JSON.stringify(step)) return project;
+  assertValid(plan);
+  plan.updatedAt = actor.at;
+  log(next, actor, { action: "sampling_step_update", path: `sampling.${planId}.${stepId}`, detail: `Process step ${stepId} of ${planId} edited`, before, after: structuredClone(step) });
+  return next;
+}
+
+/** Moves a step one place earlier or later. The diagram and the points table follow the new order at once. */
+export function moveStep(project: Project, planId: string, stepId: string, direction: "up" | "down", actor: Actor): Project {
+  const next = structuredClone(project);
+  const plan = planOf(next, planId);
+  const i = plan.steps.findIndex((s) => s.id === stepId);
+  if (i < 0) throw new SamplingError(`Step ${stepId} is not in plan ${planId}`);
+  const j = direction === "up" ? i - 1 : i + 1;
+  if (j < 0 || j >= plan.steps.length) return project;
+  const before = plan.steps.map((s) => s.id);
+  [plan.steps[i], plan.steps[j]] = [plan.steps[j]!, plan.steps[i]!];
+  plan.updatedAt = actor.at;
+  log(next, actor, { action: "sampling_step_move", path: `sampling.${planId}.${stepId}`, detail: `Process step ${stepId} of ${planId} moved ${direction}`, before: { order: before }, after: { order: plan.steps.map((s) => s.id) } });
+  return next;
+}
+
+/**
+ * Removes a step. A step that still holds samples is removed only when the person has chosen what happens to them: they move to
+ * "Not on the diagram" (nothing is deleted, and the log lists which points moved). Without that choice the call is refused.
+ */
+export function removeStep(project: Project, planId: string, stepId: string, actor: Actor, opts: { movePointsToTray?: boolean } = {}): Project {
+  const next = structuredClone(project);
+  const plan = planOf(next, planId);
+  const step = plan.steps.find((s) => s.id === stepId);
+  if (!step) throw new SamplingError(`Step ${stepId} is not in plan ${planId}`);
+  const held = plan.points.filter((p) => p.flow?.stepId === stepId);
+  if (held.length && !opts.movePointsToTray) throw new SamplingError(`${held.length} sample${held.length === 1 ? "" : "s"} sit on ${step.label}. Choose to move them to "Not on the diagram" first.`);
+  plan.steps = plan.steps.filter((s) => s.id !== stepId);
+  for (const p of held) {
+    delete p.flow;
+    p.updatedAt = actor.at;
+  }
+  assertValid(plan);
+  plan.updatedAt = actor.at;
+  log(next, actor, {
+    action: "sampling_step_remove",
+    path: `sampling.${planId}.${stepId}`,
+    detail: `Process step ${stepId} removed from ${planId}: ${step.label}${held.length ? ` (${held.map((p) => p.id).join(", ")} moved to Not on the diagram)` : ""}`,
+    before: { step, points: held.map((p) => p.id) },
+  });
+  return next;
+}
+
+/** The steps the project scope has in scope now, in process order: the source of the one-time copy and of "Copy steps from the project scope". */
+export function projectScopeSteps(content: ContentBundle, project: Project): StepDraft[] {
+  const seq = (uo: string) => content.catalog.unitOperations.find((u) => u.key === uo)?.sequence ?? 999;
+  return stepGroups(content, project)
+    .flatMap((g) => g.steps)
+    .filter((s) => s.state === "included")
+    .sort((a, b) => seq(a.uo) - seq(b.uo))
+    .map((s) => ({ unitOp: s.uo, label: s.label }));
+}
+
+/**
+ * Copies the project scope's steps into the plan, on request. The plan's steps stay its own: nothing written here changes the gap
+ * Scope, and later Scope changes do not touch the plan.
+ *  - "append" adds the scope steps the plan does not have yet, at the end (steps already present are skipped, so nothing doubles).
+ *  - "replace" makes the plan's list the scope list. A plan step that matches keeps its id and its samples; a step that is not in the
+ *    scope (including a custom step) is removed and its samples move to "Not on the diagram", which the log records.
+ */
+export function copyStepsFromScope(project: Project, planId: string, scopeSteps: StepDraft[], mode: "replace" | "append", actor: Actor): Project {
+  const next = structuredClone(project);
+  const plan = planOf(next, planId);
+  const before = structuredClone(plan.steps);
+  const moved: string[] = [];
+  if (mode === "append") {
+    for (const d of scopeSteps) if (!plan.steps.some((s) => s.unitOp === d.unitOp)) plan.steps.push(newStep(next, plan, d));
+  } else {
+    const kept = new Map(plan.steps.filter((s) => s.unitOp).map((s) => [s.unitOp!, s]));
+    const list: PlanStep[] = [];
+    for (const d of scopeSteps) list.push(kept.get(d.unitOp ?? "") ?? newStep(next, { ...plan, steps: [...plan.steps, ...list] }, d));
+    const keepIds = new Set(list.map((s) => s.id));
+    for (const p of plan.points) {
+      if (p.flow && !keepIds.has(p.flow.stepId)) {
+        moved.push(p.id);
+        delete p.flow;
+        p.updatedAt = actor.at;
+      }
+    }
+    plan.steps = list;
+  }
+  if (JSON.stringify(before) === JSON.stringify(plan.steps)) return project;
+  assertValid(plan);
+  plan.updatedAt = actor.at;
+  log(next, actor, {
+    action: "sampling_steps_copy",
+    path: `sampling.${planId}`,
+    detail: `Process steps of ${planId} ${mode === "append" ? "added from" : "replaced by"} the project scope${moved.length ? ` (${moved.join(", ")} moved to Not on the diagram)` : ""}`,
+    before: { steps: before },
+    after: { steps: structuredClone(plan.steps), ...(moved.length ? { movedToTray: moved } : {}) },
+  });
   return next;
 }
 

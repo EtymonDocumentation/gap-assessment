@@ -2,7 +2,8 @@ import { z } from "zod";
 
 /**
  * PPQ sampling plans (added in process-model 1.1.0, project schema 1.11.0; study types, reporting instructions, agency requests
- * and custom subsections added in process-model 1.2.0, project schema 1.12.0).
+ * and custom subsections added in process-model 1.2.0, project schema 1.12.0; the plan's own process steps and the flow position of
+ * a point added in process-model 1.3.0, project schema 1.13.0).
  *
  * A sampling plan says which samples are pulled from which process steps during the process performance qualification (PPQ)
  * batches, why, and how many. The shapes live here, next to the other shared data, so a later tool (risk assessment, master
@@ -22,7 +23,7 @@ import { z } from "zod";
  */
 
 /** Format version of the plan data (semver). A new optional field is a minor change; a removed or re-meant field is major. */
-export const SAMPLING_PLAN_FORMAT_VERSION = "1.1.0";
+export const SAMPLING_PLAN_FORMAT_VERSION = "1.2.0";
 
 /** Run types. Only PPQ is built; the field exists so clinical GMP and engineering runs can be added without a schema break. */
 export const SAMPLING_RUN_TYPES = ["ppq"] as const;
@@ -103,6 +104,39 @@ export const INSPECTIONS = ["normal", "tightened", "reduced"] as const;
 /** The unit-operation value of a point that belongs to no single process step. */
 export const UNIT_OP_FINISHED_PRODUCT = "finished_product";
 export const UNIT_OP_NONE = "none";
+
+/**
+ * The unit-operation value of a point that sits on a CUSTOM step of the plan (a step with a free label and no catalog key).
+ * Chosen so the code that reads `unitOp` (suggestions, completeness, documents) keeps working: the point belongs to "a step"
+ * without claiming it is one of the catalog's. The step's own label is what people see (see `flow`).
+ */
+export const UNIT_OP_CUSTOM_STEP = "custom_step";
+
+/**
+ * Where on a step a sample is taken (plan format 1.2.0). "before" is at the start of the step, "during" inside it, "after" at its
+ * end. These are options a person may choose; none is ever set for them (a point on a step with no position is a normal state).
+ */
+export const FLOW_POSITIONS = ["before", "during", "after"] as const;
+export type FlowPosition = (typeof FLOW_POSITIONS)[number];
+
+/**
+ * A step of the PLAN's own process scope (plan format 1.2.0). The array order of `plan.steps` is the process order. The plan's step
+ * list starts as a one-time copy of the project's Scope and is then independent: editing either never changes the other. A custom
+ * step has no `unitOp`, so nothing is restricted to the catalog.
+ */
+export const planStepSchema = z.object({
+  /** ST-01, ST-02 ... never reused inside a plan. */
+  id: z.string().regex(/^ST-\d{2,}$/),
+  /** A unit-operation key of the catalog (or a project custom one). Absent for a custom step. */
+  unitOp: z.string().min(1).optional(),
+  label: z.string().min(1),
+  notes: z.string().optional(),
+});
+export type PlanStep = z.infer<typeof planStepSchema>;
+
+/** Where a point is drawn on the flow diagram. A point without `flow` is "Not on the diagram", which is a normal state. */
+export const pointFlowSchema = z.object({ stepId: z.string().min(1), at: z.enum(FLOW_POSITIONS).optional() });
+export type PointFlow = z.infer<typeof pointFlowSchema>;
 
 /** Who does a piece of work. The names are free text next to the kind. */
 export const RESPONSIBLE_PARTIES = ["cmo", "sponsor", "contract_lab", "other"] as const;
@@ -369,8 +403,13 @@ export const samplingPointSchema = z
     type: z.enum(SAMPLING_TYPES).optional(),
     /** What "other" means (and an optional wording for any type). */
     typeLabel: z.string().optional(),
-    /** A unit-operation key of the catalog (or a custom "x_" one), "finished_product" or "none". */
+    /**
+     * A unit-operation key of the catalog (or a custom "x_" one), "finished_product", "none" or "custom_step". It stays consistent
+     * with `flow`: a point on a catalog step carries that step's key, a point on a custom step carries "custom_step".
+     */
     unitOp: z.string().min(1),
+    /** Where the point is drawn on the plan's flow diagram (plan format 1.2.0). Absent = "Not on the diagram". */
+    flow: pointFlowSchema.optional(),
     attribute: z.string(),
     testMethodRef: z.string().optional(),
     materialType: z.string().optional(),
@@ -528,6 +567,8 @@ export const samplingPlanSchema = z
     runType: z.enum(SAMPLING_RUN_TYPES),
     status: z.literal("draft"),
     notes: z.string().optional(),
+    /** The plan's own process steps, in process order (plan format 1.2.0). Separate from the gap assessment's Scope. */
+    steps: z.array(planStepSchema),
     /** The batches. How many is the person's decision: there is no default count. */
     batches: z.array(samplingBatchSchema),
     /** Why this number of batches. Required for the plan to be complete. */
@@ -555,10 +596,13 @@ export const samplingPlanSchema = z
     dup(plan.points.map((p) => p.id), "point");
     dup(plan.agencyRequests.map((r) => r.id), "agency request");
     dup(plan.subsections.map((s) => s.id), "subsection");
+    dup(plan.steps.map((s) => s.id), "step");
+    const stepIds = new Set(plan.steps.map((s) => s.id));
     const batchIds = new Set(plan.batches.map((b) => b.id));
     const requestIds = new Set(plan.agencyRequests.map((r) => r.id));
     const pointIds = new Set(plan.points.map((p) => p.id));
     for (const p of plan.points) {
+      if (p.flow && !stepIds.has(p.flow.stepId)) ctx.addIssue({ code: "custom", message: `Point ${p.id} sits on a step (${p.flow.stepId}) that is not in plan ${plan.id}` });
       if (p.appliesTo !== "all") {
         for (const id of p.appliesTo) {
           if (!batchIds.has(id)) ctx.addIssue({ code: "custom", message: `Point ${p.id} applies to a batch (${id}) that is not in plan ${plan.id}` });
@@ -577,7 +621,7 @@ export const samplingPlanSchema = z
   });
 export type SamplingPlan = z.infer<typeof samplingPlanSchema>;
 
-/** The `sampling` part of a project (schema 1.12.0). */
+/** The `sampling` part of a project (schema 1.13.0). */
 export const samplingStateSchema = z
   .object({ plans: z.array(samplingPlanSchema) })
   .superRefine((s, ctx) => {

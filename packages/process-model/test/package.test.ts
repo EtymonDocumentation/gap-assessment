@@ -40,7 +40,7 @@ describe("package independence", () => {
 
   it("keeps PROCESS_MODEL_VERSION equal to package.json", () => {
     expect(PROCESS_MODEL_VERSION).toBe(pkg.version);
-    expect(pkg.version).toBe("1.2.0");
+    expect(pkg.version).toBe("1.3.0");
   });
 
   it("is private until it is published on purpose", () => {
@@ -65,6 +65,7 @@ describe("public API", () => {
         "CUSTOM_KEY_PREFIX",
         "CatalogError",
         "FILTER_TESTS",
+        "FLOW_POSITIONS",
         "HOLD_UNITS",
         "INSPECTIONS",
         "INTERVAL_UNITS",
@@ -92,6 +93,7 @@ describe("public API", () => {
         "SEED_COLLECTIONS",
         "SEED_STATUSES",
         "SEED_VERIFICATIONS",
+        "STEP_ORDER_AT_1130",
         "SYSTEM_ACTOR",
         "SourceError",
         "TIMING_OPTIONS",
@@ -99,6 +101,7 @@ describe("public API", () => {
         "TRD_SEED_VERSION",
         "TrdSeedError",
         "UNITS",
+        "UNIT_OP_CUSTOM_STEP",
         "UNIT_OP_FINISHED_PRODUCT",
         "UNIT_OP_NONE",
         "UnitError",
@@ -158,7 +161,9 @@ describe("public API", () => {
         "pathMatches",
         "placementSchema",
         "planPartySchema",
+        "planStepSchema",
         "planVerification",
+        "pointFlowSchema",
         "pointSampleSizeSchema",
         "projectSchema",
         "putEntry",

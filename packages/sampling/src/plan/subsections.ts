@@ -13,12 +13,14 @@ export const FIXED_SECTION_KEYS: { key: string; title: string }[] = [
   { key: "purpose-scope", title: "Purpose and scope" },
   { key: "product-site", title: "Product, presentation and receiving site" },
   { key: "batches", title: "PPQ batches" },
+  { key: "process-flow", title: "Process flow" },
   { key: "statistical-bases", title: "Statistical bases used" },
 ];
+// The agency requests section closes the plan (before custom appendices), as it closes the interview.
 export const TAIL_SECTION_KEYS: { key: string; title: string }[] = [
-  { key: "agency-requests", title: "Agency requests and commitments" },
   { key: "totals", title: "Sample totals per batch" },
   { key: "open-items", title: "Open items" },
+  { key: "agency-requests", title: "Agency requests and commitments" },
 ];
 export const typeSectionKey = (type: string): string => `type-${type}`;
 export const NO_TYPE_SECTION_KEY = "no-type";

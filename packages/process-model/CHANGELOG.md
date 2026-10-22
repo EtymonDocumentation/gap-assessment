@@ -2,6 +2,22 @@
 
 All notable changes to `@gap/process-model`. Versions follow semver; see README.md for what counts as breaking.
 
+## 1.3.0
+
+Sampling plan format 1.2.0 (project schema 1.13.0). The plan gets its own process steps and a point can be placed on one of
+them. Additive in meaning (a minor bump): nothing was removed, and a plan without steps is still a valid plan.
+
+### Added
+- `plan.steps` (planStepSchema): the plan's own process steps, in process order, each with an id (ST-01 ...), an optional catalog
+  unit-operation key, a label and optional notes. Separate from the gap assessment's Scope: the plan starts as a one-time copy and
+  then neither side changes the other.
+- `point.flow` (pointFlowSchema): the step a point sits on and an optional position (before / during / after, FLOW_POSITIONS). No
+  `flow` means "Not on the diagram", which is a normal state. A point whose flow names a step that is not in the plan is refused.
+- UNIT_OP_CUSTOM_STEP ("custom_step"): the `unitOp` of a point that sits on a custom step, so code that reads `unitOp` keeps working.
+- Migration 1.12.0 -> 1.13.0: steps are built from the unit operations the plan's points already use, in process order; each such
+  point is placed on its step with the position NOT set (never guessed); the conversion is written to the change log.
+- STEP_ORDER_AT_1130: the process order and labels the migration used (frozen; the migration cannot read the catalog).
+
 ## 1.2.0
 
 Sampling plan format 1.1.0 (project schema 1.12.0). A sampling point's `category` is replaced by `type` (a minor bump because

@@ -13,6 +13,7 @@ import {
   SAMPLING_METHODS,
   SAMPLING_TYPES,
   TIMING_OPTIONS,
+  UNIT_OP_CUSTOM_STEP,
   UNIT_OP_FINISHED_PRODUCT,
   UNIT_OP_NONE,
   WORST_CASES,
@@ -48,11 +49,13 @@ import {
   applyLoadout,
   calculatePoint,
   checkPoint,
+  placementText,
   requestTitle,
   reportingInstructions,
   resultText,
   retainDerivation,
   stabilityDerivation,
+  stepOf,
   tableChangedSince,
   usesSampleSizeMethod,
   type LoadoutMode,
@@ -751,14 +754,20 @@ export function PointForm({ plan, point, onClose, onSave, inline }: { plan: Samp
         <div className="row wrap">
           <label className="field">
             <span>Process step</span>
-            <select value={d.unitOp} onChange={(e) => set({ unitOp: e.target.value })} data-testid="point-unitop">
+            {/* A point on the plan's process flow takes its unit operation from that step, so the step is changed in the table or the diagram. */}
+            <select value={d.unitOp} onChange={(e) => set({ unitOp: e.target.value })} data-testid="point-unitop" disabled={!!stepOf(plan, d)} aria-describedby={stepOf(plan, d) ? `${uid}-flowstep` : undefined}>
               {steps.map((s) => (
                 <option key={s.key} value={s.key}>
                   {s.label}
                 </option>
               ))}
-              {!steps.some((s) => s.key === d.unitOp) && <option value={d.unitOp}>{d.unitOp}</option>}
+              {!steps.some((s) => s.key === d.unitOp) && <option value={d.unitOp}>{d.unitOp === UNIT_OP_CUSTOM_STEP ? (stepOf(plan, d)?.label ?? "Custom step") : d.unitOp}</option>}
             </select>
+            {stepOf(plan, d) && (
+              <span id={`${uid}-flowstep`} className="muted small">
+                On the process flow: {placementText(plan, d)}. Change the step or position in the points table or on the diagram.
+              </span>
+            )}
           </label>
           <label className="field">
             <span>Study type</span>

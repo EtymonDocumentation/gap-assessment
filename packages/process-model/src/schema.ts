@@ -425,7 +425,79 @@ const MIGRATIONS: { from: string; to: string; migrate: Migrate }[] = [
     to: "1.12.0",
     migrate: (raw, now) => migrateTo1120(raw, now),
   },
+  // 1.12.0 -> 1.13.0: sampling plan format 1.2.0. A plan gets its OWN list of process steps (plan.steps) and a point can sit on a
+  // step of it (point.flow). The steps are built from the process steps the plan's points already name, in process order; each
+  // such point is placed on its step with NO position (never guessed: the diagram shows "position not set", which is a label, not a
+  // problem). Points on the finished product or on supporting work get no flow ("Not on the diagram"). One change-log record per
+  // plan says what was built.
+  {
+    from: "1.12.0",
+    to: "1.13.0",
+    migrate: (raw, now) => migrateTo1130(raw, now),
+  },
 ];
+
+/**
+ * Process order and labels of the catalog's unit operations, FROZEN at schema 1.13.0 for the migration below. The migration cannot
+ * read the catalog (this entry point must stay free of the YAML so the laptop server can use it), and a migration is a statement
+ * about the data at one moment, so a copy is the right thing here. A test checks every key against the catalog.
+ */
+export const STEP_ORDER_AT_1130: readonly (readonly [key: string, label: string])[] = [
+  ["ds_shipping_inbound", "Drug substance shipping to the fill site"],
+  ["ds_receipt_thaw", "Drug substance receipt and thaw"],
+  ["buffer_prep", "Buffer preparation"],
+  ["compounding", "Pooling, compounding and dilution"],
+  ["bbr_filtration", "Bioburden reduction (BBR) filtration"],
+  ["sterile_filtration", "Sterile filtration"],
+  ["aseptic_filling", "Aseptic filling and stoppering"],
+  ["stoppering", "Stoppering (stand-alone)"],
+  ["lyophilization", "Lyophilization"],
+  ["capping", "Capping and crimping"],
+  ["visual_inspection", "Visual inspection"],
+  ["bulk_packaging", "Bulk packaging"],
+  ["labeling_packaging", "Labeling and packaging"],
+  ["storage_shipping", "Storage and shipping from the fill site"],
+];
+
+function migrateTo1130(raw: Record<string, unknown>, now: string): Record<string, unknown> {
+  const next = structuredClone(raw) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  next.schemaVersion = "1.13.0";
+  const log: Record<string, unknown>[] = [];
+  const plans: any[] = Array.isArray(next.sampling?.plans) ? next.sampling.plans : []; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const customLabels = new Map<string, string>((Array.isArray(next.custom?.unitOperations) ? next.custom.unitOperations : []).map((u: any) => [String(u.key), String(u.label ?? u.key)])); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const rankOf = new Map(STEP_ORDER_AT_1130.map(([k], i) => [k, i]));
+  const labelOf = new Map(STEP_ORDER_AT_1130);
+  const special = new Set(["finished_product", "none", "custom_step"]);
+  for (const plan of plans) {
+    if (Array.isArray(plan.steps)) continue; // already has steps (a hand-edited file): keep them
+    const points: any[] = Array.isArray(plan.points) ? plan.points : []; // eslint-disable-line @typescript-eslint/no-explicit-any
+    const used: string[] = [];
+    for (const p of points) if (typeof p.unitOp === "string" && !special.has(p.unitOp) && !used.includes(p.unitOp)) used.push(p.unitOp);
+    // Catalog steps in process order; the project's own unit operations after them, in the order the points first used them.
+    used.sort((a, b) => (rankOf.get(a) ?? 1000 + used.indexOf(a)) - (rankOf.get(b) ?? 1000 + used.indexOf(b)));
+    plan.steps = used.map((uo, i) => ({ id: `ST-${String(i + 1).padStart(2, "0")}`, unitOp: uo, label: labelOf.get(uo) ?? customLabels.get(uo) ?? uo }));
+    const stepOf = new Map<string, string>(plan.steps.map((s: any) => [s.unitOp, s.id])); // eslint-disable-line @typescript-eslint/no-explicit-any
+    let placed = 0;
+    for (const p of points) {
+      const id = stepOf.get(p.unitOp);
+      if (id) {
+        p.flow = { stepId: id };
+        placed++;
+      }
+    }
+    log.push({
+      at: now,
+      by: SYSTEM_ACTOR,
+      action: "migrate_sampling_steps",
+      path: `sampling.${plan.id}`,
+      detail: `Process steps built from the points (schema 1.13.0): ${plan.steps.length} step${plan.steps.length === 1 ? "" : "s"}, ${placed} point${placed === 1 ? "" : "s"} placed on a step with the position not set. The other ${points.length - placed} stay "Not on the diagram".`,
+      before: {},
+      after: { steps: plan.steps.map((s: any) => s.label) }, // eslint-disable-line @typescript-eslint/no-explicit-any
+    });
+  }
+  next.changeLog = [...(Array.isArray(next.changeLog) ? next.changeLog : []), ...log];
+  return next;
+}
 
 /** Actor name on change-log records written by a file update rather than by a person. */
 export const SYSTEM_ACTOR = "System (file update)";

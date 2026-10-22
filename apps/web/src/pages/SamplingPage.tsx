@@ -5,18 +5,17 @@ import {
   createPlan,
   deletePlan,
   planById,
+  projectScopeSteps,
   removeBatch,
-  removePoint,
   samplingOpenItems,
   suggestPoints,
   SUGGESTION_SOURCE_LABEL,
   updateBatch,
   updatePlan,
-  updatePoint,
   type PointSuggestion,
 } from "@gap/engine";
-import { SAMPLING_TYPES, UNIT_OP_FINISHED_PRODUCT, UNIT_OP_NONE, type SamplingBatch, type SamplingPlan, type SamplingPoint, type SamplingType } from "@gap/process-model";
-import { METHOD_LABEL, STATUS_TEXT, TYPE_LABEL, checkPoint, methodInputsText, planTotals, typeText, unitsPerBatch, usesSampleSizeMethod } from "@gap/sampling";
+import { FLOW_POSITIONS, SAMPLING_TYPES, UNIT_OP_CUSTOM_STEP, UNIT_OP_FINISHED_PRODUCT, UNIT_OP_NONE, type FlowPosition, type PointFlow, type SamplingBatch, type SamplingPlan, type SamplingType } from "@gap/process-model";
+import { NOT_ON_DIAGRAM, POSITION_NOT_SET, SLOT_LABEL, TYPE_LABEL, planTotals, unitOpForStep } from "@gap/sampling";
 import { samplingSuggestions } from "@gap/content";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PageBanner } from "../art";
@@ -24,6 +23,9 @@ import { Empty, Modal } from "../components";
 import { dateTime } from "../lib";
 import { href, navigate } from "../router";
 import { useContent, useStore } from "../store";
+import { FlowDiagram, type OpenAdd, type Run } from "./SamplingFlow";
+import { PointsTable } from "./SamplingPointsTable";
+import { ProcessStepsCard } from "./SamplingSteps";
 import { SamplingOutput } from "./SamplingOutput";
 import { NumField } from "./SamplingPointDialog";
 import { AgencyCard, Interview, PartiesCard, type ViewBy } from "./SamplingInterview";
@@ -47,6 +49,7 @@ export function SamplingPage({ params }: { params: URLSearchParams }) {
 function PlanList({ missing }: { missing?: string | undefined }) {
   const project = useStore((s) => s.project)!;
   const update = useStore((s) => s.update);
+  const content = useContent();
   const [title, setTitle] = useState("");
   const [error, setError] = useState("");
   const plans = project.sampling.plans;
@@ -55,7 +58,8 @@ function PlanList({ missing }: { missing?: string | undefined }) {
     if (!title.trim()) return setError("Enter a title for the plan.");
     let newId = "";
     const err = update((p, actor) => {
-      const r = createPlan(p, { title: title.trim() }, actor);
+      // One-time copy of the project scope's steps; after this the plan's steps are its own.
+      const r = createPlan(p, { title: title.trim(), steps: projectScopeSteps(content, p) }, actor);
       newId = r.planId;
       return r.project;
     }, "Sampling plan created");
@@ -171,6 +175,12 @@ function PlanEditor({ plan }: { plan: SamplingPlan }) {
   const [view, setView] = useState<ViewBy>("step");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const opener = useRef<HTMLElement | null>(null);
+  const [addTarget, setAddTarget] = useState<AddTarget | null>(null);
+  /** The one hook the diagram's "+" and the table's "Add a sample" call. Today it prefills the existing add form; the short form plugs in here. */
+  const openAdd: OpenAdd = (t) => {
+    setTab("overview");
+    setAddTarget((prev) => ({ stepId: t.stepId, at: t.at, n: (prev?.n ?? 0) + 1 }));
+  };
 
   /** Runs one edit. Any refusal (for example removing a batch a point depends on) is shown in words next to the controls. */
   const run = (fn: Parameters<typeof update>[0], status: string): boolean => {
@@ -186,6 +196,7 @@ function PlanEditor({ plan }: { plan: SamplingPlan }) {
     const m = new Map(content.catalog.unitOperations.map((u) => [u.key, u.label]));
     m.set(UNIT_OP_FINISHED_PRODUCT, "Finished product");
     m.set(UNIT_OP_NONE, "Supporting work (no single step)");
+    m.set(UNIT_OP_CUSTOM_STEP, "Custom step");
     return (k: string) => m.get(k) ?? k;
   }, [content]);
 
@@ -209,6 +220,7 @@ function PlanEditor({ plan }: { plan: SamplingPlan }) {
       )}
 
       <DetailsCard plan={plan} run={run} />
+      <ProcessStepsCard plan={plan} run={run} />
       <BatchesCard plan={plan} run={run} />
 
       <div role="group" aria-label="Plan sections" className="row wrap seg no-print" data-testid="plan-tabs">
@@ -222,8 +234,8 @@ function PlanEditor({ plan }: { plan: SamplingPlan }) {
       {tab === "interview" && (
         <>
           <PartiesCard plan={plan} run={run} />
-          <AgencyCard plan={plan} run={run} />
           <Interview plan={plan} suggestions={suggestions} selected={selected} onSelect={setSelected} view={view} onView={setView} run={run} labelOf={labelOf} />
+          <AgencyCard plan={plan} run={run} />
         </>
       )}
 
@@ -251,57 +263,37 @@ function PlanEditor({ plan }: { plan: SamplingPlan }) {
         onAdd={(s) => run((p, actor) => acceptSuggestion(p, plan.id, s, actor).project, `Point added from a suggestion`)}
       />
 
+      <FlowDiagram plan={plan} selectedId={selected} onSelect={setSelected} run={run} openAdd={openAdd} />
+
       <section className="card stack" aria-labelledby="sp-points">
         <h2 id="sp-points">Sampling points ({plan.points.length})</h2>
-        {plan.points.length === 0 ? (
-          <Empty>No sampling points yet. Add one from the suggestions above or by hand below.</Empty>
-        ) : (
-          <div className="table-scroll" role="region" aria-label="Sampling points table" tabIndex={0}>
-            <table className="data points-table" data-testid="points-table">
-              <caption className="visually-hidden">Sampling points with method, units per batch and status</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Point</th>
-                  <th scope="col">Process step</th>
-                  <th scope="col">Attribute</th>
-                  <th scope="col">Study type</th>
-                  <th scope="col">Method</th>
-                  <th scope="col">Units per batch</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {plan.points.map((p) => (
-                  <PointRow
-                    key={p.id}
-                    plan={plan}
-                    point={p}
-                    step={labelOf(p.unitOp)}
-                    onEdit={() => {
-                      // The form lives in the interview, so Edit opens that point there.
-                      setSelected(p.id);
-                      setTab("interview");
-                    }}
-                    onRemove={() => run((pr, actor) => removePoint(pr, plan.id, p.id, actor), `Point ${p.id} removed`)}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <PointsTable
+          plan={plan}
+          selectedId={selected}
+          onSelect={setSelected}
+          run={run}
+          openAdd={openAdd}
+          onEdit={(id) => {
+            // The form lives in the interview, so Open shows that point there.
+            setSelected(id);
+            setTab("interview");
+          }}
+        />
         <ManualAdd
+          plan={plan}
+          target={addTarget}
           steps={[...content.catalog.unitOperations.map((u) => ({ key: u.key, label: u.label })), { key: UNIT_OP_FINISHED_PRODUCT, label: "Finished product" }, { key: UNIT_OP_NONE, label: "Supporting work (no single step)" }]}
-          onAdd={(unitOp, type, attribute) => {
+          onAdd={(unitOp, type, attribute, flow) => {
             let id = "";
             const ok = run((p, actor) => {
-              const r = addPoint(p, plan.id, { unitOp, type, ...(attribute.trim() ? { attribute: attribute.trim() } : {}) }, actor);
+              const r = addPoint(p, plan.id, { unitOp, type, ...(attribute.trim() ? { attribute: attribute.trim() } : {}), ...(flow ? { flow } : {}) }, actor);
               id = r.pointId;
               return r.project;
             }, "Point added");
+            // A point placed on the diagram is shown there (selected); a point with nowhere to sit opens its form as before.
             if (ok) {
               setSelected(id);
-              setTab("interview");
+              if (!flow) setTab("interview");
             }
           }}
         />
@@ -396,8 +388,6 @@ function PlanEditor({ plan }: { plan: SamplingPlan }) {
     </div>
   );
 }
-
-type Run = (fn: Parameters<ReturnType<typeof useStore.getState>["update"]>[0], status: string) => boolean;
 
 function DetailsCard({ plan, run }: { plan: SamplingPlan; run: Run }) {
   const [title, setTitle] = useState(plan.title);
@@ -706,72 +696,82 @@ function SuggestionsCard({ suggestions, onAdd }: { suggestions: PointSuggestion[
   );
 }
 
-function PointRow({ plan, point, step, onEdit, onRemove }: { plan: SamplingPlan; point: SamplingPoint; step: string; onEdit: () => void; onRemove: () => void }) {
-  const check = useMemo(() => checkPoint(plan, point), [plan, point]);
-  const units = useMemo(() => unitsPerBatch(plan, point), [plan, point]);
-  return (
-    <tr data-testid={`point-${point.id}`}>
-      <th scope="row">{point.id}</th>
-      <td>{step}</td>
-      <td>{point.attribute || <span className="muted">Not named</span>}</td>
-      <td className="small">{typeText(point)}</td>
-      <td className="small">
-        {!usesSampleSizeMethod(point) ? "Not by sample-size method" : point.sampleSize.method ? METHOD_LABEL[point.sampleSize.method] : "No method chosen"}
-        <div className="muted">{usesSampleSizeMethod(point) && point.sampleSize.method ? methodInputsText(point) : ""}</div>
-      </td>
-      <td className="small">
-        {units.length === 0 ? (
-          "No batches"
-        ) : (
-          <ul className="plain-list">
-            {units.map((u) => (
-              <li key={u.batchId}>
-                {u.batchLabel}: {u.text}
-              </li>
-            ))}
-          </ul>
-        )}
-      </td>
-      <td>
-        <span className={`sp-status sp-status-${check.status}`} data-testid={`status-${point.id}`}>
-          <span aria-hidden="true">{check.status === "complete" ? "✓ " : "○ "}</span>
-          {STATUS_TEXT[check.status]}
-        </span>
-        {check.problems.length > 0 && <div className="muted small">{check.problems.length} open</div>}
-      </td>
-      <td>
-        <div className="row wrap">
-          <button type="button" className="btn small" onClick={onEdit} aria-label={`Edit point ${point.id}`} data-testid={`edit-${point.id}`}>
-            Edit
-          </button>
-          <button type="button" className="btn small danger" onClick={onRemove} aria-label={`Remove point ${point.id}`}>
-            Remove
-          </button>
-        </div>
-      </td>
-    </tr>
-  );
-}
+/** Where the next hand-added point goes, set by the "+" on a diagram box or by "Add a sample". `n` changes on every request so the form reacts to a repeat. */
+type AddTarget = { stepId?: string | undefined; at?: FlowPosition | undefined; n: number };
 
-function ManualAdd({ steps, onAdd }: { steps: { key: string; label: string }[]; onAdd: (unitOp: string, type: SamplingType, attribute: string) => void }) {
+/**
+ * The existing add form, now fed by the `openAdd` hook: the "+" on a box and the "Add a sample" button fill in the flow step and
+ * position, scroll the form into view and focus its first empty field. A later change can put the short form behind the same hook.
+ * Without a flow step the point is "Not on the diagram" (extras are never blocked and never forced onto a step).
+ */
+function ManualAdd({
+  plan,
+  steps,
+  target,
+  onAdd,
+}: {
+  plan: SamplingPlan;
+  steps: { key: string; label: string }[];
+  target: AddTarget | null;
+  onAdd: (unitOp: string, type: SamplingType, attribute: string, flow: PointFlow | undefined) => void;
+}) {
   const [unitOp, setUnitOp] = useState("");
   const [type, setType] = useState<SamplingType | "">("");
   const [attribute, setAttribute] = useState("");
+  const [flowStep, setFlowStep] = useState("");
+  const [flowAt, setFlowAt] = useState<FlowPosition | "">("");
+  const formRef = useRef<HTMLFormElement>(null);
+  const typeRef = useRef<HTMLSelectElement>(null);
+
+  useEffect(() => {
+    if (!target) return;
+    setFlowStep(target.stepId ?? "");
+    setFlowAt(target.at ?? "");
+    formRef.current?.scrollIntoView({ block: "center" });
+    typeRef.current?.focus();
+  }, [target]);
+
+  const flowSet = !!flowStep && plan.steps.some((s) => s.id === flowStep);
   return (
     <form
+      ref={formRef}
       className="row wrap end-align"
       aria-label="Add a point by hand"
+      data-testid="manual-form"
       onSubmit={(e) => {
         e.preventDefault();
-        if (!unitOp || !type) return;
-        onAdd(unitOp, type, attribute);
+        if (!type || (!unitOp && !flowSet)) return;
+        const step = plan.steps.find((s) => s.id === flowStep);
+        onAdd(step ? unitOpForStep(step) : unitOp, type, attribute, step ? { stepId: step.id, ...(flowAt ? { at: flowAt } : {}) } : undefined);
         setAttribute("");
       }}
     >
       <label className="field">
-        <span>Process step</span>
-        <select value={unitOp} onChange={(e) => setUnitOp(e.target.value)} data-testid="manual-unitop">
-          <option value="">Choose</option>
+        <span>Step on the process flow</span>
+        <select value={flowStep} onChange={(e) => setFlowStep(e.target.value)} data-testid="manual-flow-step">
+          <option value="">{NOT_ON_DIAGRAM}</option>
+          {plan.steps.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="field">
+        <span>Position</span>
+        <select value={flowAt} disabled={!flowSet} onChange={(e) => setFlowAt(e.target.value as FlowPosition | "")} data-testid="manual-flow-at">
+          <option value="">{POSITION_NOT_SET}</option>
+          {FLOW_POSITIONS.map((f) => (
+            <option key={f} value={f}>
+              {SLOT_LABEL[f]}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="field">
+        <span>Process step (catalog)</span>
+        <select value={flowSet ? "" : unitOp} disabled={flowSet} onChange={(e) => setUnitOp(e.target.value)} data-testid="manual-unitop">
+          <option value="">{flowSet ? "Follows the flow step" : "Choose"}</option>
           {steps.map((s) => (
             <option key={s.key} value={s.key}>
               {s.label}
@@ -781,7 +781,7 @@ function ManualAdd({ steps, onAdd }: { steps: { key: string; label: string }[]; 
       </label>
       <label className="field">
         <span>Study type</span>
-        <select value={type} onChange={(e) => setType(e.target.value as SamplingType | "")} data-testid="manual-type">
+        <select ref={typeRef} value={type} onChange={(e) => setType(e.target.value as SamplingType | "")} data-testid="manual-type">
           <option value="">Choose</option>
           {SAMPLING_TYPES.map((c) => (
             <option key={c} value={c}>
@@ -796,7 +796,7 @@ function ManualAdd({ steps, onAdd }: { steps: { key: string; label: string }[]; 
         </span>
         <input value={attribute} onChange={(e) => setAttribute(e.target.value)} data-testid="manual-attribute" />
       </label>
-      <button type="submit" className="btn" disabled={!unitOp || !type} data-testid="manual-add">
+      <button type="submit" className="btn" disabled={(!unitOp && !flowSet) || !type} data-testid="manual-add">
         Add point
       </button>
     </form>

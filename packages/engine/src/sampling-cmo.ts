@@ -1,5 +1,5 @@
 import { UNIT_OP_FINISHED_PRODUCT, UNIT_OP_NONE, type Project, type SamplingPlan } from "@gap/process-model";
-import { agencyCoverage, CMO_INTRO, renderSubsection, reportingInstructions, requestLine, tokenContext, typeText } from "@gap/sampling";
+import { agencyCoverage, CMO_INTRO, placementText, renderSubsection, reportingInstructions, requestLine, stepOf, tokenContext, typeText } from "@gap/sampling";
 import type { ContentBundle } from "./content";
 import { effectiveContent } from "./custom";
 import type { Block, DocModel, DocSection } from "./document";
@@ -51,7 +51,7 @@ export function buildCmoInstructionsDocument(content: ContentBundle, project: Pr
   const blocks: Block[] = plan.points.length ? [] : [{ type: "paragraph", text: "There are no sampling points yet, so there are no reporting instructions." }];
   for (const p of plan.points) {
     const ri = reportingInstructions(plan, p, { unitOpLabel });
-    blocks.push({ type: "heading", text: `${ri.heading}: ${p.attribute.trim() || "(no test)"} (${typeText(p)})` });
+    blocks.push({ type: "heading", text: `${ri.heading}: ${p.attribute.trim() || "(no test)"} (${typeText(p)}${stepOf(plan, p) ? `; ${placementText(plan, p)}` : ""})` });
     for (const text of ri.paragraphs) blocks.push({ type: "paragraph", text });
     if (ri.missing.length) blocks.push({ type: "note", text: `${p.id} is incomplete in the plan. Still missing in this block: ${ri.missing.join(", ")}.` });
   }
