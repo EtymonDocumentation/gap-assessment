@@ -903,3 +903,70 @@ sampling:
             rationale: Collected on request and reported for information.
             responsible: { party: cmo }
             reporting: { what: [individual], deviationRef: SOP-DEV-001 (fictional) }
+
+# Milestone 8: a fictional risk assessment for the receiving unit, using the "FMEA 1-10 (S, O, D)" load-out. It is replayed through
+# the same editing functions a person uses. Items are seeded from demo gaps (`gap`), from the failure-mode catalog (`suggestion`) or
+# written by hand; `points` link to the demo sampling plan's points by number. The scores are the fictional team's own judgement.
+# No bands are defined, so the tool shows the RPN and makes no judgement. One item is left unscored on purpose so the open items show.
+risk:
+  at: "2026-10-06T09:00:00.000Z"
+  by: Alex Example (fictional)
+  role: MSAT engineer
+  title: ARX-217 fill-finish process risk assessment (fictional)
+  scopeNote: Aseptic fill-finish of ARX-217 at the receiving unit, from drug substance receipt to storage and shipping (fictional).
+  context: Prepared for the technology transfer of ARX-217 to the receiving unit. Fictional example to show the module.
+  loadout: fmea-1-10
+  items:
+    - suggestion: sterile_filter_integrity
+      points: [10, 2]
+      initial: { severity: 9, occurrence: 2, detection: 3 }
+      residual: { severity: 9, occurrence: 1, detection: 3 }
+      actions:
+        - { text: Add a pre-use integrity test to the receiving unit batch record (fictional), owner: Site South QA (fictional), due: "2026-11-15", status: in_progress }
+    - suggestion: aseptic_intervention
+      initial: { severity: 10, occurrence: 4, detection: 5 }
+      actions:
+        - { text: Define the maximum interventions to be simulated in the media fill (fictional), owner: Alex Example (fictional), due: "2026-11-30" }
+    - gap: Filling pump principle
+      points: [1, 5]
+      failureMode: Fill volume outside limits because the receiving unit pump works on a different principle (fictional)
+      effect: Under- or over-filled vials; possible batch rejection
+      causes: Different pump principle and no fill accuracy data for the new pump
+      controlsPrevention: Pump set-up verified at the first PPQ batch
+      controlsDetection: In-process fill weight check
+      initial: { severity: 6, occurrence: 5, detection: 4 }
+      residual: { severity: 6, occurrence: 3, detection: 3 }
+      actions:
+        - { text: Run fill accuracy studies with the receiving unit pump before PPQ (fictional), owner: Alex Example (fictional), due: "2026-12-10" }
+    - gap: CCI for RU configuration
+      points: [3]
+      failureMode: Container closure integrity not shown for the receiving unit stopper and seal combination (fictional)
+      effect: Loss of sterility over shelf life
+      causes: New vial and closure combination; no CCI data yet
+      controlsDetection: Container closure integrity test on PPQ and stability units
+      initial: { severity: 9, occurrence: 3, detection: 6 }
+      residual: { severity: 9, occurrence: 2, detection: 4 }
+    - suggestion: vi_detection
+      points: [4]
+      initial: { severity: 7, occurrence: 4, detection: 5 }
+    - gap: Bulk hold time (maximum)
+      points: [9]
+      failureMode: Bulk hold longer than the studied time (fictional)
+      effect: Product quality or bioburden outside limits
+      causes: Longer batch at the receiving unit than the hold study covers
+      initial: { severity: 5, occurrence: 4, detection: 4 }
+    - step: labeling_packaging
+      failureMode: Wrong batch number printed on a label (fictional)
+      effect: Mix-up at release
+      causes: Manual entry of batch data
+      controlsPrevention: Print data taken from the batch record by a second person
+      initial: { severity: 8, occurrence: 2, detection: 2 }
+    - gap: Drug substance container
+      failureMode: Drug substance container does not fit the receiving unit thaw equipment (fictional)
+    - suggestion: storage_cold_chain
+      points: [11]
+      initial: { severity: 7, occurrence: 3, detection: 3 }
+    - gap: PUPSIT performed
+      failureMode: Filter damage not found because pre-use post-sterilization integrity testing is not done (fictional)
+      effect: Non-sterile filtrate reaches the filler
+      initial: { severity: 8, occurrence: 3, detection: 4 }

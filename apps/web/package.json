@@ -18,6 +18,7 @@
     "@gap/engine": "^0.1.0",
     "@gap/process-model": "^1.0.0",
     "@gap/renderers": "^0.1.0",
+    "@gap/risk": "^0.1.0",
     "@gap/sampling": "^0.1.0",
     "@radix-ui/react-dialog": "^1.3.1",
     "idb-keyval": "^6.3.0",

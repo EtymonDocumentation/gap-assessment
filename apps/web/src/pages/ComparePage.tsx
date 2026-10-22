@@ -4,6 +4,7 @@ import { PageBanner } from "../art";
 import { CategoryChip, Empty, ProvisionalFlag, RegulatoryFlag, SeverityBadge } from "../components";
 import { href } from "../router";
 import { useAssessment, useContent, useStageWording, useStore } from "../store";
+import { GapRiskLinks } from "./RiskLinks";
 
 /** SU and RU side by side, per section, with a comparison marker on each row and a note per gap. */
 export function ComparePage() {
@@ -90,6 +91,11 @@ export function ComparePage() {
                               </a>
                             ))}
                           </div>
+                          {gs.filter((g) => g.category !== "equivalent").map((g) => (
+                            <div key={g.key}>
+                              <GapRiskLinks gapId={g.displayId} />
+                            </div>
+                          ))}
                         </td>
                         <td>
                           <div className="stack">

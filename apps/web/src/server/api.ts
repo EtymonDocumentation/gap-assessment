@@ -216,3 +216,9 @@ export const listSubsections = () => json<{ items: unknown[] }>("GET", "/api/sub
 export const createSubsection = (item: unknown) => json<{ id: string }>("POST", "/api/subsections", { json: { item } });
 export const putSubsection = (id: string, item: unknown) => json<{ item: unknown }>("PUT", `/api/subsections/${enc(id)}`, { json: { item } });
 export const deleteSubsection = (id: string) => call("DELETE", `/api/subsections/${enc(id)}`).then(() => undefined);
+
+// ------------------------------------------------------------------ Risk method library (module "risk")
+export const listRiskMethods = () => json<{ methods: unknown[] }>("GET", "/api/risk-methods").then((r) => r.methods);
+export const createRiskMethod = (method: unknown) => json<{ id: string }>("POST", "/api/risk-methods", { json: { method } });
+export const putRiskMethod = (id: string, method: unknown) => json<{ method: unknown }>("PUT", `/api/risk-methods/${enc(id)}`, { json: { method } });
+export const deleteRiskMethod = (id: string) => call("DELETE", `/api/risk-methods/${enc(id)}`).then(() => undefined);

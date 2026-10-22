@@ -2,6 +2,7 @@ import { z } from "zod";
 import { SCHEMA_VERSION, newId } from "./entries";
 import { isValidCustomKey } from "./custom";
 import { categoryToType, samplingStateSchema } from "./sampling";
+import { riskStateSchema } from "./risk";
 import type { Project } from "./types";
 
 const quantity = z.object({ value: z.number().finite(), unit: z.string().min(1) });
@@ -191,7 +192,7 @@ export const documentStateSchema = z.object({
     z.object({
       at: z.string(),
       by: z.string().optional(),
-      format: z.enum(["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html", "sampling-plan-docx", "sampling-plan-html", "sampling-cmo-instructions-docx", "sampling-cmo-instructions-html"]),
+      format: z.enum(["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html", "sampling-plan-docx", "sampling-plan-html", "sampling-cmo-instructions-docx", "sampling-cmo-instructions-html", "risk-assessment-docx", "risk-assessment-html"]),
       template: templateRecord,
       revision: z.number().int().positive().optional(),
       fingerprint: z.string(),
@@ -236,6 +237,7 @@ export const projectSchema = z.object({
   tailoring: tailoringSchema,
   stepScope: stepScopeSchema,
   sampling: samplingStateSchema,
+  risk: riskStateSchema,
   document: documentStateSchema,
   sources: z.array(
     z.object({
@@ -434,6 +436,13 @@ const MIGRATIONS: { from: string; to: string; migrate: Migrate }[] = [
     from: "1.12.0",
     to: "1.13.0",
     migrate: (raw, now) => migrateTo1130(raw, now),
+  },
+  // 1.13.0 -> 1.14.0: risk assessments (project.risk.assessments), risk format 1.0.0. Older projects have none, which is what they
+  // always had: no assessment is invented and nothing in the project changes.
+  {
+    from: "1.13.0",
+    to: "1.14.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.14.0", risk: raw.risk ?? { assessments: [] } }),
   },
 ];
 

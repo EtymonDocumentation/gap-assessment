@@ -1,10 +1,12 @@
 import { z } from "zod";
-import { addSource, companyTableSnapshotSchema, emptyProject, subsectionBlockSchema, subsectionLibraryItemSchema, verifyEntry, type Actor, type CompanyTableSnapshot, type DesignLoadouts, type DocRef, type Project, type SubsectionLibraryItem } from "@gap/process-model";
+import { addSource, companyTableSnapshotSchema, emptyProject, subsectionBlockSchema, subsectionLibraryItemSchema, verifyEntry, type Actor, type CompanyTableSnapshot, type DesignLoadouts, type DocRef, type FailureModeSuggestions, type RiskLoadouts, type Project, type SubsectionLibraryItem } from "@gap/process-model";
 import type { ContentBundle } from "./content";
 import { PARAMETER_FIELDS, type ParameterField } from "./content-schema";
 import { applyAnswer, type AnswerInput, type FieldAnswer } from "./interview";
 import { setGapOverlay } from "./overlays";
-import { acceptSuggestion, addAgencyRequest, addBatch, addPoint, addStep, addSubsection, applyDesignLoadout, createPlan, setParties, setPointFlow, updatePlan, updatePoint, type PointPatch } from "./sampling";
+import { addAction, addItem, createAssessment, pointRef, setMethod, updateItem } from "./risk";
+import { addItemFromGap, addItemFromSuggestion, gapSeeds, suggestFailureModes } from "./risk-seed";
+import { acceptSuggestion, addAgencyRequest, addBatch, addPoint, addStep, addSubsection, applyDesignLoadout, createPlan, projectScopeSteps, setParties, setPointFlow, updatePlan, updatePoint, type PointPatch } from "./sampling";
 import { suggestPoints, type SamplingSuggestions } from "./sampling-seed";
 import type { QuestionInstance } from "./sequencer";
 
@@ -89,6 +91,38 @@ const samplingDemoSchema = z.object({
   ),
 });
 
+/**
+ * The demo risk assessment: replayed through the same editing functions a person uses. An item is seeded from a gap (`gap` is the
+ * gap's attribute text, which survives gap renumbering), from the failure-mode catalog (`suggestion` is its key) or written by hand
+ * (`step` is a catalog unit operation); `points` are 1-based point numbers of the demo's first sampling plan. The scores are the
+ * fictional team's own judgement, typed in here, never derived from a gap severity.
+ */
+const riskDemoSchema = z.object({
+  at: z.string(),
+  by: z.string(),
+  role: z.string().optional(),
+  title: z.string(),
+  scopeNote: z.string().optional(),
+  context: z.string().optional(),
+  loadout: z.string(),
+  items: z.array(
+    z.object({
+      gap: z.string().optional(),
+      suggestion: z.string().optional(),
+      step: z.string().optional(),
+      points: z.array(z.number().int()).default([]),
+      failureMode: z.string().optional(),
+      effect: z.string().optional(),
+      causes: z.string().optional(),
+      controlsPrevention: z.string().optional(),
+      controlsDetection: z.string().optional(),
+      initial: z.record(z.string(), z.number().int()).optional(),
+      residual: z.record(z.string(), z.number().int()).optional(),
+      actions: z.array(z.object({ text: z.string(), owner: z.string().optional(), due: z.string().optional(), status: z.enum(["open", "in_progress", "done", "dropped"]).optional() })).default([]),
+    }),
+  ),
+});
+
 const demoSchema = z.object({
   demo: z.object({ id: z.string(), title: z.string(), version: z.string() }),
   responder: z.object({ name: z.string(), role: z.string().optional() }),
@@ -109,6 +143,7 @@ const demoSchema = z.object({
     .default([]),
   followUp: z.array(stepSchema).default([]),
   sampling: samplingDemoSchema.optional(),
+  risk: riskDemoSchema.optional(),
 });
 
 export type DemoScript = z.infer<typeof demoSchema>;
@@ -154,7 +189,7 @@ const actorOf = (p: { at: string; by: string; role?: string | undefined }): Acto
  * answers through the same code path a user takes, so every demo entry has
  * a real interview source, responder and date.
  */
-export function buildDemoProject(content: ContentBundle, raw: unknown, suggestions?: SamplingSuggestions, loadouts?: DesignLoadouts): Project {
+export function buildDemoProject(content: ContentBundle, raw: unknown, suggestions?: SamplingSuggestions, loadouts?: DesignLoadouts, risk?: { loadouts: RiskLoadouts; failureModes: FailureModeSuggestions }): Project {
   const demo = demoSchema.parse(raw);
   const actor: Actor = { name: demo.responder.name, at: demo.date, ...(demo.responder.role ? { role: demo.responder.role } : {}) };
   let project = emptyProject({
@@ -186,6 +221,8 @@ export function buildDemoProject(content: ContentBundle, raw: unknown, suggestio
   }
   // The sampling plan is added only when the caller has the suggestions catalog (the app does); other callers get the project without it.
   if (demo.sampling && suggestions) project = applySamplingDemo(project, content, demo.sampling, suggestions, loadouts);
+  // Likewise the risk assessment needs the method load-outs and the failure-mode catalog; its sampling-point links need the plan above.
+  if (demo.risk && risk) project = applyRiskDemo(project, content, demo.risk, risk.loadouts, risk.failureModes);
   return project;
 }
 
@@ -286,6 +323,56 @@ function applySamplingDemo(project: Project, content: ContentBundle, s: z.infer<
       });
       project = addSubsection(project, created.planId, { title: sub.title, blocks: sub.blocks, placement, includeInCmo: sub.includeInCmo, ...(lib ? { origin: { kind: "library", itemId: lib.id, version: lib.version, name: lib.name } } : {}) }, who).project;
     }
+  }
+  return project;
+}
+
+function applyRiskDemo(project: Project, content: ContentBundle, r: z.infer<typeof riskDemoSchema>, loadouts: RiskLoadouts, library: FailureModeSuggestions): Project {
+  const who: Actor = { name: r.by, at: r.at, ...(r.role ? { role: r.role } : {}) };
+  const created = createAssessment(project, { title: r.title, ...(r.scopeNote ? { scopeNote: r.scopeNote } : {}), ...(r.context ? { context: r.context } : {}), steps: projectScopeSteps(content, project) }, who);
+  const id = created.assessmentId;
+  const lo = loadouts.loadouts.find((l) => l.id === r.loadout);
+  if (!lo) throw new Error(`Demo risk: unknown method load-out ${r.loadout}`);
+  project = setMethod(created.project, id, structuredClone(lo.config), who);
+  const plan = project.sampling.plans[0];
+  const asm = () => project.risk.assessments.find((a) => a.id === id)!;
+  for (const it of r.items) {
+    let itemId: string;
+    if (it.gap) {
+      const seed = gapSeeds(content, project, asm()).find((g) => g.attribute === it.gap);
+      if (!seed) throw new Error(`Demo risk: gap "${it.gap}" is not a gap of the demo project`);
+      ({ project, itemId } = addItemFromGap(project, id, seed, who));
+    } else if (it.suggestion) {
+      const offer = suggestFailureModes(library, asm()).find((o) => o.key === it.suggestion);
+      if (!offer) throw new Error(`Demo risk: failure-mode suggestion ${it.suggestion} is not offered for the demo steps`);
+      ({ project, itemId } = addItemFromSuggestion(project, id, offer, library.catalog.version, who));
+    } else {
+      const step = asm().steps.find((s) => s.unitOp === it.step);
+      if (it.step && !step) throw new Error(`Demo risk: unknown step ${it.step}`);
+      ({ project, itemId } = addItem(project, id, step ? { stepId: step.id } : {}, who));
+    }
+    const links = it.points.map((n) => {
+      const pt = plan?.points[n - 1];
+      if (!plan || !pt) throw new Error(`Demo risk: sampling point #${n} does not exist`);
+      return pointRef(plan.id, pt.id);
+    });
+    project = updateItem(
+      project,
+      id,
+      itemId,
+      {
+        ...(it.failureMode ? { failureMode: it.failureMode } : {}),
+        ...(it.effect ? { effect: it.effect } : {}),
+        ...(it.causes ? { causes: it.causes } : {}),
+        ...(it.controlsPrevention ? { controlsPrevention: it.controlsPrevention } : {}),
+        ...(it.controlsDetection ? { controlsDetection: it.controlsDetection } : {}),
+        ...(links.length ? { samplingPointIds: links } : {}),
+        ...(it.initial ? { initial: { values: it.initial } } : {}),
+        ...(it.residual ? { residual: { values: it.residual } } : {}),
+      },
+      who,
+    );
+    for (const a of it.actions) project = addAction(project, id, { itemId, text: a.text, ...(a.owner ? { owner: a.owner } : {}), ...(a.due ? { due: a.due } : {}), ...(a.status ? { status: a.status } : {}) }, who).project;
   }
   return project;
 }

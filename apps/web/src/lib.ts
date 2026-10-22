@@ -102,6 +102,8 @@ export const FORMAT_LABEL = {
   "sampling-plan-html": "Sampling plan (HTML)",
   "sampling-cmo-instructions-docx": "CMO reporting instructions (Word)",
   "sampling-cmo-instructions-html": "CMO reporting instructions (HTML)",
+  "risk-assessment-docx": "Risk assessment (Word)",
+  "risk-assessment-html": "Risk assessment (HTML)",
 } as const;
 
 /** First 12 characters of a SHA-256 value, for tables. The full value goes in a title or an expandable. */

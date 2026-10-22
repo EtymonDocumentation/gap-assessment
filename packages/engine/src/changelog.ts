@@ -51,6 +51,21 @@ export const ACTION_LABELS: Record<string, string> = {
   sampling_step_remove: "Process step removed from a sampling plan",
   sampling_steps_copy: "Process steps copied from the project scope",
   migrate_sampling_steps: "Process steps added to a sampling plan (schema upgrade)",
+  risk_assessment_add: "Risk assessment added",
+  risk_assessment_update: "Risk assessment edited",
+  risk_assessment_remove: "Risk assessment removed",
+  risk_method_set: "Risk method set or edited",
+  risk_item_add: "Risk item added",
+  risk_item_update: "Risk item edited",
+  risk_item_remove: "Risk item removed",
+  risk_action_add: "Risk action added",
+  risk_action_update: "Risk action edited",
+  risk_action_remove: "Risk action removed",
+  risk_step_add: "Process step added to a risk assessment",
+  risk_step_update: "Process step of a risk assessment edited",
+  risk_step_move: "Process step of a risk assessment moved",
+  risk_step_remove: "Process step removed from a risk assessment",
+  risk_steps_copy: "Process steps copied from the project scope (risk assessment)",
   tailor_exclude: "Topic switched off (scope)",
   tailor_include: "Topic switched on (scope)",
   scope_exclude_uo: "Process step left out (scope)",
@@ -226,6 +241,28 @@ const SAMPLING_FIELD_TEXT: Record<string, string> = {
   step: "Process step",
   order: "Step order",
   movedToTray: "Moved to Not on the diagram",
+  failureMode: "Failure mode",
+  effect: "Effect",
+  causes: "Causes",
+  controlsPrevention: "Prevention controls",
+  controlsDetection: "Detection controls",
+  stepId: "Process step",
+  initial: "Initial score",
+  residual: "Residual score",
+  gapIds: "Gaps",
+  samplingPointIds: "Sampling points",
+  scopeNote: "Scope",
+  context: "Context",
+  method: "Method",
+  config: "Method configuration",
+  scores: "Scores cleared",
+  text: "Description",
+  owner: "Owner",
+  due: "Due",
+  status: "Status",
+  approvals: "Approvals",
+  item: "Item",
+  actions: "Actions",
 };
 
 function samplingValueText(v: unknown): string {
@@ -394,7 +431,7 @@ function toRow(content: ContentBundle, project: Project, ev: ChangeEvent, i: num
       return row;
     }
     default: {
-      if (ev.action.startsWith("sampling_") || ev.action === "migrate_sampling_steps") {
+      if (ev.action.startsWith("sampling_") || ev.action === "migrate_sampling_steps" || ev.action.startsWith("risk_")) {
         row.subject = ev.detail ?? ev.path ?? "";
         const d = samplingDiff(ev.before, ev.after);
         row.before = d.before;

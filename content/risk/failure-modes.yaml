@@ -1,0 +1,224 @@
+# Typical failure modes per unit operation of a sterile injectable fill-finish process, offered by the Risk assessment page.
+# OPTIONS ONLY. An entry is general GMP knowledge about what commonly goes wrong at a step and why. It carries NO score: how
+# severe, how likely or how detectable a failure mode is at a given site is the team's judgement, and the tool never fills it in.
+# It is also not a finding about any product, site or batch.
+#
+# A suggestion is never added to an assessment by itself. When a person accepts one, the assessment gets a DRAFT item with this
+# wording (failure mode, effect, causes, typical controls) for the team to edit, and no score. `rationale` says why the failure
+# mode is typical for the step. `guidanceRef` (optional) is an id of the Guidance library.
+# Editable without code changes. Bump catalog.version on any change.
+catalog:
+  id: risk-failure-modes
+  version: 1.0.0
+
+suggestions:
+  - key: thaw_gradient
+    unitOp: ds_receipt_thaw
+    failureMode: Drug substance is not homogeneous after thawing
+    effect: Concentration differs between parts of the thawed material, so the bulk may start off-target
+    causes: Freeze-thaw concentration gradient; thawing method or time not matched to the container size; insufficient mixing after thaw
+    controlsPrevention: Defined thaw method and mixing after thaw
+    controlsDetection: Concentration measured at defined positions after thaw
+    rationale: Frozen protein solutions can concentrate unevenly during freezing and thawing, which is why thaw and mixing are normally controlled and checked.
+    guidanceRef: ich-q9-r1
+  - key: thaw_temperature_excursion
+    unitOp: ds_receipt_thaw
+    failureMode: Drug substance is held outside its allowed temperature during thaw
+    effect: Product quality may be affected (aggregation, degradation) and the material may need to be rejected
+    causes: Thaw time or temperature not controlled; no temperature record; container left on the bench
+    controlsPrevention: Controlled thaw equipment and a defined maximum time
+    controlsDetection: Temperature record reviewed before release to use
+    rationale: Temperature history during thaw is part of the drug substance's allowed handling and is normally recorded.
+  - key: buffer_wrong_material
+    unitOp: buffer_prep
+    failureMode: Wrong or out-of-specification raw material used in the buffer
+    effect: Buffer composition is wrong, which can change pH, osmolality or product stability
+    causes: Material mix-up; expired or unreleased material; weighing error
+    controlsPrevention: Material identity check and release status check before use; second-person verification of weighing
+    controlsDetection: pH and osmolality tested on the prepared buffer
+    rationale: Mix-ups and wrong amounts are the commonest manual failure at preparation steps, and raw material identity is a basic GMP control.
+  - key: buffer_bioburden
+    unitOp: buffer_prep
+    failureMode: Buffer hold allows microbial growth before filtration
+    effect: Higher bioburden challenges the downstream filter and raises endotoxin risk
+    causes: Hold time longer than allowed; unclean vessel or hose; inadequate sanitization of the preparation area
+    controlsPrevention: Defined and verified hold time; cleaning of vessels and hoses
+    controlsDetection: Bioburden sampled before filtration
+    rationale: Aqueous solutions can support growth if held, so a verified hold time and bioburden before filtration are normally set.
+  - key: compounding_addition_error
+    unitOp: compounding
+    failureMode: Wrong amount or wrong order of addition during compounding
+    effect: Bulk solution is out of target for concentration, pH or osmolality
+    causes: Weighing or volume error; steps done in the wrong order; scale not in calibration
+    controlsPrevention: Batch record with verified quantities; calibrated balances; defined order of addition
+    controlsDetection: In-process pH, osmolality and concentration checks of the bulk
+    rationale: Quantity and order errors are manual, and in-process checks of the bulk are the usual way to catch them before filtration.
+  - key: compounding_mixing
+    unitOp: compounding
+    failureMode: Bulk solution is not mixed uniformly
+    effect: Concentration differs from top to bottom of the tank, so units filled at different times differ
+    causes: Mixing speed or time too low for the batch size; vessel geometry; foaming limits the speed
+    controlsPrevention: Validated mixing speed and time for the batch size
+    controlsDetection: Concentration sampled at defined positions
+    rationale: Mixing studies are done because a larger batch or a different vessel can change how quickly a solution becomes uniform.
+  - key: compounding_shear_foaming
+    unitOp: compounding
+    failureMode: Mixing damages the product (shear, foaming, air entrainment)
+    effect: Aggregates or particles may form and the product may be degraded
+    causes: Impeller speed too high; vortex draws in air; long mixing time
+    controlsPrevention: Limits on speed and time; impeller position set
+    controlsDetection: Particle and aggregate testing in process or at release
+    rationale: Proteins can be sensitive to shear and interfaces, so mixing limits are normally set.
+  - key: bbr_filter_integrity
+    unitOp: bbr_filtration
+    failureMode: Bioburden-reduction filter is not intact or is wrongly assembled
+    effect: Higher bioburden reaches the sterilizing filter
+    causes: Damaged filter; wetting not complete; wrong filter fitted; assembly error
+    controlsPrevention: Defined assembly and wetting procedure; filter identity check
+    controlsDetection: Integrity test after use
+    rationale: A filter can only reduce bioburden if it is intact, which is why an integrity test is normally done.
+  - key: sterile_filter_integrity
+    unitOp: sterile_filtration
+    failureMode: Sterilizing filter fails its integrity test or is not tested
+    effect: Sterility of the filtrate cannot be assured and the batch may be rejected
+    causes: Damaged or wrongly fitted filter; incomplete wetting; product residue changes the test value; test equipment fault
+    controlsPrevention: Pre-use sterilization and assembly under defined conditions; validated test method
+    controlsDetection: Integrity test before and after use
+    rationale: Annex 1 expects the integrity of a sterilizing filter to be verified after use, and before use where it is justified.
+    guidanceRef: eu-annex1
+  - key: sterile_filter_compatibility
+    unitOp: sterile_filtration
+    failureMode: Filter adsorbs or releases material that changes the product
+    effect: Product concentration or purity changes after filtration
+    causes: Filter membrane not matched to the product; flush volume too low; extractables
+    controlsPrevention: Filter compatibility and flushing studies
+    controlsDetection: Concentration and pH of the filtrate sampled
+    rationale: A new filter type or a new product-filter pair is normally shown not to change the product.
+  - key: filtrate_hold
+    unitOp: sterile_filtration
+    failureMode: Sterile filtrate is held too long before filling
+    effect: Sterility assurance is weakened and the batch may not be released
+    causes: Filling delayed by equipment stops; hold limit not tracked
+    controlsPrevention: Defined, verified hold time with a start time recorded
+    controlsDetection: Hold time reviewed in the batch record
+    rationale: A hold of sterile material is a risk to sterility, so the time is normally limited and justified.
+    guidanceRef: us-aseptic-2004
+  - key: fill_weight_variation
+    unitOp: aseptic_filling
+    failureMode: Fill volume or weight is outside the limits
+    effect: Under- or over-filled containers; dose delivered may be wrong
+    causes: Pump or needle drift; air in the line; viscosity change; setup error
+    controlsPrevention: Pump setup and calibration; line priming procedure
+    controlsDetection: In-process fill checks at defined intervals
+    rationale: Fill accuracy is a basic filling control and it is normally checked during the run.
+  - key: aseptic_intervention
+    unitOp: aseptic_filling
+    failureMode: Aseptic interventions introduce contamination
+    effect: Sterility of the units filled around the intervention cannot be assured
+    causes: Operator technique; frequent stoppages; poorly designed intervention; gowning breach
+    controlsPrevention: Defined and qualified interventions; operator qualification by media fill
+    controlsDetection: Environmental monitoring, media fill, sterility test
+    rationale: People and interventions are a main source of contamination in aseptic processing, which is the focus of Annex 1.
+    guidanceRef: eu-annex1
+  - key: grade_a_excursion
+    unitOp: aseptic_filling
+    failureMode: Grade A (ISO 5) conditions are lost during filling
+    effect: Open product may be exposed to non-sterile air or particles
+    causes: Airflow disturbance; HEPA filter fault; pressure difference lost; door or access opened
+    controlsPrevention: Qualified airflow and pressure cascade; line clearance and smoke studies
+    controlsDetection: Continuous particle and pressure monitoring with alarms
+    rationale: The filling zone must stay in its classified condition, which is why it is monitored continuously.
+    guidanceRef: eu-annex1
+  - key: filling_particles
+    unitOp: aseptic_filling
+    failureMode: Filling equipment adds visible or subvisible particles
+    effect: Particulate matter in the product
+    causes: Pump or tubing wear; stopper or glass particles; product residue from earlier fills
+    controlsPrevention: Equipment maintenance and component quality controls
+    controlsDetection: Particulate testing and 100 percent visual inspection
+    rationale: Pumps and tubing can shed particles, and injectable products must be essentially free of visible particles.
+    guidanceRef: usp-790
+  - key: stopper_placement
+    unitOp: stoppering
+    failureMode: Stopper is missing, not seated or placed wrongly
+    effect: Container closure integrity is lost and sterility is no longer assured
+    causes: Stopper feed jam; wrong stopper size; settings; vacuum or pressure fault
+    controlsPrevention: Qualified settings and stopper checks at setup
+    controlsDetection: In-process stopper checks; closure integrity testing; visual inspection
+    rationale: Closure integrity protects sterility for the whole shelf life.
+    guidanceRef: us-cci-lieu-sterility
+  - key: stopper_particles
+    unitOp: stoppering
+    failureMode: Stopper processing releases particles or silicone
+    effect: Particles or oil droplets in the product
+    causes: Stopper handling; vibration; poor washing or siliconization
+    controlsPrevention: Supplier controls; stopper wash and siliconization specifications
+    controlsDetection: Particulate testing and visual inspection
+    rationale: Elastomer closures are a known source of particles in injectables.
+  - key: lyo_cycle_deviation
+    unitOp: lyophilization
+    failureMode: Freeze-drying cycle deviates from the validated cycle
+    effect: Cake collapse, high residual moisture or poor reconstitution
+    causes: Shelf temperature or vacuum out of range; load pattern differs; equipment fault; power failure
+    controlsPrevention: Qualified equipment and validated cycle; load map
+    controlsDetection: Cycle recorded and reviewed; residual moisture and appearance tested
+    rationale: A freeze-drying cycle is sensitive to load and equipment, and the product quality depends on the whole cycle.
+    guidanceRef: us-lyophilization-guide
+  - key: lyo_loading_contamination
+    unitOp: lyophilization
+    failureMode: Partially stoppered vials are exposed during loading and unloading
+    effect: Contamination risk for open product
+    causes: Long exposure time; poor airflow in the loading area; manual handling
+    controlsPrevention: Defined maximum exposure time; automated loading where possible
+    controlsDetection: Environmental monitoring in the loading zone; media fill covering the exposure
+    rationale: Partially stoppered vials are open to the room, so loading is a recognised contamination risk.
+    guidanceRef: eu-annex1
+  - key: capping_seal
+    unitOp: capping
+    failureMode: Cap is loose, crimped incorrectly or missing
+    effect: Seal integrity is lost and the stopper may not stay seated
+    causes: Crimp force not set; wrong cap; capping head wear
+    controlsPrevention: Set and verify crimp settings at start; maintenance
+    controlsDetection: Seal checks during the run; visual inspection
+    rationale: The cap holds the stopper in place, so a poor crimp threatens closure integrity.
+  - key: capping_particles
+    unitOp: capping
+    failureMode: Capping generates particles in the filling area
+    effect: Particles may fall on open or just-closed containers
+    causes: Metal on metal wear; capping near the open filling zone
+    controlsPrevention: Capping separated from the open filling zone; maintenance
+    controlsDetection: Particle monitoring; visual inspection
+    rationale: Crimping is a mechanical process that can shed metal particles.
+  - key: vi_detection
+    unitOp: visual_inspection
+    failureMode: Visual inspection misses a defective unit
+    effect: A unit with particles, a cracked container or a bad seal is released
+    causes: Operator fatigue or lighting; inspection speed; inadequate defect library; automated system not qualified
+    controlsPrevention: Trained and qualified inspectors; defined rest breaks; qualified inspection conditions
+    controlsDetection: Test kits of known defects; re-inspection and AQL check
+    rationale: Inspection is a probability, not a guarantee of detection, and is normally challenged with known defects.
+    guidanceRef: usp-790
+  - key: vi_mixup
+    unitOp: visual_inspection
+    failureMode: Rejected units are mixed with accepted units
+    effect: Defective units are released
+    causes: Reject container not segregated; line clearance missed
+    controlsPrevention: Separate marked reject containers; line clearance
+    controlsDetection: Reconciliation of units inspected, accepted and rejected
+    rationale: Mix-ups are a basic risk where good and rejected material are handled side by side.
+  - key: labeling_mixup
+    unitOp: labeling_packaging
+    failureMode: Wrong label or leaflet applied
+    effect: Wrong product information reaches the patient
+    causes: Label line clearance not done; look-alike labels; label reconciliation not done
+    controlsPrevention: Line clearance and label control
+    controlsDetection: Label reconciliation and in-line verification
+    rationale: Labelling errors cause recalls, and line clearance and reconciliation are standard controls.
+  - key: storage_cold_chain
+    unitOp: storage_shipping
+    failureMode: Product is stored or shipped outside its allowed temperature
+    effect: Product quality may be affected and the shipment may be rejected
+    causes: Shipper not qualified; storage unit failure; delay in transit; no temperature record
+    controlsPrevention: Qualified storage and shippers; defined transit time
+    controlsDetection: Temperature monitoring with review on receipt
+    rationale: Temperature history is part of the allowed handling of the product after manufacture.

@@ -16,7 +16,7 @@ import { emptyProject, parseProject, type Actor, type Project } from "@gap/proce
 import { del, get, set } from "idb-keyval";
 import { useMemo } from "react";
 import { create } from "zustand";
-import { content, demos, designLoadouts, samplingSuggestions } from "@gap/content";
+import { content, demos, designLoadouts, failureModes, riskLoadouts, samplingSuggestions } from "@gap/content";
 import { useSamplingTables } from "./sampling-tables-store";
 import { useSubsectionLibrary } from "./subsections-library-store";
 import { resetFiles } from "./server/files";
@@ -105,7 +105,7 @@ export const useStore = create<State>((setState, getState) => ({
   },
 
   loadDemo() {
-    getState().setProject(buildDemoProject(content, demos["arx-217"], samplingSuggestions, designLoadouts), "Demo project loaded", true);
+    getState().setProject(buildDemoProject(content, demos["arx-217"], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes }), "Demo project loaded", true);
     // The demo plan uses a fictional company table. Offer it in the library too, so the plan does not say its table has gone.
     void useSamplingTables.getState().ensure(demoSamplingTables(demos["arx-217"]));
     void useSubsectionLibrary.getState().ensure(demoSubsectionLibrary(demos["arx-217"]));

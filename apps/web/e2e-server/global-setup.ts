@@ -51,7 +51,7 @@ async function start(storage: "server" | "client", port: number, children: Child
     // A few accounts that include the paid sampling module (the default invite carries only "gap"); see makeSamplingInvite().
     const withSampling: string[] = [];
     for (let i = 0; i < SAMPLING_INVITES_PER_WORKER * 12; i++) {
-      const out = execFileSync(process.execPath, [admin, "invite", "--data", data, "--modules", "gap,sampling"], { encoding: "utf8" });
+      const out = execFileSync(process.execPath, [admin, "invite", "--data", data, "--modules", "gap,sampling,risk"], { encoding: "utf8" });
       const code = /\b[A-Z0-9]{5}(?:-[A-Z0-9]{5}){3}\b/.exec(out)?.[0];
       if (!code) throw new Error(`No invite code in the admin tool's output:\n${out}`);
       withSampling.push(code);

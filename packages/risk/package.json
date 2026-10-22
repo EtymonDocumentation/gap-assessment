@@ -1,0 +1,25 @@
+{
+  "name": "@gap/risk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Risk assessment scoring (ICH Q9(R1)): FMEA, risk matrix, user-defined and qualitative methods, bands and the working of every score. Pure functions; no defaults.",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "dependencies": {
+    "@gap/process-model": "^1.0.0",
+    "zod": "^4.6.7"
+  }
+}

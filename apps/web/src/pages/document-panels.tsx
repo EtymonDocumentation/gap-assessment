@@ -333,7 +333,7 @@ export function ExportHistory({ exports, idPrefix = "export-history", title = "E
                     {r.template.name} {r.template.version}
                     {r.versions && (
                       <div className="muted" data-testid="export-versions">
-                        Process model {r.versions.processModel}; catalog {r.versions.catalog}; {r.format.startsWith("sampling-") ? "plan" : "seed"} format {r.versions.format}
+                        Process model {r.versions.processModel}; catalog {r.versions.catalog}; {r.format.startsWith("sampling-") ? "plan" : r.format.startsWith("risk-") ? "risk" : "seed"} format {r.versions.format}
                       </div>
                     )}
                     {r.template.sha256 && (

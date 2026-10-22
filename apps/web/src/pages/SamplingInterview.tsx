@@ -1,3 +1,4 @@
+import { PointRiskLinks } from "./RiskLinks";
 import { acceptSuggestion, addAgencyRequest, removeAgencyRequest, removePoint, setParties, updateAgencyRequest, updatePlan, updatePoint, type PointSuggestion } from "@gap/engine";
 import {
   AGENCY_REQUEST_KINDS,
@@ -276,6 +277,7 @@ export function PointCard({
           <p className="small muted">
             {typeText(point)}; {where}
           </p>
+          <PointRiskLinks planId={plan.id} pointId={point.id} />
         </div>
         <div className="row wrap">
           <span className={`sp-status sp-status-${check.status}`} data-testid={`card-status-${point.id}`}>

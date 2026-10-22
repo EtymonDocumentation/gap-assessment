@@ -2587,3 +2587,76 @@ details > summary {
 .group-body[hidden] {
   display: none;
 }
+
+/* M8: risk assessment. Tokens only (light and dark follow the page); rem sizes; everything wraps at 390 px.
+   Meaning is carried by words and a shape glyph (see RiskScore.tsx); the border style only supports it, never colour alone. */
+.risk-score {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+}
+.risk-badge {
+  display: inline-block;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0 0.375rem;
+  background: var(--surface-2);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+.risk-badge.risk-none {
+  border-style: dashed;
+  color: var(--muted);
+}
+.risk-badge.risk-trigger {
+  border-width: 2px;
+}
+.loadouts {
+  display: grid;
+  gap: 0.5rem;
+}
+.loadout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+}
+.loadout > div {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+.loadout p {
+  margin: 0.125rem 0 0;
+}
+.risk-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  background: var(--surface);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.risk-item[data-open="true"] {
+  border-width: 2px;
+}
+.risk-item h4 {
+  margin: 0;
+}
+.risk-heat td,
+.risk-heat th {
+  vertical-align: top;
+}
+.risk-heat .heat-count {
+  font-weight: 700;
+}
+.risk-heat td.heat-has {
+  border: 2px solid var(--text);
+}
+.risk-links a {
+  overflow-wrap: anywhere;
+}

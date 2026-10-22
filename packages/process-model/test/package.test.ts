@@ -40,7 +40,7 @@ describe("package independence", () => {
 
   it("keeps PROCESS_MODEL_VERSION equal to package.json", () => {
     expect(PROCESS_MODEL_VERSION).toBe(pkg.version);
-    expect(pkg.version).toBe("1.3.0");
+    expect(pkg.version).toBe("1.4.0");
   });
 
   it("is private until it is published on purpose", () => {
@@ -82,6 +82,11 @@ describe("public API", () => {
         "REPORT_WHAT",
         "RESPONSIBLE_PARTIES",
         "RETAIN_PURPOSES",
+        "RISK_ACTION_STATUSES",
+        "RISK_COMBINES",
+        "RISK_FORMAT_VERSION",
+        "RISK_METHODS",
+        "RISK_ORIGIN_KINDS",
         "RUN_TAGS",
         "SAMPLING_CATEGORIES",
         "SAMPLING_METHODS",
@@ -124,6 +129,7 @@ describe("public API", () => {
         "conditionSchema",
         "contentPathOf",
         "convert",
+        "customConfigSchema",
         "customKeyFromLabel",
         "customSchema",
         "customSubsectionSchema",
@@ -138,7 +144,10 @@ describe("public API", () => {
         "emptyProject",
         "ensureUnitOperation",
         "entrySchema",
+        "failureModeSuggestionSchema",
+        "failureModeSuggestionsSchema",
         "fingerprintResolved",
+        "fmeaConfigSchema",
         "fnv1a",
         "formatNumber",
         "formatQuantity",
@@ -151,6 +160,7 @@ describe("public API", () => {
         "isValidContentPath",
         "isValidCustomKey",
         "loadCatalog",
+        "matrixConfigSchema",
         "mixingDesignSchema",
         "mixingRunSchema",
         "newId",
@@ -167,6 +177,7 @@ describe("public API", () => {
         "pointSampleSizeSchema",
         "projectSchema",
         "putEntry",
+        "qualitativeConfigSchema",
         "quantitiesEqual",
         "quantityRatio",
         "quantityWithin",
@@ -178,6 +189,21 @@ describe("public API", () => {
         "reportOnlyAllowed",
         "reportingSchema",
         "resolveEntry",
+        "riskActionSchema",
+        "riskApprovalSchema",
+        "riskAssessmentSchema",
+        "riskBandSchema",
+        "riskConfigSchema",
+        "riskFactorSchema",
+        "riskItemSchema",
+        "riskLevelSchema",
+        "riskLoadoutSchema",
+        "riskLoadoutsSchema",
+        "riskMethodSnapshotSchema",
+        "riskOriginSchema",
+        "riskScaleSchema",
+        "riskScoreSchema",
+        "riskStateSchema",
         "runParameterSchema",
         "sameName",
         "samplingAcceptanceSchema",

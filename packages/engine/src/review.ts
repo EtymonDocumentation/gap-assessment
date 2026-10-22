@@ -159,7 +159,7 @@ function cleanTemplate(t: TemplateRecord): TemplateRecord {
 
 // ------------------------------------------------------------------ exports
 
-const EXPORT_FORMATS: readonly DocumentExport["format"][] = ["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html", "sampling-plan-docx", "sampling-plan-html", "sampling-cmo-instructions-docx", "sampling-cmo-instructions-html"];
+const EXPORT_FORMATS: readonly DocumentExport["format"][] = ["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html", "sampling-plan-docx", "sampling-plan-html", "sampling-cmo-instructions-docx", "sampling-cmo-instructions-html", "risk-assessment-docx", "risk-assessment-html"];
 
 /** True for the three TRD seed outputs (the seed JSON and its Word and HTML outlines). */
 export function isTrdFormat(format: DocumentExport["format"]): boolean {
@@ -171,9 +171,14 @@ export function isSamplingFormat(format: DocumentExport["format"]): boolean {
   return format.startsWith("sampling-plan-");
 }
 
-/** Which document an output belongs to: the gap assessment, the TRD outputs or the sampling plan. Each is compared with its own previous download. */
-function exportFamily(format: DocumentExport["format"]): "gap" | "trd" | "sampling" {
-  return isTrdFormat(format) ? "trd" : isSamplingFormat(format) ? "sampling" : "gap";
+/** True for the two risk assessment outputs (Word and HTML). */
+export function isRiskFormat(format: DocumentExport["format"]): boolean {
+  return format.startsWith("risk-assessment-");
+}
+
+/** Which document an output belongs to: the gap assessment, the TRD outputs, the sampling plan or the risk assessment. Each is compared with its own previous download. */
+function exportFamily(format: DocumentExport["format"]): "gap" | "trd" | "sampling" | "risk" {
+  return isTrdFormat(format) ? "trd" : isSamplingFormat(format) ? "sampling" : isRiskFormat(format) ? "risk" : "gap";
 }
 
 /** Appends an export record. No change-log entry: downloading the document does not change the project. */

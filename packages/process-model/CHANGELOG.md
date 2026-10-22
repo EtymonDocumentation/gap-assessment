@@ -2,6 +2,19 @@
 
 All notable changes to `@gap/process-model`. Versions follow semver; see README.md for what counts as breaking.
 
+## 1.4.0
+
+Risk assessment format 1.0.0 (project schema 1.14.0). Additive: nothing was removed, and a project without `risk` migrates to an
+empty one.
+
+### Added
+- `project.risk.assessments` (riskStateSchema): ICH Q9(R1) risk assessments, one method each (FMEA, matrix, user-defined,
+  qualitative), with items (RA-001 ...), actions (AC-001 ...), the assessment's own process steps and optional approvals.
+- Method configs (`riskConfigSchema`), saved-method snapshot (`riskMethodSnapshotSchema`), load-out and failure-mode catalog
+  schemas, RISK_FORMAT_VERSION, RISK_METHODS, RISK_COMBINES, RISK_ACTION_STATUSES.
+- Export formats `risk-assessment-docx` and `risk-assessment-html`.
+- Migration 1.13.0 -> 1.14.0: adds `risk: { assessments: [] }`.
+
 ## 1.3.0
 
 Sampling plan format 1.2.0 (project schema 1.13.0). The plan gets its own process steps and a point can be placed on one of
@@ -42,7 +55,8 @@ PPQ sampling plans. Additive: nothing was removed or re-meant.
 ### Added
 - The sampling plan data shapes (src/sampling.ts): samplingPlanSchema, samplingPointSchema, samplingBatchSchema,
   samplingStateSchema, companyTableSnapshotSchema, samplingInputsSchema, atchResultSchema and their types, the option
-  lists (SAMPLING_METHODS, SAMPLING_CATEGORIES, TIMING_OPTIONS, ...) and eportOnlyAllowed(). No field has a default: a
+  lists (SAMPLING_METHODS, SAMPLING_CATEGORIES, TIMING_OPTIONS, ...) and 
+eportOnlyAllowed(). No field has a default: a
   missing input makes a point incomplete. "Report only" is refused by the schema for routine, release and enhanced PPQ points.
 - Project schema 1.11.0: project.sampling.plans. Migration 1.10.0 -> 1.11.0 adds an empty list.
 - Export history records may be of kind sampling-plan-docx or sampling-plan-html and ersions may carry stats and suggestions.

@@ -9,4 +9,5 @@ export * from "./condition";
 export * from "./catalog";
 export * from "./trd-seed";
 export * from "./sampling";
+export * from "./risk";
 export * from "./version";

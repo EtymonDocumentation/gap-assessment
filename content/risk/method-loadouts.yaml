@@ -1,0 +1,94 @@
+# Load-outs for the risk assessment METHOD. A load-out is a starting shape the user may pick with one click, then edit freely or
+# ignore. The tool has NO default method: an assessment has no method until a person chooses one (a load-out is one way to choose).
+#
+# What a load-out supplies, and what it does not:
+#  - FMEA load-outs give the SCALE RANGES only (severity, occurrence, detection). They carry no level descriptions, no RPN bands and
+#    no "severity alone triggers" rule: what a "7" means and which RPN needs action are the organisation's decisions (ICH Q9(R1)
+#    asks the organisation to define its own criteria). The user adds descriptions and bands in the editor, or leaves them out.
+#  - Matrix load-outs give level names and a grid of risk labels as a STARTING SHAPE. The labels follow the sum of the row and column
+#    positions (low sums Low, middle sums Medium, high sums High). They are the user's to change cell by cell; the tool treats no
+#    cell as acceptable or not.
+#  - The qualitative load-out gives three level names. Each item still needs a written reason.
+# Editable without code changes. Bump catalog.version on any change.
+catalog:
+  version: 1.0.0
+loadouts:
+  - id: fmea-1-10
+    title: FMEA 1-10 (S, O, D)
+    description: Severity, occurrence and detection, each scored 1 to 10; RPN is the product. Scale descriptions and bands are left for you to define, or to leave out.
+    config:
+      method: fmea
+      severity: { min: 1, max: 10, levels: [] }
+      occurrence: { min: 1, max: 10, levels: [] }
+      detection: { min: 1, max: 10, levels: [] }
+      bands: []
+      loadoutId: fmea-1-10
+  - id: fmea-1-5
+    title: FMEA 1-5
+    description: Severity, occurrence and detection, each scored 1 to 5; RPN is the product (1 to 125). Scale descriptions and bands are left for you to define, or to leave out.
+    config:
+      method: fmea
+      severity: { min: 1, max: 5, levels: [] }
+      occurrence: { min: 1, max: 5, levels: [] }
+      detection: { min: 1, max: 5, levels: [] }
+      bands: []
+      loadoutId: fmea-1-5
+  - id: matrix-3x3
+    title: Matrix 3x3
+    description: Three likelihood levels by three severity levels, with risk labels you can change cell by cell.
+    config:
+      method: matrix
+      likelihood: [{ label: Unlikely }, { label: Possible }, { label: Likely }]
+      severity: [{ label: Minor }, { label: Moderate }, { label: Major }]
+      cells:
+        - { row: 1, col: 1, label: Low }
+        - { row: 1, col: 2, label: Low }
+        - { row: 1, col: 3, label: Medium }
+        - { row: 2, col: 1, label: Low }
+        - { row: 2, col: 2, label: Medium }
+        - { row: 2, col: 3, label: High }
+        - { row: 3, col: 1, label: Medium }
+        - { row: 3, col: 2, label: High }
+        - { row: 3, col: 3, label: High }
+      loadoutId: matrix-3x3
+  - id: matrix-5x5
+    title: Matrix 5x5
+    description: Five likelihood levels by five severity levels, with risk labels you can change cell by cell.
+    config:
+      method: matrix
+      likelihood: [{ label: Rare }, { label: Unlikely }, { label: Possible }, { label: Likely }, { label: Almost certain }]
+      severity: [{ label: Negligible }, { label: Minor }, { label: Moderate }, { label: Major }, { label: Critical }]
+      cells:
+        - { row: 1, col: 1, label: Low }
+        - { row: 1, col: 2, label: Low }
+        - { row: 1, col: 3, label: Low }
+        - { row: 1, col: 4, label: Medium }
+        - { row: 1, col: 5, label: Medium }
+        - { row: 2, col: 1, label: Low }
+        - { row: 2, col: 2, label: Low }
+        - { row: 2, col: 3, label: Medium }
+        - { row: 2, col: 4, label: Medium }
+        - { row: 2, col: 5, label: Medium }
+        - { row: 3, col: 1, label: Low }
+        - { row: 3, col: 2, label: Medium }
+        - { row: 3, col: 3, label: Medium }
+        - { row: 3, col: 4, label: Medium }
+        - { row: 3, col: 5, label: High }
+        - { row: 4, col: 1, label: Medium }
+        - { row: 4, col: 2, label: Medium }
+        - { row: 4, col: 3, label: Medium }
+        - { row: 4, col: 4, label: High }
+        - { row: 4, col: 5, label: High }
+        - { row: 5, col: 1, label: Medium }
+        - { row: 5, col: 2, label: Medium }
+        - { row: 5, col: 3, label: High }
+        - { row: 5, col: 4, label: High }
+        - { row: 5, col: 5, label: High }
+      loadoutId: matrix-5x5
+  - id: qualitative-hml
+    title: Qualitative H/M/L
+    description: High, Medium or Low for each item, with a written reason. No number is calculated.
+    config:
+      method: qualitative
+      levels: [{ label: High }, { label: Medium }, { label: Low }]
+      loadoutId: qualitative-hml

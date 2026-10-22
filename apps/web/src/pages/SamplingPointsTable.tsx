@@ -2,6 +2,7 @@ import { removePoint, updatePoint } from "@gap/engine";
 import { FLOW_POSITIONS, SAMPLING_TYPES, reportOnlyAllowed, type FlowPosition, type SamplingPlan, type SamplingPoint, type SamplingType } from "@gap/process-model";
 import { METHOD_LABEL, NOT_ON_DIAGRAM, POSITION_NOT_SET, STATUS_TEXT, SLOT_LABEL, TYPE_LABEL, checkPoint, methodInputsText, tableOrder, typeCode, unitsPerBatch, usesSampleSizeMethod, stepOf } from "@gap/sampling";
 import { useMemo } from "react";
+import { PointRiskLinks } from "./RiskLinks";
 import { movePoint, targetOf, type OpenAdd, type Run } from "./SamplingFlow";
 
 /*
@@ -85,6 +86,9 @@ function PointRow({ plan, point, selected, onSelect, run, onEdit }: { plan: Samp
       <th scope="row">
         {point.id}
         {selected && <span className="small"> (selected)</span>}
+        <div>
+          <PointRiskLinks planId={plan.id} pointId={point.id} />
+        </div>
       </th>
       <td onClick={(e) => e.stopPropagation()}>
         <select

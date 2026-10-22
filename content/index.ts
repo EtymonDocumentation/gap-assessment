@@ -1,5 +1,5 @@
-import type { DesignLoadouts } from "@gap/process-model";
-import { buildContent, parseGuidance, parseDesignLoadouts, parseSamplingSuggestions, type ContentBundle, type GuidanceLibrary, type RawContent, type SamplingSuggestions } from "@gap/engine";
+import type { DesignLoadouts, FailureModeSuggestions, RiskLoadouts } from "@gap/process-model";
+import { buildContent, parseFailureModes, parseGuidance, parseDesignLoadouts, parseRiskLoadouts, parseSamplingSuggestions, type ContentBundle, type GuidanceLibrary, type RawContent, type SamplingSuggestions } from "@gap/engine";
 import { catalog } from "@gap/process-model/catalog";
 import catalogOverlay from "./catalog/gap-overlay.yaml";
 import demoArx217 from "./demo/arx-217.yaml";
@@ -19,6 +19,8 @@ import q70 from "./questions/70-visual-inspection.yaml";
 import q75 from "./questions/75-bulk-packaging.yaml";
 import q80 from "./questions/80-labeling-packaging.yaml";
 import q90 from "./questions/90-storage-shipping.yaml";
+import failureModesRaw from "./risk/failure-modes.yaml";
+import riskLoadoutsRaw from "./risk/method-loadouts.yaml";
 import rules from "./rules/rules.yaml";
 import designLoadoutsRaw from "./sampling/design-loadouts.yaml";
 import ppqSuggestionsRaw from "./sampling/ppq-suggestions.yaml";
@@ -74,3 +76,16 @@ export const samplingSuggestions: SamplingSuggestions = parseSamplingSuggestions
 
 /** Presets for the optional study design of a mixing point. The user applies one, then edits or ignores it; no value is supplied. */
 export const designLoadouts: DesignLoadouts = parseDesignLoadouts(designLoadoutsRaw);
+
+/** Presets for the risk assessment METHOD (FMEA, matrix, qualitative). The user picks one, then edits or ignores it; there is no default method. */
+export const riskLoadouts: RiskLoadouts = parseRiskLoadouts(riskLoadoutsRaw);
+
+/**
+ * Typical failure modes per unit operation, offered as suggestions (nothing is added by itself, and none carries a score).
+ * Validated here against the catalog's unit operations and the Guidance library, so a misspelt step or reference stops the build.
+ */
+export const failureModes: FailureModeSuggestions = parseFailureModes(
+  failureModesRaw,
+  content.catalog.unitOperations.map((u) => u.key),
+  guidance.items.map((g) => g.id),
+);

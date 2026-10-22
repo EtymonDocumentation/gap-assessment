@@ -31,3 +31,6 @@ export * from "./sampling-seed";
 export * from "./sampling";
 export * from "./sampling-document";
 export * from "./sampling-cmo";
+export * from "./risk";
+export * from "./risk-seed";
+export * from "./risk-document";

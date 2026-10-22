@@ -1,7 +1,7 @@
 import { allEntries, getEntry, parseRef } from "./paths";
 import type { Actor, Entry, EntryStatus, EntryValue, Project, Source, SourceLocation, TbdInfo } from "./types";
 
-export const SCHEMA_VERSION = "1.13.0";
+export const SCHEMA_VERSION = "1.14.0";
 
 let counter = 0;
 /** Short unique id. Uses crypto.randomUUID where available. */
@@ -33,6 +33,7 @@ export function emptyProject(args: {
     tailoring: { excluded: [] },
     stepScope: { excluded: [] },
     sampling: { plans: [] },
+    risk: { assessments: [] },
     document: { exports: [] },
     sources: [],
     answers: [],
