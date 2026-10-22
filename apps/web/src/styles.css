@@ -1069,9 +1069,10 @@ table.data tr.inactive {
 /* ---------------------------------------------------------------- responsive */
 
 @media (min-width: 901px) {
-  .app-header {
-    flex-wrap: nowrap;
-  }
+  /* The header must stay allowed to wrap on wide screens too. With 13 menu entries the single-row menu is about 1200 px wide in
+     wider fonts (Linux CI, Verdana), so a no-wrap menu pushed the theme picker off the right edge and the page scrolled
+     sideways by about 80 px at 1280 px. Wrapping costs an extra header row only when the entries do not fit; nothing is
+     clipped or hidden. */
   .brand {
     flex: 1 1 auto;
   }
@@ -1081,8 +1082,8 @@ table.data tr.inactive {
     white-space: nowrap;
   }
   .nav {
-    flex-wrap: nowrap;
-    flex: none;
+    flex: 0 1 auto;
+    min-width: 0;
   }
   .theme-select {
     flex: none;
