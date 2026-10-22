@@ -10,6 +10,7 @@ import { ChangesPage } from "./pages/ChangesPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { SourcesPage } from "./pages/SourcesPage";
 import { TbdPage } from "./pages/TbdPage";
+import { MyFilesPage } from "./pages/MyFilesPage";
 import { RiskMethodsPage } from "./pages/RiskMethodsPage";
 import { RiskPage } from "./pages/RiskPage";
 import { SamplingPage } from "./pages/SamplingPage";
@@ -43,6 +44,7 @@ const NAV = [
   { path: "/builder", label: "Builder" },
   { path: "/sources", label: "Sources" },
   { path: "/changes", label: "Change log" },
+  { path: "/myfiles", label: "My files" },
 ] as const;
 
 /** Shown instead of the sampling pages on an account without the sampling module. */
@@ -127,11 +129,12 @@ function AppShell() {
 
   // The template library belongs to the browser, not to a project, so it opens without one. So does the guidance library,
   // which is reference material and has nothing to do with the open project.
-  const needsProject = route.path !== "/" && route.path !== "/templates" && route.path !== "/guidance" && route.path !== "/sampling/tables" && route.path !== "/sampling/subsections" && route.path !== "/risk/methods";
+  const needsProject = route.path !== "/" && route.path !== "/templates" && route.path !== "/guidance" && route.path !== "/sampling/tables" && route.path !== "/sampling/subsections" && route.path !== "/risk/methods" && route.path !== "/myfiles";
   const mappingId = /^\/templates\/([^/]+)\/mapping$/.exec(route.path)?.[1];
   let page: React.ReactNode;
   if (!ready) page = <p className="muted">Loading…</p>;
   else if (needsProject && !project) page = <HomePage notice="Open the demo or start a new project first." />;
+  else if (SERVER_MODE && route.path === "/myfiles") page = <MyFilesPage params={route.params} />;
   else if (route.path === "/scope") page = <ScopePage />;
   else if (route.path === "/interview") page = <InterviewPage params={route.params} />;
   else if (route.path === "/compare") page = <ComparePage />;
@@ -169,7 +172,7 @@ function AppShell() {
         </div>
         <nav aria-label="Main">
           <ul className="nav">
-            {NAV.filter((n) => (n.path !== "/sampling" || samplingAllowed) && (n.path !== "/risk" || riskAllowed)).map((n) => (
+            {NAV.filter((n) => (n.path !== "/myfiles" || SERVER_MODE) && (n.path !== "/sampling" || samplingAllowed) && (n.path !== "/risk" || riskAllowed)).map((n) => (
               <li key={n.path}>
                 <a href={href(n.path)} aria-current={route.path === n.path || (n.path === "/builder" && route.path === "/model") || (n.path === "/templates" && !!mappingId) || (n.path === "/sampling" && (route.path === "/sampling/tables" || route.path === "/sampling/subsections")) || (n.path === "/risk" && route.path === "/risk/methods") ? "page" : undefined}>
                   {n.label}

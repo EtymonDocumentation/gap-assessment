@@ -11,7 +11,7 @@ const SERVER_DIST = join(WEB, "..", "server", "dist");
 export const SERVER_PORT = 8788;
 export const CLIENT_PORT = 8789;
 /** How many invite codes are made up front. Each test worker takes its own block of INVITES_PER_WORKER. */
-export const INVITES_PER_WORKER = 16;
+export const INVITES_PER_WORKER = 24;
 export const SAMPLING_INVITES_PER_WORKER = 4;
 const INVITES_SERVER =INVITES_PER_WORKER * 12;
 const INVITES_CLIENT = INVITES_PER_WORKER * 12;

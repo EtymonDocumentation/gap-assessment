@@ -17,6 +17,8 @@ export interface UserRecord {
   createdAt: string;
   disabled?: true;
   plan: Plan;
+  /** Most data "My files" may hold for this account, in MB. Absent = no quota set (only the per-file limit applies). */
+  filesQuotaMB?: number;
 }
 
 /** What the browser may see about a user (never the hash). */

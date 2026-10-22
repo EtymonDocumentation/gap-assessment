@@ -53,3 +53,28 @@ export function safeContentType(input: string | undefined): string {
   const first = (input ?? "").split(";")[0]?.trim().toLowerCase() ?? "";
   return /^[a-z0-9][a-z0-9!#$&^_.+-]{0,60}\/[a-z0-9][a-z0-9!#$&^_.+-]{0,100}$/.test(first) ? first : "application/octet-stream";
 }
+
+// Direction-override and zero-width characters can make "evil‮fdp.exe" look like a PDF; path separators would
+// make a label read as a path in the download name.
+// eslint-disable-next-line no-control-regex
+const LABEL_BAD = /[\u0000-\u001f\u007f-\u009f/\\\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g;
+export const MAX_LABEL = 200;
+
+/**
+ * A name as shown and stored in "My files" for a file or a folder. It never decides a path on disk (files are stored
+ * under their id; see myfiles.ts), so it keeps spaces, dots in the middle and non-ASCII letters, but it can never hold
+ * a path separator, a control or direction-override character, and is never "." or "..". Returns null when nothing usable
+ * is left, so the caller can answer 400 instead of inventing a name.
+ */
+export function cleanLabel(input: unknown): string | null {
+  if (typeof input !== "string") return null;
+  let name = input.normalize("NFC").replace(LABEL_BAD, "_").trim();
+  if (name.length > MAX_LABEL) {
+    // Keep a short extension when cutting, so a long photo name still ends in ".png".
+    const dot = name.lastIndexOf(".");
+    const ext = dot > 0 && name.length - dot <= 12 ? name.slice(dot) : "";
+    name = name.slice(0, MAX_LABEL - ext.length).trimEnd() + ext;
+  }
+  if (!name || name === "." || name === "..") return null;
+  return name;
+}

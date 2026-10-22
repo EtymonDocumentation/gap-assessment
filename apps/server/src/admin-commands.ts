@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { UsageError, parseArgs, type ParsedArgs } from "./args";
 import { deleteSessions, hashInviteCode, invitesFile, loadUsers, newInviteCode, sessionsFile, usersFile } from "./auth";
 import { ConfigError, configPath, loadConfig, type ServerConfig } from "./config";
+import { usageOf } from "./myfiles";
 import { Store } from "./store";
 import { DEFAULT_MODULES, parseModuleList, type InviteRecord, type UserRecord } from "./types";
 
@@ -17,7 +18,9 @@ export const USAGE = `Gap Assessment admin. Usage: admin <command> --data <dir> 
   disable <username> | enable <username>                       block or allow an account
   sessions-revoke <username>                                   sign an account out everywhere
   set-plan <username> <planId>                                 change the plan (e.g. trial-free)
-  set-modules <username> <comma list>                          change the modules an account may use (e.g. gap)`;
+  set-modules <username> <comma list>                          change the modules an account may use (e.g. gap)
+  files-usage                                                  My files: files and megabytes per account (and each quota)
+  set-files-quota <username> <MB|none>                         the most My files may hold for an account (none = no quota)`;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -200,6 +203,46 @@ async function setModules(args: ParsedArgs, io: AdminIo): Promise<void> {
   io.out(`${user.username} can now use these modules: ${modules.join(", ")}.`);
 }
 
+const mbText = (bytes: number): string => `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+
+async function filesUsage(args: ParsedArgs, io: AdminIo): Promise<void> {
+  const { store } = await openStore(args);
+  const all = await loadUsers(store);
+  if (all.length === 0) return io.out("There are no accounts yet.");
+  let totalFiles = 0;
+  let totalBytes = 0;
+  for (const u of all) {
+    const { count, bytes } = await usageOf(store, u.id);
+    totalFiles += count;
+    totalBytes += bytes;
+    // No silent default: an account without a quota says so, and only the per-file limit applies to it.
+    const quota = u.filesQuotaMB === undefined ? "no quota set" : `quota ${u.filesQuotaMB} MB`;
+    io.out(`${u.username}  ${count} file${count === 1 ? "" : "s"}  ${mbText(bytes)}  (${quota})`);
+  }
+  io.out(`Total  ${totalFiles} file${totalFiles === 1 ? "" : "s"}  ${mbText(totalBytes)}`);
+}
+
+async function setFilesQuota(args: ParsedArgs, io: AdminIo): Promise<void> {
+  const { store } = await openStore(args);
+  const user = await findUser(store, args.positional[1]);
+  const value = args.positional[2];
+  if (value === undefined) throw new UsageError("Give the quota in whole megabytes (1 to 1048576), or none.");
+  let mb: number | undefined;
+  if (value.toLowerCase() !== "none") {
+    mb = Number(value);
+    if (!/^\d{1,7}$/.test(value) || mb < 1 || mb > 1_048_576) throw new UsageError("Give the quota as a whole number of megabytes from 1 to 1048576, or none.");
+  }
+  await store.update<UserRecord[]>(usersFile(store), [], (all) =>
+    all.map((u) => {
+      if (u.id !== user.id) return u;
+      const { filesQuotaMB: _old, ...rest } = u;
+      return mb === undefined ? rest : { ...rest, filesQuotaMB: mb };
+    }),
+  );
+  await store.audit("files-quota-set", { userId: user.id, username: user.username, quotaMB: mb ?? "none", actor: "admin-cli" });
+  io.out(mb === undefined ? `${user.username} has no My files quota now (only the per-file limit applies).` : `${user.username} may keep up to ${mb} MB in My files.`);
+}
+
 /** Runs one admin command and returns the exit code (0 = fine). Output goes through `io`. */
 export async function runAdmin(argv: string[], io: AdminIo): Promise<number> {
   try {
@@ -235,6 +278,12 @@ export async function runAdmin(argv: string[], io: AdminIo): Promise<number> {
         break;
       case "set-modules":
         await setModules(args, io);
+        break;
+      case "files-usage":
+        await filesUsage(args, io);
+        break;
+      case "set-files-quota":
+        await setFilesQuota(args, io);
         break;
       default:
         io.err(command ? `Unknown command "${command}".` : "No command given.");

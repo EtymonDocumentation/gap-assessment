@@ -222,3 +222,90 @@ export const listRiskMethods = () => json<{ methods: unknown[] }>("GET", "/api/r
 export const createRiskMethod = (method: unknown) => json<{ id: string }>("POST", "/api/risk-methods", { json: { method } });
 export const putRiskMethod = (id: string, method: unknown) => json<{ method: unknown }>("PUT", `/api/risk-methods/${enc(id)}`, { json: { method } });
 export const deleteRiskMethod = (id: string) => call("DELETE", `/api/risk-methods/${enc(id)}`).then(() => undefined);
+
+// ------------------------------------------------------------------ My files (private file transfer between the person's computers)
+export interface MyFile {
+  id: string;
+  name: string;
+  /** Folder path such as "Reports/2026"; "" is the top level. */
+  folder: string;
+  size: number;
+  contentType: string;
+  sha256: string;
+  uploadedAt: string;
+  uploadedFrom: string;
+  /** When the server deletes the file; absent means never. */
+  expiresAt?: string;
+  /** True for png, jpeg and webp, which have a thumbnail. */
+  previewable: boolean;
+}
+export interface MyFolder {
+  path: string;
+  name: string;
+  files: number;
+  folders: number;
+}
+export interface MyListing {
+  folder: string;
+  folders: MyFolder[];
+  allFolders: string[];
+  files: MyFile[];
+  settings: { autoDeleteDays: number | null };
+  usage: { usedBytes: number; quotaBytes: number | null; fileCount: number };
+  maxFileBytes: number;
+}
+
+export const listMyFiles = (folder: string) => json<MyListing>("GET", `/api/myfiles${folder ? `?folder=${enc(folder)}` : ""}`);
+export const myDownloadUrl = (id: string) => `/api/myfiles/files/${enc(id)}/download`;
+export const myPreviewUrl = (id: string) => `/api/myfiles/files/${enc(id)}/preview`;
+export const patchMyFile = (id: string, patch: { name?: string; folder?: string; autoDeleteDays?: number | null }) =>
+  json<{ file: MyFile }>("PATCH", `/api/myfiles/files/${enc(id)}`, { json: patch }).then((r) => r.file);
+export const deleteMyFile = (id: string) => call("DELETE", `/api/myfiles/files/${enc(id)}`).then(() => undefined);
+export const bulkMyFiles = (v: { action: "delete" | "move"; ids: string[]; folder?: string }) => json<{ done: number; missing: number }>("POST", "/api/myfiles/bulk", { json: v });
+export const createMyFolder = (parent: string, name: string) => json<{ path: string }>("POST", "/api/myfiles/folders", { json: { parent, name } }).then((r) => r.path);
+export const renameMyFolder = (path: string, name: string) => json<{ path: string }>("POST", "/api/myfiles/folders/rename", { json: { path, name } }).then((r) => r.path);
+export const moveMyFolder = (path: string, parent: string) => json<{ path: string }>("POST", "/api/myfiles/folders/move", { json: { path, parent } }).then((r) => r.path);
+/** `confirm` must be true to delete a folder that has anything inside; the server answers 409 "folder-not-empty" otherwise. */
+export const deleteMyFolder = (path: string, confirm: boolean) => call("POST", "/api/myfiles/folders/delete", { json: { path, confirm } }).then(() => undefined);
+export const saveMyFilesSettings = (autoDeleteDays: number | null) => json<{ settings: { autoDeleteDays: number | null } }>("PUT", "/api/myfiles/settings", { json: { autoDeleteDays } });
+
+/** A running upload: wait for `done`, or call `cancel` to stop it. */
+export interface MyUpload {
+  done: Promise<MyFile>;
+  cancel(): void;
+}
+
+/**
+ * Sends one file's bytes to My files (streamed by the browser, one request per file so each has its own progress, error
+ * and cancel). `folder` is where it should land; folders that do not exist yet are created by the server.
+ */
+export function uploadMyFile(file: File, folder: string, onProgress: (fraction: number) => void): MyUpload {
+  const xhr = new XMLHttpRequest();
+  const done = new Promise<MyFile>((resolve, reject) => {
+    xhr.open("POST", "/api/myfiles/upload");
+    xhr.setRequestHeader("X-Gap-Request", "1");
+    xhr.setRequestHeader("X-File-Name", enc(file.name));
+    if (folder) xhr.setRequestHeader("X-Folder", enc(folder));
+    xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && e.total > 0) onProgress(e.loaded / e.total);
+    };
+    xhr.onerror = () => reject(new ApiError(0, "network", NETWORK_MESSAGE));
+    xhr.onabort = () => reject(new ApiError(0, "cancelled", "The upload was cancelled."));
+    xhr.onload = () => {
+      let body: Record<string, unknown> = {};
+      try {
+        body = JSON.parse(xhr.responseText) as Record<string, unknown>;
+      } catch {
+        /* not JSON */
+      }
+      if (xhr.status >= 200 && xhr.status < 300 && body.file) return resolve(body.file as MyFile);
+      const code = typeof body.error === "string" ? body.error : `http-${xhr.status}`;
+      const message = typeof body.message === "string" && body.message ? body.message : fallbackMessage(xhr.status, code);
+      if (xhr.status === 401) unauthorized?.();
+      reject(new ApiError(xhr.status, code, message, body));
+    };
+    xhr.send(file);
+  });
+  return { done, cancel: () => xhr.abort() };
+}

@@ -159,6 +159,23 @@ export class Client {
       bytes,
     );
   }
+
+  /** Raw upload to "My files" (one file per request; the folder is the path the file should land in). */
+  uploadMy(name: string, bytes: Buffer, opts: { folder?: string; type?: string; headers?: Record<string, string> } = {}) {
+    return this.call(
+      "POST",
+      "/api/myfiles/upload",
+      undefined,
+      {
+        "X-File-Name": encodeURIComponent(name),
+        ...(opts.folder !== undefined ? { "X-Folder": encodeURIComponent(opts.folder) } : {}),
+        "Content-Type": opts.type ?? "application/octet-stream",
+        "Content-Length": String(bytes.length),
+        ...opts.headers,
+      },
+      bytes,
+    );
+  }
 }
 
 export async function newInvite(dataDir: string, ...extra: string[]): Promise<string> {

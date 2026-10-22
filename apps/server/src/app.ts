@@ -30,11 +30,13 @@ import {
 } from "./http";
 import { authRoutes } from "./routes/auth";
 import { fileRoutes } from "./routes/files";
+import { myFilesRoutes } from "./routes/myfiles";
 import { projectRoutes } from "./routes/projects";
 import { riskMethodRoutes } from "./routes/risk-methods";
 import { samplingTableRoutes } from "./routes/sampling-tables";
 import { subsectionRoutes } from "./routes/subsections";
 import { templateRoutes } from "./routes/templates";
+import { sweepExpired } from "./myfiles";
 import { serveStatic } from "./static";
 import { Store } from "./store";
 
@@ -57,6 +59,12 @@ export interface App {
   loginByUser: RateLimiter;
   loginByIp: RateLimiter;
   signupByIp: RateLimiter;
+  /** "My files" limits, counted per account: uploads per hour, other changes and reads per minute. */
+  myFilesUploads: RateLimiter;
+  myFilesChanges: RateLimiter;
+  myFilesReads: RateLimiter;
+  /** Bytes of uploads that are arriving right now, per account, so the quota holds when uploads overlap. */
+  myFilesReserved: Map<string, number>;
 }
 
 export interface RunningServer {
@@ -66,8 +74,9 @@ export interface RunningServer {
   close(): Promise<void>;
 }
 
-const routes: Route[] = [...authRoutes, ...projectRoutes, ...templateRoutes, ...samplingTableRoutes, ...riskMethodRoutes, ...subsectionRoutes, ...fileRoutes];
+const routes: Route[] = [...authRoutes, ...projectRoutes, ...templateRoutes, ...samplingTableRoutes, ...riskMethodRoutes, ...subsectionRoutes, ...fileRoutes, ...myFilesRoutes];
 const HOUR_MS = 60 * 60 * 1000;
+const MINUTE_MS = 60 * 1000;
 const WINDOW_15_MIN = 15 * 60 * 1000;
 
 async function openApp(options: ServerOptions): Promise<App> {
@@ -85,6 +94,10 @@ async function openApp(options: ServerOptions): Promise<App> {
     loginByUser: new RateLimiter(5, WINDOW_15_MIN),
     loginByIp: new RateLimiter(20, WINDOW_15_MIN),
     signupByIp: new RateLimiter(10, HOUR_MS),
+    myFilesUploads: new RateLimiter(2000, HOUR_MS),
+    myFilesChanges: new RateLimiter(300, MINUTE_MS),
+    myFilesReads: new RateLimiter(1500, MINUTE_MS),
+    myFilesReserved: new Map(),
   };
 }
 
@@ -156,6 +169,15 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
   const purgeTimer = setInterval(() => void purgeExpiredSessions(app.store).catch(() => undefined), HOUR_MS);
   purgeTimer.unref();
 
+  // "My files" auto-delete: once at start (files that expired while the server was off) and then every hour.
+  const sweep = async () => {
+    const { deleted } = await sweepExpired(app.store);
+    if (deleted > 0) console.log(`My files: deleted ${deleted} expired file${deleted === 1 ? "" : "s"}.`);
+  };
+  await sweep().catch(() => console.error("My files sweep failed"));
+  const sweepTimer = setInterval(() => void sweep().catch(() => console.error("My files sweep failed")), HOUR_MS);
+  sweepTimer.unref();
+
   const server = createServer((req, res) => {
     handle(app, webDir, req, res).catch((err) => sendError(res, err));
   });
@@ -175,6 +197,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
     close: () =>
       new Promise<void>((done) => {
         clearInterval(purgeTimer);
+        clearInterval(sweepTimer);
         server.close(() => done());
         server.closeAllConnections();
       }),

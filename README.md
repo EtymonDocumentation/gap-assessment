@@ -515,6 +515,24 @@ Admin commands (all take `--data <dir>`; each prints a plain-English result and 
 
 The admin tool may be used while the server is running: both take the lock file `<data>/.lock` (created exclusively, retried for about 5 seconds, taken over if older than 30 seconds) around every change to `users.json`, `invites.json` and `sessions.json`, and read the file again from disk under the lock, so no change is lost. the web build from `apps/web/dist-server`; add `--web <dir>` to serve a different folder and `--port <n>` to change the port. The build scripts are `npm run build -w @gap/server` (server and admin only) and `npm run build:server -w @gap/web` (web only).
 
+### My files (move files between your computers)
+
+In storage mode `server`, the **My files** page lets a person upload any file on one computer and download it on another, through the server. Files are private to the account: every route is scoped to the signed-in person and another account gets 404, not 403. The page is not offered in the static demo, and in storage mode `client` the routes answer `403 {"error":"client-storage"}` and the page says so.
+
+- **Adding files:** drag and drop (files or whole folders), the "Choose files" and "Choose a folder" buttons, or **Ctrl+V** to paste a screenshot, which is named `screenshot-YYYY-MM-DD-HHMMSS.png`. Folders can be created, renamed, moved and deleted (deleting a folder that holds files needs a confirmation). Files can be renamed, moved, deleted one by one or several at a time, and downloaded. Deleting is permanent: there is no trash for My files.
+- **Auto-delete:** optional, in days. The account setting applies to files uploaded from then on; each file can also be given its own date or set to never. The server checks hourly (and at start) and removes expired files.
+- **Where it is on disk:** `<data>/files/<accountId>/<fileId>/<safe name>`, with the folder structure and settings in `<data>/files/<accountId>/index.json`. Folders and names you see are labels only; no name you type is ever used as a path. Uploads are streamed to `<data>/files/<accountId>/.incoming/` and moved into place when complete; an aborted or failed upload leaves nothing behind (stray partial files older than an hour are cleaned up).
+- **Files are stored as they are.** The server does not open, scan or convert them. Run an antivirus program on the computer that hosts the data folder, and treat downloaded files from any source with the usual care.
+- **Safety of downloads:** always an attachment with `X-Content-Type-Options: nosniff` and a sandboxing Content-Security-Policy; HTML, SVG, XML and script files are served as `application/octet-stream`. Thumbnails and previews are shown only for png, jpeg and webp, recognised by the file's first bytes rather than its name.
+- **Limits:** one file is limited by `--max-upload-mb`; each account can also have a total quota (below). Folders nest at most 8 deep; at most 20000 files and 2000 folders per account.
+
+Admin commands for My files:
+
+| Command | What it does |
+|---|---|
+| `files-usage` | List each account's My files usage (file count, MB, quota or "no quota set") and the total. |
+| `set-files-quota <username> <MB\|none>` | Set an account's total My files quota in MB (1 to 1048576), or `none` to remove it. There is no default quota. |
+
 ### Testing server mode
 
 - `npm test` includes the server's unit tests (`apps/server/test`, real HTTP on a free port, temporary data folders).
