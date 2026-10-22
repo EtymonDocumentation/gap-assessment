@@ -18,7 +18,7 @@ import {
 import { SAMPLING_TYPES, UNIT_OP_FINISHED_PRODUCT, UNIT_OP_NONE, type SamplingBatch, type SamplingPlan, type SamplingPoint, type SamplingType } from "@gap/process-model";
 import { METHOD_LABEL, STATUS_TEXT, TYPE_LABEL, checkPoint, methodInputsText, planTotals, typeText, unitsPerBatch, usesSampleSizeMethod } from "@gap/sampling";
 import { samplingSuggestions } from "@gap/content";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PageBanner } from "../art";
 import { Empty, Modal } from "../components";
 import { dateTime } from "../lib";
@@ -437,8 +437,26 @@ function DetailsCard({ plan, run }: { plan: SamplingPlan; run: Run }) {
   );
 }
 
+/**
+ * Batch rows collapse to a read-only summary once answered, so three answered batches don't take up the page.
+ * Which rows are open lives here, not in the row: BatchRow is keyed by its content and so remounts on every save.
+ * "new" = just added (opens in edit, nothing saved yet to go back to, so no Cancel); "edit" = reopened with Edit.
+ */
+type BatchMode = "new" | "edit";
+type FocusTarget = { id: string; to: "label" | "edit" };
+
 function BatchesCard({ plan, run }: { plan: SamplingPlan; run: Run }) {
   const [label, setLabel] = useState("");
+  const [modes, setModes] = useState<Record<string, BatchMode>>({});
+  // Where keyboard focus goes after the next render of a row; read by that row, which may be a fresh mount after a save.
+  const focusNext = useRef<FocusTarget | null>(null);
+  const setMode = (id: string, mode: BatchMode | undefined) =>
+    setModes((m) => {
+      const n = { ...m };
+      if (mode) n[id] = mode;
+      else delete n[id];
+      return n;
+    });
   return (
     <section className="card stack" aria-labelledby="sp-batches">
       <h2 id="sp-batches">PPQ batches ({plan.batches.length})</h2>
@@ -448,7 +466,22 @@ function BatchesCard({ plan, run }: { plan: SamplingPlan; run: Run }) {
       ) : (
         <div className="stack">
           {plan.batches.map((b) => (
-            <BatchRow key={`${b.id}-${JSON.stringify(b)}`} plan={plan} batch={b} run={run} />
+            <BatchRow
+              key={`${b.id}-${JSON.stringify(b)}`}
+              plan={plan}
+              batch={b}
+              run={run}
+              mode={modes[b.id]}
+              focusNext={focusNext}
+              onEdit={() => {
+                focusNext.current = { id: b.id, to: "label" };
+                setMode(b.id, "edit");
+              }}
+              onClose={() => {
+                focusNext.current = { id: b.id, to: "edit" };
+                setMode(b.id, undefined);
+              }}
+            />
           ))}
         </div>
       )}
@@ -457,7 +490,17 @@ function BatchesCard({ plan, run }: { plan: SamplingPlan; run: Run }) {
         onSubmit={(e) => {
           e.preventDefault();
           if (!label.trim()) return;
-          if (run((p, actor) => addBatch(p, plan.id, { label: label.trim() }, actor).project, "Batch added")) setLabel("");
+          let newId = "";
+          if (
+            run((p, actor) => {
+              const r = addBatch(p, plan.id, { label: label.trim() }, actor);
+              newId = r.batchId;
+              return r.project;
+            }, "Batch added")
+          ) {
+            setLabel("");
+            setMode(newId, "new");
+          }
         }}
       >
         <label className="field grow">
@@ -472,15 +515,92 @@ function BatchesCard({ plan, run }: { plan: SamplingPlan; run: Run }) {
   );
 }
 
-function BatchRow({ plan, batch, run }: { plan: SamplingPlan; batch: SamplingBatch; run: Run }) {
+const fmtCount = (n: number) => n.toLocaleString("en-GB");
+
+function BatchRow({
+  plan,
+  batch,
+  run,
+  mode,
+  focusNext,
+  onEdit,
+  onClose,
+}: {
+  plan: SamplingPlan;
+  batch: SamplingBatch;
+  run: Run;
+  mode: BatchMode | undefined;
+  focusNext: React.MutableRefObject<FocusTarget | null>;
+  onEdit: () => void;
+  onClose: () => void;
+}) {
   const [label, setLabel] = useState(batch.label);
   const [lot, setLot] = useState(batch.plannedLotSizeUnits);
   const [size, setSize] = useState(batch.batchSize);
   const [unit, setUnit] = useState(batch.batchSizeUnit ?? "");
   const [notes, setNotes] = useState(batch.notes ?? "");
+  const rootRef = useRef<HTMLDivElement & HTMLFieldSetElement>(null);
+  const editing = mode !== undefined;
+  const isNew = mode === "new";
   const dirty = label !== batch.label || lot !== batch.plannedLotSizeUnits || size !== batch.batchSize || unit !== (batch.batchSizeUnit ?? "") || notes !== (batch.notes ?? "");
+
+  // Keyboard users must not lose their place: Edit puts focus in the first field, Save / Cancel put it back on Edit.
+  useEffect(() => {
+    const f = focusNext.current;
+    if (!f || f.id !== batch.id) return;
+    const target = rootRef.current?.querySelector<HTMLElement>(f.to === "label" ? `[data-testid="batch-label-${batch.id}"]` : `[data-testid="batch-edit-${batch.id}"]`);
+    if (!target) return;
+    target.focus();
+    focusNext.current = null;
+  }, [editing, batch.id, focusNext]);
+
+  if (!editing) {
+    const lotText = batch.plannedLotSizeUnits === undefined ? "not given" : `${fmtCount(batch.plannedLotSizeUnits)} containers`;
+    const sizeText =
+      batch.batchSize === undefined ? "not given" : batch.batchSizeUnit ? `${fmtCount(batch.batchSize)} ${batch.batchSizeUnit}` : `${fmtCount(batch.batchSize)} (unit not given)`;
+    return (
+      <div className="batch-summary" role="group" aria-label={`Batch ${batch.id}`} data-testid={`batch-${batch.id}`} ref={rootRef}>
+        <dl>
+          <div>
+            <dt>{batch.id}</dt>
+            <dd>
+              <strong>{batch.label}</strong>
+            </dd>
+          </div>
+          <div>
+            <dt>Planned lot size:</dt>
+            <dd data-testid={`batch-lot-text-${batch.id}`}>{lotText}</dd>
+          </div>
+          <div>
+            <dt>Batch size:</dt>
+            <dd data-testid={`batch-size-text-${batch.id}`}>{sizeText}</dd>
+          </div>
+          {batch.notes ? (
+            <div>
+              <dt>Notes:</dt>
+              <dd className="muted">{batch.notes}</dd>
+            </div>
+          ) : null}
+        </dl>
+        <div className="batch-actions">
+          <button type="button" className="btn" aria-label={`Edit batch ${batch.id}`} data-testid={`batch-edit-${batch.id}`} onClick={onEdit}>
+            Edit
+          </button>
+          <button
+            type="button"
+            className="btn danger"
+            aria-label={`Remove batch ${batch.id}`}
+            onClick={() => run((p, actor) => removeBatch(p, plan.id, batch.id, actor), `Batch ${batch.id} removed`)}
+          >
+            Remove batch
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <fieldset className="stack fs" data-testid={`batch-${batch.id}`}>
+    <fieldset className="stack fs" data-testid={`batch-${batch.id}`} ref={rootRef}>
       <legend>{batch.id}</legend>
       <div className="row wrap">
         <label className="field">
@@ -488,10 +608,10 @@ function BatchRow({ plan, batch, run }: { plan: SamplingPlan; batch: SamplingBat
           <input value={label} onChange={(e) => setLabel(e.target.value)} data-testid={`batch-label-${batch.id}`} />
         </label>
         <NumField label="Planned lot size (containers)" value={lot} onChange={(v) => setLot(v === undefined ? undefined : Math.trunc(v))} testId={`batch-lot-${batch.id}`} />
-        <NumField label="Batch size (optional)" value={size} onChange={setSize} />
+        <NumField label="Batch size (optional)" value={size} onChange={setSize} testId={`batch-size-${batch.id}`} />
         <label className="field">
           <span>Batch size unit</span>
-          <input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="e.g. L" />
+          <input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="e.g. L" data-testid={`batch-unit-${batch.id}`} />
         </label>
       </div>
       <label className="field">
@@ -504,17 +624,24 @@ function BatchRow({ plan, batch, run }: { plan: SamplingPlan; batch: SamplingBat
         <button
           type="button"
           className="btn primary"
-          disabled={!dirty || !label.trim()}
+          // A just-added batch can be saved as it is (label only) to close the row; a saved one needs a change.
+          disabled={(!dirty && !isNew) || !label.trim()}
           data-testid={`batch-save-${batch.id}`}
-          onClick={() =>
-            run(
+          onClick={() => {
+            const ok = run(
               (p, actor) => updateBatch(p, plan.id, batch.id, { label: label.trim(), plannedLotSizeUnits: lot, batchSize: size === undefined || size <= 0 ? undefined : size, batchSizeUnit: unit.trim() || undefined, notes: notes.trim() || undefined }, actor),
               `Batch ${batch.id} saved`,
-            )
-          }
+            );
+            if (ok) onClose();
+          }}
         >
           Save batch
         </button>
+        {isNew ? null : (
+          <button type="button" className="btn" data-testid={`batch-cancel-${batch.id}`} onClick={onClose}>
+            Cancel
+          </button>
+        )}
         <button type="button" className="btn danger" onClick={() => run((p, actor) => removeBatch(p, plan.id, batch.id, actor), `Batch ${batch.id} removed`)}>
           Remove batch
         </button>
