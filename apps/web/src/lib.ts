@@ -98,6 +98,8 @@ export const FORMAT_LABEL = {
   "trd-seed-json": "TRD seed (JSON)",
   "trd-outline-docx": "TRD outline (Word)",
   "trd-outline-html": "TRD outline (HTML)",
+  "sampling-plan-docx": "Sampling plan (Word)",
+  "sampling-plan-html": "Sampling plan (HTML)",
 } as const;
 
 /** First 12 characters of a SHA-256 value, for tables. The full value goes in a title or an expandable. */

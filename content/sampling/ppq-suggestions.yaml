@@ -1,0 +1,82 @@
+# PPQ sampling suggestions: candidates the Sampling plan page offers per unit operation. OPTIONS ONLY. An entry names something
+# that is commonly sampled during process performance qualification (PPQ) and why. It carries no sample size, no acceptance
+# criterion and no sampling method: those are decisions for the team (QA / statistics) and the tool never fills them in.
+# A suggestion is never added to a plan by itself. When a person accepts one, the plan gets an INCOMPLETE point that still needs
+# its timing, locations, method, acceptance criterion and rationale.
+#
+# `category` only says what kind of sampling the candidate usually is (the person can change it when accepting).
+# `uo` is a unit-operation key of the process-model catalog, or "finished_product" (the filled and finished units) or "none"
+# (work that rides on the PPQ batches but belongs to no single step). Suggestions of an excluded unit operation, or of a topic
+# that was left out of the scope, are not offered.
+# Editable without code changes. Bump catalog.version on any change.
+catalog:
+  id: ppq-suggestions
+  version: 1.0.0
+
+candidates:
+  - { uo: ds_receipt_thaw, key: post_thaw_homogeneity, attribute: Post-thaw homogeneity (concentration at defined positions), category: ppq_enhanced, materialType: Thawed drug substance, why: "Frozen drug substance can form a concentration gradient during freeze and thaw; PPQ commonly shows it is homogeneous before use." }
+  - { uo: ds_receipt_thaw, key: thaw_temperature_profile, attribute: Thaw temperature profile, category: ppq_enhanced, materialType: Drug substance container, why: "Shows the thaw method keeps the product within its allowed temperature." }
+
+  - { uo: buffer_prep, key: buffer_bioburden, attribute: Buffer bioburden before filtration, category: routine_ipc_release, materialType: Buffer, why: "Microbial load of the buffer before its bioburden-reduction or sterilizing filter." }
+
+  - { uo: compounding, key: blend_uniformity, attribute: "Blend uniformity (concentration at top, middle and bottom)", category: ppq_enhanced, materialType: Bulk solution, why: "Shows the mixing gives a uniform bulk at the receiving unit's batch size and mixing set-up." }
+  - { uo: compounding, key: bulk_concentration, attribute: Concentration of the bulk solution, category: routine_ipc_release, materialType: Bulk solution, why: "In-process check of the bulk against its target before filtration." }
+  - { uo: compounding, key: compounding_ph_osmolality, attribute: pH and osmolality of the bulk, category: routine_ipc_release, materialType: Bulk solution, why: "Routine in-process properties of the formulated bulk." }
+  - { uo: compounding, key: compounding_bioburden, attribute: Bioburden of the bulk solution, category: routine_ipc_release, materialType: Bulk solution, why: "Microbial load of the bulk before filtration." }
+
+  - { uo: bbr_filtration, key: bbr_prefiltration_bioburden, attribute: Pre-filtration bioburden (bioburden-reduction filter inlet), category: routine_ipc_release, materialType: Bulk solution, why: "Microbial load entering the bioburden-reduction filter." }
+  - { uo: bbr_filtration, key: bbr_filter_integrity, attribute: Filter integrity test (before and after use), category: routine_ipc_release, materialType: Filter assembly, why: "Confirms the bioburden-reduction filter was intact." }
+
+  - { uo: sterile_filtration, key: sf_prefiltration_bioburden, attribute: Bioburden before the sterilizing filter, category: routine_ipc_release, materialType: Bulk solution, why: "Microbial load entering the sterilizing filter; it must stay within what the filter was challenged with." }
+  - { uo: sterile_filtration, key: sf_filter_integrity, attribute: Filter integrity test (pre-use and post-use), category: routine_ipc_release, materialType: Filter assembly, why: "Confirms the sterilizing filter was intact before and after the filtration." }
+  - { uo: sterile_filtration, key: sf_filtrate_samples, attribute: Filtrate concentration and pH after filtration, category: ppq_enhanced, materialType: Filtrate, why: "Shows the filter does not change the product (for example by adsorption)." }
+
+  - { uo: aseptic_filling, key: fill_weight, attribute: Fill weight or fill volume, category: routine_ipc_release, materialType: Filled containers, why: "Routine check that each needle fills to target." }
+  - { uo: aseptic_filling, key: fill_particulates, attribute: Subvisible and visible particulates, category: ppq_enhanced, materialType: Filled containers, why: "Pumps and filling lines can add particles; PPQ commonly samples across the run." }
+  - { uo: aseptic_filling, key: fill_concentration_start_end, attribute: Product concentration across the filling run, category: ppq_enhanced, materialType: Filled containers, why: "Shows the product stays consistent from the start to the end of filling." }
+  - { uo: aseptic_filling, key: bioburden_pre_fill, attribute: Bioburden of the bulk before filling, category: routine_ipc_release, materialType: Bulk solution in the filling tank, why: "Microbial load of the product held before filling." }
+
+  - { uo: stoppering, key: stopper_position, attribute: Stopper position or placement, category: routine_ipc_release, materialType: Stoppered containers, why: "Routine check that each stopper sits where it should." }
+
+  - { uo: lyophilization, key: residual_moisture_per_shelf, attribute: Residual moisture (per shelf location), category: ppq_enhanced, materialType: Lyophilized product, why: "Shelves and locations can dry differently; PPQ commonly samples across the loaded shelves." }
+  - { uo: lyophilization, key: cake_appearance, attribute: Cake appearance, category: routine_ipc_release, materialType: Lyophilized product, why: "Visual check of the lyophilized cake." }
+  - { uo: lyophilization, key: reconstitution_time, attribute: Reconstitution time, category: ppq_enhanced, materialType: Lyophilized product, why: "Shows the cake dissolves as expected across the load." }
+
+  - { uo: capping, key: container_closure_integrity, attribute: Container closure integrity, category: ppq_enhanced, materialType: Capped containers, why: "Shows the capping process seals the container." }
+  - { uo: capping, key: crimp_quality, attribute: Crimp or seal quality (for example residual seal force), category: routine_ipc_release, materialType: Capped containers, why: "Routine check of the seal produced by the capper." }
+
+  - { uo: visual_inspection, key: visual_aql, attribute: Visual inspection of accepted units (AQL check), category: routine_ipc_release, materialType: Accepted containers, why: "Re-inspection of accepted units to confirm the inspection performs." }
+
+  - { uo: bulk_packaging, key: bulk_pack_check, attribute: Check of the packed bulk, category: routine_ipc_release, materialType: Packed bulk, why: "Routine check of the packed bulk containers." }
+
+  - { uo: labeling_packaging, key: label_check, attribute: Label and print check, category: routine_ipc_release, materialType: Labelled containers, why: "Routine check of labels and printing." }
+
+  - { uo: finished_product, key: release_sterility, attribute: Sterility, category: routine_ipc_release, materialType: Finished product, why: "Release test." }
+  - { uo: finished_product, key: release_endotoxin, attribute: Bacterial endotoxins, category: routine_ipc_release, materialType: Finished product, why: "Release test." }
+  - { uo: finished_product, key: release_potency, attribute: Potency, category: routine_ipc_release, materialType: Finished product, why: "Release test." }
+  - { uo: finished_product, key: release_purity, attribute: Purity (for example size-variant and charge-variant methods), category: routine_ipc_release, materialType: Finished product, why: "Release test." }
+  - { uo: finished_product, key: release_appearance, attribute: Appearance and visible particulates, category: routine_ipc_release, materialType: Finished product, why: "Release test." }
+  - { uo: finished_product, key: extended_characterization, attribute: Extended characterization, category: characterization, materialType: Finished product, why: "Additional testing beyond release to describe the PPQ batches; often collected and reported without a criterion." }
+
+  - { uo: none, key: hold_time_samples, attribute: Hold time samples, category: supporting_study, materialType: Bulk or intermediate, why: "PPQ material is often used to support the allowed hold times." }
+  - { uo: none, key: shipping_study_units, attribute: Shipping study units, category: supporting_study, materialType: Finished product, why: "PPQ units are often used for a shipping study." }
+  - { uo: none, key: stability_placement, attribute: Stability study placement, category: supporting_study, materialType: Finished product, why: "PPQ batches are often placed on stability." }
+  - { uo: none, key: extractables_leachables_units, attribute: Extractables and leachables samples, category: supporting_study, materialType: Product that contacted the equipment, why: "Material from the PPQ run is sometimes used for leachables work." }
+
+# Candidates that follow a validation activity of the gap assessment. They are offered only when a gap in the project implies
+# that activity (the same activities the Validation plan page lists).
+activityCandidates:
+  - { activity: mixing_study, uo: compounding, key: act_mixing_homogeneity, attribute: Homogeneity at the batch volume and mixing configuration, category: ppq_enhanced, materialType: Bulk solution, why: "The gap assessment implies a mixing study." }
+  - { activity: hold_time_study, uo: none, key: act_hold_time, attribute: Hold time samples, category: supporting_study, materialType: Bulk or intermediate, why: "The gap assessment implies a hold time study." }
+  - { activity: freeze_thaw_study, uo: ds_receipt_thaw, key: act_freeze_thaw, attribute: Freeze-thaw and thaw samples, category: supporting_study, materialType: Drug substance, why: "The gap assessment implies a freeze-thaw or thaw study." }
+  - { activity: fill_accuracy_study, uo: aseptic_filling, key: act_fill_accuracy, attribute: Fill accuracy and precision, category: ppq_enhanced, materialType: Filled containers, why: "The gap assessment implies a fill accuracy study." }
+  - { activity: lyo_cycle_verification, uo: lyophilization, key: act_lyo_cycle, attribute: Product temperature and residual moisture across the shelves, category: ppq_enhanced, materialType: Lyophilized product, why: "The gap assessment implies a lyophilization cycle verification." }
+  - { activity: cci_study, uo: capping, key: act_cci, attribute: Container closure integrity, category: ppq_enhanced, materialType: Capped containers, why: "The gap assessment implies a container closure integrity study." }
+  - { activity: rsf_study, uo: capping, key: act_rsf, attribute: Residual seal force, category: ppq_enhanced, materialType: Capped containers, why: "The gap assessment implies a residual seal force study." }
+  - { activity: stopper_position_study, uo: stoppering, key: act_stopper_position, attribute: Stopper position capability, category: ppq_enhanced, materialType: Stoppered containers, why: "The gap assessment implies a stopper position capability study." }
+  - { activity: shipping_validation, uo: none, key: act_shipping, attribute: Shipping study units, category: supporting_study, materialType: Finished product, why: "The gap assessment implies a shipping validation." }
+  - { activity: stability_assessment, uo: none, key: act_stability, attribute: Stability study placement, category: supporting_study, materialType: Finished product, why: "The gap assessment implies a stability assessment." }
+  - { activity: extractables_leachables, uo: none, key: act_el, attribute: Extractables and leachables samples, category: supporting_study, materialType: Product that contacted the equipment, why: "The gap assessment implies an extractables and leachables assessment." }
+  - { activity: product_quality_impact, uo: aseptic_filling, key: act_quality_impact, attribute: Subvisible particles and aggregation after the RU equipment, category: ppq_enhanced, materialType: Filled containers, why: "The gap assessment implies a product-quality impact assessment of shear and stress." }
+  - { activity: filter_bacterial_retention, uo: sterile_filtration, key: act_bacterial_retention, attribute: Bacterial retention (product-wet filter test), category: supporting_study, materialType: Filter with product, why: "The gap assessment implies a bacterial retention validation." }
+  - { activity: bulk_pack_verification, uo: bulk_packaging, key: act_bulk_pack, attribute: Bulk pack verification, category: supporting_study, materialType: Packed bulk, why: "The gap assessment implies a bulk pack verification." }

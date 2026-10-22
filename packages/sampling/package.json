@@ -1,0 +1,25 @@
+{
+  "name": "@gap/sampling",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PPQ sampling plans: sample-size statistics (company table, fixed count, confidence/reliability, MIL-STD-105E attributes, MIL-STD-414 variables) and the plan logic. Pure functions; no defaults.",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "dependencies": {
+    "@gap/process-model": "^1.0.0",
+    "zod": "^4.6.7"
+  }
+}

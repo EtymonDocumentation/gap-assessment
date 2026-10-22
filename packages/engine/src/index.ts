@@ -27,3 +27,6 @@ export * from "./tailoring";
 export * from "./scope";
 export * from "./trd-seed";
 export * from "./trd-outline";
+export * from "./sampling-seed";
+export * from "./sampling";
+export * from "./sampling-document";

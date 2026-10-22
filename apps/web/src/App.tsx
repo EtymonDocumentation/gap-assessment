@@ -10,6 +10,8 @@ import { ChangesPage } from "./pages/ChangesPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { SourcesPage } from "./pages/SourcesPage";
 import { TbdPage } from "./pages/TbdPage";
+import { SamplingPage } from "./pages/SamplingPage";
+import { SamplingTablesPage } from "./pages/SamplingTablesPage";
 import { TrdSeedPage } from "./pages/TrdSeedPage";
 import { MappingPage } from "./pages/MappingPage";
 import { TemplatesPage } from "./pages/TemplatesPage";
@@ -18,6 +20,7 @@ import { PocBanner, PocFooter } from "./components";
 import { href, useRoute } from "./router";
 import { AccountBar, ConflictDialog, ServerGate, useIsRemote } from "./server/ServerUi";
 import { SERVER_MODE } from "./server/mode";
+import { useSession } from "./server/session-store";
 import { useStore } from "./store";
 
 const NAV = [
@@ -29,12 +32,23 @@ const NAV = [
   { path: "/validation", label: "Validation" },
   { path: "/document", label: "Document" },
   { path: "/trd-seed", label: "TRD seed" },
+  { path: "/sampling", label: "Sampling plan" },
   { path: "/templates", label: "Templates" },
   { path: "/guidance", label: "Guidance" },
   { path: "/builder", label: "Builder" },
   { path: "/sources", label: "Sources" },
   { path: "/changes", label: "Change log" },
 ] as const;
+
+/** Shown instead of the sampling pages on an account without the sampling module. */
+function SamplingNotIncluded() {
+  return (
+    <section className="card stack" data-testid="sampling-not-included">
+      <h1>Sampling plan</h1>
+      <p>This account does not include the sampling module. Ask the administrator to add it.</p>
+    </section>
+  );
+}
 
 type Theme = "system" | "light" | "dark";
 
@@ -77,6 +91,10 @@ function AppShell() {
   const route = useRoute();
   const remote = SERVER_MODE && useIsRemote();
   const { ready, project, error, status, init, clearError } = useStore();
+  // The sampling module is always on in the static demo. On the server it needs the "sampling" module on the account; the menu
+  // entry is hidden without it, and the server refuses the data calls too.
+  const modules = useSession((s) => s.user?.plan.modules);
+  const samplingAllowed = !SERVER_MODE || !!modules?.includes("sampling");
   const [theme, setTheme] = useTheme();
 
   useEffect(() => {
@@ -93,7 +111,7 @@ function AppShell() {
 
   // The template library belongs to the browser, not to a project, so it opens without one. So does the guidance library,
   // which is reference material and has nothing to do with the open project.
-  const needsProject = route.path !== "/" && route.path !== "/templates" && route.path !== "/guidance";
+  const needsProject = route.path !== "/" && route.path !== "/templates" && route.path !== "/guidance" && route.path !== "/sampling/tables";
   const mappingId = /^\/templates\/([^/]+)\/mapping$/.exec(route.path)?.[1];
   let page: React.ReactNode;
   if (!ready) page = <p className="muted">Loading…</p>;
@@ -105,6 +123,8 @@ function AppShell() {
   else if (route.path === "/validation") page = <ValidationPage />;
   else if (route.path === "/document") page = <DocumentPage />;
   else if (route.path === "/trd-seed") page = <TrdSeedPage />;
+  else if (route.path === "/sampling/tables") page = samplingAllowed ? <SamplingTablesPage /> : <SamplingNotIncluded />;
+  else if (route.path === "/sampling") page = samplingAllowed ? <SamplingPage params={route.params} /> : <SamplingNotIncluded />;
   else if (route.path === "/builder" || route.path === "/model") page = <BuilderPage />;
   else if (route.path === "/sources") page = <SourcesPage />;
   else if (route.path === "/tbd") page = <TbdPage />;
@@ -130,9 +150,9 @@ function AppShell() {
         </div>
         <nav aria-label="Main">
           <ul className="nav">
-            {NAV.map((n) => (
+            {NAV.filter((n) => n.path !== "/sampling" || samplingAllowed).map((n) => (
               <li key={n.path}>
-                <a href={href(n.path)} aria-current={route.path === n.path || (n.path === "/builder" && route.path === "/model") || (n.path === "/templates" && !!mappingId) ? "page" : undefined}>
+                <a href={href(n.path)} aria-current={route.path === n.path || (n.path === "/builder" && route.path === "/model") || (n.path === "/templates" && !!mappingId) || (n.path === "/sampling" && route.path === "/sampling/tables") ? "page" : undefined}>
                   {n.label}
                 </a>
               </li>

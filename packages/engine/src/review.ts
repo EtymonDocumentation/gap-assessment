@@ -159,11 +159,21 @@ function cleanTemplate(t: TemplateRecord): TemplateRecord {
 
 // ------------------------------------------------------------------ exports
 
-const EXPORT_FORMATS: readonly DocumentExport["format"][] = ["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html"];
+const EXPORT_FORMATS: readonly DocumentExport["format"][] = ["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html", "sampling-plan-docx", "sampling-plan-html"];
 
 /** True for the three TRD seed outputs (the seed JSON and its Word and HTML outlines). */
 export function isTrdFormat(format: DocumentExport["format"]): boolean {
   return format.startsWith("trd-");
+}
+
+/** True for the two sampling plan outputs (Word and HTML). */
+export function isSamplingFormat(format: DocumentExport["format"]): boolean {
+  return format.startsWith("sampling-plan-");
+}
+
+/** Which document an output belongs to: the gap assessment, the TRD outputs or the sampling plan. Each is compared with its own previous download. */
+function exportFamily(format: DocumentExport["format"]): "gap" | "trd" | "sampling" {
+  return isTrdFormat(format) ? "trd" : isSamplingFormat(format) ? "sampling" : "gap";
 }
 
 /** Appends an export record. No change-log entry: downloading the document does not change the project. */
@@ -177,12 +187,14 @@ export function recordExport(project: Project, record: DocumentExport): Project 
   // an empty list is stored as no field at all, so "nothing omitted" reads the same as before this setting existed.
   const { omittedSections, changedSincePrevious: given, ...rest } = structuredClone(record);
   // A TRD output is not the gap assessment document, so the document's omitted-section choice does not apply to it.
-  const isTrd = isTrdFormat(record.format);
-  const left = omittedSections ?? (isTrd ? [] : omittedSectionIds(project));
+  // The same holds for the sampling plan: the gap document's optional sections are not part of it.
+  const family = exportFamily(record.format);
+  const left = omittedSections ?? (family === "gap" ? omittedSectionIds(project) : []);
   // Whether the answers changed since the previous download is worked out here, from the fingerprints, so every caller records it
   // the same way. The first download has nothing to compare with and records nothing.
   // A TRD output is compared with the previous TRD output only: a gap document download says nothing about whether the seed changed.
-  const previous = [...project.document.exports].reverse().find((e) => isTrdFormat(e.format) === isTrd);
+  // The same holds for the sampling plan.
+  const previous = [...project.document.exports].reverse().find((e) => exportFamily(e.format) === family);
   const changedSincePrevious = given ?? (previous ? previous.fingerprint !== record.fingerprint : undefined);
   next.document.exports.push({
     ...rest,

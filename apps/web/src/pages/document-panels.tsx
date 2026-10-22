@@ -333,7 +333,7 @@ export function ExportHistory({ exports }: { exports: DocumentExport[] }) {
                     {r.template.name} {r.template.version}
                     {r.versions && (
                       <div className="muted" data-testid="export-versions">
-                        Process model {r.versions.processModel}; catalog {r.versions.catalog}; seed format {r.versions.format}
+                        Process model {r.versions.processModel}; catalog {r.versions.catalog}; {r.format.startsWith("sampling-plan") ? "plan" : "seed"} format {r.versions.format}
                       </div>
                     )}
                     {r.template.sha256 && (
@@ -346,7 +346,7 @@ export function ExportHistory({ exports }: { exports: DocumentExport[] }) {
                     <code title={r.fingerprint}>{r.fingerprint}</code>
                   </td>
                   <td>{r.tbdCount ?? "Not recorded"}</td>
-                  <td className="small">{r.format.startsWith("trd-") ? "Not applicable" : r.omittedSections?.length ? r.omittedSections.map((id) => optionalSectionTitle(id) ?? id).join("; ") : "None"}</td>
+                  <td className="small">{(r.format.startsWith("trd-") || r.format.startsWith("sampling-plan-")) ? "Not applicable" : r.omittedSections?.length ? r.omittedSections.map((id) => optionalSectionTitle(id) ?? id).join("; ") : "None"}</td>
                   <td>{r.changedSincePrevious === undefined ? "No earlier download" : r.changedSincePrevious ? "Yes" : "No"}</td>
                 </tr>
               ))}

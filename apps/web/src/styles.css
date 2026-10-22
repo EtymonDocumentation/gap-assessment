@@ -2138,3 +2138,83 @@ details.report h4 {
     padding-left: 12px;
   }
 }
+
+/* ---- Sampling plan (M7). Status is always words plus a symbol; colour only reinforces it. ---- */
+.check-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 2px 12px;
+}
+.grow {
+  flex: 3 1 16rem;
+}
+.row.end-align {
+  align-items: flex-end;
+}
+.sp-status {
+  display: inline-block;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+.sp-status-complete {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+.sp-status-incomplete {
+  color: var(--provisional);
+  border-style: dashed;
+  border-color: var(--provisional);
+}
+.working {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+}
+.working h3 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+}
+.working-batch + .working-batch {
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+  padding-top: 8px;
+}
+.working-list {
+  margin: 4px 0;
+  display: grid;
+  gap: 2px;
+  font-size: 0.875rem;
+}
+.working-list > div {
+  display: grid;
+  grid-template-columns: minmax(8rem, 14rem) 1fr;
+  gap: 8px;
+}
+.working-list dt {
+  color: var(--muted);
+}
+.working-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.cell-input {
+  width: 6.5rem;
+  min-width: 0;
+}
+.table-rows .cell-input {
+  min-height: 34px;
+}
+.points-table td,
+.points-table th {
+  vertical-align: top;
+}
+@media (max-width: 480px) {
+  .working-list > div {
+    grid-template-columns: 1fr;
+  }
+}

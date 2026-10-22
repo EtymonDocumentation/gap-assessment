@@ -1,4 +1,4 @@
-import { buildContent, parseGuidance, type ContentBundle, type GuidanceLibrary, type RawContent } from "@gap/engine";
+import { buildContent, parseGuidance, parseSamplingSuggestions, type ContentBundle, type GuidanceLibrary, type RawContent, type SamplingSuggestions } from "@gap/engine";
 import { catalog } from "@gap/process-model/catalog";
 import catalogOverlay from "./catalog/gap-overlay.yaml";
 import demoArx217 from "./demo/arx-217.yaml";
@@ -19,6 +19,7 @@ import q75 from "./questions/75-bulk-packaging.yaml";
 import q80 from "./questions/80-labeling-packaging.yaml";
 import q90 from "./questions/90-storage-shipping.yaml";
 import rules from "./rules/rules.yaml";
+import ppqSuggestionsRaw from "./sampling/ppq-suggestions.yaml";
 import templates from "./templates/gap-assessment.yaml";
 
 /** Raw parsed YAML, keyed by file name so validation errors name the file. */
@@ -59,3 +60,12 @@ export const demos = { "arx-217": demoArx217 } as const;
  * content, needs no project, and is validated here so a bad link or an unknown topic stops the build.
  */
 export const guidance: GuidanceLibrary = parseGuidance(guidanceRaw);
+
+/**
+ * Options for the PPQ sampling plan: common sampling candidates per unit operation. Options only (no sizes, criteria or methods;
+ * the schema refuses them). Validated here against the unit operations of the catalog, so a misspelt step stops the build.
+ */
+export const samplingSuggestions: SamplingSuggestions = parseSamplingSuggestions(
+  ppqSuggestionsRaw,
+  content.catalog.unitOperations.map((u) => u.key),
+);

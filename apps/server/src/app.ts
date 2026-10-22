@@ -31,6 +31,7 @@ import {
 import { authRoutes } from "./routes/auth";
 import { fileRoutes } from "./routes/files";
 import { projectRoutes } from "./routes/projects";
+import { samplingTableRoutes } from "./routes/sampling-tables";
 import { templateRoutes } from "./routes/templates";
 import { serveStatic } from "./static";
 import { Store } from "./store";
@@ -63,7 +64,7 @@ export interface RunningServer {
   close(): Promise<void>;
 }
 
-const routes: Route[] = [...authRoutes, ...projectRoutes, ...templateRoutes, ...fileRoutes];
+const routes: Route[] = [...authRoutes, ...projectRoutes, ...templateRoutes, ...samplingTableRoutes, ...fileRoutes];
 const HOUR_MS = 60 * 60 * 1000;
 const WINDOW_15_MIN = 15 * 60 * 1000;
 

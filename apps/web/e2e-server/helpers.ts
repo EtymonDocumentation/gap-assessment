@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test as base, type Browser, type Page, type TestInfo } from "@playwright/test";
 import { randomInt } from "node:crypto";
-import { INVITES_PER_WORKER } from "./global-setup";
+import { INVITES_PER_WORKER, SAMPLING_INVITES_PER_WORKER } from "./global-setup";
 
 export const BANNER = "Proof of concept. Not validated. Not for GMP use.";
 export const PASSWORD = "correct horse battery staple";
@@ -88,6 +88,17 @@ export function makeInvite(which: "server" | "client" = "server"): string {
   if (taken >= INVITES_PER_WORKER) throw new Error("This test worker has used all its invite codes.");
   const code = pool[test.info().workerIndex * INVITES_PER_WORKER + taken++];
   if (!code) throw new Error("There are no invite codes left: too many test workers were started.");
+  return code;
+}
+
+let takenSampling = 0;
+
+/** An invite code whose account includes the sampling module. */
+export function makeSamplingInvite(): string {
+  const pool = JSON.parse(process.env.GAP_E2E_INVITES_SAMPLING ?? "[]") as string[];
+  if (takenSampling >= SAMPLING_INVITES_PER_WORKER) throw new Error("This test worker has used all its sampling invite codes.");
+  const code = pool[test.info().workerIndex * SAMPLING_INVITES_PER_WORKER + takenSampling++];
+  if (!code) throw new Error("There are no sampling invite codes left: too many test workers were started.");
   return code;
 }
 

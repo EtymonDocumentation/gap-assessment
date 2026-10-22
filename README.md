@@ -250,6 +250,7 @@ Every page has light and dark themes. The layout works from phone width up. Acce
   - gap overlays and an append-only change log
   - `document`: the export history, the optional sections the document leaves out (`omittedSections`, schema 1.5.0) and `archivedReview` (old revisions and comments, kept untouched, schema 1.10.0); older files migrate on load
   - `stepScope`: the process steps left out of the assessment, each with `uo`, an optional `reason`, `by` and `at` (schema 1.10.0; older files start with nothing left out)
+  - `sampling`: PPQ sampling plans (`plans`), each with batches, points, a change log that keeps old values and company-table snapshots (schema 1.11.0, process model 1.1.0; older files start with no plans)
 - **Gaps are derived, never stored.** They are recomputed from the model on every change. Each gap has a stable key (`ruleId:path[#subKey]`). User decisions (owner, status, severity override, notes) are stored as *overlays* on that key, so they survive recomputation.
 - **Closed branches.** If an answer change makes a question irrelevant, its earlier answers are kept but marked inactive. They are excluded from comparison and from the document, and listed on the Model page.
 

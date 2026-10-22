@@ -2,6 +2,18 @@
 
 All notable changes to `@gap/process-model`. Versions follow semver; see README.md for what counts as breaking.
 
+## 1.1.0
+
+PPQ sampling plans. Additive: nothing was removed or re-meant.
+
+### Added
+- The sampling plan data shapes (src/sampling.ts): samplingPlanSchema, samplingPointSchema, samplingBatchSchema,
+  samplingStateSchema, companyTableSnapshotSchema, samplingInputsSchema, atchResultSchema and their types, the option
+  lists (SAMPLING_METHODS, SAMPLING_CATEGORIES, TIMING_OPTIONS, ...) and eportOnlyAllowed(). No field has a default: a
+  missing input makes a point incomplete. "Report only" is refused by the schema for routine, release and enhanced PPQ points.
+- Project schema 1.11.0: project.sampling.plans. Migration 1.10.0 -> 1.11.0 adds an empty list.
+- Export history records may be of kind sampling-plan-docx or sampling-plan-html and ersions may carry stats and suggestions.
+
 ## 1.0.0
 
 First stable version. The package was 0.1.0 and held the project types, schemas, entries, sources and units. It is now the shared

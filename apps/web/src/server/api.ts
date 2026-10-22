@@ -204,3 +204,9 @@ export async function downloadFile(id: string): Promise<Uint8Array> {
   return new Uint8Array(await (await call("GET", `/api/files/${enc(id)}`)).arrayBuffer());
 }
 export const deleteFile = (id: string) => call("DELETE", `/api/files/${enc(id)}`).then(() => undefined);
+
+// ------------------------------------------------------------------ company sampling tables (module "sampling")
+export const listSamplingTables = () => json<{ tables: unknown[] }>("GET", "/api/sampling-tables").then((r) => r.tables);
+export const createSamplingTable = (table: unknown) => json<{ id: string }>("POST", "/api/sampling-tables", { json: { table } });
+export const putSamplingTable = (id: string, table: unknown) => json<{ table: unknown }>("PUT", `/api/sampling-tables/${enc(id)}`, { json: { table } });
+export const deleteSamplingTable = (id: string) => call("DELETE", `/api/sampling-tables/${enc(id)}`).then(() => undefined);

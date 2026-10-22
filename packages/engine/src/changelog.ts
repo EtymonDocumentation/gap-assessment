@@ -36,6 +36,15 @@ export const ACTION_LABELS: Record<string, string> = {
   custom_item_add: "Custom item added",
   custom_item_rename: "Custom item renamed",
   custom_item_remove: "Custom item removed",
+  sampling_plan_add: "Sampling plan added",
+  sampling_plan_update: "Sampling plan edited",
+  sampling_plan_remove: "Sampling plan removed",
+  sampling_batch_add: "Sampling batch added",
+  sampling_batch_update: "Sampling batch edited",
+  sampling_batch_remove: "Sampling batch removed",
+  sampling_point_add: "Sampling point added",
+  sampling_point_update: "Sampling point edited",
+  sampling_point_remove: "Sampling point removed",
   tailor_exclude: "Topic switched off (scope)",
   tailor_include: "Topic switched on (scope)",
   scope_exclude_uo: "Process step left out (scope)",
@@ -178,6 +187,55 @@ function overlayDiff(before: unknown, after: unknown): { before: string; after: 
   const sev = (o: any) => (o.severityOverride ? `${o.severityOverride.value} (${o.severityOverride.justification})` : NONE); // eslint-disable-line @typescript-eslint/no-explicit-any
   push("Severity", sev(b), sev(a));
   return { before: parts.map(([n, x]) => `${n}: ${x}`).join("; ") || NONE, after: parts.map(([n, , y]) => `${n}: ${y}`).join("; ") || NONE };
+}
+
+/** Fields of a sampling plan, batch or point that matter when reading a change: short text for the Before and After columns. */
+const SAMPLING_FIELD_TEXT: Record<string, string> = {
+  title: "Title",
+  notes: "Notes",
+  batchRationale: "Rationale for the number of batches",
+  label: "Label",
+  plannedLotSizeUnits: "Planned lot size (units)",
+  batchSize: "Batch size",
+  batchSizeUnit: "Batch size unit",
+  category: "Category",
+  categoryLabel: "Category label",
+  unitOp: "Process step",
+  attribute: "Attribute",
+  testMethodRef: "Test method",
+  materialType: "Material",
+  timing: "Timing",
+  locationsCount: "Locations per batch",
+  sampleSize: "Sample size",
+  containerUnitsPerSample: "Containers per sample",
+  quantity: "Quantity",
+  storageCondition: "Storage",
+  destinationLab: "Destination lab",
+  acceptance: "Acceptance",
+  rationale: "Rationale",
+  appliesTo: "Applies to",
+  sourceIds: "Sources",
+};
+
+function samplingValueText(v: unknown): string {
+  if (v === undefined || v === null || v === "") return NONE;
+  if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") return String(v);
+  const text = JSON.stringify(v);
+  return text.length > 400 ? `${text.slice(0, 400)} ...` : text;
+}
+
+/**
+ * Old and new value of a sampling edit, field by field. For an added or removed plan, batch or point there is only one side:
+ * it is shown whole, so the log keeps everything that was removed.
+ */
+function samplingDiff(before: unknown, after: unknown): { before: string; after: string } {
+  if (!isObj(before) || !isObj(after)) {
+    const one = (o: unknown) => (isObj(o) ? Object.entries(o).filter(([k]) => k in SAMPLING_FIELD_TEXT || k === "points" || k === "batches").map(([k, v]) => `${SAMPLING_FIELD_TEXT[k] ?? k}: ${samplingValueText(v)}`).join("; ") || NONE : NONE);
+    return { before: one(before), after: one(after) };
+  }
+  const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])].filter((k) => !["updatedAt", "createdAt"].includes(k) && JSON.stringify(before[k]) !== JSON.stringify(after[k]));
+  const side = (o: Record<string, unknown>) => keys.map((k) => `${SAMPLING_FIELD_TEXT[k] ?? k}: ${samplingValueText(o[k])}`).join("; ") || NONE;
+  return { before: side(before), after: side(after) };
 }
 
 function gapSubject(content: ContentBundle, key: string): { subject: string; sectionId?: string; sectionTitle?: string } {
@@ -325,7 +383,12 @@ function toRow(content: ContentBundle, project: Project, ev: ChangeEvent, i: num
       return row;
     }
     default: {
-      if (ev.action.startsWith("tailor_") || ev.action.startsWith("scope_")) {
+      if (ev.action.startsWith("sampling_")) {
+        row.subject = ev.detail ?? ev.path ?? "";
+        const d = samplingDiff(ev.before, ev.after);
+        row.before = d.before;
+        row.after = d.after;
+      } else if (ev.action.startsWith("tailor_") || ev.action.startsWith("scope_")) {
         row.subject = ev.detail ?? ev.path ?? "";
         const uo = ev.path?.split(".")[1];
         const sec = uo ? content.sections.find((s) => s.kind === "uo" && s.uo === uo) : undefined;

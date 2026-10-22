@@ -12,7 +12,7 @@
 demo:
   id: arx-217
   title: "ARX-217 transfer: Site North Line 2 to Site South Line 4 (fictional demo)"
-  version: 1.7.0
+  version: 1.8.0
 
 responder: { name: Alex Example (fictional), role: MSAT engineer }
 date: "2026-10-01T09:00:00.000Z"
@@ -644,3 +644,89 @@ followUp:
     by: Alex Example (fictional)
     role: MSAT engineer
     answer: { q: filt.sua_supplier, side: target, value: SU Vendor B2 (fictional) }
+
+# Milestone 7: a fictional PPQ sampling plan for the receiving unit. It is replayed through the same editing functions a person
+# uses (so the change log and saved arithmetic are real) and exercises every sampling method once. The product is a liquid, so
+# there is no lyophilization point. One point is left incomplete on purpose so the open items show.
+sampling:
+  at: "2026-10-05T09:00:00.000Z"
+  by: Alex Example (fictional)
+  role: MSAT engineer
+  tables:
+    - id: 5d1c6a52-0000-4000-8000-0000000a0217
+      name: QC-SAMP-001 (fictional)
+      version: "2.0"
+      documentRef: SOP-QC-0042 Sampling of finished product (fictional)
+      owner: Site South QA (fictional)
+      note: Invented for the demonstration. Not a real company table.
+      rows:
+        - { lotMin: 1, lotMax: 500, sampleSize: 8 }
+        - { lotMin: 501, lotMax: 3200, sampleSize: 13 }
+        - { lotMin: 3201, lotMax: 10000, sampleSize: 20 }
+        - { lotMin: 10001, lotMax: 1000000, sampleSize: 32 }
+  plans:
+    - title: ARX-217 PPQ sampling plan, Site South Line 4 (fictional)
+      notes: Fictional demonstration plan.
+      batchRationale: "Three consecutive batches, as the fictional Site South validation master plan VMP-217 (fictional) requires for a transferred process."
+      batches:
+        - { label: PPQ batch 1, plannedLotSizeUnits: 4200, batchSize: 21, batchSizeUnit: L }
+        - { label: PPQ batch 2, plannedLotSizeUnits: 4200, batchSize: 21, batchSizeUnit: L }
+        - { label: PPQ batch 3, plannedLotSizeUnits: 3000, batchSize: 15, batchSizeUnit: L, notes: Smaller lot planned (fictional). }
+      points:
+        - suggestion: cat:fill_weight
+          originFrom: ipc:uo.aseptic_filling.ipc.fill_check
+          docs: [DEMO-PPQ-217-01]
+          table: 5d1c6a52-0000-4000-8000-0000000a0217
+          patch:
+            timing: { options: [beginning, middle, end, per_needle] }
+            locationsCount: 4
+            sampleSize: { method: company-table, inputs: {} }
+            acceptance: { kind: criterion, text: Each container within the fictional fill range of the batch record (fictional). }
+            rationale: Routine fill check, sampled at the start, middle and end of each batch and at each needle.
+            testMethodRef: SOP-FILL-014 (fictional)
+        - suggestion: cat:sf_prefiltration_bioburden
+          originFrom: ipc:uo.sterile_filtration.ipc.bioburden
+          docs: [DEMO-FV-217-05]
+          patch:
+            timing: { options: [beginning, end] }
+            locationsCount: 1
+            sampleSize: { method: fixed, inputs: { count: 3, basis: "Fictional site procedure SOP-BIO-001 (fictional) takes three samples per filtration." } }
+            acceptance: { kind: criterion, text: Within the fictional bioburden limit of the filter validation (fictional). }
+            rationale: Shows the load entering the sterilizing filter stays inside what the filter was challenged with.
+        - suggestion: cat:container_closure_integrity
+          originFrom: act:cci_study:act_cci
+          docs: [DEMO-PPQ-217-01]
+          patch:
+            timing: { options: [middle] }
+            locationsCount: 1
+            sampleSize: { method: conf-rel, inputs: { confidence: 0.95, reliability: 0.95, allowedFailures: 0 } }
+            acceptance: { kind: criterion, text: No leak detected (fictional). }
+            rationale: Shows with the stated confidence and reliability that the capping process seals the containers.
+        - suggestion: cat:visual_aql
+          originFrom: ipc:uo.visual_inspection.ipc.aql
+          docs: [DEMO-VI-217-02]
+          patch:
+            timing: { options: [end] }
+            locationsCount: 1
+            sampleSize: { method: aql-105e, inputs: { level: II, aql: 0.65, inspection: normal } }
+            acceptance: { kind: criterion, text: Accept or reject by the plan's accept and reject numbers (fictional). }
+            rationale: Re-inspection of accepted units to confirm the visual inspection performs.
+        - unitOp: aseptic_filling
+          category: ppq_enhanced
+          attribute: Fill volume (measured value)
+          docs: [DEMO-PPQ-217-01]
+          patch:
+            timing: { options: [beginning, middle, end] }
+            locationsCount: 1
+            sampleSize: { method: var-414, inputs: { level: IV, aql: 1, inspection: normal, limits: double } }
+            acceptance: { kind: criterion, text: Acceptable by the variables plan (fictional). }
+            rationale: A measured fill volume lets the variables plan use fewer containers than counting would.
+        - suggestion: cat:extended_characterization
+          patch:
+            timing: { options: [end] }
+            locationsCount: 1
+            sampleSize: { method: fixed, inputs: { count: 6, basis: Fictional characterization protocol CHAR-217 (fictional). } }
+            acceptance: { kind: report_only }
+            rationale: Collected and reported to describe the PPQ batches; no criterion is set.
+        - suggestion: cat:blend_uniformity
+          patch: {}

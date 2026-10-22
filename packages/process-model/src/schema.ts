@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { SCHEMA_VERSION, newId } from "./entries";
 import { isValidCustomKey } from "./custom";
+import { samplingStateSchema } from "./sampling";
 import type { Project } from "./types";
 
 const quantity = z.object({ value: z.number().finite(), unit: z.string().min(1) });
@@ -190,7 +191,7 @@ export const documentStateSchema = z.object({
     z.object({
       at: z.string(),
       by: z.string().optional(),
-      format: z.enum(["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html"]),
+      format: z.enum(["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html", "sampling-plan-docx", "sampling-plan-html"]),
       template: templateRecord,
       revision: z.number().int().positive().optional(),
       fingerprint: z.string(),
@@ -198,7 +199,7 @@ export const documentStateSchema = z.object({
       changedSincePrevious: z.boolean().optional(),
       omittedSections: z.array(z.string()).optional(),
       tbdCount: z.number().int().nonnegative().optional(),
-      versions: z.object({ processModel: z.string(), catalog: z.string(), format: z.string() }).optional(),
+      versions: z.object({ processModel: z.string(), catalog: z.string(), format: z.string(), stats: z.string().optional(), suggestions: z.string().optional() }).optional(),
     }),
   ),
   omittedSections: z.array(z.string()).optional(),
@@ -234,6 +235,7 @@ export const projectSchema = z.object({
   custom: customSchema,
   tailoring: tailoringSchema,
   stepScope: stepScopeSchema,
+  sampling: samplingStateSchema,
   document: documentStateSchema,
   sources: z.array(
     z.object({
@@ -407,6 +409,12 @@ const MIGRATIONS: { from: string; to: string; migrate: Migrate }[] = [
     from: "1.9.0",
     to: "1.10.0",
     migrate: (raw, now) => migrateTo1100(raw, now),
+  },
+  // 1.10.0 -> 1.11.0: PPQ sampling plans (project.sampling.plans). Older projects have none, which is what they always had.
+  {
+    from: "1.10.0",
+    to: "1.11.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.11.0", sampling: raw.sampling ?? { plans: [] } }),
   },
 ];
 

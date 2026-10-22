@@ -6,6 +6,8 @@
  * Source structures without restructuring.
  */
 
+import type { SamplingState } from "./sampling";
+
 export type Side = "source" | "target";
 
 /** Every attribute value lives in an Entry; there are no bare values in the model. */
@@ -323,7 +325,7 @@ export interface DocumentExport {
   at: string;
   by?: string;
   /** The gap assessment document formats, and the three TRD seed outputs (kind "trd-*": see the TRD seed page). */
-  format: "markdown" | "html" | "docx" | "trd-seed-json" | "trd-outline-docx" | "trd-outline-html";
+  format: "markdown" | "html" | "docx" | "trd-seed-json" | "trd-outline-docx" | "trd-outline-html" | "sampling-plan-docx" | "sampling-plan-html";
   /** Markdown and HTML always use mode "builtin". */
   template: TemplateRecord;
   /** Latest issued revision number at export time. */
@@ -344,7 +346,7 @@ export interface DocumentExport {
    * Versions behind a TRD seed output (process model, catalog, seed format), so the history says which model produced a file.
    * Present only on the "trd-*" formats; optional, so the project schema version did not change.
    */
-  versions?: { processModel: string; catalog: string; format: string };
+  versions?: { processModel: string; catalog: string; format: string; stats?: string; suggestions?: string };
 }
 
 /**
@@ -431,6 +433,8 @@ export interface Project {
   tailoring: Tailoring;
   /** Process steps left out of the assessment (schema 1.10.0). Default and migration: nothing left out. */
   stepScope: StepScope;
+  /** PPQ sampling plans (schema 1.11.0). Default and migration: none. */
+  sampling: SamplingState;
   /** Export records and the optional-section choice for the generated document. */
   document: DocumentState;
   sources: Source[];

@@ -12,7 +12,8 @@ export const SERVER_PORT = 8788;
 export const CLIENT_PORT = 8789;
 /** How many invite codes are made up front. Each test worker takes its own block of INVITES_PER_WORKER. */
 export const INVITES_PER_WORKER = 16;
-const INVITES_SERVER = INVITES_PER_WORKER * 12;
+export const SAMPLING_INVITES_PER_WORKER = 3;
+const INVITES_SERVER =INVITES_PER_WORKER * 12;
 const INVITES_CLIENT = INVITES_PER_WORKER * 12;
 
 async function waitForHealth(port: number, child: ChildProcess, log: () => string): Promise<void> {
@@ -46,6 +47,17 @@ async function start(storage: "server" | "client", port: number, children: Child
     codes.push(code);
   }
   process.env[storage === "server" ? "GAP_E2E_INVITES_SERVER" : "GAP_E2E_INVITES_CLIENT"] = JSON.stringify(codes);
+  if (storage === "server") {
+    // A few accounts that include the paid sampling module (the default invite carries only "gap"); see makeSamplingInvite().
+    const withSampling: string[] = [];
+    for (let i = 0; i < SAMPLING_INVITES_PER_WORKER * 12; i++) {
+      const out = execFileSync(process.execPath, [admin, "invite", "--data", data, "--modules", "gap,sampling"], { encoding: "utf8" });
+      const code = /\b[A-Z0-9]{5}(?:-[A-Z0-9]{5}){3}\b/.exec(out)?.[0];
+      if (!code) throw new Error(`No invite code in the admin tool's output:\n${out}`);
+      withSampling.push(code);
+    }
+    process.env.GAP_E2E_INVITES_SAMPLING = JSON.stringify(withSampling);
+  }
   const child = spawn(process.execPath, [join(SERVER_DIST, "server.mjs"), "--data", data, "--web", join(WEB, "dist-server"), "--port", String(port)], {
     stdio: ["ignore", "pipe", "pipe"],
   });
