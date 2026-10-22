@@ -214,6 +214,39 @@ export function buildTagData(rawContent: ContentBundle, project: Project, a: Ass
   };
 }
 
+/**
+ * What a placeholder-tag template can use when the document is NOT the gap assessment (the risk assessment): the text tags every
+ * document has, the document-details lines and the section list. The gap-only tags ({program}, {#gaps}, ...) are left out on purpose:
+ * they read "[not available]" or repeat nothing, so a template never shows a gap value inside a risk document. The whole content is
+ * still reachable with {@body} and the section tags (see RISK_SECTION_IDS).
+ */
+export type DocumentTagData = Pick<TagData, "title" | "banner" | "status" | "generated" | "meta" | "sections" | "gaps" | "openItems" | "activities" | "equipment" | "risks" | "sources" | "approvals">;
+
+export function buildDocumentTagData(doc: DocModel): DocumentTagData {
+  return {
+    title: doc.title,
+    banner: doc.banner,
+    status: doc.status,
+    generated: metaValue(doc, "Generated"),
+    meta: doc.meta.map(([label, value]) => ({ label, value })),
+    sections: doc.sections.map((s) => ({ number: s.appendix ? `Appendix ${s.number}` : s.number, title: s.title })),
+    // The gap loops are present but empty: a loop over a missing value would print one "[not available]" row, an empty list prints nothing.
+    gaps: [],
+    openItems: [],
+    activities: [],
+    equipment: [],
+    risks: [],
+    sources: [],
+    approvals: [],
+  };
+}
+
+/**
+ * Section ids of the risk assessment document that the gap document does not have ("open-items" and "approval" are shared). They
+ * are listed as raw tags so a template that uses them is not reported as having an unknown tag.
+ */
+export const RISK_SECTION_IDS: readonly string[] = ["purpose-scope", "method", "register", "heat", "actions", "traceability", "versions"];
+
 // ------------------------------------------------------------------ tag reference
 
 export interface TagReferenceEntry {
@@ -329,6 +362,11 @@ export const TAG_REFERENCE: TagReferenceEntry[] = [
     tag: sectionTagName(id),
     kind: "raw",
     description: `Raw tag {@${sectionTagName(id)}}: the section "${id}" (heading and content) in the tool's look. Put it alone in its own paragraph.`,
+  })),
+  ...RISK_SECTION_IDS.filter((id) => !DOCUMENT_SECTION_IDS.includes(id)).map((id): TagReferenceEntry => ({
+    tag: sectionTagName(id),
+    kind: "raw",
+    description: `Raw tag {@${sectionTagName(id)}}: the section "${id}" of the risk assessment document (heading and content) in the tool's look. Put it alone in its own paragraph. Empty in a gap assessment document.`,
   })),
 ];
 

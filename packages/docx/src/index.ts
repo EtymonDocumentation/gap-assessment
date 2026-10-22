@@ -14,8 +14,8 @@ export type {
 export { importTemplateFile } from "./import";
 export { mappingReport, suggestMapping, toolBlocks } from "./mapping";
 export type { MappingReport } from "./mapping";
-export { TAG_REFERENCE, buildTagData, tagReferenceMarkdown } from "./tags";
-export type { GapTag, TagData, TagReferenceEntry } from "./tags";
+export { TAG_REFERENCE, buildDocumentTagData, buildTagData, tagReferenceMarkdown } from "./tags";
+export type { DocumentTagData, GapTag, TagData, TagReferenceEntry } from "./tags";
 export { buildStarterTemplate } from "./starter";
 export { renderDocx } from "./render";
 export { readOutlineFromPdf } from "./pdf";

@@ -1,6 +1,7 @@
 import type { RiskMethodSnapshot } from "@gap/process-model";
 import { createStore, del, set, values } from "idb-keyval";
 import { create } from "zustand";
+import { nextHistory, snapshotOf, type MethodHistoryEntry } from "./risk-library";
 import * as api from "./server/api";
 import { SERVER_MODE } from "./server/mode";
 import { afterSessionEnds, remoteStorage } from "./server/session-store";
@@ -12,12 +13,7 @@ import { afterSessionEnds, remoteStorage } from "./server/session-store";
  * library entry's name and version, so editing the library later never changes an issued assessment silently.
  */
 
-export interface MethodHistoryEntry {
-  at: string;
-  action: "created" | "edited";
-  /** What the method said before this edit (kept, never overwritten). Absent for "created". */
-  before?: RiskMethodSnapshot;
-}
+export { snapshotOf, type MethodHistoryEntry };
 
 export interface StoredMethod extends RiskMethodSnapshot {
   createdAt: string;
@@ -42,18 +38,6 @@ const sorted = (items: StoredMethod[]) => [...items].sort((a, b) => a.name.local
 
 export const newMethodId = (): string => globalThis.crypto?.randomUUID?.() ?? `m-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
-/** A method without the library's bookkeeping, the form an assessment compares against. */
-export function snapshotOf(m: RiskMethodSnapshot): RiskMethodSnapshot {
-  return {
-    id: m.id,
-    name: m.name,
-    version: m.version,
-    ...(m.docRef ? { docRef: m.docRef } : {}),
-    ...(m.owner ? { owner: m.owner } : {}),
-    config: structuredClone(m.config),
-  };
-}
-
 export const useRiskMethods = /* @__PURE__ */ create<State>((setState, getState) => ({
   items: [],
   ready: false,
@@ -72,7 +56,7 @@ export const useRiskMethods = /* @__PURE__ */ create<State>((setState, getState)
   async save(method) {
     const now = new Date().toISOString();
     const cur = getState().items.find((x) => x.id === method.id);
-    const history: MethodHistoryEntry[] = cur ? [...cur.history, { at: now, action: "edited", before: snapshotOf(cur) }] : [{ at: now, action: "created" }];
+    const history = nextHistory(cur, now);
     const next: StoredMethod = { ...snapshotOf(method), createdAt: cur?.createdAt ?? now, updatedAt: now, history };
     try {
       let saved = next;

@@ -1,10 +1,10 @@
-import type { TemplateMode } from "@gap/docx";
+import type { DocumentTagData, TagData, TemplateMode } from "@gap/docx";
 import { BUILTIN_TEMPLATE_VERSION } from "@gap/docx/src/version";
 import { optionalSectionTitle, type Assessment, type ContentBundle, type DocModel } from "@gap/engine";
 import type { DocumentExport, Project, TemplateRecord } from "@gap/process-model";
 import { useEffect, useMemo, useState } from "react";
 import { Empty } from "../components";
-import { loadDocx, useDocx } from "../docx-loader";
+import { loadDocx, useDocx, type DocxModule } from "../docx-loader";
 import { dateTime, download, FORMAT_LABEL, MODE_HELP, MODE_LABEL, shortHash } from "../lib";
 import { href } from "../router";
 import { recordOf, useTemplates, type StoredTemplate } from "../templates-store";
@@ -96,6 +96,12 @@ function usePreExportChecks(choice: WordChoice, doc: DocModel): Checks | null {
 
 const MODES: TemplateMode[] = ["builtin", "their_look", "mapped", "tags"];
 
+/**
+ * The kinds of Word document that work for any tool document. "Map to their headings" is left out for the risk assessment: a
+ * saved mapping names the sections of the gap document, so it cannot place the risk sections (the page says so).
+ */
+export const GENERIC_MODES: TemplateMode[] = ["builtin", "their_look", "tags"];
+
 export function WordPanel({
   choice,
   doc,
@@ -106,17 +112,30 @@ export function WordPanel({
   fileBase,
   guard,
   onExported,
+  modes = MODES,
+  tagData,
+  testIdPrefix,
+  note,
 }: {
   choice: WordChoice;
   doc: DocModel;
   content: ContentBundle;
   project: Project;
-  assessment: Assessment;
+  /** The gap assessment: only needed for the gap document's own tags (the default tag data). */
+  assessment?: Assessment;
   generatedAt: string;
   fileBase: string;
   /** Runs the download, after the TBD warning when the document still lists TBD values. */
   guard: (run: () => void) => void;
   onExported: (template: TemplateRecord) => void;
+  /** The kinds of Word document offered. A document that cannot use one (see GENERIC_MODES) leaves it out. */
+  modes?: TemplateMode[];
+  /** Tag data for a document other than the gap assessment. Default: the gap assessment's tags. */
+  tagData?: (m: DocxModule) => TagData | DocumentTagData;
+  /** Adds test ids to the download button and the result line, for pages with their own e2e tests. */
+  testIdPrefix?: string;
+  /** A short explanation shown under the choice of Word document (for a document that offers fewer kinds). */
+  note?: string;
 }) {
   const checks = usePreExportChecks(choice, doc);
   const items = useTemplates((s) => s.items);
@@ -135,7 +154,7 @@ export function WordPanel({
       try {
         const res = await m.renderDocx({
           doc,
-          tagData: m.buildTagData(content, project, assessment, doc),
+          tagData: tagData ? tagData(m) : m.buildTagData(content, project, assessment!, doc),
           mode: choice.mode,
           generatedAt,
           ...(choice.mode !== "builtin" && t
@@ -166,7 +185,7 @@ export function WordPanel({
       </p>
       <fieldset className="stack">
         <legend>Kind of Word document</legend>
-        {MODES.map((m) => (
+        {modes.map((m) => (
           <label key={m} className="check top">
             <input
               type="radio"
@@ -186,6 +205,11 @@ export function WordPanel({
           </label>
         ))}
       </fieldset>
+      {note && (
+        <p className="small muted" data-testid={testIdPrefix ? `${testIdPrefix}-word-note` : undefined}>
+          {note}
+        </p>
+      )}
 
       {choice.mode !== "builtin" && (
         <div className="stack">
@@ -262,7 +286,7 @@ export function WordPanel({
       </div>
 
       <div className="row wrap">
-        <button type="button" className="btn primary" disabled={blocked || busy} aria-describedby={checks?.blockers.length ? "word-blockers" : undefined} onClick={() => guard(() => void exportWord())}>
+        <button type="button" className="btn primary" disabled={blocked || busy} aria-describedby={checks?.blockers.length ? "word-blockers" : undefined} data-testid={testIdPrefix ? `${testIdPrefix}-download-word` : undefined} onClick={() => guard(() => void exportWord())}>
           {busy ? "Creating…" : "Download Word document"}
         </button>
       </div>
@@ -273,7 +297,7 @@ export function WordPanel({
       )}
       <div role="status" aria-live="polite">
         {result && (
-          <div className="stack">
+          <div className="stack" data-testid={testIdPrefix ? `${testIdPrefix}-word-result` : undefined}>
             <p>
               Downloaded <strong>{result.file}</strong> using {MODE_LABEL[result.template.mode]}: {templateText(result.template)}.
             </p>

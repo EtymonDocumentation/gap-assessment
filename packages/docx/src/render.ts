@@ -318,7 +318,7 @@ function renderTags(input: RenderDocxInput, record: TemplateRecord, warnings: st
   }
   assertBanner(dp.mainXml(), doc.banner);
   parseXml(dp.mainXml(), "generated document");
-  if (!t.analysis.tags?.found.length) warnings.push("The template contains no tags, so nothing from the gap assessment was filled in apart from the banner.");
+  if (!t.analysis.tags?.found.length) warnings.push("The template contains no tags, so nothing from the tool was filled in apart from the banner.");
   for (const u of t.analysis.tags?.unknown ?? []) warnings.push(`The template has a tag that is not in the tag reference: {${u}}. It shows ${NOT_AVAILABLE}.`);
   finalisePackage(dp, ctx, finaliseInput(input, record), opened.numbering);
   return dp.commit();

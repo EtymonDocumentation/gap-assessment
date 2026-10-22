@@ -7,15 +7,17 @@ private handover outside the repo and must never be copied in here. Read this fi
 Last updated: 2026-10-22. Update this file (no machine-specific details) whenever a milestone lands.
 
 ## 1. Where things stand
-- **M7 (PPQ sampling plan) is done:** `7228bea`, plus layout fixes `9ce5b3d` (header menu may wrap at 901 px
-  and up, because 13 menu entries in wider Linux fonts pushed the theme picker off-screen) and `1153afe`
-  (clear-nav e2e scrolls to top before its axe scan, because the sticky "answering from" bar covered a link
-  after focus returned). CI green, deployed to the self-hosted server.
-- Open idea from that fix: the sticky "answering from" bar can cover content after a dialog returns focus;
-  a product-side fix (e.g. scroll-margin on focus targets) may be worth doing later.
+- **M8 (risk assessment) is done, with its follow-ups:** `5664b28` plus the follow-up change set (section 5):
+  the risk method library edits scales and bands itself, an assessment is told when the library has a newer
+  version of its method, and the risk Word output uses the Templates library. Before M8: M7 and its
+  sub-milestones M7.1 and M7.2 (section 4) and a sampling polish pass.
+- Current versions: project schema 1.14.0, process model 1.4.0, risk format 1.0.0, content catalog 1.0.0 (failure
+  modes and method load-outs 1.0.0), all other packages 0.1.0.
+- Open idea: the sticky "answering from" bar can cover content after a dialog returns focus; a product-side fix
+  (e.g. scroll-margin on focus targets) may be worth doing later.
 - **NEXT:** wait for the product owner's next milestone choice.
-- Remaining suite modules to choose from: risk assessment, excipient assessment, TRD generator, MBR templates.
-  AI features are deliberately the very last step.
+- Remaining suite modules to choose from: excipient assessment, TRD generator, MBR templates. AI features are
+  deliberately the very last step.
 
 ## 2. Milestones done
 | Milestone | Commit | What it added |
@@ -34,6 +36,12 @@ Last updated: 2026-10-22. Update this file (no machine-specific details) wheneve
 | M5.7 | `5461b1f` | Scope step, unit-op groups, review workflow removed (archived), TBD warning on every download |
 | M6 | `7d6bf9e` | Shared process model 1.0.0 package and the TRD seed export (JSON + draft outline) |
 | M7 | `7228bea` | PPQ sampling plan module (see section 4) |
+| M7.1 | `7b428b9` | Sampling interview by step and by study type, agency requests, reporting instructions (CMO document), plan subsections library; schema 1.12.0 |
+| — | `94dd9f2` | Saved PPQ batch rows collapse into a summary with an Edit button |
+| M7.2 | `7714eb4`, `80a8d17` | Plan's own process steps, flow diagram with draggable sample markers and a linked points table (schema 1.13.0); short add form, optional wizard, collapsed point cards |
+| — | `393279c` | Sampling polish: demo points sit on the diagram, plan details collapse after Save |
+| M8 | `5664b28` | Risk assessment module (ICH Q9(R1)): four user-chosen scoring methods, method library, Word + HTML output (see section 5) |
+| M8 follow-ups | see section 5 | Library edits scales and bands with versions; update-from-library; risk Word output through the Templates library |
 
 ## 3. Hard rules
 - **Identity:** never put a personal name or email in the repo (files, commits, issues, PRs). Git identity is
@@ -51,7 +59,7 @@ Last updated: 2026-10-22. Update this file (no machine-specific details) wheneve
 - **Commits tell the story:** why, what changed per area, decisions and trade-offs, what was left out, how it
   was checked (test counts). Code comments explain the why of non-obvious logic.
 
-## 4. M7 sampling plan (latest)
+## 4. M7 sampling plan
 - Scope chosen by the product owner: PPQ runs only for now; all five sample-size methods (MIL-STD-105E / ANSI
   Z1.4 attributes, MIL-STD-414 variables, confidence/reliability, company lot-size table as a first-class
   method, enter your own); points seeded from the project and added free-form (report-only allowed); Word +
@@ -59,21 +67,49 @@ Last updated: 2026-10-22. Update this file (no machine-specific details) wheneve
 - Packages: `packages/sampling` (statistics; 105E and 414 tables cross-checked against a second source, 0
   mismatches), process-model 1.1.0, project schema 1.11.0, `content/sampling` suggestion catalog, engine
   `sampling*.ts`, web Sampling + Sampling tables pages, module `sampling` checked server-side.
+- M7.1 and M7.2 added study types, the process-step flow diagram (pointer-drag plus a full keyboard equivalent),
+  a short add form with a wizard option, and collapsed cards; they never add required fields or rules ("possibilities,
+  not rules": load-outs only fill a starting shape).
 - Known limits: no 105E double sampling; no 414 range method, known-variability plans or split AQL; 414 table
   B-3 column .04 has a single source; CPP-based suggestion dormant until RU parameters carry a CPP classification.
 
-## 5. Stack and checks
+## 5. M8 risk assessment (latest)
+- Scope chosen by the product owner: all four scoring methods, one per assessment (FMEA factor product, risk
+  matrix, user-defined factors with product/sum/max/lookup, qualitative levels); failure modes seeded from gaps,
+  from a catalog and free-form; links to sampling points; optional residual risk; Word + HTML output.
+- Packages: `packages/risk` (pure scoring; every result carries its working and a problem list, missing input is
+  "not scored", never a guess), process-model 1.4.0, project schema 1.14.0 (old projects simply have no
+  assessment), `content/risk` (failure-mode suggestions and method load-outs), engine `risk*.ts`, module `risk`
+  checked server-side with a method library route.
+- No default method, scale, band or threshold: load-outs are optional starting shapes the user edits. The tool
+  never calls a risk acceptable; it only reports the band the user defined, in the user's words, else "(no band)".
+  Gap severity is reference text and is never copied into a score.
+- **Follow-ups:**
+  - Method library editing: the library page edits the whole method of all four kinds with the same editors as the
+    Method step, creates methods from a load-out or blank, and every save is a new entry version with the earlier
+    content kept in the history. Band and scale problems are shown as in an assessment.
+  - Assessments keep their own copy. When the library has a newer version (or the same version label with changed
+    content) the Method step says "Library has v<x>; this assessment uses v<y>" and offers "Update from library".
+    The update lists which scores would read differently, then writes a change-log entry. Scores are never
+    changed by an update; they are the team's answers.
+  - Risk Word output uses the Templates library like the gap document (built-in, their look, placeholder tags) and
+    records the template in the export history and the file properties. "Map to their headings" is not offered
+    because the saved mapping names gap sections.
+- Known limits: no CSV export, no AI suggestions, no review reminders. Server e2e covers library editing; the
+  module gating is covered by server unit tests.
+
+## 6. Stack and checks
 - npm workspaces: `packages/process-model`, `packages/engine`, `packages/renderers`, `packages/docx`,
-  `packages/sampling`, `content/`, `apps/web` (React, Vite, Zustand), `apps/server` (optional self-hosted mode).
+  `packages/sampling`, `packages/risk`, `content/`, `apps/web` (React, Vite, Zustand), `apps/server` (optional self-hosted mode).
 - Checks that must all pass before a commit: `npx tsc -p tsconfig.json`, `npx vitest run`, `npm run build`,
   the web e2e suite (Playwright, desktop/tablet/phone projects, axe), `npm run build:server`, `npm run e2e:server`.
-  Latest counts (M7): vitest 1607, web e2e 383, server e2e 40.
+  Latest counts (M8 follow-ups): vitest 1818 (90 files), web e2e 572 passed (7 skipped), server e2e 44.
 - Parallel Playwright runs need separate `--output` folders.
 - Commit with a message file (`git commit -F <file>`); CI (`.github/workflows/deploy.yml`) runs typecheck,
   tests, build, e2e and deploys the static demo to GitHub Pages on every push to main.
 - `.gitattributes` forces LF, so CRLF warnings on commit are harmless.
 
-## 6. Decisions already made (do not reopen)
+## 7. Decisions already made (do not reopen)
 - "Exist; update required" procedures map to **new_requirement**; the target value tells them apart.
 - Classification CPP / KPP / non-critical; within-range checks use the validated range if present, else the PAR;
   equivalence is exact after unit conversion; severity only, no RPN.
@@ -83,12 +119,12 @@ Last updated: 2026-10-22. Update this file (no machine-specific details) wheneve
 - Business direction: subscription with an optional client-side (confidential) storage mode; enterprise =
   the server installed on the client's own network.
 
-## 7. Planned AI features (last step, not started)
+## 8. Planned AI features (last step, not started)
 - Template-from-screenshots and document pre-fill, via the self-hosted server only (API key never in the web
   bundle), every AI value marked "to be confirmed" until a human verifies it.
 - Controls: per-account `ai` module, quotas, usage log, admin kill switch checked server-side.
 
-## 8. Known limitations
+## 9. Known limitations
 - Qualification status is compared as equal / not equal only.
 - Study-quality evidence questions are target-only.
 - Self-verification detection relies on typed names.

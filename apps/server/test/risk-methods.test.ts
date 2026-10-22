@@ -72,6 +72,36 @@ describe("risk method library", () => {
     expect((await c.put("/api/risk-methods/not-an-id", method())).status).toBeGreaterThanOrEqual(400);
   });
 
+  it("stores an edited method as a new version with its history, and round-trips the edited scales and bands", async () => {
+    const c = await riskClient();
+    const made = await c.post("/api/risk-methods", method("Versioned (fictional)"));
+    const id = made.json.id as string;
+    const first = (await c.get("/api/risk-methods")).json.methods[0];
+    const edited = method("Versioned (fictional)");
+    edited.method.version = "2.0";
+    (edited.method.config.severity as { max: number }).max = 10;
+    (edited.method.config as { bands: unknown[] }).bands = [{ label: "Reviewed first (fictional wording)", minRpn: 1, maxRpn: 1000 }];
+    edited.method.history = [{ at: first.updatedAt, action: "created" }, { at: new Date().toISOString(), action: "edited", before: { id, name: first.name, version: first.version, config: first.config } }] as never;
+    const put = await c.put(`/api/risk-methods/${id}`, edited);
+    expect(put.status).toBe(200);
+    const back = (await c.get("/api/risk-methods")).json.methods.find((m: { id: string }) => m.id === id);
+    expect(back.version).toBe("2.0");
+    expect(back.config.severity.max).toBe(10);
+    expect(back.config.bands).toHaveLength(1);
+    expect(back.history.map((h: { action: string }) => h.action)).toEqual(["created", "edited"]);
+    expect(back.history[1].before.version).toBe("1.0");
+    expect(back.history[1].before.config.severity.max).toBe(5);
+  });
+
+  it("still refuses an edit of a method for an account without the risk module", async () => {
+    const owner = await riskClient();
+    const made = await owner.post("/api/risk-methods", method());
+    const other = await riskClient("gap,sampling");
+    const r = await other.put(`/api/risk-methods/${made.json.id}`, method("Changed (fictional)"));
+    expect(r.status).toBe(403);
+    expect(r.json.error).toBe("module-not-included");
+  });
+
   it("writes the method file below the account's own folder", async () => {
     const c = await riskClient();
     const made = await c.post("/api/risk-methods", method());

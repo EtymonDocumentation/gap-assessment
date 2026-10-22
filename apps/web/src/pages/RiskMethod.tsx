@@ -1,4 +1,4 @@
-import { setMethod } from "@gap/engine";
+import { rescoreChanges, setMethod } from "@gap/engine";
 import { riskLoadouts } from "@gap/content";
 import type { RiskAssessment, RiskConfig, RiskMethod as Method } from "@gap/process-model";
 import { RISK_METHODS } from "@gap/process-model";
@@ -6,7 +6,8 @@ import { describeMethod, METHOD_LABEL, scoreIsEmpty } from "@gap/risk";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Modal } from "../components";
 import { href } from "../router";
-import { configToDraft, draftToConfig, emptyDraft, lookupCombos, type BandDraft, type Draft, type FactorDraft, type LevelDraft, type ScaleDraft } from "../risk-draft";
+import { configToDraft, draftToConfig, emptyDraft, lookupCombos, type BandDraft, type Draft, type DraftResult, type FactorDraft, type LevelDraft, type ScaleDraft } from "../risk-draft";
+import { configFromEntry, libraryStatus } from "../risk-library";
 import { newMethodId, useRiskMethods } from "../risk-methods-store";
 import type { Run } from "./SamplingFlow";
 
@@ -63,6 +64,25 @@ export function RiskMethod({ a, run }: { a: RiskAssessment; run: Run }) {
     run((p, actor) => setMethod(p, a.id, c.config, actor, { clearScores: true }), c.status);
   }
 
+  // The library is read here too (not only in the Library card below) so the note about a newer library version can show.
+  const lib = useRiskMethods();
+  useEffect(() => void lib.load(), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const libEntry = a.config?.libraryRef ? lib.items.find((m) => m.id === a.config!.libraryRef!.id) : undefined;
+  const status = libraryStatus(a.config, libEntry);
+  const [updating, setUpdating] = useState(false);
+  const incoming = libEntry ? configFromEntry(libEntry) : undefined;
+  // What the update would do to the scores, shown before the person agrees (only the same kind of method keeps scores).
+  const rescored = useMemo(() => (updating && incoming && a.config?.method === incoming.method ? rescoreChanges(a, incoming) : []), [updating, incoming, a]);
+  function confirmUpdate() {
+    if (!incoming || !libEntry || !a.config?.libraryRef) return;
+    const was = a.config.libraryRef.version;
+    setUpdating(false);
+    run(
+      (p, actor) => setMethod(p, a.id, incoming, actor, { clearScores: a.config?.method !== incoming.method, note: `Updated from the library: ${libEntry.name}, version ${was} to version ${libEntry.version}${rescored.length ? `; ${rescored.length} score${rescored.length === 1 ? "" : "s"} read differently` : ""}` }),
+      `Method updated from the library to version ${libEntry.version}`,
+    );
+  }
+
   const description = useMemo(() => (a.config ? describeMethod(a.config) : undefined), [a.config]);
   const differsKind = confirm ? (a.config?.method ?? null) !== (confirm.config?.method ?? null) : false;
 
@@ -73,27 +93,7 @@ export function RiskMethod({ a, run }: { a: RiskAssessment; run: Run }) {
         <p className="muted small">
           The tool has no default method. A starter is a shape you may take and then change: its scales, bands and labels are examples from the company-neutral catalog, not rules. One method applies to the whole assessment.
         </p>
-        <ul className="plain-list loadouts" data-testid="risk-loadouts">
-          {riskLoadouts.loadouts.map((l) => (
-            <li key={l.id} className="loadout">
-              <div>
-                <strong>{l.title}</strong>
-                <p className="small muted">{l.description}</p>
-              </div>
-              <button type="button" className="btn small" aria-label={`Use this starter: ${l.title}`} data-testid={`risk-loadout-${l.id}`} onClick={() => apply({ ...structuredClone(l.config), loadoutId: l.id }, l.title, `Method set from the starter ${l.title}`, true)}>
-                Use this starter
-              </button>
-            </li>
-          ))}
-        </ul>
-        <div role="group" aria-label="Start with an empty method" className="row wrap">
-          <span className="small muted">Or start blank:</span>
-          {RISK_METHODS.map((m) => (
-            <button key={m} type="button" className="btn small" data-testid={`risk-blank-${m}`} onClick={() => setDraft(emptyDraft(m))}>
-              Blank {METHOD_LABEL[m]}
-            </button>
-          ))}
-        </div>
+        <StarterPicker onLoadout={(l) => apply({ ...structuredClone(l.config), loadoutId: l.id }, l.title, `Method set from the starter ${l.title}`, true)} onBlank={(m) => setDraft(emptyDraft(m))} />
       </section>
 
       {a.config && description && (
@@ -118,6 +118,37 @@ export function RiskMethod({ a, run }: { a: RiskAssessment; run: Run }) {
               From the method library: {a.config.libraryRef.name}, version {a.config.libraryRef.version}.
             </p>
           )}
+          {libEntry && (status.kind === "newer" || status.kind === "changed-same-version") && (
+            <div className="notice stack" data-testid="risk-method-newer">
+              <p>
+                {status.kind === "newer" ? (
+                  <>
+                    <strong>
+                      Library has v{status.libraryVersion}; this assessment uses v{status.usedVersion}.
+                    </strong>{" "}
+                    The assessment keeps its own copy until you update it.
+                  </>
+                ) : (
+                  <>
+                    <strong>The library entry {libEntry.name} (v{status.version}) was changed without a new version number.</strong> This assessment still has its earlier copy.
+                  </>
+                )}
+              </p>
+              <div>
+                <button
+                  type="button"
+                  className="btn small"
+                  data-testid="risk-method-update"
+                  onClick={(e) => {
+                    opener.current = e.currentTarget;
+                    setUpdating(true);
+                  }}
+                >
+                  Update from library
+                </button>
+              </div>
+            </div>
+          )}
           <div>
             <button
               type="button"
@@ -137,6 +168,58 @@ export function RiskMethod({ a, run }: { a: RiskAssessment; run: Run }) {
       {draft && <DraftEditor a={a} draft={draft} setDraft={setDraft} run={run} apply={apply} />}
 
       <Library a={a} run={run} apply={apply} />
+
+      {updating && libEntry && a.config?.libraryRef && (
+        <Modal
+          open
+          onOpenChange={(o) => !o && setUpdating(false)}
+          title="Update from the library?"
+          description={`${libEntry.name}: version ${libEntry.version} replaces the copy of version ${a.config.libraryRef.version} that this assessment uses.`}
+          restoreFocus={() => opener.current}
+        >
+          <div className="stack" data-testid="risk-method-update-dialog">
+            {rescored.length === 0 ? (
+              <p data-testid="risk-update-norescore">No score reads differently under the library version. The change is written to the change log.</p>
+            ) : (
+              <>
+                <p data-testid="risk-update-rescore">
+                  {rescored.length} {rescored.length === 1 ? "score reads" : "scores read"} differently under the library version. The answers stay as entered; only how they are scored changes. The change log keeps the earlier method.
+                </p>
+                <div className="table-scroll" role="region" aria-label="Scores that read differently" tabIndex={0}>
+                  <table className="data">
+                    <thead>
+                      <tr>
+                        <th scope="col">Item</th>
+                        <th scope="col">Score</th>
+                        <th scope="col">Now</th>
+                        <th scope="col">After the update</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rescored.map((c) => (
+                        <tr key={`${c.itemId}-${c.which}`}>
+                          <th scope="row">{c.itemId}</th>
+                          <td>{c.which === "initial" ? "Initial" : "Residual"}</td>
+                          <td>{c.before}</td>
+                          <td>{c.after}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+            <div className="row end">
+              <button type="button" className="btn" autoFocus onClick={() => setUpdating(false)}>
+                Keep this assessment's copy
+              </button>
+              <button type="button" className="btn primary" data-testid="risk-method-update-confirm" onClick={confirmUpdate}>
+                Update from library
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {confirm && (
         <Modal
@@ -165,6 +248,40 @@ export function RiskMethod({ a, run }: { a: RiskAssessment; run: Run }) {
           </div>
         </Modal>
       )}
+    </>
+  );
+}
+
+type Loadout = (typeof riskLoadouts.loadouts)[number];
+
+/**
+ * The one-click starters and the blank methods. Shared by the Method step of an assessment and the method library, so both offer
+ * exactly the same starting points. Nothing is chosen for the person: a starter is only a shape to edit.
+ */
+export function StarterPicker({ onLoadout, onBlank, idPrefix = "risk" }: { onLoadout: (l: Loadout) => void; onBlank: (m: Method) => void; idPrefix?: string }) {
+  return (
+    <>
+      <ul className="plain-list loadouts" data-testid={`${idPrefix}-loadouts`}>
+        {riskLoadouts.loadouts.map((l) => (
+          <li key={l.id} className="loadout">
+            <div>
+              <strong>{l.title}</strong>
+              <p className="small muted">{l.description}</p>
+            </div>
+            <button type="button" className="btn small" aria-label={`Use this starter: ${l.title}`} data-testid={`${idPrefix}-loadout-${l.id}`} onClick={() => onLoadout(l)}>
+              Use this starter
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div role="group" aria-label="Start with an empty method" className="row wrap">
+        <span className="small muted">Or start blank:</span>
+        {RISK_METHODS.map((m) => (
+          <button key={m} type="button" className="btn small" data-testid={`${idPrefix}-blank-${m}`} onClick={() => onBlank(m)}>
+            Blank {METHOD_LABEL[m]}
+          </button>
+        ))}
+      </div>
     </>
   );
 }
@@ -269,25 +386,8 @@ function DraftEditor({ a, draft, setDraft, run, apply }: { a: RiskAssessment; dr
   return (
     <section className="card stack" aria-labelledby="rm-edit" data-testid="risk-method-editor">
       <h2 id="rm-edit">Define the method: {METHOD_LABEL[draft.method]}</h2>
-      {draft.method === "fmea" && <FmeaEditor d={draft} edit={edit as Edit<D<"fmea">>} />}
-      {draft.method === "matrix" && <MatrixEditor d={draft} edit={edit as Edit<D<"matrix">>} />}
-      {draft.method === "custom" && <CustomEditor d={draft} edit={edit as Edit<D<"custom">>} />}
-      {draft.method === "qualitative" && <QualitativeEditor d={draft} edit={edit as Edit<D<"qualitative">>} />}
-
-      <div role="status" aria-live="polite" data-testid="risk-method-errors">
-        {result.ok ? null : (
-          <div className="notice">
-            <p>
-              <strong>Still to enter before this method can be saved:</strong>
-            </p>
-            <ul className="plain-list small">
-              {result.errors.map((e) => (
-                <li key={e}>{e}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
+      <DraftFields draft={draft} edit={edit} />
+      <DraftProblems result={result} />
       <div className="row wrap">
         <button type="button" className="btn primary" disabled={!result.ok || same} data-testid="risk-method-save" onClick={() => result.ok && apply(result.config, METHOD_LABEL[result.config.method], a.config ? "Method saved" : "Method set")}>
           Save the method
@@ -299,6 +399,59 @@ function DraftEditor({ a, draft, setDraft, run, apply }: { a: RiskAssessment; dr
         )}
       </div>
     </section>
+  );
+}
+
+/**
+ * The fields of a method draft, one editor per kind of method. Used by the Method step of an assessment and by the method library,
+ * so scales, level descriptions, bands, matrix labels, factors and the lookup table are edited with the same components in both.
+ * `edit` must hand the callback a copy of the draft to change (the callers clone it and drop the library link).
+ */
+export function DraftFields({ draft, edit }: { draft: Draft; edit: (fn: (d: Draft) => void) => void }) {
+  return (
+    <>
+      {draft.method === "fmea" && <FmeaEditor d={draft} edit={edit as Edit<D<"fmea">>} />}
+      {draft.method === "matrix" && <MatrixEditor d={draft} edit={edit as Edit<D<"matrix">>} />}
+      {draft.method === "custom" && <CustomEditor d={draft} edit={edit as Edit<D<"custom">>} />}
+      {draft.method === "qualitative" && <QualitativeEditor d={draft} edit={edit as Edit<D<"qualitative">>} />}
+    </>
+  );
+}
+
+/**
+ * What still blocks saving a draft, then (once it can be saved) the open items of the method itself, such as bands that overlap or
+ * leave a gap. Those are problems to show, not errors: the person may still save, as in an assessment.
+ */
+export function DraftProblems({ result, testid = "risk-method-errors", showOpen = false }: { result: DraftResult; testid?: string; showOpen?: boolean }) {
+  const open = result.ok && showOpen ? describeMethod(result.config).problems : [];
+  return (
+    <div role="status" aria-live="polite" data-testid={testid}>
+      {!result.ok ? (
+        <div className="notice">
+          <p>
+            <strong>Still to enter before this method can be saved:</strong>
+          </p>
+          <ul className="plain-list small">
+            {result.errors.map((e) => (
+              <li key={e}>{e}</li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        open.length > 0 && (
+          <div className="notice" data-testid={`${testid}-open`}>
+            <p>
+              <strong>Open items in the method:</strong>
+            </p>
+            <ul className="plain-list small">
+              {open.map((p) => (
+                <li key={p}>{p}</li>
+              ))}
+            </ul>
+          </div>
+        )
+      )}
+    </div>
   );
 }
 
@@ -684,7 +837,7 @@ function Library({ a, run, apply }: { a: RiskAssessment; run: Run; apply: (c: Ri
               ))}
             </select>
           </label>
-          <button type="button" className="btn" disabled={!chosen} data-testid="risk-library-use" onClick={() => chosen && apply({ ...structuredClone(chosen.config), libraryRef: { id: chosen.id, name: chosen.name, version: chosen.version } }, `${chosen.name} version ${chosen.version}`, "Method set from the library", true)}>
+          <button type="button" className="btn" disabled={!chosen} data-testid="risk-library-use" onClick={() => chosen && apply(configFromEntry(chosen), `${chosen.name} version ${chosen.version}`, "Method set from the library", true)}>
             Use this method
           </button>
         </div>

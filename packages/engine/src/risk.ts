@@ -140,7 +140,7 @@ export function deleteAssessment(project: Project, id: string, actor: Actor): Pr
  * log keeps the old scores. Editing the SAME method (a scale, a band, a label) keeps the scores: an answer that no longer fits
  * becomes "not scored" and an open item, visibly, instead of being changed silently.
  */
-export function setMethod(project: Project, id: string, config: RiskConfig | null, actor: Actor, opts: { clearScores?: boolean } = {}): Project {
+export function setMethod(project: Project, id: string, config: RiskConfig | null, actor: Actor, opts: { clearScores?: boolean; note?: string } = {}): Project {
   const next = structuredClone(project);
   const a = assessmentOf(next, id);
   let parsed: RiskConfig | undefined;
@@ -174,11 +174,46 @@ export function setMethod(project: Project, id: string, config: RiskConfig | nul
   log(next, actor, {
     action: "risk_method_set",
     path: `risk.${id}`,
-    detail: parsed ? `Method of ${id} ${changesMethod ? "set" : "edited"}: ${parsed.method}${parsed.loadoutId ? ` (from load-out ${parsed.loadoutId})` : ""}${before.scores ? ` (${scored.length} scores cleared)` : ""}` : `Method of ${id} removed`,
+    detail: parsed ? `Method of ${id} ${changesMethod ? "set" : "edited"}: ${parsed.method}${parsed.loadoutId ? ` (from load-out ${parsed.loadoutId})` : ""}${before.scores ? ` (${scored.length} scores cleared)` : ""}${opts.note ? `. ${opts.note}` : ""}` : `Method of ${id} removed`,
     before,
     after: { method: parsed?.method ?? null, config: parsed ?? null },
   });
   return next;
+}
+
+/** One score that would read differently under another version of the method. */
+export interface RescoreChange {
+  itemId: string;
+  which: "initial" | "residual";
+  before: string;
+  after: string;
+}
+
+/** A score as the page shows it, in words: "12 Medium", "Not scored". Only used to compare two readings of the same answers. */
+function reading(r: RiskResult): string {
+  if (!r.scored) return "Not scored";
+  return [r.score !== undefined ? String(r.score) : "", r.label ?? "", r.trigger ? `(rule: ${r.trigger.label})` : ""].filter(Boolean).join(" ");
+}
+
+/**
+ * What would change if the assessment used `next` instead of its present method: every item whose initial or residual score reads
+ * differently (a new band label, or a score that no longer fits the scale and becomes "Not scored"). Nothing is changed here; the
+ * person sees the list before agreeing to take a newer library version. Only meaningful for the SAME kind of method: a different
+ * kind clears the scores instead (see setMethod).
+ */
+export function rescoreChanges(a: RiskAssessment, next: RiskConfig): RescoreChange[] {
+  if (!a.config) return [];
+  const out: RescoreChange[] = [];
+  for (const i of a.items) {
+    for (const which of ["initial", "residual"] as const) {
+      const score = i[which];
+      if (!score || scoreIsEmpty(score)) continue;
+      const before = reading(scoreItem(a.config, score));
+      const after = reading(scoreItem(next, score));
+      if (before !== after) out.push({ itemId: i.id, which, before, after });
+    }
+  }
+  return out;
 }
 
 // ------------------------------------------------------------------ steps

@@ -5,13 +5,10 @@ import { DOCUMENT_CSS, renderHtml, renderHtmlBody } from "@gap/renderers";
 import { RISK_SCORING_VERSION } from "@gap/risk";
 import { useMemo, useRef, useState } from "react";
 import { Modal } from "../components";
-import { loadDocx } from "../docx-loader";
 import { APP_VERSION, download, today } from "../lib";
 import { useContent, useStore } from "../store";
-import { BUILTIN_RECORD, ExportHistory } from "./document-panels";
+import { BUILTIN_RECORD, ExportHistory, GENERIC_MODES, useWordChoice, WordPanel } from "./document-panels";
 import type { Run } from "./SamplingFlow";
-
-const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 /**
  * Step 4 of a risk assessment: the Word or HTML draft, with a preview. Same rules as the sampling plan document: the banner is in
@@ -24,13 +21,12 @@ export function RiskOutput({ a, run }: { a: RiskAssessment; run: Run }) {
   const update = useStore((s) => s.update);
   // Fixed when the page opens so the preview and every download of this visit carry the same time.
   const [generatedAt] = useState(() => new Date().toISOString());
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
   const [done, setDone] = useState("");
   const [showPreview, setShowPreview] = useState(false);
   // Optional sections are chosen per export. All are in unless the person leaves one out.
   const [omit, setOmit] = useState<RiskOptionalSection[]>([]);
 
+  const choice = useWordChoice();
   const doc = useMemo(() => buildRiskAssessmentDocument(content, project, a, failureModes, { generatedAt, appVersion: APP_VERSION, omit }), [content, project, a, generatedAt, omit]);
   const body = useMemo(() => (showPreview ? renderHtmlBody(doc) : ""), [doc, showPreview]);
   const stamp = `${project.meta.id}-${a.id}-${today()}`;
@@ -61,28 +57,6 @@ export function RiskOutput({ a, run }: { a: RiskAssessment; run: Run }) {
     );
   const saved = (file: string) => setDone(`Saved ${file}. The download is recorded in the export history below.`);
 
-  async function exportWord() {
-    setBusy(true);
-    setError("");
-    setDone("");
-    try {
-      const m = await loadDocx();
-      try {
-        const res = await m.renderDocx({ doc, mode: "builtin", generatedAt });
-        const file = `risk-assessment-${stamp}.docx`;
-        download(file, res.bytes, DOCX_MIME);
-        record("risk-assessment-docx", res.templateRecord);
-        saved(file);
-      } catch (e) {
-        setError(`The Word document could not be created: ${(e as Error).message}`);
-      }
-    } catch (e) {
-      setError(`The Word tools could not be loaded: ${(e as Error).message}. Check your connection and reload the page.`);
-    } finally {
-      setBusy(false);
-    }
-  }
-
   const exports = project.document.exports.filter((x) => x.format.startsWith("risk-assessment-"));
 
   return (
@@ -103,9 +77,6 @@ export function RiskOutput({ a, run }: { a: RiskAssessment; run: Run }) {
           ))}
         </fieldset>
         <div className="row wrap">
-          <button type="button" className="btn primary" disabled={busy} onClick={() => guard(() => void exportWord())} data-testid="risk-download-word">
-            {busy ? "Creating the Word document..." : "Download Word"}
-          </button>
           <button
             type="button"
             className="btn"
@@ -131,12 +102,22 @@ export function RiskOutput({ a, run }: { a: RiskAssessment; run: Run }) {
         <div role="status" aria-live="polite">
           {done && <p data-testid="risk-done">{done}</p>}
         </div>
-        {error && (
-          <p className="notice" role="alert">
-            {error}
-          </p>
-        )}
       </section>
+
+      <WordPanel
+        choice={choice}
+        doc={doc}
+        content={content}
+        project={project}
+        generatedAt={generatedAt}
+        fileBase={`risk-assessment-${stamp}`}
+        guard={guard}
+        onExported={(template) => record("risk-assessment-docx", template)}
+        modes={GENERIC_MODES}
+        tagData={(m) => m.buildDocumentTagData(doc)}
+        testIdPrefix="risk"
+        note={'"Map to their headings" is offered for the gap assessment document only: a saved mapping names the gap document\'s sections. For a tagged template, {title}, {banner}, {status}, {generated}, {meta} and {sections} are filled, and {@body} or a section tag such as {@section_register} brings in the risk assessment in your template\'s styles.'}
+      />
 
       <ExportHistory exports={exports} idPrefix="risk-export-history" title="Export history" />
 
