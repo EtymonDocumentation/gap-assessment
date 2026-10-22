@@ -5,25 +5,45 @@ import {
   UNIT_OP_FINISHED_PRODUCT,
   UNIT_OP_NONE,
   type Project,
+  SAMPLING_TYPES,
   type SamplingMethod,
   type SamplingPlan,
   type SamplingPoint,
+  type SamplingType,
+  type CustomSubsection,
 } from "@gap/process-model";
 import {
-  categoryText,
+  acceptanceStatement,
+  agencyCoverage,
   checkPoint,
-  CATEGORY_LABEL,
   METHOD_HELP,
   METHOD_LABEL,
   methodInputsText,
+  mixingDesign,
+  NO_TYPE_SECTION_KEY,
   openItems,
   planTotals,
+  renderSubsection,
+  reportingInstructions,
+  requestLine,
   resultText,
+  RESPONSIBLE_LABEL,
   SAMPLING_STATS_VERSION,
+  stabilityDerivation,
+  subsectionProblems,
+  subsectionsAt,
   tablesUsed,
   timingText,
+  tokenContext,
+  TYPE_HELP,
+  TYPE_LABEL,
+  typeSectionKey,
+  typeText,
   unitsPerBatch,
+  AGENCY_KIND_LABEL,
+  AGENCY_STATUS_LABEL,
   type OpenItem,
+  type TokenContext,
 } from "@gap/sampling";
 import type { ContentBundle } from "./content";
 import { effectiveContent } from "./custom";
@@ -73,22 +93,22 @@ function unitOpLabels(content: ContentBundle, project: Project): Map<string, str
 
 /**
  * Open items of a plan: the plan's own (see @gap/sampling) plus a warning for each point whose process step has since been left
- * out of the assessment. Such a point is kept (the plan never deletes anything by itself) but the owner must decide about it.
+ * out of the assessment, and the problems of the custom subsections (an unknown token, an empty title). Such a point is kept (the
+ * plan never deletes anything by itself) but the owner must decide about it.
  */
 export function samplingOpenItems(content: ContentBundle, project: Project, plan: SamplingPlan): OpenItem[] {
   const items = openItems(plan);
-  const live = liveUnitOps(content, project);
+  const seed = buildTrdSeed(content, project, { exportedAt: "1970-01-01T00:00:00.000Z" });
+  const live = new Set(seed.scope.included.map((u) => u.key));
   for (const p of plan.points) {
     if (p.unitOp === UNIT_OP_FINISHED_PRODUCT || p.unitOp === UNIT_OP_NONE) continue;
     if (!live.has(p.unitOp)) items.push({ ref: p.id, kind: "point", text: "Its process step is now left out of the assessment or does not apply. Keep the point on purpose, or remove it." });
   }
+  const ctx = tokenContext(plan, { ...(seed.meta.product.program.display ? { productName: seed.meta.product.program.display } : {}), ...(seed.meta.receivingSite.name.display ? { ruSite: seed.meta.receivingSite.name.display } : {}) });
+  for (const s of subsectionProblems(plan, ctx)) for (const text of s.problems) items.push({ ref: s.id, kind: "subsection", text: `${s.id}: ${text}` });
   return items;
 }
 
-function liveUnitOps(content: ContentBundle, project: Project): Set<string> {
-  const seed = buildTrdSeed(content, project, { exportedAt: "1970-01-01T00:00:00.000Z" });
-  return new Set(seed.scope.included.map((u) => u.key));
-}
 
 const METHOD_EXPLANATION: Record<SamplingMethod, string> = {
   "company-table": "The sample size is read from the company's own sampling table: the row whose lot range holds the batch's planned lot size (and, for a per-test table, the test key). The tool does not extend a table beyond its ranges.",
@@ -101,6 +121,12 @@ const METHOD_EXPLANATION: Record<SamplingMethod, string> = {
 };
 
 const LICENSED_NOTE = "These tables are equivalent to the current ANSI/ASQ standard and the ISO standard of the same family, which are copyrighted. Confirm the values against your licensed copy before relying on them.";
+
+const NOT_GIVEN = "Not given";
+
+/** Labels of the filter tests, for the plan text. */
+const FILTER_TEST_TEXT: Record<string, string> = { integrity_pre_post: "Integrity test before and after use", bioburden_pre_filtration: "Bioburden before filtration", flush: "Flush", other: "Other" };
+const RETAIN_PURPOSE_TEXT: Record<string, string> = { retain: "Retain", reserve: "Reserve", both: "Retain and reserve" };
 
 export function buildSamplingPlanDocument(
   content: ContentBundle,
@@ -125,10 +151,25 @@ export function buildSamplingPlanDocument(
   const stop = (s: string) => (/[.!?]$/.test(s.trimEnd()) ? s : `${s}.`);
   const program = seed.meta.product.program.display ?? NOT_ESTABLISHED;
   const batchLabel = (id: string) => plan.batches.find((b) => b.id === id)?.label ?? id;
+  const tokenCtx: TokenContext = tokenContext(plan, {
+    ...(seed.meta.product.program.display ? { productName: seed.meta.product.program.display } : {}),
+    ...(seed.meta.receivingSite.name.display ? { ruSite: seed.meta.receivingSite.name.display } : {}),
+  });
 
   const sections: DocSection[] = [];
   const add = (id: string, title: string, blocks: Block[]) => sections.push({ id, number: String(sections.filter((s) => !s.appendix).length + 1), title, blocks });
   const appendix = (id: string, title: string, blocks: Block[]) => sections.push({ id, number: String.fromCharCode(65 + sections.filter((s) => s.appendix).length), appendix: true, title, blocks });
+
+  /** Custom subsections as blocks: a heading, the body with its tokens filled in, and a note for every problem (nothing is hidden). */
+  const subBlocks = (subs: CustomSubsection[], point?: SamplingPoint): Block[] =>
+    subs.flatMap((sub) => {
+      const r = renderSubsection(sub, tokenCtx, point ? { id: point.id, attribute: point.attribute } : undefined);
+      const out: Block[] = [{ type: "heading", text: `${r.title} (${sub.id})` }];
+      for (const b of r.blocks) out.push(b.type === "paragraph" ? { type: "paragraph", text: b.text } : b.type === "list" ? { type: "list", items: b.items } : { type: "table", columns: b.columns, rows: b.rows });
+      for (const pr of r.problems) out.push({ type: "note", text: `${sub.id}: ${pr}` });
+      return out;
+    });
+  const subsAfter = (key: string): Block[] => subBlocks(subsectionsAt(plan, `after_section:${key}`));
 
   // 1. Purpose and scope
   add("purpose-scope", "Purpose and scope", [
@@ -142,6 +183,7 @@ export function buildSamplingPlanDocument(
       text: `Plan ${plan.id}: ${plan.title}. Run type: PPQ. ${plan.points.length} sampling point${plan.points.length === 1 ? "" : "s"} over ${plan.batches.length} batch${plan.batches.length === 1 ? "" : "es"}. ${open.length} open item${open.length === 1 ? "" : "s"}.`,
     },
     ...(plan.notes?.trim() ? ([{ type: "paragraph", text: plan.notes.trim() }] as Block[]) : []),
+    ...subsAfter("purpose-scope"),
   ]);
 
   // 2. Product, presentation, site
@@ -161,9 +203,10 @@ export function buildSamplingPlanDocument(
         ["RU program stage", a(m.receivingSite.programStage)],
       ],
     },
+    ...subsAfter("product-site"),
   ]);
 
-  // 3. PPQ batches
+  // 3. PPQ batches and responsible parties
   add("batches", "PPQ batches", [
     {
       type: "paragraph",
@@ -180,9 +223,14 @@ export function buildSamplingPlanDocument(
       : { type: "paragraph", text: "No batches." },
     { type: "heading", text: "Rationale for the number of batches" },
     { type: "paragraph", text: plan.batchRationale.trim() || "Not given. This is an open item." },
+    { type: "heading", text: "Responsible parties" },
+    plan.parties.length
+      ? { type: "table", columns: ["Party", "Name", "Role"], rows: plan.parties.map((p) => [RESPONSIBLE_LABEL[p.party], p.name, p.role ?? ""]) }
+      : { type: "paragraph", text: "No responsible parties have been named yet. This is an open item." },
+    ...subsAfter("batches"),
   ]);
 
-  // 4. Statistical bases, one sub-section per method used
+  // 4. Statistical bases used, one sub-section per method used
   const used = [...new Set(plan.points.flatMap((p) => (p.sampleSize.method ? [p.sampleSize.method] : [])))];
   const basisBlocks: Block[] = [];
   if (!used.length) basisBlocks.push({ type: "paragraph", text: "No sample-size method has been chosen for any point yet." });
@@ -213,9 +261,10 @@ export function buildSamplingPlanDocument(
     }
     if (working.length) basisBlocks.push({ type: "table", columns: ["Point", "Batch", "Step", "Value"], rows: working, caption: `Working: ${METHOD_LABEL[method]}` });
   }
-  add("statistical-bases", "Statistical bases used", basisBlocks);
+  add("statistical-bases", "Statistical bases used", [...basisBlocks, ...subsAfter("statistical-bases")]);
 
-  // 5. Sampling points per process step (routine, release and enhanced PPQ sampling)
+  // 5. One section per study type, in a fixed order. Each point: a summary row, its details, any subsection placed inside it,
+  // and its Reporting instructions block (which the CMO can copy as it is).
   const unitsCell = (p: SamplingPoint): string => {
     const per = unitsPerBatch(plan, p).filter((u) => u.applies);
     if (!per.length) return "No batch";
@@ -223,77 +272,250 @@ export function buildSamplingPlanDocument(
     return per.map((u) => `${u.batchLabel}: ${u.text}`).join("; ");
   };
   const locationsCell = (p: SamplingPoint): string => {
+    if (p.type === "stability" || p.type === "retain_reserve") return "Not applicable";
     const per = checks.get(p.id)!.perBatch;
     const n = [...new Set(per.map((r) => (r.hundredPercent ? "100% of lot" : r.sampleSize !== undefined ? String(r.sampleSize) : "?")))];
     return `${p.locationsCount ?? "?"} x ${n.length ? n.join(" / ") : "?"}`;
   };
+  const methodCell = (p: SamplingPoint): string => {
+    if (p.type === "stability") return "Pulls = storage conditions x time points; units = pulls x units per pull (working below).";
+    if (p.type === "retain_reserve") return "Units kept per batch, as entered.";
+    const c = checks.get(p.id)!;
+    return `${p.sampleSize.method ? METHOD_LABEL[p.sampleSize.method] : "No method"}: ${c.perBatch.length ? stop(methodInputsText(p)) : methodInputsText(p)}${c.perBatch.length ? ` ${stop(`Result: ${[...new Set(c.perBatch.map(resultText))].join(" / ")}`)}` : ""}`;
+  };
   const pointTable = (points: SamplingPoint[]): Block => ({
     type: "table",
-    columns: ["ID", "Attribute / test (category)", "Timing / location", "Locations x n", "Units per batch", "Method and key inputs", "Acceptance", "Status"],
+    columns: ["ID", "Attribute / test (study type)", "Timing / location", "Locations x n", "Units per batch", "Method and key inputs", "Acceptance", "Status"],
     rows: points.map((p) => [
       p.id,
-      `${p.attribute.trim() || "Not given"} (${categoryText(p)})${p.testMethodRef ? `; method ${p.testMethodRef}` : ""}${p.materialType ? `; ${p.materialType}` : ""}`,
-      timingText(p) || "Not given",
+      `${p.attribute.trim() || "Not given"} (${typeText(p)})${p.testMethodRef ? `; method ${p.testMethodRef}` : ""}${p.materialType ? `; ${p.materialType}` : ""}`,
+      p.type === "stability" ? "Per stability protocol" : p.type === "retain_reserve" ? "Kept at batch release" : timingText(p) || "Not given",
       locationsCell(p),
       unitsCell(p),
-      `${p.sampleSize.method ? METHOD_LABEL[p.sampleSize.method] : "No method"}: ${checks.get(p.id)!.perBatch.length ? stop(methodInputsText(p)) : methodInputsText(p)}${checks.get(p.id)!.perBatch.length ? ` ${stop(`Result: ${[...new Set(checks.get(p.id)!.perBatch.map(resultText))].join(" / ")}`)}` : ""}`,
+      methodCell(p),
       acceptanceText(p),
       checks.get(p.id)!.status === "complete" ? "Complete" : "Incomplete",
     ]),
   });
-  const routine = plan.points.filter((p) => p.category === "routine_ipc_release" || p.category === "ppq_enhanced");
-  const studies = plan.points.filter((p) => !(p.category === "routine_ipc_release" || p.category === "ppq_enhanced"));
-  const stepOrder = [...new Set(plan.points.map((p) => p.unitOp))];
+  const kv = (rows: [string, string | undefined][]): Block[] => {
+    const shown = rows.filter(([, v]) => v !== undefined && v.trim() !== "");
+    return shown.length ? [{ type: "table", columns: ["Item", "Value"], rows: shown.map(([k, v]) => [k, v!]) }] : [];
+  };
+  const requestRef = (id: string) => plan.agencyRequests.find((r) => r.id === id);
+  const commonFacts = (p: SamplingPoint): Block[] =>
+    kv([
+      ["Process step", stepText(p.unitOp)],
+      ["Purpose and rationale", p.rationale.trim() || NOT_GIVEN],
+      ["Responsible", p.responsible ? `${RESPONSIBLE_LABEL[p.responsible.party]}${p.responsible.name?.trim() ? `, ${p.responsible.name.trim()}` : ""}` : NOT_GIVEN],
+      ["Applies to", p.appliesTo === "all" ? "All batches" : p.appliesTo.map(batchLabel).join(", ")],
+      ["Container", p.container],
+      ["Closure", p.closure],
+      ["Quantity per sample", p.quantity ? `${p.quantity.value} ${p.quantity.unit}` : undefined],
+      ["Containers per sample", p.containerUnitsPerSample !== undefined ? String(p.containerUnitsPerSample) : undefined],
+      ["Storage and handling", p.storageCondition],
+      ["Transport", p.transportCondition],
+      ["Chain of custody", p.chainOfCustody],
+      ["Destination laboratory", p.destinationLab],
+      ["Agency requests", p.agencyRequestIds?.length ? p.agencyRequestIds.map((id) => { const r = requestRef(id); return r ? requestLine(r) : id; }).join("; ") : undefined],
+      ["Sources", p.sourceIds.length ? p.sourceIds.map(sourceRef).join(", ") : undefined],
+    ]);
+  const typeBlocks = (p: SamplingPoint): Block[] => {
+    const d = p.detail;
+    switch (p.type) {
+      case "mixing_homogeneity": {
+        const mx = d?.mixing;
+        const design = mixingDesign(p);
+        return [
+          ...kv([
+            ["Vessel or equipment", mx?.vesselRef],
+            ["Mixing parameters", mx?.parameters],
+            ["Sampling positions", mx?.positions?.length ? mx.positions.map((x) => (x === "other" ? mx.positionsOther?.trim() || "other" : x)).join(", ") : undefined],
+            ["Time points", mx?.timePoints?.length ? mx.timePoints.map((t) => `${t.label} (${t.time})`).join("; ") : undefined],
+            ["Criterion basis", mx?.criterionBasis],
+            ["Study design", design.approach],
+          ]),
+          ...(design.matrix ? ([{ type: "table", columns: design.matrix.columns, rows: design.matrix.rows, caption: `Study design runs ${p.id}` }] as Block[]) : []),
+          ...design.rangeLines.map((text): Block => ({ type: "paragraph", text: stop(text) })),
+        ];
+      }
+      case "hold_time": {
+        const h = d?.hold;
+        return kv([
+          ["Hold step", h?.holdStep ? stepText(h.holdStep) : undefined],
+          ["Hold starts", h?.start],
+          ["Hold ends", h?.end],
+          ["Durations tested", h?.durations?.length ? h.durations.map((x) => `${x.value} ${x.unit}`).join("; ") : undefined],
+          ["Condition", h?.condition],
+          ["Container", h?.container],
+          ["Time points sampled", h?.timePointsSampled],
+          ["Result supports", h?.supports],
+        ]);
+      }
+      case "ppq_enhanced": {
+        const e = d?.enhanced;
+        return kv([["Interventions or stoppages covered", e?.interventions], ["Interval definition", e?.intervalDefinition], ["Per needle or shelf", e?.perNeedleShelf]]);
+      }
+      case "filter_study": {
+        const f = d?.filter;
+        return kv([["Filter", f?.filterRef], ["Test", f?.test ? (f.test === "other" ? f.testOther?.trim() || "Other" : FILTER_TEST_TEXT[f.test]) : undefined], ["PUPSIT answer in the gap assessment", f?.pupsitItemPath]]);
+      }
+      case "stability": {
+        const s = d?.stability;
+        const der = stabilityDerivation(p);
+        return [
+          ...kv([["Stability protocol", s?.protocolRef], ["Orientation", s?.orientation], ["Reported against the stability protocol", s?.reportedAgainstProtocol === undefined ? undefined : s.reportedAgainstProtocol ? "Yes" : "No"]]),
+          ...(s?.conditions?.length ? ([{ type: "table", columns: ["Storage condition", "Temperature and humidity"], rows: s.conditions.map((c) => [c.label, c.detail]) }] as Block[]) : []),
+          ...(der.working.length ? ([{ type: "table", columns: ["Working", "Value"], rows: der.working.map((w) => [w.label, w.value]), caption: `Stability pulls ${p.id}` }] as Block[]) : []),
+        ];
+      }
+      case "retain_reserve": {
+        const r = d?.retain;
+        return kv([
+          ["Purpose", r?.purpose ? RETAIN_PURPOSE_TEXT[r.purpose] : undefined],
+          ["Basis of the quantity", r?.quantityBasis],
+          ["Units kept per batch", r?.unitsPerBatch !== undefined ? String(r.unitsPerBatch) : undefined],
+          ["Retention period", r?.retentionPeriod],
+          ["Storage", r?.storage],
+          ["Requirement", r?.requirementRef],
+        ]);
+      }
+      case "characterization":
+      case "supporting_study": {
+        const an = d?.analyses;
+        return [
+          ...(an?.analyses?.length ? ([{ type: "table", columns: ["Analysis", "Method"], rows: an.analyses.map((x) => [x.name, x.methodRef]) }] as Block[]) : []),
+          ...kv([["Informs", an?.informs]]),
+        ];
+      }
+      case "regulatory_commitment":
+        return kv([["How this study answers the request", d?.commitment?.answer]]);
+      default:
+        return [];
+    }
+  };
+  const pointBlocks = (p: SamplingPoint): Block[] => {
+    const instr = reportingInstructions(plan, p, { unitOpLabel: labelOf });
+    return [
+      { type: "heading", text: `${p.id}: ${p.attribute.trim() || "(no attribute)"}` },
+      pointTable([p]),
+      ...commonFacts(p),
+      ...typeBlocks(p),
+      ...subBlocks(subsectionsAt(plan, `in_point:${p.id}`), p),
+      { type: "heading", text: instr.heading },
+      ...instr.paragraphs.map((text): Block => ({ type: "paragraph", text })),
+    ];
+  };
   const rank = (uo: string) => {
     const i = seed.scope.included.find((u) => u.key === uo)?.sequence;
     return i ?? (uo === UNIT_OP_FINISHED_PRODUCT ? 9000 : uo === UNIT_OP_NONE ? 9100 : 8000);
   };
-  stepOrder.sort((x, y) => rank(x) - rank(y));
-  const groupBlocks = (points: SamplingPoint[], empty: string): Block[] => {
-    if (!points.length) return [{ type: "paragraph", text: empty }];
+  const stepGroups = (points: SamplingPoint[]): Block[] => {
+    const steps = [...new Set(points.map((p) => p.unitOp))].sort((x, y) => rank(x) - rank(y));
     const out: Block[] = [];
-    for (const uo of stepOrder) {
+    for (const uo of steps) {
       const mine = points.filter((p) => p.unitOp === uo);
-      if (mine.length) out.push({ type: "heading", text: stepText(uo) }, pointTable(mine));
+      out.push({ type: "heading", text: `Process step: ${stepText(uo)}` });
+      for (const p of mine) out.push(...pointBlocks(p));
     }
     return out;
   };
-  add("points", "Sampling points", [
-    { type: "paragraph", text: `Routine in-process, release and enhanced PPQ sampling, by process step. "Locations x n" is the number of locations or time points per batch times the sample size per location. Categories: ${CATEGORY_LABEL.routine_ipc_release.toLowerCase()}, ${CATEGORY_LABEL.ppq_enhanced.toLowerCase()}.` },
-    ...groupBlocks(routine, "No routine or enhanced PPQ sampling points have been entered."),
+  for (const t of SAMPLING_TYPES as readonly SamplingType[]) {
+    const points = plan.points.filter((p) => p.type === t);
+    const inType = subBlocks(subsectionsAt(plan, `in_study_type:${t}`));
+    const after = subsAfter(typeSectionKey(t));
+    if (!points.length && !inType.length && !after.length) continue;
+    add(typeSectionKey(t), TYPE_LABEL[t], [
+      { type: "paragraph", text: `${TYPE_HELP[t]} ${points.length} point${points.length === 1 ? "" : "s"}.${points.length ? ' "Locations x n" is the number of locations or time points per batch times the sample size per location.' : ""}` },
+      ...inType,
+      ...stepGroups(points),
+      ...after,
+    ]);
+  }
+  const untyped = plan.points.filter((p) => !p.type);
+  if (untyped.length || subsectionsAt(plan, `after_section:${NO_TYPE_SECTION_KEY}`).length) {
+    add(NO_TYPE_SECTION_KEY, "Points without a study type", [
+      { type: "paragraph", text: "These points have no study type yet (a point migrated from the older \"routine in-process / release\" category has to be classified by the team). Each is an open item." },
+      ...stepGroups(untyped),
+      ...subsAfter(NO_TYPE_SECTION_KEY),
+    ]);
+  }
+
+  // Agency requests and commitments
+  const cover = agencyCoverage(plan);
+  add("agency-requests", "Agency requests and commitments", [
+    {
+      type: "paragraph",
+      text: plan.agencyRequests.length
+        ? "Agency requests, and answers to earlier requests, that refer to PPQ samples or studies. The questions are quoted as received. The plan links each request to the sampling points that answer it; it does not say what a request means for a filing."
+        : plan.noAgencyRequests
+          ? "The team states that no agency requests or answers refer to PPQ samples or studies."
+          : "Not yet stated whether agency requests or answers refer to PPQ samples or studies. This is an open item.",
+    },
+    ...(plan.agencyRequests.length
+      ? ([
+          {
+            type: "table",
+            columns: ["Request", "Agency", "Kind", "Reference", "Received", "Question (as received)", "Response or commitment", "Status", "Sampling points"],
+            rows: cover.map((c) => [
+              c.request.id,
+              c.request.marketCode?.trim() ? `${c.request.agency} (${c.request.marketCode.trim()})` : c.request.agency,
+              c.request.kind ? AGENCY_KIND_LABEL[c.request.kind] : "Not given",
+              c.request.reference ?? "Not given",
+              c.request.dateReceived ?? "Not given",
+              c.request.question,
+              [c.request.response ?? "", c.request.responseDate ? `(${c.request.responseDate})` : ""].filter(Boolean).join(" ") || "Not given",
+              c.request.status ? AGENCY_STATUS_LABEL[c.request.status] : "Not given",
+              c.text,
+            ]),
+          },
+        ] as Block[])
+      : []),
+    ...subsAfter("agency-requests"),
   ]);
 
-  // 6. Characterization and supporting studies
-  add("studies", "Characterization and supporting studies", [
-    { type: "paragraph", text: 'Material taken from the PPQ batches for characterization, supporting studies and other work. A point marked "Report only" is collected and reported; it has no acceptance criterion.' },
-    ...groupBlocks(studies, "No characterization or supporting study points have been entered."),
-  ]);
-
-  // 7. Totals
+  // Totals
+  const pointRowCells = (p: SamplingPoint) => {
+    const per = new Map(unitsPerBatch(plan, p).map((u) => [u.batchId, u.text]));
+    return [`${p.id} ${p.attribute.trim() || "(no attribute)"}`, ...plan.batches.map((b) => per.get(b.id) ?? "Not planned")];
+  };
+  const stabilityPoints = plan.points.filter((p) => p.type === "stability");
   add("totals", "Sample totals per batch", [
     {
       type: "paragraph",
-      text: "Units consumed are the sample size times the number of locations, added over the points that apply to the batch. A point inspected at 100% of the lot is shown as such and is not counted. Totals are not complete while a point is not worked out.",
+      text: "Units consumed are the sample size times the number of locations, added over the points that apply to the batch. Stability units (pulls times units per pull) and retain or reserve units are counted in their own rows. A point inspected at 100% of the lot is shown as such and is not counted. Totals are not complete while a point is not worked out.",
     },
     plan.batches.length
       ? {
           type: "table",
           columns: ["Point", ...plan.batches.map((b) => b.label)],
           rows: [
-            ...plan.points.map((p) => {
-              const per = new Map(unitsPerBatch(plan, p).map((u) => [u.batchId, u.text]));
-              return [`${p.id} ${p.attribute.trim() || "(no attribute)"}`, ...plan.batches.map((b) => per.get(b.id) ?? "Not planned")];
-            }),
-            ["Total units", ...totals.perBatch.map((t) => String(t.units))],
+            ...plan.points.map(pointRowCells),
+            ["Total sample units (testing)", ...totals.perBatch.map((t) => String(t.units))],
+            ["Total stability units", ...totals.perBatch.map((t) => String(t.stabilityUnits))],
+            ["Total retain and reserve units", ...totals.perBatch.map((t) => String(t.retainUnits))],
+            ["Total units, all kinds", ...totals.perBatch.map((t) => String(t.units + t.stabilityUnits + t.retainUnits))],
           ],
           caption: "Units per point and batch",
         }
       : { type: "paragraph", text: "No batches, so no totals." },
-    ...(plan.batches.length ? ([{ type: "paragraph", text: `Total over all batches: ${totals.units} units.` }] as Block[]) : []),
+    ...(plan.batches.length
+      ? ([{ type: "paragraph", text: `Total over all batches: ${totals.units} sample units, ${totals.stabilityUnits} stability units and ${totals.retainUnits} retain and reserve units; ${totals.allUnits} units in all.` }] as Block[])
+      : []),
+    ...(stabilityPoints.length
+      ? ([
+          {
+            type: "table",
+            columns: ["Point", "Step", "Value"],
+            rows: stabilityPoints.flatMap((p) => stabilityDerivation(p).working.map((w) => [p.id, w.label, w.value])),
+            caption: "Working: stability pulls and units",
+          },
+        ] as Block[])
+      : []),
     ...totals.notes.map((text): Block => ({ type: "note", text })),
+    ...subsAfter("totals"),
   ]);
 
-  // 8. Open items
+  // Open items
   add("open-items", "Open items", [
     {
       type: "paragraph",
@@ -302,8 +524,15 @@ export function buildSamplingPlanDocument(
         : "No open items. This does not mean the plan is adequate; that is for QA and statistics to judge.",
     },
     ...(open.length
-      ? ([{ type: "table", columns: ["Reference", "Item", "Open item"], rows: open.map((o) => [o.ref === "plan" ? "Plan" : o.ref, o.kind === "point" ? (plan.points.find((p) => p.id === o.ref)?.attribute.trim() || "(no attribute)") : "", o.text]) }] as Block[])
+      ? ([
+          {
+            type: "table",
+            columns: ["Reference", "Item", "Open item"],
+            rows: open.map((o) => [o.ref === "plan" ? "Plan" : o.ref, o.kind === "point" ? (plan.points.find((p) => p.id === o.ref)?.attribute.trim() || "(no attribute)") : "", o.text]),
+          },
+        ] as Block[])
       : []),
+    ...subsAfter("open-items"),
   ]);
 
   // Appendix A: traceability
@@ -326,8 +555,8 @@ export function buildSamplingPlanDocument(
     plan.points.length ? { type: "table", columns: ["Point", "Origin", "RU item", "Gap ids", "Validation activity", "Sources"], rows: trace } : { type: "paragraph", text: "No points." },
   ]);
 
-  // Appendix B: source register (sources the plan cites)
-  const cited = project.sources.filter((s) => plan.points.some((p) => p.sourceIds.includes(s.id)));
+  // Appendix B: source register (sources the plan cites, by points and by agency requests)
+  const cited = project.sources.filter((s) => plan.points.some((p) => p.sourceIds.includes(s.id)) || plan.agencyRequests.some((r) => r.sourceIds.includes(s.id)));
   appendix("source-register", "Source register", [
     cited.length
       ? {
@@ -338,7 +567,11 @@ export function buildSamplingPlanDocument(
       : { type: "paragraph", text: "No sources are cited by the sampling points." },
   ]);
 
-  // Appendix C: versions
+  // Appendix: subsections placed in an appendix
+  const appendixSubs = subsectionsAt(plan, "appendix");
+  if (appendixSubs.length) appendix("plan-subsections", "Additional subsections", subBlocks(appendixSubs));
+
+  // Appendix: versions
   appendix("versions", "Versions", [
     {
       type: "table",

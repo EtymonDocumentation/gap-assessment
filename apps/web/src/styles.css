@@ -2219,3 +2219,62 @@ details.report h4 {
     grid-template-columns: 1fr;
   }
 }
+
+/* M7.1: the plan interview (view by step or by study type), point cards, study-type detail groups, reporting-instructions preview.
+   Tokens only (light and dark follow the page); rem sizes; everything wraps so nothing scrolls sideways at 390 px, also with Verdana. */
+.seg {
+  align-items: center;
+}
+fieldset.fs {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  margin: 0;
+  min-width: 0;
+}
+fieldset.fs > legend {
+  padding: 0 0.375rem;
+  font-weight: 600;
+}
+.fs.param {
+  background: var(--surface-2);
+}
+.point-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  background: var(--surface);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.point-card[data-selected="true"] {
+  border-width: 2px;
+}
+.list-row {
+  min-width: 0;
+}
+.run-card {
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 0.625rem;
+  min-width: 0;
+}
+.ri-preview {
+  border-left: 4px solid var(--border);
+  padding-left: 0.75rem;
+  overflow-wrap: anywhere;
+}
+.ri-preview p {
+  margin: 0.25rem 0;
+}
+details > summary {
+  cursor: pointer;
+}
+/* A select with long option text (a point list) must shrink to its field instead of widening the page. */
+.field,
+.field select,
+.field input,
+.field textarea {
+  min-width: 0;
+  max-width: 100%;
+}

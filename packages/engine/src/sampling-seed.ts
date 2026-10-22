@@ -1,4 +1,4 @@
-import { SAMPLING_CATEGORIES, UNIT_OP_FINISHED_PRODUCT, UNIT_OP_NONE, type Project, type SamplingCategory, type SamplingPlan } from "@gap/process-model";
+import { SAMPLING_TYPES, designLoadoutsSchema, type DesignLoadouts, UNIT_OP_FINISHED_PRODUCT, UNIT_OP_NONE, type Project, type SamplingPlan, type SamplingType } from "@gap/process-model";
 import { z } from "zod";
 import type { ContentBundle } from "./content";
 import { buildValidationPlan } from "./validation";
@@ -21,7 +21,7 @@ const candidate = z.strictObject({
   uo: z.string().min(1),
   key: z.string().regex(/^[a-z0-9_]+$/),
   attribute: z.string().min(1),
-  category: z.enum(SAMPLING_CATEGORIES),
+  type: z.enum(SAMPLING_TYPES),
   materialType: z.string().optional(),
   why: z.string().min(1),
 });
@@ -51,6 +51,15 @@ export function parseSamplingSuggestions(raw: unknown, knownUnitOps: readonly st
   return r.data;
 }
 
+/** Validates the design load-outs (content/sampling/design-loadouts.yaml). Strict, so a stray key or an unknown range kind stops the build. */
+export function parseDesignLoadouts(raw: unknown): DesignLoadouts {
+  const r = designLoadoutsSchema.safeParse(raw);
+  if (!r.success) throw new Error(`Design load-outs are invalid:\n${r.error.issues.map((i) => `${i.path.map(String).join(".")}: ${i.message}`).join("\n")}`);
+  const ids = r.data.loadouts.map((l) => l.id);
+  if (new Set(ids).size !== ids.length) throw new Error("Design load-outs are invalid: duplicate id");
+  return r.data;
+}
+
 export type SuggestionSource = "catalog" | "ipc" | "cpp" | "activity";
 
 export interface PointSuggestion {
@@ -61,7 +70,7 @@ export interface PointSuggestion {
   uo: string;
   uoLabel: string;
   attribute: string;
-  category: SamplingCategory;
+  type: SamplingType;
   materialType?: string;
   /** Why this is offered, in words ("In-process control of this step in the RU data."). */
   why: string;
@@ -100,9 +109,9 @@ export function suggestPoints(content: ContentBundle, project: Project, library:
       const itemPath = `uo.${uo.key}.${item.collection}.${item.key}`;
       const gapIds = [...new Set(item.fields.flatMap((f) => f.reference?.gapIds ?? []))].sort();
       if (item.collection === "ipc") {
-        add({ id: `ipc:${itemPath}`, source: "ipc", uo: uo.key, attribute: item.label, category: "routine_ipc_release", why: "An in-process control of this step in the RU data. Say how it is sampled during PPQ.", itemPath, gapIds });
+        add({ id: `ipc:${itemPath}`, source: "ipc", uo: uo.key, attribute: item.label, type: "ipc", why: "An in-process control of this step in the RU data. Say how it is sampled during PPQ.", itemPath, gapIds });
       } else if (item.collection === "param" && item.classification === "CPP") {
-        add({ id: `cpp:${itemPath}`, source: "cpp", uo: uo.key, attribute: `Verify the effect of ${item.label}`, category: "ppq_enhanced", why: "A critical process parameter in the RU data. PPQ often samples to show the process stays in control around it.", itemPath, gapIds });
+        add({ id: `cpp:${itemPath}`, source: "cpp", uo: uo.key, attribute: `Verify the effect of ${item.label}`, type: "ppq_enhanced", why: "A critical process parameter in the RU data. PPQ often samples to show the process stays in control around it.", itemPath, gapIds });
       }
     }
   }
@@ -110,7 +119,7 @@ export function suggestPoints(content: ContentBundle, project: Project, library:
   // Catalog candidates of steps that are in scope. A step left out, or not applicable, gets none.
   for (const c of library.candidates) {
     if (!live(c.uo)) continue;
-    add({ id: `cat:${c.key}`, source: "catalog", uo: c.uo, attribute: c.attribute, category: c.category, ...(c.materialType ? { materialType: c.materialType } : {}), why: c.why, gapIds: [] });
+    add({ id: `cat:${c.key}`, source: "catalog", uo: c.uo, attribute: c.attribute, type: c.type, ...(c.materialType ? { materialType: c.materialType } : {}), why: c.why, gapIds: [] });
   }
 
   // Candidates that follow a validation activity a gap implies (the activities the Validation plan page lists).
@@ -123,7 +132,7 @@ export function suggestPoints(content: ContentBundle, project: Project, library:
       source: "activity",
       uo: c.uo,
       attribute: c.attribute,
-      category: c.category,
+      type: c.type,
       ...(c.materialType ? { materialType: c.materialType } : {}),
       why: c.why,
       gapIds: row.gaps.map((g) => g.displayId).sort(),

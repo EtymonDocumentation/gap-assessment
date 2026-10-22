@@ -1,4 +1,4 @@
-import { buildSamplingPlanDocument, documentFingerprint, recordExport, samplingBasisText } from "@gap/engine";
+import { buildCmoInstructionsDocument, buildSamplingPlanDocument, CMO_INSTRUCTIONS_TITLE, documentFingerprint, recordExport, samplingBasisText } from "@gap/engine";
 import { PROCESS_MODEL_VERSION, SAMPLING_PLAN_FORMAT_VERSION, type DocumentExport, type SamplingPlan, type TemplateRecord } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlBody } from "@gap/renderers";
 import { SAMPLING_STATS_VERSION } from "@gap/sampling";
@@ -18,6 +18,20 @@ const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingm
  * export history with the versions behind it.
  */
 export function SamplingOutput({ plan }: { plan: SamplingPlan }) {
+  return (
+    <>
+      <OutputCard plan={plan} variant="plan" />
+      <OutputCard plan={plan} variant="cmo" />
+    </>
+  );
+}
+
+/** One document card. The CMO reporting instructions are a second output of the same plan, with their own export-history kinds. */
+function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "cmo" }) {
+  const cmo = variant === "cmo";
+  const p = cmo ? "cmo" : "sampling";
+  const kindPrefix = cmo ? "sampling-cmo-instructions-" : "sampling-plan-";
+  const filePrefix = cmo ? "cmo-instructions" : "sampling-plan";
   const project = useStore((s) => s.project)!;
   const content = useContent();
   const update = useStore((s) => s.update);
@@ -28,7 +42,7 @@ export function SamplingOutput({ plan }: { plan: SamplingPlan }) {
   const [done, setDone] = useState("");
   const [showPreview, setShowPreview] = useState(false);
 
-  const doc = useMemo(() => buildSamplingPlanDocument(content, project, plan, samplingSuggestions, { generatedAt, appVersion: APP_VERSION }), [content, project, plan, generatedAt]);
+  const doc = useMemo(() => (cmo ? buildCmoInstructionsDocument : buildSamplingPlanDocument)(content, project, plan, samplingSuggestions, { generatedAt, appVersion: APP_VERSION }), [content, project, plan, generatedAt, cmo]);
   const body = useMemo(() => (showPreview ? renderHtmlBody(doc) : ""), [doc, showPreview]);
   const stamp = `${project.meta.id}-${plan.id}-${today()}`;
   const tbd = doc.tbdCount ?? 0;
@@ -67,9 +81,9 @@ export function SamplingOutput({ plan }: { plan: SamplingPlan }) {
       const m = await loadDocx();
       try {
         const res = await m.renderDocx({ doc, mode: "builtin", generatedAt });
-        const file = `sampling-plan-${stamp}.docx`;
+        const file = `${filePrefix}-${stamp}.docx`;
         download(file, res.bytes, DOCX_MIME);
-        record("sampling-plan-docx", res.templateRecord);
+        record(`${kindPrefix}docx` as DocumentExport["format"], res.templateRecord);
         saved(file);
       } catch (e) {
         setError(`The Word document could not be created: ${(e as Error).message}`);
@@ -81,43 +95,47 @@ export function SamplingOutput({ plan }: { plan: SamplingPlan }) {
     }
   }
 
-  const exports = project.document.exports.filter((x) => x.format.startsWith("sampling-plan-"));
+  const exports = project.document.exports.filter((x) => x.format.startsWith(kindPrefix));
 
   return (
     <>
-      <section className="card stack no-print" aria-labelledby="sp-doc" data-testid="sampling-output">
-        <h2 id="sp-doc">Sampling plan document</h2>
-        <p>
-          {samplingBasisText(project.meta.id)} The document shows each sample size with its working and the source of the method. It states no filing category; where a filing question arises it reads "Requires regulatory affairs assessment".
-        </p>
+      <section className="card stack no-print" aria-labelledby={`${p}-doc`} data-testid={`${p}-output`}>
+        <h2 id={`${p}-doc`}>{cmo ? CMO_INSTRUCTIONS_TITLE : "Sampling plan document"}</h2>
+        {cmo ? (
+          <p>The reporting instructions of every sampling point, in plan order, with the custom subsections marked for the CMO and the agency requests the points answer. It carries the plan fingerprint so the CMO can see which plan version it belongs to. It contains no sample-size working.</p>
+        ) : (
+          <p>
+            {samplingBasisText(project.meta.id)} The document shows each sample size with its working and the source of the method. It states no filing category; where a filing question arises it reads "Requires regulatory affairs assessment".
+          </p>
+        )}
         <div className="row wrap">
-          <button type="button" className="btn primary" disabled={busy} onClick={() => guard(() => void exportWord())} data-testid="sampling-download-word">
+          <button type="button" className="btn primary" disabled={busy} onClick={() => guard(() => void exportWord())} data-testid={`${p}-download-word`}>
             {busy ? "Creating the Word document..." : "Download Word"}
           </button>
           <button
             type="button"
             className="btn"
-            data-testid="sampling-download-html"
+            data-testid={`${p}-download-html`}
             onClick={() =>
               guard(() => {
-                const file = `sampling-plan-${stamp}.html`;
+                const file = `${filePrefix}-${stamp}.html`;
                 download(file, renderHtml(doc), "text/html;charset=utf-8");
-                record("sampling-plan-html", BUILTIN_RECORD);
+                record(`${kindPrefix}html` as DocumentExport["format"], BUILTIN_RECORD);
                 saved(file);
               })
             }
           >
             Download HTML
           </button>
-          <button type="button" className="btn" aria-expanded={showPreview} onClick={() => setShowPreview((v) => !v)} data-testid="sampling-preview-toggle">
+          <button type="button" className="btn" aria-expanded={showPreview} onClick={() => setShowPreview((v) => !v)} data-testid={`${p}-preview-toggle`}>
             {showPreview ? "Hide preview" : "Show preview"}
           </button>
         </div>
-        <p className="small muted" data-testid="sampling-open-count">
+        <p className="small muted" data-testid={`${p}-open-count`}>
           {tbd === 0 ? "No open items." : `${tbd} open ${tbd === 1 ? "item" : "items"} will be listed in the document.`} The banner "Proof of concept. Not validated. Not for GMP use." is in every output.
         </p>
         <div role="status" aria-live="polite">
-          {done && <p data-testid="sampling-done">{done}</p>}
+          {done && <p data-testid={`${p}-done`}>{done}</p>}
         </div>
         {error && (
           <p className="notice" role="alert">
@@ -126,16 +144,16 @@ export function SamplingOutput({ plan }: { plan: SamplingPlan }) {
         )}
       </section>
 
-      <ExportHistory exports={exports} />
+      <ExportHistory exports={exports} idPrefix={`${p}-export-history`} title={cmo ? "CMO instructions export history" : "Export history"} />
 
       {showPreview && (
-        <section className="stack" aria-labelledby="sp-preview">
-          <h2 id="sp-preview" className="no-print">
+        <section className="stack" aria-labelledby={`${p}-preview`}>
+          <h2 id={`${p}-preview`} className="no-print">
             Document preview
           </h2>
           <style>{DOCUMENT_CSS}</style>
           {/* Built from escaped text by renderHtmlBody (every value passes through escapeHtml). */}
-          <div className="doc-preview" data-testid="sampling-preview" dangerouslySetInnerHTML={{ __html: body }} />
+          <div className="doc-preview" data-testid={`${p}-preview`} dangerouslySetInnerHTML={{ __html: body }} />
         </section>
       )}
 
@@ -148,7 +166,7 @@ export function SamplingOutput({ plan }: { plan: SamplingPlan }) {
           restoreFocus={() => opener.current}
         >
           <div className="stack">
-            <p data-testid="sampling-tbd-warning">
+            <p data-testid={`${p}-tbd-warning`}>
               The download will record that <strong>{tbd} open {tbd === 1 ? "item was" : "items were"}</strong> listed when it was made.
             </p>
             <div className="row end">

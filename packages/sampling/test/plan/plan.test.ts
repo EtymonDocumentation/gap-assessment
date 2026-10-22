@@ -20,7 +20,9 @@ function point(over: Partial<SamplingPoint> = {}): SamplingPoint {
   return {
     id: "SP-001",
     origin: { kind: "manual" },
-    category: "routine_ipc_release",
+    type: "ipc",
+    responsible: { party: "cmo" },
+    reporting: { what: ["individual"] },
     unitOp: "aseptic_filling",
     attribute: "Fill weight",
     timing: { options: ["beginning", "end"] },
@@ -44,7 +46,11 @@ function plan(points: SamplingPoint[], lots: (number | undefined)[] = [4000, 400
     status: "draft",
     batches: lots.map((l, i) => ({ id: `B-00${i + 1}`, label: `PPQ batch ${i + 1}`, ...(l !== undefined ? { plannedLotSizeUnits: l } : {}) })),
     batchRationale: "Three is the site rule (fictional).",
+    parties: [],
+    agencyRequests: [],
+    noAgencyRequests: true,
     points,
+    subsections: [],
     createdAt: at,
     updatedAt: at,
   };
@@ -59,7 +65,7 @@ describe("point completeness", () => {
     expect(c.perBatch.map((r) => r.sampleSize)).toEqual([5, 5]);
   });
 
-  it("a point with nothing but a step and a category lists every missing decision and invents none", () => {
+  it("a point with nothing but a step and a study type lists every missing decision and invents none", () => {
     const bare = point({ attribute: "", timing: { options: [] }, locationsCount: undefined, sampleSize: { inputs: {} }, acceptance: undefined, rationale: "" });
     const p = plan([bare]);
     const c = checkPoint(p, bare);
@@ -71,6 +77,11 @@ describe("point completeness", () => {
     expect(all).toMatch(/locations/i);
     expect(all).toMatch(/acceptance/i);
     expect(all).toMatch(/method/i);
+  });
+
+  it("a point without a study type says so and is never given one", () => {
+    const pt = point({ type: undefined });
+    expect(checkPoint(plan([pt]), pt).problems.join(" ")).toMatch(/study type/i);
   });
 
   it("a missing input of a method is reported and gives no sample size", () => {
@@ -170,7 +181,7 @@ describe("report only", () => {
   it("is refused by the plan schema for routine and enhanced points", () => {
     const bad = plan([point({ acceptance: { kind: "report_only" } })]);
     expect(samplingPlanSchema.safeParse(bad).success).toBe(false);
-    const ok = plan([point({ category: "characterization", acceptance: { kind: "report_only" } })]);
+    const ok = plan([point({ type: "characterization", acceptance: { kind: "report_only" } })]);
     expect(samplingPlanSchema.safeParse(ok).success).toBe(true);
   });
 

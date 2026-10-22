@@ -100,6 +100,8 @@ export const FORMAT_LABEL = {
   "trd-outline-html": "TRD outline (HTML)",
   "sampling-plan-docx": "Sampling plan (Word)",
   "sampling-plan-html": "Sampling plan (HTML)",
+  "sampling-cmo-instructions-docx": "CMO reporting instructions (Word)",
+  "sampling-cmo-instructions-html": "CMO reporting instructions (HTML)",
 } as const;
 
 /** First 12 characters of a SHA-256 value, for tables. The full value goes in a title or an expandable. */

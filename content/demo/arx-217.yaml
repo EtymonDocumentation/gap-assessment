@@ -664,10 +664,52 @@ sampling:
         - { lotMin: 501, lotMax: 3200, sampleSize: 13 }
         - { lotMin: 3201, lotMax: 10000, sampleSize: 20 }
         - { lotMin: 10001, lotMax: 1000000, sampleSize: 32 }
+  subsectionLibrary:
+    - id: 5d1c6a52-0000-4000-8000-0000000b0217
+      name: Sample handling after collection (fictional)
+      version: "1.0"
+      owner: Site South QA (fictional)
+      note: Invented for the demonstration. Not a real company text.
+      suggestedPlacement: after_section:batches
+      blocks:
+        - { type: paragraph, text: "Samples of {productName} taken for plan {planId} are labelled at the point of collection, kept in their original containers and sent to the test laboratory the same day (fictional)." }
+        - { type: list, items: ["Label every container with the batch, point and time.", "Record the storage temperature on the sample sheet.", "Report any delay to the responsible person at once."] }
   plans:
     - title: ARX-217 PPQ sampling plan, Site South Line 4 (fictional)
       notes: Fictional demonstration plan.
       batchRationale: "Three consecutive batches, as the fictional Site South validation master plan VMP-217 (fictional) requires for a transferred process."
+      parties:
+        - { party: cmo, name: Site South manufacturing (fictional), role: Takes the samples and writes the PPQ summary report }
+        - { party: contract_lab, name: Example Test Laboratory (fictional), role: Tests the samples }
+      agencyRequests:
+        - ref: ir1
+          agency: Example Health Authority (fictional)
+          marketCode: EX
+          kind: information_request
+          reference: IR-DEMO-01 (fictional)
+          dateReceived: "2026-08-14"
+          question: "Please confirm that the three PPQ batches include homogeneity data for the bulk solution at the receiving site (fictional)."
+          response: The PPQ plan includes a mixing study on the bulk solution (fictional).
+          responseDate: "2026-09-02"
+          status: answered
+      subsections:
+        - title: Sample handling after collection (fictional)
+          library: 5d1c6a52-0000-4000-8000-0000000b0217
+          placement: "after_section:batches"
+          includeInCmo: true
+          blocks:
+            - { type: paragraph, text: "Samples of {productName} taken for plan {planId} are labelled at the point of collection, kept in their original containers and sent to the test laboratory the same day (fictional)." }
+            - { type: list, items: ["Label every container with the batch, point and time.", "Record the storage temperature on the sample sheet.", "Report any delay to the responsible person at once."] }
+        - title: Batches covered by this plan (fictional)
+          placement: "after_section:purpose-scope"
+          includeInCmo: false
+          blocks:
+            - { type: paragraph, text: "{batchCount} PPQ batches: {batchList}. Site: {ruSite}." }
+        - title: Reminder for the mixing study (fictional)
+          placement: "in_point:#7"
+          includeInCmo: true
+          blocks:
+            - { type: paragraph, text: "For {pointId} ({pointTest}), take every sample from the same vessel and record the vessel number (fictional)." }
       batches:
         - { label: PPQ batch 1, plannedLotSizeUnits: 4200, batchSize: 21, batchSizeUnit: L }
         - { label: PPQ batch 2, plannedLotSizeUnits: 4200, batchSize: 21, batchSizeUnit: L }
@@ -684,6 +726,8 @@ sampling:
             acceptance: { kind: criterion, text: Each container within the fictional fill range of the batch record (fictional). }
             rationale: Routine fill check, sampled at the start, middle and end of each batch and at each needle.
             testMethodRef: SOP-FILL-014 (fictional)
+            responsible: { party: cmo }
+            reporting: { what: [individual, mean, range], presentation: [per_batch, by_location], deviationRef: SOP-DEV-001 (fictional) }
         - suggestion: cat:sf_prefiltration_bioburden
           originFrom: ipc:uo.sterile_filtration.ipc.bioburden
           docs: [DEMO-FV-217-05]
@@ -693,6 +737,8 @@ sampling:
             sampleSize: { method: fixed, inputs: { count: 3, basis: "Fictional site procedure SOP-BIO-001 (fictional) takes three samples per filtration." } }
             acceptance: { kind: criterion, text: Within the fictional bioburden limit of the filter validation (fictional). }
             rationale: Shows the load entering the sterilizing filter stays inside what the filter was challenged with.
+            responsible: { party: contract_lab, name: Example Test Laboratory (fictional) }
+            reporting: { what: [individual, pass_fail], deviationRef: SOP-DEV-001 (fictional) }
         - suggestion: cat:container_closure_integrity
           originFrom: act:cci_study:act_cci
           docs: [DEMO-PPQ-217-01]
@@ -702,6 +748,9 @@ sampling:
             sampleSize: { method: conf-rel, inputs: { confidence: 0.95, reliability: 0.95, allowedFailures: 0 } }
             acceptance: { kind: criterion, text: No leak detected (fictional). }
             rationale: Shows with the stated confidence and reliability that the capping process seals the containers.
+            responsible: { party: contract_lab, name: Example Test Laboratory (fictional) }
+            detail: { enhanced: { interventions: Samples taken after the planned stoppage of the capper (fictional). } }
+            reporting: { what: [pass_fail, raw_data_ref], deviationRef: SOP-DEV-001 (fictional) }
         - suggestion: cat:visual_aql
           originFrom: ipc:uo.visual_inspection.ipc.aql
           docs: [DEMO-VI-217-02]
@@ -709,10 +758,12 @@ sampling:
             timing: { options: [end] }
             locationsCount: 1
             sampleSize: { method: aql-105e, inputs: { level: II, aql: 0.65, inspection: normal } }
-            acceptance: { kind: criterion, text: Accept or reject by the plan's accept and reject numbers (fictional). }
+            acceptance: { kind: criterion, text: Accept or reject by the accept and reject numbers of the plan (fictional). }
             rationale: Re-inspection of accepted units to confirm the visual inspection performs.
+            responsible: { party: cmo }
+            reporting: { what: [pass_fail], deviationRef: SOP-DEV-001 (fictional) }
         - unitOp: aseptic_filling
-          category: ppq_enhanced
+          type: ppq_enhanced
           attribute: Fill volume (measured value)
           docs: [DEMO-PPQ-217-01]
           patch:
@@ -721,6 +772,9 @@ sampling:
             sampleSize: { method: var-414, inputs: { level: IV, aql: 1, inspection: normal, limits: double } }
             acceptance: { kind: criterion, text: Acceptable by the variables plan (fictional). }
             rationale: A measured fill volume lets the variables plan use fewer containers than counting would.
+            responsible: { party: cmo }
+            detail: { enhanced: { interventions: Samples taken after each planned intervention on the filling line (fictional). } }
+            reporting: { what: [individual, mean, sd_rsd], deviationRef: SOP-DEV-001 (fictional) }
         - suggestion: cat:extended_characterization
           patch:
             timing: { options: [end] }
@@ -728,5 +782,96 @@ sampling:
             sampleSize: { method: fixed, inputs: { count: 6, basis: Fictional characterization protocol CHAR-217 (fictional). } }
             acceptance: { kind: report_only }
             rationale: Collected and reported to describe the PPQ batches; no criterion is set.
+            responsible: { party: contract_lab, name: Example Test Laboratory (fictional) }
+            detail: { analyses: { analyses: [{ name: Peptide map, methodRef: CHAR-METH-01 (fictional) }, { name: Higher-order structure, methodRef: CHAR-METH-02 (fictional) }], informs: The PPQ summary report (fictional). } }
+            reporting: { what: [individual], deviationRef: SOP-DEV-001 (fictional) }
+        # The one incomplete point of the demo: the design is entered (fictional values, from the bracketing load-out) but the vessel,
+        # criterion and the rest are not. The design itself is optional and never makes a point incomplete.
         - suggestion: cat:blend_uniformity
+          loadout: worst-case-bracketing
+          runValues:
+            - { batchSize: { value: 21, unit: L, tag: max }, speed: { value: 60, unit: rpm, tag: min }, mixTime: { value: 20, unit: min, tag: target }, attributes: "Concentration and pH at top, middle and bottom (fictional)." }
+            - { batchSize: { value: 12, unit: L, tag: min }, speed: { value: 140, unit: rpm, tag: max }, mixTime: { value: 20, unit: min, tag: target }, attributes: "Concentration, pH and subvisible particles (fictional)." }
+          rangeText: ["Batch size 12 to 21 L (fictional values)."]
           patch: {}
+        - suggestion: cat:release_sterility
+          docs: [DEMO-PPQ-217-01]
+          patch:
+            timing: { options: [end] }
+            locationsCount: 1
+            sampleSize: { method: fixed, inputs: { count: 20, basis: "Fictional compendial sterility test quantity (fictional)." } }
+            acceptance: { kind: criterion, text: No growth (fictional). }
+            rationale: Release test on every PPQ batch.
+            responsible: { party: contract_lab, name: Example Test Laboratory (fictional) }
+            testMethodRef: SOP-STER-001 (fictional)
+            reporting: { what: [pass_fail], deviationRef: SOP-DEV-001 (fictional) }
+        - suggestion: cat:bulk_hold
+          docs: [DEMO-HT-217-02]
+          patch:
+            timing: { options: [beginning, end] }
+            locationsCount: 2
+            sampleSize: { method: fixed, inputs: { count: 3, basis: "Fictional hold study protocol HT-217 (fictional)." } }
+            acceptance: { kind: criterion, text: Concentration and bioburden within the fictional hold limits (fictional). }
+            rationale: Supports the proposed hold of the bulk solution before filtration.
+            responsible: { party: cmo }
+            detail: { hold: { holdStep: compounding, start: End of bulk compounding (fictional), end: Start of sterile filtration (fictional), durations: [{ value: 24, unit: hours }, { value: 48, unit: hours }], condition: 2 to 8 C in the closed hold tank (fictional), supports: Proposed maximum hold of 48 hours (fictional). } }
+            reporting: { what: [individual, trend], presentation: [by_time_point], deviationRef: SOP-DEV-001 (fictional) }
+        - suggestion: cat:sf_filter_integrity
+          docs: [DEMO-FV-217-05]
+          patch:
+            timing: { options: [beginning, end] }
+            locationsCount: 1
+            sampleSize: { method: fixed, inputs: { count: 1, basis: "Every filter is tested before and after use (fictional)." } }
+            acceptance: { kind: criterion, text: Integrity test value at or above the fictional filter limit (fictional). }
+            rationale: Confirms the sterilizing filter was intact for each batch.
+            responsible: { party: cmo }
+            detail: { filter: { filterRef: SF-217-A sterilizing filter (fictional), test: integrity_pre_post } }
+            reporting: { what: [individual, pass_fail], deviationRef: SOP-DEV-001 (fictional) }
+        - suggestion: cat:stability_pulls
+          patch:
+            acceptance: { kind: report_only }
+            rationale: The PPQ batches are placed on stability; results are reported against the stability protocol.
+            responsible: { party: contract_lab, name: Example Test Laboratory (fictional) }
+            detail: { stability: { protocolRef: STAB-PROT-217 (fictional), conditions: [{ label: 5 C, detail: "5 C +/- 3 C (fictional)" }, { label: 25 C / 60% RH, detail: "25 C +/- 2 C and 60% relative humidity +/- 5% (fictional)" }], orientation: Upright and inverted (fictional), timePoints: [{ label: 0 months }, { label: 3 months }, { label: 6 months }, { label: 12 months }], unitsPerPull: 6, reportedAgainstProtocol: true } }
+            reporting: { what: [individual, trend], presentation: [by_time_point], deviationRef: SOP-DEV-001 (fictional) }
+        - suggestion: cat:retain_samples
+          patch:
+            acceptance: { kind: criterion, text: The stated number of units is kept per batch (fictional). }
+            rationale: Units kept from every PPQ batch for the retention period.
+            responsible: { party: cmo }
+            detail: { retain: { purpose: both, quantityBasis: "Twice the full release testing quantity (fictional).", retentionPeriod: "One year after expiry (fictional).", storage: 2 to 8 C (fictional), requirementRef: SOP-RET-005 (fictional), unitsPerBatch: 40 } }
+            reporting: { what: [raw_data_ref], deviationRef: SOP-DEV-001 (fictional) }
+        - suggestion: cat:shipping_study_units
+          docs: [DEMO-SHIP-217-01]
+          patch:
+            timing: { options: [end] }
+            locationsCount: 1
+            sampleSize: { method: fixed, inputs: { count: 12, basis: "Fictional shipping lane protocol SHIP-217 (fictional)." } }
+            acceptance: { kind: report_only }
+            rationale: PPQ units are used for the passive shipper lane study.
+            responsible: { party: sponsor, name: Example Sponsor logistics (fictional) }
+            detail: { analyses: { analyses: [{ name: Temperature log of the shipper, methodRef: SOP-SHIP-003 (fictional) }], informs: The shipping lane qualification report (fictional). } }
+            reporting: { what: [raw_data_ref], deviationRef: SOP-DEV-001 (fictional) }
+        - suggestion: cat:agency_request_study
+          agency: [ir1]
+          patch:
+            timing: { options: [end] }
+            locationsCount: 1
+            sampleSize: { method: fixed, inputs: { count: 6, basis: "Fictional commitment IR-DEMO-01 (fictional)." } }
+            acceptance: { kind: report_only }
+            rationale: Answers the fictional agency request IR-DEMO-01 (fictional).
+            responsible: { party: cmo }
+            detail: { commitment: { answer: The samples show homogeneity of the bulk solution at the receiving site (fictional). } }
+            reporting: { what: [individual, range], deviationRef: SOP-DEV-001 (fictional) }
+        - unitOp: none
+          type: other
+          attribute: Operator-requested rinse sample (fictional)
+          patch:
+            typeLabel: Operator-requested sample (fictional)
+            timing: { options: [end] }
+            locationsCount: 1
+            sampleSize: { method: fixed, inputs: { count: 1, basis: "One sample, as requested by the operator (fictional)." } }
+            acceptance: { kind: report_only }
+            rationale: Collected on request and reported for information.
+            responsible: { party: cmo }
+            reporting: { what: [individual], deviationRef: SOP-DEV-001 (fictional) }

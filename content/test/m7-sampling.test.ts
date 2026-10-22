@@ -29,25 +29,25 @@ import {
 import { parseProject, type Actor, type Project, type TemplateRecord } from "@gap/process-model";
 import { renderHtml, renderMarkdown } from "@gap/renderers";
 import { describe, expect, it } from "vitest";
-import { content, demos, samplingSuggestions } from "../index";
+import { content, demos, designLoadouts, samplingSuggestions } from "../index";
 
 const ACTOR: Actor = { name: "Pat Placeholder (fictional)", role: "MSAT engineer", at: "2026-10-06T09:00:00.000Z" };
 const LATER: Actor = { name: "Sam Sample (fictional)", role: "QA", at: "2026-10-07T10:00:00.000Z" };
 const GENERATED = "2026-10-08T00:00:00.000Z";
 
-const demo = buildDemoProject(content, demos["arx-217"], samplingSuggestions);
+const demo = buildDemoProject(content, demos["arx-217"], samplingSuggestions, designLoadouts);
 const plan = demo.sampling.plans[0]!;
 const docOf = (p: Project = demo, pl = plan): DocModel => buildSamplingPlanDocument(content, p, pl, samplingSuggestions, { generatedAt: GENERATED });
 const base = (): { project: Project; planId: string } => createPlan(buildDemoProject(content, demos["arx-217"]), { title: "Fresh plan (fictional)" }, ACTOR);
 
 describe("the suggestions catalog is options only", () => {
   it("loads and every unit operation exists", () => {
-    expect(samplingSuggestions.catalog).toEqual({ id: "ppq-suggestions", version: "1.0.0" });
+    expect(samplingSuggestions.catalog).toEqual({ id: "ppq-suggestions", version: "1.1.0" });
     expect(samplingSuggestions.candidates.length).toBeGreaterThan(30);
   });
 
   it("refuses a sample size, a criterion or a method in a candidate", () => {
-    const ok = { catalog: { id: "ppq-suggestions", version: "1.0.0" }, candidates: [{ uo: "none", key: "a", attribute: "A", category: "other", why: "Because." }], activityCandidates: [] };
+    const ok = { catalog: { id: "ppq-suggestions", version: "1.0.0" }, candidates: [{ uo: "none", key: "a", attribute: "A", type: "other", why: "Because." }], activityCandidates: [] };
     expect(() => parseSamplingSuggestions(ok)).not.toThrow();
     for (const extra of [{ sampleSize: 5 }, { acceptance: "x" }, { method: "fixed" }, { count: 3 }]) {
       const bad = { ...ok, candidates: [{ ...ok.candidates[0], ...extra }] };
@@ -56,7 +56,7 @@ describe("the suggestions catalog is options only", () => {
   });
 
   it("refuses an unknown step and a duplicate key", () => {
-    const one = { uo: "nope", key: "a", attribute: "A", category: "other", why: "Because." };
+    const one = { uo: "nope", key: "a", attribute: "A", type: "other", why: "Because." };
     const raw = (c: unknown[]) => ({ catalog: { id: "ppq-suggestions", version: "1.0.0" }, candidates: c, activityCandidates: [] });
     expect(() => parseSamplingSuggestions(raw([one]), ["aseptic_filling"])).toThrow(/unknown unit operation/);
     expect(() => parseSamplingSuggestions(raw([{ ...one, uo: "none" }, { ...one, uo: "none" }]), [])).toThrow(/duplicate key/);
@@ -123,7 +123,7 @@ describe("editing keeps the old values in the change log", () => {
 
   it("logs a point edit with before and after, and the log shows the field text", () => {
     const { project, planId } = base();
-    const a = addPoint(project, planId, { unitOp: "aseptic_filling", category: "routine_ipc_release", attribute: "Fill weight" }, ACTOR);
+    const a = addPoint(project, planId, { unitOp: "aseptic_filling", type: "ipc", attribute: "Fill weight" }, ACTOR);
     const b = updatePoint(a.project, planId, a.pointId, { attribute: "Fill volume", rationale: "Routine" }, LATER);
     const ev = b.changeLog.at(-1)!;
     expect(ev.action).toBe("sampling_point_update");
@@ -137,25 +137,25 @@ describe("editing keeps the old values in the change log", () => {
 
   it("an edit that changes nothing adds no event", () => {
     const { project, planId } = base();
-    const a = addPoint(project, planId, { unitOp: "none", category: "supporting_study", attribute: "Hold" }, ACTOR);
+    const a = addPoint(project, planId, { unitOp: "none", type: "supporting_study", attribute: "Hold" }, ACTOR);
     const same = updatePoint(a.project, planId, a.pointId, { attribute: "Hold" }, LATER);
     expect(same.changeLog.length).toBe(a.project.changeLog.length);
   });
 
-  it("refuses report only for routine and enhanced points, allows it for characterization", () => {
+  it("refuses report only for in-process, release and enhanced points, allows it for characterization", () => {
     const { project, planId } = base();
-    const a = addPoint(project, planId, { unitOp: "aseptic_filling", category: "routine_ipc_release", attribute: "Fill" }, ACTOR);
+    const a = addPoint(project, planId, { unitOp: "aseptic_filling", type: "ipc", attribute: "Fill" }, ACTOR);
     expect(() => updatePoint(a.project, planId, a.pointId, { acceptance: { kind: "report_only" } }, ACTOR)).toThrow();
-    const c = addPoint(a.project, planId, { unitOp: "finished_product", category: "characterization", attribute: "Extended" }, ACTOR);
+    const c = addPoint(a.project, planId, { unitOp: "finished_product", type: "characterization", attribute: "Extended" }, ACTOR);
     const ok = updatePoint(c.project, planId, c.pointId, { acceptance: { kind: "report_only" } }, ACTOR);
     expect(ok.sampling.plans[0]!.points[1]!.acceptance).toEqual({ kind: "report_only" });
   });
 
   it("never reuses an id, even after the item was removed", () => {
     const { project, planId } = base();
-    const a = addPoint(project, planId, { unitOp: "none", category: "other", attribute: "One" }, ACTOR);
+    const a = addPoint(project, planId, { unitOp: "none", type: "other", attribute: "One" }, ACTOR);
     const b = removePoint(a.project, planId, a.pointId, ACTOR);
-    const c = addPoint(b, planId, { unitOp: "none", category: "other", attribute: "Two" }, ACTOR);
+    const c = addPoint(b, planId, { unitOp: "none", type: "other", attribute: "Two" }, ACTOR);
     expect(a.pointId).toBe("SP-001");
     expect(c.pointId).toBe("SP-002");
     const x = addBatch(c.project, planId, { label: "PPQ batch 1" }, ACTOR);
@@ -167,7 +167,7 @@ describe("editing keeps the old values in the change log", () => {
     const { project, planId } = base();
     const b1 = addBatch(project, planId, { label: "B one", plannedLotSizeUnits: 100 }, ACTOR);
     const b2 = addBatch(b1.project, planId, { label: "B two", plannedLotSizeUnits: 100 }, ACTOR);
-    const pt = addPoint(b2.project, planId, { unitOp: "none", category: "other", attribute: "Only one batch" }, ACTOR);
+    const pt = addPoint(b2.project, planId, { unitOp: "none", type: "other", attribute: "Only one batch" }, ACTOR);
     const narrowed = updatePoint(pt.project, planId, pt.pointId, { appliesTo: [b1.batchId] }, ACTOR);
     expect(() => removeBatch(narrowed, planId, b1.batchId, ACTOR)).toThrow(SamplingError);
     expect(removeBatch(narrowed, planId, b2.batchId, ACTOR).sampling.plans[0]!.batches.length).toBe(1);
@@ -176,7 +176,7 @@ describe("editing keeps the old values in the change log", () => {
   it("saves the arithmetic of the point and refreshes it when the batch changes", () => {
     const { project, planId } = base();
     const b = addBatch(project, planId, { label: "B one", plannedLotSizeUnits: 400 }, ACTOR);
-    const a = addPoint(b.project, planId, { unitOp: "none", category: "other", attribute: "Fixed" }, ACTOR);
+    const a = addPoint(b.project, planId, { unitOp: "none", type: "other", attribute: "Fixed" }, ACTOR);
     const u = updatePoint(a.project, planId, a.pointId, { sampleSize: { method: "conf-rel", inputs: { confidence: 0.95, reliability: 0.95, allowedFailures: 0 } } }, ACTOR);
     expect(u.sampling.plans[0]!.points[0]!.sampleSize.result?.perBatch[0]?.sampleSize).toBe(59);
     const l = updateBatch(u, planId, b.batchId, { plannedLotSizeUnits: 40 }, LATER);
@@ -198,13 +198,13 @@ describe("editing keeps the old values in the change log", () => {
 describe("the demo plan", () => {
   it("has three batches and uses every sampling method", () => {
     expect(plan.batches.map((b) => b.plannedLotSizeUnits)).toEqual([4200, 4200, 3000]);
-    expect(new Set(plan.points.map((p) => p.sampleSize.method))).toEqual(new Set(["company-table", "fixed", "conf-rel", "aql-105e", "var-414", undefined]));
+    expect(new Set(plan.points.map((p) => p.sampleSize.method))).toEqual(new Set(["company-table", "fixed", "conf-rel", "aql-105e", "var-414", undefined]) /* undefined: stability and retain are worked out, not sampled */);
   });
 
   it("has exactly one incomplete point so that open items show, and a report-only characterization point", () => {
     const open = samplingOpenItems(content, demo, plan);
     expect([...new Set(open.map((o) => o.ref))]).toEqual(["SP-007"]);
-    expect(plan.points.find((p) => p.acceptance?.kind === "report_only")?.category).toBe("characterization");
+    expect(plan.points.find((p) => p.acceptance?.kind === "report_only")?.type).toBe("characterization");
   });
 
   it("reads each batch's lot size for the company table", () => {
@@ -213,8 +213,8 @@ describe("the demo plan", () => {
   });
 
   it("is built through the change log and survives a save and load", () => {
-    expect(demo.changeLog.filter((e) => e.action === "sampling_point_add").length).toBe(7);
-    expect(parseProject(JSON.parse(JSON.stringify(demo))).sampling.plans[0]!.points.length).toBe(7);
+    expect(demo.changeLog.filter((e) => e.action === "sampling_point_add").length).toBe(15);
+    expect(parseProject(JSON.parse(JSON.stringify(demo))).sampling.plans[0]!.points.length).toBe(15);
   });
 
   it("is left out when the caller has no suggestions catalog (older callers)", () => {
@@ -239,8 +239,19 @@ describe("the sampling plan document", () => {
       "Product, presentation and receiving site",
       "PPQ batches",
       "Statistical bases used",
-      "Sampling points",
-      "Characterization and supporting studies",
+      "In-process control (IPC)",
+      "Release testing",
+      "PPQ enhanced sampling",
+      "Mixing / homogeneity",
+      "Hold time",
+      "Filter study",
+      "Stability",
+      "Retain / reserve",
+      "Characterization",
+      "Supporting study",
+      "Regulatory commitment",
+      "Other",
+      "Agency requests and commitments",
       "Sample totals per batch",
       "Open items",
       "Traceability",
@@ -282,7 +293,7 @@ describe("the sampling plan document", () => {
 describe("export history of the sampling plan", () => {
   const template: TemplateRecord = { mode: "builtin", name: "Built-in default", version: "1.0.0" };
   const rec = (p: Project, format: "sampling-plan-docx" | "sampling-plan-html" | "docx", at: string, fp: string): Project =>
-    recordExport(p, { at, by: "Pat", format, template, fingerprint: fp, tbdCount: 2, versions: { processModel: "1.1.0", catalog: "x", format: "1.0.0", stats: "0.1.0", suggestions: "1.0.0" } });
+    recordExport(p, { at, by: "Pat", format, template, fingerprint: fp, tbdCount: 2, versions: { processModel: "1.2.0", catalog: "x", format: "1.0.0", stats: "0.1.0", suggestions: "1.0.0" } });
 
   it("keeps the versions and compares only with the previous export of the same family", () => {
     let p = rec(demo, "sampling-plan-docx", "2026-10-08T10:00:00.000Z", "aaa");

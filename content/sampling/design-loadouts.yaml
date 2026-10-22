@@ -1,0 +1,35 @@
+# Load-outs for the optional study design of a mixing / homogeneity point.
+# A load-out is a starting shape the user may apply, then edit freely or ignore. It supplies NO numbers: every value is blank,
+# and nothing here is required, checked or enforced. More load-outs can be added to this list later.
+catalog:
+  version: 1.0.0
+loadouts:
+  - id: three-at-target
+    title: 3 batches at target
+    description: Three runs, each at the target batch size, speed and mix time. Fill in the values.
+    design:
+      approach: 3 batches at target
+      runs:
+        - { label: Batch 1, batchSize: { tag: target }, speed: { tag: target }, mixTime: { tag: target } }
+        - { label: Batch 2, batchSize: { tag: target }, speed: { tag: target }, mixTime: { tag: target } }
+        - { label: Batch 3, batchSize: { tag: target }, speed: { tag: target }, mixTime: { tag: target } }
+  - id: worst-case-bracketing
+    title: Worst-case bracketing
+    description: Two runs at the ends of the ranges. Fill in the values; edit or delete the rationale.
+    design:
+      approach: Worst-case bracketing
+      runs:
+        - label: Run 1, largest batch at slowest speed
+          batchSize: { tag: max }
+          speed: { tag: min }
+          mixTime: { tag: target }
+          challenges: [homogeneity]
+          rationale: The largest batch at the slowest speed is the usual worst case for homogeneity.
+        - label: Run 2, smallest batch at fastest speed
+          batchSize: { tag: min }
+          speed: { tag: max }
+          mixTime: { tag: target }
+          challenges: [shear_protein_quality]
+          rationale: The smallest batch at the fastest speed is the usual worst case for shear and protein quality.
+      rangeSupport:
+        - { parameter: Batch size, rangeKind: PAR }

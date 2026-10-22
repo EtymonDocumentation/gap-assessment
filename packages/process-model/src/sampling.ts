@@ -1,7 +1,8 @@
 import { z } from "zod";
 
 /**
- * PPQ sampling plans (added in process-model 1.1.0, project schema 1.11.0).
+ * PPQ sampling plans (added in process-model 1.1.0, project schema 1.11.0; study types, reporting instructions, agency requests
+ * and custom subsections added in process-model 1.2.0, project schema 1.12.0).
  *
  * A sampling plan says which samples are pulled from which process steps during the process performance qualification (PPQ)
  * batches, why, and how many. The shapes live here, next to the other shared data, so a later tool (risk assessment, master
@@ -13,12 +14,15 @@ import { z } from "zod";
  *    which is shown as an open item; it is never filled in.
  *  - The plan stores what a person chose and the arithmetic that followed. It never states whether a choice is adequate: that
  *    belongs to QA and statistics.
- *  - "Report only" (collect and report, no acceptance criterion) is allowed only for characterization, supporting studies and
- *    other work, never for routine in-process and release testing or for enhanced PPQ testing.
+ *  - "Report only" (collect and report, no acceptance criterion) is allowed only for characterization, supporting studies,
+ *    stability (reported against the stability protocol), regulatory commitments and other work. It is never allowed for
+ *    in-process and release testing, enhanced PPQ testing, mixing, hold-time or filter studies: those need a criterion text.
+ *  - The tool never judges regulatory impact. An agency request is kept as the person quoted it and linked to the points that
+ *    answer it; nothing here says what a request means for a filing.
  */
 
 /** Format version of the plan data (semver). A new optional field is a minor change; a removed or re-meant field is major. */
-export const SAMPLING_PLAN_FORMAT_VERSION = "1.0.0";
+export const SAMPLING_PLAN_FORMAT_VERSION = "1.1.0";
 
 /** Run types. Only PPQ is built; the field exists so clinical GMP and engineering runs can be added without a schema break. */
 export const SAMPLING_RUN_TYPES = ["ppq"] as const;
@@ -27,12 +31,56 @@ export type SamplingRunType = (typeof SAMPLING_RUN_TYPES)[number];
 export const SAMPLING_METHODS = ["company-table", "fixed", "conf-rel", "aql-105e", "var-414"] as const;
 export type SamplingMethod = (typeof SAMPLING_METHODS)[number];
 
+/**
+ * The coarse category of plan format 1.0.0. It is no longer stored on a point (the study type replaced it); the list stays only so
+ * that a migration and a reader of old files can name the old values.
+ */
 export const SAMPLING_CATEGORIES = ["routine_ipc_release", "ppq_enhanced", "characterization", "supporting_study", "other"] as const;
 export type SamplingCategory = (typeof SAMPLING_CATEGORIES)[number];
 
-/** Categories whose points may be "report only". */
+/** Categories whose points could be "report only" in plan format 1.0.0. Kept for migration and old-file readers only. */
 export const REPORT_ONLY_CATEGORIES: readonly SamplingCategory[] = ["characterization", "supporting_study", "other"];
-export const reportOnlyAllowed = (category: SamplingCategory): boolean => REPORT_ONLY_CATEGORIES.includes(category);
+
+/**
+ * The study / sample type of a point (plan format 1.1.0). It decides which type-specific questions apply, which entries are
+ * required, and where the point appears in the protocol. A point can have no type yet (migrated from "routine in-process /
+ * release", which hid two different things): that is an open item, never a guess.
+ */
+export const SAMPLING_TYPES = [
+  "ipc",
+  "release",
+  "ppq_enhanced",
+  "mixing_homogeneity",
+  "hold_time",
+  "filter_study",
+  "stability",
+  "retain_reserve",
+  "characterization",
+  "supporting_study",
+  "regulatory_commitment",
+  "other",
+] as const;
+export type SamplingType = (typeof SAMPLING_TYPES)[number];
+
+/** Types whose points may be "report only". Stability counts only when the person says results go against the stability protocol. */
+export const REPORT_ONLY_TYPES: readonly SamplingType[] = ["characterization", "supporting_study", "stability", "regulatory_commitment", "other"];
+export const reportOnlyAllowed = (type: SamplingType | undefined): boolean => type !== undefined && REPORT_ONLY_TYPES.includes(type);
+
+/**
+ * Old category -> new type. "routine in-process / release" maps to NOTHING: it covered two different kinds of sample, and
+ * choosing one for the person would be a guess. The point is left without a type and listed as an open item.
+ */
+export function categoryToType(category: string): SamplingType | undefined {
+  switch (category) {
+    case "ppq_enhanced":
+    case "characterization":
+    case "supporting_study":
+    case "other":
+      return category;
+    default:
+      return undefined;
+  }
+}
 
 export const TIMING_OPTIONS = [
   "beginning",
@@ -55,6 +103,10 @@ export const INSPECTIONS = ["normal", "tightened", "reduced"] as const;
 /** The unit-operation value of a point that belongs to no single process step. */
 export const UNIT_OP_FINISHED_PRODUCT = "finished_product";
 export const UNIT_OP_NONE = "none";
+
+/** Who does a piece of work. The names are free text next to the kind. */
+export const RESPONSIBLE_PARTIES = ["cmo", "sponsor", "contract_lab", "other"] as const;
+export type ResponsibleParty = (typeof RESPONSIBLE_PARTIES)[number];
 
 /** A company sampling table as kept inside a point: the whole table at the time it was used (see the Sampling tables library). */
 export const companyTableSnapshotSchema = z.object({
@@ -149,19 +201,183 @@ export const samplingAcceptanceSchema = z.discriminatedUnion("kind", [
 ]);
 export type SamplingAcceptance = z.infer<typeof samplingAcceptanceSchema>;
 
+// ------------------------------------------------------------------ type-specific detail (plan format 1.1.0)
+
+export const MIXING_POSITIONS = ["top", "middle", "bottom", "other"] as const;
+export const HOLD_UNITS = ["minutes", "hours", "days"] as const;
+export const FILTER_TESTS = ["integrity_pre_post", "bioburden_pre_filtration", "flush", "other"] as const;
+/** Where a run's value sits in the range being studied (a free pointer, never checked). */
+export const RUN_TAGS = ["min", "target", "max", "other"] as const;
+/** What a run may challenge. A convenience list only: the study design is the person's, nothing here is required. */
+export const WORST_CASES = ["homogeneity", "shear_protein_quality", "other"] as const;
+export type WorstCase = (typeof WORST_CASES)[number];
+/** The kind of range a parameter row supports. The person chooses; "unset" is allowed and is the same as leaving it out. */
+export const RANGE_KINDS = ["PAR", "NOR", "other", "unset"] as const;
+export type RangeKind = (typeof RANGE_KINDS)[number];
+export const RETAIN_PURPOSES = ["retain", "reserve", "both"] as const;
+
+const text = z.string().optional();
+
+/** A mixing parameter at a run: value, unit and where it sits in the range. Every part optional; a missing part is an open item. */
+export const runParameterSchema = z.object({ value: z.number().positive().optional(), unit: text, tag: z.enum(RUN_TAGS).optional() });
+export type RunParameter = z.infer<typeof runParameterSchema>;
+/** One run of the optional study design. Everything but the label is optional. */
+export const mixingRunSchema = z.object({
+  label: z.string(),
+  batchSize: runParameterSchema.optional(),
+  speed: runParameterSchema.optional(),
+  mixTime: runParameterSchema.optional(),
+  /** What the run challenges, from the convenience list; "other" is described in challengesOther. */
+  challenges: z.array(z.enum(WORST_CASES)).optional(),
+  challengesOther: text,
+  attributes: text,
+  rationale: text,
+});
+export type MixingRun = z.infer<typeof mixingRunSchema>;
+/** A parameter and the range the study is meant to support, in the person's words. */
+export const rangeSupportSchema = z.object({ parameter: z.string(), rangeKind: z.enum(RANGE_KINDS).optional(), text });
+export type RangeSupport = z.infer<typeof rangeSupportSchema>;
+/** The optional study design of a mixing point. Presets (load-outs) only fill it in; the person edits or ignores them. */
+export const mixingDesignSchema = z.object({
+  /** A free label, e.g. "Worst-case bracketing". */
+  approach: text,
+  runs: z.array(mixingRunSchema).optional(),
+  rangeSupport: z.array(rangeSupportSchema).optional(),
+});
+export type MixingDesignData = z.infer<typeof mixingDesignSchema>;
+
+/**
+ * A preset of the study design (a "load-out"), kept in versioned content. Applying one copies its runs and range rows into a point;
+ * the person then edits or ignores them. Values are blank in the catalog: it supplies a shape, never numbers.
+ */
+export const designLoadoutSchema = z.strictObject({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  description: z.string().min(1),
+  design: mixingDesignSchema,
+});
+export type DesignLoadout = z.infer<typeof designLoadoutSchema>;
+export const designLoadoutsSchema = z.strictObject({ catalog: z.strictObject({ version: z.string().min(1) }), loadouts: z.array(designLoadoutSchema) });
+export type DesignLoadouts = z.infer<typeof designLoadoutsSchema>;
+
+/**
+ * The structured answers that only one study type asks. Each group belongs to one type (see TYPE_DETAIL_KEY in @gap/sampling);
+ * a group of another type is never read. Every field is optional: what is missing is an open item for that type.
+ */
+export const typeDetailSchema = z.object({
+  /** mixing_homogeneity */
+  mixing: z
+    .object({
+      vesselRef: text,
+      parameters: text,
+      positions: z.array(z.enum(MIXING_POSITIONS)).optional(),
+      positionsOther: text,
+      timePoints: z.array(z.object({ label: z.string(), time: z.string() })).optional(),
+      criterionBasis: text,
+      /** Optional study design (runs and range support). Never required, never checked. */
+      design: mixingDesignSchema.optional(),
+    })
+    .optional(),
+  /** hold_time */
+  hold: z
+    .object({
+      /** A unit-operation key: the step after which the material is held. */
+      holdStep: text,
+      start: text,
+      end: text,
+      durations: z.array(z.object({ value: z.number().positive(), unit: z.enum(HOLD_UNITS) })).optional(),
+      condition: text,
+      container: text,
+      timePointsSampled: text,
+      /** What the result supports (a proposed maximum hold, in the person's words). */
+      supports: text,
+    })
+    .optional(),
+  /** ppq_enhanced */
+  enhanced: z.object({ interventions: text, intervalDefinition: text, perNeedleShelf: text }).optional(),
+  /** filter_study */
+  filter: z
+    .object({
+      filterRef: text,
+      test: z.enum(FILTER_TESTS).optional(),
+      testOther: text,
+      /** Read-only reference to the PUPSIT answer in the gap project: the content path of the item. */
+      pupsitItemPath: text,
+    })
+    .optional(),
+  /** stability */
+  stability: z
+    .object({
+      protocolRef: text,
+      conditions: z.array(z.object({ label: z.string(), detail: z.string() })).optional(),
+      orientation: text,
+      timePoints: z.array(z.object({ label: z.string() })).optional(),
+      unitsPerPull: z.number().int().min(1).optional(),
+      /** The person says the results are reported against the stability protocol (this is what allows "report only"). */
+      reportedAgainstProtocol: z.boolean().optional(),
+    })
+    .optional(),
+  /** retain_reserve */
+  retain: z
+    .object({
+      purpose: z.enum(RETAIN_PURPOSES).optional(),
+      /** The basis of the quantity, typed by the person ("twice the full release testing quantity"). Never pre-filled. */
+      quantityBasis: text,
+      retentionPeriod: text,
+      storage: text,
+      /** The requirement the quantity and period come from, cited by the person. The tool carries no regulation text. */
+      requirementRef: text,
+      /** Units retained or reserved per batch. */
+      unitsPerBatch: z.number().int().min(1).optional(),
+    })
+    .optional(),
+  /** characterization and supporting_study */
+  analyses: z.object({ analyses: z.array(z.object({ name: z.string(), methodRef: z.string() })).optional(), informs: text }).optional(),
+  /** regulatory_commitment (the linked agency requests are on the point itself) */
+  commitment: z.object({ answer: text }).optional(),
+});
+export type TypeDetail = z.infer<typeof typeDetailSchema>;
+
+// ------------------------------------------------------------------ reporting instructions (plan format 1.1.0)
+
+export const REPORT_WHAT = ["individual", "mean", "range", "sd_rsd", "pass_fail", "trend", "raw_data_ref", "other"] as const;
+export type ReportWhat = (typeof REPORT_WHAT)[number];
+export const REPORT_PRESENTATION = ["per_batch", "across_batches", "by_location", "by_time_point"] as const;
+export type ReportPresentation = (typeof REPORT_PRESENTATION)[number];
+
+/**
+ * What the CMO is asked to report for one point. The acceptance statement is NOT stored: it is generated from the point's own
+ * acceptance, so the two cannot disagree. `acceptanceExtra` is the person's additional text.
+ */
+export const reportingSchema = z.object({
+  what: z.array(z.enum(REPORT_WHAT)).optional(),
+  whatOther: text,
+  presentation: z.array(z.enum(REPORT_PRESENTATION)).optional(),
+  acceptanceExtra: text,
+  /** The CMO's procedure for deviations, OOS and OOT results (for example its SOP id). */
+  deviationRef: text,
+  additional: text,
+});
+export type PointReporting = z.infer<typeof reportingSchema>;
+
 export const samplingPointSchema = z
   .object({
     /** SP-001, SP-002 ... never reused inside a plan. */
     id: z.string().regex(/^SP-\d{3,}$/),
     origin: samplingOriginSchema,
-    category: z.enum(SAMPLING_CATEGORIES),
-    /** What "other" means (and an optional wording for any category). */
-    categoryLabel: z.string().optional(),
+    /** The study / sample type. Absent when a migrated point still has to be classified: an open item, never a guess. */
+    type: z.enum(SAMPLING_TYPES).optional(),
+    /** What "other" means (and an optional wording for any type). */
+    typeLabel: z.string().optional(),
     /** A unit-operation key of the catalog (or a custom "x_" one), "finished_product" or "none". */
     unitOp: z.string().min(1),
     attribute: z.string(),
     testMethodRef: z.string().optional(),
     materialType: z.string().optional(),
+    /** Who takes, tests or holds the sample. */
+    responsible: z.object({ party: z.enum(RESPONSIBLE_PARTIES), name: z.string().optional() }).optional(),
+    container: z.string().optional(),
+    closure: z.string().optional(),
     timing: z.object({
       options: z.array(z.enum(TIMING_OPTIONS)),
       interval: z.object({ every: z.number().positive(), unit: z.enum(INTERVAL_UNITS) }).optional(),
@@ -174,21 +390,28 @@ export const samplingPointSchema = z
     containerUnitsPerSample: z.number().int().min(1).optional(),
     quantity: z.object({ value: z.number().positive(), unit: z.string().min(1) }).optional(),
     storageCondition: z.string().optional(),
+    transportCondition: z.string().optional(),
+    chainOfCustody: z.string().optional(),
     destinationLab: z.string().optional(),
     acceptance: samplingAcceptanceSchema.optional(),
+    /** Purpose and rationale: why this point is sampled. */
     rationale: z.string(),
     /** "all" batches, or the ids of the batches the point applies to. */
     appliesTo: z.union([z.literal("all"), z.array(z.string()).min(1)]),
     /** Ids of sources in the project's source register that the point cites (documents, interview records). */
     sourceIds: z.array(z.string()),
+    /** Ids (AR-001 ...) of the plan's agency requests this point answers or relates to. Any type may link them. */
+    agencyRequestIds: z.array(z.string()).optional(),
+    detail: typeDetailSchema.optional(),
+    reporting: reportingSchema.optional(),
     /** Reserved for the later labels add-on. Not read by anything yet. */
     labelFields: z.record(z.string(), z.string()).optional(),
     createdAt: z.string(),
     updatedAt: z.string(),
   })
   .superRefine((p, ctx) => {
-    if (p.acceptance?.kind === "report_only" && !reportOnlyAllowed(p.category)) {
-      ctx.addIssue({ code: "custom", message: `Point ${p.id}: "report only" is not allowed for this category` });
+    if (p.acceptance?.kind === "report_only" && !reportOnlyAllowed(p.type)) {
+      ctx.addIssue({ code: "custom", message: `Point ${p.id}: "report only" is not allowed for this study type` });
     }
   });
 export type SamplingPoint = z.infer<typeof samplingPointSchema>;
@@ -206,6 +429,97 @@ export const samplingBatchSchema = z.object({
 });
 export type SamplingBatch = z.infer<typeof samplingBatchSchema>;
 
+// ------------------------------------------------------------------ agency requests (plan format 1.1.0)
+
+export const AGENCY_REQUEST_KINDS = ["information_request", "deficiency_or_query_letter", "commitment", "post_approval_commitment", "other"] as const;
+export type AgencyRequestKind = (typeof AGENCY_REQUEST_KINDS)[number];
+export const AGENCY_REQUEST_STATUSES = ["open", "answered", "closed"] as const;
+export type AgencyRequestStatus = (typeof AGENCY_REQUEST_STATUSES)[number];
+
+const isoDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Dates are written year-month-day.");
+
+/**
+ * An agency request or answer that refers to PPQ samples or studies (an information request, a deficiency letter, a commitment).
+ * The question is kept as quoted; the tool does not interpret it and never says what it means for a filing.
+ */
+export const agencyRequestSchema = z.object({
+  /** AR-001, AR-002 ... never reused inside a plan. */
+  id: z.string().regex(/^AR-\d{3,}$/),
+  agency: z.string(),
+  marketCode: z.string().optional(),
+  kind: z.enum(AGENCY_REQUEST_KINDS).optional(),
+  reference: z.string().optional(),
+  dateReceived: isoDay.optional(),
+  /** The question, quoted as received. */
+  question: z.string(),
+  /** The response given, or the commitment made. */
+  response: z.string().optional(),
+  responseDate: isoDay.optional(),
+  status: z.enum(AGENCY_REQUEST_STATUSES).optional(),
+  /** The letter and the response, cited from the source register. */
+  sourceIds: z.array(z.string()),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type AgencyRequest = z.infer<typeof agencyRequestSchema>;
+
+// ------------------------------------------------------------------ custom subsections (plan format 1.1.0)
+
+/**
+ * A small structured body: paragraphs, bullet lists and simple tables, all plain text. Raw HTML is not a thing here; the
+ * renderers escape every value, and the editor strips control characters.
+ */
+export const subsectionBlockSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("paragraph"), text: z.string() }),
+  z.object({ type: z.literal("list"), items: z.array(z.string()) }),
+  z.object({ type: z.literal("table"), columns: z.array(z.string()), rows: z.array(z.array(z.string())) }),
+]);
+export type SubsectionBlock = z.infer<typeof subsectionBlockSchema>;
+
+/** Where a subsection goes: after a section of the protocol, inside a point, inside a study-type section, or in an appendix. */
+export const PLACEMENT_PATTERN = /^(appendix|after_section:[a-z0-9-]+|in_point:SP-\d{3,}|in_study_type:[a-z_]+)$/;
+export const placementSchema = z.string().regex(PLACEMENT_PATTERN, "Choose where the subsection goes.");
+
+export const subsectionOriginSchema = z.discriminatedUnion("kind", [
+  /** Copied from the Plan subsections library; the id and version are those of the library item when it was copied. */
+  z.object({ kind: z.literal("library"), itemId: z.string().min(1), version: z.string(), name: z.string() }),
+  z.object({ kind: z.literal("manual") }),
+]);
+export type SubsectionOrigin = z.infer<typeof subsectionOriginSchema>;
+
+export const customSubsectionSchema = z.object({
+  /** CS-001, CS-002 ... never reused inside a plan. */
+  id: z.string().regex(/^CS-\d{3,}$/),
+  title: z.string(),
+  blocks: z.array(subsectionBlockSchema),
+  placement: placementSchema,
+  /** Position among the subsections with the same placement (smaller first). */
+  order: z.number().int().nonnegative(),
+  /** Also print this subsection in the CMO reporting instructions. */
+  includeInCmo: z.boolean(),
+  origin: subsectionOriginSchema,
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type CustomSubsection = z.infer<typeof customSubsectionSchema>;
+
+/** A reusable subsection kept in the Plan subsections library (browser or laptop server). The history is kept on the record. */
+export const subsectionLibraryItemSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  version: z.string(),
+  owner: z.string().optional(),
+  blocks: z.array(subsectionBlockSchema),
+  /** A placement the owner suggests. Not binding: the plan chooses its own. */
+  suggestedPlacement: z.string().optional(),
+  note: z.string().optional(),
+});
+export type SubsectionLibraryItem = z.infer<typeof subsectionLibraryItemSchema>;
+
+/** A responsible party named at plan level (the sampling interview asks "who does what"). */
+export const planPartySchema = z.object({ party: z.enum(RESPONSIBLE_PARTIES), name: z.string(), role: z.string().optional() });
+export type PlanParty = z.infer<typeof planPartySchema>;
+
 export const samplingPlanSchema = z
   .object({
     /** SPL-001, SPL-002 ... */
@@ -218,7 +532,14 @@ export const samplingPlanSchema = z
     batches: z.array(samplingBatchSchema),
     /** Why this number of batches. Required for the plan to be complete. */
     batchRationale: z.string(),
+    /** Who is responsible for sampling, testing and reporting (plan level). */
+    parties: z.array(planPartySchema),
+    /** The register of agency requests that refer to PPQ samples or studies. */
+    agencyRequests: z.array(agencyRequestSchema),
+    /** The person says there are no such requests. Without this and without any request, the question is an open item. */
+    noAgencyRequests: z.boolean().optional(),
     points: z.array(samplingPointSchema),
+    subsections: z.array(customSubsectionSchema),
     createdAt: z.string(),
     updatedAt: z.string(),
   })
@@ -232,17 +553,31 @@ export const samplingPlanSchema = z
     };
     dup(plan.batches.map((b) => b.id), "batch");
     dup(plan.points.map((p) => p.id), "point");
+    dup(plan.agencyRequests.map((r) => r.id), "agency request");
+    dup(plan.subsections.map((s) => s.id), "subsection");
     const batchIds = new Set(plan.batches.map((b) => b.id));
+    const requestIds = new Set(plan.agencyRequests.map((r) => r.id));
+    const pointIds = new Set(plan.points.map((p) => p.id));
     for (const p of plan.points) {
-      if (p.appliesTo === "all") continue;
-      for (const id of p.appliesTo) {
-        if (!batchIds.has(id)) ctx.addIssue({ code: "custom", message: `Point ${p.id} applies to a batch (${id}) that is not in plan ${plan.id}` });
+      if (p.appliesTo !== "all") {
+        for (const id of p.appliesTo) {
+          if (!batchIds.has(id)) ctx.addIssue({ code: "custom", message: `Point ${p.id} applies to a batch (${id}) that is not in plan ${plan.id}` });
+        }
       }
+      for (const id of p.agencyRequestIds ?? []) {
+        if (!requestIds.has(id)) ctx.addIssue({ code: "custom", message: `Point ${p.id} links an agency request (${id}) that is not in plan ${plan.id}` });
+      }
+    }
+    for (const s of plan.subsections) {
+      const m = /^in_point:(SP-\d+)$/.exec(s.placement);
+      if (m && !pointIds.has(m[1]!)) ctx.addIssue({ code: "custom", message: `Subsection ${s.id} is placed in a point (${m[1]}) that is not in plan ${plan.id}` });
+      const t = /^in_study_type:(.+)$/.exec(s.placement);
+      if (t && !(SAMPLING_TYPES as readonly string[]).includes(t[1]!)) ctx.addIssue({ code: "custom", message: `Subsection ${s.id} is placed in an unknown study type (${t[1]})` });
     }
   });
 export type SamplingPlan = z.infer<typeof samplingPlanSchema>;
 
-/** The `sampling` part of a project (schema 1.11.0). */
+/** The `sampling` part of a project (schema 1.12.0). */
 export const samplingStateSchema = z
   .object({ plans: z.array(samplingPlanSchema) })
   .superRefine((s, ctx) => {

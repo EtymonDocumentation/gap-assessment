@@ -2,6 +2,23 @@
 
 All notable changes to `@gap/process-model`. Versions follow semver; see README.md for what counts as breaking.
 
+## 1.2.0
+
+Sampling plan format 1.1.0 (project schema 1.12.0). A sampling point's `category` is replaced by `type` (a minor bump because
+the sampling shapes are new in 1.1.0 and the migration converts stored data).
+
+### Added
+- Study types (SAMPLING_TYPES, REPORT_ONLY_TYPES, reportOnlyAllowed(type), categoryToType()), responsible party, type-specific
+  detail groups (typeDetailSchema), reporting instructions fields (reportingSchema), agency requests (agencyRequestSchema),
+  custom subsections (customSubsectionSchema, subsectionBlockSchema, subsectionLibraryItemSchema) and plan parties.
+- Optional mixing study design (mixingDesignSchema: free approach label, runs, range support with kind PAR / NOR / other / unset) and design load-outs (designLoadoutsSchema). Nothing in it is required or checked.
+- Export history kinds sampling-cmo-instructions-docx and sampling-cmo-instructions-html.
+- Migration 1.11.0 -> 1.12.0: category becomes type; "routine in-process / release" becomes no type (written to the change log);
+  plans gain empty parties, agencyRequests and subsections.
+
+### Removed
+- samplingPointSchema no longer has category / categoryLabel (SAMPLING_CATEGORIES and REPORT_ONLY_CATEGORIES stay for readers of old files).
+
 ## 1.1.0
 
 PPQ sampling plans. Additive: nothing was removed or re-meant.

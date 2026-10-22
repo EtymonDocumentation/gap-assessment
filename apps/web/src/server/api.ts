@@ -210,3 +210,9 @@ export const listSamplingTables = () => json<{ tables: unknown[] }>("GET", "/api
 export const createSamplingTable = (table: unknown) => json<{ id: string }>("POST", "/api/sampling-tables", { json: { table } });
 export const putSamplingTable = (id: string, table: unknown) => json<{ table: unknown }>("PUT", `/api/sampling-tables/${enc(id)}`, { json: { table } });
 export const deleteSamplingTable = (id: string) => call("DELETE", `/api/sampling-tables/${enc(id)}`).then(() => undefined);
+
+// ------------------------------------------------------------------ Plan subsections library (module "sampling")
+export const listSubsections = () => json<{ items: unknown[] }>("GET", "/api/subsections").then((r) => r.items);
+export const createSubsection = (item: unknown) => json<{ id: string }>("POST", "/api/subsections", { json: { item } });
+export const putSubsection = (id: string, item: unknown) => json<{ item: unknown }>("PUT", `/api/subsections/${enc(id)}`, { json: { item } });
+export const deleteSubsection = (id: string) => call("DELETE", `/api/subsections/${enc(id)}`).then(() => undefined);

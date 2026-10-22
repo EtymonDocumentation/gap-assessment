@@ -325,7 +325,7 @@ export interface DocumentExport {
   at: string;
   by?: string;
   /** The gap assessment document formats, and the three TRD seed outputs (kind "trd-*": see the TRD seed page). */
-  format: "markdown" | "html" | "docx" | "trd-seed-json" | "trd-outline-docx" | "trd-outline-html" | "sampling-plan-docx" | "sampling-plan-html";
+  format: "markdown" | "html" | "docx" | "trd-seed-json" | "trd-outline-docx" | "trd-outline-html" | "sampling-plan-docx" | "sampling-plan-html" | "sampling-cmo-instructions-docx" | "sampling-cmo-instructions-html";
   /** Markdown and HTML always use mode "builtin". */
   template: TemplateRecord;
   /** Latest issued revision number at export time. */
@@ -433,7 +433,7 @@ export interface Project {
   tailoring: Tailoring;
   /** Process steps left out of the assessment (schema 1.10.0). Default and migration: nothing left out. */
   stepScope: StepScope;
-  /** PPQ sampling plans (schema 1.11.0). Default and migration: none. */
+  /** PPQ sampling plans (schema 1.11.0; plan format 1.1.0 since schema 1.12.0). Default and migration: none. */
   sampling: SamplingState;
   /** Export records and the optional-section choice for the generated document. */
   document: DocumentState;

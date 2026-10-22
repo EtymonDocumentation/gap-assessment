@@ -1,4 +1,5 @@
-import { buildContent, parseGuidance, parseSamplingSuggestions, type ContentBundle, type GuidanceLibrary, type RawContent, type SamplingSuggestions } from "@gap/engine";
+import type { DesignLoadouts } from "@gap/process-model";
+import { buildContent, parseGuidance, parseDesignLoadouts, parseSamplingSuggestions, type ContentBundle, type GuidanceLibrary, type RawContent, type SamplingSuggestions } from "@gap/engine";
 import { catalog } from "@gap/process-model/catalog";
 import catalogOverlay from "./catalog/gap-overlay.yaml";
 import demoArx217 from "./demo/arx-217.yaml";
@@ -19,6 +20,7 @@ import q75 from "./questions/75-bulk-packaging.yaml";
 import q80 from "./questions/80-labeling-packaging.yaml";
 import q90 from "./questions/90-storage-shipping.yaml";
 import rules from "./rules/rules.yaml";
+import designLoadoutsRaw from "./sampling/design-loadouts.yaml";
 import ppqSuggestionsRaw from "./sampling/ppq-suggestions.yaml";
 import templates from "./templates/gap-assessment.yaml";
 
@@ -69,3 +71,6 @@ export const samplingSuggestions: SamplingSuggestions = parseSamplingSuggestions
   ppqSuggestionsRaw,
   content.catalog.unitOperations.map((u) => u.key),
 );
+
+/** Presets for the optional study design of a mixing point. The user applies one, then edits or ignores it; no value is supplied. */
+export const designLoadouts: DesignLoadouts = parseDesignLoadouts(designLoadoutsRaw);

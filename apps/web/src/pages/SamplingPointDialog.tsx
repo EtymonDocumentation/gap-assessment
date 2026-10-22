@@ -1,18 +1,64 @@
 import {
+  FILTER_TESTS,
+  HOLD_UNITS,
   INSPECTIONS,
   INTERVAL_UNITS,
-  SAMPLING_CATEGORIES,
+  MIXING_POSITIONS,
+  RANGE_KINDS,
+  REPORT_PRESENTATION,
+  REPORT_WHAT,
+  RESPONSIBLE_PARTIES,
+  RETAIN_PURPOSES,
+  RUN_TAGS,
   SAMPLING_METHODS,
+  SAMPLING_TYPES,
   TIMING_OPTIONS,
   UNIT_OP_FINISHED_PRODUCT,
   UNIT_OP_NONE,
+  WORST_CASES,
   reportOnlyAllowed,
+  type DesignLoadout,
+  type MixingDesignData,
+  type MixingRun,
+  type RunParameter,
   type SamplingMethod,
   type SamplingPlan,
   type SamplingPoint,
+  type SamplingType,
+  type TypeDetail,
 } from "@gap/process-model";
-import { AQL_LEVELS, AQL_VALUES_105E, AQL_VALUES_414, VAR_LEVELS, CATEGORY_HELP, CATEGORY_LABEL, METHOD_HELP, METHOD_LABEL, TIMING_LABEL, calculatePoint, checkPoint, resultText, tableChangedSince } from "@gap/sampling";
-import { useEffect, useId, useMemo, useState } from "react";
+import {
+  FILTER_TEST_LABEL,
+  AQL_LEVELS,
+  AQL_VALUES_105E,
+  AQL_VALUES_414,
+  METHOD_HELP,
+  METHOD_LABEL,
+  MIXING_DESIGN_HELP,
+  RANGE_KIND_LABEL,
+  REPORT_PRESENTATION_LABEL,
+  REPORT_WHAT_LABEL,
+  RESPONSIBLE_LABEL,
+  RUN_TAG_LABEL,
+  TIMING_LABEL,
+  TYPE_HELP,
+  TYPE_LABEL,
+  VAR_LEVELS,
+  WORST_CASE_LABEL,
+  applyLoadout,
+  calculatePoint,
+  checkPoint,
+  requestTitle,
+  reportingInstructions,
+  resultText,
+  retainDerivation,
+  stabilityDerivation,
+  tableChangedSince,
+  usesSampleSizeMethod,
+  type LoadoutMode,
+} from "@gap/sampling";
+import { designLoadouts } from "@gap/content";
+import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import { Modal } from "../components";
 import { snapshotOf, tableProblems, useSamplingTables } from "../sampling-tables-store";
 import { useContent, useStore } from "../store";
@@ -62,13 +108,579 @@ export function NumField({
   );
 }
 
+const toggle = <T extends string>(list: readonly T[], v: T): T[] => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
+const opt = (s: string): string | undefined => (s.trim() === "" ? undefined : s);
+
+const POSITION_LABEL: Record<(typeof MIXING_POSITIONS)[number], string> = { top: "Top", middle: "Middle", bottom: "Bottom", other: "Other" };
+const RETAIN_PURPOSE_LABEL: Record<(typeof RETAIN_PURPOSES)[number], string> = { retain: "Retain", reserve: "Reserve", both: "Retain and reserve" };
+
+/** A growing list of rows with Add and Remove buttons. Used for time points, conditions, analyses and runs. */
+function ListEditor<T>({
+  legend,
+  items,
+  onChange,
+  blank,
+  render,
+  addLabel,
+  testId,
+  hint,
+}: {
+  legend: string;
+  items: T[];
+  onChange: (next: T[]) => void;
+  blank: () => T;
+  render: (item: T, set: (patch: Partial<T>) => void, index: number) => ReactNode;
+  addLabel: string;
+  testId?: string;
+  hint?: string;
+}) {
+  return (
+    <div role="group" aria-label={legend} className="stack" data-testid={testId}>
+      <span className="small">{legend}</span>
+      {hint && <span className="muted small">{hint}</span>}
+      {items.map((it, i) => (
+        <div key={i} className="row wrap end-align list-row">
+          {render(it, (patch) => onChange(items.map((x, j) => (j === i ? { ...x, ...patch } : x))), i)}
+          <button type="button" className="btn small danger" onClick={() => onChange(items.filter((_, j) => j !== i))} aria-label={`Remove ${legend.toLowerCase()} ${i + 1}`}>
+            Remove
+          </button>
+        </div>
+      ))}
+      <div>
+        <button type="button" className="btn small" onClick={() => onChange([...items, blank()])} data-testid={testId ? `${testId}-add` : undefined}>
+          {addLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function TextField({ label, value, onChange, testId, optional, hint, area }: { label: string; value: string | undefined; onChange: (v: string | undefined) => void; testId?: string; optional?: boolean; hint?: string; area?: boolean }) {
+  return (
+    <label className="field">
+      <span>
+        {label} {optional && <span className="muted">(optional)</span>}
+      </span>
+      {area ? <textarea rows={2} value={value ?? ""} onChange={(e) => onChange(opt(e.target.value))} data-testid={testId} /> : <input value={value ?? ""} onChange={(e) => onChange(opt(e.target.value))} data-testid={testId} />}
+      {hint && <span className="muted small">{hint}</span>}
+    </label>
+  );
+}
+
+// ------------------------------------------------------------------ the optional mixing study design
+
+function ParamFields({ label, value, onChange }: { label: string; value: RunParameter | undefined; onChange: (v: RunParameter | undefined) => void }) {
+  const set = (patch: Partial<RunParameter>) => {
+    const next: RunParameter = { ...value, ...patch };
+    for (const k of Object.keys(next) as (keyof RunParameter)[]) if (next[k] === undefined) delete next[k];
+    onChange(Object.keys(next).length ? next : undefined);
+  };
+  return (
+    <fieldset className="stack fs param">
+      <legend>{label}</legend>
+      <div className="row wrap">
+        <NumField label="Value" value={value?.value} onChange={(v) => set({ value: v !== undefined && v > 0 ? v : undefined })} />
+        <label className="field">
+          <span>Unit</span>
+          <input value={value?.unit ?? ""} onChange={(e) => set({ unit: opt(e.target.value) })} />
+        </label>
+        <label className="field">
+          <span>Where in the range</span>
+          <select value={value?.tag ?? ""} onChange={(e) => set({ tag: (e.target.value || undefined) as RunParameter["tag"] })}>
+            <option value="">Not set</option>
+            {RUN_TAGS.map((t) => (
+              <option key={t} value={t}>
+                {RUN_TAG_LABEL[t]}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+    </fieldset>
+  );
+}
+
 /**
- * The point editor. The person picks a method and only that method's inputs appear. The working panel recalculates from the
- * draft on every change, so the arithmetic is visible before saving. Nothing is preselected: an empty choice stays empty and
- * the point stays incomplete.
+ * The study design of a mixing point. Everything here is optional: nothing is required, checked or enforced, and a design left
+ * empty prints nothing. A load-out is only a starting shape (blank values) that the person edits or ignores.
  */
-export function PointDialog({ plan, point, onClose, onSave }: { plan: SamplingPlan; point: SamplingPoint; onClose: () => void; onSave: (d: SamplingPoint) => string | null }) {
+function MixingDesignEditor({ design, onChange }: { design: MixingDesignData | undefined; onChange: (d: MixingDesignData | undefined) => void }) {
+  const [choice, setChoice] = useState("");
+  const [pending, setPending] = useState<{ kind: "loadout"; loadout: DesignLoadout } | { kind: "blank" } | null>(null);
+  const [applied, setApplied] = useState("");
+  const runs = design?.runs ?? [];
+  const ranges = design?.rangeSupport ?? [];
+  const has = !!design && (runs.length > 0 || ranges.length > 0 || !!design.approach);
+
+  const commit = (next: MixingDesignData) => {
+    const clean: MixingDesignData = { ...next };
+    if (!clean.approach) delete clean.approach;
+    if (!clean.runs?.length) delete clean.runs;
+    if (!clean.rangeSupport?.length) delete clean.rangeSupport;
+    onChange(Object.keys(clean).length ? clean : undefined);
+  };
+  const apply = (loadout: DesignLoadout, mode: LoadoutMode) => {
+    onChange(applyLoadout(design, loadout, mode));
+    setApplied(`Load-out "${loadout.title}" ${mode === "replace" ? "applied" : "added after the existing runs"}. Edit or remove anything; nothing here is required.`);
+    setPending(null);
+  };
+  const start = () => {
+    if (choice === "blank") {
+      if (has) setPending({ kind: "blank" });
+      else setApplied("Starting blank. The design stays empty and prints nothing.");
+      return;
+    }
+    const lo = designLoadouts.loadouts.find((l) => l.id === choice);
+    if (!lo) return;
+    if (has) setPending({ kind: "loadout", loadout: lo });
+    else apply(lo, "replace");
+  };
+
+  return (
+    <fieldset className="stack fs" data-testid="mixing-design">
+      <legend>Study design (optional)</legend>
+      <details>
+        <summary>About this section</summary>
+        <p className="muted small" data-testid="mixing-design-help">
+          {MIXING_DESIGN_HELP}
+        </p>
+      </details>
+      <label className="field">
+        <span>
+          Design label <span className="muted">(optional)</span>
+        </span>
+        <input value={design?.approach ?? ""} onChange={(e) => commit({ ...design, approach: opt(e.target.value) })} data-testid="design-approach" />
+      </label>
+
+      <div className="row wrap end-align">
+        <label className="field">
+          <span>Load-out (a starting shape, optional)</span>
+          <select value={choice} onChange={(e) => setChoice(e.target.value)} data-testid="loadout-select">
+            <option value="">Choose a load-out</option>
+            <option value="blank">Start blank (no preset)</option>
+            {designLoadouts.loadouts.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.title}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button type="button" className="btn" disabled={!choice} onClick={start} data-testid="loadout-apply">
+          Apply load-out
+        </button>
+      </div>
+      {choice && choice !== "blank" && <p className="muted small">{designLoadouts.loadouts.find((l) => l.id === choice)?.description}</p>}
+      {pending && (
+        <div className="notice stack" role="group" aria-label="Replace or add" data-testid="loadout-prompt">
+          {pending.kind === "blank" ? (
+            <p>This point already has a design. Start blank removes its label, runs and ranges from this draft.</p>
+          ) : (
+            <p>
+              This point already has {runs.length} {runs.length === 1 ? "run" : "runs"} and {ranges.length} range {ranges.length === 1 ? "row" : "rows"}. Replace them with "{pending.loadout.title}", or add the load-out after them?
+            </p>
+          )}
+          <div className="row wrap">
+            <button type="button" className="btn primary" onClick={() => (pending.kind === "blank" ? (onChange(undefined), setApplied("Design cleared in this draft."), setPending(null)) : apply(pending.loadout, "replace"))} data-testid="loadout-replace">
+              Replace
+            </button>
+            {pending.kind === "loadout" && (
+              <button type="button" className="btn" onClick={() => apply(pending.loadout, "append")} data-testid="loadout-append">
+                Add after the existing
+              </button>
+            )}
+            <button type="button" className="btn" onClick={() => setPending(null)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+      <div role="status" aria-live="polite">
+        {applied && <p className="small" data-testid="loadout-done">{applied}</p>}
+      </div>
+
+      <ListEditor<MixingRun>
+        legend="Run"
+        items={runs}
+        onChange={(next) => commit({ ...design, runs: next })}
+        blank={() => ({ label: "" })}
+        addLabel="Add a run"
+        testId="design-runs"
+        render={(r, set, i) => (
+          <div className="stack run-card">
+            <label className="field">
+              <span>Run {i + 1} label</span>
+              <input value={r.label} onChange={(e) => set({ label: e.target.value })} data-testid={`run-${i}-label`} />
+            </label>
+            <div className="row wrap">
+              <ParamFields label="Batch size" value={r.batchSize} onChange={(v) => set({ batchSize: v })} />
+              <ParamFields label="Mixing speed" value={r.speed} onChange={(v) => set({ speed: v })} />
+              <ParamFields label="Mix time" value={r.mixTime} onChange={(v) => set({ mixTime: v })} />
+            </div>
+            <div role="group" aria-label={`Run ${i + 1} challenges`} className="stack">
+              <span className="small">What this run challenges (optional)</span>
+              <div className="check-grid">
+                {WORST_CASES.map((w) => (
+                  <label key={w} className="check">
+                    <input type="checkbox" checked={r.challenges?.includes(w) ?? false} onChange={() => set({ challenges: toggle(r.challenges ?? [], w) })} />
+                    <span>{WORST_CASE_LABEL[w]}</span>
+                  </label>
+                ))}
+              </div>
+              {r.challenges?.includes("other") && <TextField label="Other challenge" value={r.challengesOther} onChange={(v) => set({ challengesOther: v })} />}
+            </div>
+            <TextField label="Attributes tested" value={r.attributes} onChange={(v) => set({ attributes: v })} optional />
+            <TextField label="Rationale for this run" value={r.rationale} onChange={(v) => set({ rationale: v })} optional area />
+          </div>
+        )}
+      />
+
+      <ListEditor<{ parameter: string; rangeKind?: (typeof RANGE_KINDS)[number]; text?: string }>
+        legend="Range row"
+        items={ranges}
+        onChange={(next) => commit({ ...design, rangeSupport: next })}
+        blank={() => ({ parameter: "" })}
+        addLabel="Add a range row"
+        testId="design-ranges"
+        hint="The parameter and the range this study is meant to support, in your words. The kind (PAR, NOR or other) is your choice."
+        render={(r, set, i) => (
+          <>
+            <label className="field">
+              <span>Parameter</span>
+              <input value={r.parameter} onChange={(e) => set({ parameter: e.target.value })} data-testid={`range-${i}-parameter`} />
+            </label>
+            <label className="field">
+              <span>Kind of range</span>
+              <select value={r.rangeKind ?? ""} onChange={(e) => set({ rangeKind: (e.target.value || undefined) as (typeof RANGE_KINDS)[number] | undefined })} data-testid={`range-${i}-kind`}>
+                <option value="">Not chosen</option>
+                {RANGE_KINDS.map((k) => (
+                  <option key={k} value={k}>
+                    {RANGE_KIND_LABEL[k]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field grow">
+              <span>Range</span>
+              <input value={r.text ?? ""} onChange={(e) => set({ text: opt(e.target.value) })} data-testid={`range-${i}-text`} />
+            </label>
+          </>
+        )}
+      />
+    </fieldset>
+  );
+}
+
+// ------------------------------------------------------------------ the type-specific card
+
+type DetailKey = keyof TypeDetail;
+
+function TypeCard({ d, plan, steps, setDetail }: { d: SamplingPoint; plan: SamplingPlan; steps: { key: string; label: string }[]; setDetail: <K extends DetailKey>(key: K, patch: Partial<NonNullable<TypeDetail[K]>>) => void }) {
+  const det = d.detail ?? {};
+  switch (d.type) {
+    case "ppq_enhanced": {
+      const e = det.enhanced ?? {};
+      return (
+        <>
+          <TextField label="Interventions or stoppages covered" value={e.interventions} onChange={(v) => setDetail("enhanced", { interventions: v })} testId="enh-interventions" />
+          {d.timing.options.includes("interval") && <TextField label="Interval definition (what is counted and when)" value={e.intervalDefinition} onChange={(v) => setDetail("enhanced", { intervalDefinition: v })} />}
+          {(d.timing.options.includes("per_needle") || d.timing.options.includes("per_lyo_shelf")) && <TextField label="Per needle or shelf details" value={e.perNeedleShelf} onChange={(v) => setDetail("enhanced", { perNeedleShelf: v })} />}
+        </>
+      );
+    }
+    case "mixing_homogeneity": {
+      const m = det.mixing ?? {};
+      return (
+        <>
+          <div className="row wrap">
+            <TextField label="Vessel or equipment" value={m.vesselRef} onChange={(v) => setDetail("mixing", { vesselRef: v })} testId="mix-vessel" />
+            <TextField label="Mixing parameters (for example speed and time)" value={m.parameters} onChange={(v) => setDetail("mixing", { parameters: v })} testId="mix-parameters" />
+          </div>
+          <div role="group" aria-label="Sampling positions" className="stack">
+            <span className="small">Sampling positions</span>
+            <div className="check-grid">
+              {MIXING_POSITIONS.map((p) => (
+                <label key={p} className="check">
+                  <input type="checkbox" checked={m.positions?.includes(p) ?? false} onChange={() => setDetail("mixing", { positions: toggle(m.positions ?? [], p) })} data-testid={`mix-pos-${p}`} />
+                  <span>{POSITION_LABEL[p]}</span>
+                </label>
+              ))}
+            </div>
+            {m.positions?.includes("other") && <TextField label="Other position" value={m.positionsOther} onChange={(v) => setDetail("mixing", { positionsOther: v })} />}
+          </div>
+          <ListEditor<{ label: string; time: string }>
+            legend="Time point"
+            items={m.timePoints ?? []}
+            onChange={(next) => setDetail("mixing", { timePoints: next })}
+            blank={() => ({ label: "", time: "" })}
+            addLabel="Add a time point"
+            testId="mix-timepoints"
+            render={(t, set, i) => (
+              <>
+                <label className="field">
+                  <span>Label</span>
+                  <input value={t.label} onChange={(e) => set({ label: e.target.value })} data-testid={`mix-tp-${i}-label`} />
+                </label>
+                <label className="field">
+                  <span>When</span>
+                  <input value={t.time} onChange={(e) => set({ time: e.target.value })} data-testid={`mix-tp-${i}-time`} />
+                </label>
+              </>
+            )}
+          />
+          <TextField label="Basis of the criterion (for example an RSD)" value={m.criterionBasis} onChange={(v) => setDetail("mixing", { criterionBasis: v })} />
+          <MixingDesignEditor design={m.design} onChange={(next) => setDetail("mixing", { design: next as never })} />
+        </>
+      );
+    }
+    case "hold_time": {
+      const h = det.hold ?? {};
+      return (
+        <>
+          <label className="field">
+            <span>Step after which the material is held</span>
+            <select value={h.holdStep ?? ""} onChange={(e) => setDetail("hold", { holdStep: opt(e.target.value) })} data-testid="hold-step">
+              <option value="">Choose</option>
+              {steps
+                .filter((s) => s.key !== UNIT_OP_NONE && s.key !== UNIT_OP_FINISHED_PRODUCT)
+                .map((s) => (
+                  <option key={s.key} value={s.key}>
+                    {s.label}
+                  </option>
+                ))}
+            </select>
+          </label>
+          <div className="row wrap">
+            <TextField label="Hold starts" value={h.start} onChange={(v) => setDetail("hold", { start: v })} testId="hold-start" />
+            <TextField label="Hold ends" value={h.end} onChange={(v) => setDetail("hold", { end: v })} testId="hold-end" />
+          </div>
+          <DurationRows durations={h.durations ?? []} onChange={(next) => setDetail("hold", { durations: next })} />
+          <div className="row wrap">
+            <TextField label="Temperature or condition" value={h.condition} onChange={(v) => setDetail("hold", { condition: v })} testId="hold-condition" />
+            <TextField label="Container" value={h.container} onChange={(v) => setDetail("hold", { container: v })} optional />
+          </div>
+          <TextField label="Time points sampled" value={h.timePointsSampled} onChange={(v) => setDetail("hold", { timePointsSampled: v })} optional />
+          <TextField label="What the result supports (the proposed maximum hold)" value={h.supports} onChange={(v) => setDetail("hold", { supports: v })} testId="hold-supports" />
+        </>
+      );
+    }
+    case "filter_study": {
+      const f = det.filter ?? {};
+      return (
+        <>
+          <TextField label="Filter (identifier or type)" value={f.filterRef} onChange={(v) => setDetail("filter", { filterRef: v })} testId="filter-ref" />
+          <label className="field">
+            <span>Filter test</span>
+            <select value={f.test ?? ""} onChange={(e) => setDetail("filter", { test: (e.target.value || undefined) as never })} data-testid="filter-test">
+              <option value="">Choose</option>
+              {FILTER_TESTS.map((t) => (
+                <option key={t} value={t}>
+                  {FILTER_TEST_LABEL[t]}
+                </option>
+              ))}
+            </select>
+          </label>
+          {f.test === "other" && <TextField label="Other filter test" value={f.testOther} onChange={(v) => setDetail("filter", { testOther: v })} />}
+        </>
+      );
+    }
+    case "stability": {
+      const s = det.stability ?? {};
+      const der = stabilityDerivation(d);
+      return (
+        <>
+          <TextField label="Stability protocol reference" value={s.protocolRef} onChange={(v) => setDetail("stability", { protocolRef: v })} testId="stab-protocol" />
+          <ListEditor<{ label: string; detail: string }>
+            legend="Storage condition"
+            items={s.conditions ?? []}
+            onChange={(next) => setDetail("stability", { conditions: next })}
+            blank={() => ({ label: "", detail: "" })}
+            addLabel="Add a storage condition"
+            testId="stab-conditions"
+            render={(c, set, i) => (
+              <>
+                <label className="field">
+                  <span>Condition</span>
+                  <input value={c.label} onChange={(e) => set({ label: e.target.value })} data-testid={`stab-cond-${i}-label`} />
+                </label>
+                <label className="field grow">
+                  <span>Detail (optional)</span>
+                  <input value={c.detail} onChange={(e) => set({ detail: e.target.value })} />
+                </label>
+              </>
+            )}
+          />
+          <ListEditor<{ label: string }>
+            legend="Time point"
+            items={s.timePoints ?? []}
+            onChange={(next) => setDetail("stability", { timePoints: next })}
+            blank={() => ({ label: "" })}
+            addLabel="Add a time point"
+            testId="stab-timepoints"
+            render={(t, set, i) => (
+              <label className="field">
+                <span>Time point</span>
+                <input value={t.label} onChange={(e) => set({ label: e.target.value })} data-testid={`stab-tp-${i}-label`} />
+              </label>
+            )}
+          />
+          <div className="row wrap">
+            <TextField label="Orientation" value={s.orientation} onChange={(v) => setDetail("stability", { orientation: v })} optional />
+            <NumField label="Units per pull" value={s.unitsPerPull} onChange={(v) => setDetail("stability", { unitsPerPull: v === undefined || v < 1 ? undefined : Math.trunc(v) })} testId="stab-units-per-pull" />
+          </div>
+          <label className="check">
+            <input type="checkbox" checked={s.reportedAgainstProtocol === true} onChange={(e) => setDetail("stability", { reportedAgainstProtocol: e.target.checked ? true : undefined })} data-testid="stab-against-protocol" />
+            <span>Results are reported against the stability protocol (this is what allows "report only")</span>
+          </label>
+          <WorkingList title="Pulls and units (worked out from the entries above)" lines={der.working} testId="stab-working" />
+        </>
+      );
+    }
+    case "retain_reserve": {
+      const r = det.retain ?? {};
+      const der = retainDerivation(d);
+      return (
+        <>
+          <label className="field">
+            <span>Retain, reserve or both</span>
+            <select value={r.purpose ?? ""} onChange={(e) => setDetail("retain", { purpose: (e.target.value || undefined) as never })} data-testid="retain-purpose">
+              <option value="">Choose</option>
+              {RETAIN_PURPOSES.map((p) => (
+                <option key={p} value={p}>
+                  {RETAIN_PURPOSE_LABEL[p]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <TextField label="Basis of the quantity" value={r.quantityBasis} onChange={(v) => setDetail("retain", { quantityBasis: v })} testId="retain-basis" />
+          <NumField label="Units per batch" value={r.unitsPerBatch} onChange={(v) => setDetail("retain", { unitsPerBatch: v === undefined || v < 1 ? undefined : Math.trunc(v) })} testId="retain-units" />
+          <div className="row wrap">
+            <TextField label="Retention period" value={r.retentionPeriod} onChange={(v) => setDetail("retain", { retentionPeriod: v })} testId="retain-period" />
+            <TextField label="Storage" value={r.storage} onChange={(v) => setDetail("retain", { storage: v })} testId="retain-storage" />
+          </div>
+          <TextField label="Requirement the quantity and period come from" value={r.requirementRef} onChange={(v) => setDetail("retain", { requirementRef: v })} testId="retain-requirement" />
+          <WorkingList title="Units (worked out from the entries above)" lines={der.working} testId="retain-working" />
+        </>
+      );
+    }
+    case "characterization":
+    case "supporting_study": {
+      const a = det.analyses ?? {};
+      return (
+        <>
+          <ListEditor<{ name: string; methodRef: string }>
+            legend="Analysis"
+            items={a.analyses ?? []}
+            onChange={(next) => setDetail("analyses", { analyses: next })}
+            blank={() => ({ name: "", methodRef: "" })}
+            addLabel="Add an analysis"
+            testId="analyses"
+            render={(x, set, i) => (
+              <>
+                <label className="field">
+                  <span>Name</span>
+                  <input value={x.name} onChange={(e) => set({ name: e.target.value })} data-testid={`analysis-${i}-name`} />
+                </label>
+                <label className="field">
+                  <span>Method reference (optional)</span>
+                  <input value={x.methodRef} onChange={(e) => set({ methodRef: e.target.value })} />
+                </label>
+              </>
+            )}
+          />
+          <TextField label="What decision or report the result informs" value={a.informs} onChange={(v) => setDetail("analyses", { informs: v })} testId="analyses-informs" />
+        </>
+      );
+    }
+    case "regulatory_commitment": {
+      return (
+        <>
+          <p className="muted small">Link the agency request or commitment this study answers under "Agency requests" below. The tool keeps the request as quoted and states no filing category.</p>
+          <TextField label="How this study answers the request" value={det.commitment?.answer} onChange={(v) => setDetail("commitment", { answer: v })} testId="commitment-answer" area />
+        </>
+      );
+    }
+    default:
+      return null;
+  }
+}
+
+function WorkingList({ title, lines, testId }: { title: string; lines: { label: string; value: string }[]; testId: string }) {
+  return (
+    <section className="working" aria-label={title} data-testid={testId}>
+      <h3>{title}</h3>
+      {lines.length === 0 ? (
+        <p className="muted">Nothing is worked out yet. Enter the values above.</p>
+      ) : (
+        <dl className="working-list">
+          {lines.map((w, i) => (
+            <div key={i}>
+              <dt>{w.label}</dt>
+              <dd>{w.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </section>
+  );
+}
+
+/** Hold durations. A row with no value yet stays in the editor only; it is stored once it has a positive value and a unit. */
+function DurationRows({ durations, onChange }: { durations: { value: number; unit: (typeof HOLD_UNITS)[number] }[]; onChange: (next: { value: number; unit: (typeof HOLD_UNITS)[number] }[]) => void }) {
+  type Row = { value?: number; unit?: (typeof HOLD_UNITS)[number] };
+  const [rows, setRows] = useState<Row[]>(durations);
+  const push = (next: Row[]) => {
+    setRows(next);
+    onChange(next.filter((r): r is { value: number; unit: (typeof HOLD_UNITS)[number] } => r.value !== undefined && r.value > 0 && r.unit !== undefined));
+  };
+  const incomplete = rows.filter((r) => r.value === undefined || r.unit === undefined).length;
+  return (
+    <>
+      <ListEditor<Row>
+        legend="Hold duration"
+        items={rows}
+        onChange={push}
+        blank={() => ({})}
+        addLabel="Add a hold duration"
+        testId="hold-durations"
+        render={(r, set, i) => (
+          <>
+            <NumField label="Duration" value={r.value} onChange={(v) => set({ value: v !== undefined && v > 0 ? v : undefined })} testId={`hold-dur-${i}-value`} />
+            <label className="field">
+              <span>Unit</span>
+              <select value={r.unit ?? ""} onChange={(e) => set({ unit: (e.target.value || undefined) as Row["unit"] })} data-testid={`hold-dur-${i}-unit`}>
+                <option value="">Choose</option>
+                {HOLD_UNITS.map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </>
+        )}
+      />
+      {incomplete > 0 && <p className="muted small">A duration is saved once it has a value and a unit.</p>}
+    </>
+  );
+}
+
+// ------------------------------------------------------------------ the point editor
+
+/** Steps a point can belong to: the catalog's unit operations, finished product, and supporting work. */
+export function useStepChoices(): { key: string; label: string }[] {
   const content = useContent();
+  return useMemo(
+    () => [...content.catalog.unitOperations.map((u) => ({ key: u.key, label: u.label })), { key: UNIT_OP_FINISHED_PRODUCT, label: "Finished product" }, { key: UNIT_OP_NONE, label: "Supporting work (no single step)" }],
+    [content],
+  );
+}
+
+/**
+ * The point editor. The person picks a study type and a method and only the entries that apply appear. The working panel and the
+ * reporting-instructions preview recalculate from the draft on every change. Nothing is preselected: an empty choice stays empty
+ * and the point stays incomplete. Used inside a dialog (Overview) and inline in the interview, so both views edit the same point.
+ */
+export function PointForm({ plan, point, onClose, onSave, inline }: { plan: SamplingPlan; point: SamplingPoint; onClose: () => void; onSave: (d: SamplingPoint) => string | null; inline?: boolean }) {
   const project = useStore((s) => s.project)!;
   const tables = useSamplingTables((s) => s.items);
   const loadTables = useSamplingTables((s) => s.load);
@@ -76,99 +688,146 @@ export function PointDialog({ plan, point, onClose, onSave }: { plan: SamplingPl
   const [d, setD] = useState<SamplingPoint>(() => structuredClone(point));
   const [error, setError] = useState("");
   const uid = useId();
+  const steps = useStepChoices();
   const set = (patch: Partial<SamplingPoint>) => setD((cur) => ({ ...cur, ...patch }));
   const setInputs = (patch: Partial<SamplingPoint["sampleSize"]["inputs"]>) => setD((cur) => ({ ...cur, sampleSize: { ...cur.sampleSize, inputs: { ...cur.sampleSize.inputs, ...patch } } }));
+  const setDetail = <K extends DetailKey>(key: K, patch: Partial<NonNullable<TypeDetail[K]>>) =>
+    setD((cur) => {
+      const group = { ...(cur.detail?.[key] ?? {}), ...patch } as Record<string, unknown>;
+      for (const k of Object.keys(group)) if (group[k] === undefined) delete group[k];
+      return { ...cur, detail: { ...cur.detail, [key]: group } };
+    });
   const method = d.sampleSize.method;
   const inputs = d.sampleSize.inputs;
-
-  const steps = useMemo(
-    () => [...content.catalog.unitOperations.map((u) => ({ key: u.key, label: u.label })), { key: UNIT_OP_FINISHED_PRODUCT, label: "Finished product" }, { key: UNIT_OP_NONE, label: "Supporting work (no single step)" }],
-    [content],
-  );
+  const byMethod = usesSampleSizeMethod(d);
 
   const trial: SamplingPlan = useMemo(() => ({ ...plan, points: plan.points.map((p) => (p.id === d.id ? d : p)) }), [plan, d]);
   const results = useMemo(() => calculatePoint(trial, d), [trial, d]);
   const check = useMemo(() => checkPoint(trial, d), [trial, d]);
+  const stepLabel = useMemo(() => new Map(steps.map((s) => [s.key, s.label])), [steps]);
+  const ri = useMemo(() => reportingInstructions(trial, d, { unitOpLabel: (k) => stepLabel.get(k) ?? k }), [trial, d, stepLabel]);
   const pickable = tables.filter((t) => tableProblems(t).length === 0);
   const inLibrary = inputs.table ? tables.find((t) => t.id === inputs.table!.id) : undefined;
   const changed = inputs.table && inLibrary ? tableChangedSince(inputs.table, tables) : undefined;
   const testKeys = [...new Set((inputs.table?.rows ?? []).flatMap((r) => (r.testKey ? [r.testKey] : [])))];
   const sources = project.sources.filter((s) => !s.supersededBy);
-  const roAllowed = reportOnlyAllowed(d.category);
+  const roAllowed = reportOnlyAllowed(d.type);
 
   // Inputs of another method are dropped so a hidden value can never drive the number (no stale values).
   const changeMethod = (m: SamplingMethod | "") => setD((cur) => ({ ...cur, sampleSize: m ? { method: m, inputs: {} } : { inputs: {} } }));
-  const changeCategory = (c: SamplingPoint["category"]) =>
-    setD((cur) => ({ ...cur, category: c, acceptance: cur.acceptance?.kind === "report_only" && !reportOnlyAllowed(c) ? undefined : cur.acceptance }));
+  const changeType = (t: SamplingType | "") =>
+    setD((cur) => {
+      const next: SamplingPoint = { ...cur, acceptance: cur.acceptance?.kind === "report_only" && !reportOnlyAllowed(t || undefined) ? undefined : cur.acceptance };
+      if (t) next.type = t;
+      else delete next.type;
+      return next;
+    });
 
-  const toggle = <T extends string>(list: T[], v: T): T[] => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
   const batchIds = d.appliesTo === "all" ? plan.batches.map((b) => b.id) : d.appliesTo;
+  const rep = d.reporting ?? {};
+  const setRep = (patch: Partial<NonNullable<SamplingPoint["reporting"]>>) => {
+    const next = { ...rep, ...patch } as Record<string, unknown>;
+    for (const k of Object.keys(next)) if (next[k] === undefined || (Array.isArray(next[k]) && (next[k] as unknown[]).length === 0)) delete next[k];
+    setD((cur) => {
+      const copy = { ...cur };
+      if (Object.keys(next).length) copy.reporting = next as never;
+      else delete copy.reporting;
+      return copy;
+    });
+  };
 
-  return (
-    <Modal open onOpenChange={(o) => !o && onClose()} title={`Point ${d.id}`} description="Fill in what you know. What you leave empty stays an open item; the tool never fills it in." wide>
-      <form
-        className="stack"
-        data-testid="point-dialog"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const err = onSave(d);
-          if (err) setError(err);
-        }}
-      >
-        <fieldset className="stack fs">
-          <legend>What is sampled</legend>
-          <div className="row wrap">
+  const form = (
+    <form
+      className="stack"
+      data-testid="point-dialog"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const err = onSave(d);
+        if (err) setError(err);
+      }}
+    >
+      <fieldset className="stack fs">
+        <legend>What is sampled</legend>
+        <div className="row wrap">
+          <label className="field">
+            <span>Process step</span>
+            <select value={d.unitOp} onChange={(e) => set({ unitOp: e.target.value })} data-testid="point-unitop">
+              {steps.map((s) => (
+                <option key={s.key} value={s.key}>
+                  {s.label}
+                </option>
+              ))}
+              {!steps.some((s) => s.key === d.unitOp) && <option value={d.unitOp}>{d.unitOp}</option>}
+            </select>
+          </label>
+          <label className="field">
+            <span>Study type</span>
+            <select value={d.type ?? ""} onChange={(e) => changeType(e.target.value as SamplingType | "")} data-testid="point-type" aria-describedby={`${uid}-type`}>
+              <option value="">Not chosen yet</option>
+              {SAMPLING_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {TYPE_LABEL[t]}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <p id={`${uid}-type`} className="muted small">
+          {d.type ? TYPE_HELP[d.type] : "Choose the study type. It decides which questions come next and where the point is printed. A point migrated from an older file has no type until you choose one."}
+        </p>
+        <label className="field">
+          <span>
+            {d.type === "other" ? "What kind of sampling is this" : "Study type wording"} {d.type !== "other" && <span className="muted">(optional)</span>}
+          </span>
+          <input value={d.typeLabel ?? ""} onChange={(e) => set({ typeLabel: opt(e.target.value) })} data-testid="point-type-label" />
+        </label>
+        <label className="field">
+          <span>Attribute or test</span>
+          <input value={d.attribute} onChange={(e) => set({ attribute: e.target.value })} data-testid="point-attribute" />
+        </label>
+        <div className="row wrap">
+          <TextField label="Test method reference" value={d.testMethodRef} onChange={(v) => set({ testMethodRef: v })} optional />
+          <TextField label="Material" value={d.materialType} onChange={(v) => set({ materialType: v })} optional />
+        </div>
+        <div className="row wrap">
+          <label className="field">
+            <span>Responsible for this sample</span>
+            <select
+              value={d.responsible?.party ?? ""}
+              data-testid="point-responsible"
+              onChange={(e) => {
+                const party = e.target.value as (typeof RESPONSIBLE_PARTIES)[number] | "";
+                const next = { ...d };
+                if (party) next.responsible = { party, ...(d.responsible?.name ? { name: d.responsible.name } : {}) };
+                else delete next.responsible;
+                setD(next);
+              }}
+            >
+              <option value="">Not chosen yet</option>
+              {RESPONSIBLE_PARTIES.map((p) => (
+                <option key={p} value={p}>
+                  {RESPONSIBLE_LABEL[p]}
+                </option>
+              ))}
+            </select>
+          </label>
+          {d.responsible && (
             <label className="field">
-              <span>Process step</span>
-              <select value={d.unitOp} onChange={(e) => set({ unitOp: e.target.value })} data-testid="point-unitop">
-                {steps.map((s) => (
-                  <option key={s.key} value={s.key}>
-                    {s.label}
-                  </option>
-                ))}
-                {!steps.some((s) => s.key === d.unitOp) && <option value={d.unitOp}>{d.unitOp}</option>}
-              </select>
-            </label>
-            <label className="field">
-              <span>Category</span>
-              <select value={d.category} onChange={(e) => changeCategory(e.target.value as SamplingPoint["category"])} data-testid="point-category" aria-describedby={`${uid}-cat`}>
-                {SAMPLING_CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {CATEGORY_LABEL[c]}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <p id={`${uid}-cat`} className="muted small">
-            {CATEGORY_HELP[d.category]}
-          </p>
-          {d.category === "other" && (
-            <label className="field">
-              <span>What kind of sampling is this</span>
-              <input value={d.categoryLabel ?? ""} onChange={(e) => set({ categoryLabel: e.target.value || undefined })} />
+              <span>Name {d.responsible.party === "other" ? "" : <span className="muted">(optional)</span>}</span>
+              <input value={d.responsible.name ?? ""} onChange={(e) => set({ responsible: { party: d.responsible!.party, ...(opt(e.target.value) ? { name: e.target.value } : {}) } })} data-testid="point-responsible-name" />
             </label>
           )}
-          <label className="field">
-            <span>Attribute or test</span>
-            <input value={d.attribute} onChange={(e) => set({ attribute: e.target.value })} data-testid="point-attribute" />
-          </label>
-          <div className="row wrap">
-            <label className="field">
-              <span>
-                Test method reference <span className="muted">(optional)</span>
-              </span>
-              <input value={d.testMethodRef ?? ""} onChange={(e) => set({ testMethodRef: e.target.value || undefined })} />
-            </label>
-            <label className="field">
-              <span>
-                Material <span className="muted">(optional)</span>
-              </span>
-              <input value={d.materialType ?? ""} onChange={(e) => set({ materialType: e.target.value || undefined })} />
-            </label>
-          </div>
-        </fieldset>
+        </div>
+      </fieldset>
 
+      {d.type && TypeCardHasFields(d.type) && (
+        <fieldset className="stack fs" data-testid="type-card">
+          <legend>{TYPE_LABEL[d.type]}: details</legend>
+          <TypeCard d={d} plan={plan} steps={steps} setDetail={setDetail} />
+        </fieldset>
+      )}
+
+      {byMethod && (
         <fieldset className="stack fs">
           <legend>When and where</legend>
           <div className="check-grid">
@@ -220,7 +879,9 @@ export function PointDialog({ plan, point, onClose, onSave }: { plan: SamplingPl
             <NumField label="Containers per sample (optional)" value={d.containerUnitsPerSample} onChange={(v) => set({ containerUnitsPerSample: v === undefined ? undefined : Math.trunc(v) })} />
           </div>
         </fieldset>
+      )}
 
+      {byMethod && (
         <fieldset className="stack fs">
           <legend>How many samples</legend>
           <label className="field">
@@ -396,120 +1057,195 @@ export function PointDialog({ plan, point, onClose, onSave }: { plan: SamplingPl
             )}
           </section>
         </fieldset>
+      )}
 
-        <fieldset className="stack fs">
-          <legend>Acceptance and rationale</legend>
-          <label className="field">
-            <span>Acceptance</span>
-            <select
-              value={d.acceptance?.kind ?? ""}
-              data-testid="point-acceptance"
-              onChange={(e) => set({ acceptance: e.target.value === "criterion" ? { kind: "criterion", text: d.acceptance?.kind === "criterion" ? d.acceptance.text : "" } : e.target.value === "report_only" ? { kind: "report_only" } : undefined })}
-            >
-              <option value="">Not decided yet</option>
-              <option value="criterion">Acceptance criterion</option>
-              {roAllowed && <option value="report_only">Report only (collect and report, no criterion)</option>}
-            </select>
-          </label>
-          {!roAllowed && (
-            <p className="muted small" data-testid="report-only-rule">
-              Report only is not available for {CATEGORY_LABEL[d.category].toLowerCase()} sampling. These points need an acceptance criterion.
-            </p>
-          )}
-          {d.acceptance?.kind === "criterion" && (
-            <label className="field">
-              <span>Acceptance criterion</span>
-              <textarea rows={2} value={d.acceptance.text} onChange={(e) => set({ acceptance: { kind: "criterion", text: e.target.value } })} data-testid="point-criterion" />
-            </label>
-          )}
-          <label className="field">
-            <span>Rationale: why is this point sampled</span>
-            <textarea rows={3} value={d.rationale} onChange={(e) => set({ rationale: e.target.value })} data-testid="point-rationale" />
-          </label>
-        </fieldset>
-
-        <fieldset className="stack fs">
-          <legend>Handling and scope</legend>
-          <div className="row wrap">
-            <NumField label="Quantity per sample (optional)" value={d.quantity?.value} onChange={(v) => set({ quantity: v === undefined || v <= 0 ? undefined : { value: v, unit: d.quantity?.unit ?? "" } })} />
-            <label className="field">
-              <span>Quantity unit</span>
-              <input value={d.quantity?.unit ?? ""} onChange={(e) => set({ quantity: d.quantity ? { ...d.quantity, unit: e.target.value } : undefined })} placeholder="e.g. mL" />
-            </label>
-            <label className="field">
-              <span>Storage condition (optional)</span>
-              <input value={d.storageCondition ?? ""} onChange={(e) => set({ storageCondition: e.target.value || undefined })} />
-            </label>
-            <label className="field">
-              <span>Destination lab (optional)</span>
-              <input value={d.destinationLab ?? ""} onChange={(e) => set({ destinationLab: e.target.value || undefined })} />
-            </label>
-          </div>
-          {plan.batches.length > 0 && (
-            <div role="group" aria-label="Batches this point applies to" className="stack">
-              <span className="small">Applies to</span>
-              <div className="check-grid">
-                {plan.batches.map((b) => (
-                  <label key={b.id} className="check">
-                    <input
-                      type="checkbox"
-                      checked={batchIds.includes(b.id)}
-                      data-testid={`applies-${b.id}`}
-                      onChange={() => {
-                        const next = toggle(batchIds, b.id);
-                        // A point must apply to at least one batch: unticking the last one is ignored.
-                        if (next.length > 0) set({ appliesTo: next.length === plan.batches.length ? "all" : next });
-                      }}
-                    />
-                    <span>{b.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-          {sources.length > 0 && (
-            <div role="group" aria-label="Sources this point cites" className="stack">
-              <span className="small">Sources cited (optional)</span>
-              <div className="check-grid">
-                {sources.map((s) => (
-                  <label key={s.id} className="check">
-                    <input type="checkbox" checked={d.sourceIds.includes(s.id)} onChange={() => set({ sourceIds: toggle(d.sourceIds, s.id) })} />
-                    <span>
-                      {s.label} <span className="muted">({s.id})</span>
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-        </fieldset>
-
-        <div className="stack" aria-live="polite" data-testid="point-open">
-          <p>
-            <strong>Status: {check.status === "complete" ? "Complete" : "Incomplete"}</strong>
-          </p>
-          {check.problems.length > 0 && (
-            <ul className="plain-list small">
-              {check.problems.map((p) => (
-                <li key={p}>{p}</li>
-              ))}
-            </ul>
-          )}
-        </div>
-        {error && (
-          <p className="error" role="alert">
-            {error}
+      <fieldset className="stack fs">
+        <legend>Acceptance and rationale</legend>
+        <label className="field">
+          <span>Acceptance</span>
+          <select
+            value={d.acceptance?.kind ?? ""}
+            data-testid="point-acceptance"
+            onChange={(e) => set({ acceptance: e.target.value === "criterion" ? { kind: "criterion", text: d.acceptance?.kind === "criterion" ? d.acceptance.text : "" } : e.target.value === "report_only" ? { kind: "report_only" } : undefined })}
+          >
+            <option value="">Not decided yet</option>
+            <option value="criterion">Acceptance criterion</option>
+            {roAllowed && <option value="report_only">Report only (collect and report, no criterion)</option>}
+          </select>
+        </label>
+        {!roAllowed && (
+          <p className="muted small" data-testid="report-only-rule">
+            {d.type ? `Report only is not available for ${TYPE_LABEL[d.type].toLowerCase()} points. These points need an acceptance criterion.` : "Report only is available once the study type is chosen, and only for some types."}
           </p>
         )}
-        <div className="row end">
-          <button type="button" className="btn" onClick={onClose}>
-            Cancel
-          </button>
-          <button type="submit" className="btn primary" data-testid="point-save">
-            Save point
-          </button>
+        {d.acceptance?.kind === "criterion" && (
+          <label className="field">
+            <span>Acceptance criterion</span>
+            <textarea rows={2} value={d.acceptance.text} onChange={(e) => set({ acceptance: { kind: "criterion", text: e.target.value } })} data-testid="point-criterion" />
+          </label>
+        )}
+        <label className="field">
+          <span>Rationale: why is this point sampled</span>
+          <textarea rows={3} value={d.rationale} onChange={(e) => set({ rationale: e.target.value })} data-testid="point-rationale" />
+        </label>
+      </fieldset>
+
+      <fieldset className="stack fs" data-testid="reporting-fields">
+        <legend>Reporting instructions (what the CMO reports)</legend>
+        <div role="group" aria-label="What to report" className="stack">
+          <span className="small">What to report</span>
+          <div className="check-grid">
+            {REPORT_WHAT.map((w) => (
+              <label key={w} className="check">
+                <input type="checkbox" checked={rep.what?.includes(w) ?? false} onChange={() => setRep({ what: toggle(rep.what ?? [], w) })} data-testid={`rep-what-${w}`} />
+                <span>{REPORT_WHAT_LABEL[w]}</span>
+              </label>
+            ))}
+          </div>
         </div>
-      </form>
+        {rep.what?.includes("other") && <TextField label="Other item to report" value={rep.whatOther} onChange={(v) => setRep({ whatOther: v })} />}
+        <div role="group" aria-label="How to present the results" className="stack">
+          <span className="small">How to present the results (optional)</span>
+          <div className="check-grid">
+            {REPORT_PRESENTATION.map((p) => (
+              <label key={p} className="check">
+                <input type="checkbox" checked={rep.presentation?.includes(p) ?? false} onChange={() => setRep({ presentation: toggle(rep.presentation ?? [], p) })} />
+                <span>{REPORT_PRESENTATION_LABEL[p]}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+        <TextField label="Deviation, OOS and OOT handling (the CMO's procedure)" value={rep.deviationRef} onChange={(v) => setRep({ deviationRef: v })} testId="rep-deviation" />
+        <TextField label="Additional wording for the acceptance statement" value={rep.acceptanceExtra} onChange={(v) => setRep({ acceptanceExtra: v })} optional area />
+        <TextField label="Additional instructions" value={rep.additional} onChange={(v) => setRep({ additional: v })} optional area />
+        <section className="working ri-preview" aria-label={`Preview of ${ri.heading}`} data-testid="ri-preview">
+          <h3>{ri.heading}</h3>
+          <p className="muted small">This is how the block reads in the export. The CMO can copy it as it is.</p>
+          {ri.paragraphs.map((p, i) => (
+            <p key={i}>{p}</p>
+          ))}
+          {ri.missing.length > 0 && <p className="small">Not given yet: {ri.missing.join("; ")}.</p>}
+        </section>
+      </fieldset>
+
+      <fieldset className="stack fs">
+        <legend>Handling and scope</legend>
+        <div className="row wrap">
+          <NumField label="Quantity per sample (optional)" value={d.quantity?.value} onChange={(v) => set({ quantity: v === undefined || v <= 0 ? undefined : { value: v, unit: d.quantity?.unit ?? "" } })} />
+          <label className="field">
+            <span>Quantity unit</span>
+            <input value={d.quantity?.unit ?? ""} onChange={(e) => set({ quantity: d.quantity ? { ...d.quantity, unit: e.target.value } : undefined })} placeholder="e.g. mL" />
+          </label>
+          <TextField label="Storage condition" value={d.storageCondition} onChange={(v) => set({ storageCondition: v })} optional />
+          <TextField label="Destination lab" value={d.destinationLab} onChange={(v) => set({ destinationLab: v })} optional />
+        </div>
+        <div className="row wrap">
+          <TextField label="Container" value={d.container} onChange={(v) => set({ container: v })} optional />
+          <TextField label="Closure" value={d.closure} onChange={(v) => set({ closure: v })} optional />
+          <TextField label="Transport condition" value={d.transportCondition} onChange={(v) => set({ transportCondition: v })} optional />
+          <TextField label="Chain of custody" value={d.chainOfCustody} onChange={(v) => set({ chainOfCustody: v })} optional />
+        </div>
+        {plan.batches.length > 0 && (
+          <div role="group" aria-label="Batches this point applies to" className="stack">
+            <span className="small">Applies to</span>
+            <div className="check-grid">
+              {plan.batches.map((b) => (
+                <label key={b.id} className="check">
+                  <input
+                    type="checkbox"
+                    checked={batchIds.includes(b.id)}
+                    data-testid={`applies-${b.id}`}
+                    onChange={() => {
+                      const next = toggle(batchIds, b.id);
+                      // A point must apply to at least one batch: unticking the last one is ignored.
+                      if (next.length > 0) set({ appliesTo: next.length === plan.batches.length ? "all" : next });
+                    }}
+                  />
+                  <span>{b.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+        {plan.agencyRequests.length > 0 && (
+          <div role="group" aria-label="Agency requests this point answers" className="stack">
+            <span className="small">Agency requests this point answers (optional)</span>
+            <div className="check-grid">
+              {plan.agencyRequests.map((r) => (
+                <label key={r.id} className="check">
+                  <input
+                    type="checkbox"
+                    checked={d.agencyRequestIds?.includes(r.id) ?? false}
+                    onChange={() => {
+                      const next = toggle(d.agencyRequestIds ?? [], r.id);
+                      const copy = { ...d };
+                      if (next.length) copy.agencyRequestIds = next;
+                      else delete copy.agencyRequestIds;
+                      setD(copy);
+                    }}
+                    data-testid={`link-${r.id}`}
+                  />
+                  <span>{requestTitle(r)}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+        {sources.length > 0 && (
+          <div role="group" aria-label="Sources this point cites" className="stack">
+            <span className="small">Sources cited (optional)</span>
+            <div className="check-grid">
+              {sources.map((s) => (
+                <label key={s.id} className="check">
+                  <input type="checkbox" checked={d.sourceIds.includes(s.id)} onChange={() => set({ sourceIds: toggle(d.sourceIds, s.id) })} />
+                  <span>
+                    {s.label} <span className="muted">({s.id})</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+      </fieldset>
+
+      <div className="stack" aria-live="polite" data-testid="point-open">
+        <p>
+          <strong>Status: {check.status === "complete" ? "Complete" : "Incomplete"}</strong>
+        </p>
+        {check.problems.length > 0 && (
+          <ul className="plain-list small">
+            {check.problems.map((p) => (
+              <li key={p}>{p}</li>
+            ))}
+          </ul>
+        )}
+      </div>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="row end">
+        <button type="button" className="btn" onClick={onClose}>
+          {inline ? "Close" : "Cancel"}
+        </button>
+        <button type="submit" className="btn primary" data-testid="point-save">
+          Save point
+        </button>
+      </div>
+    </form>
+  );
+  return form;
+}
+
+/** Every type but ipc and release has a card of its own; those two have only the common entries. */
+const TypeCardHasFields = (t: SamplingType): boolean => t !== "ipc" && t !== "release" && t !== "other";
+
+export function PointDialog({ plan, point, onClose, onSave }: { plan: SamplingPlan; point: SamplingPoint; onClose: () => void; onSave: (d: SamplingPoint) => string | null }) {
+  return (
+    <Modal open onOpenChange={(o) => !o && onClose()} title={`Point ${point.id}`} description="Fill in what you know. What you leave empty stays an open item; the tool never fills it in." wide>
+      <PointForm plan={plan} point={point} onClose={onClose} onSave={onSave} />
     </Modal>
   );
 }
+

@@ -103,7 +103,7 @@ test("suggestions are added as incomplete points; a manual point can be built wi
 
   // A manual point: nothing is preselected, then a fixed count shows its working per batch.
   await page.getByTestId("manual-unitop").selectOption("aseptic_filling");
-  await page.getByTestId("manual-category").selectOption("routine_ipc_release");
+  await page.getByTestId("manual-type").selectOption("ipc");
   await page.getByTestId("manual-attribute").fill("Fill weight check (fictional)");
   await page.getByTestId("manual-add").click();
   const dialog = page.getByTestId("point-dialog");
@@ -115,7 +115,6 @@ test("suggestions are added as incomplete points; a manual point can be built wi
   await expect(page.getByTestId("working-result").first()).toContainText("basis");
   await page.getByTestId("point-basis").fill("Site SOP (fictional)");
   await expect(page.getByTestId("working-result").first()).toContainText("n = 7");
-  await page.keyboard.press("Escape");
 });
 
 test("each method shows its working in the point dialog", async ({ page }) => {
@@ -132,7 +131,8 @@ test("each method shows its working in the point dialog", async ({ page }) => {
     await expect(page.getByTestId("point-dialog")).toBeVisible();
     await expect(page.getByTestId("working-result").first(), id).toContainText(re);
     await expect(page.getByTestId("method-help")).toBeVisible();
-    await page.keyboard.press("Escape");
+    // The form is part of the interview since M7.1; go back to the overview for the next point.
+    await page.getByTestId("tab-overview").click();
     await expect(page.getByTestId("point-dialog")).toHaveCount(0);
   }
 });
@@ -140,15 +140,14 @@ test("each method shows its working in the point dialog", async ({ page }) => {
 test("report only is refused for a routine point and offered for a characterization point", async ({ page }) => {
   await openDemoPlan(page);
   await page.getByTestId("manual-unitop").selectOption("aseptic_filling");
-  await page.getByTestId("manual-category").selectOption("routine_ipc_release");
+  await page.getByTestId("manual-type").selectOption("ipc");
   await page.getByTestId("manual-attribute").fill("Routine check (fictional)");
   await page.getByTestId("manual-add").click();
   await expect(page.getByTestId("report-only-rule")).toBeVisible();
   await expect(page.getByRole("option", { name: /Report only/ })).toHaveCount(0);
-  await page.getByTestId("point-category").selectOption("characterization");
+  await page.getByTestId("point-type").selectOption("characterization");
   await expect(page.getByTestId("report-only-rule")).toHaveCount(0);
   await expect(page.getByRole("option", { name: /Report only/ })).toHaveCount(1);
-  await page.keyboard.press("Escape");
 });
 
 test("company tables: validation in words, save, export, and a chosen table in a point", async ({ page }) => {
@@ -187,7 +186,7 @@ test("Word and HTML downloads carry the banner, the headings, the working and th
   const word = await download(page, "sampling-download-word");
   expect(word.file).toMatch(/^sampling-plan-.*\.docx$/);
   const headings = wordHeadings(word.bytes).join(" | ");
-  for (const h of ["Purpose and scope", "PPQ batches", "Statistical bases used", "Sampling points", "Sample totals per batch", "Open items", "Versions"]) {
+  for (const h of ["Purpose and scope", "PPQ batches", "Statistical bases used", "Agency requests and commitments", "Sample totals per batch", "Open items", "Versions"]) {
     expect(headings).toContain(h);
   }
   const text = wordText(word.bytes);
@@ -200,7 +199,8 @@ test("Word and HTML downloads carry the banner, the headings, the working and th
   const htmlText = html.bytes.toString("utf8");
   expect(htmlText).toContain(BANNER);
   expect(htmlText).toContain(TITLE);
-  expect(htmlText).toMatch(/<h2[^>]*>[^<]*Sampling points/);
+  expect(htmlText).toMatch(/<h2[^>]*>[^<]*Statistical bases used/);
+  expect(htmlText).toMatch(/Reporting instructions RI-SP-001/);
 
   const history = page.getByRole("region", { name: "Export history table" });
   await expect(history.getByRole("cell", { name: "Sampling plan (Word)" })).toBeVisible();
@@ -218,6 +218,7 @@ test("the TBD warning shows the open item count before a download", async ({ pag
 for (const name of ["layout"] as const) {
   for (const scheme of ["light", "dark"] as const) {
     test(`pages are accessible with no sideways scroll: ${scheme}`, async ({ page }) => {
+      test.setTimeout(90_000); // several axe passes; slower when the whole suite runs in parallel
       await page.emulateMedia({ colorScheme: scheme });
       await openDemoPlan(page);
       await expectAccessible(page, `${name}/${scheme} plan editor`);
@@ -228,7 +229,7 @@ for (const name of ["layout"] as const) {
       await expect(page.getByTestId("point-dialog")).toBeVisible();
       await expectAccessible(page, `${name}/${scheme} point dialog`);
       await page.screenshot({ path: join(SHOTS, `m7-point-${test.info().project.name}-${scheme}.png`) });
-      await page.keyboard.press("Escape");
+      await page.getByTestId("tab-overview").click();
 
       await page.getByTestId("sampling-preview-toggle").click();
       await expect(page.getByTestId("sampling-preview")).toBeVisible();

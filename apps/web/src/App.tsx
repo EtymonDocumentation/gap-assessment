@@ -11,6 +11,7 @@ import { RegisterPage } from "./pages/RegisterPage";
 import { SourcesPage } from "./pages/SourcesPage";
 import { TbdPage } from "./pages/TbdPage";
 import { SamplingPage } from "./pages/SamplingPage";
+import { SamplingSubsectionsPage } from "./pages/SamplingSubsectionsPage";
 import { SamplingTablesPage } from "./pages/SamplingTablesPage";
 import { TrdSeedPage } from "./pages/TrdSeedPage";
 import { MappingPage } from "./pages/MappingPage";
@@ -111,7 +112,7 @@ function AppShell() {
 
   // The template library belongs to the browser, not to a project, so it opens without one. So does the guidance library,
   // which is reference material and has nothing to do with the open project.
-  const needsProject = route.path !== "/" && route.path !== "/templates" && route.path !== "/guidance" && route.path !== "/sampling/tables";
+  const needsProject = route.path !== "/" && route.path !== "/templates" && route.path !== "/guidance" && route.path !== "/sampling/tables" && route.path !== "/sampling/subsections";
   const mappingId = /^\/templates\/([^/]+)\/mapping$/.exec(route.path)?.[1];
   let page: React.ReactNode;
   if (!ready) page = <p className="muted">Loading…</p>;
@@ -124,6 +125,7 @@ function AppShell() {
   else if (route.path === "/document") page = <DocumentPage />;
   else if (route.path === "/trd-seed") page = <TrdSeedPage />;
   else if (route.path === "/sampling/tables") page = samplingAllowed ? <SamplingTablesPage /> : <SamplingNotIncluded />;
+  else if (route.path === "/sampling/subsections") page = samplingAllowed ? <SamplingSubsectionsPage /> : <SamplingNotIncluded />;
   else if (route.path === "/sampling") page = samplingAllowed ? <SamplingPage params={route.params} /> : <SamplingNotIncluded />;
   else if (route.path === "/builder" || route.path === "/model") page = <BuilderPage />;
   else if (route.path === "/sources") page = <SourcesPage />;
@@ -152,7 +154,7 @@ function AppShell() {
           <ul className="nav">
             {NAV.filter((n) => n.path !== "/sampling" || samplingAllowed).map((n) => (
               <li key={n.path}>
-                <a href={href(n.path)} aria-current={route.path === n.path || (n.path === "/builder" && route.path === "/model") || (n.path === "/templates" && !!mappingId) || (n.path === "/sampling" && route.path === "/sampling/tables") ? "page" : undefined}>
+                <a href={href(n.path)} aria-current={route.path === n.path || (n.path === "/builder" && route.path === "/model") || (n.path === "/templates" && !!mappingId) || (n.path === "/sampling" && (route.path === "/sampling/tables" || route.path === "/sampling/subsections")) ? "page" : undefined}>
                   {n.label}
                 </a>
               </li>

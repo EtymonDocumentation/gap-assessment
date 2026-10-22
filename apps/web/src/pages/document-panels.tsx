@@ -300,15 +300,15 @@ export function WordPanel({
 // ------------------------------------------------------------------ export history
 
 /** What the document was downloaded with and when. Not a revision history: formal versions live in the company's document system. */
-export function ExportHistory({ exports }: { exports: DocumentExport[] }) {
+export function ExportHistory({ exports, idPrefix = "export-history", title = "Export history" }: { exports: DocumentExport[]; idPrefix?: string; title?: string }) {
   const rows = [...exports].reverse();
   return (
-    <section className="card stack no-print" aria-labelledby="export-history-title">
-      <h2 id="export-history-title">Export history</h2>
+    <section className="card stack no-print" aria-labelledby={`${idPrefix}-title`}>
+      <h2 id={`${idPrefix}-title`}>{title}</h2>
       {rows.length === 0 ? (
         <Empty>Nothing has been downloaded from this project yet.</Empty>
       ) : (
-        <div className="table-scroll" role="region" aria-label="Export history table" tabIndex={0}>
+        <div className="table-scroll" role="region" aria-label={`${title} table`} tabIndex={0}>
           <table className="data export-table">
             <thead>
               <tr>
@@ -333,7 +333,7 @@ export function ExportHistory({ exports }: { exports: DocumentExport[] }) {
                     {r.template.name} {r.template.version}
                     {r.versions && (
                       <div className="muted" data-testid="export-versions">
-                        Process model {r.versions.processModel}; catalog {r.versions.catalog}; {r.format.startsWith("sampling-plan") ? "plan" : "seed"} format {r.versions.format}
+                        Process model {r.versions.processModel}; catalog {r.versions.catalog}; {r.format.startsWith("sampling-") ? "plan" : "seed"} format {r.versions.format}
                       </div>
                     )}
                     {r.template.sha256 && (
@@ -346,7 +346,7 @@ export function ExportHistory({ exports }: { exports: DocumentExport[] }) {
                     <code title={r.fingerprint}>{r.fingerprint}</code>
                   </td>
                   <td>{r.tbdCount ?? "Not recorded"}</td>
-                  <td className="small">{(r.format.startsWith("trd-") || r.format.startsWith("sampling-plan-")) ? "Not applicable" : r.omittedSections?.length ? r.omittedSections.map((id) => optionalSectionTitle(id) ?? id).join("; ") : "None"}</td>
+                  <td className="small">{(r.format.startsWith("trd-") || r.format.startsWith("sampling-")) ? "Not applicable" : r.omittedSections?.length ? r.omittedSections.map((id) => optionalSectionTitle(id) ?? id).join("; ") : "None"}</td>
                   <td>{r.changedSincePrevious === undefined ? "No earlier download" : r.changedSincePrevious ? "Yes" : "No"}</td>
                 </tr>
               ))}

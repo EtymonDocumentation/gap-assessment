@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { SCHEMA_VERSION, newId } from "./entries";
 import { isValidCustomKey } from "./custom";
-import { samplingStateSchema } from "./sampling";
+import { categoryToType, samplingStateSchema } from "./sampling";
 import type { Project } from "./types";
 
 const quantity = z.object({ value: z.number().finite(), unit: z.string().min(1) });
@@ -191,7 +191,7 @@ export const documentStateSchema = z.object({
     z.object({
       at: z.string(),
       by: z.string().optional(),
-      format: z.enum(["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html", "sampling-plan-docx", "sampling-plan-html"]),
+      format: z.enum(["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html", "sampling-plan-docx", "sampling-plan-html", "sampling-cmo-instructions-docx", "sampling-cmo-instructions-html"]),
       template: templateRecord,
       revision: z.number().int().positive().optional(),
       fingerprint: z.string(),
@@ -416,6 +416,15 @@ const MIGRATIONS: { from: string; to: string; migrate: Migrate }[] = [
     to: "1.11.0",
     migrate: (raw) => ({ ...raw, schemaVersion: "1.11.0", sampling: raw.sampling ?? { plans: [] } }),
   },
+  // 1.11.0 -> 1.12.0: sampling plan format 1.1.0. The study type replaces the coarse point category; plans gain parties,
+  // agency requests and custom subsections (all empty, which is what they had). A point of the old "routine in-process /
+  // release" category becomes a point with NO type (that category hid two different kinds of sample; picking one would be a
+  // guess) and the conversion is written to the change log so the open item has a trace.
+  {
+    from: "1.11.0",
+    to: "1.12.0",
+    migrate: (raw, now) => migrateTo1120(raw, now),
+  },
 ];
 
 /** Actor name on change-log records written by a file update rather than by a person. */
@@ -458,6 +467,40 @@ function migrateTo190(raw: Record<string, unknown>, now: string): Record<string,
     }
   }
   // The old records stay as they were written (they keep saying "Unknown"); the conversions are appended after them.
+  next.changeLog = [...(Array.isArray(next.changeLog) ? next.changeLog : []), ...log];
+  return next;
+}
+
+function migrateTo1120(raw: Record<string, unknown>, now: string): Record<string, unknown> {
+  const next = structuredClone(raw) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  next.schemaVersion = "1.12.0";
+  const log: Record<string, unknown>[] = [];
+  const plans: any[] = Array.isArray(next.sampling?.plans) ? next.sampling.plans : []; // eslint-disable-line @typescript-eslint/no-explicit-any
+  for (const plan of plans) {
+    plan.parties = Array.isArray(plan.parties) ? plan.parties : [];
+    plan.agencyRequests = Array.isArray(plan.agencyRequests) ? plan.agencyRequests : [];
+    plan.subsections = Array.isArray(plan.subsections) ? plan.subsections : [];
+    for (const p of Array.isArray(plan.points) ? plan.points : []) {
+      if (!("category" in p) && !("categoryLabel" in p)) continue;
+      const category = p.category;
+      const type = typeof category === "string" ? categoryToType(category) : undefined;
+      if (type) p.type = type;
+      if (typeof p.categoryLabel === "string" && p.categoryLabel) p.typeLabel = p.categoryLabel;
+      delete p.category;
+      delete p.categoryLabel;
+      if (!type) {
+        log.push({
+          at: now,
+          by: SYSTEM_ACTOR,
+          action: "migrate_sampling_type",
+          path: `sampling.${plan.id}.${p.id}`,
+          detail: "Study type not set (schema 1.12.0): the old category \"routine in-process / release\" covered two kinds of sample. Choose in-process control or release.",
+          before: { category },
+          after: {},
+        });
+      }
+    }
+  }
   next.changeLog = [...(Array.isArray(next.changeLog) ? next.changeLog : []), ...log];
   return next;
 }

@@ -159,7 +159,7 @@ function cleanTemplate(t: TemplateRecord): TemplateRecord {
 
 // ------------------------------------------------------------------ exports
 
-const EXPORT_FORMATS: readonly DocumentExport["format"][] = ["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html", "sampling-plan-docx", "sampling-plan-html"];
+const EXPORT_FORMATS: readonly DocumentExport["format"][] = ["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html", "sampling-plan-docx", "sampling-plan-html", "sampling-cmo-instructions-docx", "sampling-cmo-instructions-html"];
 
 /** True for the three TRD seed outputs (the seed JSON and its Word and HTML outlines). */
 export function isTrdFormat(format: DocumentExport["format"]): boolean {

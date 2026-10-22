@@ -15,8 +15,8 @@ import {
   updatePoint,
   type PointSuggestion,
 } from "@gap/engine";
-import { SAMPLING_CATEGORIES, UNIT_OP_FINISHED_PRODUCT, UNIT_OP_NONE, type SamplingBatch, type SamplingCategory, type SamplingPlan, type SamplingPoint } from "@gap/process-model";
-import { CATEGORY_LABEL, METHOD_LABEL, STATUS_TEXT, checkPoint, methodInputsText, planTotals, unitsPerBatch } from "@gap/sampling";
+import { SAMPLING_TYPES, UNIT_OP_FINISHED_PRODUCT, UNIT_OP_NONE, type SamplingBatch, type SamplingPlan, type SamplingPoint, type SamplingType } from "@gap/process-model";
+import { METHOD_LABEL, STATUS_TEXT, TYPE_LABEL, checkPoint, methodInputsText, planTotals, typeText, unitsPerBatch, usesSampleSizeMethod } from "@gap/sampling";
 import { samplingSuggestions } from "@gap/content";
 import { useMemo, useRef, useState } from "react";
 import { PageBanner } from "../art";
@@ -25,7 +25,12 @@ import { dateTime } from "../lib";
 import { href, navigate } from "../router";
 import { useContent, useStore } from "../store";
 import { SamplingOutput } from "./SamplingOutput";
-import { NumField, PointDialog } from "./SamplingPointDialog";
+import { NumField } from "./SamplingPointDialog";
+import { AgencyCard, Interview, PartiesCard, type ViewBy } from "./SamplingInterview";
+import { SubsectionsEditor } from "./SamplingSubsections";
+
+type Tab = "overview" | "interview" | "subsections";
+const TAB_LABEL: Record<Tab, string> = { overview: "Overview", interview: "Interview", subsections: "Plan subsections" };
 
 /** The sentence the page and the document both carry: what the tool does and what it leaves to people. */
 export const SAMPLING_SCOPE_TEXT =
@@ -75,7 +80,7 @@ function PlanList({ missing }: { missing?: string | undefined }) {
           <li>The plan is a draft and never says that a plan is approved.</li>
         </ul>
         <p>
-          Company sampling tables are kept on the <a href={href("/sampling/tables")}>Sampling tables</a> page.
+          Company sampling tables are kept on the <a href={href("/sampling/tables")}>Sampling tables</a> page. Reusable plan text is kept on the <a href={href("/sampling/subsections")}>Plan subsections</a> page.
         </p>
       </section>
 
@@ -160,7 +165,10 @@ function PlanEditor({ plan }: { plan: SamplingPlan }) {
   const content = useContent();
   const update = useStore((s) => s.update);
   const [error, setError] = useState("");
-  const [editing, setEditing] = useState<string | null>(null);
+  // The open point and the view are kept here so they survive switching tab or view.
+  const [tab, setTab] = useState<Tab>("overview");
+  const [selected, setSelected] = useState<string | null>(null);
+  const [view, setView] = useState<ViewBy>("step");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const opener = useRef<HTMLElement | null>(null);
 
@@ -174,7 +182,6 @@ function PlanEditor({ plan }: { plan: SamplingPlan }) {
   const open = useMemo(() => samplingOpenItems(content, project, plan), [content, project, plan]);
   const suggestions = useMemo(() => suggestPoints(content, project, samplingSuggestions, plan), [content, project, plan]);
   const totals = useMemo(() => planTotals(plan), [plan]);
-  const editingPoint = plan.points.find((p) => p.id === editing);
   const labelOf = useMemo(() => {
     const m = new Map(content.catalog.unitOperations.map((u) => [u.key, u.label]));
     m.set(UNIT_OP_FINISHED_PRODUCT, "Finished product");
@@ -204,6 +211,26 @@ function PlanEditor({ plan }: { plan: SamplingPlan }) {
       <DetailsCard plan={plan} run={run} />
       <BatchesCard plan={plan} run={run} />
 
+      <div role="group" aria-label="Plan sections" className="row wrap seg no-print" data-testid="plan-tabs">
+        {(Object.keys(TAB_LABEL) as Tab[]).map((t) => (
+          <button key={t} type="button" className={tab === t ? "btn primary" : "btn"} aria-pressed={tab === t} onClick={() => setTab(t)} data-testid={`tab-${t}`}>
+            {TAB_LABEL[t]}
+          </button>
+        ))}
+      </div>
+
+      {tab === "interview" && (
+        <>
+          <PartiesCard plan={plan} run={run} />
+          <AgencyCard plan={plan} run={run} />
+          <Interview plan={plan} suggestions={suggestions} selected={selected} onSelect={setSelected} view={view} onView={setView} run={run} labelOf={labelOf} />
+        </>
+      )}
+
+      {tab === "subsections" && <SubsectionsEditor plan={plan} run={run} />}
+
+      {tab === "overview" && (
+      <>
       <section className="card stack" aria-labelledby="sp-open" data-testid="plan-open-items">
         <h2 id="sp-open">Open items ({open.length})</h2>
         {open.length === 0 ? (
@@ -237,7 +264,7 @@ function PlanEditor({ plan }: { plan: SamplingPlan }) {
                   <th scope="col">Point</th>
                   <th scope="col">Process step</th>
                   <th scope="col">Attribute</th>
-                  <th scope="col">Category</th>
+                  <th scope="col">Study type</th>
                   <th scope="col">Method</th>
                   <th scope="col">Units per batch</th>
                   <th scope="col">Status</th>
@@ -251,9 +278,10 @@ function PlanEditor({ plan }: { plan: SamplingPlan }) {
                     plan={plan}
                     point={p}
                     step={labelOf(p.unitOp)}
-                    onEdit={(el) => {
-                      opener.current = el;
-                      setEditing(p.id);
+                    onEdit={() => {
+                      // The form lives in the interview, so Edit opens that point there.
+                      setSelected(p.id);
+                      setTab("interview");
                     }}
                     onRemove={() => run((pr, actor) => removePoint(pr, plan.id, p.id, actor), `Point ${p.id} removed`)}
                   />
@@ -264,14 +292,17 @@ function PlanEditor({ plan }: { plan: SamplingPlan }) {
         )}
         <ManualAdd
           steps={[...content.catalog.unitOperations.map((u) => ({ key: u.key, label: u.label })), { key: UNIT_OP_FINISHED_PRODUCT, label: "Finished product" }, { key: UNIT_OP_NONE, label: "Supporting work (no single step)" }]}
-          onAdd={(unitOp, category, attribute) => {
+          onAdd={(unitOp, type, attribute) => {
             let id = "";
             const ok = run((p, actor) => {
-              const r = addPoint(p, plan.id, { unitOp, category, ...(attribute.trim() ? { attribute: attribute.trim() } : {}) }, actor);
+              const r = addPoint(p, plan.id, { unitOp, type, ...(attribute.trim() ? { attribute: attribute.trim() } : {}) }, actor);
               id = r.pointId;
               return r.project;
             }, "Point added");
-            if (ok) setEditing(id);
+            if (ok) {
+              setSelected(id);
+              setTab("interview");
+            }
           }}
         />
       </section>
@@ -287,7 +318,10 @@ function PlanEditor({ plan }: { plan: SamplingPlan }) {
                 <thead>
                   <tr>
                     <th scope="col">Batch</th>
-                    <th scope="col">Units taken (points worked out)</th>
+                    <th scope="col">Process units taken (points worked out)</th>
+                    <th scope="col">Stability units</th>
+                    <th scope="col">Retain units</th>
+                    <th scope="col">All units</th>
                     <th scope="col">Not worked out</th>
                     <th scope="col">100% of lot</th>
                   </tr>
@@ -297,6 +331,9 @@ function PlanEditor({ plan }: { plan: SamplingPlan }) {
                     <tr key={b.batchId}>
                       <th scope="row">{b.batchLabel}</th>
                       <td className="num">{b.units}</td>
+                      <td className="num">{b.stabilityUnits}</td>
+                      <td className="num">{b.retainUnits}</td>
+                      <td className="num">{b.units + b.stabilityUnits + b.retainUnits}</td>
                       <td className="small">{b.notWorkedOut.join(", ") || "None"}</td>
                       <td className="small">{b.hundredPercent.join(", ") || "None"}</td>
                     </tr>
@@ -333,19 +370,7 @@ function PlanEditor({ plan }: { plan: SamplingPlan }) {
         </div>
       </section>
 
-      {editingPoint && (
-        <PointDialog
-          plan={plan}
-          point={editingPoint}
-          onClose={() => setEditing(null)}
-          onSave={(d) => {
-            const { id: _id, origin: _o, createdAt: _c, updatedAt: _u, ...patch } = d;
-            const ok = run((p, actor) => updatePoint(p, plan.id, editingPoint.id, patch, actor), `Point ${d.id} saved`);
-            if (ok) setEditing(null);
-            // A refusal is shown inside the dialog; run() has also put it on the page.
-            return ok ? null : "The point was not saved. See the message on the page.";
-          }}
-        />
+      </>
       )}
 
       {confirmDelete && (
@@ -529,7 +554,7 @@ function SuggestionsCard({ suggestions, onAdd }: { suggestions: PointSuggestion[
                     <td>
                       {s.attribute}
                       <div className="muted small">
-                        {SUGGESTION_SOURCE_LABEL[s.source]}; {CATEGORY_LABEL[s.category]}
+                        {SUGGESTION_SOURCE_LABEL[s.source]}; {TYPE_LABEL[s.type]}
                       </div>
                     </td>
                     <td className="small">{s.why}</td>
@@ -554,7 +579,7 @@ function SuggestionsCard({ suggestions, onAdd }: { suggestions: PointSuggestion[
   );
 }
 
-function PointRow({ plan, point, step, onEdit, onRemove }: { plan: SamplingPlan; point: SamplingPoint; step: string; onEdit: (el: HTMLElement) => void; onRemove: () => void }) {
+function PointRow({ plan, point, step, onEdit, onRemove }: { plan: SamplingPlan; point: SamplingPoint; step: string; onEdit: () => void; onRemove: () => void }) {
   const check = useMemo(() => checkPoint(plan, point), [plan, point]);
   const units = useMemo(() => unitsPerBatch(plan, point), [plan, point]);
   return (
@@ -562,10 +587,10 @@ function PointRow({ plan, point, step, onEdit, onRemove }: { plan: SamplingPlan;
       <th scope="row">{point.id}</th>
       <td>{step}</td>
       <td>{point.attribute || <span className="muted">Not named</span>}</td>
-      <td className="small">{CATEGORY_LABEL[point.category as SamplingCategory]}</td>
+      <td className="small">{typeText(point)}</td>
       <td className="small">
-        {point.sampleSize.method ? METHOD_LABEL[point.sampleSize.method] : "No method chosen"}
-        <div className="muted">{point.sampleSize.method ? methodInputsText(point) : ""}</div>
+        {!usesSampleSizeMethod(point) ? "Not by sample-size method" : point.sampleSize.method ? METHOD_LABEL[point.sampleSize.method] : "No method chosen"}
+        <div className="muted">{usesSampleSizeMethod(point) && point.sampleSize.method ? methodInputsText(point) : ""}</div>
       </td>
       <td className="small">
         {units.length === 0 ? (
@@ -589,7 +614,7 @@ function PointRow({ plan, point, step, onEdit, onRemove }: { plan: SamplingPlan;
       </td>
       <td>
         <div className="row wrap">
-          <button type="button" className="btn small" onClick={(e) => onEdit(e.currentTarget)} aria-label={`Edit point ${point.id}`} data-testid={`edit-${point.id}`}>
+          <button type="button" className="btn small" onClick={onEdit} aria-label={`Edit point ${point.id}`} data-testid={`edit-${point.id}`}>
             Edit
           </button>
           <button type="button" className="btn small danger" onClick={onRemove} aria-label={`Remove point ${point.id}`}>
@@ -601,9 +626,9 @@ function PointRow({ plan, point, step, onEdit, onRemove }: { plan: SamplingPlan;
   );
 }
 
-function ManualAdd({ steps, onAdd }: { steps: { key: string; label: string }[]; onAdd: (unitOp: string, category: SamplingCategory, attribute: string) => void }) {
+function ManualAdd({ steps, onAdd }: { steps: { key: string; label: string }[]; onAdd: (unitOp: string, type: SamplingType, attribute: string) => void }) {
   const [unitOp, setUnitOp] = useState("");
-  const [category, setCategory] = useState<SamplingCategory | "">("");
+  const [type, setType] = useState<SamplingType | "">("");
   const [attribute, setAttribute] = useState("");
   return (
     <form
@@ -611,8 +636,8 @@ function ManualAdd({ steps, onAdd }: { steps: { key: string; label: string }[]; 
       aria-label="Add a point by hand"
       onSubmit={(e) => {
         e.preventDefault();
-        if (!unitOp || !category) return;
-        onAdd(unitOp, category, attribute);
+        if (!unitOp || !type) return;
+        onAdd(unitOp, type, attribute);
         setAttribute("");
       }}
     >
@@ -628,12 +653,12 @@ function ManualAdd({ steps, onAdd }: { steps: { key: string; label: string }[]; 
         </select>
       </label>
       <label className="field">
-        <span>Category</span>
-        <select value={category} onChange={(e) => setCategory(e.target.value as SamplingCategory | "")} data-testid="manual-category">
+        <span>Study type</span>
+        <select value={type} onChange={(e) => setType(e.target.value as SamplingType | "")} data-testid="manual-type">
           <option value="">Choose</option>
-          {SAMPLING_CATEGORIES.map((c) => (
+          {SAMPLING_TYPES.map((c) => (
             <option key={c} value={c}>
-              {CATEGORY_LABEL[c]}
+              {TYPE_LABEL[c]}
             </option>
           ))}
         </select>
@@ -644,7 +669,7 @@ function ManualAdd({ steps, onAdd }: { steps: { key: string; label: string }[]; 
         </span>
         <input value={attribute} onChange={(e) => setAttribute(e.target.value)} data-testid="manual-attribute" />
       </label>
-      <button type="submit" className="btn" disabled={!unitOp || !category} data-testid="manual-add">
+      <button type="submit" className="btn" disabled={!unitOp || !type} data-testid="manual-add">
         Add point
       </button>
     </form>

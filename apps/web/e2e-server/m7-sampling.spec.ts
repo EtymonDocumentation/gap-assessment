@@ -10,6 +10,10 @@ test("server build: an account without the sampling module has no menu entry and
   await expect(page.getByTestId("sampling-not-included")).toBeVisible();
   const r = await page.request.get("/api/sampling-tables");
   expect(r.status()).toBe(403);
+  // The Plan subsections library is gated the same way.
+  expect((await page.request.get("/api/subsections")).status()).toBe(403);
+  await go(page, "#/sampling/subsections");
+  await expect(page.getByTestId("sampling-not-included")).toBeVisible();
 });
 
 test("server build: with the module the plan opens and a company table is stored on the server", async ({ page }) => {
@@ -37,4 +41,24 @@ test("server build: with the module the plan opens and a company table is stored
   await page.reload();
   await go(page, "#/sampling/tables");
   await expect(page.getByTestId("tables-list")).toContainText("QC-SERVER-TEST");
+});
+
+test("server build: the Plan subsections library is stored on the server, with the demo item seeded", async ({ page }) => {
+  test.setTimeout(150_000);
+  await signUp(page, newAccount("sampsub"), makeSamplingInvite());
+  await loadDemo(page);
+  await go(page, "#/sampling/subsections");
+  await expect(page.getByRole("heading", { level: 1, name: "Plan subsections" })).toBeVisible();
+  await page.getByTestId("lib-new-name").fill("Server library item (fictional)");
+  await page.getByTestId("lib-new-version").fill("1");
+  await page.getByTestId("lib-add").click();
+  await expect(page.getByTestId("lib-item-Server library item (fictional)")).toBeVisible();
+
+  const list = (await (await page.request.get("/api/subsections")).json()) as { items: { name: string }[] };
+  expect(list.items.map((t) => t.name)).toContain("Server library item (fictional)");
+  expect(list.items.length).toBeGreaterThanOrEqual(2);
+
+  await page.reload();
+  await go(page, "#/sampling/subsections");
+  await expect(page.getByTestId("lib-item-Server library item (fictional)")).toBeVisible();
 });

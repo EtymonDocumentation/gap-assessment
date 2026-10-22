@@ -1,14 +1,20 @@
 import {
   samplingPlanSchema,
   type Actor,
+  type AgencyRequest,
   type ChangeEvent,
+  type CustomSubsection,
+  type DesignLoadout,
+  type PlanParty,
   type Project,
   type SamplingBatch,
-  type SamplingCategory,
   type SamplingPlan,
   type SamplingPoint,
+  type SamplingType,
+  type SubsectionBlock,
+  type SubsectionOrigin,
 } from "@gap/process-model";
-import { snapshotResult } from "@gap/sampling";
+import { applyLoadout, cleanText, isPlacement, snapshotResult, type LoadoutMode } from "@gap/sampling";
 import type { PointSuggestion } from "./sampling-seed";
 
 /**
@@ -22,25 +28,35 @@ import type { PointSuggestion } from "./sampling-seed";
 
 export class SamplingError extends Error {}
 
-/** What a person types for a new point. Only the unit operation and the category are needed to start; the rest can follow. */
+/** What a person types for a new point. Only the unit operation is needed to start (the study type is chosen next); the rest can follow. */
 export interface PointDraft {
   unitOp: string;
-  category: SamplingCategory;
+  type?: SamplingType;
   attribute?: string;
-  categoryLabel?: string;
+  typeLabel?: string;
   materialType?: string;
   origin?: SamplingPoint["origin"];
 }
 
 /** Fields of a point a person can change (the id, the origin and the time stamps cannot). */
 export type PointPatch = Partial<Omit<SamplingPoint, "id" | "origin" | "createdAt" | "updatedAt">>;
-export type PlanPatch = Partial<Pick<SamplingPlan, "title" | "notes" | "batchRationale">>;
+export type PlanPatch = Partial<Pick<SamplingPlan, "title" | "notes" | "batchRationale" | "noAgencyRequests">>;
+export type AgencyRequestInput = Omit<AgencyRequest, "id" | "createdAt" | "updatedAt">;
+export type AgencyRequestPatch = Partial<AgencyRequestInput>;
+export interface SubsectionInput {
+  title: string;
+  blocks: SubsectionBlock[];
+  placement: string;
+  includeInCmo?: boolean;
+  origin?: SubsectionOrigin;
+}
+export type SubsectionPatch = Partial<Pick<SubsectionInput, "title" | "blocks" | "placement" | "includeInCmo">>;
 export type BatchPatch = Partial<Omit<SamplingBatch, "id">>;
 
 const pad = (n: number) => String(n).padStart(3, "0");
 
 /** Next id of a kind inside a plan. Ids are never reused: an id that only survives in the change log still counts as taken. */
-function nextId(project: Project, prefix: "SPL" | "B" | "SP", planId: string | undefined, existing: readonly string[]): string {
+function nextId(project: Project, prefix: "SPL" | "B" | "SP" | "AR" | "CS", planId: string | undefined, existing: readonly string[]): string {
   let max = 0;
   const take = (id: string) => {
     const m = new RegExp(`^${prefix}-(\\d+)$`).exec(id);
@@ -100,7 +116,10 @@ export function createPlan(project: Project, input: { title: string; notes?: str
     notes: input.notes?.trim() || undefined,
     batches: [],
     batchRationale: "",
+    parties: [],
+    agencyRequests: [],
     points: [],
+    subsections: [],
     createdAt: actor.at,
     updatedAt: actor.at,
   } as SamplingPlan);
@@ -114,6 +133,16 @@ export function updatePlan(project: Project, planId: string, patch: PlanPatch, a
   const plan = planOf(next, planId);
   const before: Record<string, unknown> = {};
   const after: Record<string, unknown> = {};
+  if ("noAgencyRequests" in patch) {
+    if (patch.noAgencyRequests && plan.agencyRequests.length) throw new SamplingError("Remove the agency requests before saying there are none.");
+    const v = patch.noAgencyRequests ? true : undefined;
+    if (plan.noAgencyRequests !== v) {
+      before.noAgencyRequests = plan.noAgencyRequests ?? false;
+      after.noAgencyRequests = v ?? false;
+      if (v) plan.noAgencyRequests = true;
+      else delete plan.noAgencyRequests;
+    }
+  }
   for (const k of ["title", "notes", "batchRationale"] as const) {
     if (!(k in patch)) continue;
     const v = typeof patch[k] === "string" ? (patch[k] as string).trim() : patch[k];
@@ -199,8 +228,8 @@ function newPoint(id: string, draft: PointDraft, at: string): SamplingPoint {
   return clean({
     id,
     origin: draft.origin ?? { kind: "manual" },
-    category: draft.category,
-    categoryLabel: draft.categoryLabel?.trim() || undefined,
+    type: draft.type,
+    typeLabel: draft.typeLabel?.trim() || undefined,
     unitOp: draft.unitOp,
     attribute: (draft.attribute ?? "").trim(),
     materialType: draft.materialType?.trim() || undefined,
@@ -242,7 +271,7 @@ export function acceptSuggestion(project: Project, planId: string, s: PointSugge
     planId,
     {
       unitOp: s.uo,
-      category: s.category,
+      ...(s.type ? { type: s.type } : {}),
       attribute: s.attribute,
       ...(s.materialType ? { materialType: s.materialType } : {}),
       origin: clean({ kind: "seeded" as const, suggestionKey: s.id, itemPath: s.itemPath, gapIds: [...s.gapIds], validationActivity: s.validationActivity }),
@@ -274,14 +303,203 @@ export function updatePoint(project: Project, planId: string, pointId: string, p
   return next;
 }
 
+/**
+ * Applies a study-design load-out to a mixing point. "replace" swaps the design (the change log keeps the old one); "append" adds the
+ * load-out's runs after the existing ones. The load-out only fills a shape; the person edits or ignores it afterwards.
+ */
+export function applyDesignLoadout(project: Project, planId: string, pointId: string, loadout: DesignLoadout, mode: LoadoutMode, actor: Actor): Project {
+  const plan = planOf(project, planId);
+  const point = plan.points.find((p) => p.id === pointId);
+  if (!point) throw new SamplingError(`Point ${pointId} is not in plan ${planId}`);
+  if (point.type !== "mixing_homogeneity") throw new SamplingError("A study design applies to mixing / homogeneity points only");
+  const design = applyLoadout(point.detail?.mixing?.design, loadout, mode);
+  return updatePoint(project, planId, pointId, { detail: { ...point.detail, mixing: { ...point.detail?.mixing, design } } }, actor);
+}
+
 export function removePoint(project: Project, planId: string, pointId: string, actor: Actor): Project {
   const next = structuredClone(project);
   const plan = planOf(next, planId);
   const point = plan.points.find((p) => p.id === pointId);
   if (!point) throw new SamplingError(`Point ${pointId} is not in plan ${planId}`);
+  // A subsection placed inside the point would lose its place (and a silent move would change what a reader sees), so the person moves it first.
+  const inside = plan.subsections.filter((s) => s.placement === `in_point:${pointId}`);
+  if (inside.length) throw new SamplingError(`Subsection ${inside.map((s) => s.id).join(", ")} is placed inside point ${pointId}. Move it before removing the point.`);
   plan.points = plan.points.filter((p) => p.id !== pointId);
   plan.updatedAt = actor.at;
   log(next, actor, { action: "sampling_point_remove", path: `sampling.${planId}.${pointId}`, detail: `Point ${pointId} removed from ${planId}${point.attribute ? `: ${point.attribute}` : ""}`, before: point });
+  return next;
+}
+
+// ------------------------------------------------------------------ plan parties
+
+/** Replaces the list of responsible parties named at plan level. The old list is kept in the change log. */
+export function setParties(project: Project, planId: string, parties: PlanParty[], actor: Actor): Project {
+  const next = structuredClone(project);
+  const plan = planOf(next, planId);
+  const cleaned = parties.map((p) => clean({ party: p.party, name: p.name.trim(), role: p.role?.trim() || undefined }));
+  if (cleaned.some((p) => !p.name)) throw new SamplingError("Every responsible party needs a name");
+  if (JSON.stringify(cleaned) === JSON.stringify(plan.parties)) return project;
+  const before = structuredClone(plan.parties);
+  plan.parties = cleaned;
+  assertValid(plan);
+  plan.updatedAt = actor.at;
+  log(next, actor, { action: "sampling_parties_update", path: `sampling.${planId}`, detail: `Responsible parties of ${planId} edited`, before, after: structuredClone(cleaned) });
+  return next;
+}
+
+// ------------------------------------------------------------------ agency requests
+
+const requestFields = (i: AgencyRequestPatch): AgencyRequestPatch => {
+  const o: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(i)) o[k] = typeof v === "string" ? v.trim() : v;
+  return o as AgencyRequestPatch;
+};
+
+export function addAgencyRequest(project: Project, planId: string, input: AgencyRequestInput, actor: Actor): { project: Project; requestId: string } {
+  const next = structuredClone(project);
+  const plan = planOf(next, planId);
+  const id = nextId(next, "AR", planId, plan.agencyRequests.map((r) => r.id));
+  const request = clean({ ...requestFields(input), id, sourceIds: input.sourceIds ?? [], createdAt: actor.at, updatedAt: actor.at } as AgencyRequest);
+  plan.agencyRequests.push(request);
+  // A register with a request in it cannot also say "there are none".
+  const hadNone = plan.noAgencyRequests;
+  delete plan.noAgencyRequests;
+  assertValid(plan);
+  plan.updatedAt = actor.at;
+  log(next, actor, { action: "sampling_agency_add", path: `sampling.${planId}.${id}`, detail: `Agency request ${id} added to ${planId}`, ...(hadNone ? { before: { noAgencyRequests: true } } : {}), after: request });
+  return { project: next, requestId: id };
+}
+
+export function updateAgencyRequest(project: Project, planId: string, requestId: string, patch: AgencyRequestPatch, actor: Actor): Project {
+  const next = structuredClone(project);
+  const plan = planOf(next, planId);
+  const i = plan.agencyRequests.findIndex((r) => r.id === requestId);
+  if (i < 0) throw new SamplingError(`Agency request ${requestId} is not in plan ${planId}`);
+  const before = plan.agencyRequests[i]!;
+  const merged = clean({ ...structuredClone(before), ...structuredClone(requestFields(patch)) } as AgencyRequest);
+  for (const k of Object.keys(patch) as (keyof AgencyRequestPatch)[]) if (patch[k] === undefined || patch[k] === "") delete (merged as unknown as Record<string, unknown>)[k];
+  // The question and the agency are required text: clearing them is kept as an empty string, which is an open item.
+  const mm = merged as { question?: string; agency?: string };
+  if (!("question" in mm)) mm.question = "";
+  if (!("agency" in mm)) mm.agency = "";
+  plan.agencyRequests[i] = merged;
+  assertValid(plan);
+  const keep = (r: AgencyRequest) => JSON.stringify({ ...r, updatedAt: undefined });
+  if (keep(before) === keep(merged)) return project;
+  merged.updatedAt = actor.at;
+  plan.updatedAt = actor.at;
+  log(next, actor, { action: "sampling_agency_update", path: `sampling.${planId}.${requestId}`, detail: `Agency request ${requestId} of ${planId} edited`, before, after: structuredClone(merged) });
+  return next;
+}
+
+export function removeAgencyRequest(project: Project, planId: string, requestId: string, actor: Actor): Project {
+  const next = structuredClone(project);
+  const plan = planOf(next, planId);
+  const request = plan.agencyRequests.find((r) => r.id === requestId);
+  if (!request) throw new SamplingError(`Agency request ${requestId} is not in plan ${planId}`);
+  const linked = plan.points.filter((p) => p.agencyRequestIds?.includes(requestId));
+  if (linked.length) throw new SamplingError(`Point ${linked.map((p) => p.id).join(", ")} is linked to ${requestId}. Unlink it before removing the request.`);
+  plan.agencyRequests = plan.agencyRequests.filter((r) => r.id !== requestId);
+  plan.updatedAt = actor.at;
+  log(next, actor, { action: "sampling_agency_remove", path: `sampling.${planId}.${requestId}`, detail: `Agency request ${requestId} removed from ${planId}`, before: request });
+  return next;
+}
+
+// ------------------------------------------------------------------ custom subsections
+
+const cleanBlocks = (blocks: SubsectionBlock[]): SubsectionBlock[] =>
+  blocks.map((b): SubsectionBlock => {
+    switch (b.type) {
+      case "paragraph":
+        return { type: "paragraph", text: cleanText(b.text) };
+      case "list":
+        return { type: "list", items: b.items.map(cleanText) };
+      case "table":
+        return { type: "table", columns: b.columns.map(cleanText), rows: b.rows.map((r) => r.map(cleanText)) };
+    }
+  });
+
+const nextOrder = (plan: SamplingPlan, placement: string, except?: string): number =>
+  plan.subsections.filter((s) => s.placement === placement && s.id !== except).reduce((m, s) => Math.max(m, s.order + 1), 0);
+
+export function addSubsection(project: Project, planId: string, input: SubsectionInput, actor: Actor): { project: Project; subsectionId: string } {
+  if (!isPlacement(input.placement)) throw new SamplingError("Choose where the subsection goes");
+  const next = structuredClone(project);
+  const plan = planOf(next, planId);
+  const id = nextId(next, "CS", planId, plan.subsections.map((s) => s.id));
+  const sub: CustomSubsection = {
+    id,
+    title: cleanText(input.title).trim(),
+    blocks: cleanBlocks(input.blocks),
+    placement: input.placement,
+    order: nextOrder(plan, input.placement),
+    includeInCmo: input.includeInCmo ?? false,
+    origin: input.origin ?? { kind: "manual" },
+    createdAt: actor.at,
+    updatedAt: actor.at,
+  };
+  plan.subsections.push(sub);
+  assertValid(plan);
+  plan.updatedAt = actor.at;
+  log(next, actor, {
+    action: "sampling_subsection_add",
+    path: `sampling.${planId}.${id}`,
+    detail: `Subsection ${id} added to ${planId}${sub.title ? `: ${sub.title}` : ""}${sub.origin.kind === "library" ? ` (from library item ${sub.origin.name} ${sub.origin.version})` : ""}`,
+    after: sub,
+  });
+  return { project: next, subsectionId: id };
+}
+
+export function updateSubsection(project: Project, planId: string, subsectionId: string, patch: SubsectionPatch, actor: Actor): Project {
+  const next = structuredClone(project);
+  const plan = planOf(next, planId);
+  const sub = plan.subsections.find((s) => s.id === subsectionId);
+  if (!sub) throw new SamplingError(`Subsection ${subsectionId} is not in plan ${planId}`);
+  const before = structuredClone(sub);
+  if (patch.title !== undefined) sub.title = cleanText(patch.title).trim();
+  if (patch.blocks !== undefined) sub.blocks = cleanBlocks(patch.blocks);
+  if (patch.includeInCmo !== undefined) sub.includeInCmo = patch.includeInCmo;
+  if (patch.placement !== undefined && patch.placement !== sub.placement) {
+    if (!isPlacement(patch.placement)) throw new SamplingError("Choose where the subsection goes");
+    sub.placement = patch.placement;
+    sub.order = nextOrder(plan, patch.placement, sub.id);
+  }
+  assertValid(plan);
+  if (JSON.stringify({ ...before, updatedAt: 0 }) === JSON.stringify({ ...sub, updatedAt: 0 })) return project;
+  sub.updatedAt = actor.at;
+  plan.updatedAt = actor.at;
+  log(next, actor, { action: "sampling_subsection_update", path: `sampling.${planId}.${subsectionId}`, detail: `Subsection ${subsectionId} of ${planId} edited`, before, after: structuredClone(sub) });
+  return next;
+}
+
+/** Moves a subsection one place earlier or later among those with the same placement. */
+export function moveSubsection(project: Project, planId: string, subsectionId: string, direction: "up" | "down", actor: Actor): Project {
+  const next = structuredClone(project);
+  const plan = planOf(next, planId);
+  const sub = plan.subsections.find((s) => s.id === subsectionId);
+  if (!sub) throw new SamplingError(`Subsection ${subsectionId} is not in plan ${planId}`);
+  const siblings = plan.subsections.filter((s) => s.placement === sub.placement).sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
+  const i = siblings.findIndex((s) => s.id === subsectionId);
+  const j = direction === "up" ? i - 1 : i + 1;
+  if (j < 0 || j >= siblings.length) return project;
+  const before = siblings.map((s) => s.id);
+  [siblings[i], siblings[j]] = [siblings[j]!, siblings[i]!];
+  siblings.forEach((s, n) => {
+    s.order = n;
+  });
+  plan.updatedAt = actor.at;
+  log(next, actor, { action: "sampling_subsection_move", path: `sampling.${planId}.${subsectionId}`, detail: `Subsection ${subsectionId} of ${planId} moved ${direction}`, before: { order: before }, after: { order: siblings.map((s) => s.id) } });
+  return next;
+}
+
+export function removeSubsection(project: Project, planId: string, subsectionId: string, actor: Actor): Project {
+  const next = structuredClone(project);
+  const plan = planOf(next, planId);
+  const sub = plan.subsections.find((s) => s.id === subsectionId);
+  if (!sub) throw new SamplingError(`Subsection ${subsectionId} is not in plan ${planId}`);
+  plan.subsections = plan.subsections.filter((s) => s.id !== subsectionId);
+  plan.updatedAt = actor.at;
+  log(next, actor, { action: "sampling_subsection_remove", path: `sampling.${planId}.${subsectionId}`, detail: `Subsection ${subsectionId} removed from ${planId}${sub.title ? `: ${sub.title}` : ""}`, before: sub });
   return next;
 }
 
