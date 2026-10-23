@@ -3,6 +3,7 @@ import { SCHEMA_VERSION, newId } from "./entries";
 import { isValidCustomKey } from "./custom";
 import { categoryToType, samplingStateSchema } from "./sampling";
 import { riskStateSchema } from "./risk";
+import { trdStateSchema } from "./trd";
 import type { Project } from "./types";
 
 const quantity = z.object({ value: z.number().finite(), unit: z.string().min(1) });
@@ -192,7 +193,7 @@ export const documentStateSchema = z.object({
     z.object({
       at: z.string(),
       by: z.string().optional(),
-      format: z.enum(["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html", "sampling-plan-docx", "sampling-plan-html", "sampling-cmo-instructions-docx", "sampling-cmo-instructions-html", "risk-assessment-docx", "risk-assessment-html"]),
+      format: z.enum(["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html", "sampling-plan-docx", "sampling-plan-html", "sampling-cmo-instructions-docx", "sampling-cmo-instructions-html", "risk-assessment-docx", "risk-assessment-html", "trd-docx", "trd-html"]),
       template: templateRecord,
       revision: z.number().int().positive().optional(),
       fingerprint: z.string(),
@@ -238,6 +239,7 @@ export const projectSchema = z.object({
   stepScope: stepScopeSchema,
   sampling: samplingStateSchema,
   risk: riskStateSchema,
+  trd: trdStateSchema,
   document: documentStateSchema,
   sources: z.array(
     z.object({
@@ -443,6 +445,13 @@ const MIGRATIONS: { from: string; to: string; migrate: Migrate }[] = [
     from: "1.13.0",
     to: "1.14.0",
     migrate: (raw) => ({ ...raw, schemaVersion: "1.14.0", risk: raw.risk ?? { assessments: [] } }),
+  },
+  // 1.14.0 -> 1.15.0: technology transfer documents (project.trd.documents), TRD format 1.0.0. Older projects have none, which is
+  // what they always had: no TRD is invented and nothing else in the project changes.
+  {
+    from: "1.14.0",
+    to: "1.15.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.15.0", trd: raw.trd ?? { documents: [] } }),
   },
 ];
 

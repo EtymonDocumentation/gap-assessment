@@ -256,6 +256,19 @@ Every page has light and dark themes. The layout works from phone width up. Acce
 
 Unit conversion uses the units table in `packages/process-model/src/units.ts` (volume, mass, time, temperature, pressure, flow, speed, area and others). Values in different units, for example 1.2 mL and 1200 µL, compare as equal.
 
+## The TRD module (milestone 9)
+
+The **TRD** page (module `trd`, after TRD seed in the menu) turns the seed into a technology transfer document that belongs to the team. Like the sampling and risk modules it is checked on the server: an account without the module has no menu entry, sees "This account does not include the TRD module" on the page, and a project that holds a TRD is refused with `403 module-not-included`.
+
+- **Three ways to start:** from this project, from a TRD seed file (JSON, with the reader's own error when the file is not a seed or is another major version), or blank. Nothing is chosen for you. The seed page also offers "Start a TRD from this project".
+- **Overrides.** Every value can be overridden. The project value stays beside the entered one (`Overridden (project: X)`), the reason is optional (without one the TRD reads "No reason recorded"), and every override and every removal is a change-log event with the old and new value.
+- **Update from the project, or from a newer seed file.** A project that changed since the last update gives a notice, never a block. The review lists the differences; rows are accepted one by one or with "Accept all not overridden". A value you overrode is never replaced unless you choose "Take the project value" for that row; "Keep my value" leaves it.
+- **Set point, NOR and PAR** are entered by the team for parameters and in-process controls, each with sources chosen from the source register (a document can be added on the spot), section and page, and a free-text basis. They are not taken from the sampling plan. The check only reports: NOR outside PAR, set point outside a range, minimum above maximum, "cannot compare: units differ (x vs y)", a missing citation as an open item, provisional values labelled. It never blocks saving and never decides anything.
+- **One source picker, folded steps, clear wording.** Every place that cites sources (set point, NOR, PAR) uses one picker: cited sources are a list with Remove and section/page; "Add a source from the register" opens a search box over the register with documents first and interview records in a closed group, and a new document can be added on the spot. Each process step is a folded disclosure with a count line (parameters, overridden, PAR/NOR problems, not established, TBD); a filter opens the steps with matches, an edited step stays open, and the open state is kept for the session. A parameter card shows "From the project" values apart from "TRD limits (set point / NOR / PAR with sources)", with an optional "Copy project value" button; the change notice appears only when a row actually differs.
+- **Process sections only**, in process order, with a description written by the team. Source document types (PPQ summary report, Process development report, Characterization study report, Internal technical report) and basis wordings are suggestions, not lists to choose from.
+- **Output.** Word and HTML through the same pipeline and Templates library as the other documents; downloads are recorded in the export history (`trd-docx`, `trd-html`) with the versions behind them, and a download with open items asks first. The banner is in every output and the only regulatory wording is "Requires regulatory affairs assessment".
+- Versions: project schema 1.15.0, process model 1.5.0, TRD format 1.0.0. The demo project carries a fictional TRD.
+
 ## Suite foundation: the process model and the TRD seed
 
 The gap assessment is the first tool of a planned suite (gap assessment, technology transfer document, master batch record). Milestone 6 prepares the shared part.

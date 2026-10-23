@@ -247,6 +247,13 @@ export function buildDocumentTagData(doc: DocModel): DocumentTagData {
  */
 export const RISK_SECTION_IDS: readonly string[] = ["purpose-scope", "method", "register", "heat", "actions", "traceability", "versions"];
 
+/**
+ * Fixed section ids of the TRD document that neither the gap nor the risk document has. The per-step sections have ids
+ * "step-TS-nn" that depend on the TRD, so they are reachable with {@body} and with their own tag (section_step_TS_01), which the
+ * renderer makes for every section of the document; they are not listed here because their number is not fixed.
+ */
+export const TRD_SECTION_IDS: readonly string[] = ["product", "site", "overview", "par-nor", "overrides"];
+
 // ------------------------------------------------------------------ tag reference
 
 export interface TagReferenceEntry {
@@ -367,6 +374,11 @@ export const TAG_REFERENCE: TagReferenceEntry[] = [
     tag: sectionTagName(id),
     kind: "raw",
     description: `Raw tag {@${sectionTagName(id)}}: the section "${id}" of the risk assessment document (heading and content) in the tool's look. Put it alone in its own paragraph. Empty in a gap assessment document.`,
+  })),
+  ...TRD_SECTION_IDS.filter((id) => !DOCUMENT_SECTION_IDS.includes(id) && !RISK_SECTION_IDS.includes(id)).map((id): TagReferenceEntry => ({
+    tag: sectionTagName(id),
+    kind: "raw",
+    description: `Raw tag {@${sectionTagName(id)}}: the section "${id}" of the TRD document (heading and content) in the tool's look. Put it alone in its own paragraph. Empty in other documents.`,
   })),
 ];
 

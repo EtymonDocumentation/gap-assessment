@@ -21,7 +21,7 @@ import { useSamplingTables } from "./sampling-tables-store";
 import { useSubsectionLibrary } from "./subsections-library-store";
 import { resetFiles } from "./server/files";
 import { SERVER_MODE } from "./server/mode";
-import { afterSessionEnds, remoteStorage } from "./server/session-store";
+import { afterSessionEnds, remoteStorage, useSession } from "./server/session-store";
 import * as sync from "./server/sync";
 
 const STORAGE_KEY = "gap-assessment:project";
@@ -105,7 +105,12 @@ export const useStore = create<State>((setState, getState) => ({
   },
 
   loadDemo() {
-    getState().setProject(buildDemoProject(content, demos["arx-217"], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes }), "Demo project loaded", true);
+    const demo = buildDemoProject(content, demos["arx-217"], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes });
+    // The demo carries a TRD. An account without the TRD module could not save it (the server refuses a project holding TRD
+    // documents), so the demo opens without it there; the rest of the demo is unchanged.
+    const trdOn = !SERVER_MODE || !!useSession.getState().user?.plan.modules.includes("trd");
+    const shown = trdOn ? demo : { ...demo, trd: { documents: [] }, changeLog: demo.changeLog.filter((e) => !(e.path ?? "").startsWith("trd.")) };
+    getState().setProject(shown, "Demo project loaded", true);
     // The demo plan uses a fictional company table. Offer it in the library too, so the plan does not say its table has gone.
     void useSamplingTables.getState().ensure(demoSamplingTables(demos["arx-217"]));
     void useSubsectionLibrary.getState().ensure(demoSubsectionLibrary(demos["arx-217"]));

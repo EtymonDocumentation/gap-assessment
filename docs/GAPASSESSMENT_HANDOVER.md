@@ -4,19 +4,22 @@ This is the public, cleaned-up handover for any machine or new session. It holds
 steps only. Machine-specific notes (local paths, server addresses, accounts, invite details) are kept in a
 private handover outside the repo and must never be copied in here. Read this file, then `README.md`.
 
-Last updated: 2026-10-22. Update this file (no machine-specific details) whenever a milestone lands.
+Last updated: 2026-10-23. Update this file (no machine-specific details) whenever a milestone lands.
 
 ## 1. Where things stand
+- **M9 (TRD module) is built and verified, waiting for the product owner's review and commit** (section 5a).
+  Before it, the My files page (move files between your own computers through the server, server storage only)
+  landed in `a8cbe49`.
 - **M8 (risk assessment) is done, with its follow-ups:** `5664b28` plus the follow-up change set (section 5):
   the risk method library edits scales and bands itself, an assessment is told when the library has a newer
   version of its method, and the risk Word output uses the Templates library. Before M8: M7 and its
   sub-milestones M7.1 and M7.2 (section 4) and a sampling polish pass.
-- Current versions: project schema 1.14.0, process model 1.4.0, risk format 1.0.0, content catalog 1.0.0 (failure
+- Current versions: project schema 1.15.0, process model 1.5.0, TRD format 1.0.0, risk format 1.0.0, content catalog 1.0.0 (failure
   modes and method load-outs 1.0.0), all other packages 0.1.0.
 - Open idea: the sticky "answering from" bar can cover content after a dialog returns focus; a product-side fix
   (e.g. scroll-margin on focus targets) may be worth doing later.
 - **NEXT:** wait for the product owner's next milestone choice.
-- Remaining suite modules to choose from: excipient assessment, TRD generator, MBR templates. AI features are
+- Remaining suite modules to choose from: excipient assessment, MBR templates. AI features are
   deliberately the very last step.
 
 ## 2. Milestones done
@@ -42,6 +45,8 @@ Last updated: 2026-10-22. Update this file (no machine-specific details) wheneve
 | — | `393279c` | Sampling polish: demo points sit on the diagram, plan details collapse after Save |
 | M8 | `5664b28` | Risk assessment module (ICH Q9(R1)): four user-chosen scoring methods, method library, Word + HTML output (see section 5) |
 | M8 follow-ups | see section 5 | Library edits scales and bands with versions; update-from-library; risk Word output through the Templates library |
+| My files | `a8cbe49` | Server storage: upload, organise and download any file between your own computers; private to the account |
+| M9 | not committed yet | TRD module: start from project / seed file / blank, overrides with the project value beside, update review, PAR/NOR entry and check, Word + HTML (section 5a) |
 
 ## 3. Hard rules
 - **Identity:** never put a personal name or email in the repo (files, commits, issues, PRs). Git identity is
@@ -97,6 +102,23 @@ Last updated: 2026-10-22. Update this file (no machine-specific details) wheneve
     because the saved mapping names gap sections.
 - Known limits: no CSV export, no AI suggestions, no review reminders. Server e2e covers library editing; the
   module gating is covered by server unit tests.
+
+## 5a. M9 TRD module
+- Scope chosen by the product owner: a TRD that can start from the project, a seed file or blank; every value can
+  be overridden (reason optional, "No reason recorded"); updates never replace an overridden value on their own;
+  set point, NOR and PAR entered by the team with sources from the source register.
+- Data: `project.trd.documents` (schema 1.15.0 migration adds an empty list), process model 1.5.0 (`trd.ts`, TRD
+  format 1.0.0, export kinds `trd-docx` and `trd-html`), engine `trd*.ts` (edits, check, update, document), web
+  pages `Trd*.tsx`, module `trd` checked in the project save routes (`403 module-not-included`).
+- Each field keeps the project value (`pulled`) and the team's `override` side by side. The "project changed"
+  notice compares a content fingerprint of the seed that leaves out the export time and the gap document
+  fingerprint (that one moves with any change-log entry, so it would flag a brand-new TRD as out of date).
+- PAR and NOR are never derived from the sampling plan or a project range; "Copy the project value of ..." is an
+  explicit button. The check only reports (NOR within PAR, set point within range, min above max, units that
+  differ are not converted, a missing citation is an open item, provisional is labelled).
+- Source document types and basis wordings are suggestions only. No filing category is ever named.
+- Known limits: process sections only (no facility or quality sections), no CSV, approval roles are text only,
+  a renamed step in a newer seed shows as removed plus added.
 
 ## 6. Stack and checks
 - npm workspaces: `packages/process-model`, `packages/engine`, `packages/renderers`, `packages/docx`,

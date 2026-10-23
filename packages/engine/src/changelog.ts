@@ -66,6 +66,22 @@ export const ACTION_LABELS: Record<string, string> = {
   risk_step_move: "Process step of a risk assessment moved",
   risk_step_remove: "Process step removed from a risk assessment",
   risk_steps_copy: "Process steps copied from the project scope (risk assessment)",
+  trd_add: "TRD added",
+  trd_update: "TRD edited",
+  trd_remove: "TRD removed",
+  trd_override_set: "TRD value overridden or entered",
+  trd_override_clear: "TRD override removed",
+  trd_step_add: "Process step added to a TRD",
+  trd_step_update: "Process step of a TRD edited",
+  trd_step_move: "Process step of a TRD moved",
+  trd_step_remove: "Process step removed from a TRD",
+  trd_item_add: "Item added to a TRD",
+  trd_item_update: "Item of a TRD edited",
+  trd_item_remove: "Item removed from a TRD",
+  trd_limits_update: "TRD set point, NOR or PAR edited",
+  trd_update_accept: "TRD difference accepted from the project or a newer seed",
+  trd_update_keep_override: "TRD override kept while the project value was brought up to date",
+  trd_origin_update: "TRD brought up to date with the project or a seed",
   tailor_exclude: "Topic switched off (scope)",
   tailor_include: "Topic switched on (scope)",
   scope_exclude_uo: "Process step left out (scope)",
@@ -431,7 +447,7 @@ function toRow(content: ContentBundle, project: Project, ev: ChangeEvent, i: num
       return row;
     }
     default: {
-      if (ev.action.startsWith("sampling_") || ev.action === "migrate_sampling_steps" || ev.action.startsWith("risk_")) {
+      if (ev.action.startsWith("sampling_") || ev.action === "migrate_sampling_steps" || ev.action.startsWith("risk_") || ev.action.startsWith("trd_")) {
         row.subject = ev.detail ?? ev.path ?? "";
         const d = samplingDiff(ev.before, ev.after);
         row.before = d.before;

@@ -2,6 +2,18 @@
 
 All notable changes to `@gap/process-model`. Versions follow semver; see README.md for what counts as breaking.
 
+## 1.5.0
+
+TRD format 1.0.0 (project schema 1.15.0). Additive: nothing was removed, and a project without `trd` migrates to an empty one.
+
+### Added
+- `project.trd.documents` (trdStateSchema): editable technology transfer documents (TRD-001 ...). Each field keeps the value
+  as it came in (`pulled`, the seed field) apart from the user's `override`; items carry optional set point, NOR and PAR with
+  source citations; steps carry the user's description. Origin: project, seed import or blank.
+- TRD_FORMAT_VERSION, TRD_BASIS_LOADOUTS and TRD_SOURCE_DOC_TYPES (suggestions only; the source document type stays free text).
+- Export formats `trd-docx` and `trd-html`.
+- Migration 1.14.0 -> 1.15.0: adds `trd: { documents: [] }`.
+
 ## 1.4.0
 
 Risk assessment format 1.0.0 (project schema 1.14.0). Additive: nothing was removed, and a project without `risk` migrates to an

@@ -6,7 +6,7 @@ import {
   sourceRegisterRows,
   type SourceRow,
 } from "@gap/engine";
-import { addSource, removeSource, updateSource, type SourceType } from "@gap/process-model";
+import { addSource, removeSource, TRD_SOURCE_DOC_TYPES, updateSource, type SourceType } from "@gap/process-model";
 import { Fragment, useMemo, useRef, useState } from "react";
 import { PageBanner } from "../art";
 import { Empty, Modal } from "../components";
@@ -330,7 +330,13 @@ function DocRefDialog({
       >
         <label className="field">
           <span>Document type</span>
-          <input value={docType} onChange={(e) => setDocType(e.target.value)} placeholder="e.g. PPQ report" autoFocus />
+          {/* Suggestions only (load-outs for the TRD module): the type is free text and any other still works. */}
+          <input value={docType} onChange={(e) => setDocType(e.target.value)} placeholder="e.g. PPQ report" list="doc-type-suggestions" autoFocus />
+          <datalist id="doc-type-suggestions">
+            {TRD_SOURCE_DOC_TYPES.map((t) => (
+              <option key={t} value={t} />
+            ))}
+          </datalist>
         </label>
         <label className="field">
           <span>Identifier</span>

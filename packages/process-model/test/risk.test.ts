@@ -74,7 +74,7 @@ describe("risk shapes", () => {
   });
 });
 
-describe("project schema 1.14.0", () => {
+describe("project schema 1.14.0 (risk), read by 1.15.0", () => {
   const fresh = () => emptyProject({ title: "Risk schema test (fictional)", actor: ACTOR, contentRefs: { catalog: "1.0.0", questions: "1.0.0", rules: "1.0.0", templates: "1.0.0" } });
 
   it("starts a new project with no assessment", () => {
@@ -86,7 +86,7 @@ describe("project schema 1.14.0", () => {
     old.schemaVersion = "1.13.0";
     delete old.risk;
     const p = parseProject(old);
-    expect(p.schemaVersion).toBe("1.14.0");
+    expect(p.schemaVersion).toBe("1.15.0");
     expect(p.risk).toEqual({ assessments: [] });
     expect(p.meta.title).toBe("Risk schema test (fictional)");
   });

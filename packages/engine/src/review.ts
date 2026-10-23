@@ -159,11 +159,16 @@ function cleanTemplate(t: TemplateRecord): TemplateRecord {
 
 // ------------------------------------------------------------------ exports
 
-const EXPORT_FORMATS: readonly DocumentExport["format"][] = ["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html", "sampling-plan-docx", "sampling-plan-html", "sampling-cmo-instructions-docx", "sampling-cmo-instructions-html", "risk-assessment-docx", "risk-assessment-html"];
+const EXPORT_FORMATS: readonly DocumentExport["format"][] = ["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html", "sampling-plan-docx", "sampling-plan-html", "sampling-cmo-instructions-docx", "sampling-cmo-instructions-html", "risk-assessment-docx", "risk-assessment-html", "trd-docx", "trd-html"];
 
-/** True for the three TRD seed outputs (the seed JSON and its Word and HTML outlines). */
+/** True for the three TRD seed outputs (the seed JSON and its Word and HTML outlines). The TRD module's own document is not one of them. */
 export function isTrdFormat(format: DocumentExport["format"]): boolean {
-  return format.startsWith("trd-");
+  return format.startsWith("trd-") && !isTrdDocumentFormat(format);
+}
+
+/** True for the two outputs of the TRD module's editable document (Word and HTML). */
+export function isTrdDocumentFormat(format: DocumentExport["format"]): boolean {
+  return format === "trd-docx" || format === "trd-html";
 }
 
 /** True for the two sampling plan outputs (Word and HTML). */
@@ -177,8 +182,8 @@ export function isRiskFormat(format: DocumentExport["format"]): boolean {
 }
 
 /** Which document an output belongs to: the gap assessment, the TRD outputs, the sampling plan or the risk assessment. Each is compared with its own previous download. */
-function exportFamily(format: DocumentExport["format"]): "gap" | "trd" | "sampling" | "risk" {
-  return isTrdFormat(format) ? "trd" : isSamplingFormat(format) ? "sampling" : isRiskFormat(format) ? "risk" : "gap";
+function exportFamily(format: DocumentExport["format"]): "gap" | "trd" | "trd-document" | "sampling" | "risk" {
+  return isTrdFormat(format) ? "trd" : isTrdDocumentFormat(format) ? "trd-document" : isSamplingFormat(format) ? "sampling" : isRiskFormat(format) ? "risk" : "gap";
 }
 
 /** Appends an export record. No change-log entry: downloading the document does not change the project. */

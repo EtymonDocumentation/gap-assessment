@@ -357,7 +357,7 @@ export function ExportHistory({ exports, idPrefix = "export-history", title = "E
                     {r.template.name} {r.template.version}
                     {r.versions && (
                       <div className="muted" data-testid="export-versions">
-                        Process model {r.versions.processModel}; catalog {r.versions.catalog}; {r.format.startsWith("sampling-") ? "plan" : r.format.startsWith("risk-") ? "risk" : "seed"} format {r.versions.format}
+                        Process model {r.versions.processModel}; catalog {r.versions.catalog}; {r.format.startsWith("sampling-") ? "plan" : r.format.startsWith("risk-") ? "risk" : r.format === "trd-docx" || r.format === "trd-html" ? "TRD" : "seed"} format {r.versions.format}
                       </div>
                     )}
                     {r.template.sha256 && (
@@ -370,7 +370,7 @@ export function ExportHistory({ exports, idPrefix = "export-history", title = "E
                     <code title={r.fingerprint}>{r.fingerprint}</code>
                   </td>
                   <td>{r.tbdCount ?? "Not recorded"}</td>
-                  <td className="small">{(r.format.startsWith("trd-") || r.format.startsWith("sampling-")) ? "Not applicable" : r.omittedSections?.length ? r.omittedSections.map((id) => optionalSectionTitle(id) ?? id).join("; ") : "None"}</td>
+                  <td className="small">{((r.format.startsWith("trd-") && r.format !== "trd-docx" && r.format !== "trd-html") || r.format.startsWith("sampling-")) ? "Not applicable" : r.omittedSections?.length ? r.omittedSections.map((id) => optionalSectionTitle(id) ?? id).join("; ") : "None"}</td>
                   <td>{r.changedSincePrevious === undefined ? "No earlier download" : r.changedSincePrevious ? "Yes" : "No"}</td>
                 </tr>
               ))}

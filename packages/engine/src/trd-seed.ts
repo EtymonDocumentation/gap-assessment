@@ -255,3 +255,12 @@ export function buildTrdSeed(rawContent: ContentBundle, project: Project, opts: 
 export function trdSeedFingerprint(seed: TrdSeed): string {
   return fnv1a(stableStringify({ ...seed, meta: { ...seed.meta, exportedAt: undefined } }));
 }
+
+/**
+ * Fingerprint of what the seed says about the process, for "has the project changed since this TRD was last updated". Unlike
+ * trdSeedFingerprint it also leaves out the gap assessment document fingerprint: that one moves with anything in the project
+ * (the change log, the export history, the TRD itself), so creating a TRD would already make the TRD look out of date.
+ */
+export function trdSeedContentFingerprint(seed: TrdSeed): string {
+  return fnv1a(stableStringify({ ...seed, meta: { ...seed.meta, exportedAt: undefined, gapAssessment: undefined } }));
+}

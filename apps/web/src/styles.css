@@ -2739,3 +2739,97 @@ details > summary {
 .myfiles-table th {
   vertical-align: middle;
 }
+
+/* M9: TRD module. Tokens only, so light and dark follow the page. An override is shown with words ("Overridden (project: X)"), a
+   solid double border and bold text, never colour alone. Everything wraps, so nothing scrolls sideways at 390 px. */
+.tag-override {
+  border: 2px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.trd-fields {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.trd-field {
+  border-bottom: 1px solid var(--border);
+  padding: 0.5rem 0;
+  min-width: 0;
+}
+.trd-field:last-child {
+  border-bottom: 0;
+}
+.trd-field-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem 0.75rem;
+  min-width: 0;
+}
+.trd-field-label {
+  color: var(--muted);
+  flex: 0 1 12rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.trd-field-value {
+  flex: 1 1 10rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+.trd-field-reason {
+  margin: 0.25rem 0 0;
+  overflow-wrap: anywhere;
+}
+.trd-field-edit {
+  margin-top: 0.5rem;
+  padding: 0.625rem;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+.trd-item-title {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.trd-item-summary {
+  margin: 0.25rem 0;
+}
+.trd-limits-dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 0.75rem;
+  margin: 0;
+}
+.trd-limits-dl > div {
+  display: contents;
+}
+.trd-limits-dl dt {
+  color: var(--muted);
+}
+.trd-limits-dl dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 30rem) {
+  .trd-limits-dl {
+    grid-template-columns: 1fr;
+  }
+  .trd-limits-dl dt {
+    margin-top: 0.25rem;
+  }
+}
+/* M9 TRD: one source picker and collapsible steps (tokens only). */
+.trd-src-picker { border-color: var(--border); }
+.trd-src-list { max-height: 18rem; overflow: auto; padding: 0; }
+.trd-src-list li { padding: 0.25rem 0; border-bottom: 1px solid var(--border); }
+.trd-src-chip { padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-2, transparent); }
+.trd-src-h { margin: 0; font-size: 1rem; }
+.trd-src-interviews > summary { cursor: pointer; font-weight: 600; }
+.trd-step-toggle { all: unset; cursor: pointer; font: inherit; color: inherit; display: inline-block; }
+.trd-step-toggle:focus-visible { outline: 3px solid var(--focus, currentColor); outline-offset: 2px; }

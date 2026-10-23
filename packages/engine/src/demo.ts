@@ -8,6 +8,8 @@ import { addAction, addItem, createAssessment, pointRef, setMethod, updateItem }
 import { addItemFromGap, addItemFromSuggestion, gapSeeds, suggestFailureModes } from "./risk-seed";
 import { acceptSuggestion, addAgencyRequest, addBatch, addPoint, addStep, addSubsection, applyDesignLoadout, createPlan, projectScopeSteps, setParties, setPointFlow, updatePlan, updatePoint, type PointPatch } from "./sampling";
 import { suggestPoints, type SamplingSuggestions } from "./sampling-seed";
+import { createTrd, setLimits, setOverride, updateTrdStep } from "./trd";
+import { buildTrdSeed } from "./trd-seed";
 import type { QuestionInstance } from "./sequencer";
 
 const fieldValue = z.union([z.literal("tbd"), z.literal("same"), z.unknown()]);
@@ -123,6 +125,35 @@ const riskDemoSchema = z.object({
   ),
 });
 
+/**
+ * The demo TRD: replayed through the same editing functions a person uses, started from the demo project's own seed. The cited
+ * documents are fictional and are added to the source register here (a PPQ summary report and a process development report).
+ * `item` is "collection.key"; a limit part names its source by document identifier. The numbers are the fictional team's own entries,
+ * never copied from the project values, and two of them are chosen to show the check (a NOR above its PAR, and units that differ).
+ */
+const trdCite = { source: z.string().optional(), section: z.string().optional(), page: z.string().optional() };
+const trdDemoSchema = z.object({
+  at: z.string(),
+  by: z.string(),
+  role: z.string().optional(),
+  title: z.string(),
+  docRef: z.string().optional(),
+  sources: z.array(z.object({ identifier: z.string(), docType: z.string(), title: z.string().optional(), version: z.string().optional() })).default([]),
+  steps: z.array(z.object({ uo: z.string(), description: z.string() })).default([]),
+  overrides: z.array(z.object({ uo: z.string(), item: z.string(), field: z.string(), display: z.string(), unit: z.string().optional(), reason: z.string().optional() })).default([]),
+  limits: z
+    .array(
+      z.object({
+        uo: z.string(),
+        item: z.string(),
+        setPoint: z.object({ value: z.number(), unit: z.string().optional(), ...trdCite }).optional(),
+        nor: z.object({ min: z.number().optional(), max: z.number().optional(), unit: z.string().optional(), basis: z.string().optional(), ...trdCite }).optional(),
+        par: z.object({ min: z.number().optional(), max: z.number().optional(), unit: z.string().optional(), basis: z.string().optional(), ...trdCite }).optional(),
+      }),
+    )
+    .default([]),
+});
+
 const demoSchema = z.object({
   demo: z.object({ id: z.string(), title: z.string(), version: z.string() }),
   responder: z.object({ name: z.string(), role: z.string().optional() }),
@@ -144,6 +175,7 @@ const demoSchema = z.object({
   followUp: z.array(stepSchema).default([]),
   sampling: samplingDemoSchema.optional(),
   risk: riskDemoSchema.optional(),
+  trd: trdDemoSchema.optional(),
 });
 
 export type DemoScript = z.infer<typeof demoSchema>;
@@ -223,6 +255,8 @@ export function buildDemoProject(content: ContentBundle, raw: unknown, suggestio
   if (demo.sampling && suggestions) project = applySamplingDemo(project, content, demo.sampling, suggestions, loadouts);
   // Likewise the risk assessment needs the method load-outs and the failure-mode catalog; its sampling-point links need the plan above.
   if (demo.risk && risk) project = applyRiskDemo(project, content, demo.risk, risk.loadouts, risk.failureModes);
+  // The TRD starts from the project's own seed, so it needs nothing but the content.
+  if (demo.trd) project = applyTrdDemo(project, content, demo.trd);
   return project;
 }
 
@@ -323,6 +357,55 @@ function applySamplingDemo(project: Project, content: ContentBundle, s: z.infer<
       });
       project = addSubsection(project, created.planId, { title: sub.title, blocks: sub.blocks, placement, includeInCmo: sub.includeInCmo, ...(lib ? { origin: { kind: "library", itemId: lib.id, version: lib.version, name: lib.name } } : {}) }, who).project;
     }
+  }
+  return project;
+}
+
+function applyTrdDemo(project: Project, content: ContentBundle, t: z.infer<typeof trdDemoSchema>): Project {
+  const who: Actor = { name: t.by, at: t.at, ...(t.role ? { role: t.role } : {}) };
+  const sourceIds = new Map<string, string>();
+  for (const s of t.sources) {
+    const r = addSource(project, { type: "document_reference", docRef: s }, who);
+    project = r.project;
+    sourceIds.set(s.identifier, r.source.id);
+  }
+  const seed = buildTrdSeed(content, project, { exportedAt: t.at });
+  const created = createTrd(project, { title: t.title, ...(t.docRef ? { docRef: t.docRef } : {}), start: { kind: "project", seed } }, who);
+  project = created.project;
+  const id = created.trdId;
+  const doc = () => project.trd.documents.find((d) => d.id === id)!;
+  const stepFor = (uo: string) => {
+    const s = doc().steps.find((x) => x.key === uo);
+    if (!s) throw new Error(`Demo TRD: ${uo} is not a step of the demo TRD`);
+    return s;
+  };
+  const itemRef = (uo: string, item: string) => {
+    const [collection, key] = item.split(".");
+    const found = stepFor(uo).items.find((i) => i.collection === collection && i.key === key);
+    if (!found) throw new Error(`Demo TRD: ${uo} has no item ${item}`);
+    return { stepId: stepFor(uo).id, collection: found.collection, key: found.key };
+  };
+  const cite = (c: { source?: string | undefined; section?: string | undefined; page?: string | undefined }) => {
+    if (!c.source) return { sourceIds: [] as string[] };
+    const sid = sourceIds.get(c.source);
+    if (!sid) throw new Error(`Demo TRD: source ${c.source} is not listed under sources`);
+    const loc = { ...(c.section ? { section: c.section } : {}), ...(c.page ? { page: c.page } : {}) };
+    return { sourceIds: [sid], ...(Object.keys(loc).length ? { locations: { [sid]: loc } } : {}) };
+  };
+  for (const s of t.steps) project = updateTrdStep(project, id, stepFor(s.uo).id, { description: s.description }, who);
+  for (const o of t.overrides) {
+    const ref = itemRef(o.uo, o.item);
+    project = setOverride(project, id, { part: "item", ...ref, field: o.field }, { status: "established", display: o.display, ...(o.unit ? { unit: o.unit } : {}), ...(o.reason ? { reason: o.reason } : {}) }, who);
+  }
+  for (const l of t.limits) {
+    const range = (r: NonNullable<typeof l.nor>) => ({ ...(r.min !== undefined ? { min: r.min } : {}), ...(r.max !== undefined ? { max: r.max } : {}), ...(r.unit ? { unit: r.unit } : {}), ...(r.basis ? { basis: r.basis } : {}), ...cite(r) });
+    project = setLimits(
+      project,
+      id,
+      itemRef(l.uo, l.item),
+      { ...(l.setPoint ? { setPoint: { value: l.setPoint.value, ...(l.setPoint.unit ? { unit: l.setPoint.unit } : {}), ...cite(l.setPoint) } } : {}), ...(l.nor ? { nor: range(l.nor) } : {}), ...(l.par ? { par: range(l.par) } : {}) },
+      who,
+    );
   }
   return project;
 }

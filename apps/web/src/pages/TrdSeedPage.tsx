@@ -7,6 +7,7 @@ import { Modal } from "../components";
 import { loadDocx } from "../docx-loader";
 import { APP_VERSION, download, today } from "../lib";
 import { href } from "../router";
+import { useTrdAllowed } from "../risk-module";
 import { useContent, useStore } from "../store";
 import { BUILTIN_RECORD, ExportHistory } from "./document-panels";
 
@@ -22,6 +23,7 @@ export function TrdSeedPage() {
   const update = useStore((s) => s.update);
   // The export time is fixed when the page opens so the preview and every download match.
   const [generatedAt] = useState(() => new Date().toISOString());
+  const trdAllowed = useTrdAllowed();
   const [traceability, setTraceability] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -118,6 +120,13 @@ export function TrdSeedPage() {
           <li>The outline is not an approved TRD, and it never names a regulatory filing category.</li>
           <li>The outline uses the built-in style only. Customer templates are not applied to it yet.</li>
         </ul>
+        {trdAllowed && (
+          <div>
+            <a className="btn primary" href={href("/trd", { start: "project" })} data-testid="trd-start-from-project">
+              Start a TRD from this project
+            </a>
+          </div>
+        )}
       </section>
 
       {!seed || !sc || !counts || !outline ? (

@@ -16,6 +16,7 @@ import { RiskPage } from "./pages/RiskPage";
 import { SamplingPage } from "./pages/SamplingPage";
 import { SamplingSubsectionsPage } from "./pages/SamplingSubsectionsPage";
 import { SamplingTablesPage } from "./pages/SamplingTablesPage";
+import { TrdPage } from "./pages/TrdPage";
 import { TrdSeedPage } from "./pages/TrdSeedPage";
 import { MappingPage } from "./pages/MappingPage";
 import { TemplatesPage } from "./pages/TemplatesPage";
@@ -25,7 +26,7 @@ import { href, useRoute } from "./router";
 import { AccountBar, ConflictDialog, ServerGate, useIsRemote } from "./server/ServerUi";
 import { SERVER_MODE } from "./server/mode";
 import { useSession } from "./server/session-store";
-import { useRiskAllowed } from "./risk-module";
+import { useRiskAllowed, useTrdAllowed } from "./risk-module";
 import { useStore } from "./store";
 
 const NAV = [
@@ -37,6 +38,7 @@ const NAV = [
   { path: "/validation", label: "Validation" },
   { path: "/document", label: "Document" },
   { path: "/trd-seed", label: "TRD seed" },
+  { path: "/trd", label: "TRD" },
   { path: "/sampling", label: "Sampling plan" },
   { path: "/risk", label: "Risk" },
   { path: "/templates", label: "Templates" },
@@ -53,6 +55,16 @@ function SamplingNotIncluded() {
     <section className="card stack" data-testid="sampling-not-included">
       <h1>Sampling plan</h1>
       <p>This account does not include the sampling module. Ask the administrator to add it.</p>
+    </section>
+  );
+}
+
+/** Shown instead of the TRD pages on an account without the TRD module. */
+function TrdNotIncluded() {
+  return (
+    <section className="card stack" data-testid="trd-not-included">
+      <h1>TRD</h1>
+      <p>This account does not include the TRD module. Ask the administrator to add it.</p>
     </section>
   );
 }
@@ -113,6 +125,7 @@ function AppShell() {
   const modules = useSession((s) => s.user?.plan.modules);
   const samplingAllowed = !SERVER_MODE || !!modules?.includes("sampling");
   const riskAllowed = useRiskAllowed();
+  const trdAllowed = useTrdAllowed();
   const [theme, setTheme] = useTheme();
 
   useEffect(() => {
@@ -147,6 +160,7 @@ function AppShell() {
   else if (route.path === "/sampling") page = samplingAllowed ? <SamplingPage params={route.params} /> : <SamplingNotIncluded />;
   else if (route.path === "/risk/methods") page = riskAllowed ? <RiskMethodsPage /> : <RiskNotIncluded />;
   else if (route.path === "/risk") page = riskAllowed ? <RiskPage params={route.params} /> : <RiskNotIncluded />;
+  else if (route.path === "/trd") page = trdAllowed ? <TrdPage params={route.params} /> : <TrdNotIncluded />;
   else if (route.path === "/builder" || route.path === "/model") page = <BuilderPage />;
   else if (route.path === "/sources") page = <SourcesPage />;
   else if (route.path === "/tbd") page = <TbdPage />;
@@ -172,7 +186,7 @@ function AppShell() {
         </div>
         <nav aria-label="Main">
           <ul className="nav">
-            {NAV.filter((n) => (n.path !== "/myfiles" || SERVER_MODE) && (n.path !== "/sampling" || samplingAllowed) && (n.path !== "/risk" || riskAllowed)).map((n) => (
+            {NAV.filter((n) => (n.path !== "/myfiles" || SERVER_MODE) && (n.path !== "/sampling" || samplingAllowed) && (n.path !== "/risk" || riskAllowed) && (n.path !== "/trd" || trdAllowed)).map((n) => (
               <li key={n.path}>
                 <a href={href(n.path)} aria-current={route.path === n.path || (n.path === "/builder" && route.path === "/model") || (n.path === "/templates" && !!mappingId) || (n.path === "/sampling" && (route.path === "/sampling/tables" || route.path === "/sampling/subsections")) || (n.path === "/risk" && route.path === "/risk/methods") ? "page" : undefined}>
                   {n.label}

@@ -970,3 +970,58 @@ risk:
       failureMode: Filter damage not found because pre-use post-sterilization integrity testing is not done (fictional)
       effect: Non-sterile filtrate reaches the filler
       initial: { severity: 8, occurrence: 3, detection: 4 }
+
+# ---------------------------------------------------------------- TRD module (fictional)
+# One technology transfer document started from this project. The cited documents are fictional. PAR and NOR are the fictional
+# team's own entries from those documents (they are not taken from the project values). Mixing speed has a NOR above its PAR, and
+# mixing time has a PAR in hours against a NOR in minutes, so the report-only check has something to show.
+trd:
+  at: "2026-10-12T09:00:00.000Z"
+  by: Alex Example (fictional)
+  role: MSAT engineer
+  title: ARX-217 technology transfer document (fictional)
+  docRef: DEMO-TRD-217-01
+  sources:
+    - { identifier: DEMO-PD-217-01, docType: Process development report, title: ARX-217 process development report (fictional), version: "1.0" }
+    - { identifier: DEMO-PPQS-217-01, docType: PPQ summary report, title: "ARX-217 PPQ summary report, Site North (fictional)", version: "1.0" }
+  steps:
+    - uo: compounding
+      description: The formulated bulk is prepared in one vessel from the drug substance and the ready-to-use buffer (fictional description written by the team).
+    - uo: sterile_filtration
+      description: The bulk passes the sterilizing-grade filter into the sterile holding vessel before filling (fictional description written by the team).
+    - uo: aseptic_filling
+      description: Vials are filled and stoppered under Grade A conditions on the receiving unit line (fictional description written by the team).
+  overrides:
+    - { uo: aseptic_filling, item: param.max_interventions, field: max, display: "12", reason: Aligned with the intervention list of the media fill (fictional) }
+    - { uo: compounding, item: param.batch_size, field: setPoint, display: "140", unit: L }
+    - { uo: bbr_filtration, item: param.max_filtration_time, field: setPoint, display: "2.5", unit: h, reason: Duration seen in the engineering run (fictional) }
+  limits:
+    - uo: compounding
+      item: param.temperature
+      setPoint: { value: 20, unit: °C, source: DEMO-PD-217-01, section: "5.1", page: "12" }
+      nor: { min: 18, max: 22, unit: °C, basis: Proposed from process development, source: DEMO-PD-217-01, section: "5.1", page: "12" }
+      par: { min: 15, max: 25, unit: °C, basis: Confirmed by PPQ summary report, source: DEMO-PPQS-217-01, section: "6.3", page: "21" }
+    - uo: compounding
+      item: param.mixing_speed
+      setPoint: { value: 140, unit: rpm, source: DEMO-PD-217-01, section: "5.2", page: "14" }
+      nor: { min: 110, max: 170, unit: rpm, basis: Proposed from process development, source: DEMO-PD-217-01, section: "5.2", page: "14" }
+      par: { min: 100, max: 160, unit: rpm, basis: Internal technical report, source: DEMO-PD-217-01, section: "5.2", page: "15" }
+    - uo: compounding
+      item: param.mixing_time
+      setPoint: { value: 30, unit: min, source: DEMO-PD-217-01, section: "5.2", page: "14" }
+      nor: { min: 25, max: 35, unit: min, basis: Proposed from process development, source: DEMO-PD-217-01, section: "5.2", page: "14" }
+      par: { min: 0.4, max: 0.7, unit: h, basis: Internal technical report, source: DEMO-PD-217-01, section: "5.2", page: "15" }
+    - uo: sterile_filtration
+      item: param.differential_pressure
+      setPoint: { value: 1.5, unit: bar }
+      nor: { min: 1, max: 2, unit: bar, basis: Proposed from process development, source: DEMO-PD-217-01, section: "7.4", page: "30" }
+    - uo: aseptic_filling
+      item: param.fill_volume
+      setPoint: { value: 1200, unit: µL, source: DEMO-PPQS-217-01, section: "6.5", page: "27" }
+      nor: { min: 1180, max: 1220, unit: µL, basis: Confirmed by PPQ summary report, source: DEMO-PPQS-217-01, section: "6.5", page: "27" }
+      par: { min: 1150, max: 1250, unit: µL, basis: Confirmed by PPQ summary report, source: DEMO-PPQS-217-01, section: "6.5", page: "28" }
+    - uo: aseptic_filling
+      item: param.line_speed
+      setPoint: { value: 300, unit: units/min, source: DEMO-PD-217-01, section: "8.1", page: "36" }
+      nor: { min: 280, max: 320, unit: units/min, basis: Proposed from process development, source: DEMO-PD-217-01, section: "8.1", page: "36" }
+      par: { min: 250, max: 350, unit: units/min, basis: Proposed from process development, source: DEMO-PD-217-01, section: "8.1", page: "37" }

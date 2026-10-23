@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { ImportError, parseProject, type Project } from "@gap/process-model";
 import { z } from "zod";
-import { HttpError, sendJson, sendNoContent, type Route } from "../http";
+import { HttpError, sendJson, sendNoContent, type Ctx, type Route } from "../http";
 import { isId } from "../names";
 import { idParam, notFound, parseBody, userPath } from "./util";
 
@@ -19,6 +19,20 @@ const updateSchema = z.object({
   project: z.unknown(),
   baseRevision: z.number({ error: "baseRevision must be a number." }).int("baseRevision must be a whole number.").min(1, "baseRevision must be 1 or more."),
 });
+
+/** The module key an account needs to keep TRD documents inside its projects. */
+export const TRD_MODULE = "trd";
+
+/**
+ * A TRD lives inside the project file, so the server-side check for the TRD module is made where the project is saved: a project
+ * that holds TRD documents is refused for an account without the module (the menu being hidden in the web app is only a
+ * convenience). A project with no TRD documents is never affected.
+ */
+function requireTrdModuleForProject(ctx: Ctx, project: Project): void {
+  if (project.trd.documents.length > 0 && !ctx.user.plan.modules.includes(TRD_MODULE)) {
+    throw new HttpError(403, "module-not-included", "This account does not include the TRD module, and the project holds a TRD.");
+  }
+}
 
 /** Runs the shared project check; its message names what is wrong with the file. */
 function checkProject(input: unknown): Project {
@@ -68,6 +82,7 @@ export const projectRoutes: Route[] = [
     async handler(ctx) {
       const body = parseBody(createSchema, await ctx.json());
       const project = checkProject(body.project);
+      requireTrdModuleForProject(ctx, project);
       const id = randomUUID();
       const file: ProjectFile = { id, revision: 1, updatedAt: new Date().toISOString(), project };
       await ctx.app.store.writeJson(userPath(ctx, "projects", `${id}.json`), file);
@@ -97,6 +112,7 @@ export const projectRoutes: Route[] = [
       const id = idParam(ctx);
       const body = parseBody(updateSchema, await ctx.json());
       const project = checkProject(body.project);
+      requireTrdModuleForProject(ctx, project);
       let saved: ProjectFile | undefined;
       // Read, compare and write as one step, so two computers cannot both win with the same base revision.
       await ctx.app.store.update<ProjectFile | null>(userPath(ctx, "projects", `${id}.json`), null, (current) => {

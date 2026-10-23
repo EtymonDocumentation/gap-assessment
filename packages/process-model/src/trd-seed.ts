@@ -36,6 +36,7 @@ export const SEED_CLASSIFICATIONS = ["CPP", "KPP", "non_critical"] as const;
 export type SeedClassification = (typeof SEED_CLASSIFICATIONS)[number];
 
 export const SEED_COLLECTIONS = ["param", "equip", "mat", "ipc", "study", "doc"] as const;
+export type SeedCollection = (typeof SEED_COLLECTIONS)[number];
 
 /** How a seed value is invariant-checked; see seedAnswerSchema. */
 function checkAnswer(a: { status: SeedStatus; value?: unknown; provisional?: boolean; tbd?: unknown; justification?: string }, ctx: z.RefinementCtx): void {

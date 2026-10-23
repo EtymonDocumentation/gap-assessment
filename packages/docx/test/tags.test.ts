@@ -3,7 +3,7 @@ import { DOCUMENT_SECTION_IDS } from "@gap/engine";
 import PizZip from "pizzip";
 import { describe, expect, it, vi } from "vitest";
 import { TAG_REFERENCE, TemplateError, buildTagData, importTemplateFile, renderDocx, tagReferenceMarkdown } from "../src/index";
-import { RISK_SECTION_IDS } from "../src/tags";
+import { RISK_SECTION_IDS, TRD_SECTION_IDS } from "../src/tags";
 import { BANNER, GENERATED_AT, buildModel, fixture } from "./fixtures";
 import { countElements, plainText, strictDocx } from "./strict";
 
@@ -165,7 +165,8 @@ describe("tag reference", () => {
     const raw = TAG_REFERENCE.filter((t) => t.kind === "raw").map((t) => t.tag);
     expect(raw).toContain("body");
     // The gap sections, plus the risk-assessment-only sections (the ids the two documents share count once).
-    expect(raw.filter((t) => t.startsWith("section_")).length).toBe(DOCUMENT_SECTION_IDS.length + RISK_SECTION_IDS.filter((id) => !DOCUMENT_SECTION_IDS.includes(id)).length);
+    const known = new Set<string>([...DOCUMENT_SECTION_IDS, ...RISK_SECTION_IDS, ...TRD_SECTION_IDS]);
+    expect(raw.filter((t) => t.startsWith("section_")).length).toBe(known.size);
     expect(raw).toContain("section_gap_details");
   });
   it("renders as Markdown with the banner rule", () => {

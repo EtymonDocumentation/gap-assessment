@@ -40,7 +40,7 @@ describe("package independence", () => {
 
   it("keeps PROCESS_MODEL_VERSION equal to package.json", () => {
     expect(PROCESS_MODEL_VERSION).toBe(pkg.version);
-    expect(pkg.version).toBe("1.4.0");
+    expect(pkg.version).toBe("1.5.0");
   });
 
   it("is private until it is published on purpose", () => {
@@ -102,8 +102,13 @@ describe("public API", () => {
         "SYSTEM_ACTOR",
         "SourceError",
         "TIMING_OPTIONS",
+        "TRD_BASIS_LOADOUTS",
+        "TRD_DETAIL_KEYS",
+        "TRD_FORMAT_VERSION",
+        "TRD_ORIGIN_KINDS",
         "TRD_SEED_FORMAT",
         "TRD_SEED_VERSION",
+        "TRD_SOURCE_DOC_TYPES",
         "TrdSeedError",
         "UNITS",
         "UNIT_OP_CUSTOM_STEP",
@@ -176,6 +181,7 @@ describe("public API", () => {
         "pointFlowSchema",
         "pointSampleSizeSchema",
         "projectSchema",
+        "pulledFromAnswer",
         "putEntry",
         "qualitativeConfigSchema",
         "quantitiesEqual",
@@ -232,7 +238,19 @@ describe("public API", () => {
         "subsectionOriginSchema",
         "tailoringSchema",
         "toBase",
+        "trdApprovalSchema",
+        "trdDocumentSchema",
+        "trdFieldSchema",
+        "trdItemSchema",
+        "trdLimitsSchema",
+        "trdOriginSchema",
+        "trdOverrideSchema",
+        "trdPulledSchema",
+        "trdRangeSchema",
         "trdSeedSchema",
+        "trdSetPointSchema",
+        "trdStateSchema",
+        "trdStepSchema",
         "typeDetailSchema",
         "unitDef",
         "unitsForDimension",

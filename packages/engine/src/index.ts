@@ -34,3 +34,7 @@ export * from "./sampling-cmo";
 export * from "./risk";
 export * from "./risk-seed";
 export * from "./risk-document";
+export * from "./trd";
+export * from "./trd-check";
+export * from "./trd-update";
+export * from "./trd-document";
