@@ -2,6 +2,16 @@
 
 All notable changes to `@gap/process-model`. Versions follow semver; see README.md for what counts as breaking.
 
+## 1.6.0
+
+Sampling plan format 1.3.0 (project schema 1.16.0). Additive: nothing was removed, and a party without the new fields is still valid.
+
+### Added
+- `planPartySchema` gains two optional fields: `department` (free text, for a team member's unit) and `memoLine` ("from", "to" or
+  "cc"). Neither is required, defaulted or validated; they exist so a Word template can fill the From / To / Cc lines of a memorandum.
+- MEMO_LINES, MemoLine and MEMO_LINE_LABEL.
+- Migration 1.15.0 -> 1.16.0: only the version moves (the new fields are absent from every stored party).
+
 ## 1.5.0
 
 TRD format 1.0.0 (project schema 1.15.0). Additive: nothing was removed, and a project without `trd` migrates to an empty one.

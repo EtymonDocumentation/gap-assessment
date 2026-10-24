@@ -109,7 +109,7 @@ describe("risk assessment Word output with a template from the library (M8 follo
   });
 
   it("the document tag data holds only what every document has", () => {
-    expect(Object.keys(buildDocumentTagData(doc)).sort()).toEqual(["activities", "approvals", "banner", "equipment", "gaps", "generated", "meta", "openItems", "risks", "sections", "sources", "status", "title"]);
+    expect(Object.keys(buildDocumentTagData(doc)).sort()).toEqual(["activities", "approvals", "banner", "ccParties", "equipment", "fromParties", "gaps", "generated", "meta", "openItems", "parties", "risks", "sections", "sources", "status", "title", "toParties"]);
   });
 });
 

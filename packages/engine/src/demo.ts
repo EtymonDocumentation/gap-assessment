@@ -58,7 +58,7 @@ const samplingDemoSchema = z.object({
       title: z.string(),
       notes: z.string().optional(),
       batchRationale: z.string(),
-      parties: z.array(z.object({ party: z.enum(["cmo", "sponsor", "contract_lab", "other"]), name: z.string(), role: z.string().optional() })).default([]),
+      parties: z.array(z.object({ party: z.enum(["cmo", "sponsor", "contract_lab", "other"]), name: z.string(), role: z.string().optional(), department: z.string().optional(), memoLine: z.enum(["from", "to", "cc"]).optional() })).default([]),
       /** Agency requests in order; a point links one by its `ref`. The plan assigns the AR-### ids. */
       agencyRequests: z.array(z.object({ ref: z.string(), agency: z.string(), marketCode: z.string().optional(), kind: z.string().optional(), reference: z.string().optional(), dateReceived: z.string().optional(), question: z.string(), response: z.string().optional(), responseDate: z.string().optional(), status: z.string().optional() })).default([]),
       /** Plan subsections. `library` names an item of `subsectionLibrary`: the plan gets a copy that remembers its id and version. `placement` may say `in_point:#N` (the N-th point of this plan, from 1). */

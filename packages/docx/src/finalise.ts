@@ -4,6 +4,7 @@ import type { DocPackage } from "./docpkg";
 import { CT, REL, resolveTarget } from "./package";
 import type { TemplateMode } from "./types";
 import { W_NS, XML_DECL, attrByLocal, childElements, esc, localName, parseXml, textOf } from "./xml";
+import { restoreFirstPageHeader } from "./inspect";
 import type { WriterCtx } from "./writer";
 
 export const CREATOR = "Gap Assessment Generator (proof of concept)";
@@ -124,6 +125,10 @@ export function writeDocProps(dp: DocPackage, input: FinaliseInput): void {
 
 /** Writes everything the writer context collected: added styles, extended numbering, document properties. */
 export function finalisePackage(dp: DocPackage, ctx: WriterCtx, input: FinaliseInput, originalNumbering: string | undefined): void {
+  // The sections the tool adds for wide tables must not drop the template's first-page-only header (see restoreFirstPageHeader).
+  const main = dp.mainXml();
+  const restored = restoreFirstPageHeader(main, ctx.sectPrs);
+  if (restored !== main) dp.setMainXml(restored);
   const stylesPart = dp.partOf(REL.styles) ?? "word/styles.xml";
   if (ctx.addedStyles.length) {
     const xml = dp.pkg.text(stylesPart);

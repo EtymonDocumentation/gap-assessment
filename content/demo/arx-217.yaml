@@ -679,8 +679,10 @@ sampling:
       notes: Fictional demonstration plan.
       batchRationale: "Three consecutive batches, as the fictional Site South validation master plan VMP-217 (fictional) requires for a transferred process."
       parties:
-        - { party: cmo, name: Site South manufacturing (fictional), role: Takes the samples and writes the PPQ summary report }
-        - { party: contract_lab, name: Example Test Laboratory (fictional), role: Tests the samples }
+        - { party: sponsor, name: Alex Example (fictional), role: Technology transfer lead, department: Process Validation (fictional), memoLine: from }
+        - { party: sponsor, name: Sam Sample (fictional), role: Validation engineer, department: Process Validation (fictional), memoLine: from }
+        - { party: cmo, name: Site South manufacturing (fictional), role: Takes the samples and writes the PPQ summary report, department: Manufacturing Sciences (fictional), memoLine: to }
+        - { party: contract_lab, name: Example Test Laboratory (fictional), role: Tests the samples, memoLine: cc }
       agencyRequests:
         - ref: ir1
           agency: Example Health Authority (fictional)

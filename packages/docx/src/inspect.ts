@@ -181,3 +181,41 @@ export function deriveSectPrs(sectPr: string | undefined): SectPrs {
   const portraitSz = page.orientation === "portrait" && originalPgSz ? originalPgSz : `<w:pgSz w:w="${short}" w:h="${long}"/>`;
   return { portrait: mk(portraitSz), landscape: mk(`<w:pgSz w:w="${long}" w:h="${short}" w:orient="landscape"/>`) };
 }
+
+/** Puts "different first page" into a w:sectPr, at its place in the schema order. */
+function withTitlePg(sectPr: string): string {
+  if (/<w:titlePg\b/.test(sectPr)) return sectPr;
+  const parts = splitElement(sectPr);
+  const rank = (x: string) => {
+    const i = SECT_ORDER.indexOf(/^<w:(\w+)/.exec(x)?.[1] ?? "");
+    return i < 0 ? SECT_ORDER.length : i;
+  };
+  const all = [...parts.children.map((c) => c.xml), "<w:titlePg/>"];
+  return `${parts.open}${all
+    .map((x, i) => ({ x, i }))
+    .sort((a, b) => rank(a.x) - rank(b.x) || a.i - b.i)
+    .map((e) => e.x)
+    .join("")}${parts.close}`;
+}
+
+/**
+ * Keeps a first-page-only header (and footer) of the template on page 1.
+ *
+ * The tool puts each wide table in a landscape section of its own, so the document has several sections although the template had
+ * one. Word reads "different first page" (w:titlePg) per section, and deriveSectPrs leaves it out of the sections it makes, so the
+ * template's first-page header would be lost and, left on the template's own (now last) section, would reappear at the top of that
+ * section instead. When the first section of the finished document is one the tool made and the template's last section has
+ * titlePg, the first section gets titlePg (its first / default header and footer references are copied from the template) and the last
+ * section loses it: page 1 shows the first-page header, every later page the default one, as in the template. A template that has its
+ * own sections before the tool's first one is left as it is, and so is a document with a single section.
+ */
+export function restoreFirstPageHeader(mainXml: string, sectPrs: SectPrs | undefined): string {
+  if (!sectPrs) return mainXml;
+  const found = [...mainXml.matchAll(/<w:sectPr\b[\s\S]*?<\/w:sectPr>/g)];
+  if (found.length < 2) return mainXml;
+  const first = found[0]!;
+  const last = found[found.length - 1]!;
+  if (first[0] !== sectPrs.portrait || !/<w:titlePg\b/.test(last[0])) return mainXml;
+  const lastFixed = last[0].replace(/<w:titlePg\b[^>]*\/>/, "");
+  return mainXml.slice(0, first.index) + withTitlePg(first[0]) + mainXml.slice(first.index! + first[0].length, last.index) + lastFixed + mainXml.slice(last.index! + last[0].length);
+}

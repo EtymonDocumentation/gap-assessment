@@ -14,8 +14,17 @@ Last updated: 2026-10-23. Update this file (no machine-specific details) wheneve
   the risk method library edits scales and bands itself, an assessment is told when the library has a newer
   version of its method, and the risk Word output uses the Templates library. Before M8: M7 and its
   sub-milestones M7.1 and M7.2 (section 4) and a sampling polish pass.
-- Current versions: project schema 1.15.0, process model 1.5.0, TRD format 1.0.0, risk format 1.0.0, content catalog 1.0.0 (failure
+- Current versions: project schema 1.16.0, process model 1.6.0, TRD format 1.0.0, risk format 1.0.0, content catalog 1.0.0 (failure
   modes and method load-outs 1.0.0), all other packages 0.1.0.
+- **Memo template fixes (sampling plan and CMO instructions).** A plan party has an optional department and an optional memo
+  line (From, To or Cc); schema 1.16.0 (version-only migration), process model 1.6.0, sampling plan format 1.3.0. New template
+  tags: `{#parties}`, `{#fromParties}`, `{#toParties}`, `{#ccParties}` (name, role, department, memoLine), `{fromText}`,
+  `{toText}`, `{ccText}`, `{sendingUnit}`, `{receivingSite}`, `{cmoName}`, `{sponsorName}`; listed in the Templates tag
+  reference and accepted by the unknown-tag check. Nothing is defaulted: a party is on a memo line only when the user chose it,
+  and an empty line prints "[none chosen]". A first-page-only header (`titlePg`) of the template's first section now survives
+  assembly (`restoreFirstPageHeader`, run for every template mode); later sections behave as before. Both sampling exports
+  use the shared Word panel with the Templates library (Built-in, Their look, Placeholder tags; mapping not offered). The body
+  parties table of the plan is unchanged.
 - Open idea: the sticky "answering from" bar can cover content after a dialog returns focus; a product-side fix
   (e.g. scroll-margin on focus targets) may be worth doing later.
 - **NEXT:** wait for the product owner's next milestone choice.

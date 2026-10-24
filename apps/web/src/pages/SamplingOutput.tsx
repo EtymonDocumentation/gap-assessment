@@ -5,12 +5,9 @@ import { SAMPLING_STATS_VERSION } from "@gap/sampling";
 import { samplingSuggestions } from "@gap/content";
 import { useMemo, useRef, useState } from "react";
 import { Modal } from "../components";
-import { loadDocx } from "../docx-loader";
 import { APP_VERSION, download, today } from "../lib";
 import { useContent, useStore } from "../store";
-import { BUILTIN_RECORD, ExportHistory } from "./document-panels";
-
-const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+import { BUILTIN_RECORD, ExportHistory, GENERIC_MODES, useWordChoice, WordPanel } from "./document-panels";
 
 /**
  * The sampling plan as a Word or HTML protocol draft, with a preview. Same rules as the other documents: the banner is in every
@@ -26,6 +23,9 @@ export function SamplingOutput({ plan }: { plan: SamplingPlan }) {
   );
 }
 
+const SAMPLING_WORD_NOTE =
+  `"Map to their headings" is offered for the gap assessment document only: a saved mapping names the gap document's sections. For a tagged template, {title}, {banner}, {status}, {generated}, {meta} and {sections} are filled, and {@body} brings in the document in your template's styles. The parties from "Who does what" are available as {#parties}, {#fromParties}, {#toParties} and {#ccParties} (name, role, department), and as {sendingUnit}, {receivingSite}, {cmoName} and {sponsorName}; the Templates page lists every tag.`;
+
 /** One document card. The CMO reporting instructions are a second output of the same plan, with their own export-history kinds. */
 function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "cmo" }) {
   const cmo = variant === "cmo";
@@ -37,9 +37,8 @@ function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "
   const update = useStore((s) => s.update);
   // Fixed when the page opens so the preview and every download of this visit carry the same time.
   const [generatedAt] = useState(() => new Date().toISOString());
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
   const [done, setDone] = useState("");
+  const choice = useWordChoice();
   const [showPreview, setShowPreview] = useState(false);
 
   const doc = useMemo(() => (cmo ? buildCmoInstructionsDocument : buildSamplingPlanDocument)(content, project, plan, samplingSuggestions, { generatedAt, appVersion: APP_VERSION }), [content, project, plan, generatedAt, cmo]);
@@ -73,28 +72,6 @@ function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "
 
   const saved = (file: string) => setDone(`Saved ${file}. The download is recorded in the export history below.`);
 
-  async function exportWord() {
-    setBusy(true);
-    setError("");
-    setDone("");
-    try {
-      const m = await loadDocx();
-      try {
-        const res = await m.renderDocx({ doc, mode: "builtin", generatedAt });
-        const file = `${filePrefix}-${stamp}.docx`;
-        download(file, res.bytes, DOCX_MIME);
-        record(`${kindPrefix}docx` as DocumentExport["format"], res.templateRecord);
-        saved(file);
-      } catch (e) {
-        setError(`The Word document could not be created: ${(e as Error).message}`);
-      }
-    } catch (e) {
-      setError(`The Word tools could not be loaded: ${(e as Error).message}. Check your connection and reload the page.`);
-    } finally {
-      setBusy(false);
-    }
-  }
-
   const exports = project.document.exports.filter((x) => x.format.startsWith(kindPrefix));
 
   return (
@@ -109,9 +86,6 @@ function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "
           </p>
         )}
         <div className="row wrap">
-          <button type="button" className="btn primary" disabled={busy} onClick={() => guard(() => void exportWord())} data-testid={`${p}-download-word`}>
-            {busy ? "Creating the Word document..." : "Download Word"}
-          </button>
           <button
             type="button"
             className="btn"
@@ -137,12 +111,24 @@ function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "
         <div role="status" aria-live="polite">
           {done && <p data-testid={`${p}-done`}>{done}</p>}
         </div>
-        {error && (
-          <p className="notice" role="alert">
-            {error}
-          </p>
-        )}
       </section>
+
+      <WordPanel
+        choice={choice}
+        doc={doc}
+        content={content}
+        project={project}
+        generatedAt={generatedAt}
+        fileBase={`${filePrefix}-${stamp}`}
+        guard={guard}
+        onExported={(template) => record(`${kindPrefix}docx` as DocumentExport["format"], template)}
+        modes={GENERIC_MODES}
+        tagData={(m) => m.buildSamplingTagData(doc, project, plan)}
+        testIdPrefix={p}
+        idPrefix={`${p}-word`}
+        title={cmo ? "Word document: reporting instructions" : "Word document: sampling plan"}
+        note={SAMPLING_WORD_NOTE}
+      />
 
       <ExportHistory exports={exports} idPrefix={`${p}-export-history`} title={cmo ? "CMO instructions export history" : "Export history"} />
 

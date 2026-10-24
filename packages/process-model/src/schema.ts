@@ -453,6 +453,14 @@ const MIGRATIONS: { from: string; to: string; migrate: Migrate }[] = [
     to: "1.15.0",
     migrate: (raw) => ({ ...raw, schemaVersion: "1.15.0", trd: raw.trd ?? { documents: [] } }),
   },
+  // 1.15.0 -> 1.16.0: sampling plan format 1.3.0. A plan party may carry an optional department and an optional memo line
+  // (From / To / Cc) so a Word template can fill a memorandum header. Both are optional and absent from every stored party,
+  // which is exactly what the parties were, so no data changes; only the version moves.
+  {
+    from: "1.15.0",
+    to: "1.16.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.16.0" }),
+  },
 ];
 
 /**

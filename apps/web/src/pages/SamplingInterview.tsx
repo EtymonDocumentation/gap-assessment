@@ -3,12 +3,15 @@ import { acceptSuggestion, addAgencyRequest, removeAgencyRequest, removePoint, s
 import {
   AGENCY_REQUEST_KINDS,
   AGENCY_REQUEST_STATUSES,
+  MEMO_LINES,
+  MEMO_LINE_LABEL,
   RESPONSIBLE_PARTIES,
   SAMPLING_TYPES,
   UNIT_OP_CUSTOM_STEP,
   UNIT_OP_FINISHED_PRODUCT,
   UNIT_OP_NONE,
   type AgencyRequest,
+  type MemoLine,
   type PlanParty,
   type SamplingPlan,
   type SamplingPoint,
@@ -29,16 +32,25 @@ export type ViewBy = keyof typeof VIEW_BY_LABEL;
 
 // ------------------------------------------------------------------ plan-level questions
 
-/** Who does what: the parties named at plan level. A party needs a name; the kind is chosen, never assumed. */
+/**
+ * Who does what: the parties named at plan level. A party needs a name; the kind is chosen, never assumed. The department and the
+ * memo line (From / To / Cc) are optional: they only feed the From / To / Cc lines of a customer Word template, and no memo line is
+ * ever picked for the person.
+ */
 export function PartiesCard({ plan, run }: { plan: SamplingPlan; run: Run }) {
-  const [rows, setRows] = useState<{ party: PlanParty["party"] | ""; name: string; role: string }[]>(plan.parties.map((p) => ({ party: p.party, name: p.name, role: p.role ?? "" })));
-  const complete = rows.filter((r) => r.party !== "") as { party: PlanParty["party"]; name: string; role: string }[];
-  const dirty = JSON.stringify(complete.map((r) => [r.party, r.name.trim(), r.role.trim()])) !== JSON.stringify(plan.parties.map((p) => [p.party, p.name, p.role ?? ""])) || complete.length !== rows.length;
-  const set = (i: number, patch: Partial<(typeof rows)[number]>) => setRows((cur) => cur.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  type Row = { party: PlanParty["party"] | ""; name: string; role: string; department: string; memoLine: MemoLine | "" };
+  const [rows, setRows] = useState<Row[]>(plan.parties.map((p) => ({ party: p.party, name: p.name, role: p.role ?? "", department: p.department ?? "", memoLine: p.memoLine ?? "" })));
+  const complete = rows.filter((r) => r.party !== "") as (Row & { party: PlanParty["party"] })[];
+  const key = (r: Row | { party: string; name: string; role: string; department: string; memoLine: string }) => [r.party, r.name.trim(), r.role.trim(), r.department.trim(), r.memoLine];
+  const dirty =
+    JSON.stringify(complete.map(key)) !== JSON.stringify(plan.parties.map((p) => key({ party: p.party, name: p.name, role: p.role ?? "", department: p.department ?? "", memoLine: p.memoLine ?? "" }))) || complete.length !== rows.length;
+  const set = (i: number, patch: Partial<Row>) => setRows((cur) => cur.map((r, j) => (j === i ? { ...r, ...patch } : r)));
   return (
     <section className="card stack" aria-labelledby="sp-parties" data-testid="parties-card">
       <h2 id="sp-parties">Who does what ({plan.parties.length})</h2>
-      <p className="muted small">Name who takes the samples, who tests them and who writes the PPQ summary report. The kind of party is your choice; nothing is assumed.</p>
+      <p className="muted small">
+        Name who takes the samples, who tests them and who writes the PPQ summary report. The kind of party is your choice; nothing is assumed. The department and the memo line are optional: a Word template can use them to fill the From, To and Cc lines of a memo.
+      </p>
       {rows.length === 0 && <Empty>No parties named yet. Add the first one below.</Empty>}
       {rows.map((r, i) => (
         <div key={i} className="row wrap end-align list-row">
@@ -63,13 +75,32 @@ export function PartiesCard({ plan, run }: { plan: SamplingPlan; run: Run }) {
             </span>
             <input value={r.role} onChange={(e) => set(i, { role: e.target.value })} data-testid={`party-${i}-role`} />
           </label>
+          <label className="field grow">
+            <span>
+              Department <span className="muted">(optional)</span>
+            </span>
+            <input value={r.department} onChange={(e) => set(i, { department: e.target.value })} data-testid={`party-${i}-department`} />
+          </label>
+          <label className="field">
+            <span>
+              Memo line <span className="muted">(optional)</span>
+            </span>
+            <select value={r.memoLine} onChange={(e) => set(i, { memoLine: e.target.value as MemoLine | "" })} data-testid={`party-${i}-memo`}>
+              <option value="">Not on a memo line</option>
+              {MEMO_LINES.map((m) => (
+                <option key={m} value={m}>
+                  {MEMO_LINE_LABEL[m]}
+                </option>
+              ))}
+            </select>
+          </label>
           <button type="button" className="btn small danger" onClick={() => setRows(rows.filter((_, j) => j !== i))} aria-label={`Remove party ${i + 1}`}>
             Remove
           </button>
         </div>
       ))}
       <div className="row wrap">
-        <button type="button" className="btn" onClick={() => setRows([...rows, { party: "", name: "", role: "" }])} data-testid="party-add">
+        <button type="button" className="btn" onClick={() => setRows([...rows, { party: "", name: "", role: "", department: "", memoLine: "" }])} data-testid="party-add">
           Add a party
         </button>
         <button
@@ -77,7 +108,18 @@ export function PartiesCard({ plan, run }: { plan: SamplingPlan; run: Run }) {
           className="btn primary"
           disabled={!dirty}
           data-testid="parties-save"
-          onClick={() => run((p, actor) => setParties(p, plan.id, complete.map((r) => ({ party: r.party, name: r.name, ...(r.role.trim() ? { role: r.role } : {}) })), actor), "Responsible parties saved")}
+          onClick={() =>
+            run(
+              (p, actor) =>
+                setParties(
+                  p,
+                  plan.id,
+                  complete.map((r) => ({ party: r.party, name: r.name, ...(r.role.trim() ? { role: r.role } : {}), ...(r.department.trim() ? { department: r.department } : {}), ...(r.memoLine ? { memoLine: r.memoLine } : {}) })),
+                  actor,
+                ),
+              "Responsible parties saved",
+            )
+          }
         >
           Save parties
         </button>

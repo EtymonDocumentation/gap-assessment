@@ -1,4 +1,5 @@
 import {
+  MEMO_LINE_LABEL,
   PROCESS_MODEL_VERSION,
   SAMPLING_PLAN_FORMAT_VERSION,
   SCHEMA_VERSION,
@@ -661,4 +662,59 @@ export function buildSamplingPlanDocument(
     sections,
     tbdCount: open.length,
   };
+}
+
+// ------------------------------------------------------------------ parties as template data
+
+/** One party as a Word template sees it. Empty text stays empty: a template shows what the plan says and nothing else. */
+export interface PartyTag {
+  /** The kind of party: CMO, Sponsor, Contract laboratory or Other. */
+  party: string;
+  name: string;
+  role: string;
+  department: string;
+  /** From, To, Cc, or empty when the person put the party on no memo line. */
+  memoLine: string;
+  /** Name, role and department joined with commas (what is given), ready for a memo line. */
+  line: string;
+}
+
+export interface PartyTags {
+  parties: PartyTag[];
+  fromParties: PartyTag[];
+  toParties: PartyTag[];
+  ccParties: PartyTag[];
+  /** The lines of the From / To / Cc parties joined with "; " on one line, or "[none chosen]" when no party is on that memo line. */
+  fromText: string;
+  toText: string;
+  ccText: string;
+  /** Names of the parties of kind CMO, joined with ", ", or "[no CMO named]". */
+  cmoName: string;
+  /** Names of the parties of kind Sponsor, joined with ", ", or "[no sponsor named]". */
+  sponsorName: string;
+}
+
+/**
+ * The plan's parties as template data. The From / To / Cc lists contain only the parties the person put on that memo line: the
+ * tool never guesses a memo line from the kind of party (a sponsor is not always the sender), and a party on no line is in
+ * {#parties} only. A name that is missing stays visible as a bracketed text rather than an empty line.
+ */
+export function partyTags(plan: SamplingPlan): PartyTags {
+  const tag = (p: SamplingPlan["parties"][number]): PartyTag => ({
+    party: RESPONSIBLE_LABEL[p.party],
+    name: p.name,
+    role: p.role ?? "",
+    department: p.department ?? "",
+    memoLine: p.memoLine ? MEMO_LINE_LABEL[p.memoLine] : "",
+    line: [p.name, p.role, p.department].filter((x) => x && x.trim()).join(", "),
+  });
+  const all = plan.parties.map(tag);
+  const on = (line: "from" | "to" | "cc") => plan.parties.filter((p) => p.memoLine === line).map(tag);
+  const names = (kind: SamplingPlan["parties"][number]["party"], none: string) => {
+    const n = plan.parties.filter((p) => p.party === kind).map((p) => p.name);
+    return n.length ? n.join(", ") : none;
+  };
+  const text = (list: PartyTag[]) => (list.length ? list.map((x) => x.line).join("; ") : "[none chosen]");
+  const [from, to, cc] = [on("from"), on("to"), on("cc")];
+  return { parties: all, fromParties: from, toParties: to, ccParties: cc, fromText: text(from), toText: text(to), ccText: text(cc), cmoName: names("cmo", "[no CMO named]"), sponsorName: names("sponsor", "[no sponsor named]") };
 }

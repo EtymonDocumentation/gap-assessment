@@ -533,7 +533,7 @@ export function copyStepsFromScope(project: Project, planId: string, scopeSteps:
 export function setParties(project: Project, planId: string, parties: PlanParty[], actor: Actor): Project {
   const next = structuredClone(project);
   const plan = planOf(next, planId);
-  const cleaned = parties.map((p) => clean({ party: p.party, name: p.name.trim(), role: p.role?.trim() || undefined }));
+  const cleaned = parties.map((p) => clean({ party: p.party, name: p.name.trim(), role: p.role?.trim() || undefined, department: p.department?.trim() || undefined, memoLine: p.memoLine }));
   if (cleaned.some((p) => !p.name)) throw new SamplingError("Every responsible party needs a name");
   if (JSON.stringify(cleaned) === JSON.stringify(plan.parties)) return project;
   const before = structuredClone(plan.parties);

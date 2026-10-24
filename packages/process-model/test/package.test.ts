@@ -40,7 +40,7 @@ describe("package independence", () => {
 
   it("keeps PROCESS_MODEL_VERSION equal to package.json", () => {
     expect(PROCESS_MODEL_VERSION).toBe(pkg.version);
-    expect(pkg.version).toBe("1.5.0");
+    expect(pkg.version).toBe("1.6.0");
   });
 
   it("is private until it is published on purpose", () => {
@@ -71,6 +71,8 @@ describe("public API", () => {
         "INTERVAL_UNITS",
         "ImportError",
         "KEY_LABELS",
+        "MEMO_LINES",
+        "MEMO_LINE_LABEL",
         "MIXING_POSITIONS",
         "PLACEMENT_PATTERN",
         "PROCESS_MODEL_VERSION",

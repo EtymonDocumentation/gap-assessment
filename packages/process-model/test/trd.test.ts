@@ -8,8 +8,8 @@ const doc = (over: Record<string, unknown> = {}) => ({ id: "TRD-001", title: "Te
 const step = (over: Record<string, unknown> = {}) => ({ id: "TS-01", label: "Sterile filtration", custom: false, fields: [], items: [], ...over });
 
 describe("TRD schema (project schema 1.15.0)", () => {
-  it("is version 1.15.0 and TRD format 1.0.0", () => {
-    expect(SCHEMA_VERSION).toBe("1.15.0");
+  it("is schema version 1.16.0 and TRD format 1.0.0", () => {
+    expect(SCHEMA_VERSION).toBe("1.16.0");
     expect(TRD_FORMAT_VERSION).toBe("1.0.0");
   });
 
@@ -22,7 +22,7 @@ describe("TRD schema (project schema 1.15.0)", () => {
     old.schemaVersion = "1.14.0";
     delete old.trd;
     const p = parseProject(old);
-    expect(p.schemaVersion).toBe("1.15.0");
+    expect(p.schemaVersion).toBe("1.16.0");
     expect(p.trd).toEqual({ documents: [] });
     expect(p.meta.title).toBe("TRD schema test (fictional)");
   });

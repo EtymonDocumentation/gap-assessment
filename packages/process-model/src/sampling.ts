@@ -23,7 +23,7 @@ import { z } from "zod";
  */
 
 /** Format version of the plan data (semver). A new optional field is a minor change; a removed or re-meant field is major. */
-export const SAMPLING_PLAN_FORMAT_VERSION = "1.2.0";
+export const SAMPLING_PLAN_FORMAT_VERSION = "1.3.0";
 
 /** Run types. Only PPQ is built; the field exists so clinical GMP and engineering runs can be added without a schema break. */
 export const SAMPLING_RUN_TYPES = ["ppq"] as const;
@@ -555,8 +555,25 @@ export const subsectionLibraryItemSchema = z.object({
 });
 export type SubsectionLibraryItem = z.infer<typeof subsectionLibraryItemSchema>;
 
-/** A responsible party named at plan level (the sampling interview asks "who does what"). */
-export const planPartySchema = z.object({ party: z.enum(RESPONSIBLE_PARTIES), name: z.string(), role: z.string().optional() });
+/**
+ * The line of a memorandum header a party can be listed on (plan format 1.3.0). It exists only so a customer Word template can
+ * fill its From / To / Cc lines from the plan; nothing is ever chosen for the person, and a party with no line is simply not on one.
+ */
+export const MEMO_LINES = ["from", "to", "cc"] as const;
+export type MemoLine = (typeof MEMO_LINES)[number];
+export const MEMO_LINE_LABEL: Record<MemoLine, string> = { from: "From", to: "To", cc: "Cc" };
+
+/**
+ * A responsible party named at plan level (the sampling interview asks "who does what"). The department (a team member's unit)
+ * and the memo line (plan format 1.3.0) are optional free choices: neither is required, defaulted or validated.
+ */
+export const planPartySchema = z.object({
+  party: z.enum(RESPONSIBLE_PARTIES),
+  name: z.string(),
+  role: z.string().optional(),
+  department: z.string().optional(),
+  memoLine: z.enum(MEMO_LINES).optional(),
+});
 export type PlanParty = z.infer<typeof planPartySchema>;
 
 export const samplingPlanSchema = z

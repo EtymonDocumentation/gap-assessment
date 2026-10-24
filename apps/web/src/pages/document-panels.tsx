@@ -1,4 +1,4 @@
-import type { DocumentTagData, TagData, TemplateMode } from "@gap/docx";
+import type { DocumentTagData, SamplingTagData, TagData, TemplateMode } from "@gap/docx";
 import { BUILTIN_TEMPLATE_VERSION } from "@gap/docx/src/version";
 import { optionalSectionTitle, type Assessment, type ContentBundle, type DocModel } from "@gap/engine";
 import type { DocumentExport, Project, TemplateRecord } from "@gap/process-model";
@@ -116,6 +116,8 @@ export function WordPanel({
   tagData,
   testIdPrefix,
   note,
+  idPrefix = "word",
+  title = "Word document",
 }: {
   choice: WordChoice;
   doc: DocModel;
@@ -131,11 +133,15 @@ export function WordPanel({
   /** The kinds of Word document offered. A document that cannot use one (see GENERIC_MODES) leaves it out. */
   modes?: TemplateMode[];
   /** Tag data for a document other than the gap assessment. Default: the gap assessment's tags. */
-  tagData?: (m: DocxModule) => TagData | DocumentTagData;
+  tagData?: (m: DocxModule) => TagData | DocumentTagData | SamplingTagData;
   /** Adds test ids to the download button and the result line, for pages with their own e2e tests. */
   testIdPrefix?: string;
   /** A short explanation shown under the choice of Word document (for a document that offers fewer kinds). */
   note?: string;
+  /** Prefix of the element ids and of the radio group name. Needed when a page shows more than one Word panel. */
+  idPrefix?: string;
+  /** Heading of the panel; a page with two panels tells them apart here. */
+  title?: string;
 }) {
   const checks = usePreExportChecks(choice, doc);
   const items = useTemplates((s) => s.items);
@@ -177,8 +183,8 @@ export function WordPanel({
 
   const blocked = !checks || checks.blockers.length > 0;
   return (
-    <section className="card stack no-print" aria-labelledby="word-title">
-      <h2 id="word-title">Word document</h2>
+    <section className="card stack no-print" aria-labelledby={`${idPrefix}-title`}>
+      <h2 id={`${idPrefix}-title`}>{title}</h2>
       <p className="small muted">
         Creates a .docx file in this browser with the same content as the document below. Word may lay it out slightly differently from this preview, so check it in Word before you use it. The
         banner "Proof of concept. Not validated. Not for GMP use." is always included.
@@ -189,7 +195,7 @@ export function WordPanel({
           <label key={m} className="check top">
             <input
               type="radio"
-              name="word-mode"
+              name={`${idPrefix}-mode`}
               value={m}
               checked={choice.mode === m}
               onChange={() => {
@@ -245,7 +251,7 @@ export function WordPanel({
         ) : (
           <>
             {checks.blockers.length > 0 && (
-              <div id="word-blockers">
+              <div id={`${idPrefix}-blockers`}>
                 <p className="error">The Word document cannot be created yet:</p>
                 <ul className="plain-list small">
                   {checks.blockers.map((b) => (
@@ -286,7 +292,7 @@ export function WordPanel({
       </div>
 
       <div className="row wrap">
-        <button type="button" className="btn primary" disabled={blocked || busy} aria-describedby={checks?.blockers.length ? "word-blockers" : undefined} data-testid={testIdPrefix ? `${testIdPrefix}-download-word` : undefined} onClick={() => guard(() => void exportWord())}>
+        <button type="button" className="btn primary" disabled={blocked || busy} aria-describedby={checks?.blockers.length ? `${idPrefix}-blockers` : undefined} data-testid={testIdPrefix ? `${testIdPrefix}-download-word` : undefined} onClick={() => guard(() => void exportWord())}>
           {busy ? "Creating…" : "Download Word document"}
         </button>
       </div>

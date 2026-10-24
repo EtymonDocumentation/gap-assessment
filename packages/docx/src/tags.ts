@@ -1,5 +1,5 @@
-import { DOCUMENT_SECTION_IDS, activityLabel, categoryLabel, formatResolved, stageWording, stagedFor, type Assessment, type ContentBundle, type DocModel } from "@gap/engine";
-import { resolveEntry, type Project } from "@gap/process-model";
+import { DOCUMENT_SECTION_IDS, activityLabel, categoryLabel, formatResolved, partyTags, stageWording, stagedFor, type Assessment, type ContentBundle, type DocModel, type PartyTag, type PartyTags } from "@gap/engine";
+import { resolveEntry, type Project, type SamplingPlan } from "@gap/process-model";
 
 // ------------------------------------------------------------------ the data a template can use
 
@@ -50,9 +50,19 @@ export interface TagData {
   risks: { rank: string; id: string; attribute: string; category: string; severity: string; regulatory: string }[];
   sources: { id: string; type: string; identifier: string; responder: string; date: string; state: string; citedBy: string }[];
   approvals: { role: string; name: string; signature: string; date: string }[];
+  /** The sampling plan's parties. Empty in every document that is not a sampling plan (an empty loop prints nothing). */
+  parties: PartyTag[];
+  fromParties: PartyTag[];
+  toParties: PartyTag[];
+  ccParties: PartyTag[];
+  /** The sending unit and receiving site (the gap assessment's SU and RU sites). */
+  sendingUnit: string;
+  receivingSite: string;
   meta: { label: string; value: string }[];
   sections: { number: string; title: string }[];
 }
+
+const NO_PARTIES = { parties: [] as PartyTag[], fromParties: [] as PartyTag[], toParties: [] as PartyTag[], ccParties: [] as PartyTag[] };
 
 type Table = { columns: string[]; rows: string[][] };
 
@@ -209,6 +219,9 @@ export function buildTagData(rawContent: ContentBundle, project: Project, a: Ass
     risks: rowsAs(doc, "risk", { rank: "Rank", id: "ID", attribute: "Attribute", category: "Category", severity: "Severity", regulatory: "Regulatory" }),
     sources: rowsAs(doc, "source-register", { id: "ID", type: "Type", identifier: "Identifier, title, version", responder: "Responder", date: "Date", state: "State", citedBy: "Cited by" }),
     approvals: rowsAs(doc, "approval", { role: "Role", name: "Name", signature: "Signature", date: "Date" }),
+    ...NO_PARTIES,
+    sendingUnit: siteText(project, "source"),
+    receivingSite: siteText(project, "target"),
     meta: doc.meta.map(([label, value]) => ({ label, value })),
     sections: doc.sections.map((s) => ({ number: s.appendix ? `Appendix ${s.number}` : s.number, title: s.title })),
   };
@@ -220,7 +233,18 @@ export function buildTagData(rawContent: ContentBundle, project: Project, a: Ass
  * they read "[not available]" or repeat nothing, so a template never shows a gap value inside a risk document. The whole content is
  * still reachable with {@body} and the section tags (see RISK_SECTION_IDS).
  */
-export type DocumentTagData = Pick<TagData, "title" | "banner" | "status" | "generated" | "meta" | "sections" | "gaps" | "openItems" | "activities" | "equipment" | "risks" | "sources" | "approvals">;
+export type DocumentTagData = Pick<TagData, "title" | "banner" | "status" | "generated" | "meta" | "sections" | "gaps" | "openItems" | "activities" | "equipment" | "risks" | "sources" | "approvals" | "parties" | "fromParties" | "toParties" | "ccParties">;
+
+/**
+ * What a placeholder-tag template can use for the sampling plan and the CMO reporting instructions: the document tags plus the plan's
+ * parties (all of them, and the From / To / Cc lists the person chose), the CMO and sponsor names, and the sending unit and receiving
+ * site taken from the project's two sites.
+ */
+export type SamplingTagData = DocumentTagData & PartyTags & { sendingUnit: string; receivingSite: string };
+
+export function buildSamplingTagData(doc: DocModel, project: Project, plan: SamplingPlan): SamplingTagData {
+  return { ...buildDocumentTagData(doc), ...partyTags(plan), sendingUnit: siteText(project, "source"), receivingSite: siteText(project, "target") };
+}
 
 export function buildDocumentTagData(doc: DocModel): DocumentTagData {
   return {
@@ -238,6 +262,7 @@ export function buildDocumentTagData(doc: DocModel): DocumentTagData {
     risks: [],
     sources: [],
     approvals: [],
+    ...NO_PARTIES,
   };
 }
 
@@ -281,12 +306,28 @@ const TEXT_TAGS: [string, string, boolean?][] = [
   ["sourceStage", "Program stage of the sending unit (SU): Commercial (process validated), Clinical (GMP, not process validated), Development / engineering runs, or [not established]."],
   ["targetStage", "Program stage of the receiving unit (RU), with the same values as sourceStage."],
   ["generated", "Date and time the document was generated (UTC)."],
+  ["sendingUnit", "Sending unit's site (name and line), for example for the From line of a memo. Filled for the gap assessment and the sampling plan documents; other documents show [not available]."],
+  ["receivingSite", "Receiving site (name and line), for example for the To line of a memo. Filled for the gap assessment and the sampling plan documents; other documents show [not available]."],
+  ["cmoName", "Sampling plan and CMO instructions only: the names of the parties of kind CMO, joined with \", \", or \"[no CMO named]\"."],
+  ["sponsorName", "Sampling plan and CMO instructions only: the names of the parties of kind Sponsor, joined with \", \", or \"[no sponsor named]\"."],
+  ["fromText", "Sampling plan and CMO instructions only: the parties you put on the From line (name, role, department), joined with \"; \" on one line, or \"[none chosen]\"."],
+  ["toText", "Sampling plan and CMO instructions only: the parties you put on the To line, joined with \"; \", or \"[none chosen]\"."],
+  ["ccText", "Sampling plan and CMO instructions only: the parties you put on the Cc line, joined with \"; \", or \"[none chosen]\"."],
   ["regulatoryStatement", "The statement under the gap table that regulatory consequences need review. The tool never decides a filing category; it only says \"Requires regulatory affairs assessment\"."],
   ["verificationStatement", "The statement about data verification."],
   ["identityStatement", "The statement that explains how verifier identity is recorded."],
   ["differencesCount", "Number of differences identified."],
   ["openItemsCount", "Number of open information items."],
   ["verifiedSummary", "Entries verified, for example \"12 of 40\"."],
+];
+
+const PARTY_FIELDS = [
+  f("party", "Kind of party: CMO, Sponsor, Contract laboratory or Other."),
+  f("name", "Name."),
+  f("role", "Role (empty when not given)."),
+  f("department", "Department (empty when not given)."),
+  f("memoLine", "The memo line chosen for the party: From, To, Cc, or empty."),
+  f("line", "Name, role and department joined with commas, whichever are given."),
 ];
 
 const LOOP_TAGS: { tag: string; description: string; fields: { name: string; description: string }[]; recommended?: boolean }[] = [
@@ -348,6 +389,14 @@ const LOOP_TAGS: { tag: string; description: string; fields: { name: string; des
     fields: [f("id", "Source ID."), f("type", "Type."), f("identifier", "Identifier, title, version."), f("responder", "Responder."), f("date", "Date."), f("state", "State."), f("citedBy", "Cited by.")],
   },
   { tag: "approvals", description: "Approval lines. The name, signature and date stay as placeholders: the tool has no electronic signature.", fields: [f("role", "Role."), f("name", "Name (placeholder)."), f("signature", "Signature (placeholder)."), f("date", "Date (placeholder).")] },
+  {
+    tag: "parties",
+    description: "Sampling plan and CMO instructions: every responsible party named in \"Who does what\", in the order given. Empty in other documents. {#fromParties}, {#toParties} and {#ccParties} have the same fields but list only the parties you put on that memo line; the tool never chooses a memo line for a party.",
+    fields: PARTY_FIELDS,
+  },
+  { tag: "fromParties", description: "Sampling plan and CMO instructions: the parties put on the From line (same fields as {#parties}). Empty when none is chosen.", fields: PARTY_FIELDS },
+  { tag: "toParties", description: "Sampling plan and CMO instructions: the parties put on the To line (same fields as {#parties}). Empty when none is chosen.", fields: PARTY_FIELDS },
+  { tag: "ccParties", description: "Sampling plan and CMO instructions: the parties put on the Cc line (same fields as {#parties}). Empty when none is chosen.", fields: PARTY_FIELDS },
   { tag: "meta", description: "The document-details lines (project, generated, counts, verification).", fields: [f("label", "Line name."), f("value", "Line value.")] },
   { tag: "sections", description: "Section numbers and titles (for a table of contents).", fields: [f("number", "Section number, or \"Appendix\" and its letter. Letters follow the sections kept in the document, so they close up when optional appendices are left out."), f("title", "Section title.")] },
 ];
