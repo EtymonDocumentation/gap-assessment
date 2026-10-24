@@ -466,9 +466,11 @@ describe("the fictional demo risk assessment", () => {
   const demo = buildDemoProject(content, demos["arx-217"], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes });
   const a = demo.risk.assessments[0]!;
 
+  // Builds the whole demo project a second time (interview, TRD, sampling plan with flow-figure data). On a busy CI
+  // runner that alone can pass the 5 s default, so this test gets more time; the assertion itself is unchanged.
   it("is only built when the caller has the risk catalogs", () => {
     expect(buildDemoProject(content, demos["arx-217"], samplingSuggestions, designLoadouts).risk.assessments).toEqual([]);
-  });
+  }, 30_000);
 
   it("uses the FMEA 1-10 load-out with no bands and about ten items over several steps", () => {
     expect(a.method).toBe("fmea");
