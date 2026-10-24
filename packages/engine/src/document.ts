@@ -22,7 +22,23 @@ export type Block =
   | { type: "heading"; text: string }
   | { type: "list"; items: string[] }
   | { type: "table"; columns: string[]; rows: string[][]; caption?: string }
-  | { type: "note"; text: string };
+  | { type: "note"; text: string }
+  | FigureBlock;
+
+/**
+ * A drawn figure (the PPQ flow figure of a sampling plan). It carries the SVG of every page, already laid out at printed landscape
+ * size in points, so the screen, the HTML export and the Word export show the same drawing. `alt` is the plain-text description
+ * used where a picture cannot be shown (alt text, the markdown export) and `hoursNotGiven` is listed under the picture.
+ */
+export interface FigureBlock {
+  type: "figure";
+  number: number;
+  /** Caption words after "Figure N: ". */
+  caption: string;
+  alt: string;
+  pages: { svg: string; width: number; height: number }[];
+  hoursNotGiven: string[];
+}
 
 export interface DocSection {
   id: string;

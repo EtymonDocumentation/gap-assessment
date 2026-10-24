@@ -21,6 +21,8 @@ import { movePoint, targetOf, type OpenAdd, type Run } from "./SamplingFlow";
 export function PointsTable({
   plan,
   selectedId,
+  highlightId,
+  onHighlight,
   onSelect,
   run,
   onEdit,
@@ -28,6 +30,9 @@ export function PointsTable({
 }: {
   plan: SamplingPlan;
   selectedId: string | null;
+  /** The sample the pointer or focus is on in the figure (M10); its row is outlined. */
+  highlightId?: string | null;
+  onHighlight?: (id: string | null) => void;
   onSelect: (id: string | null) => void;
   run: Run;
   onEdit: (id: string) => void;
@@ -58,7 +63,7 @@ export function PointsTable({
             </thead>
             <tbody>
               {rows.map((p) => (
-                <PointRow key={p.id} plan={plan} point={p} selected={selectedId === p.id} onSelect={onSelect} run={run} onEdit={() => onEdit(p.id)} />
+                <PointRow key={p.id} plan={plan} point={p} selected={selectedId === p.id} highlighted={highlightId === p.id} onHighlight={onHighlight} onSelect={onSelect} run={run} onEdit={() => onEdit(p.id)} />
               ))}
             </tbody>
           </table>
@@ -73,7 +78,7 @@ export function PointsTable({
   );
 }
 
-function PointRow({ plan, point, selected, onSelect, run, onEdit }: { plan: SamplingPlan; point: SamplingPoint; selected: boolean; onSelect: (id: string | null) => void; run: Run; onEdit: () => void }) {
+function PointRow({ plan, point, selected, highlighted, onHighlight, onSelect, run, onEdit }: { plan: SamplingPlan; point: SamplingPoint; selected: boolean; highlighted?: boolean; onHighlight?: (id: string | null) => void; onSelect: (id: string | null) => void; run: Run; onEdit: () => void }) {
   const check = useMemo(() => checkPoint(plan, point), [plan, point]);
   const units = useMemo(() => unitsPerBatch(plan, point), [plan, point]);
   const step = stepOf(plan, point);
@@ -82,7 +87,7 @@ function PointRow({ plan, point, selected, onSelect, run, onEdit }: { plan: Samp
 
   const stepValue = step ? step.id : "";
   return (
-    <tr data-testid={`point-${point.id}`} aria-current={selected ? "true" : undefined} className={selected ? "row-selected" : undefined} onClick={() => onSelect(selected ? null : point.id)}>
+    <tr data-testid={`point-${point.id}`} aria-current={selected ? "true" : undefined} className={[selected ? "row-selected" : "", highlighted ? "row-hl" : ""].filter(Boolean).join(" ") || undefined} data-highlighted={highlighted ? "true" : undefined} onMouseEnter={() => onHighlight?.(point.id)} onMouseLeave={() => onHighlight?.(null)} onFocus={() => onHighlight?.(point.id)} onBlur={() => onHighlight?.(null)} onClick={() => onSelect(selected ? null : point.id)}>
       <th scope="row">
         {point.id}
         {selected && <span className="small"> (selected)</span>}

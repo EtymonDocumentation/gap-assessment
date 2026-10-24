@@ -23,6 +23,9 @@ function mdBlock(b: Block): string {
       const rows = b.rows.map((r) => `| ${r.map(mdCell).join(" | ")} |`);
       return [head, sep, ...rows].join("\n");
     }
+    case "figure":
+      // Markdown cannot hold the drawing, so the figure is its caption and its plain-text description.
+      return [`**Figure ${b.number}: ${b.caption}**`, "", b.alt, ...(b.hoursNotGiven.length ? ["", `Hours not given: ${b.hoursNotGiven.join(", ")}.`] : [])].join("\n");
   }
 }
 
@@ -63,6 +66,12 @@ function htmlBlock(b: Block): string {
       return `<div class="table-wrap" role="region" aria-label="Table" tabindex="0"><table><thead><tr>${b.columns.map((c) => `<th scope="col">${escapeHtml(c)}</th>`).join("")}</tr></thead><tbody>${b.rows
         .map((r) => `<tr>${r.map((c) => `<td>${escapeHtml(c)}</td>`).join("")}</tr>`)
         .join("")}</tbody></table></div>`;
+    case "figure":
+      // The SVG is the same drawing the Word export turns into a picture; it carries its own role="img" and label. Wide pages scroll
+      // inside a focusable region instead of the page.
+      return `<figure class="figure">${b.pages
+        .map((p) => `<div class="table-wrap" role="region" aria-label="Figure ${b.number}${b.pages.length > 1 ? `, page ${b.pages.indexOf(p) + 1} of ${b.pages.length}` : ""}" tabindex="0">${p.svg}</div>`)
+        .join("")}<figcaption>Figure ${b.number}: ${escapeHtml(b.caption)}</figcaption>${b.hoursNotGiven.length ? `<p class="note">Hours not given: ${escapeHtml(b.hoursNotGiven.join(", "))}.</p>` : ""}</figure>`;
   }
 }
 

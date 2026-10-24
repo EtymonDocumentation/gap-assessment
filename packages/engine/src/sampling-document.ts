@@ -16,6 +16,8 @@ import {
 } from "@gap/process-model";
 import {
   acceptanceStatement,
+  buildFigures,
+  type FigureStyle,
   agencyCoverage,
   checkPoint,
   METHOD_HELP,
@@ -78,6 +80,11 @@ export interface SamplingDocumentOptions {
   generatedAt?: string;
   generatorName?: string;
   appVersion?: string;
+  /**
+   * The flow figure drawn in the process-flow section: "time_scale" (the default when the plan has steps), "step_cards" or "none".
+   * One style per export; it is a choice made when exporting, not stored in the plan.
+   */
+  figureStyle?: FigureStyle;
 }
 
 /** The sentence under the title and in the first section. */
@@ -242,6 +249,18 @@ export function buildSamplingPlanDocument(
   // "Position not set" and "Not on the diagram" are normal states here, listed plainly; neither is an open item.
   const idLine = (ps: SamplingPoint[]): string => (ps.length ? ps.map((p) => `${p.id}${p.attribute.trim() ? ` ${p.attribute.trim()}` : ""}`).join("; ") : "");
   const tray = trayPoints(plan);
+  // The figure is drawn from the plan's own flow data (hours, holds, time targets); what is not given is not invented. The long sample
+  // table after it is unchanged and uses the same SP ids, so every number in a figure can be looked up.
+  const figures = buildFigures(plan, { style: opts.figureStyle ?? "time_scale" });
+  const figureBlocks: Block[] = figures.length
+    ? [
+        {
+          type: "paragraph",
+          text: `${figures.length === 1 ? "Figure" : "Figures"} ${figures.map((f) => f.number).join(figures.length > 2 ? ", " : " and ")} draw${figures.length === 1 ? "s" : ""} the process flow with the holds, the time targets and the samples. Each sample carries the number of its sampling point (SP); the table after the figure${figures.length === 1 ? "" : "s"} lists every point.`,
+        },
+        ...figures.map((f) => ({ type: "figure" as const, number: f.number, caption: f.caption, alt: f.alt, pages: f.pages.map((p) => ({ svg: p.svg, width: p.width, height: p.height })), hoursNotGiven: f.hoursNotGiven })),
+      ]
+    : [];
   add("process-flow", "Process flow", [
     {
       type: "paragraph",
@@ -249,6 +268,7 @@ export function buildSamplingPlanDocument(
         ? `The plan follows ${plan.steps.length} process step${plan.steps.length === 1 ? "" : "s"}, in process order. Each sampling point is placed on a step, before, during or after it, or is not on the diagram. The team chose the steps and the positions.`
         : "No process steps have been chosen for this plan yet. The sampling points are listed below as not on the diagram.",
     },
+    ...figureBlocks,
     ...(plan.steps.length
       ? ([
           {

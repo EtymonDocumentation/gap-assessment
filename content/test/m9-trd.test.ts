@@ -449,7 +449,7 @@ describe("the TRD document", () => {
   const d = full.trd.documents[0]!;
   const out = buildTrdDocument(full, d, { generatedAt: T1, appVersion: "9.9.9", catalogVersion: content.versions.catalog });
   const flat = (o: typeof out) =>
-    o.sections.flatMap((s) => s.blocks.flatMap((b) => (b.type === "table" ? b.rows.flat() : b.type === "list" ? b.items : [b.text]))).join("\n");
+    o.sections.flatMap((s) => s.blocks.flatMap((b) => (b.type === "table" ? b.rows.flat() : b.type === "list" ? b.items : b.type === "figure" ? [b.alt] : [b.text]))).join("\n");
 
   it("has the sections the spec lists, in order, then the appendices", () => {
     const ids = out.sections.map((s) => s.id);

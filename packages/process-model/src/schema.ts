@@ -461,6 +461,14 @@ const MIGRATIONS: { from: string; to: string; migrate: Migrate }[] = [
     to: "1.16.0",
     migrate: (raw) => ({ ...raw, schemaVersion: "1.16.0" }),
   },
+  // 1.16.0 -> 1.17.0: sampling plan format 1.4.0. A plan may carry optional flow-figure data (step hours and figure text, holds,
+  // time targets, sub-processes, time zero, and the hour a sample is taken). All of it is optional and absent from every stored
+  // plan, which is exactly what the plans were, so no data changes; only the version moves.
+  {
+    from: "1.16.0",
+    to: "1.17.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.17.0" }),
+  },
 ];
 
 /**

@@ -7,6 +7,7 @@ private handover outside the repo and must never be copied in here. Read this fi
 Last updated: 2026-10-23. Update this file (no machine-specific details) whenever a milestone lands.
 
 ## 1. Where things stand
+- **M10 (PPQ flow figures in the sampling plan) is built and verified, waiting for the product owner's review and commit** (section 5b).
 - **M9 (TRD module) is built and verified, waiting for the product owner's review and commit** (section 5a).
   Before it, the My files page (move files between your own computers through the server, server storage only)
   landed in `a8cbe49`.
@@ -14,7 +15,7 @@ Last updated: 2026-10-23. Update this file (no machine-specific details) wheneve
   the risk method library edits scales and bands itself, an assessment is told when the library has a newer
   version of its method, and the risk Word output uses the Templates library. Before M8: M7 and its
   sub-milestones M7.1 and M7.2 (section 4) and a sampling polish pass.
-- Current versions: project schema 1.16.0, process model 1.6.0, TRD format 1.0.0, risk format 1.0.0, content catalog 1.0.0 (failure
+- Current versions: project schema 1.17.0, process model 1.7.0, sampling plan format 1.4.0, TRD format 1.0.0, risk format 1.0.0, content catalog 1.0.0 (failure
   modes and method load-outs 1.0.0), all other packages 0.1.0.
 - **Memo template fixes (sampling plan and CMO instructions).** A plan party has an optional department and an optional memo
   line (From, To or Cc); schema 1.16.0 (version-only migration), process model 1.6.0, sampling plan format 1.3.0. New template
@@ -56,6 +57,7 @@ Last updated: 2026-10-23. Update this file (no machine-specific details) wheneve
 | M8 follow-ups | see section 5 | Library edits scales and bands with versions; update-from-library; risk Word output through the Templates library |
 | My files | `a8cbe49` | Server storage: upload, organise and download any file between your own computers; private to the account |
 | M9 | not committed yet | TRD module: start from project / seed file / blank, overrides with the project value beside, update review, PAR/NOR entry and check, Word + HTML (section 5a) |
+| M10 | not committed yet | PPQ flow figures: time-scale and step-card drawings of the plan (holds, time targets, buffer sub-process, samples), in the sampling page, HTML and Word (section 5b) |
 
 ## 3. Hard rules
 - **Identity:** never put a personal name or email in the repo (files, commits, issues, PRs). Git identity is
@@ -111,6 +113,28 @@ Last updated: 2026-10-23. Update this file (no machine-specific details) wheneve
     because the saved mapping names gap sections.
 - Known limits: no CSV export, no AI suggestions, no review reminders. Server e2e covers library editing; the
   module gating is covered by server unit tests.
+
+## 5b. M10 PPQ flow figures
+- Spec: M10-SPEC (in the project docs folder). Versions: project schema 1.17.0, process model 1.7.0, sampling plan format 1.4.0.
+  Old plans load unchanged: every new field is optional, and there are no new completeness checks, warnings or rules.
+- Plan data (all optional): step `figureText`, `durationHours`, `subProcess`; plan `holds`, `timeTargets`, `subProcesses`,
+  `timeZero`; sample `takenAtHour` and `flow.holdId` (taken during a hold). The figure style (time scale, step cards, none) is an
+  export choice, not stored in the plan. Missing hours are normal: a narrow dotted block and a plain "Hours not given" list.
+- The figure is ONE pure function, `buildFigures(plan, options)` in packages/sampling (plan/figure): SVG per page plus page-split
+  information, text never below 8 pt at printed size, legend on every page, "Continued on next page" when it splits. Default page
+  width 640 pt so it prints unscaled on Letter and A4 landscape. A sub-process (buffer) is its own figure before the main one
+  ("Feeds <step> in Figure N"). Routine samples (in-process, release) are one line per step; everything else is a PPQ sample.
+  A very crowded timeline taller than the limit is flagged `overflow` and not shrunk (known limit).
+- Word: a figure block in the document model; the docx writer draws each page as a PNG (200 dpi) in a landscape section with a
+  numbered caption, then the long sample table follows. The docx package takes an injected rasteriser: the browser canvas in the
+  web app (no bundle cost; a WASM renderer was rejected, about 2.5 MB plus a bundled font), @napi-rs/canvas in Node tests and
+  samples (dev dependency). Without a rasteriser the figure falls back to caption, description and a warning.
+- Web: "More details" on each step (figure text, hours, sub-process; a suggestion button copies established project / TRD values
+  or hold-time sample data into the plan, never written back), a "Flow figure details" card (holds, time targets, sub-processes,
+  time zero), hour and hold on a sample, the figure on the sampling page with two-way highlight against the table, and a figure
+  style choice in the export panel. A focusable sample mark is a labelled group, not a button (label-in-name rule).
+- Demo plan has fictional holds, time targets, hours and a buffer sub-process. Tests: sampling figure tests, content m10-figure,
+  docx m10-figure, web e2e m10.
 
 ## 5a. M9 TRD module
 - Scope chosen by the product owner: a TRD that can start from the project, a seed file or blank; every value can

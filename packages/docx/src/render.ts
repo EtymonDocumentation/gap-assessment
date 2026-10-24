@@ -13,8 +13,8 @@ import { splitDocument, splitParagraph, type BodySplit } from "./scan";
 import { StyleTable, builtinStylesXml, parseNumbering } from "./styles";
 import { fillTemplate, inspectTags, NOT_AVAILABLE } from "./templater";
 import { sectionTagName } from "./tags";
-import type { OutlineHeading, RenderDocxInput, RenderDocxResult, TemplateAnalysis, TemplateMapping } from "./types";
-import { WriterCtx, bannerPara, frontXml, headingPara, notePara, para, sectionHeadingText, sectionXml, textRuns } from "./writer";
+import { FIGURE_DPI, type OutlineHeading, type RenderDocxInput, RenderDocxResult, TemplateAnalysis, TemplateMapping } from "./types";
+import { WriterCtx, figureKey, bannerPara, frontXml, headingPara, notePara, para, sectionHeadingText, sectionXml, textRuns } from "./writer";
 import { cleanXmlText, decodeXml, parseXml } from "./xml";
 
 const OUT_OF_MAPPING_HEADING = "Additional content not mapped to a template heading";
@@ -104,10 +104,11 @@ function writeBody(dp: DocPackage, split: BodySplit, body: string, banner: strin
 
 // ------------------------------------------------------------------ built-in
 
-function renderBuiltin(input: RenderDocxInput, record: TemplateRecord): Uint8Array {
+function renderBuiltin(input: RenderDocxInput, record: TemplateRecord, pics: Pictures): Uint8Array {
   const { doc } = input;
   // Only the built-in default gets the upgraded look; the other kinds of Word document keep the customer's own look.
   const { dp, ctx, sectPr, numbering } = createBuiltin(doc, { upgraded: true });
+  ctx.figureImages = pics;
   const body = builtinFrontXml(ctx) + allSections(ctx, true) + endMatter(ctx);
   const xml = documentOpen() + body + sectPr + DOCUMENT_CLOSE;
   assertBanner(xml, doc.banner);
@@ -118,9 +119,10 @@ function renderBuiltin(input: RenderDocxInput, record: TemplateRecord): Uint8Arr
 
 // ------------------------------------------------------------------ their look
 
-function renderTheirLook(input: RenderDocxInput, record: TemplateRecord, bytes: Uint8Array): Uint8Array {
+function renderTheirLook(input: RenderDocxInput, record: TemplateRecord, bytes: Uint8Array, pics: Pictures): Uint8Array {
   const { doc } = input;
   const { dp, split, ctx, numbering } = openTemplate(doc, bytes);
+  ctx.figureImages = pics;
   writeBody(dp, split, frontXml(ctx, { banner: true }) + allSections(ctx) + endMatter(ctx), doc.banner);
   finalisePackage(dp, ctx, finaliseInput(input, record), numbering);
   return dp.commit();
@@ -230,7 +232,7 @@ function checkMapping(analysis: TemplateAnalysis, mapping: TemplateMapping, doc:
   if (errors.length) throw new TemplateError(`The heading mapping has problems and cannot be used yet: ${errors.join(" ")}`);
 }
 
-function renderMapped(input: RenderDocxInput, record: TemplateRecord, warnings: string[]): { bytes: Uint8Array; omitted: string[] } {
+function renderMapped(input: RenderDocxInput, record: TemplateRecord, warnings: string[], pics: Pictures): { bytes: Uint8Array; omitted: string[] } {
   const { doc } = input;
   const t = input.template!;
   if (!t.mapping) throw new TemplateError("Choose how the tool content maps to the template's headings before creating the document.");
@@ -239,6 +241,7 @@ function renderMapped(input: RenderDocxInput, record: TemplateRecord, warnings: 
 
   if (t.analysis.sourceFormat === "pdf") {
     const { dp, ctx, sectPr, numbering } = createBuiltin(doc);
+    ctx.figureImages = pics;
     const items: Item[] = t.analysis.outline.map((h) => ({
       kind: "heading",
       xml: headingPara(ctx, h.level, h.number ? `${h.number} ${h.text}` : h.text, { noNumber: true }),
@@ -256,6 +259,7 @@ function renderMapped(input: RenderDocxInput, record: TemplateRecord, warnings: 
   }
 
   const { dp, split, ctx, numbering, styles } = openTemplate(doc, t.bytes);
+  ctx.figureImages = pics;
   const { items, outline } = classifyBody(split, styles, parseNumbering(numbering));
   const r = assembleMapped(ctx, itemsOf(items), outline, t.mapping, false);
   warnings.push(...r.warnings);
@@ -278,7 +282,7 @@ function plainData(value: unknown): unknown {
   return value === undefined || value === null ? NOT_AVAILABLE : String(value);
 }
 
-function renderTags(input: RenderDocxInput, record: TemplateRecord, warnings: string[]): Uint8Array {
+function renderTags(input: RenderDocxInput, record: TemplateRecord, warnings: string[], pics: Pictures): Uint8Array {
   const { doc } = input;
   const t = input.template!;
   const problems = inspectTags(t.bytes).errors;
@@ -286,6 +290,7 @@ function renderTags(input: RenderDocxInput, record: TemplateRecord, warnings: st
 
   const opened = openTemplate(doc, t.bytes);
   const { ctx } = opened;
+  ctx.figureImages = pics;
   if (!input.tagData) throw new TemplateError("Internal error: a tagged template needs the tag data.");
   const data = plainData(input.tagData) as Record<string, unknown>;
   // Raw tags are written on demand, so only the sections the template really uses are written.
@@ -333,6 +338,35 @@ function recordFor(input: RenderDocxInput): TemplateRecord {
   return { mode: input.mode, name: t.name, version: t.version, sha256: t.sha256, ...(t.fileName ? { fileName: t.fileName } : {}) };
 }
 
+type Pictures = Map<string, Uint8Array>;
+
+/**
+ * Draws every figure page of the document as a PNG before writing starts (the writers are synchronous). A page that cannot be drawn
+ * leaves its figure as text, and the reason is returned as a warning; the export itself never fails because of a picture.
+ *
+ * Renderer choice (see FigureRasteriser): the browser draws the SVG through the native canvas, so the web bundle gains nothing;
+ * a WASM SVG renderer (resvg) would add about 2.5 MB plus a bundled font, because it has no system fonts. Node uses @napi-rs/canvas.
+ */
+async function drawFigures(input: RenderDocxInput, warnings: string[]): Promise<Pictures> {
+  const pics: Pictures = new Map();
+  const figures = input.doc.sections.flatMap((s) => s.blocks.flatMap((b) => (b.type === "figure" ? [b] : [])));
+  if (!figures.length) return pics;
+  if (!input.rasteriser) {
+    warnings.push("The flow figures are written as a caption and a text description, because no picture renderer was available.");
+    return pics;
+  }
+  for (const f of figures) {
+    try {
+      const made: Uint8Array[] = [];
+      for (const pg of f.pages) made.push(await input.rasteriser({ svg: pg.svg, widthPt: pg.width, heightPt: pg.height }, FIGURE_DPI));
+      made.forEach((png, i) => pics.set(figureKey(f.number, i), png));
+    } catch (e) {
+      warnings.push(`Figure ${f.number} could not be drawn as a picture (${e instanceof Error ? e.message : "unknown reason"}); it is written as a caption and a text description.`);
+    }
+  }
+  return pics;
+}
+
 /** Creates the Word document. The proof-of-concept banner is in every result; the tool never decides a filing category. */
 export async function renderDocx(input: RenderDocxInput): Promise<RenderDocxResult> {
   const record = recordFor(input);
@@ -346,21 +380,22 @@ export async function renderDocx(input: RenderDocxInput): Promise<RenderDocxResu
   }
   let bytes: Uint8Array;
   let omittedBlocks: string[] = [];
+  const pics = await drawFigures(input, warnings);
   switch (input.mode) {
     case "builtin":
-      bytes = renderBuiltin(input, record);
+      bytes = renderBuiltin(input, record, pics);
       break;
     case "their_look":
-      bytes = renderTheirLook(input, record, t!.bytes);
+      bytes = renderTheirLook(input, record, t!.bytes, pics);
       break;
     case "mapped": {
-      const r = renderMapped(input, record, warnings);
+      const r = renderMapped(input, record, warnings, pics);
       bytes = r.bytes;
       omittedBlocks = r.omitted;
       break;
     }
     case "tags":
-      bytes = renderTags(input, record, warnings);
+      bytes = renderTags(input, record, warnings, pics);
       break;
     default:
       throw new TemplateError("Unknown kind of Word document.");

@@ -717,23 +717,36 @@ sampling:
       # because the catalog has no release-testing step); two steps have no samples yet. Three points are left off the diagram on
       # purpose because they belong to no single process step (characterization report, agency request study, operator sample):
       # that is a normal state.
+      # Milestone 10: the optional figure data. Hours are fictional planned durations; `text` is what the step box in the flow
+      # figure shows. Two buffer steps form a sub-process that feeds compounding and is drawn as its own figure.
       steps:
-        - { ref: receipt, unitOp: ds_receipt_thaw }
-        - { ref: compounding, unitOp: compounding }
-        - { ref: hold, custom: Fictional hold step }
-        - { ref: bbr, unitOp: bbr_filtration }
-        - { ref: sterile, unitOp: sterile_filtration }
-        - { ref: filling, unitOp: aseptic_filling }
-        - { ref: capping, unitOp: capping }
-        - { ref: visual, unitOp: visual_inspection }
-        - { ref: release, custom: QC release testing }
-        - { ref: storage, unitOp: storage_shipping }
+        - { ref: receipt, unitOp: ds_receipt_thaw, hours: 6, text: ["Thaw at 20 to 25 °C (fictional)"] }
+        - { ref: compounding, unitOp: compounding, hours: 3, text: ["Mix at 60 rpm (fictional)", "Target 5 g/L (fictional)"] }
+        - { ref: hold, custom: Fictional hold step, hours: 24 }
+        - { ref: bbr, unitOp: bbr_filtration, hours: 2 }
+        - { ref: sterile, unitOp: sterile_filtration, hours: 4, text: ["0.2 micron filter (fictional)"] }
+        - { ref: filling, unitOp: aseptic_filling, hours: 10 }
+        - { ref: capping, unitOp: capping, hours: 10 }
+        - { ref: visual, unitOp: visual_inspection, hours: 16 }
+        - { ref: release, custom: QC release testing, hours: 72 }
+        - { ref: storage, unitOp: storage_shipping, hours: 24 }
+        - { ref: buffer_prep, custom: Buffer preparation (fictional), hours: 3, subProcess: buffer }
+        - { ref: buffer_filt, custom: Buffer filtration (fictional), hours: 2, subProcess: buffer }
+      holds:
+        - { ref: postthaw, after: receipt, label: Post-thaw hold, durationText: 4 to 8 h, hours: 8, condition: 2 to 8 °C }
+        - { ref: filtrate, after: sterile, label: Filtrate hold, durationText: up to 12 h, hours: 12, condition: 2 to 8 °C }
+      subProcesses:
+        - { ref: buffer, label: Buffer, feeds: compounding, processingTarget: { comparator: "<=", hours: 12 } }
+      timeTargets:
+        - { label: Bulk-to-filter limit, from: compounding, fromEdge: end, to: sterile, toEdge: start, comparator: "<=", hours: 48, note: Fictional limit from the hold study. }
+        - { label: Process time, from: receipt, fromEdge: end, to: filling, toEdge: end, comparator: ">=", hours: 60 }
       batches:
         - { label: PPQ batch 1, plannedLotSizeUnits: 4200, batchSize: 21, batchSizeUnit: L }
         - { label: PPQ batch 2, plannedLotSizeUnits: 4200, batchSize: 21, batchSizeUnit: L }
         - { label: PPQ batch 3, plannedLotSizeUnits: 3000, batchSize: 15, batchSizeUnit: L, notes: Smaller lot planned (fictional). }
       points:
         - suggestion: cat:fill_weight
+          hour: 58
           flow: { step: filling, at: during }
           originFrom: ipc:uo.aseptic_filling.ipc.fill_check
           docs: [DEMO-PPQ-217-01]
@@ -748,6 +761,7 @@ sampling:
             responsible: { party: cmo }
             reporting: { what: [individual, mean, range], presentation: [per_batch, by_location], deviationRef: SOP-DEV-001 (fictional) }
         - suggestion: cat:sf_prefiltration_bioburden
+          hour: 37
           flow: { step: sterile, at: before }
           originFrom: ipc:uo.sterile_filtration.ipc.bioburden
           docs: [DEMO-FV-217-05]
@@ -760,6 +774,7 @@ sampling:
             responsible: { party: contract_lab, name: Example Test Laboratory (fictional) }
             reporting: { what: [individual, pass_fail], deviationRef: SOP-DEV-001 (fictional) }
         - suggestion: cat:container_closure_integrity
+          hour: 73
           flow: { step: capping, at: after }
           originFrom: act:cci_study:act_cci
           docs: [DEMO-PPQ-217-01]
@@ -773,6 +788,7 @@ sampling:
             detail: { enhanced: { interventions: Samples taken after the planned stoppage of the capper (fictional). } }
             reporting: { what: [pass_fail, raw_data_ref], deviationRef: SOP-DEV-001 (fictional) }
         - suggestion: cat:visual_aql
+          hour: 89
           flow: { step: visual, at: after }
           originFrom: ipc:uo.visual_inspection.ipc.aql
           docs: [DEMO-VI-217-02]
@@ -787,6 +803,7 @@ sampling:
         - unitOp: aseptic_filling
           type: ppq_enhanced
           attribute: Fill volume (measured value)
+          hour: 60
           flow: { step: filling }
           docs: [DEMO-PPQ-217-01]
           patch:
@@ -811,6 +828,7 @@ sampling:
         # The one incomplete point of the demo: the design is entered (fictional values, from the bracketing load-out) but the vessel,
         # criterion and the rest are not. The design itself is optional and never makes a point incomplete.
         - suggestion: cat:blend_uniformity
+          hour: 9.5
           flow: { step: compounding, at: during }
           loadout: worst-case-bracketing
           runValues:
@@ -819,6 +837,7 @@ sampling:
           rangeText: ["Batch size 12 to 21 L (fictional values)."]
           patch: {}
         - suggestion: cat:release_sterility
+          hour: 100
           flow: { step: release, at: during }
           docs: [DEMO-PPQ-217-01]
           patch:
@@ -831,6 +850,7 @@ sampling:
             testMethodRef: SOP-STER-001 (fictional)
             reporting: { what: [pass_fail], deviationRef: SOP-DEV-001 (fictional) }
         - suggestion: cat:bulk_hold
+          hour: 20
           flow: { step: hold, at: during }
           docs: [DEMO-HT-217-02]
           patch:
@@ -843,6 +863,7 @@ sampling:
             detail: { hold: { holdStep: compounding, start: End of bulk compounding (fictional), end: Start of sterile filtration (fictional), durations: [{ value: 24, unit: hours }, { value: 48, unit: hours }], condition: 2 to 8 C in the closed hold tank (fictional), supports: Proposed maximum hold of 48 hours (fictional). } }
             reporting: { what: [individual, trend], presentation: [by_time_point], deviationRef: SOP-DEV-001 (fictional) }
         - suggestion: cat:sf_filter_integrity
+          hour: 41
           flow: { step: sterile, at: after }
           docs: [DEMO-FV-217-05]
           patch:
@@ -855,6 +876,7 @@ sampling:
             detail: { filter: { filterRef: SF-217-A sterilizing filter (fictional), test: integrity_pre_post } }
             reporting: { what: [individual, pass_fail], deviationRef: SOP-DEV-001 (fictional) }
         - suggestion: cat:stability_pulls
+          hour: 170
           flow: { step: storage, at: during }
           patch:
             acceptance: { kind: report_only }
@@ -863,6 +885,7 @@ sampling:
             detail: { stability: { protocolRef: STAB-PROT-217 (fictional), conditions: [{ label: 5 C, detail: "5 C +/- 3 C (fictional)" }, { label: 25 C / 60% RH, detail: "25 C +/- 2 C and 60% relative humidity +/- 5% (fictional)" }], orientation: Upright and inverted (fictional), timePoints: [{ label: 0 months }, { label: 3 months }, { label: 6 months }, { label: 12 months }], unitsPerPull: 6, reportedAgainstProtocol: true } }
             reporting: { what: [individual, trend], presentation: [by_time_point], deviationRef: SOP-DEV-001 (fictional) }
         - suggestion: cat:retain_samples
+          hour: 185
           flow: { step: storage }
           patch:
             acceptance: { kind: criterion, text: The stated number of units is kept per batch (fictional). }

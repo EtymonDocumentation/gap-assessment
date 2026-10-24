@@ -27,6 +27,8 @@ import { AddSampleDialog, type AddRequest } from "./SamplingAdd";
 import { FlowDiagram, type OpenAdd, type Run } from "./SamplingFlow";
 import { PointsTable } from "./SamplingPointsTable";
 import { ProcessStepsCard } from "./SamplingSteps";
+import { FigureDataCard } from "./SamplingFigureData";
+import { FigureView } from "./SamplingFigureView";
 import { SamplingOutput } from "./SamplingOutput";
 import { NumField } from "./SamplingPointDialog";
 import { AgencyCard, Interview, PartiesCard, PointCard, type ViewBy } from "./SamplingInterview";
@@ -173,6 +175,8 @@ function PlanEditor({ plan }: { plan: SamplingPlan }) {
   // The open point and the view are kept here so they survive switching tab or view.
   const [tab, setTab] = useState<Tab>("overview");
   const [selected, setSelected] = useState<string | null>(null);
+  // The sample under the pointer or focus in the figure or the table, so each highlights the other.
+  const [hl, setHl] = useState<string | null>(null);
   const [view, setView] = useState<ViewBy>("step");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const opener = useRef<HTMLElement | null>(null);
@@ -239,6 +243,7 @@ function PlanEditor({ plan }: { plan: SamplingPlan }) {
 
       <DetailsCard plan={plan} run={run} />
       <ProcessStepsCard plan={plan} run={run} />
+      <FigureDataCard plan={plan} run={run} />
       <BatchesCard plan={plan} run={run} />
 
       <div role="group" aria-label="Plan sections" className="row wrap seg no-print" data-testid="plan-tabs">
@@ -283,11 +288,15 @@ function PlanEditor({ plan }: { plan: SamplingPlan }) {
 
       <FlowDiagram plan={plan} selectedId={selected} onSelect={select} run={run} openAdd={openAdd} />
 
+      <FigureView plan={plan} highlightId={hl} onHighlight={setHl} onSelect={select} />
+
       <section className="card stack" aria-labelledby="sp-points">
         <h2 id="sp-points">Sampling points ({plan.points.length})</h2>
         <PointsTable
           plan={plan}
           selectedId={selected}
+          highlightId={hl}
+          onHighlight={setHl}
           onSelect={select}
           run={run}
           openAdd={openAdd}

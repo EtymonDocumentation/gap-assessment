@@ -2833,3 +2833,56 @@ details > summary {
 .trd-src-interviews > summary { cursor: pointer; font-weight: 600; }
 .trd-step-toggle { all: unset; cursor: pointer; font: inherit; color: inherit; display: inline-block; }
 .trd-step-toggle:focus-visible { outline: 3px solid var(--focus, currentColor); outline-offset: 2px; }
+
+/* M10: PPQ flow figure on the sampling page and in the documents. The drawing is a white sheet in both themes (it is a picture of a
+   printed page, with its own colours); the page chrome around it follows the tokens. Highlights use an outline and a thicker line as
+   well as colour, so they do not rely on colour alone. */
+.figure {
+  margin: 0;
+  /* A grid / flex child would otherwise grow to the width of the drawing and push the page sideways; the scroll region scrolls instead. */
+  max-width: 100%;
+  min-width: 0;
+}
+.fig-scroll-hint {
+  display: none;
+  margin: 0 0 0.25rem;
+}
+@media (max-width: 60rem) {
+  .fig-scroll-hint {
+    display: block;
+  }
+}
+.figure-sheet {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 0.5rem;
+  max-width: 100%;
+  min-width: 0;
+}
+.figure-sheet svg {
+  display: block;
+  height: auto;
+  /* Keeps the figure text about 10 px on a phone; the region scrolls sideways instead of shrinking it. */
+  min-width: 50rem;
+  width: 100%;
+}
+.figure-sheet .fig-mark {
+  cursor: pointer;
+}
+.figure-sheet .fig-mark:focus {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.figure-sheet .fig-hl {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.figure-sheet .fig-hl :is(rect, circle, path, polygon, ellipse) {
+  stroke-width: 3;
+}
+tr.row-hl > th,
+tr.row-hl > td {
+  background: var(--accent-soft);
+  box-shadow: inset 0 2px 0 var(--focus), inset 0 -2px 0 var(--focus);
+}

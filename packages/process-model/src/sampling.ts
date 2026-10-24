@@ -3,7 +3,8 @@ import { z } from "zod";
 /**
  * PPQ sampling plans (added in process-model 1.1.0, project schema 1.11.0; study types, reporting instructions, agency requests
  * and custom subsections added in process-model 1.2.0, project schema 1.12.0; the plan's own process steps and the flow position of
- * a point added in process-model 1.3.0, project schema 1.13.0).
+ * a point added in process-model 1.3.0, project schema 1.13.0; the optional flow-figure data - hours, holds, time targets and
+ * sub-processes - added in plan format 1.4.0, project schema 1.17.0, process-model 1.7.0).
  *
  * A sampling plan says which samples are pulled from which process steps during the process performance qualification (PPQ)
  * batches, why, and how many. The shapes live here, next to the other shared data, so a later tool (risk assessment, master
@@ -23,7 +24,7 @@ import { z } from "zod";
  */
 
 /** Format version of the plan data (semver). A new optional field is a minor change; a removed or re-meant field is major. */
-export const SAMPLING_PLAN_FORMAT_VERSION = "1.3.0";
+export const SAMPLING_PLAN_FORMAT_VERSION = "1.4.0";
 
 /** Run types. Only PPQ is built; the field exists so clinical GMP and engineering runs can be added without a schema break. */
 export const SAMPLING_RUN_TYPES = ["ppq"] as const;
@@ -131,11 +132,75 @@ export const planStepSchema = z.object({
   unitOp: z.string().min(1).optional(),
   label: z.string().min(1),
   notes: z.string().optional(),
+  /** Plan format 1.4.0, all for the flow figures and all optional: the step box's key settings, one line each ("S2" text). */
+  figureText: z.array(z.string()).optional(),
+  /** Planned duration of the step in hours. Absent is a normal state: the figure draws a fixed narrow block and says so. */
+  durationHours: z.number().nonnegative().optional(),
+  /** Id (SB-nn) of the plan's sub-process this step belongs to; such steps are drawn in the sub-process figure, not the main one. */
+  subProcess: z.string().regex(/^SB-\d{2,}$/).optional(),
 });
 export type PlanStep = z.infer<typeof planStepSchema>;
 
+/** Plan format 1.4.0. A hold between two steps (material waits, usually in storage). Every part but the label is optional. */
+export const planHoldSchema = z.object({
+  /** HD-01, HD-02 ... never reused inside a plan. */
+  id: z.string().regex(/^HD-\d{2,}$/),
+  /** The hold sits after this step. */
+  afterStepId: z.string().min(1),
+  label: z.string().min(1),
+  /** The duration as the person words it ("up to 48 h"). */
+  durationText: z.string().optional(),
+  durationHours: z.number().nonnegative().optional(),
+  condition: z.string().optional(),
+});
+export type PlanHold = z.infer<typeof planHoldSchema>;
+
+export const TIME_EDGES = ["start", "end"] as const;
+export type TimeEdge = (typeof TIME_EDGES)[number];
+export const TIME_COMPARATORS = [">=", "<="] as const;
+export type TimeComparator = (typeof TIME_COMPARATORS)[number];
+
+/**
+ * Plan format 1.4.0. A time the PPQ run is meant to demonstrate, e.g. "at least 72 h from the end of step 1 to the start of step 5".
+ * The comparator is the person's: ">=" means the run is deliberately made to take at least that long to support the limit.
+ * The tool never says whether the number is adequate.
+ */
+export const planTimeTargetSchema = z.object({
+  /** TT-01, TT-02 ... never reused inside a plan. */
+  id: z.string().regex(/^TT-\d{2,}$/),
+  label: z.string().min(1),
+  fromStepId: z.string().min(1),
+  fromEdge: z.enum(TIME_EDGES),
+  toStepId: z.string().min(1),
+  toEdge: z.enum(TIME_EDGES),
+  comparator: z.enum(TIME_COMPARATORS),
+  hours: z.number().nonnegative(),
+  note: z.string().optional(),
+});
+export type PlanTimeTarget = z.infer<typeof planTimeTargetSchema>;
+
+/** Plan format 1.4.0. A separate process (for example a buffer preparation) drawn as its own figure before the main one. */
+export const planSubProcessSchema = z.object({
+  /** SB-01, SB-02 ... never reused inside a plan. */
+  id: z.string().regex(/^SB-\d{2,}$/),
+  label: z.string().min(1),
+  /** The main-process step it feeds ("Feeds <step> in Figure N"). Optional: a sub-process may feed nothing yet. */
+  feedsStepId: z.string().min(1).optional(),
+  processingTarget: z.object({ comparator: z.enum(TIME_COMPARATORS), hours: z.number().nonnegative() }).optional(),
+});
+export type PlanSubProcess = z.infer<typeof planSubProcessSchema>;
+
+/** Plan format 1.4.0. Time zero of the time-scale figure: an edge of a step. Absent = the end of the first main step. */
+export const planTimeZeroSchema = z.object({ stepId: z.string().min(1), edge: z.enum(TIME_EDGES) });
+export type PlanTimeZero = z.infer<typeof planTimeZeroSchema>;
+
 /** Where a point is drawn on the flow diagram. A point without `flow` is "Not on the diagram", which is a normal state. */
-export const pointFlowSchema = z.object({ stepId: z.string().min(1), at: z.enum(FLOW_POSITIONS).optional() });
+export const pointFlowSchema = z.object({
+  stepId: z.string().min(1),
+  at: z.enum(FLOW_POSITIONS).optional(),
+  /** Plan format 1.4.0: the sample is taken during this hold (after `stepId`) and is drawn with a HOLD STEP flag. */
+  holdId: z.string().regex(/^HD-\d{2,}$/).optional(),
+});
 export type PointFlow = z.infer<typeof pointFlowSchema>;
 
 /** Who does a piece of work. The names are free text next to the kind. */
@@ -410,6 +475,8 @@ export const samplingPointSchema = z
     unitOp: z.string().min(1),
     /** Where the point is drawn on the plan's flow diagram (plan format 1.2.0). Absent = "Not on the diagram". */
     flow: pointFlowSchema.optional(),
+    /** Plan format 1.4.0: hours since time zero at which the sample is taken (for the time-scale figure). Absent is normal. */
+    takenAtHour: z.number().nonnegative().optional(),
     attribute: z.string(),
     testMethodRef: z.string().optional(),
     materialType: z.string().optional(),
@@ -586,6 +653,11 @@ export const samplingPlanSchema = z
     notes: z.string().optional(),
     /** The plan's own process steps, in process order (plan format 1.2.0). Separate from the gap assessment's Scope. */
     steps: z.array(planStepSchema),
+    /** Plan format 1.4.0: optional flow-figure data. Absent = none; old plans load unchanged. */
+    holds: z.array(planHoldSchema).optional(),
+    timeTargets: z.array(planTimeTargetSchema).optional(),
+    subProcesses: z.array(planSubProcessSchema).optional(),
+    timeZero: planTimeZeroSchema.optional(),
     /** The batches. How many is the person's decision: there is no default count. */
     batches: z.array(samplingBatchSchema),
     /** Why this number of batches. Required for the plan to be complete. */
@@ -614,11 +686,33 @@ export const samplingPlanSchema = z
     dup(plan.agencyRequests.map((r) => r.id), "agency request");
     dup(plan.subsections.map((s) => s.id), "subsection");
     dup(plan.steps.map((s) => s.id), "step");
+    dup((plan.holds ?? []).map((h) => h.id), "hold");
+    dup((plan.timeTargets ?? []).map((t) => t.id), "time target");
+    dup((plan.subProcesses ?? []).map((b) => b.id), "sub-process");
     const stepIds = new Set(plan.steps.map((s) => s.id));
+    const subIds = new Set((plan.subProcesses ?? []).map((b) => b.id));
+    // Reference integrity only (no completeness rules): a figure item may not point at something that is not in the plan.
+    const needStep = (id: string | undefined, what: string) => {
+      if (id !== undefined && !stepIds.has(id)) ctx.addIssue({ code: "custom", message: `Plan ${plan.id}: ${what} refers to a step (${id}) that is not in the plan` });
+    };
+    for (const s of plan.steps) {
+      if (s.subProcess && !subIds.has(s.subProcess)) ctx.addIssue({ code: "custom", message: `Step ${s.id} belongs to a sub-process (${s.subProcess}) that is not in plan ${plan.id}` });
+    }
+    for (const h of plan.holds ?? []) needStep(h.afterStepId, `hold ${h.id}`);
+    for (const t of plan.timeTargets ?? []) {
+      needStep(t.fromStepId, `time target ${t.id}`);
+      needStep(t.toStepId, `time target ${t.id}`);
+    }
+    for (const b of plan.subProcesses ?? []) needStep(b.feedsStepId, `sub-process ${b.id}`);
+    needStep(plan.timeZero?.stepId, "time zero");
     const batchIds = new Set(plan.batches.map((b) => b.id));
     const requestIds = new Set(plan.agencyRequests.map((r) => r.id));
     const pointIds = new Set(plan.points.map((p) => p.id));
     for (const p of plan.points) {
+      if (p.flow?.holdId) {
+        const h = (plan.holds ?? []).find((x) => x.id === p.flow!.holdId);
+        if (!h || h.afterStepId !== p.flow.stepId) ctx.addIssue({ code: "custom", message: `Point ${p.id} sits on a hold (${p.flow.holdId}) that is not after step ${p.flow.stepId} in plan ${plan.id}` });
+      }
       if (p.flow && !stepIds.has(p.flow.stepId)) ctx.addIssue({ code: "custom", message: `Point ${p.id} sits on a step (${p.flow.stepId}) that is not in plan ${plan.id}` });
       if (p.appliesTo !== "all") {
         for (const id of p.appliesTo) {

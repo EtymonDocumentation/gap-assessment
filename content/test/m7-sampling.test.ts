@@ -217,7 +217,7 @@ describe("the demo plan", () => {
 
   it("has a process step for every point that belongs to one; only the three that belong to no single step are off the diagram", () => {
     // Steps are in process order (capping, visual inspection, release testing, storage come after filling).
-    expect(plan.steps.map((s) => s.unitOp ?? s.label)).toEqual(["ds_receipt_thaw", "compounding", "Fictional hold step", "bbr_filtration", "sterile_filtration", "aseptic_filling", "capping", "visual_inspection", "QC release testing", "storage_shipping"]);
+    expect(plan.steps.map((s) => s.unitOp ?? s.label)).toEqual(["ds_receipt_thaw", "compounding", "Fictional hold step", "bbr_filtration", "sterile_filtration", "aseptic_filling", "capping", "visual_inspection", "QC release testing", "storage_shipping", "Buffer preparation (fictional)", "Buffer filtration (fictional)"]);
     const stepName = (id: string) => {
       const s = plan.steps.find((x) => x.id === plan.points.find((p) => p.id === id)!.flow?.stepId);
       return s ? (s.unitOp ?? s.label) : undefined;

@@ -40,7 +40,7 @@ describe("package independence", () => {
 
   it("keeps PROCESS_MODEL_VERSION equal to package.json", () => {
     expect(PROCESS_MODEL_VERSION).toBe(pkg.version);
-    expect(pkg.version).toBe("1.6.0");
+    expect(pkg.version).toBe("1.7.0");
   });
 
   it("is private until it is published on purpose", () => {
@@ -103,6 +103,8 @@ describe("public API", () => {
         "STEP_ORDER_AT_1130",
         "SYSTEM_ACTOR",
         "SourceError",
+        "TIME_COMPARATORS",
+        "TIME_EDGES",
         "TIMING_OPTIONS",
         "TRD_BASIS_LOADOUTS",
         "TRD_DETAIL_KEYS",
@@ -177,8 +179,12 @@ describe("public API", () => {
         "parseTrdSeed",
         "pathMatches",
         "placementSchema",
+        "planHoldSchema",
         "planPartySchema",
         "planStepSchema",
+        "planSubProcessSchema",
+        "planTimeTargetSchema",
+        "planTimeZeroSchema",
         "planVerification",
         "pointFlowSchema",
         "pointSampleSizeSchema",

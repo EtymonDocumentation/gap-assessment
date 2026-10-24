@@ -128,6 +128,11 @@ export class WriterCtx {
   numberingXml?: string;
   /** Style definitions added because the template had no style of that name. */
   addedStyles: string[] = [];
+  /** Pictures of the figure pages, made before writing (the writer is synchronous, drawing a picture is not). Key: `figureKey`. */
+  figureImages = new Map<string, Uint8Array>();
+  /** Pictures the body refers to; `finalisePackage` writes them into the package. */
+  media: { relId: string; part: string; bytes: Uint8Array }[] = [];
+  private drawingId = 100;
   private bullet?: number;
   private styleCache = new Map<StyleKey, string>();
 
@@ -175,6 +180,15 @@ export class WriterCtx {
       this.bullet = r.numId;
     }
     return this.bullet;
+  }
+
+  /** A new picture for the package: returns the relationship id the body refers to. */
+  addPicture(bytes: Uint8Array): { relId: string; docPrId: number } {
+    const n = this.media.length + 1;
+    // "rIdFig<n>" cannot clash with the template's own "rId<n>" relationship ids.
+    const relId = `rIdFig${n}`;
+    this.media.push({ relId, part: `word/media/gapfigure${n}.png`, bytes });
+    return { relId, docPrId: this.drawingId++ };
   }
 
   /** Width available to a table in a portrait or landscape section. */
@@ -439,6 +453,57 @@ export function tableXml(ctx: WriterCtx, columns: string[], rows: string[][], o:
   return tbl + spacerPara();
 }
 
+/** Key of the picture of one figure page in `WriterCtx.figureImages`. */
+export const figureKey = (figureNumber: number, pageIndex: number): string => `${figureNumber}:${pageIndex}`;
+
+const EMU_PER_POINT = 12700;
+
+function drawingXml(relId: string, docPrId: number, name: string, descr: string, wPt: number, hPt: number): string {
+  const cx = Math.round(wPt * EMU_PER_POINT);
+  const cy = Math.round(hPt * EMU_PER_POINT);
+  return (
+    `<w:r><w:drawing><wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" distT="0" distB="0" distL="0" distR="0">` +
+    `<wp:extent cx="${cx}" cy="${cy}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="${docPrId}" name="${esc(name)}" descr="${esc(descr)}"/>` +
+    `<wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr>` +
+    `<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">` +
+    `<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="${esc(name)}.png" descr="${esc(descr)}"/><pic:cNvPicPr/></pic:nvPicPr>` +
+    `<pic:blipFill><a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="${relId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>` +
+    `<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic>` +
+    `</a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`
+  );
+}
+
+/**
+ * A figure of the sampling plan: one picture per page of the figure, each on its own landscape page (a landscape section when the
+ * template's pages are portrait), with a numbered caption under it. The legend is part of the picture, so it is on every page.
+ * Without a picture (no rasteriser was supplied, or drawing failed) the figure is its caption and its plain-text description, so the
+ * Word file never has a hole where a figure should be.
+ */
+function figureXml(ctx: WriterCtx, b: Extract<Block, { type: "figure" }>): string {
+  const captionOf = (i: number) => (b.pages.length > 1 ? `Figure ${b.number} (page ${i + 1} of ${b.pages.length}): ${b.caption}` : `Figure ${b.number}: ${b.caption}`);
+  const notGiven = b.hoursNotGiven.length ? para(textRuns(`Hours not given: ${b.hoursNotGiven.join(", ")}.`, { i: true }), { spacing: { before: 40, after: 120 } }) : "";
+  const have = b.pages.every((_, i) => ctx.figureImages.has(figureKey(b.number, i)));
+  if (!have) return para(textRuns(`Figure ${b.number}: ${b.caption}`, { b: true }), { keepNext: true }) + para(textRuns(b.alt)) + notGiven;
+
+  const turn = !!ctx.sectPrs && !ctx.page.startsLandscape;
+  const availPt = ctx.tableWidth(true) / 20;
+  const out: string[] = [];
+  if (turn) out.push(para("", { sectPr: ctx.sectPrs!.portrait, spacing: { before: 0, after: 0 } }));
+  b.pages.forEach((pg, i) => {
+    const wPt = Math.min(pg.width, availPt);
+    const hPt = (pg.height * wPt) / pg.width;
+    const { relId, docPrId } = ctx.addPicture(ctx.figureImages.get(figureKey(b.number, i))!);
+    const last = i === b.pages.length - 1;
+    out.push(para(drawingXml(relId, docPrId, `Figure ${b.number}${b.pages.length > 1 ? ` page ${i + 1}` : ""}`, `${captionOf(i)}. ${b.alt}`, wPt, hPt), { keepNext: true, jc: "center", spacing: { before: 0, after: 60 }, pageBreakBefore: !turn && i > 0 }));
+    // The last paragraph of the page carries the section break, so no empty paragraph can spill onto an extra page.
+    const note = last && b.hoursNotGiven.length ? `Hours not given: ${b.hoursNotGiven.join(", ")}.` : "";
+    const sect = (isLast: boolean) => (turn && isLast ? { sectPr: ctx.sectPrs!.landscape } : {});
+    out.push(para(textRuns(captionOf(i), { b: true }), { jc: "center", spacing: { before: 0, after: 80 }, ...sect(!note) }));
+    if (note) out.push(para(textRuns(note, { i: true }), { jc: "center", spacing: { before: 0, after: 80 }, ...sect(true) }));
+  });
+  return out.join("");
+}
+
 export interface BlockOpts {
   /** Heading level for "heading" blocks inside the section. */
   subLevel: number;
@@ -458,6 +523,8 @@ export function blockXml(ctx: WriterCtx, b: Block, o: BlockOpts): string {
     case "table":
       if (!b.rows.length) return para(textRuns("None.", { i: true }));
       return (b.caption ? para(textRuns(b.caption, { b: true }), { keepNext: true }) : "") + tableXml(ctx, b.columns, b.rows, { sectionId: o.sectionId });
+    case "figure":
+      return figureXml(ctx, b);
   }
 }
 

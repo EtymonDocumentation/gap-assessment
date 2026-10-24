@@ -6,7 +6,7 @@ import { applyAnswer, type AnswerInput, type FieldAnswer } from "./interview";
 import { setGapOverlay } from "./overlays";
 import { addAction, addItem, createAssessment, pointRef, setMethod, updateItem } from "./risk";
 import { addItemFromGap, addItemFromSuggestion, gapSeeds, suggestFailureModes } from "./risk-seed";
-import { acceptSuggestion, addAgencyRequest, addBatch, addPoint, addStep, addSubsection, applyDesignLoadout, createPlan, projectScopeSteps, setParties, setPointFlow, updatePlan, updatePoint, type PointPatch } from "./sampling";
+import { acceptSuggestion, addAgencyRequest, addBatch, addFigureItem, addPoint, addStep, addSubsection, applyDesignLoadout, createPlan, projectScopeSteps, setParties, setPointFlow, setTimeZero, updatePlan, updatePoint, updateStep, type PointPatch } from "./sampling";
 import { suggestPoints, type SamplingSuggestions } from "./sampling-seed";
 import { createTrd, setLimits, setOverride, updateTrdStep } from "./trd";
 import { buildTrdSeed } from "./trd-seed";
@@ -64,7 +64,14 @@ const samplingDemoSchema = z.object({
       /** Plan subsections. `library` names an item of `subsectionLibrary`: the plan gets a copy that remembers its id and version. `placement` may say `in_point:#N` (the N-th point of this plan, from 1). */
       subsections: z.array(z.object({ title: z.string(), blocks: z.array(subsectionBlockSchema), placement: z.string(), includeInCmo: z.boolean().default(false), library: z.string().optional() })).default([]),
       /** The plan's process steps in order. `unitOp` is a catalog step (its label comes from the catalog); `custom` is the label of a step of the plan's own. `ref` is what a point's `flow.step` names. */
-      steps: z.array(z.object({ ref: z.string(), unitOp: z.string().optional(), custom: z.string().optional() })).default([]),
+      steps: z.array(z.object({ ref: z.string(), unitOp: z.string().optional(), custom: z.string().optional(), /** Planned hours and the lines of the box in the flow figure; `subProcess` names one of this plan's `subProcesses` refs. */ hours: z.number().optional(), text: z.array(z.string()).default([]), subProcess: z.string().optional() })).default([]),
+      /** Holds after a step (`after` is a step ref); a point may sit on one through `flow.hold`. */
+      holds: z.array(z.object({ ref: z.string(), after: z.string(), label: z.string(), durationText: z.string().optional(), hours: z.number().optional(), condition: z.string().optional() })).default([]),
+      /** Time targets between two step edges (`from` and `to` are step refs). */
+      timeTargets: z.array(z.object({ label: z.string(), from: z.string(), fromEdge: z.enum(["start", "end"]), to: z.string(), toEdge: z.enum(["start", "end"]), comparator: z.enum([">=", "<="]), hours: z.number(), note: z.string().optional() })).default([]),
+      /** Sub-processes such as buffer preparation; `feeds` is a step ref of the main process. */
+      subProcesses: z.array(z.object({ ref: z.string(), label: z.string(), feeds: z.string().optional(), processingTarget: z.object({ comparator: z.enum([">=", "<="]), hours: z.number() }).optional() })).default([]),
+      timeZero: z.object({ step: z.string(), edge: z.enum(["start", "end"]) }).optional(),
       batches: z.array(z.object({ label: z.string(), plannedLotSizeUnits: z.number().int().optional(), batchSize: z.number().optional(), batchSizeUnit: z.string().optional(), notes: z.string().optional() })),
       points: z.array(
         z.object({
@@ -80,7 +87,9 @@ const samplingDemoSchema = z.object({
           rangeText: z.array(z.string()).default([]),
           attribute: z.string().optional(),
           /** Where the point sits on the plan's process flow: a step `ref` and, optionally, before / during / after. Left out = Not on the diagram. */
-          flow: z.object({ step: z.string(), at: z.enum(["before", "during", "after"]).optional() }).optional(),
+          flow: z.object({ step: z.string(), at: z.enum(["before", "during", "after"]).optional(), hold: z.string().optional() }).optional(),
+          /** Hours since time zero at which the sample is taken (for the flow figure). */
+          hour: z.number().optional(),
           table: z.string().optional(),
           /** Id of an RU-data suggestion (e.g. "ipc:uo.x.ipc.y") whose item path, gap ids and activity this point is traced to. */
           originFrom: z.string().optional(),
@@ -285,7 +294,35 @@ function applySamplingDemo(project: Project, content: ContentBundle, s: z.infer<
       const added = addStep(project, created.planId, { ...(st.unitOp ? { unitOp: st.unitOp } : {}), label: def?.label ?? st.custom ?? "" }, who);
       project = added.project;
       stepIds.set(st.ref, added.stepId);
+      if (st.hours !== undefined || st.text.length) project = updateStep(project, created.planId, added.stepId, { ...(st.hours !== undefined ? { durationHours: st.hours } : {}), ...(st.text.length ? { figureText: st.text } : {}) }, who);
     }
+    const stepOf = (ref: string) => {
+      const id = stepIds.get(ref);
+      if (!id) throw new Error(`Demo sampling: unknown process step ${ref}`);
+      return id;
+    };
+    const holdIds = new Map<string, string>();
+    for (const h of pl.holds) {
+      const r = addFigureItem(project, created.planId, "holds", { afterStepId: stepOf(h.after), label: h.label, ...(h.durationText ? { durationText: h.durationText } : {}), ...(h.hours !== undefined ? { durationHours: h.hours } : {}), ...(h.condition ? { condition: h.condition } : {}) }, who);
+      project = r.project;
+      holdIds.set(h.ref, r.itemId);
+    }
+    const subIds = new Map<string, string>();
+    for (const b of pl.subProcesses) {
+      const r = addFigureItem(project, created.planId, "subProcesses", { label: b.label, ...(b.feeds ? { feedsStepId: stepOf(b.feeds) } : {}), ...(b.processingTarget ? { processingTarget: b.processingTarget } : {}) }, who);
+      project = r.project;
+      subIds.set(b.ref, r.itemId);
+    }
+    for (const st of pl.steps) {
+      if (!st.subProcess) continue;
+      const sid = subIds.get(st.subProcess);
+      if (!sid) throw new Error(`Demo sampling: unknown sub-process ${st.subProcess}`);
+      project = updateStep(project, created.planId, stepOf(st.ref), { subProcess: sid }, who);
+    }
+    for (const t of pl.timeTargets) {
+      project = addFigureItem(project, created.planId, "timeTargets", { label: t.label, fromStepId: stepOf(t.from), fromEdge: t.fromEdge, toStepId: stepOf(t.to), toEdge: t.toEdge, comparator: t.comparator, hours: t.hours, ...(t.note ? { note: t.note } : {}) }, who).project;
+    }
+    if (pl.timeZero) project = setTimeZero(project, created.planId, { stepId: stepOf(pl.timeZero.step), edge: pl.timeZero.edge }, who);
     const requestIds = new Map<string, string>();
     for (const r of pl.agencyRequests) {
       const { ref, ...input } = r;
@@ -332,8 +369,11 @@ function applySamplingDemo(project: Project, content: ContentBundle, s: z.infer<
       if (pt.flow) {
         const stepId = stepIds.get(pt.flow.step);
         if (!stepId) throw new Error(`Demo sampling: unknown process step ${pt.flow.step}`);
-        project = setPointFlow(project, created.planId, r.pointId, { stepId, ...(pt.flow.at ? { at: pt.flow.at } : {}) }, who);
+        const holdId = pt.flow.hold ? holdIds.get(pt.flow.hold) : undefined;
+        if (pt.flow.hold && !holdId) throw new Error(`Demo sampling: unknown hold ${pt.flow.hold}`);
+        project = setPointFlow(project, created.planId, r.pointId, { stepId, ...(pt.flow.at ? { at: pt.flow.at } : {}), ...(holdId ? { holdId } : {}) }, who);
       }
+      if (pt.hour !== undefined) project = updatePoint(project, created.planId, r.pointId, { takenAtHour: pt.hour }, who);
       if (pt.loadout) {
         const lo = loadouts?.loadouts.find((l) => l.id === pt.loadout);
         if (!lo) throw new Error(`Demo sampling: unknown design load-out ${pt.loadout}`);

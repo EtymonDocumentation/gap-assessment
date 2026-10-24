@@ -142,6 +142,14 @@ export function finalisePackage(dp: DocPackage, ctx: WriterCtx, input: FinaliseI
   if (ctx.numberingXml !== undefined && ctx.numberingXml !== originalNumbering) {
     dp.setPart(dp.partOf(REL.numbering) ?? "word/numbering.xml", ctx.numberingXml, CT.numbering, REL.numbering);
   }
+  // Pictures of the figures: the parts, their relationships and the png content type.
+  if (ctx.media.length) {
+    for (const m of ctx.media) {
+      dp.pkg.set(m.part, m.bytes);
+      dp.mainRels.push({ id: m.relId, type: REL.image, target: m.part.replace(/^word\//, ""), external: false });
+    }
+    if (!dp.ct.defaults.has("png")) dp.ct.defaults.set("png", CT.png);
+  }
   // The tool writes no Word comments (reviewer comments were removed in schema 1.10.0); a comments part is never carried over.
   dp.removePart(dp.partOf(REL.comments) ?? "word/comments.xml");
   writeDocProps(dp, input);

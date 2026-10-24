@@ -5,6 +5,7 @@ import type { DocumentExport, Project, TemplateRecord } from "@gap/process-model
 import { useEffect, useMemo, useState } from "react";
 import { Empty } from "../components";
 import { loadDocx, useDocx, type DocxModule } from "../docx-loader";
+import { browserRasteriser } from "../figureRasteriser";
 import { dateTime, download, FORMAT_LABEL, MODE_HELP, MODE_LABEL, shortHash } from "../lib";
 import { href } from "../router";
 import { recordOf, useTemplates, type StoredTemplate } from "../templates-store";
@@ -163,6 +164,8 @@ export function WordPanel({
           tagData: tagData ? tagData(m) : m.buildTagData(content, project, assessment!, doc),
           mode: choice.mode,
           generatedAt,
+          // Flow figures (sampling plan) are drawn as pictures by the browser; other documents have none.
+          rasteriser: browserRasteriser,
           ...(choice.mode !== "builtin" && t
             ? { template: { name: t.name, version: t.version, sha256: t.sha256, fileName: t.fileName, bytes: t.bytes, analysis: t.analysis, ...(t.mapping ? { mapping: t.mapping } : {}) } }
             : {}),

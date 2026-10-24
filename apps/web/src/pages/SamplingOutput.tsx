@@ -1,7 +1,7 @@
 import { buildCmoInstructionsDocument, buildSamplingPlanDocument, CMO_INSTRUCTIONS_TITLE, documentFingerprint, recordExport, samplingBasisText } from "@gap/engine";
 import { PROCESS_MODEL_VERSION, SAMPLING_PLAN_FORMAT_VERSION, type DocumentExport, type SamplingPlan, type TemplateRecord } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlBody } from "@gap/renderers";
-import { SAMPLING_STATS_VERSION } from "@gap/sampling";
+import { FIGURE_STYLE_LABEL, FIGURE_STYLES, SAMPLING_STATS_VERSION, type FigureStyle } from "@gap/sampling";
 import { samplingSuggestions } from "@gap/content";
 import { useMemo, useRef, useState } from "react";
 import { Modal } from "../components";
@@ -40,8 +40,10 @@ function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "
   const [done, setDone] = useState("");
   const choice = useWordChoice();
   const [showPreview, setShowPreview] = useState(false);
+  // One figure style per export (Word and HTML alike); it is an export choice, not stored in the plan.
+  const [figureStyle, setFigureStyle] = useState<FigureStyle>("time_scale");
 
-  const doc = useMemo(() => (cmo ? buildCmoInstructionsDocument : buildSamplingPlanDocument)(content, project, plan, samplingSuggestions, { generatedAt, appVersion: APP_VERSION }), [content, project, plan, generatedAt, cmo]);
+  const doc = useMemo(() => (cmo ? buildCmoInstructionsDocument : buildSamplingPlanDocument)(content, project, plan, samplingSuggestions, { generatedAt, appVersion: APP_VERSION, ...(cmo ? {} : { figureStyle }) }), [content, project, plan, generatedAt, cmo, figureStyle]);
   const body = useMemo(() => (showPreview ? renderHtmlBody(doc) : ""), [doc, showPreview]);
   const stamp = `${project.meta.id}-${plan.id}-${today()}`;
   const tbd = doc.tbdCount ?? 0;
@@ -84,6 +86,18 @@ function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "
           <p>
             {samplingBasisText(project.meta.id)} The document shows each sample size with its working and the source of the method. It states no filing category; where a filing question arises it reads "Requires regulatory affairs assessment".
           </p>
+        )}
+        {!cmo && (
+          <fieldset className="stack" data-testid="figure-style-choice">
+            <legend>Process flow figure in the document</legend>
+            {FIGURE_STYLES.map((s) => (
+              <label key={s} className="check">
+                <input type="radio" name="export-figure-style" value={s} checked={figureStyle === s} onChange={() => setFigureStyle(s)} data-testid={`export-figure-${s}`} />
+                <span>{FIGURE_STYLE_LABEL[s]}</span>
+              </label>
+            ))}
+            <span className="muted small">One choice per export. It applies to the Word and the HTML document and is not stored in the plan.</span>
+          </fieldset>
         )}
         <div className="row wrap">
           <button

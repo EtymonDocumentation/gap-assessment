@@ -4,6 +4,7 @@ import { pointsOnStep } from "@gap/sampling";
 import { useState } from "react";
 import { useContent, useStore } from "../store";
 import type { Run } from "./SamplingFlow";
+import { StepFigureDetails, useFigureTextSuggestions } from "./SamplingFigureData";
 
 /*
  * The "Process steps" card of a sampling plan.
@@ -22,6 +23,7 @@ export function ProcessStepsCard({ plan, run }: { plan: SamplingPlan; run: Run }
   const content = useContent();
   const project = useStore((s) => s.project)!;
   const groups = stepGroups(content, project);
+  const textSuggestions = useFigureTextSuggestions(plan);
   const [custom, setCustom] = useState("");
   const [pendingRemove, setPendingRemove] = useState<string | null>(null);
   const [copyMode, setCopyMode] = useState<"replace" | "append">("append");
@@ -66,6 +68,8 @@ export function ProcessStepsCard({ plan, run }: { plan: SamplingPlan; run: Run }
                     Remove
                   </button>
                 </span>
+                {/* M10: optional figure details sit under "More details" so the list stays short (same pattern as the points). */}
+                <StepFigureDetails key={`${s.id}-${JSON.stringify([s.figureText, s.durationHours, s.subProcess])}`} plan={plan} step={s} run={run} suggestion={textSuggestions[s.id]} />
               </li>
             );
           })}

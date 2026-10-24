@@ -881,6 +881,32 @@ export function PointForm({
           )}
         </label>
         <TextField label="Material" value={d.materialType} onChange={(v) => set({ materialType: v })} optional />
+        {/* M10: the optional hour the sample is taken (flow figure) and, for a sample on the diagram, the hold it is taken during. Both stay empty until a person fills them. */}
+        <div className="row wrap">
+          <NumField label="Hour taken (optional)" value={d.takenAtHour} onChange={(v) => set({ takenAtHour: v === undefined || v < 0 ? undefined : v })} hint="Hours from time zero of the flow figure. Leave empty if not known yet; the figure then lists the sample without a pin." testId="point-hour" />
+          {d.flow && plan.holds?.some((h) => h.afterStepId === d.flow!.stepId) && (
+            <label className="field">
+              <span>Taken during a hold (optional)</span>
+              <select
+                value={d.flow.holdId ?? ""}
+                data-testid="point-hold"
+                onChange={(e) => {
+                  const { holdId: _drop, ...rest } = d.flow!;
+                  set({ flow: e.target.value ? { ...rest, holdId: e.target.value } : rest });
+                }}
+              >
+                <option value="">Not during a hold</option>
+                {plan.holds
+                  .filter((h) => h.afterStepId === d.flow!.stepId)
+                  .map((h) => (
+                    <option key={h.id} value={h.id}>
+                      {h.label}
+                    </option>
+                  ))}
+              </select>
+            </label>
+          )}
+        </div>
         <div className="row wrap">
           <label className="field">
             <span>Responsible for this sample</span>

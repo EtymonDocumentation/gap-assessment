@@ -2,6 +2,17 @@
 
 All notable changes to `@gap/process-model`. Versions follow semver; see README.md for what counts as breaking.
 
+## 1.7.0
+
+Sampling plan format 1.4.0 (project schema 1.17.0). Additive: nothing was removed, and a plan without the new fields is still valid and loads unchanged.
+
+### Added
+- Optional flow-figure data on a sampling plan (M10): steps gain `figureText`, `durationHours` and `subProcess`; the plan gains
+  `holds` (HD-nn), `timeTargets` (TT-nn), `subProcesses` (SB-nn) and `timeZero`; a point gains `takenAtHour` and `flow.holdId`.
+  Nothing is required or defaulted; missing hours are a normal state. Only reference integrity is checked (an id must exist).
+- planHoldSchema, planTimeTargetSchema, planSubProcessSchema, planTimeZeroSchema, TIME_EDGES, TIME_COMPARATORS.
+- Migration 1.16.0 -> 1.17.0: only the version moves.
+
 ## 1.6.0
 
 Sampling plan format 1.3.0 (project schema 1.16.0). Additive: nothing was removed, and a party without the new fields is still valid.

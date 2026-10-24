@@ -68,8 +68,20 @@ export interface TemplateMapping {
   unmappedBlocks: "append" | "omit";
 }
 
+/**
+ * Turns one SVG page of a figure into a PNG at the given resolution. Supplied by the caller so this package stays free of any
+ * graphics library: the browser export uses the native canvas (no bundle cost), tests and sample generation use @napi-rs/canvas.
+ * The page is `widthPt` x `heightPt` points; the picture must be at least `dpi` dots per inch (pixels = points * dpi / 72).
+ */
+export type FigureRasteriser = (page: { svg: string; widthPt: number; heightPt: number }, dpi: number) => Promise<Uint8Array>;
+
+/** Resolution of the figure pictures in the Word file. */
+export const FIGURE_DPI = 200;
+
 export interface RenderDocxInput {
   doc: DocModel;
+  /** Draws the figure pages as pictures. Without it (or if it fails) a figure is its caption and text description, with a warning. */
+  rasteriser?: FigureRasteriser;
   /** Needed only for a tagged template (mode "tags"); the built-in look and the other template modes ignore it. */
   tagData?: import("./tags").TagData | import("./tags").DocumentTagData | import("./tags").SamplingTagData;
   mode: TemplateMode;

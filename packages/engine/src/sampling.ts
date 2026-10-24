@@ -5,8 +5,12 @@ import {
   type ChangeEvent,
   type CustomSubsection,
   type DesignLoadout,
+  type PlanHold,
   type PlanParty,
   type PlanStep,
+  type PlanSubProcess,
+  type PlanTimeTarget,
+  type PlanTimeZero,
   type PointFlow,
   type Project,
   type SamplingBatch,
@@ -62,7 +66,7 @@ export type BatchPatch = Partial<Omit<SamplingBatch, "id">>;
 const pad = (n: number) => String(n).padStart(3, "0");
 
 /** Next id of a kind inside a plan. Ids are never reused: an id that only survives in the change log still counts as taken. */
-function nextId(project: Project, prefix: "SPL" | "B" | "SP" | "AR" | "CS" | "ST", planId: string | undefined, existing: readonly string[]): string {
+function nextId(project: Project, prefix: "SPL" | "B" | "SP" | "AR" | "CS" | "ST" | "HD" | "TT" | "SB", planId: string | undefined, existing: readonly string[]): string {
   let max = 0;
   const take = (id: string) => {
     const m = new RegExp(`^${prefix}-(\\d+)$`).exec(id);
@@ -367,7 +371,7 @@ export function removePoint(project: Project, planId: string, pointId: string, a
  * A step without a position is a normal state, so `at` may be left out.
  */
 export function setPointFlow(project: Project, planId: string, pointId: string, flow: PointFlow | null, actor: Actor): Project {
-  return updatePoint(project, planId, pointId, { flow: flow ? clean({ stepId: flow.stepId, at: flow.at }) : undefined }, actor);
+  return updatePoint(project, planId, pointId, { flow: flow ? clean({ stepId: flow.stepId, at: flow.at, holdId: flow.holdId }) : undefined }, actor);
 }
 
 function newStep(project: Project, plan: SamplingPlan, d: StepDraft): PlanStep {
@@ -411,7 +415,18 @@ export function catalogInsertIndex(content: ContentBundle, steps: readonly Pick<
 }
 
 /** Renames a custom step or edits the notes of any step. A catalog step keeps its catalog name. */
-export function updateStep(project: Project, planId: string, stepId: string, patch: { label?: string; notes?: string }, actor: Actor): Project {
+export interface StepPatch {
+  label?: string;
+  notes?: string;
+  /** The lines of the step box in the flow figure (empty lines are dropped; an empty list clears the field). */
+  figureText?: string[];
+  /** Planned duration in hours; null clears it. */
+  durationHours?: number | null;
+  /** A sub-process id; null takes the step back into the main process. */
+  subProcess?: string | null;
+}
+
+export function updateStep(project: Project, planId: string, stepId: string, patch: StepPatch, actor: Actor): Project {
   const next = structuredClone(project);
   const plan = planOf(next, planId);
   const step = plan.steps.find((s) => s.id === stepId);
@@ -426,6 +441,20 @@ export function updateStep(project: Project, planId: string, stepId: string, pat
   if (patch.notes !== undefined) {
     if (patch.notes.trim()) step.notes = patch.notes.trim();
     else delete step.notes;
+  }
+  if (patch.figureText !== undefined) {
+    const lines = patch.figureText.map((l) => l.trim()).filter(Boolean);
+    if (lines.length) step.figureText = lines;
+    else delete step.figureText;
+  }
+  if (patch.durationHours !== undefined) {
+    if (patch.durationHours === null) delete step.durationHours;
+    else if (Number.isFinite(patch.durationHours) && patch.durationHours >= 0) step.durationHours = patch.durationHours;
+    else throw new SamplingError("The duration is a number of hours, zero or more");
+  }
+  if (patch.subProcess !== undefined) {
+    if (patch.subProcess === null) delete step.subProcess;
+    else step.subProcess = patch.subProcess;
   }
   if (JSON.stringify(before) === JSON.stringify(step)) return project;
   assertValid(plan);
@@ -460,18 +489,20 @@ export function removeStep(project: Project, planId: string, stepId: string, act
   if (!step) throw new SamplingError(`Step ${stepId} is not in plan ${planId}`);
   const held = plan.points.filter((p) => p.flow?.stepId === stepId);
   if (held.length && !opts.movePointsToTray) throw new SamplingError(`${held.length} sample${held.length === 1 ? "" : "s"} sit on ${step.label}. Choose to move them to "Not on the diagram" first.`);
+  const beforeFigure = figureDataOf(plan);
   plan.steps = plan.steps.filter((s) => s.id !== stepId);
   for (const p of held) {
     delete p.flow;
     p.updatedAt = actor.at;
   }
+  const pruned = pruneFigureData(plan, new Set([stepId]), actor.at);
   assertValid(plan);
   plan.updatedAt = actor.at;
   log(next, actor, {
     action: "sampling_step_remove",
     path: `sampling.${planId}.${stepId}`,
-    detail: `Process step ${stepId} removed from ${planId}: ${step.label}${held.length ? ` (${held.map((p) => p.id).join(", ")} moved to Not on the diagram)` : ""}`,
-    before: { step, points: held.map((p) => p.id) },
+    detail: `Process step ${stepId} removed from ${planId}: ${step.label}${held.length ? ` (${held.map((p) => p.id).join(", ")} moved to Not on the diagram)` : ""}${pruned.length ? `; figure data removed with it: ${pruned.join("; ")}` : ""}`,
+    before: { step, points: held.map((p) => p.id), ...(pruned.length ? { figure: beforeFigure } : {}) },
   });
   return next;
 }
@@ -498,6 +529,7 @@ export function copyStepsFromScope(project: Project, planId: string, scopeSteps:
   const plan = planOf(next, planId);
   const before = structuredClone(plan.steps);
   const moved: string[] = [];
+  const pruned: string[] = [];
   if (mode === "append") {
     for (const d of scopeSteps) if (!plan.steps.some((s) => s.unitOp === d.unitOp)) plan.steps.push(newStep(next, plan, d));
   } else {
@@ -512,15 +544,17 @@ export function copyStepsFromScope(project: Project, planId: string, scopeSteps:
         p.updatedAt = actor.at;
       }
     }
+    const gone = new Set(plan.steps.filter((s) => !keepIds.has(s.id)).map((s) => s.id));
     plan.steps = list;
+    pruned.push(...pruneFigureData(plan, gone, actor.at));
   }
-  if (JSON.stringify(before) === JSON.stringify(plan.steps)) return project;
+  if (JSON.stringify(before) === JSON.stringify(plan.steps) && !pruned.length) return project;
   assertValid(plan);
   plan.updatedAt = actor.at;
   log(next, actor, {
     action: "sampling_steps_copy",
     path: `sampling.${planId}`,
-    detail: `Process steps of ${planId} ${mode === "append" ? "added from" : "replaced by"} the project scope${moved.length ? ` (${moved.join(", ")} moved to Not on the diagram)` : ""}`,
+    detail: `Process steps of ${planId} ${mode === "append" ? "added from" : "replaced by"} the project scope${moved.length ? ` (${moved.join(", ")} moved to Not on the diagram)` : ""}${pruned.length ? `; figure data removed with the steps: ${pruned.join("; ")}` : ""}`,
     before: { steps: before },
     after: { steps: structuredClone(plan.steps), ...(moved.length ? { movedToTray: moved } : {}) },
   });
@@ -703,3 +737,212 @@ export function removeSubsection(project: Project, planId: string, subsectionId:
 export function planById(project: Project, planId: string): SamplingPlan | undefined {
   return project.sampling.plans.find((p) => p.id === planId);
 }
+
+
+// ------------------------------------------------------------------ flow-figure data (plan format 1.4.0)
+
+/*
+ * Holds, time targets, sub-processes and time zero are OPTIONAL plan data for the PPQ flow figures. Nothing here is required,
+ * defaulted or checked for completeness; the only rule is reference integrity (an id must exist), which the schema keeps. Every edit
+ * goes through the same clone / validate / change-log path as the rest of the plan, with the old value kept.
+ */
+
+/** The figure data of a plan as one object, for the "before" of a change-log event. */
+function figureDataOf(plan: SamplingPlan) {
+  return structuredClone({ holds: plan.holds ?? [], timeTargets: plan.timeTargets ?? [], subProcesses: plan.subProcesses ?? [], timeZero: plan.timeZero ?? null });
+}
+
+/**
+ * Removes the figure data that depended on steps that are gone, and says what was removed (the sentence goes into the change log).
+ * A hold after a removed step goes with it, and samples that sat on that hold stay on their step but lose the hold; a time target
+ * that starts or ends on a removed step cannot be drawn and goes; a sub-process that fed a removed step is kept but no longer feeds
+ * anything (its steps and its own target are still the person's work); time zero on a removed step goes back to "not chosen".
+ */
+function pruneFigureData(plan: SamplingPlan, goneSteps: ReadonlySet<string>, at: string): string[] {
+  const out: string[] = [];
+  if (!goneSteps.size) return out;
+  const goneHolds = new Set((plan.holds ?? []).filter((h) => goneSteps.has(h.afterStepId)).map((h) => h.id));
+  if (goneHolds.size) {
+    out.push(`hold ${[...goneHolds].join(", ")}`);
+    plan.holds = (plan.holds ?? []).filter((h) => !goneHolds.has(h.id));
+    if (!plan.holds.length) delete plan.holds;
+    for (const p of plan.points) {
+      if (p.flow?.holdId && goneHolds.has(p.flow.holdId)) {
+        delete p.flow.holdId;
+        p.updatedAt = at;
+      }
+    }
+  }
+  const goneTargets = (plan.timeTargets ?? []).filter((t) => goneSteps.has(t.fromStepId) || goneSteps.has(t.toStepId));
+  if (goneTargets.length) {
+    out.push(`time target ${goneTargets.map((t) => t.id).join(", ")}`);
+    plan.timeTargets = (plan.timeTargets ?? []).filter((t) => !goneTargets.includes(t));
+    if (!plan.timeTargets.length) delete plan.timeTargets;
+  }
+  for (const b of plan.subProcesses ?? []) {
+    if (b.feedsStepId && goneSteps.has(b.feedsStepId)) {
+      delete b.feedsStepId;
+      out.push(`${b.id} no longer feeds a step`);
+    }
+  }
+  if (plan.timeZero && goneSteps.has(plan.timeZero.stepId)) {
+    delete plan.timeZero;
+    out.push("time zero");
+  }
+  return out;
+}
+
+type FigureList = "holds" | "timeTargets" | "subProcesses";
+const FIGURE_KIND: Record<FigureList, { prefix: "HD" | "TT" | "SB"; noun: string }> = {
+  holds: { prefix: "HD", noun: "hold" },
+  timeTargets: { prefix: "TT", noun: "time target" },
+  subProcesses: { prefix: "SB", noun: "sub-process" },
+};
+
+type Item<K extends FigureList> = K extends "holds" ? PlanHold : K extends "timeTargets" ? PlanTimeTarget : PlanSubProcess;
+
+/** Trims the free text of a figure item and drops empty optional text, so "cleared" really is absent. */
+function tidy<K extends FigureList>(kind: K, item: Item<K>): Item<K> {
+  const o = { ...item } as Record<string, unknown>;
+  for (const k of Object.keys(o)) {
+    const v = o[k];
+    if (typeof v === "string") {
+      const t = v.trim();
+      if (t) o[k] = t;
+      else delete o[k];
+    } else if (v === undefined || v === null) delete o[k];
+  }
+  if (!o.label) throw new SamplingError(`The ${FIGURE_KIND[kind].noun} needs a name`);
+  for (const k of ["durationHours", "hours"]) if (k in o && !(typeof o[k] === "number" && Number.isFinite(o[k]) && (o[k] as number) >= 0)) throw new SamplingError("Hours are a number, zero or more");
+  return o as unknown as Item<K>;
+}
+
+export function addFigureItem<K extends FigureList>(project: Project, planId: string, kind: K, input: Omit<Item<K>, "id">, actor: Actor): { project: Project; itemId: string } {
+  const next = structuredClone(project);
+  const plan = planOf(next, planId);
+  const list = (plan[kind] ??= []) as Item<K>[];
+  const { prefix, noun } = FIGURE_KIND[kind];
+  const id = nextId(next, prefix, plan.id, list.map((x) => x.id));
+  const item = tidy(kind, { ...input, id } as Item<K>);
+  list.push(item);
+  assertValid(plan);
+  plan.updatedAt = actor.at;
+  log(next, actor, { action: `sampling_${noun.replace(/\W/g, "_")}_add`, path: `sampling.${planId}.${id}`, detail: `${noun[0]!.toUpperCase()}${noun.slice(1)} ${id} added to ${planId}: ${item.label}`, after: structuredClone(item) });
+  return { project: next, itemId: id };
+}
+
+export function updateFigureItem<K extends FigureList>(project: Project, planId: string, kind: K, itemId: string, patch: Partial<Omit<Item<K>, "id">>, actor: Actor): Project {
+  const next = structuredClone(project);
+  const plan = planOf(next, planId);
+  const list = (plan[kind] ?? []) as Item<K>[];
+  const i = list.findIndex((x) => x.id === itemId);
+  const { noun } = FIGURE_KIND[kind];
+  if (i < 0) throw new SamplingError(`${noun[0]!.toUpperCase()}${noun.slice(1)} ${itemId} is not in plan ${planId}`);
+  const before = structuredClone(list[i]!);
+  const merged = { ...before, ...patch } as Item<K>;
+  list[i] = tidy(kind, merged);
+  if (JSON.stringify(before) === JSON.stringify(list[i])) return project;
+  assertValid(plan);
+  plan.updatedAt = actor.at;
+  log(next, actor, { action: `sampling_${noun.replace(/\W/g, "_")}_update`, path: `sampling.${planId}.${itemId}`, detail: `${noun[0]!.toUpperCase()}${noun.slice(1)} ${itemId} of ${planId} edited`, before, after: structuredClone(list[i]) });
+  return next;
+}
+
+export function removeFigureItem(project: Project, planId: string, kind: FigureList, itemId: string, actor: Actor): Project {
+  const next = structuredClone(project);
+  const plan = planOf(next, planId);
+  const list = (plan[kind] ?? []) as { id: string }[];
+  const before = list.find((x) => x.id === itemId);
+  const { noun } = FIGURE_KIND[kind];
+  if (!before) throw new SamplingError(`${noun[0]!.toUpperCase()}${noun.slice(1)} ${itemId} is not in plan ${planId}`);
+  const freed: string[] = [];
+  if (kind === "holds") {
+    // Samples that sat on the hold stay on their step; only the hold position goes.
+    for (const p of plan.points) {
+      if (p.flow?.holdId === itemId) {
+        delete p.flow.holdId;
+        p.updatedAt = actor.at;
+        freed.push(p.id);
+      }
+    }
+  }
+  if (kind === "subProcesses") {
+    for (const s of plan.steps) {
+      if (s.subProcess === itemId) {
+        delete s.subProcess;
+        freed.push(s.id);
+      }
+    }
+  }
+  const rest = list.filter((x) => x.id !== itemId);
+  if (rest.length) (plan[kind] as unknown) = rest;
+  else delete plan[kind];
+  assertValid(plan);
+  plan.updatedAt = actor.at;
+  log(next, actor, {
+    action: `sampling_${noun.replace(/\W/g, "_")}_remove`,
+    path: `sampling.${planId}.${itemId}`,
+    detail: `${noun[0]!.toUpperCase()}${noun.slice(1)} ${itemId} removed from ${planId}${freed.length ? ` (${freed.join(", ")} kept, no longer linked to it)` : ""}`,
+    before: structuredClone(before),
+  });
+  return next;
+}
+
+/** Chooses (or with null clears) time zero of the time-scale figure. Without it the figure starts at the end of the first main step. */
+export function setTimeZero(project: Project, planId: string, timeZero: PlanTimeZero | null, actor: Actor): Project {
+  const next = structuredClone(project);
+  const plan = planOf(next, planId);
+  const before = plan.timeZero ? structuredClone(plan.timeZero) : null;
+  if (timeZero) plan.timeZero = { stepId: timeZero.stepId, edge: timeZero.edge };
+  else delete plan.timeZero;
+  if (JSON.stringify(before) === JSON.stringify(plan.timeZero ?? null)) return project;
+  assertValid(plan);
+  plan.updatedAt = actor.at;
+  log(next, actor, { action: "sampling_time_zero_update", path: `sampling.${planId}`, detail: `Time zero of the flow figure in ${planId} ${timeZero ? "set" : "cleared"}`, before: { timeZero: before }, after: { timeZero: plan.timeZero ?? null } });
+  return next;
+}
+
+// ------------------------------------------------------------------ prefill suggestions for the figure
+
+export interface HoldSuggestion {
+  afterStepId: string;
+  label: string;
+  durationText: string;
+  durationHours?: number;
+  condition?: string;
+  /** The hold-time point the values come from. */
+  fromPoint: string;
+}
+
+const HOURS_PER: Record<string, number> = { minutes: 1 / 60, hours: 1, days: 24 };
+
+/**
+ * Holds the plan's own hold-time points describe (type "hold time", the step after which material is held, the durations being
+ * studied, the condition) that are not yet holds of the figure. A SUGGESTION only: the caller shows it and the person accepts or edits
+ * it; the figure reads the plan's `holds`, never these. The longest studied duration is offered as the hours because a hold-time
+ * study is run up to the proposed maximum; the text keeps every studied duration so nothing is hidden.
+ */
+export function holdSuggestions(plan: SamplingPlan): HoldSuggestion[] {
+  const out: HoldSuggestion[] = [];
+  for (const p of plan.points) {
+    const h = p.detail?.hold;
+    if (p.type !== "hold_time" || !h?.holdStep) continue;
+    const step = plan.steps.find((s) => s.unitOp === h.holdStep);
+    if (!step) continue;
+    if ((plan.holds ?? []).some((x) => x.afterStepId === step.id) || out.some((x) => x.afterStepId === step.id)) continue;
+    const durations = h.durations ?? [];
+    const hours = durations.length ? Math.max(...durations.map((d) => d.value * (HOURS_PER[d.unit] ?? 1))) : undefined;
+    out.push({
+      afterStepId: step.id,
+      label: `Hold after ${step.label}`,
+      durationText: durations.map((d) => `${d.value} ${d.unit === "minutes" ? "min" : d.unit === "hours" ? "h" : "days"}`).join(" / "),
+      ...(hours !== undefined ? { durationHours: Math.round(hours * 100) / 100 } : {}),
+      ...(h.condition?.trim() ? { condition: h.condition.trim() } : {}),
+      fromPoint: p.id,
+    });
+  }
+  return out;
+}
+
+/** The text of a step box ("S2") the project or the TRD can supply, one line per parameter. Keyed by plan step id. */
+export type FigureTextSuggestions = Record<string, string[]>;
