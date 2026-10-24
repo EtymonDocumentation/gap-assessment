@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { addSource, companyTableSnapshotSchema, emptyProject, subsectionBlockSchema, subsectionLibraryItemSchema, verifyEntry, type Actor, type CompanyTableSnapshot, type DesignLoadouts, type DocRef, type FailureModeSuggestions, type RiskLoadouts, type Project, type SubsectionLibraryItem } from "@gap/process-model";
+import { addSource, companyTableSnapshotSchema, emptyProject, subsectionBlockSchema, subsectionLibraryItemSchema, verifyEntry, type Actor, type CompanyTableSnapshot, type DesignLoadouts, type DocRef, type FailureModeSuggestions, type MbrLibraryBlock, type RiskLoadouts, type Project, type SubsectionLibraryItem } from "@gap/process-model";
 import type { ContentBundle } from "./content";
 import { PARAMETER_FIELDS, type ParameterField } from "./content-schema";
 import { applyAnswer, type AnswerInput, type FieldAnswer } from "./interview";
@@ -8,6 +8,7 @@ import { addAction, addItem, createAssessment, pointRef, setMethod, updateItem }
 import { addItemFromGap, addItemFromSuggestion, gapSeeds, suggestFailureModes } from "./risk-seed";
 import { acceptSuggestion, addAgencyRequest, addBatch, addFigureItem, addPoint, addStep, addSubsection, applyDesignLoadout, createPlan, projectScopeSteps, setParties, setPointFlow, setTimeZero, updatePlan, updatePoint, updateStep, type PointPatch } from "./sampling";
 import { suggestPoints, type SamplingSuggestions } from "./sampling-seed";
+import { addTarget, createMbr, setParam } from "./mbr";
 import { createTrd, setLimits, setOverride, updateTrdStep } from "./trd";
 import { buildTrdSeed } from "./trd-seed";
 import type { QuestionInstance } from "./sequencer";
@@ -163,6 +164,44 @@ const trdDemoSchema = z.object({
     .default([]),
 });
 
+/**
+ * The demo batch record: built from the demo TRD and the demo sampling plan through the same editing functions a person uses.
+ * `sections` name library blocks by id. Every parameter row whose TRD value is established is set to "same as TRD" (the usual case), except
+ * the rows named in `undecided`; `rows` then edit single rows (a tightened value with its reason, a study point), and `limits` add the
+ * targets under a critical time limit. Rows are found by unit operation and row key; steps by their place (1 = first) in the block.
+ */
+const mbrDemoSchema = z.object({
+  at: z.string(),
+  by: z.string(),
+  role: z.string().optional(),
+  title: z.string(),
+  docRef: z.string().optional(),
+  sections: z.array(z.object({ uo: z.string().optional(), title: z.string().optional(), blocks: z.array(z.string()) })),
+  undecided: z.array(z.string()).default([]),
+  rows: z
+    .array(
+      z.object({
+        uo: z.string(),
+        row: z.string(),
+        choice: z.enum(["same_as_trd", "tightened_by_cmo", "not_decided"]).optional(),
+        mbrValue: z.string().optional(),
+        mbrUnit: z.string().optional(),
+        reason: z.string().optional(),
+        studyPoint: z.boolean().optional(),
+      }),
+    )
+    .default([]),
+  limits: z
+    .array(
+      z.object({
+        uo: z.string(),
+        limit: z.string(),
+        targets: z.array(z.object({ label: z.string(), value: z.string(), unit: z.string().optional(), fromStep: z.number().int().optional(), toStep: z.number().int().optional() })),
+      }),
+    )
+    .default([]),
+});
+
 const demoSchema = z.object({
   demo: z.object({ id: z.string(), title: z.string(), version: z.string() }),
   responder: z.object({ name: z.string(), role: z.string().optional() }),
@@ -185,6 +224,7 @@ const demoSchema = z.object({
   sampling: samplingDemoSchema.optional(),
   risk: riskDemoSchema.optional(),
   trd: trdDemoSchema.optional(),
+  mbr: mbrDemoSchema.optional(),
 });
 
 export type DemoScript = z.infer<typeof demoSchema>;
@@ -230,7 +270,7 @@ const actorOf = (p: { at: string; by: string; role?: string | undefined }): Acto
  * answers through the same code path a user takes, so every demo entry has
  * a real interview source, responder and date.
  */
-export function buildDemoProject(content: ContentBundle, raw: unknown, suggestions?: SamplingSuggestions, loadouts?: DesignLoadouts, risk?: { loadouts: RiskLoadouts; failureModes: FailureModeSuggestions }): Project {
+export function buildDemoProject(content: ContentBundle, raw: unknown, suggestions?: SamplingSuggestions, loadouts?: DesignLoadouts, risk?: { loadouts: RiskLoadouts; failureModes: FailureModeSuggestions }, mbr?: { library: readonly MbrLibraryBlock[] }): Project {
   const demo = demoSchema.parse(raw);
   const actor: Actor = { name: demo.responder.name, at: demo.date, ...(demo.responder.role ? { role: demo.responder.role } : {}) };
   let project = emptyProject({
@@ -266,6 +306,8 @@ export function buildDemoProject(content: ContentBundle, raw: unknown, suggestio
   if (demo.risk && risk) project = applyRiskDemo(project, content, demo.risk, risk.loadouts, risk.failureModes);
   // The TRD starts from the project's own seed, so it needs nothing but the content.
   if (demo.trd) project = applyTrdDemo(project, content, demo.trd);
+  // The batch record takes its values from the TRD and its sample rows from the plan, so it comes last and needs the step-blocks library.
+  if (demo.mbr && mbr && project.trd.documents.length > 0 && project.sampling.plans.length > 0) project = applyMbrDemo(project, content, demo.mbr, mbr.library);
   return project;
 }
 
@@ -396,6 +438,82 @@ function applySamplingDemo(project: Project, content: ContentBundle, s: z.infer<
         return `in_point:${id}`;
       });
       project = addSubsection(project, created.planId, { title: sub.title, blocks: sub.blocks, placement, includeInCmo: sub.includeInCmo, ...(lib ? { origin: { kind: "library", itemId: lib.id, version: lib.version, name: lib.name } } : {}) }, who).project;
+    }
+  }
+  return project;
+}
+
+function applyMbrDemo(project: Project, content: ContentBundle, m: z.infer<typeof mbrDemoSchema>, library: readonly MbrLibraryBlock[]): Project {
+  const who: Actor = { name: m.by, at: m.at, ...(m.role ? { role: m.role } : {}) };
+  const lib = new Map(library.map((b) => [b.id, b]));
+  const uoLabel = (key: string) => content.catalog.unitOperations.find((u) => u.key === key)?.label ?? key;
+  const created = createMbr(
+    project,
+    {
+      title: m.title,
+      ...(m.docRef ? { docRef: m.docRef } : {}),
+      trdId: project.trd.documents[0]!.id,
+      planId: project.sampling.plans[0]!.id,
+      sections: m.sections.map((sec) => ({
+        ...(sec.uo ? { unitOp: sec.uo } : {}),
+        title: sec.title ?? (sec.uo ? uoLabel(sec.uo) : "General"),
+        blocks: sec.blocks.map((id) => {
+          const b = lib.get(id);
+          if (!b) throw new Error(`Demo MBR: unknown library block ${id}`);
+          return b;
+        }),
+      })),
+    },
+    who,
+  );
+  project = created.project;
+  const recordId = created.recordId;
+  const rec = () => project.mbr.records.find((r) => r.id === recordId)!;
+  const sectionFor = (uo: string) => {
+    const s = rec().sections.find((x) => x.unitOp === uo);
+    if (!s) throw new Error(`Demo MBR: no section for ${uo}`);
+    return s;
+  };
+  const rowOf = (uo: string, key: string) => {
+    for (const b of sectionFor(uo).blocks) {
+      const r = b.params.find((p) => p.key === key);
+      if (r) return r;
+    }
+    throw new Error(`Demo MBR: ${uo} has no row ${key}`);
+  };
+  // The usual case: the CMO adopts the TRD value. Only rows with an established TRD value can say so; the others stay "not decided".
+  for (const s of rec().sections) {
+    for (const b of s.blocks) {
+      for (const r of b.params) {
+        if (r.trd?.status !== "established" || !r.trd.text) continue;
+        if (s.unitOp && m.undecided.includes(`${s.unitOp}.${r.key}`)) continue;
+        project = setParam(project, recordId, r.id, { choice: "same_as_trd" }, who);
+      }
+    }
+  }
+  for (const e of m.rows) {
+    const row = rowOf(e.uo, e.row);
+    project = setParam(
+      project,
+      recordId,
+      row.id,
+      { ...(e.choice ? { choice: e.choice } : {}), ...(e.mbrValue !== undefined ? { mbrValue: e.mbrValue } : {}), ...(e.mbrUnit !== undefined ? { mbrUnit: e.mbrUnit } : {}), ...(e.reason !== undefined ? { reason: e.reason } : {}), ...(e.studyPoint !== undefined ? { studyPoint: e.studyPoint } : {}) },
+      who,
+    );
+  }
+  for (const l of m.limits) {
+    const sec = sectionFor(l.uo);
+    const block = sec.blocks.find((b) => b.timeLimits.some((t) => t.key === l.limit));
+    const limit = block?.timeLimits.find((t) => t.key === l.limit);
+    if (!block || !limit) throw new Error(`Demo MBR: ${l.uo} has no time limit ${l.limit}`);
+    for (const t of l.targets) {
+      project = addTarget(
+        project,
+        recordId,
+        limit.id,
+        { label: t.label, value: t.value, ...(t.unit ? { unit: t.unit } : {}), ...(t.fromStep ? { fromStepId: block.steps[t.fromStep - 1]?.id } : {}), ...(t.toStep ? { toStepId: block.steps[t.toStep - 1]?.id } : {}) },
+        who,
+      ).project;
     }
   }
   return project;

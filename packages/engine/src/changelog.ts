@@ -82,6 +82,35 @@ export const ACTION_LABELS: Record<string, string> = {
   trd_update_accept: "TRD difference accepted from the project or a newer seed",
   trd_update_keep_override: "TRD override kept while the project value was brought up to date",
   trd_origin_update: "TRD brought up to date with the project or a seed",
+  mbr_add: "Batch record added",
+  mbr_update: "Batch record edited",
+  mbr_remove: "Batch record removed",
+  mbr_section_add: "Section added to a batch record",
+  mbr_section_update: "Section of a batch record renamed",
+  mbr_section_move: "Section of a batch record moved",
+  mbr_section_remove: "Section removed from a batch record",
+  mbr_block_add: "Block added to a batch record",
+  mbr_block_update: "Block of a batch record edited",
+  mbr_block_move: "Block of a batch record moved",
+  mbr_block_remove: "Block removed from a batch record",
+  mbr_block_library_update: "Block of a batch record updated from the library",
+  mbr_step_add: "Step added to a batch record",
+  mbr_step_update: "Step of a batch record edited",
+  mbr_step_move: "Step of a batch record moved",
+  mbr_step_remove: "Step removed from a batch record",
+  mbr_row_add: "Parameter row added to a batch record",
+  mbr_row_update: "Parameter row of a batch record edited",
+  mbr_row_remove: "Parameter row removed from a batch record",
+  mbr_trd_refresh: "TRD value brought up to date in a batch record",
+  mbr_time_limit_add: "Time limit added to a batch record",
+  mbr_time_limit_update: "Time limit of a batch record edited",
+  mbr_time_limit_remove: "Time limit removed from a batch record",
+  mbr_target_add: "Time target added to a batch record",
+  mbr_target_update: "Time target of a batch record edited",
+  mbr_target_remove: "Time target removed from a batch record",
+  mbr_sample_add: "Sample rows added to a batch record",
+  mbr_sample_remove: "Sample row removed from a batch record",
+  mbr_sample_refresh: "Sample row brought up to date with the sampling plan",
   tailor_exclude: "Topic switched off (scope)",
   tailor_include: "Topic switched on (scope)",
   scope_exclude_uo: "Process step left out (scope)",
@@ -279,6 +308,27 @@ const SAMPLING_FIELD_TEXT: Record<string, string> = {
   approvals: "Approvals",
   item: "Item",
   actions: "Actions",
+  docRef: "Document reference",
+  version: "Version",
+  purpose: "Purpose",
+  mbrValue: "MBR value",
+  mbrUnit: "MBR unit",
+  choice: "Choice",
+  reason: "Reason",
+  studyPoint: "Study point, not a limit",
+  trdValue: "TRD value",
+  value: "Value",
+  unit: "Unit",
+  fromStep: "From step",
+  toStep: "To step",
+  cmoFields: "To be completed by the CMO",
+  blocks: "Blocks",
+  test: "Test",
+  container: "Container",
+  storage: "Storage",
+  hour: "Hour",
+  hold: "Hold",
+  targets: "Targets",
 };
 
 function samplingValueText(v: unknown): string {
@@ -447,7 +497,7 @@ function toRow(content: ContentBundle, project: Project, ev: ChangeEvent, i: num
       return row;
     }
     default: {
-      if (ev.action.startsWith("sampling_") || ev.action === "migrate_sampling_steps" || ev.action.startsWith("risk_") || ev.action.startsWith("trd_")) {
+      if (ev.action.startsWith("sampling_") || ev.action === "migrate_sampling_steps" || ev.action.startsWith("risk_") || ev.action.startsWith("trd_") || ev.action.startsWith("mbr_")) {
         row.subject = ev.detail ?? ev.path ?? "";
         const d = samplingDiff(ev.before, ev.after);
         row.before = d.before;

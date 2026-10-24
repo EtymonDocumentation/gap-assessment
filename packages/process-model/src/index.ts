@@ -11,4 +11,5 @@ export * from "./trd-seed";
 export * from "./sampling";
 export * from "./risk";
 export * from "./trd";
+export * from "./mbr";
 export * from "./version";

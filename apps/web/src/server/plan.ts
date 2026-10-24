@@ -4,7 +4,7 @@ import type { UserInfo } from "./api";
 const PLAN_LABELS: Record<string, string> = { "trial-free": "Trial (free)" };
 
 /** Plain-word names for the module ids an account can hold. An id not listed here is shown as it is. */
-const MODULE_LABELS: Record<string, string> = { gap: "Gap assessment", sampling: "Sampling plan", risk: "Risk assessment", trd: "TRD" };
+const MODULE_LABELS: Record<string, string> = { gap: "Gap assessment", sampling: "Sampling plan", risk: "Risk assessment", trd: "TRD", mbr: "Batch record" };
 
 export function moduleLabel(id: string): string {
   return MODULE_LABELS[id] ?? id;

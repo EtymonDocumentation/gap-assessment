@@ -16,7 +16,7 @@ import { emptyProject, parseProject, type Actor, type Project } from "@gap/proce
 import { del, get, set } from "idb-keyval";
 import { useMemo } from "react";
 import { create } from "zustand";
-import { content, demos, designLoadouts, failureModes, riskLoadouts, samplingSuggestions } from "@gap/content";
+import { content, demos, designLoadouts, failureModes, mbrLibrary, riskLoadouts, samplingSuggestions } from "@gap/content";
 import { useSamplingTables } from "./sampling-tables-store";
 import { useSubsectionLibrary } from "./subsections-library-store";
 import { resetFiles } from "./server/files";
@@ -105,11 +105,14 @@ export const useStore = create<State>((setState, getState) => ({
   },
 
   loadDemo() {
-    const demo = buildDemoProject(content, demos["arx-217"], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes });
+    const demo = buildDemoProject(content, demos["arx-217"], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes }, { library: mbrLibrary });
     // The demo carries a TRD. An account without the TRD module could not save it (the server refuses a project holding TRD
     // documents), so the demo opens without it there; the rest of the demo is unchanged.
     const trdOn = !SERVER_MODE || !!useSession.getState().user?.plan.modules.includes("trd");
-    const shown = trdOn ? demo : { ...demo, trd: { documents: [] }, changeLog: demo.changeLog.filter((e) => !(e.path ?? "").startsWith("trd.")) };
+    const mbrOn = !SERVER_MODE || !!useSession.getState().user?.plan.modules.includes("mbr");
+    // The batch record is built from the TRD, so it goes with the TRD; an account without the batch record module gets the demo without it.
+    let shown = trdOn ? demo : { ...demo, trd: { documents: [] }, changeLog: demo.changeLog.filter((e) => !(e.path ?? "").startsWith("trd.")) };
+    if (!trdOn || !mbrOn) shown = { ...shown, mbr: { records: [] }, changeLog: shown.changeLog.filter((e) => !(e.path ?? "").startsWith("mbr.")) };
     getState().setProject(shown, "Demo project loaded", true);
     // The demo plan uses a fictional company table. Offer it in the library too, so the plan does not say its table has gone.
     void useSamplingTables.getState().ensure(demoSamplingTables(demos["arx-217"]));

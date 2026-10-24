@@ -16,6 +16,12 @@ export function useTrdAllowed(): boolean {
   return !SERVER_MODE || !!modules?.includes("trd");
 }
 
+/** Is the batch record (MBR) module available? Always on in the static demo; on the server it needs the "mbr" module on the account. */
+export function useMbrAllowed(): boolean {
+  const modules = useSession((s) => s.user?.plan.modules);
+  return !SERVER_MODE || !!modules?.includes("mbr");
+}
+
 /** Is the sampling module available? When it is off, the links between sampling points and risk items are hidden; the data stays. */
 export function useSamplingAllowed(): boolean {
   const modules = useSession((s) => s.user?.plan.modules);

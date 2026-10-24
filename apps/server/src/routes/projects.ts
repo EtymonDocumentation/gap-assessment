@@ -5,6 +5,7 @@ import { ImportError, parseProject, type Project } from "@gap/process-model";
 import { z } from "zod";
 import { HttpError, sendJson, sendNoContent, type Ctx, type Route } from "../http";
 import { isId } from "../names";
+import { MBR_MODULE } from "./mbr-blocks";
 import { idParam, notFound, parseBody, userPath } from "./util";
 
 interface ProjectFile {
@@ -31,6 +32,10 @@ export const TRD_MODULE = "trd";
 function requireTrdModuleForProject(ctx: Ctx, project: Project): void {
   if (project.trd.documents.length > 0 && !ctx.user.plan.modules.includes(TRD_MODULE)) {
     throw new HttpError(403, "module-not-included", "This account does not include the TRD module, and the project holds a TRD.");
+  }
+  // Likewise a project that holds batch records needs the batch record module (the data is refused, not dropped).
+  if (project.mbr.records.length > 0 && !ctx.user.plan.modules.includes(MBR_MODULE)) {
+    throw new HttpError(403, "module-not-included", "This account does not include the batch record module, and the project holds a batch record.");
   }
 }
 

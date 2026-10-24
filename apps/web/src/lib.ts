@@ -106,6 +106,8 @@ export const FORMAT_LABEL = {
   "risk-assessment-html": "Risk assessment (HTML)",
   "trd-docx": "TRD (Word)",
   "trd-html": "TRD (HTML)",
+  "mbr-docx": "Batch record (Word)",
+  "mbr-html": "Batch record (HTML)",
 } as const;
 
 /** First 12 characters of a SHA-256 value, for tables. The full value goes in a title or an expandable. */

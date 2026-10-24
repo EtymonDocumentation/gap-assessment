@@ -2,6 +2,18 @@
 
 All notable changes to `@gap/process-model`. Versions follow semver; see README.md for what counts as breaking.
 
+## 1.8.0
+
+MBR format 1.0.0 (project schema 1.18.0). Additive: nothing was removed, and a project without `mbr` migrates to an empty one.
+
+### Added
+- Master batch records (`project.mbr.records`, MBR-nnn): sections per unit operation, blocks with computed step numbers, parameter rows
+  (TRD value copied with its source, MBR value, a never-preselected choice, optional reason and study-point marker), two-level time
+  limits, sample rows from the sampling plan and "to be completed by the CMO" labels.
+- The step-blocks library shapes (`mbrLibraryBlockSchema`, versioned with history), MBR_CHOICES, MBR_CHOICE_LABEL, MBR_FORMAT_VERSION.
+- Export formats "mbr-docx" and "mbr-html" in the document export record.
+- Migration 1.17.0 -> 1.18.0: adds an empty `mbr`.
+
 ## 1.7.0
 
 Sampling plan format 1.4.0 (project schema 1.17.0). Additive: nothing was removed, and a plan without the new fields is still valid and loads unchanged.

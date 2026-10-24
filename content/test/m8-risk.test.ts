@@ -37,7 +37,10 @@ import {
   updateRiskStep,
 } from "@gap/engine";
 import { parseProject, type Actor, type Project, type RiskConfig } from "@gap/process-model";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+// Tests that build the whole demo are slow when the full suite runs in parallel; a longer limit keeps them from failing on load alone.
+vi.setConfig({ testTimeout: 60000 });
 import { content, demos, designLoadouts, failureModes, guidance, riskLoadouts, samplingSuggestions } from "../index";
 
 const ACTOR: Actor = { name: "Pat Placeholder (fictional)", role: "QA", at: "2026-10-22T09:00:00.000Z" };

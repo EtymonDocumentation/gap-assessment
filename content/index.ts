@@ -1,9 +1,10 @@
-import type { DesignLoadouts, FailureModeSuggestions, RiskLoadouts } from "@gap/process-model";
-import { buildContent, parseFailureModes, parseGuidance, parseDesignLoadouts, parseRiskLoadouts, parseSamplingSuggestions, type ContentBundle, type GuidanceLibrary, type RawContent, type SamplingSuggestions } from "@gap/engine";
+import type { DesignLoadouts, FailureModeSuggestions, MbrLibraryBlock, RiskLoadouts } from "@gap/process-model";
+import { buildContent, parseFailureModes, parseGuidance, parseMbrLibrary, parseDesignLoadouts, parseRiskLoadouts, parseSamplingSuggestions, type ContentBundle, type GuidanceLibrary, type RawContent, type SamplingSuggestions } from "@gap/engine";
 import { catalog } from "@gap/process-model/catalog";
 import catalogOverlay from "./catalog/gap-overlay.yaml";
 import demoArx217 from "./demo/arx-217.yaml";
 import guidanceRaw from "./guidance/guidance.yaml";
+import mbrBlocksRaw from "./mbr/blocks.yaml";
 import q00 from "./questions/00-scoping-and-site.yaml";
 import q05 from "./questions/05-ds-shipping-inbound.yaml";
 import q10 from "./questions/10-ds-receipt-thaw.yaml";
@@ -89,3 +90,19 @@ export const failureModes: FailureModeSuggestions = parseFailureModes(
   content.catalog.unitOperations.map((u) => u.key),
   guidance.items.map((g) => g.id),
 );
+
+/**
+ * The shipped step-blocks library for the master batch record (own neutral wording). Offers only: a record gets a block when the author
+ * ticks it. Checked here against the catalog's unit operations, so a misspelt step key stops the build.
+ */
+export const mbrLibrary: MbrLibraryBlock[] = (() => {
+  const file = parseMbrLibrary(mbrBlocksRaw);
+  const keys = new Set(content.catalog.unitOperations.map((u) => u.key));
+  const ids = new Set<string>();
+  for (const b of file.blocks) {
+    if (ids.has(b.id)) throw new Error(`mbr/blocks.yaml: duplicate block id "${b.id}"`);
+    ids.add(b.id);
+    for (const u of b.unitOps) if (!keys.has(u)) throw new Error(`mbr/blocks.yaml: block "${b.id}" names unknown unit operation "${u}"`);
+  }
+  return file.blocks;
+})();

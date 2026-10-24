@@ -4,6 +4,7 @@ import { isValidCustomKey } from "./custom";
 import { categoryToType, samplingStateSchema } from "./sampling";
 import { riskStateSchema } from "./risk";
 import { trdStateSchema } from "./trd";
+import { mbrStateSchema } from "./mbr";
 import type { Project } from "./types";
 
 const quantity = z.object({ value: z.number().finite(), unit: z.string().min(1) });
@@ -193,7 +194,7 @@ export const documentStateSchema = z.object({
     z.object({
       at: z.string(),
       by: z.string().optional(),
-      format: z.enum(["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html", "sampling-plan-docx", "sampling-plan-html", "sampling-cmo-instructions-docx", "sampling-cmo-instructions-html", "risk-assessment-docx", "risk-assessment-html", "trd-docx", "trd-html"]),
+      format: z.enum(["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html", "sampling-plan-docx", "sampling-plan-html", "sampling-cmo-instructions-docx", "sampling-cmo-instructions-html", "risk-assessment-docx", "risk-assessment-html", "trd-docx", "trd-html", "mbr-docx", "mbr-html"]),
       template: templateRecord,
       revision: z.number().int().positive().optional(),
       fingerprint: z.string(),
@@ -240,6 +241,7 @@ export const projectSchema = z.object({
   sampling: samplingStateSchema,
   risk: riskStateSchema,
   trd: trdStateSchema,
+  mbr: mbrStateSchema,
   document: documentStateSchema,
   sources: z.array(
     z.object({
@@ -468,6 +470,13 @@ const MIGRATIONS: { from: string; to: string; migrate: Migrate }[] = [
     from: "1.16.0",
     to: "1.17.0",
     migrate: (raw) => ({ ...raw, schemaVersion: "1.17.0" }),
+  },
+  // 1.17.0 -> 1.18.0: master batch records (project.mbr.records), MBR format 1.0.0. Older projects have none, which is what they
+  // always had: no batch record is invented and nothing else in the project changes.
+  {
+    from: "1.17.0",
+    to: "1.18.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.18.0", mbr: raw.mbr ?? { records: [] } }),
   },
 ];
 

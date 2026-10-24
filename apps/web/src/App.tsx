@@ -16,6 +16,8 @@ import { RiskPage } from "./pages/RiskPage";
 import { SamplingPage } from "./pages/SamplingPage";
 import { SamplingSubsectionsPage } from "./pages/SamplingSubsectionsPage";
 import { SamplingTablesPage } from "./pages/SamplingTablesPage";
+import { MbrLibraryPage } from "./pages/MbrLibraryPage";
+import { MbrPage } from "./pages/MbrPage";
 import { TrdPage } from "./pages/TrdPage";
 import { TrdSeedPage } from "./pages/TrdSeedPage";
 import { MappingPage } from "./pages/MappingPage";
@@ -26,7 +28,7 @@ import { href, useRoute } from "./router";
 import { AccountBar, ConflictDialog, ServerGate, useIsRemote } from "./server/ServerUi";
 import { SERVER_MODE } from "./server/mode";
 import { useSession } from "./server/session-store";
-import { useRiskAllowed, useTrdAllowed } from "./risk-module";
+import { useMbrAllowed, useRiskAllowed, useTrdAllowed } from "./risk-module";
 import { useStore } from "./store";
 
 const NAV = [
@@ -39,6 +41,7 @@ const NAV = [
   { path: "/document", label: "Document" },
   { path: "/trd-seed", label: "TRD seed" },
   { path: "/trd", label: "TRD" },
+  { path: "/mbr", label: "Batch record" },
   { path: "/sampling", label: "Sampling plan" },
   { path: "/risk", label: "Risk" },
   { path: "/templates", label: "Templates" },
@@ -65,6 +68,16 @@ function TrdNotIncluded() {
     <section className="card stack" data-testid="trd-not-included">
       <h1>TRD</h1>
       <p>This account does not include the TRD module. Ask the administrator to add it.</p>
+    </section>
+  );
+}
+
+/** Shown instead of the batch record pages on an account without the batch record module. */
+function MbrNotIncluded() {
+  return (
+    <section className="card stack" data-testid="mbr-not-included">
+      <h1>Batch record</h1>
+      <p>This account does not include the batch record module. Ask the administrator to add it.</p>
     </section>
   );
 }
@@ -126,6 +139,7 @@ function AppShell() {
   const samplingAllowed = !SERVER_MODE || !!modules?.includes("sampling");
   const riskAllowed = useRiskAllowed();
   const trdAllowed = useTrdAllowed();
+  const mbrAllowed = useMbrAllowed();
   const [theme, setTheme] = useTheme();
 
   useEffect(() => {
@@ -142,7 +156,7 @@ function AppShell() {
 
   // The template library belongs to the browser, not to a project, so it opens without one. So does the guidance library,
   // which is reference material and has nothing to do with the open project.
-  const needsProject = route.path !== "/" && route.path !== "/templates" && route.path !== "/guidance" && route.path !== "/sampling/tables" && route.path !== "/sampling/subsections" && route.path !== "/risk/methods" && route.path !== "/myfiles";
+  const needsProject = route.path !== "/" && route.path !== "/templates" && route.path !== "/guidance" && route.path !== "/sampling/tables" && route.path !== "/sampling/subsections" && route.path !== "/risk/methods" && route.path !== "/mbr/library" && route.path !== "/myfiles";
   const mappingId = /^\/templates\/([^/]+)\/mapping$/.exec(route.path)?.[1];
   let page: React.ReactNode;
   if (!ready) page = <p className="muted">Loading…</p>;
@@ -161,6 +175,8 @@ function AppShell() {
   else if (route.path === "/risk/methods") page = riskAllowed ? <RiskMethodsPage /> : <RiskNotIncluded />;
   else if (route.path === "/risk") page = riskAllowed ? <RiskPage params={route.params} /> : <RiskNotIncluded />;
   else if (route.path === "/trd") page = trdAllowed ? <TrdPage params={route.params} /> : <TrdNotIncluded />;
+  else if (route.path === "/mbr/library") page = mbrAllowed ? <MbrLibraryPage /> : <MbrNotIncluded />;
+  else if (route.path === "/mbr") page = mbrAllowed ? <MbrPage params={route.params} /> : <MbrNotIncluded />;
   else if (route.path === "/builder" || route.path === "/model") page = <BuilderPage />;
   else if (route.path === "/sources") page = <SourcesPage />;
   else if (route.path === "/tbd") page = <TbdPage />;
@@ -186,9 +202,9 @@ function AppShell() {
         </div>
         <nav aria-label="Main">
           <ul className="nav">
-            {NAV.filter((n) => (n.path !== "/myfiles" || SERVER_MODE) && (n.path !== "/sampling" || samplingAllowed) && (n.path !== "/risk" || riskAllowed) && (n.path !== "/trd" || trdAllowed)).map((n) => (
+            {NAV.filter((n) => (n.path !== "/myfiles" || SERVER_MODE) && (n.path !== "/sampling" || samplingAllowed) && (n.path !== "/risk" || riskAllowed) && (n.path !== "/trd" || trdAllowed) && (n.path !== "/mbr" || mbrAllowed)).map((n) => (
               <li key={n.path}>
-                <a href={href(n.path)} aria-current={route.path === n.path || (n.path === "/builder" && route.path === "/model") || (n.path === "/templates" && !!mappingId) || (n.path === "/sampling" && (route.path === "/sampling/tables" || route.path === "/sampling/subsections")) || (n.path === "/risk" && route.path === "/risk/methods") ? "page" : undefined}>
+                <a href={href(n.path)} aria-current={route.path === n.path || (n.path === "/builder" && route.path === "/model") || (n.path === "/templates" && !!mappingId) || (n.path === "/sampling" && (route.path === "/sampling/tables" || route.path === "/sampling/subsections")) || (n.path === "/risk" && route.path === "/risk/methods") || (n.path === "/mbr" && route.path === "/mbr/library") ? "page" : undefined}>
                   {n.label}
                 </a>
               </li>

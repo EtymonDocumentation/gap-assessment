@@ -46,12 +46,12 @@ function oldFile() {
 
 describe("migration 1.9.0 -> 1.10.0", () => {
   it("is the current schema version", () => {
-    expect(SCHEMA_VERSION).toBe("1.17.0");
+    expect(SCHEMA_VERSION).toBe("1.18.0");
   });
 
   it("excludes nothing after the update: the project behaves as it did", () => {
     const p = parseProject(oldFile());
-    expect(p.schemaVersion).toBe("1.17.0");
+    expect(p.schemaVersion).toBe("1.18.0");
     expect(p.stepScope).toEqual({ excluded: [] });
     const before = buildDemoProject(content, demos["arx-217"]);
     expect(assess(content, p).gaps.map((g) => g.key)).toEqual(assess(content, before).gaps.map((g) => g.key));

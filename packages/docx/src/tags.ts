@@ -279,6 +279,12 @@ export const RISK_SECTION_IDS: readonly string[] = ["purpose-scope", "method", "
  */
 export const TRD_SECTION_IDS: readonly string[] = ["product", "site", "overview", "par-nor", "overrides"];
 
+/**
+ * Fixed section ids of the master batch record that no other document has ("open-items" and "versions" are shared). The unit-operation
+ * sections have ids "section-SC-nn" that depend on the record, so they are reachable with {@body} and with their own generated tag.
+ */
+export const MBR_SECTION_IDS: readonly string[] = ["basis", "sources"];
+
 // ------------------------------------------------------------------ tag reference
 
 export interface TagReferenceEntry {
@@ -428,6 +434,11 @@ export const TAG_REFERENCE: TagReferenceEntry[] = [
     tag: sectionTagName(id),
     kind: "raw",
     description: `Raw tag {@${sectionTagName(id)}}: the section "${id}" of the TRD document (heading and content) in the tool's look. Put it alone in its own paragraph. Empty in other documents.`,
+  })),
+  ...MBR_SECTION_IDS.filter((id) => !DOCUMENT_SECTION_IDS.includes(id) && !RISK_SECTION_IDS.includes(id) && !TRD_SECTION_IDS.includes(id)).map((id): TagReferenceEntry => ({
+    tag: sectionTagName(id),
+    kind: "raw",
+    description: `Raw tag {@${sectionTagName(id)}}: the section "${id}" of the batch record document (heading and content) in the tool's look. Put it alone in its own paragraph. Empty in other documents.`,
   })),
 ];
 

@@ -9,6 +9,7 @@
 import type { SamplingState } from "./sampling";
 import type { RiskState } from "./risk";
 import type { TrdState } from "./trd";
+import type { MbrState } from "./mbr";
 
 export type Side = "source" | "target";
 
@@ -327,7 +328,7 @@ export interface DocumentExport {
   at: string;
   by?: string;
   /** The gap assessment document formats, and the three TRD seed outputs (kind "trd-*": see the TRD seed page). */
-  format: "markdown" | "html" | "docx" | "trd-seed-json" | "trd-outline-docx" | "trd-outline-html" | "sampling-plan-docx" | "sampling-plan-html" | "sampling-cmo-instructions-docx" | "sampling-cmo-instructions-html" | "risk-assessment-docx" | "risk-assessment-html" | "trd-docx" | "trd-html";
+  format: "markdown" | "html" | "docx" | "trd-seed-json" | "trd-outline-docx" | "trd-outline-html" | "sampling-plan-docx" | "sampling-plan-html" | "sampling-cmo-instructions-docx" | "sampling-cmo-instructions-html" | "risk-assessment-docx" | "risk-assessment-html" | "trd-docx" | "trd-html" | "mbr-docx" | "mbr-html";
   /** Markdown and HTML always use mode "builtin". */
   template: TemplateRecord;
   /** Latest issued revision number at export time. */
@@ -441,6 +442,8 @@ export interface Project {
   risk: RiskState;
   /** Technology transfer documents (schema 1.15.0; TRD format 1.0.0). Default and migration: none. */
   trd: TrdState;
+  /** Master batch records (schema 1.18.0; MBR format 1.0.0). Default and migration: none. */
+  mbr: MbrState;
   /** Export records and the optional-section choice for the generated document. */
   document: DocumentState;
   sources: Source[];

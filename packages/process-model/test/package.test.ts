@@ -40,7 +40,7 @@ describe("package independence", () => {
 
   it("keeps PROCESS_MODEL_VERSION equal to package.json", () => {
     expect(PROCESS_MODEL_VERSION).toBe(pkg.version);
-    expect(pkg.version).toBe("1.7.0");
+    expect(pkg.version).toBe("1.8.0");
   });
 
   it("is private until it is published on purpose", () => {
@@ -71,6 +71,10 @@ describe("public API", () => {
         "INTERVAL_UNITS",
         "ImportError",
         "KEY_LABELS",
+        "MBR_CHOICES",
+        "MBR_CHOICE_LABEL",
+        "MBR_FORMAT_VERSION",
+        "MBR_TRD_COLLECTIONS",
         "MEMO_LINES",
         "MEMO_LINE_LABEL",
         "MIXING_POSITIONS",
@@ -170,6 +174,21 @@ describe("public API", () => {
         "isValidCustomKey",
         "loadCatalog",
         "matrixConfigSchema",
+        "mbrBlockSchema",
+        "mbrLibraryBlockSchema",
+        "mbrLibraryFileSchema",
+        "mbrLibraryParamSchema",
+        "mbrLibraryTimeLimitSchema",
+        "mbrLibraryVersionSchema",
+        "mbrParamRowSchema",
+        "mbrRecordSchema",
+        "mbrSampleRowSchema",
+        "mbrSectionSchema",
+        "mbrStateSchema",
+        "mbrStepSchema",
+        "mbrTargetSchema",
+        "mbrTimeLimitSchema",
+        "mbrTrdRefSchema",
         "mixingDesignSchema",
         "mixingRunSchema",
         "newId",

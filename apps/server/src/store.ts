@@ -176,7 +176,7 @@ export class Store {
   }
 
   /** Deleted items are moved to <data>/trash/<userId>/..., never erased. */
-  async toTrash(userId: string, kind: "projects" | "templates" | "files" | "sampling-tables" | "subsections" | "risk-methods", from: string, name: string): Promise<void> {
+  async toTrash(userId: string, kind: "projects" | "templates" | "files" | "sampling-tables" | "subsections" | "risk-methods" | "mbr-blocks", from: string, name: string): Promise<void> {
     const dest = this.path("trash", userId, kind, `${new Date().toISOString().replace(/[:.]/g, "-")}-${randomUUID().slice(0, 8)}-${name}`);
     await mkdir(dirname(dest), { recursive: true, mode: DIR_MODE });
     await renameWithRetry(from, dest);

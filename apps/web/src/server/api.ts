@@ -309,3 +309,8 @@ export function uploadMyFile(file: File, folder: string, onProgress: (fraction: 
   });
   return { done, cancel: () => xhr.abort() };
 }
+
+// ------------------------------------------------------------------ Batch record step blocks (module "mbr")
+export const listMbrBlocks = () => json<{ blocks: unknown[] }>("GET", "/api/mbr-blocks").then((r) => r.blocks);
+export const putMbrBlock = (id: string, block: unknown) => json<{ block: unknown }>("PUT", `/api/mbr-blocks/${enc(id)}`, { json: { block } });
+export const deleteMbrBlock = (id: string) => call("DELETE", `/api/mbr-blocks/${enc(id)}`).then(() => undefined);

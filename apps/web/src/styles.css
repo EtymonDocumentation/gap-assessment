@@ -2306,6 +2306,12 @@ fieldset.fs > legend {
 details > summary {
   cursor: pointer;
 }
+/* The flow-figure fold-outs sit one under another; without a minimum height their one-line summaries are
+   under the 24 px target size (WCAG 2.5.8) where Linux fonts render smaller, so axe fails on tablet in CI. */
+[data-testid="figure-data-card"] details > summary {
+  min-height: 24px;
+  padding: 0.25rem 0;
+}
 /* A select with long option text (a point list) must shrink to its field instead of widening the page. */
 .field,
 .field select,
@@ -2885,4 +2891,126 @@ tr.row-hl > th,
 tr.row-hl > td {
   background: var(--accent-soft);
   box-shadow: inset 0 2px 0 var(--focus), inset 0 -2px 0 var(--focus);
+}
+
+/* ------------------------------------------------------------------ Batch record (M11) */
+/* Colours come only from the tokens above, so light and dark follow. Every state is also written in words. */
+.mbr-block {
+  border-left: 4px solid var(--accent);
+}
+.mbr-block-title {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.mbr-toggle {
+  background: none;
+  border: 0;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.25rem 0;
+  text-align: left;
+}
+.mbr-toggle:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.mbr-steps {
+  display: grid;
+  gap: 0.5rem;
+}
+.mbr-step {
+  align-items: baseline;
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+}
+.mbr-step-no {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+.mbr-step-text,
+.mbr-step-edit {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.mbr-step-actions,
+.mbr-step-edit {
+  grid-column: 2;
+}
+.mbr-rows,
+.mbr-limits,
+.mbr-targets {
+  display: grid;
+  gap: 0.75rem;
+}
+.mbr-row,
+.mbr-limit,
+.mbr-target {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem;
+}
+.mbr-row-head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.mbr-trd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  align-items: center;
+}
+.mbr-trd-label {
+  color: var(--muted);
+}
+.mbr-source-chip {
+  background: var(--accent-soft);
+  border: 1px solid var(--border);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.mbr-choice {
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  margin: 0;
+  padding: 0;
+}
+.mbr-note {
+  border-left: 4px solid var(--c-info, var(--accent));
+  margin: 0;
+  padding: 0.25rem 0.5rem;
+}
+.mbr-more > summary {
+  cursor: pointer;
+  padding: 0.25rem 0;
+}
+.mbr-more > summary:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.mbr-row:focus {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+@media (max-width: 30rem) {
+  .mbr-step {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mbr-step-actions,
+  .mbr-step-edit {
+    grid-column: 1;
+  }
+  .mbr-choice {
+    flex-direction: column;
+  }
 }

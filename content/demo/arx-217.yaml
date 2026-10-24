@@ -1050,3 +1050,43 @@ trd:
       setPoint: { value: 300, unit: units/min, source: DEMO-PD-217-01, section: "8.1", page: "36" }
       nor: { min: 280, max: 320, unit: units/min, basis: Proposed from process development, source: DEMO-PD-217-01, section: "8.1", page: "36" }
       par: { min: 250, max: 350, unit: units/min, basis: Proposed from process development, source: DEMO-PD-217-01, section: "8.1", page: "37" }
+mbr:
+  at: "2026-10-14T09:00:00.000Z"
+  by: Alex Example (fictional)
+  role: MSAT engineer
+  title: ARX-217 master batch record, Site South Line 4 (fictional)
+  docRef: DEMO-MBR-217-01
+  sections:
+    - { uo: ds_shipping_inbound, blocks: [inbound_shipment_check] }
+    - { uo: ds_receipt_thaw, blocks: [receipt_and_thaw] }
+    - { uo: compounding, blocks: [pooling_with_weights, dilution_and_mixing, sample_table] }
+    - { uo: bbr_filtration, blocks: [bbr_filtration_run, filter_integrity_test] }
+    - { uo: sterile_filtration, blocks: [sterile_filtration_run] }
+    - { uo: aseptic_filling, blocks: [line_preparation, filling_run, stopper_position_check, filtered_hold, sample_table] }
+    - { uo: capping, blocks: [capping_run] }
+    - { uo: visual_inspection, blocks: [visual_inspection_run] }
+    - { uo: bulk_packaging, blocks: [bulk_packing, reconciliation_chain] }
+    - { uo: labeling_packaging, blocks: [labeling_run] }
+    - { uo: storage_shipping, blocks: [storage_and_shipment] }
+    - { title: Batch record review, blocks: [batch_review] }
+  # Rows the team has not decided yet; every other row with a TRD value is set to "same as TRD".
+  undecided:
+    - compounding.temperature
+    - compounding.temperature_range
+    - sterile_filtration.differential_pressure_range
+    - aseptic_filling.fill_volume_range
+    - aseptic_filling.line_speed_range
+    - visual_inspection.inspection_rate_range
+    - labeling_packaging.labeling_speed_range
+  rows:
+    # One value the receiving unit tightens inside the TRD range, with its reason.
+    - { uo: compounding, row: mixing_time_range, choice: tightened_by_cmo, mbrValue: 27 to 33, mbrUnit: min, reason: "The mixer ramps up slowly, so the receiving unit narrows the allowed mixing time (fictional)" }
+    # One study point beyond the TRD range: a challenge run, not a limit.
+    - { uo: aseptic_filling, row: line_speed_range, mbrValue: "330", mbrUnit: units/min, studyPoint: true, reason: "Challenge run at a higher line speed for the line-speed study (fictional)" }
+  limits:
+    # One time limit with two targets under it.
+    - uo: compounding
+      limit: bulk_hold
+      targets:
+        - { label: Mixing end to start of sterile filtration, value: "24", unit: h, fromStep: 2, toStep: 5 }
+        - { label: Transfer and waiting before filtration, value: "8", unit: h, fromStep: 5, toStep: 5 }
