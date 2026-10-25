@@ -1,4 +1,4 @@
-import { Canvas, COLORS, hoursText, nbUnit, packRows, textWidth, wrap, type PackItem } from "./draw.js";
+import { Canvas, COLORS, hoursText, nbUnit, packRows, hasOverlongWord, textWidth, wrap, type PackItem } from "./draw.js";
 import { cmpText, type Scope, type SampleView } from "./model.js";
 
 /**
@@ -92,7 +92,14 @@ function blockText(name: string, detail: string | undefined, w: number, maxLines
   const nameLines = wrap(name, 8.5, room, true);
   const rest = detail ? wrap(detail, 8.5, room) : [];
   const lines = [...nameLines.map((text) => ({ text, bold: true })), ...rest.map((text) => ({ text }))];
-  const brokenWord = [...nameLines, ...rest].some((l) => textWidth(l, 8.5, true) > room);
+  // wrap() never drops text: a word wider than the block is chopped into pieces that each fit ("Post-filtratio" / "n hold"). A split
+  // word misreads on a printed GMP figure, so such a block gets its label outside with a leader instead. Hyphens are not break
+  // opportunities (a hyphenated name is one word), so "Post-filtration" moves outside rather than wrapping after the hyphen.
+  const cutWord = hasOverlongWord(name, 8.5, room, true) || (detail !== undefined && hasOverlongWord(detail, 8.5, room));
+  // Kept from before: a line whose bold width exceeds the room also sends the label outside (a strict, harmless extra margin for the
+  // regular-weight detail lines), so this fix only adds outside labels and never moves one back inside.
+  const wideLine = [...nameLines, ...rest].some((l) => textWidth(l, 8.5, true) > room);
+  const brokenWord = cutWord || wideLine;
   return { lines, inside: room >= 28 && !brokenWord && lines.length <= maxLines };
 }
 

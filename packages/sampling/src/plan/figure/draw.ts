@@ -31,10 +31,22 @@ export function textWidth(s: string, size: number, bold = false): number {
   return s.length * size * (bold ? 0.6 : 0.55);
 }
 
+/** Plain whitespace only (not \s): a no-break space keeps a number and its unit on one line. */
+const WORD_SPACE = new RegExp("[ " + String.fromCharCode(9, 13, 10) + "]+");
+
+/**
+ * True when `wrap` would have to cut a word of `s` to make it fit `maxW` (a word is anything between plain whitespace, so a hyphenated
+ * word is one word: hyphens are not break opportunities). Lets a caller refuse to draw text in a box too narrow for a whole word,
+ * without changing what `wrap` returns for any other caller.
+ */
+export function hasOverlongWord(s: string, size: number, maxW: number, bold = false): boolean {
+  return s.split(WORD_SPACE).some((w) => w && textWidth(w, size, bold) > maxW);
+}
+
 /** Greedy word wrap to a width. A single word longer than the width is cut (it is shown, never dropped). */
 export function wrap(s: string, size: number, maxW: number, bold = false): string[] {
   // Split on plain whitespace only (not \s): a no-break space keeps a number and its unit on one line.
-  const words = s.split(/[ \t\r\n]+/).filter(Boolean);
+  const words = s.split(WORD_SPACE).filter(Boolean);
   const lines: string[] = [];
   let cur = "";
   const fits = (t: string) => textWidth(t, size, bold) <= maxW;

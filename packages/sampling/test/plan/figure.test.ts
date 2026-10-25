@@ -152,6 +152,43 @@ describe("figure legibility (M10 review)", () => {
   });
 });
 
+describe("a block never shows a word cut in two", () => {
+  // Bold texts: a block's inside lines are their own <text font-weight="700">, an outside label bolds its name in a <tspan>.
+  const tspans = (svg: string) => [...svg.matchAll(/<text [^>]*font-weight="700"[^>]*>([^<]*)<\/text>|<tspan font-weight="700">([^<]*)<\/tspan>/g)].map((m) => (m[1] ?? m[2])!.replace(/&amp;/g, "&"));
+
+  it("a block too narrow for a whole word gets its label outside; a wide enough block keeps it inside", () => {
+    let inside = 0;
+    let outside = 0;
+    for (let hours = 1; hours <= 80; hours += 1) {
+      const plan = fixturePlan({ samples: 0 });
+      // A short detail ("9 h at CRT" fits one line) so that only the long name decides whether the text can sit inside the block.
+      Object.assign(plan.holds!.find((h) => h.id === "HD-03")!, { durationHours: hours, durationText: "9 h" });
+      const nameWords = [...plan.steps.map((s) => s.label), ...plan.holds!.map((h) => h.label)].flatMap((n) => n.split(" "));
+      const wholeWords = new Set(nameWords);
+      const [fig] = buildFigures(plan, { style: "time_scale" });
+      for (const p of fig!.pages) {
+        // A bold text is never a fragment of a name word (such as "filtratio" or "n"): it is a whole word or not a name word at all.
+        for (const t of tspans(p.svg)) for (const w of t.split(" ")) if (w) expect(wholeWords.has(w) || !nameWords.some((n) => n.includes(w)), `cut word "${w}" at ${hours} h`).toBe(true);
+        const labelBox = p.boxes.find((b) => b.kind === "hold" && b.id === "HD-03" && Math.abs(b.h - 11) < 0.01);
+        if (labelBox) outside++; else if (p.boxes.some((b) => b.kind === "hold" && b.id === "HD-03")) inside++;
+      }
+    }
+    expect(outside).toBeGreaterThan(0); // narrow blocks: label moved outside
+    expect(inside).toBeGreaterThan(0); // wide blocks: label still inside
+  });
+
+  it("a 'Post-filtration hold' block narrower than the word 'Post-filtration' is labelled outside, whole", () => {
+    const plan = fixturePlan({ samples: 0 });
+    Object.assign(plan.holds!.find((h) => h.id === "HD-03")!, { durationHours: 60, durationText: "9 h" });
+    const [fig] = buildFigures(plan, { style: "time_scale" });
+    const svg = fig!.pages.map((p) => p.svg).join("");
+    expect(svg).toContain("Post-filtration hold"); // whole name, written outside the block with a leader
+    expect(svg).not.toMatch(/>Post-filtratio</);
+    expect(svg).not.toMatch(/>n hold</);
+    expect(svg).not.toMatch(/>Post-filtrati</);
+  });
+});
+
 describe("outside labels keep clear of dashed time-limit lines", () => {
   const GAP = 6; // LABEL_LINE_GAP; restated so a silent change of the constant is noticed
   /** x of every dashed vertical time-limit line in the svg. */
