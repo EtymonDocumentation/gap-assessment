@@ -25,6 +25,12 @@ const BOX_ROW = 25;
 /** Pins closer than this many hours share one box. */
 export const PIN_CLUSTER_HOURS = 10;
 const MAX_PINS_PER_BOX = 8;
+/**
+ * Clear space (figure units, about 1.5 mm at print size) between an outside label's patch edge and a dashed time-limit line.
+ * Why: on a printed figure a text edge that touches or nearly touches a time-limit line reads as joined to it, and a reader could
+ * take the label as belonging to the limit. A line is either clear of the label by this gap or well inside the label's patch.
+ */
+export const LABEL_LINE_GAP = 6;
 
 export interface PinCluster {
   samples: SampleView[];
@@ -155,19 +161,54 @@ export function drawTimeScale(cv: Canvas, scope: Scope, top: number): number {
   const outside = (marks: Mark[]) => marks.filter((m) => !m.lab.inside);
   /** Outside label geometry: text starts at the leader, or ends at it when it would run off the page; tries both sides around target lines. */
   const placeLabel = (m: Mark) => {
-    const cx = m.x + m.w / 2;
+    // The leader may attach anywhere along the top of its block (the drawn rectangle, not the gap between neighbours). It sits at the
+    // centre unless a target line is within LABEL_LINE_GAP of it; then it moves to the spot in the block farthest from every line, so
+    // a leader and a dashed line never read as one double line.
+    const g = (m.w - inner(m.w)) / 2;
+    const near = (x: number) => Math.min(LABEL_LINE_GAP, ...blockers.map((bx) => Math.abs(bx - x)));
+    const mid = m.x + m.w / 2;
+    let cx = mid;
+    if (near(mid) < LABEL_LINE_GAP) {
+      let best = near(mid);
+      for (let x = m.x + g; x <= m.x + m.w - g + 0.001; x += 0.5) {
+        const sc = near(x);
+        if (sc > best + 0.001 || (sc > near(mid) && Math.abs(sc - best) <= 0.001 && Math.abs(x - mid) < Math.abs(cx - mid))) { best = sc; cx = x; }
+      }
+    }
     const text = m.detail ? `${m.name} ${m.detail}` : m.name;
     const w = textWidth(text, 8.5, true) * 0.95 + 4;
-    const hits = (a: number, b: number) => blockers.some((bx) => bx >= a - 2 && bx <= b + 2 && Math.abs(bx - cx) > 1.5);
     const startExt: [number, number] = [cx - 2, cx + w];
     const endExt: [number, number] = [cx - w, cx + 2];
     const fitsRight = startExt[1] <= W - 4;
     const fitsLeft = endExt[0] >= 4;
+    const others = blockers.filter((bx) => Math.abs(bx - cx) > 1.5);
+    // A label may cross a target line (the paper patch breaks the line behind it) but its text must never begin or end next to one:
+    // an edge within LABEL_LINE_GAP of a line is pushed out past the line, so the line sits well inside the patch.
+    const clear = (e: [number, number]) => {
+      let [a, b] = e;
+      for (let n = 0; n < others.length + 2; n++) {
+        let moved = false;
+        for (const bx of others) {
+          if (bx > a - LABEL_LINE_GAP && bx < a + LABEL_LINE_GAP) { a = bx - LABEL_LINE_GAP; moved = true; }
+          if (bx > b - LABEL_LINE_GAP && bx < b + LABEL_LINE_GAP) { b = bx + LABEL_LINE_GAP; moved = true; }
+        }
+        if (!moved) break;
+      }
+      return { ext: [a, b] as [number, number], crosses: others.some((bx) => bx >= a && bx <= b) };
+    };
+    const right = clear(startExt);
+    const left = clear(endExt);
+    // Cost: off the page is worst; a side that crosses no line beats one that crosses some (as before). Widening the patch to keep
+    // the gap costs nothing visible (the text does not move), so it does not make a side worse: the label stays to the right of its
+    // leader unless the left is genuinely clear, and the usual layout and row count only change when they have to.
+    const cost = (c: ReturnType<typeof clear>) => (c.ext[0] < 4 || c.ext[1] > W - 4 ? 1e6 : 0) + (c.crosses ? 1000 : 0);
     let useStart = fitsRight;
-    if (fitsRight && fitsLeft && hits(...startExt) && !hits(...endExt)) useStart = false;
+    if (fitsRight && fitsLeft && cost(left) < cost(right)) useStart = false;
     if (!fitsRight) useStart = false;
-    const ext = useStart ? startExt : endExt;
-    return { m, cx, text, w, start: useStart, ext };
+    const pick = useStart ? right : left;
+    // The text stays flush with its leader whatever the patch width: it starts at the leader, or (end-anchored, because the width here
+    // is a generous estimate) ends exactly at it. Widening only ever grows the background patch.
+    return { m, cx, text, w, start: useStart, ext: pick.ext, tx: cx };
   };
   const stepOut = outside(stepMarks).map(placeLabel);
   const labelOrder = (ls: ReturnType<typeof placeLabel>[]) => [...ls.keys()].sort((a, b) => (ls[a]!.start === ls[b]!.start ? (ls[a]!.start ? ls[b]!.cx - ls[a]!.cx : ls[a]!.cx - ls[b]!.cx) : ls[a]!.start ? 1 : -1));
@@ -217,11 +258,10 @@ export function drawTimeScale(cv: Canvas, scope: Scope, top: number): number {
     labels.forEach((l, i) => late.push(() => {
       const r = rows[i]!;
       const ty = dir === -1 ? baseY - r * ROW_H - 3 : baseY + r * ROW_H + 9;
-      const tx = l.start ? l.cx : l.cx;
       cv.rect(l.ext[0], ty - 8.5, l.ext[1] - l.ext[0], 11, { fill: COLORS.paper });
       cv.line(l.cx, laneEdge, l.cx, dir === -1 ? ty + 2 : ty - 9, COLORS.ink, 0.8);
       const full = l.m.detail ? ([l.m.name, ` ${l.m.detail}`] as const) : ([l.m.name, ""] as const);
-      cv.textLead(l.start ? tx + 0 : l.ext[0] + 2, ty, full[0], full[1], { size: 8.5 });
+      cv.textLead(l.tx, ty, full[0], full[1], { size: 8.5, anchor: l.start ? "start" : "end" });
       cv.box({ kind: l.m.kind, id: l.m.id, x: l.ext[0], y: ty - 8.5, w: l.ext[1] - l.ext[0], h: 11 });
     }));
   };

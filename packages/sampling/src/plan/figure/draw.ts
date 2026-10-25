@@ -168,7 +168,7 @@ export class Canvas {
   textLead(x: number, y: number, lead: string, rest: string, o: TextOpts = {}): void {
     const size = o.size ?? 8.5;
     this.minFont = Math.min(this.minFont, size);
-    const make = (paint: string) => `<text x="${n(x)}" y="${n(y)}" font-size="${size}" ${paint}><tspan font-weight="700">${xe(lead)}</tspan>${xe(rest)}</text>`;
+    const make = (paint: string) => `<text x="${n(x)}" y="${n(y)}" font-size="${size}"${o.anchor && o.anchor !== "start" ? ` text-anchor="${o.anchor}"` : ""} ${paint}><tspan font-weight="700">${xe(lead)}</tspan>${xe(rest)}</text>`;
     this.halo(o, make);
     this.parts.push(make(`fill="${o.fill ?? COLORS.ink}"`));
   }

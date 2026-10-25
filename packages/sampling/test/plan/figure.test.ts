@@ -151,3 +151,156 @@ describe("figure legibility (M10 review)", () => {
     expect(fig!.pages[0]!.svg).toMatch(/>No samples at this step\.<\/text>/);
   });
 });
+
+describe("outside labels keep clear of dashed time-limit lines", () => {
+  const GAP = 6; // LABEL_LINE_GAP; restated so a silent change of the constant is noticed
+  /** x of every dashed vertical time-limit line in the svg. */
+  const targetXs = (svg: string) =>
+    [...svg.matchAll(/<line x1="([\d.]+)" y1="[\d.]+" x2="([\d.]+)" y2="[\d.]+" stroke="#374151" stroke-width="1.2" stroke-dasharray="4 3"\/>/g)]
+      .filter((m) => m[1] === m[2])
+      .map((m) => Number(m[1]));
+
+  /** Every outside label box (height 11) must be clear of each line by GAP, or have the line inside it with GAP either side. */
+  function check(plan: ReturnType<typeof fixturePlan>) {
+    let outsideLabels = 0;
+    let nearest = Infinity;
+    const [fig] = buildFigures(plan, { style: "time_scale" });
+    for (const p of fig!.pages) {
+      const xs = targetXs(p.svg);
+      for (const b of p.boxes.filter((k) => (k.kind === "step" || k.kind === "hold") && Math.abs(k.h - 11) < 0.01)) {
+        outsideLabels++;
+        for (const x of xs) {
+          const gapOutside = Math.max(b.x - x, x - (b.x + b.w)); // > 0: line beside the box
+          const gapInside = Math.min(x - b.x, b.x + b.w - x); // > 0: line inside the box
+          // a line under the label's own leader (label starts at cx - 2 or ends at cx + 2) is covered by that leader, never by text
+          const ownLeader = Math.abs(x - (b.x + 2)) <= 1.6 || Math.abs(x - (b.x + b.w - 2)) <= 1.6;
+          const ok = ownLeader || gapOutside >= GAP - 0.05 || gapInside >= GAP - 0.05;
+          if (!ok) nearest = Math.min(nearest, Math.abs(gapOutside > 0 ? gapOutside : gapInside));
+          expect(ok, `${b.id}: line at ${x} vs label ${b.x}..${b.x + b.w} (${gapOutside > 0 ? "beside" : "inside"} by ${gapOutside > 0 ? gapOutside : gapInside})`).toBe(true);
+        }
+      }
+    }
+    return outsideLabels;
+  }
+
+  it("the clearance constant is the one the tests assume", async () => {
+    const mod = await import("../../src/plan/figure/time-scale");
+    expect(mod.LABEL_LINE_GAP).toBe(GAP);
+  });
+
+  it("sweeping step and hold lengths so target lines land 0-8 px from where label text ends or starts, on both sides", () => {
+    let total = 0;
+    for (let d = 0; d <= 40; d += 0.5) {
+      for (const which of ["ST-02", "ST-03", "ST-05", "ST-06"]) {
+        const plan = fixturePlan({ samples: 6 });
+        const st = plan.steps.find((s) => s.id === which)!;
+        st.durationHours = (st.durationHours ?? 1) + d;
+        total += check(plan);
+      }
+      const plan = fixturePlan({ samples: 6, buffer: true });
+      plan.holds![1]!.durationHours = 24 + d;
+      total += check(plan);
+    }
+    expect(total).toBeGreaterThan(100); // the sweep really produced outside labels
+  });
+
+  it("both sides hit: the label picks the side that needs less widening and still keeps the gap", () => {
+    // Two targets a few hours apart bracket a short step, so a label to either side meets a line.
+    for (let near = 1; near <= 12; near++) {
+      const plan = fixturePlan({ samples: 6 });
+      plan.timeTargets = [
+        { id: "TT-01", label: "Left limit", fromStepId: "ST-01", fromEdge: "end", toStepId: "ST-03", toEdge: "start", comparator: ">=", hours: 1 },
+        { id: "TT-02", label: "Right limit", fromStepId: "ST-01", fromEdge: "end", toStepId: "ST-03", toEdge: "end", comparator: ">=", hours: 1 + near },
+      ];
+      check(plan);
+    }
+  });
+
+  /** Each outside label with the leader that belongs to it (found by the leader's end y) and the text's anchor x and mode. */
+  function labelsWithLeaders(svg: string, boxes: { kind: string; id: string; x: number; y: number; w: number; h: number }[]) {
+    const leaders = [...svg.matchAll(/<line x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)" stroke="#[0-9a-f]+" stroke-width="0.8"\/>/g)]
+      .map((m) => ({ x: Number(m[1]), y1: Number(m[2]), y2: Number(m[4]), vertical: m[1] === m[3] }))
+      .filter((l) => l.vertical);
+    const texts = [...svg.matchAll(/<text x="([\d.]+)" y="([\d.]+)" font-size="8.5"( text-anchor="end")? fill="#[0-9a-f]+"><tspan font-weight="700">/g)].map((m) => ({ x: Number(m[1]), y: Number(m[2]), end: !!m[3] }));
+    const out: { id: string; leader: number; x: number; end: boolean; block: { x: number; w: number } | undefined }[] = [];
+    for (const b of boxes.filter((k) => (k.kind === "step" || k.kind === "hold") && Math.abs(k.h - 11) < 0.01)) {
+      const ty = b.y + 8.5;
+      const t = texts.find((c) => Math.abs(c.y - ty) < 0.01 && c.x >= b.x - 1 && c.x <= b.x + b.w + 1);
+      const l = leaders.filter((c) => Math.abs(c.y2 - (ty + 2)) < 0.01 || Math.abs(c.y2 - (ty - 9)) < 0.01).sort((a, c) => Math.abs(a.x - (t?.x ?? 0)) - Math.abs(c.x - (t?.x ?? 0)))[0];
+      expect(t, `${b.id} text`).toBeDefined();
+      expect(l, `${b.id} leader`).toBeDefined();
+      const blk = boxes.find((k) => k.kind === b.kind && k.id === b.id && Math.abs(k.h - 11) > 0.01 && k.h > 20);
+      out.push({ id: b.id, leader: l!.x, x: t!.x, end: t!.end, block: blk });
+    }
+    return out;
+  }
+  const sweepPlans = () => {
+    const plans: ReturnType<typeof fixturePlan>[] = [];
+    for (let d = 0; d <= 40; d += 1) {
+      for (const which of ["ST-02", "ST-03", "ST-05", "ST-06"]) {
+        const plan = fixturePlan({ samples: 6 });
+        const st = plan.steps.find((q) => q.id === which)!;
+        st.durationHours = (st.durationHours ?? 1) + d;
+        plans.push(plan);
+      }
+    }
+    plans.push(fixturePlan({ samples: 12, buffer: true }), fixturePlan({ samples: 6 }));
+    return plans;
+  };
+
+  it("the text stays flush with its leader: it starts at the leader, or ends exactly at it, however far the patch was widened", () => {
+    let ends = 0, starts = 0;
+    for (const plan of sweepPlans())
+      for (const fig of buildFigures(plan, { style: "time_scale" }))
+        for (const p of fig.pages)
+          for (const l of labelsWithLeaders(p.svg, p.boxes)) {
+            expect(Math.abs(l.x - l.leader), `${l.id} text anchor ${l.x} vs leader ${l.leader}`).toBeLessThanOrEqual(3);
+            if (l.end) ends++; else starts++;
+          }
+    expect(ends).toBeGreaterThan(0);
+    expect(starts).toBeGreaterThan(0);
+  });
+
+  it("a leader never runs beside a dashed time-limit line: at least the gap apart, unless its block has no spot that is", () => {
+    let nudged = 0;
+    for (const plan of sweepPlans())
+      for (const fig of buildFigures(plan, { style: "time_scale" }))
+        for (const p of fig.pages) {
+          const xs = targetXs(p.svg);
+          for (const l of labelsWithLeaders(p.svg, p.boxes)) {
+            const dist = Math.min(...xs.map((x) => Math.abs(x - l.leader)));
+            if (dist >= GAP - 0.05) continue;
+            // The block rectangle is drawn 1.5 inside its span when wide enough; any point on it is a legal attach point.
+            const b = l.block!;
+            const g = b.w >= 3 * 1.5 + 8 ? 1.5 : 0;
+            let best = 0;
+            for (let x = b.x + g; x <= b.x + b.w - g + 0.001; x += 0.5) best = Math.max(best, Math.min(GAP, ...xs.map((t) => Math.abs(t - x))));
+            expect(dist, `${l.id}: leader ${l.leader} is ${dist} from a line, best possible in block ${best}`).toBeGreaterThanOrEqual(best - 0.3);
+            nudged++;
+          }
+        }
+    expect(nudged).toBeGreaterThanOrEqual(0);
+  });
+
+  it("a leader that would sit beside a target line is moved along its block until the gap is kept", () => {
+    // A short step with a limit line on one of its own edges: the centre is under the gap from the line, the far end is not.
+    let moved = 0;
+    for (const dur of [8, 9, 10])
+      for (const toEdge of ["start", "end"] as const) {
+        const plan = fixturePlan({ samples: 6 });
+        plan.steps.find((q) => q.id === "ST-02")!.durationHours = dur;
+        plan.timeTargets = [{ id: "TT-01", label: "Limit", fromStepId: "ST-01", fromEdge: "end", toStepId: "ST-02", toEdge, comparator: ">=", hours: 5 }];
+        for (const fig of buildFigures(plan, { style: "time_scale" }))
+          for (const p of fig.pages) {
+            const xs = targetXs(p.svg);
+            for (const l of labelsWithLeaders(p.svg, p.boxes)) {
+              if (l.id !== "ST-02") continue;
+              const mid = l.block!.x + l.block!.w / 2;
+              if (Math.min(...xs.map((x) => Math.abs(x - mid))) < GAP) moved++;
+              expect(Math.min(...xs.map((x) => Math.abs(x - l.leader))), `dur ${dur} ${toEdge}`).toBeGreaterThanOrEqual(GAP - 0.05);
+            }
+          }
+      }
+    expect(moved).toBeGreaterThan(0);
+  });
+});
