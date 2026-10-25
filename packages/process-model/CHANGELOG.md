@@ -2,6 +2,16 @@
 
 All notable changes to `@gap/process-model`. Versions follow semver; see README.md for what counts as breaking.
 
+## 1.9.0
+
+TRD format 1.1.0, write-up library format 1.0.0 (project schema 1.19.0). Additive: nothing was removed, and a TRD without `writeups` is unchanged.
+
+### Added
+- TRD write-ups (`trdDocument.writeups`, WU-nn): a process description per TRD step and the TRD-level prose sections, kept as ordered parts
+  with optional (switched-off) parts, blanks written `{{key|Label}}`, values typed for a blank, and the library entry and version each was
+  copied from. Library schemas: `trdLibraryWriteupSchema`, `trdLibraryFileSchema`.
+- Migration 1.18.0 -> 1.19.0: version only.
+
 ## 1.8.0
 
 MBR format 1.0.0 (project schema 1.18.0). Additive: nothing was removed, and a project without `mbr` migrates to an empty one.

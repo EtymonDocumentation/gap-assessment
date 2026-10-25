@@ -1,19 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { emptyProject, MBR_CHOICE_LABEL, mbrRecordSchema, parseProject, type Actor } from "../src/index";
 
-// Schema 1.18.0: the optional `mbr` part (master batch records). Old projects load unchanged and gain an empty list, nothing else.
+// Schema 1.19.0: the optional `mbr` part (master batch records). Old projects load unchanged and gain an empty list, nothing else.
 const T0 = "2026-10-01T09:00:00.000Z";
 const ACTOR: Actor = { name: "Alex Example (fictional)", role: "MSAT engineer", at: T0 };
 const refs = { catalog: "1.0.0", questions: "1.0.0", rules: "1.0.0", templates: "1.0.0" };
 
-describe("migration to 1.18.0: batch records", () => {
+describe("migration to 1.19.0: batch records", () => {
   it("loads a 1.17.0 project without the mbr part, adds an empty list and changes nothing else", () => {
     const old = JSON.parse(JSON.stringify(emptyProject({ title: "Old project (fictional)", actor: ACTOR, contentRefs: refs }))) as Record<string, any>;
     delete old.mbr;
     old.schemaVersion = "1.17.0";
     const before = old.changeLog.length;
     const p = parseProject(old);
-    expect(p.schemaVersion).toBe("1.18.0");
+    expect(p.schemaVersion).toBe("1.19.0");
     expect(p.mbr).toEqual({ records: [] });
     expect(p.meta.title).toBe("Old project (fictional)");
     expect(p.changeLog.length).toBe(before);

@@ -19,8 +19,13 @@ import { STAGE_NOT_ESTABLISHED, stageBasis, stagedFor, stageWording } from "./st
 
 export type Block =
   | { type: "paragraph"; text: string }
-  | { type: "heading"; text: string }
+  /** `level` 2 is a heading one step below the usual sub-heading (a numbered sub-sub-section such as "5.7.1 Filling"). */
+  | { type: "heading"; text: string; level?: 2 }
   | { type: "list"; items: string[] }
+  /** Text with bold and unfilled-blank runs (the TRD process descriptions). `style` "note" is drawn as a note. */
+  | { type: "rich"; style: "paragraph" | "note"; runs: Run[] }
+  /** A list of rich items: bullets, or lettered sub-steps (a., b., c.). */
+  | { type: "rich-list"; style: "bullet" | "letter"; items: Run[][] }
   /**
    * `weights` (optional, one per column) are the preferred relative column widths of a table whose long text sits in one column. Word and
    * HTML follow them (Word still gives every column room for its longest word); renderers that cannot size columns ignore them.
@@ -28,6 +33,16 @@ export type Block =
   | { type: "table"; columns: string[]; rows: string[][]; caption?: string; weights?: number[] }
   | { type: "note"; text: string }
   | FigureBlock;
+
+/**
+ * A run of rich text. `open` marks a blank nobody has filled: its text is the label in square brackets, so the gap is visible in
+ * plain text as well as in the highlight (a colour is never the only cue).
+ */
+export interface Run {
+  text: string;
+  bold?: boolean;
+  open?: boolean;
+}
 
 /**
  * A drawn figure (the PPQ flow figure of a sampling plan). It carries the SVG of every page, already laid out at printed landscape

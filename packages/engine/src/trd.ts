@@ -17,6 +17,7 @@ import {
   type TrdDocument,
   type TrdField,
   type TrdItem,
+  type TrdLibraryWriteup,
   type TrdLimits,
   type TrdOverride,
   type TrdPulled,
@@ -27,6 +28,7 @@ import {
 import { checkLimits, rangeText, setPointText, type LimitFinding } from "./trd-check";
 import { seedValueText } from "./trd-outline";
 import { trdSeedContentFingerprint } from "./trd-seed";
+import { seedWriteups } from "./trd-writeup";
 import type { StepDraft } from "./sampling";
 
 /**
@@ -228,7 +230,7 @@ function originSeed(seed: TrdSeed) {
 
 export type TrdStart = { kind: "project"; seed: TrdSeed } | { kind: "seed-import"; seed: TrdSeed } | { kind: "blank"; steps?: StepDraft[] };
 
-export function createTrd(project: Project, input: { title: string; docRef?: string; start: TrdStart }, actor: Actor): { project: Project; trdId: string } {
+export function createTrd(project: Project, input: { title: string; docRef?: string; start: TrdStart; library?: readonly TrdLibraryWriteup[] }, actor: Actor): { project: Project; trdId: string } {
   const title = text(input.title);
   if (!title) throw new TrdError("The TRD needs a title");
   const next = structuredClone(project);
@@ -258,6 +260,12 @@ export function createTrd(project: Project, input: { title: string; docRef?: str
     doc.origin.seed = originSeed(seed);
     doc.origin.seedSources = seed.sources;
     for (const s of seedToTrdParts(seed).steps) doc.steps.push({ ...s, id: stepId() });
+  }
+  // Process descriptions are copied from the write-up library when the caller passes it (the library lives in the browser or on the
+  // server, not in the project). Without it the TRD starts with none, as before; "Add from library" can still bring them in later.
+  if (input.library?.length) {
+    const wus = seedWriteups(next, doc, input.library);
+    if (wus.length) doc.writeups = wus;
   }
   assertValid(doc);
   next.trd.documents.push(doc);

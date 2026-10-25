@@ -85,7 +85,7 @@ const REVIEWER: Actor = { name: "A. Reviewer (fictional)", role: "QA", at: T1 };
 
 describe("migration 1.8.0 -> 1.9.0", () => {
   it("is the current schema version", () => {
-    expect(SCHEMA_VERSION).toBe("1.18.0");
+    expect(SCHEMA_VERSION).toBe("1.19.0");
   });
 
   it("converts every unknown entry to a TBD with empty details and nothing invented", () => {
@@ -93,7 +93,7 @@ describe("migration 1.8.0 -> 1.9.0", () => {
     const unknownCount = rawEntries(old).filter((e) => e.status === "unknown").length;
     expect(unknownCount).toBeGreaterThan(5);
     const p = parseProject(old, { now: NOW });
-    expect(p.schemaVersion).toBe("1.18.0");
+    expect(p.schemaVersion).toBe("1.19.0");
     const migrated = rawEntries(json(p));
     expect(migrated.some((e) => e.status === "unknown")).toBe(false);
     const converted = rawEntries(old)

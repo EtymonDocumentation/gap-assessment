@@ -16,7 +16,7 @@ import { emptyProject, parseProject, type Actor, type Project } from "@gap/proce
 import { del, get, set } from "idb-keyval";
 import { useMemo } from "react";
 import { create } from "zustand";
-import { content, demos, designLoadouts, failureModes, mbrLibrary, riskLoadouts, samplingSuggestions } from "@gap/content";
+import { content, demos, designLoadouts, failureModes, mbrLibrary, riskLoadouts, samplingSuggestions, trdWriteups } from "@gap/content";
 import { useSamplingTables } from "./sampling-tables-store";
 import { useSubsectionLibrary } from "./subsections-library-store";
 import { resetFiles } from "./server/files";
@@ -105,7 +105,7 @@ export const useStore = create<State>((setState, getState) => ({
   },
 
   loadDemo() {
-    const demo = buildDemoProject(content, demos["arx-217"], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes }, { library: mbrLibrary });
+    const demo = buildDemoProject(content, demos["arx-217"], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes }, { library: mbrLibrary }, { writeups: trdWriteups });
     // The demo carries a TRD. An account without the TRD module could not save it (the server refuses a project holding TRD
     // documents), so the demo opens without it there; the rest of the demo is unchanged.
     const trdOn = !SERVER_MODE || !!useSession.getState().user?.plan.modules.includes("trd");

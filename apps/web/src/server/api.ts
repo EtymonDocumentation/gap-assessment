@@ -314,3 +314,7 @@ export function uploadMyFile(file: File, folder: string, onProgress: (fraction: 
 export const listMbrBlocks = () => json<{ blocks: unknown[] }>("GET", "/api/mbr-blocks").then((r) => r.blocks);
 export const putMbrBlock = (id: string, block: unknown) => json<{ block: unknown }>("PUT", `/api/mbr-blocks/${enc(id)}`, { json: { block } });
 export const deleteMbrBlock = (id: string) => call("DELETE", `/api/mbr-blocks/${enc(id)}`).then(() => undefined);
+
+export const listTrdWriteups = () => json<{ writeups: unknown[] }>("GET", "/api/trd-writeups").then((r) => r.writeups);
+export const putTrdWriteup = (id: string, writeup: unknown) => json<{ writeup: unknown }>("PUT", `/api/trd-writeups/${enc(id)}`, { json: { writeup } });
+export const deleteTrdWriteup = (id: string) => call("DELETE", `/api/trd-writeups/${enc(id)}`).then(() => undefined);

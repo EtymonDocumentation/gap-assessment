@@ -41,5 +41,8 @@ export * from "./trd-update";
 export * from "./trd-document";
 export * from "./mbr-values";
 export * from "./mbr-library";
+export * from "./trd-writeup";
+export * from "./trd-writeup-library";
+export * from "./trd-writeup-document";
 export * from "./mbr";
 export * from "./mbr-document";

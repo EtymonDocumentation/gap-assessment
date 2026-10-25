@@ -6,6 +6,7 @@ import { Empty } from "../components";
 import { dateTime } from "../lib";
 import { href, navigate } from "../router";
 import { useStore } from "../store";
+import { useTrdWriteupLibrary } from "../trd-writeups-store";
 import { TRD_SCOPE_TEXT, TRD_TABS, TrdEditor, type TrdTab } from "./TrdEditor";
 import { useProjectSeed } from "./TrdUpdate";
 
@@ -25,6 +26,7 @@ function List({ missing, preselect }: { missing?: string | undefined; preselect:
   const project = useStore((s) => s.project)!;
   const update = useStore((s) => s.update);
   const fromProject = useProjectSeed();
+  const library = useTrdWriteupLibrary();
   const [title, setTitle] = useState("");
   const [docRef, setDocRef] = useState("");
   const [kind, setKind] = useState<StartKind | "">(preselect === "project" ? "project" : "");
@@ -58,7 +60,7 @@ function List({ missing, preselect }: { missing?: string | undefined; preselect:
     } else start = { kind: "blank" };
     let newId = "";
     const err = update((p, actor) => {
-      const r = createTrd(p, { title: title.trim(), ...(docRef.trim() ? { docRef: docRef.trim() } : {}), start }, actor);
+      const r = createTrd(p, { title: title.trim(), ...(docRef.trim() ? { docRef: docRef.trim() } : {}), start, library }, actor);
       newId = r.trdId;
       return r.project;
     }, "TRD created");
@@ -84,6 +86,9 @@ function List({ missing, preselect }: { missing?: string | undefined; preselect:
           <li>The set point, NOR and PAR are entered by you with sources from the source register. They do not come from the sampling plan.</li>
           <li>
             The seed itself is on the <a href={href("/trd-seed")}>TRD seed</a> page.
+          </li>
+          <li>
+            The process descriptions of a TRD start as a copy of the <a href={href("/trd/writeups")} data-testid="trd-writeups-link">process description library</a>; edit, version or add your own there.
           </li>
         </ul>
       </section>

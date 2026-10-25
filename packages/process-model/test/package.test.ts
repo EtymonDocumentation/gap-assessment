@@ -40,7 +40,7 @@ describe("package independence", () => {
 
   it("keeps PROCESS_MODEL_VERSION equal to package.json", () => {
     expect(PROCESS_MODEL_VERSION).toBe(pkg.version);
-    expect(pkg.version).toBe("1.8.0");
+    expect(pkg.version).toBe("1.9.0");
   });
 
   it("is private until it is published on purpose", () => {
@@ -58,6 +58,7 @@ describe("public API", () => {
       [
         "AGENCY_REQUEST_KINDS",
         "AGENCY_REQUEST_STATUSES",
+        "BLANK_PATTERN",
         "COLLECTION_KINDS",
         "COLLECTION_LABELS",
         "CUSTOM_ITEM_KINDS",
@@ -114,9 +115,12 @@ describe("public API", () => {
         "TRD_DETAIL_KEYS",
         "TRD_FORMAT_VERSION",
         "TRD_ORIGIN_KINDS",
+        "TRD_PART_KINDS",
+        "TRD_PART_KIND_LABELS",
         "TRD_SEED_FORMAT",
         "TRD_SEED_VERSION",
         "TRD_SOURCE_DOC_TYPES",
+        "TRD_WRITEUP_FORMAT_VERSION",
         "TrdSeedError",
         "UNITS",
         "UNIT_OP_CUSTOM_STEP",
@@ -131,6 +135,7 @@ describe("public API", () => {
         "attachSource",
         "attachSourceMany",
         "batchResultSchema",
+        "blanksOf",
         "catalogProblems",
         "catalogSchema",
         "categoryToType",
@@ -266,18 +271,26 @@ describe("public API", () => {
         "tailoringSchema",
         "toBase",
         "trdApprovalSchema",
+        "trdBlankValueSchema",
         "trdDocumentSchema",
         "trdFieldSchema",
         "trdItemSchema",
+        "trdLibraryFileSchema",
+        "trdLibraryPartSchema",
+        "trdLibraryVersionSchema",
+        "trdLibraryWriteupSchema",
         "trdLimitsSchema",
         "trdOriginSchema",
         "trdOverrideSchema",
+        "trdPartSchema",
+        "trdPlacementSchema",
         "trdPulledSchema",
         "trdRangeSchema",
         "trdSeedSchema",
         "trdSetPointSchema",
         "trdStateSchema",
         "trdStepSchema",
+        "trdWriteupSchema",
         "typeDetailSchema",
         "unitDef",
         "unitsForDimension",

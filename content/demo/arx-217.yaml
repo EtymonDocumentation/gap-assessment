@@ -1050,6 +1050,18 @@ trd:
       setPoint: { value: 300, unit: units/min, source: DEMO-PD-217-01, section: "8.1", page: "36" }
       nor: { min: 280, max: 320, unit: units/min, basis: Proposed from process development, source: DEMO-PD-217-01, section: "8.1", page: "36" }
       par: { min: 250, max: 350, unit: units/min, basis: Proposed from process development, source: DEMO-PD-217-01, section: "8.1", page: "37" }
+  # Process descriptions: the shipped write-up library seeds them; these entries are what the fictional team then typed or switched.
+  writeups:
+    values:
+      - { writeup: wu_aseptic_filling, key: trd.aseptic_filling.productViscosity, value: 8 mPa·s (fictional) }
+      - { writeup: wu_aseptic_filling, key: trd.aseptic_filling.oxygenSensitive, value: is not }
+      - { writeup: wu_sterile_filtration, key: trd.sterile_filtration.productTemperature, value: 2 to 8 °C (fictional) }
+    optional:
+      - { writeup: wu_sterile_filtration, part: pupsit_required }
+      - { writeup: wu_compounding, part: dilution }
+    edits:
+      - { writeup: wu_aseptic_filling, part: p1, text: "Filling is performed with {{uo.aseptic_filling.equip.filler.operatingPrinciple|Filling technology}}. Vials are filled and stoppered in line under Grade A conditions (fictional text edited by the team)." }
+
 mbr:
   at: "2026-10-14T09:00:00.000Z"
   by: Alex Example (fictional)

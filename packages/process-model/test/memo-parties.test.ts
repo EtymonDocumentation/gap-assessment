@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { emptyProject, MEMO_LINES, MEMO_LINE_LABEL, parseProject, planPartySchema, SAMPLING_PLAN_FORMAT_VERSION, SCHEMA_VERSION, samplingPlanSchema, type Actor } from "../src/index";
 
-// Schema 1.16.0 (now 1.18.0) / sampling plan format 1.3.0: a plan party may carry a department and a memo line. Both are optional, never defaulted.
+// Schema 1.16.0 (now 1.19.0) / sampling plan format 1.3.0: a plan party may carry a department and a memo line. Both are optional, never defaulted.
 const T0 = "2026-10-01T09:00:00.000Z";
 const ACTOR: Actor = { name: "Alex Example (fictional)", role: "MSAT engineer", at: T0 };
 
@@ -22,8 +22,8 @@ const plan = (parties: unknown[]) => ({
 });
 
 describe("plan parties with a department and a memo line", () => {
-  it("is schema 1.18.0 and plan format 1.4.0 (a later minor of the memo-party shapes)", () => {
-    expect(SCHEMA_VERSION).toBe("1.18.0");
+  it("is schema 1.19.0 and plan format 1.4.0 (a later minor of the memo-party shapes)", () => {
+    expect(SCHEMA_VERSION).toBe("1.19.0");
     expect(SAMPLING_PLAN_FORMAT_VERSION).toBe("1.4.0");
   });
 
@@ -57,7 +57,7 @@ describe("plan parties with a department and a memo line", () => {
     old.sampling = { plans: [plan(parties)] };
     const before = old.changeLog.length;
     const p = parseProject(old);
-    expect(p.schemaVersion).toBe("1.18.0");
+    expect(p.schemaVersion).toBe("1.19.0");
     expect(p.sampling.plans[0]!.parties).toEqual(parties);
     expect(p.changeLog.length).toBe(before);
   });

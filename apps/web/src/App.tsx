@@ -17,6 +17,7 @@ import { SamplingPage } from "./pages/SamplingPage";
 import { SamplingSubsectionsPage } from "./pages/SamplingSubsectionsPage";
 import { SamplingTablesPage } from "./pages/SamplingTablesPage";
 import { MbrLibraryPage } from "./pages/MbrLibraryPage";
+import { TrdLibraryPage } from "./pages/TrdLibraryPage";
 import { MbrPage } from "./pages/MbrPage";
 import { TrdPage } from "./pages/TrdPage";
 import { TrdSeedPage } from "./pages/TrdSeedPage";
@@ -156,7 +157,7 @@ function AppShell() {
 
   // The template library belongs to the browser, not to a project, so it opens without one. So does the guidance library,
   // which is reference material and has nothing to do with the open project.
-  const needsProject = route.path !== "/" && route.path !== "/templates" && route.path !== "/guidance" && route.path !== "/sampling/tables" && route.path !== "/sampling/subsections" && route.path !== "/risk/methods" && route.path !== "/mbr/library" && route.path !== "/myfiles";
+  const needsProject = route.path !== "/" && route.path !== "/templates" && route.path !== "/guidance" && route.path !== "/sampling/tables" && route.path !== "/sampling/subsections" && route.path !== "/risk/methods" && route.path !== "/mbr/library" && route.path !== "/trd/writeups" && route.path !== "/myfiles";
   const mappingId = /^\/templates\/([^/]+)\/mapping$/.exec(route.path)?.[1];
   let page: React.ReactNode;
   if (!ready) page = <p className="muted">Loading…</p>;
@@ -174,6 +175,7 @@ function AppShell() {
   else if (route.path === "/sampling") page = samplingAllowed ? <SamplingPage params={route.params} /> : <SamplingNotIncluded />;
   else if (route.path === "/risk/methods") page = riskAllowed ? <RiskMethodsPage /> : <RiskNotIncluded />;
   else if (route.path === "/risk") page = riskAllowed ? <RiskPage params={route.params} /> : <RiskNotIncluded />;
+  else if (route.path === "/trd/writeups") page = trdAllowed ? <TrdLibraryPage /> : <TrdNotIncluded />;
   else if (route.path === "/trd") page = trdAllowed ? <TrdPage params={route.params} /> : <TrdNotIncluded />;
   else if (route.path === "/mbr/library") page = mbrAllowed ? <MbrLibraryPage /> : <MbrNotIncluded />;
   else if (route.path === "/mbr") page = mbrAllowed ? <MbrPage params={route.params} /> : <MbrNotIncluded />;
@@ -204,7 +206,7 @@ function AppShell() {
           <ul className="nav">
             {NAV.filter((n) => (n.path !== "/myfiles" || SERVER_MODE) && (n.path !== "/sampling" || samplingAllowed) && (n.path !== "/risk" || riskAllowed) && (n.path !== "/trd" || trdAllowed) && (n.path !== "/mbr" || mbrAllowed)).map((n) => (
               <li key={n.path}>
-                <a href={href(n.path)} aria-current={route.path === n.path || (n.path === "/builder" && route.path === "/model") || (n.path === "/templates" && !!mappingId) || (n.path === "/sampling" && (route.path === "/sampling/tables" || route.path === "/sampling/subsections")) || (n.path === "/risk" && route.path === "/risk/methods") || (n.path === "/mbr" && route.path === "/mbr/library") ? "page" : undefined}>
+                <a href={href(n.path)} aria-current={route.path === n.path || (n.path === "/builder" && route.path === "/model") || (n.path === "/templates" && !!mappingId) || (n.path === "/sampling" && (route.path === "/sampling/tables" || route.path === "/sampling/subsections")) || (n.path === "/risk" && route.path === "/risk/methods") || (n.path === "/mbr" && route.path === "/mbr/library") || (n.path === "/trd" && route.path === "/trd/writeups") ? "page" : undefined}>
                   {n.label}
                 </a>
               </li>
