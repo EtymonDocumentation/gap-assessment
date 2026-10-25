@@ -216,9 +216,9 @@ export function buildTrdDocument(project: Project, d: TrdDocument, opts: TrdDocu
 
   // Appendix: where each filled blank of the process descriptions came from, and which blanks have no value yet. Built before the
   // source register so the documents it cites are numbered in it.
-  if (wu.filled.length || wu.open.length) {
+  if (wu.filled.length || wu.open.length || wu.openFigures.length) {
     appendix("writeup-values", "Process description values", [
-      { type: "paragraph", text: "The blanks of the process descriptions. A value found in the TRD or the project, or typed by the team, is shown with where it came from. A blank with no value is left open; the tool does not supply one." },
+      { type: "paragraph", text: "The blanks and figures of the process descriptions. A value found in the TRD or the project, or typed by the team, is shown with where it came from. A blank with no value is left open; the tool does not supply one." },
       ...(wu.filled.length
         ? ([
             { type: "table", columns: ["Description", "Item", "Value", "Source"], caption: "Filled blanks", rows: wu.filled.map(({ writeup, blank }) => [`${writeup.id}: ${writeup.title}`, blank.label, blank.value ?? "", [blank.where, blank.sourceIds?.length ? src.cite(blank.sourceIds, blank.locations) : ""].filter(Boolean).join("; ")]) },
@@ -226,6 +226,9 @@ export function buildTrdDocument(project: Project, d: TrdDocument, opts: TrdDocu
         : []),
       ...(wu.open.length
         ? ([{ type: "table", columns: ["Description", "Item still open", "Note"], caption: "Blanks without a value", rows: wu.open.map(({ writeup, blank }) => [`${writeup.id}: ${writeup.title}`, blank.label, blank.note ?? "No value in the TRD or the project"]) }] as Block[])
+        : []),
+      ...(wu.openFigures.length
+        ? ([{ type: "table", columns: ["Description", "Figure still open", "Note"], caption: "Figures without a picture", rows: wu.openFigures.map(({ writeup, part }) => [`${writeup.id}: ${writeup.title}`, part.caption?.trim() || part.text.trim() || part.id, "No picture has been added yet"]) }] as Block[])
         : []),
     ]);
   }

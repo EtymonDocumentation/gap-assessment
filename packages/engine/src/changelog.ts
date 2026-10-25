@@ -89,6 +89,8 @@ export const ACTION_LABELS: Record<string, string> = {
   trd_writeup_value: "Blank of a TRD write-up filled or cleared",
   trd_writeup_update: "TRD write-up updated from the library",
   trd_writeup_remove: "Write-up removed from a TRD",
+  trd_writeup_move: "Write-up moved to another place in a TRD",
+  trd_writeup_image: "Picture of a TRD figure attached, replaced or removed",
   mbr_add: "Batch record added",
   mbr_update: "Batch record edited",
   mbr_remove: "Batch record removed",

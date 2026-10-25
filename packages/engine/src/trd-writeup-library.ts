@@ -74,6 +74,8 @@ export function editLibraryWriteup(cur: TrdLibraryWriteup, edit: WriteupLibraryE
   const next: TrdLibraryWriteup = { ...rest, ...edit, ...(edit.title !== undefined ? { title: edit.title.trim() } : {}), version: cur.version + 1, at: now, by, history: [...(cur.history ?? []), writeupVersionOf(cur)] };
   // An emptied optional field is removed rather than kept as an empty string.
   if (!next.appliesWhen?.trim()) delete next.appliesWhen;
+  // "placement: undefined" in an edit means the author cleared the place (the write-up becomes a section of its own).
+  if (!next.placement) delete next.placement;
   return clean(next);
 }
 

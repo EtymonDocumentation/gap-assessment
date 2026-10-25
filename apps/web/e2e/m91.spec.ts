@@ -126,6 +126,8 @@ test("an optional paragraph is off until included, a paragraph can be removed, a
   await expect(flush).toBeChecked();
   await card.getByTestId(`twu-part-remove-${id}-note_post_use`).click();
   await expect(card.getByTestId(`twu-part-${id}-note_post_use`)).toHaveCount(0);
+  // Nothing is preselected: the kind is chosen first.
+  await card.getByTestId(`twu-add-kind-${id}`).selectOption("paragraph");
   await card.getByTestId(`twu-add-text-${id}`).fill("Added by the team (fictional).");
   await card.getByTestId(`twu-add-part-btn-${id}`).click();
   await expect(card).toContainText("Added by the team (fictional).");

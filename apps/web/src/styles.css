@@ -3047,3 +3047,17 @@ tr.row-hl > td {
 .twu-diff { border-left: 4px solid var(--accent); padding: 6px 10px; background: var(--accent-soft); }
 .twu-head-row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; }
 .twu-toggle { min-height: 24px; min-width: 24px; }
+
+/* M9.1 gap closure: figures, table-row editing, move buttons. Tokens only, so light and dark both work. */
+.twu-figure-pic { margin: 0; display: grid; gap: 4px; }
+.twu-figure-pic img { max-width: 100%; height: auto; border: 1px solid var(--border); background: var(--surface); }
+.twu-figure-pic figcaption { font-size: 0.8125rem; color: var(--muted); }
+.twu-figure-box textarea[readonly] { cursor: text; min-height: 2.25rem; }
+table.rows-editor input { width: 100%; min-width: 9rem; }
+table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
+.btn[aria-disabled="true"] { opacity: 0.6; }
+/* Grid and flex children default to min-width:auto, which lets a wide table push the page sideways instead of scrolling inside its region. */
+.twu-part > *, .twu-figure-box > *, .twu-part .stack > * { min-width: 0; }
+.twu-part .stack, .twu-part .table-scroll { max-width: 100%; }
+.fs { min-width: 0; }
+.twu-part, .twu-part .stack, .twu-figure-box { grid-template-columns: minmax(0, 1fr); }

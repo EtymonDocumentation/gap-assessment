@@ -8,6 +8,7 @@ import { dateTime } from "../lib";
 import { href } from "../router";
 import { SERVER_MODE } from "../server/mode";
 import { actorOf, useContent, useStore } from "../store";
+import { RowsEditor } from "../rows-editor";
 import { useTrdWriteupLibrary, useTrdWriteups } from "../trd-writeups-store";
 
 /**
@@ -264,6 +265,9 @@ function WriteupForm({
   const [naOn, setNaOn] = useState(Boolean(cur?.notApplicable));
   const [naCondition, setNaCondition] = useState(cur?.notApplicable?.condition ?? "");
   const [naText, setNaText] = useState(cur?.notApplicable?.text ?? "");
+  // Where a section goes in the document. "" = no placement (a section of its own); nothing else is preselected.
+  const [placeWhere, setPlaceWhere] = useState<"" | "before" | "after" | "last">(cur?.placement?.where ?? "");
+  const [placeUnitOp, setPlaceUnitOp] = useState(cur?.placement?.unitOp ?? "");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -283,24 +287,32 @@ function WriteupForm({
   async function submit() {
     if (!title.trim()) return setError("Give the write-up a title.");
     if (!cur && kind === "unitOp" && !unitOp) return setError("Choose the unit operation.");
+    if (kind === "section" && (placeWhere === "before" || placeWhere === "after") && !placeUnitOp) return setError("Choose the unit operation the section goes before or after.");
     const clean = parts.map((p) => {
-      const { optional, title: t, columns, rows, ...rest } = p;
+      const { optional, title: t, columns, rows, caption, alt, ...rest } = p;
       const cond = optional?.condition.trim();
       return {
         ...rest,
         ...(t?.trim() ? { title: t.trim() } : {}),
         ...(columns?.length ? { columns } : {}),
-        ...(rows?.length ? { rows } : {}),
+        // Starting rows are cut or padded to the column heads, so a row never has more or fewer cells than the table has columns.
+        ...(rows?.length && columns?.length ? { rows: rows.map((r) => columns.map((_, i) => r[i] ?? "")) } : {}),
+        ...(caption?.trim() ? { caption: caption.trim() } : {}),
+        ...(alt?.trim() ? { alt: alt.trim() } : {}),
         ...(optional ? { optional: { condition: cond || "include if it applies" } } : {}),
       } satisfies TrdLibraryPart;
     });
-    const bad = clean.find((p) => (p.kind === "subsection" || p.kind === "heading" ? !p.title : p.kind === "table" ? !p.columns?.length : !p.text.trim()));
-    if (bad) return setError(`A ${TRD_PART_KIND_LABELS[bad.kind].toLowerCase()} needs ${bad.kind === "subsection" || bad.kind === "heading" ? "a title" : bad.kind === "table" ? "column heads" : "text"}.`);
+    // A figure may have a caption and no picture, so it needs a caption or a description of what belongs there.
+    const bad = clean.find((p) => (p.kind === "subsection" || p.kind === "heading" ? !p.title : p.kind === "table" ? !p.columns?.length : p.kind === "figure" ? !p.caption && !p.text.trim() : !p.text.trim()));
+    if (bad) return setError(`A ${TRD_PART_KIND_LABELS[bad.kind].toLowerCase()} needs ${bad.kind === "subsection" || bad.kind === "heading" ? "a title" : bad.kind === "table" ? "column heads" : bad.kind === "figure" ? "a caption or a description" : "text"}.`);
     if (naOn && !naCondition.trim()) return setError("Say when the write-up is not applicable.");
+    const placement = kind === "section" && placeWhere ? (placeWhere === "last" ? { where: "last" as const } : { where: placeWhere, unitOp: placeUnitOp }) : undefined;
     const edit: WriteupLibraryEdit = {
       title,
       appliesWhen,
       parts: clean,
+      // An undefined placement clears it on an edit: the section is then a section of its own.
+      placement,
       ...(naOn ? { notApplicable: { condition: naCondition.trim(), text: naText } } : {}),
     };
     let id = cur?.id ?? "";
@@ -352,6 +364,36 @@ function WriteupForm({
           )}
         </div>
       )}
+      {(cur ? cur.kind === "section" : kind === "section") && (
+        <fieldset className="fs stack" data-testid="twl-placement">
+          <legend>Where it goes in the document</legend>
+          <p className="muted small">A section can stand on its own or be placed next to the description of a unit operation. The author of a TRD can still move it there.</p>
+          <div className="row wrap end-align">
+            <label className="field">
+              <span>Place</span>
+              <select value={placeWhere} onChange={(e) => setPlaceWhere(e.target.value as typeof placeWhere)} data-testid="twl-place-where">
+                <option value="">Not placed (a section of its own)</option>
+                <option value="before">Before the description of a unit operation</option>
+                <option value="after">After the description of a unit operation</option>
+                <option value="last">At the end of the process overview</option>
+              </select>
+            </label>
+            {(placeWhere === "before" || placeWhere === "after") && (
+              <label className="field">
+                <span>Unit operation (in process order)</span>
+                <select value={placeUnitOp} onChange={(e) => setPlaceUnitOp(e.target.value)} data-testid="twl-place-unitop">
+                  <option value="">Choose a unit operation</option>
+                  {content.catalog.unitOperations.map((u) => (
+                    <option key={u.key} value={u.key}>
+                      {u.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </div>
+        </fieldset>
+      )}
       <label className="field">
         <span>When it fits (optional, a hint for the author, not a rule)</span>
         <input value={appliesWhen} onChange={(e) => setAppliesWhen(e.target.value)} />
@@ -390,9 +432,27 @@ function WriteupForm({
                   </label>
                 )}
               </div>
+              {p.kind === "table" && (p.columns ?? []).length > 0 && (
+                <fieldset className="fs stack">
+                  <legend>Starting rows of part {i + 1} (optional; a cell may hold a blank written {"{{key|Label}}"})</legend>
+                  <RowsEditor columns={p.columns ?? []} rows={p.rows ?? []} onChange={(rows) => setPart(i, { rows })} idPrefix={`twl-rows-${i}`} name={`part ${i + 1}`} />
+                </fieldset>
+              )}
+              {p.kind === "figure" && (
+                <div className="row wrap">
+                  <label className="field grow">
+                    <span>Caption of part {i + 1} (shown under the picture as "Figure N. ...")</span>
+                    <input value={p.caption ?? ""} onChange={(e) => setPart(i, { caption: e.target.value })} data-testid={`twl-part-caption-${i}`} />
+                  </label>
+                  <label className="field grow">
+                    <span>Alternative text of part {i + 1}</span>
+                    <input value={p.alt ?? ""} onChange={(e) => setPart(i, { alt: e.target.value })} />
+                  </label>
+                </div>
+              )}
               {p.kind !== "subsection" && p.kind !== "heading" && p.kind !== "table" && (
                 <label className="field">
-                  <span>Text of part {i + 1}</span>
+                  <span>{p.kind === "figure" ? `What the picture of part ${i + 1} should show` : `Text of part ${i + 1}`}</span>
                   <textarea rows={3} value={p.text} onChange={(e) => setPart(i, { text: e.target.value })} data-testid={`twl-part-text-${i}`} />
                 </label>
               )}

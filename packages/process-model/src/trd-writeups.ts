@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /*
- * TRD write-ups (project schema 1.19.0, TRD format 1.1.0, write-up library format 1.0.0). Module "trd".
+ * TRD write-ups (project schema 1.20.0, TRD format 1.2.0, write-up library format 1.1.0). Module "trd".
  *
  * A write-up is the prose of the TRD for one unit operation (the "Process description" of a step) or for one TRD-level section
  * (introduction, scope, fill weights ...). It is kept as an ordered list of PARTS so a part can be edited, removed, switched on or
@@ -18,7 +18,43 @@ import { z } from "zod";
  *    "Requires regulatory affairs assessment".
  */
 
-export const TRD_WRITEUP_FORMAT_VERSION = "1.0.0";
+export const TRD_WRITEUP_FORMAT_VERSION = "1.1.0";
+
+/*
+ * Figures (format 1.1.0). A figure part in the LIBRARY is a place and a caption ("Figure: stopper position measurement") with no
+ * picture: pictures belong to one TRD, never to the shared library. In a TRD the author may attach a PNG or JPEG to it. The picture is
+ * kept INSIDE the project file as base64 (the project has no other file store: sources keep only a name and a hash), so a project file
+ * stays one self-contained file. Because of that the size is limited: 2 MB per picture and 10 MB of pictures per TRD, which keeps the
+ * project file well under the 25 MB the server accepts for one project (base64 adds a third).
+ */
+export const TRD_IMAGE_MAX_BYTES = 2 * 1024 * 1024;
+export const TRD_IMAGES_MAX_TOTAL_BYTES = 10 * 1024 * 1024;
+export const TRD_IMAGE_TYPES = ["image/png", "image/jpeg"] as const;
+export type TrdImageType = (typeof TRD_IMAGE_TYPES)[number];
+
+export const trdImageSchema = z
+  .object({
+    mime: z.enum(TRD_IMAGE_TYPES),
+    /** The picture's bytes as base64, without a "data:" prefix. */
+    data: z.string().regex(/^[A-Za-z0-9+/]+={0,2}$/, "The picture data is not valid base64"),
+    /** Size of the picture file in bytes (the limit applies to this, not to the base64 text). */
+    bytes: z.number().int().min(1).max(TRD_IMAGE_MAX_BYTES, "A picture can be at most 2 MB"),
+    /** Pixel size, read from the file itself, so the export keeps the aspect ratio without drawing the picture. */
+    width: z.number().int().min(1),
+    height: z.number().int().min(1),
+    /** The file name it was added with (a pasted screenshot has none). Shown to the author; never part of the document text. */
+    name: z.string().optional(),
+    /** SHA-256 of the file, so the change log can say which picture was attached without holding its bytes. */
+    sha256: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .optional(),
+  })
+  .superRefine((i, ctx) => {
+    // Base64 of N bytes is exactly 4 * ceil(N / 3) characters, so a stated size that does not fit the data is a damaged picture.
+    if (i.data.length !== Math.ceil(i.bytes / 3) * 4) ctx.addIssue({ code: "custom", message: "The picture data does not match its stated size" });
+  });
+export type TrdImage = z.infer<typeof trdImageSchema>;
 
 /** What a part of a write-up is. "subsection" is a numbered sub-heading, "heading" an un-numbered bold heading. */
 export const TRD_PART_KINDS = ["paragraph", "bullet", "step", "note", "subsection", "heading", "table", "figure"] as const;
@@ -32,7 +68,7 @@ export const TRD_PART_KIND_LABELS: Record<TrdPartKind, string> = {
   subsection: "Numbered sub-heading",
   heading: "Heading",
   table: "Table",
-  figure: "Figure placeholder",
+  figure: "Figure",
 };
 
 const partId = z.string().regex(/^[a-z][a-z0-9_]*$/);
@@ -45,9 +81,12 @@ export const trdLibraryPartSchema = z.object({
   /** Body text with {{key|Label}} blanks and **bold**. For a sub-heading or heading, the title is `title` and the text may be empty. */
   text: z.string(),
   title: z.string().optional(),
-  /** A table: its column heads and (optionally) the first cell of each starting row. */
+  /** A table: its column heads and its starting rows. A cell may hold a blank {{key|Label}} like any text. */
   columns: z.array(z.string()).optional(),
   rows: z.array(z.array(z.string())).optional(),
+  /** A figure: the words printed under it after "Figure N." and its alternative text (what the picture shows, for a screen reader). */
+  caption: z.string().optional(),
+  alt: z.string().optional(),
   /** Present: the part is optional, off until switched on. The condition is plain words for the author. */
   optional: z.object({ condition: z.string().min(1) }).optional(),
 });
@@ -112,6 +151,8 @@ export type TrdLibraryFile = z.infer<typeof trdLibraryFileSchema>;
 
 /** A part in a TRD: the library part plus what the author did with it. */
 export const trdPartSchema = trdLibraryPartSchema.extend({
+  /** A figure part: the attached picture. Absent: the part is an open placeholder ("Figure to be added"). */
+  image: trdImageSchema.optional(),
   /** Optional parts only: true once switched on. Absent: off. */
   included: z.boolean().optional(),
   /** True once the author changed the text, so "Update from library" can say the part was edited here. */
@@ -135,6 +176,8 @@ export const trdWriteupSchema = z.object({
   libraryId: z.string().optional(),
   libraryVersion: z.number().int().min(1).optional(),
   placement: trdPlacementSchema.optional(),
+  /** True once the author moved the write-up, so "Update from library" keeps the place they chose. */
+  placementEdited: z.boolean().optional(),
   appliesWhen: z.string().optional(),
   parts: z.array(trdPartSchema),
   /** Library part ids the author removed, so an update from the library does not offer them again as new. */

@@ -2,6 +2,19 @@
 
 All notable changes to `@gap/process-model`. Versions follow semver; see README.md for what counts as breaking.
 
+## 1.10.0
+
+TRD format 1.2.0, write-up library format 1.1.0 (project schema 1.20.0). Additive: nothing was removed, and a TRD without pictures, rows or a moved write-up is unchanged.
+
+### Added
+- Pictures in figures: `trdImageSchema` (PNG or JPEG, base64, at most 2 MB), `TRD_IMAGE_MAX_BYTES`, `TRD_IMAGES_MAX_TOTAL_BYTES` (10 MB per TRD), `TRD_IMAGE_TYPES`,
+  and `readTrdImage`, `sniffTrdImage`, `trdImageSize`, `trdImageMeta`, `trdImageUrl`, `bytesToBase64`, `base64ToBytes`, `TrdImageError`, `TRD_IMAGE_LIMIT_TEXT`.
+  A TRD part has an optional `image`; a figure part (library and TRD) has an optional `caption` and `alt`.
+- `placementEdited` on a TRD write-up: the author moved it, so "Update from library" keeps its place.
+- Table parts keep `rows` that the author typed (the field existed; the TRD editor now writes it).
+- The label of the figure part kind is "Figure" (was "Figure placeholder").
+- Migration 1.19.0 -> 1.20.0: version only.
+
 ## 1.9.0
 
 TRD format 1.1.0, write-up library format 1.0.0 (project schema 1.19.0). Additive: nothing was removed, and a TRD without `writeups` is unchanged.

@@ -32,7 +32,8 @@ export type Block =
    */
   | { type: "table"; columns: string[]; rows: string[][]; caption?: string; weights?: number[] }
   | { type: "note"; text: string }
-  | FigureBlock;
+  | FigureBlock
+  | PictureBlock;
 
 /**
  * A run of rich text. `open` marks a blank nobody has filled: its text is the label in square brackets, so the gap is visible in
@@ -57,6 +58,23 @@ export interface FigureBlock {
   alt: string;
   pages: { svg: string; width: number; height: number }[];
   hoursNotGiven: string[];
+}
+
+/**
+ * A picture the author attached to a figure of a TRD write-up (PNG or JPEG), numbered through the document. Unlike FigureBlock (a
+ * drawing made by the tool) it carries the author's own file as base64 plus its pixel size, so every renderer can keep the aspect
+ * ratio without decoding it. `alt` is what a screen reader says; `caption` is printed under the picture after "Figure N.".
+ */
+export interface PictureBlock {
+  type: "picture";
+  number: number;
+  caption: string;
+  alt: string;
+  mime: "image/png" | "image/jpeg";
+  /** The file's bytes as base64, without a "data:" prefix. */
+  data: string;
+  width: number;
+  height: number;
 }
 
 export interface DocSection {

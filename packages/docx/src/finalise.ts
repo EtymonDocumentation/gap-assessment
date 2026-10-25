@@ -148,7 +148,8 @@ export function finalisePackage(dp: DocPackage, ctx: WriterCtx, input: FinaliseI
       dp.pkg.set(m.part, m.bytes);
       dp.mainRels.push({ id: m.relId, type: REL.image, target: m.part.replace(/^word\//, ""), external: false });
     }
-    if (!dp.ct.defaults.has("png")) dp.ct.defaults.set("png", CT.png);
+    if (ctx.media.some((m) => m.part.endsWith(".png")) && !dp.ct.defaults.has("png")) dp.ct.defaults.set("png", CT.png);
+    if (ctx.media.some((m) => m.part.endsWith(".jpg")) && !dp.ct.defaults.has("jpg")) dp.ct.defaults.set("jpg", CT.jpeg);
   }
   // The tool writes no Word comments (reviewer comments were removed in schema 1.10.0); a comments part is never carried over.
   dp.removePart(dp.partOf(REL.comments) ?? "word/comments.xml");

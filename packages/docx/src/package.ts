@@ -41,6 +41,7 @@ export const CT = {
   ext: "application/vnd.openxmlformats-officedocument.extended-properties+xml",
   custom: "application/vnd.openxmlformats-officedocument.custom-properties+xml",
   png: "image/png",
+  jpeg: "image/jpeg",
 } as const;
 
 export const MAIN_CONTENT_TYPES: Record<string, "docx" | "dotx" | "docm"> = {
