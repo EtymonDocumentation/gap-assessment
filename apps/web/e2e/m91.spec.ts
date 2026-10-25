@@ -156,7 +156,7 @@ test("a library edit makes a new version; the TRD offers Update from library wit
   const first = page.getByTestId("twl-part-text-0");
   await first.fill("The drug substance is pooled by gentle pumping (library edit, fictional).");
   await page.getByTestId("twl-save").click();
-  await expect(page.getByTestId("twl-message")).toContainText("version 2");
+  await expect(page.getByTestId("twl-message")).toContainText("version 4");
   await expect(page.getByTestId("twl-row-wu_compounding")).toContainText("Shipped, edited by you");
   // Focus is back on the Edit button.
   await expect(page.getByTestId("twl-edit-wu_compounding")).toBeFocused();
@@ -165,7 +165,7 @@ test("a library edit makes a new version; the TRD offers Update from library wit
   await page.getByTestId("trd-list-table").getByRole("link").first().click();
   await page.getByTestId("trd-tab-writeups").click();
   const { card, id } = await openCard(page, COMPOUNDING);
-  await expect(card.getByTestId(`twu-newer-${id}`)).toContainText("version 2");
+  await expect(card.getByTestId(`twu-newer-${id}`)).toContainText("version 4");
   await card.getByTestId(`twu-update-${id}`).click();
   await expect(card.getByTestId(`twu-diff-${id}`)).toContainText("1 changed part");
   await card.getByTestId(`twu-update-confirm-${id}`).click();

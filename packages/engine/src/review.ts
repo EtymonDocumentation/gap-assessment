@@ -159,16 +159,16 @@ function cleanTemplate(t: TemplateRecord): TemplateRecord {
 
 // ------------------------------------------------------------------ exports
 
-const EXPORT_FORMATS: readonly DocumentExport["format"][] = ["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html", "sampling-plan-docx", "sampling-plan-html", "sampling-cmo-instructions-docx", "sampling-cmo-instructions-html", "risk-assessment-docx", "risk-assessment-html", "trd-docx", "trd-html"];
+const EXPORT_FORMATS: readonly DocumentExport["format"][] = ["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html", "sampling-plan-docx", "sampling-plan-html", "sampling-cmo-instructions-docx", "sampling-cmo-instructions-html", "risk-assessment-docx", "risk-assessment-html", "trd-docx", "trd-html", "trd-evidence-docx", "trd-evidence-html"];
 
 /** True for the three TRD seed outputs (the seed JSON and its Word and HTML outlines). The TRD module's own document is not one of them. */
 export function isTrdFormat(format: DocumentExport["format"]): boolean {
   return format.startsWith("trd-") && !isTrdDocumentFormat(format);
 }
 
-/** True for the two outputs of the TRD module's editable document (Word and HTML). */
+/** True for the outputs of the TRD module's editable document: the standard TRD and the evidence record, each in Word and HTML. */
 export function isTrdDocumentFormat(format: DocumentExport["format"]): boolean {
-  return format === "trd-docx" || format === "trd-html";
+  return format === "trd-docx" || format === "trd-html" || format === "trd-evidence-docx" || format === "trd-evidence-html";
 }
 
 /** True for the two sampling plan outputs (Word and HTML). */

@@ -17,7 +17,9 @@ vi.setConfig({ testTimeout: 60000 });
 describe("Word and HTML TRD (M9)", () => {
   const project = buildDemoProject(content, demos["arx-217"], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes });
   const d = project.trd.documents[0]!;
-  const doc = buildTrdDocument(project, d, { generatedAt: GENERATED_AT, appVersion: "0.0.0-test" });
+  // The evidence record holds the PAR/NOR check, the per-step sections and the sources (the standard document is tested in trd-standard.test.ts).
+  const doc = buildTrdDocument(project, d, { generatedAt: GENERATED_AT, appVersion: "0.0.0-test", variant: "evidence" });
+  const standard = buildTrdDocument(project, d, { generatedAt: GENERATED_AT, appVersion: "0.0.0-test" });
   const dir = join(tmpdir(), "gap-docx-samples", "m9");
 
   it("renders the demo TRD with banner, headings, the override list and the check, and writes samples", async () => {
@@ -57,8 +59,24 @@ describe("Word and HTML TRD (M9)", () => {
     const tagged = await importTemplateFile("tagged.docx", bytes);
     const out = await renderDocx({ doc, tagData: buildDocumentTagData(doc), mode: "tags", generatedAt: GENERATED_AT, template: { ...tmpl, sha256: tagged.sha256, bytes: tagged.bytes, analysis: tagged.analysis } });
     const text = plainText(strictDocx(out.bytes));
-    expect(text).toContain("Technology transfer document");
+    expect(text).toContain("Technical requirements document");
     expect(text).toContain("PAR and NOR check");
+    expect(text).toContain(BANNER);
+  });
+
+  it("a section tag reaches the standard document's process steps and parameters", async () => {
+    const t = await importTemplateFile("brightwater-template.docx", fixture("brightwater-template.docx"));
+    const tmpl = { name: "Brightwater sample (fictional)", version: "2.1", sha256: t.sha256, fileName: "sample", bytes: t.bytes, analysis: t.analysis };
+    const P = (text: string) => `<w:p><w:r><w:t xml:space="preserve">${text}</w:t></w:r></w:p>`;
+    const zip = new PizZip(fixture("brightwater-template.docx"));
+    const xml = zip.file("word/document.xml")!.asText();
+    zip.file("word/document.xml", xml.replace(/<w:body>[\s\S]*?(<w:sectPr)/, `<w:body>${P("{title}")}${P("{@section_process_parameters}")}${P("{@section_references}")}$1`));
+    const tagged = await importTemplateFile("tagged.docx", zip.generate({ type: "uint8array" }));
+    const out = await renderDocx({ doc: standard, tagData: buildDocumentTagData(standard), mode: "tags", generatedAt: GENERATED_AT, template: { ...tmpl, sha256: tagged.sha256, bytes: tagged.bytes, analysis: tagged.analysis } });
+    const text = plainText(strictDocx(out.bytes));
+    expect(text).toContain("Process steps and parameters");
+    expect(text).toContain("References");
+    expect(text).not.toContain("PAR and NOR check");
     expect(text).toContain(BANNER);
   });
 });

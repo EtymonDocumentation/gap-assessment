@@ -211,6 +211,6 @@ describe("a project with exports survives a file round trip", () => {
   it("the project used here starts with no exports and an empty scope", () => {
     expect(project().document).toEqual({ exports: [] });
     expect(project().stepScope).toEqual({ excluded: [] });
-    expect(project().schemaVersion).toBe("1.20.0");
+    expect(project().schemaVersion).toBe("1.22.0");
   });
 });

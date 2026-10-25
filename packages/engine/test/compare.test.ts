@@ -545,8 +545,8 @@ describe("set comparator (R-INTEGRITY-TESTS)", () => {
       subKey: "pre_use_pre_sterilization",
       severity: "high",
       regulatoryNote: REGULATORY_NOTE,
-      attribute: "Filter integrity tests: Pre-use pre-sterilization integrity test",
-      detail: "Pre-use pre-sterilization integrity test: present at SU, absent at RU.",
+      attribute: "Filter integrity tests: Pre-use, post-sterilization integrity test (PUPSIT)",
+      detail: "Pre-use, post-sterilization integrity test (PUPSIT): present at SU, absent at RU.",
     });
     expect(a.gaps.filter((x) => x.questionId === "filt.integrity")).toHaveLength(1);
   });

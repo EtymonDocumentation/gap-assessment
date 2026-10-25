@@ -62,8 +62,8 @@ test("the new sections appear in process order, with bulk packaging between visu
   expect(at("Drug substance shipping to the fill site")).toBe(at("Drug substance receipt and thaw") - 1);
   expect(at("Visual inspection")).toBeGreaterThan(-1);
   expect(at("Bulk packaging")).toBe(at("Visual inspection") + 1);
-  expect(at("Labeling and packaging")).toBe(at("Bulk packaging") + 1);
-  expect(at("Storage and shipping from the fill site")).toBe(at("Labeling and packaging") + 1);
+  expect(at("Labelling and packaging")).toBe(at("Bulk packaging") + 1);
+  expect(at("Storage and shipping from the fill site")).toBe(at("Labelling and packaging") + 1);
   await expectAccessible(page, "bulk packaging summary");
   await expectNoHorizontalScroll(page, "bulk packaging summary");
 });

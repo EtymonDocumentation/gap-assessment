@@ -155,17 +155,28 @@ export function formatNumber(n: number): string {
   return String(Number(n.toPrecision(6)));
 }
 
+/**
+ * The unit as a reader should see it. "count" is a unit for the data model only (a number of things); it is never printed, because
+ * "12 count interventions" is not a sentence. An empty or missing unit prints as nothing.
+ */
+export function printableUnit(unit: string | undefined): string {
+  const u = (unit ?? "").trim();
+  return u === "count" ? "" : u;
+}
+
 export function formatQuantity(q: Quantity): string {
-  return q.unit === "count" ? formatNumber(q.value) : `${formatNumber(q.value)} ${q.unit}`;
+  return printableUnit(q.unit) ? `${formatNumber(q.value)} ${q.unit}` : formatNumber(q.value);
 }
 
 export function formatRange(r: Range): string {
   if (r.min && r.max) {
+    // A range with a negative end is written with "to": "-80–-65 °C" reads as a double minus, "-80 to -65 °C" does not.
+    const negative = r.min.value < 0 || r.max.value < 0;
     if (r.min.unit === r.max.unit) {
       if (r.min.value === r.max.value) return formatQuantity(r.max);
-      return `${formatNumber(r.min.value)}–${formatQuantity(r.max)}`;
+      return `${formatNumber(r.min.value)}${negative ? " to " : "–"}${formatQuantity(r.max)}`;
     }
-    return `${formatQuantity(r.min)} – ${formatQuantity(r.max)}`;
+    return `${formatQuantity(r.min)}${negative ? " to " : " – "}${formatQuantity(r.max)}`;
   }
   if (r.min) return `≥ ${formatQuantity(r.min)}`;
   if (r.max) return `≤ ${formatQuantity(r.max)}`;

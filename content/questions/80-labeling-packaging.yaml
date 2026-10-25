@@ -1,9 +1,9 @@
 questions:
   - id: lp.presence
     section: uo.labeling_packaging
-    prompt: Are labeling and secondary packaging performed at this site?
-    label: Labeling and packaging performed
-    why: Establishes whether the unit operation exists at each site. A site that stops at the filled, inspected container leaves labeling and packaging to another site, which changes who holds the controls below.
+    prompt: Are labelling and secondary packaging performed at this site?
+    label: Labelling and packaging performed
+    why: Establishes whether the unit operation exists at each site. A site that stops at the filled, inspected container leaves labelling and packaging to another site, which changes who holds the controls below.
     sides: paired
     binds: uo.labeling_packaging.presence
     input: { type: yes_no }
@@ -19,8 +19,8 @@ questions:
 
   - id: lp.speed
     section: uo.labeling_packaging
-    prompt: Labeling speed
-    label: Labeling speed
+    prompt: Labelling speed
+    label: Labelling speed
     why: Line speed affects label placement accuracy and print quality. A speed above the {{validated|demonstrated}} range is not covered by the line qualification.
     sides: paired
     binds: uo.labeling_packaging.param.labeling_speed
@@ -63,9 +63,9 @@ questions:
 
   - id: lp.time_out
     section: uo.labeling_packaging
-    prompt: Maximum time out of refrigeration during labeling and packaging
+    prompt: Maximum time out of refrigeration during labelling and packaging
     label: Maximum time out of refrigeration
-    why: Refrigerated product is warmed during labeling and packaging. The time out of refrigeration must stay within what the stability data support.
+    why: Refrigerated product is warmed during labelling and packaging. The time out of refrigeration must stay within what the stability data support.
     sideLabels: { source: "{{Validated|Demonstrated}} maximum time out of refrigeration", target: Planned maximum time out of refrigeration }
     sides: paired
     binds: uo.labeling_packaging.param.max_time_out_of_refrigeration.max
@@ -104,7 +104,7 @@ questions:
   # ================================================================== milestone 3: equipment qualification
   - id: lp.labeler_qual
     section: uo.labeling_packaging
-    prompt: Qualification status of the labeling machine
+    prompt: Qualification status of the labelling machine
     label: Labeler qualification status
     why: Equipment used for GMP manufacture must be qualified. An RU labeler that is not yet qualified, or is only planned, is a qualification requirement for the transfer.
     tags: [m3]
@@ -116,7 +116,7 @@ questions:
   - id: lp.labeler_range
     section: uo.labeling_packaging
     parent: lp.labeler_qual
-    prompt: Qualified speed range of the RU labeling machine
+    prompt: Qualified speed range of the RU labelling machine
     label: Labeler qualified speed range
     why: Label application and print verification are qualified over a stated speed range. Planned speeds outside that range are not supported by the qualification.
     triggerNote: Asked because the RU labeler is qualified or has a qualification planned.
@@ -139,8 +139,8 @@ questions:
 
   - id: lp.procedures
     section: uo.labeling_packaging
-    prompt: Status of RU procedures for labeling and packaging
-    label: RU labeling and packaging procedures
+    prompt: Status of RU procedures for labelling and packaging
+    label: RU labelling and packaging procedures
     why: Line clearance, label control, pack-out and serialization procedures must reflect the RU line and markets before GMP manufacture.
     sides: target
     binds: uo.labeling_packaging.doc.procedures.status

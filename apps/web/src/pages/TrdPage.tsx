@@ -80,7 +80,7 @@ function List({ missing, preselect }: { missing?: string | undefined; preselect:
         <h2 id="trd-about">What this is</h2>
         <p data-testid="trd-scope-text">{TRD_SCOPE_TEXT}</p>
         <ul className="plain-list">
-          <li>A TRD (technology transfer document) can start from this project, from a TRD seed file, or blank.</li>
+          <li>A TRD (technical requirements document) can start from this project, from a TRD seed file, or blank.</li>
           <li>You can override any value. The project value stays beside yours, and the override is written to the change log.</li>
           <li>When the project changes, you get a notice and a list of differences. A value you overrode is never replaced unless you choose to.</li>
           <li>The set point, NOR and PAR are entered by you with sources from the source register. They do not come from the sampling plan.</li>
@@ -149,7 +149,7 @@ function List({ missing, preselect }: { missing?: string | undefined; preselect:
           <div className="row wrap">
             <label className="field grow">
               <span>Title</span>
-              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. ARX-217 technology transfer document (fictional)" data-testid="trd-title-input" />
+              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. ARX-217 technical requirements document (fictional)" data-testid="trd-title-input" />
             </label>
             <label className="field">
               <span>Document reference (optional)</span>

@@ -1,4 +1,4 @@
-import { docRefLabel, MBR_CHOICE_LABEL, MBR_FORMAT_VERSION, PROCESS_MODEL_VERSION, SCHEMA_VERSION, type MbrParamRow, type MbrRecord, type MbrTrdRef, type Project, type TrdDocument } from "@gap/process-model";
+import { docRefLabel, MBR_CHOICE_LABEL, MBR_FORMAT_VERSION, printableUnit, PROCESS_MODEL_VERSION, SCHEMA_VERSION, type MbrParamRow, type MbrRecord, type MbrTrdRef, type Project, type TrdDocument } from "@gap/process-model";
 import type { Block, DocModel, DocSection } from "./document";
 import { effectiveField } from "./trd";
 import { TRD_BANNER } from "./trd-outline";
@@ -64,7 +64,7 @@ class SourceNumbers {
   }
 }
 
-const withUnit = (v: string | undefined, u: string | undefined) => [v, u].filter((x) => (x ?? "").trim()).join(" ");
+const withUnit = (v: string | undefined, u: string | undefined) => [v, printableUnit(u)].filter((x) => (x ?? "").trim()).join(" ");
 
 /** Where a TRD value comes from, in words: "source [1] (section 4)", "no source cited", or nothing when the TRD holds no value. */
 function trdSource(ref: MbrTrdRef | undefined, src: SourceNumbers): string {
@@ -167,7 +167,7 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
     { type: "note", text: mbrBasisText(project.meta.id, rec) },
     rec.purpose?.trim() ? { type: "paragraph", text: rec.purpose.trim() } : { type: "paragraph", text: "No purpose has been entered. This is left to the team; the tool does not supply wording." },
     { type: "list", items: [
-      "TRD value: the value in the technology transfer document at the time it was copied. MBR value: the value this batch record states.",
+      "TRD value: the value in the technical requirements document at the time it was copied. MBR value: the value this batch record states.",
       "Same as TRD: the MBR value is the TRD value. Tightened by the CMO: the MBR value is the CMO's own, with its reason. Not decided: nobody has chosen yet.",
       `${NOT_HELD}: the TRD record has no established value for it. Nothing was filled in.`,
       `${NOTE_OUTSIDE} and ${NOTE_TIGHTER} are comparisons for information only. They do not say a value is acceptable.`,

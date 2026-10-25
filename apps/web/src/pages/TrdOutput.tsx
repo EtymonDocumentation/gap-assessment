@@ -1,4 +1,5 @@
 import { buildTrdDocument, documentFingerprint, recordExport, trdBasisText, TRD_OPTIONAL_SECTIONS, updateTrd, type TrdOptionalSection } from "@gap/engine";
+import type { DocModel } from "@gap/engine";
 import { PROCESS_MODEL_VERSION, TRD_FORMAT_VERSION, type DocumentExport, type TemplateRecord, type TrdApproval, type TrdDocument } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlBody } from "@gap/renderers";
 import { useMemo, useRef, useState } from "react";
@@ -22,9 +23,13 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
   const [done, setDone] = useState("");
   const [showPreview, setShowPreview] = useState(false);
   const [omit, setOmit] = useState<TrdOptionalSection[]>([]);
+  const [omitEvidence, setOmitEvidence] = useState<TrdOptionalSection[]>([]);
 
   const choice = useWordChoice();
+  const evidenceChoice = useWordChoice();
+  // Two documents from the same record: the short standard TRD for approval, and the evidence record for audit and inspection.
   const doc = useMemo(() => buildTrdDocument(project, d, { generatedAt, appVersion: APP_VERSION, catalogVersion: content.versions.catalog, omit, content }), [project, d, content, generatedAt, omit]);
+  const evidenceDoc = useMemo(() => buildTrdDocument(project, d, { generatedAt, appVersion: APP_VERSION, catalogVersion: content.versions.catalog, omit: omitEvidence, content, variant: "evidence" }), [project, d, content, generatedAt, omitEvidence]);
   const body = useMemo(() => (showPreview ? renderHtmlBody(doc) : ""), [doc, showPreview]);
   const stamp = `${project.meta.id}-${d.id}-${today()}`;
   const tbd = doc.tbdCount ?? 0;
@@ -38,7 +43,7 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
     } else go();
   };
 
-  const record = (format: DocumentExport["format"], template: TemplateRecord) =>
+  const record = (format: DocumentExport["format"], template: TemplateRecord, made: DocModel = doc) =>
     update(
       (p, actor) =>
         recordExport(p, {
@@ -46,7 +51,7 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
           by: actor.name,
           format,
           template,
-          fingerprint: documentFingerprint(doc),
+          fingerprint: documentFingerprint(made),
           tbdCount: tbd,
           versions: { processModel: PROCESS_MODEL_VERSION, catalog: content.versions.catalog, format: TRD_FORMAT_VERSION },
         }),
@@ -54,20 +59,22 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
     );
   const saved = (file: string) => setDone(`Saved ${file}. The download is recorded in the export history below.`);
 
-  const exports = project.document.exports.filter((x) => x.format === "trd-docx" || x.format === "trd-html");
+  const exports = project.document.exports.filter((x) => x.format === "trd-docx" || x.format === "trd-html" || x.format === "trd-evidence-docx" || x.format === "trd-evidence-html");
+  const standardOptions = TRD_OPTIONAL_SECTIONS.filter((s) => s.id === "overview");
+  const evidenceOptions = TRD_OPTIONAL_SECTIONS.filter((s) => s.id !== "overview");
 
   return (
     <>
       <ApprovalsCard d={d} run={run} />
       <section className="card stack no-print" aria-labelledby="trd-doc" data-testid="trd-output">
-        <h2 id="trd-doc">Technology transfer document</h2>
+        <h2 id="trd-doc">Technical requirements document</h2>
         <p>
-          {trdBasisText(project.meta.id, d)} The document shows the process sections you have, each parameter with its set point, NOR and PAR and their sources, a check of those numbers, every override with the project value beside it, and the open items. It states no filing category: the only wording is "Requires regulatory affairs assessment".
+          {trdBasisText(project.meta.id, d)} This is the short document for approval: document control, the numbered sections and process descriptions, one table of parameters for each process step (set point, NOR, PAR and unit), the open items, the approval section and the documents referred to. Where each value came from is in the evidence record below. It states no filing category: the only wording is "Requires regulatory affairs assessment".
         </p>
         <fieldset className="fs stack" data-testid="trd-sections">
           <legend>Optional sections in this download</legend>
-          <p className="muted small">The process sections, the PAR and NOR check, the overrides, the open items and the versions are always in the document.</p>
-          {TRD_OPTIONAL_SECTIONS.map((s) => (
+          <p className="muted small">The process sections, the parameter tables, the overrides, the open items and the references are always in the document.</p>
+          {standardOptions.map((s) => (
             <label key={s.id} className="check">
               <input type="checkbox" checked={!omit.includes(s.id)} data-testid={`trd-section-${s.id}`} onChange={(e) => setOmit(e.target.checked ? omit.filter((x) => x !== s.id) : [...omit, s.id])} /> <span>{s.label}</span>
             </label>
@@ -114,6 +121,54 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
         tagData={(m) => m.buildDocumentTagData(doc)}
         testIdPrefix="trd"
         note={'"Map to their headings" is offered for the gap assessment document only: a saved mapping names the gap document\'s sections. For a tagged template, {title}, {banner}, {status}, {generated}, {meta} and {sections} are filled, and {@body} or a section tag such as {@section_par_nor} brings in the TRD in your template\'s styles. The sections of each process step have their own tags, for example {@section_step_TS_01}.'}
+      />
+
+      <section className="card stack no-print" aria-labelledby="trd-evidence" data-testid="trd-evidence-output">
+        <h2 id="trd-evidence">Evidence record</h2>
+        <p>
+          A separate document for audit and inspection. It is not for approval. It holds what the short document leaves out: every value with its basis, sources, status and classification, the other recorded values, the check of the set points against the NOR and PAR, the values behind the process descriptions, the source register and the traceability.
+        </p>
+        <fieldset className="fs stack" data-testid="trd-evidence-sections">
+          <legend>Optional sections in the evidence record</legend>
+          {evidenceOptions.map((s) => (
+            <label key={s.id} className="check">
+              <input type="checkbox" checked={!omitEvidence.includes(s.id)} data-testid={`trd-evidence-section-${s.id}`} onChange={(e) => setOmitEvidence(e.target.checked ? omitEvidence.filter((x) => x !== s.id) : [...omitEvidence, s.id])} /> <span>{s.label}</span>
+            </label>
+          ))}
+        </fieldset>
+        <div className="row wrap">
+          <button
+            type="button"
+            className="btn"
+            data-testid="trd-evidence-download-html"
+            onClick={() =>
+              guard(() => {
+                const file = `trd-evidence-${stamp}.html`;
+                download(file, renderHtml(evidenceDoc), "text/html;charset=utf-8");
+                record("trd-evidence-html", BUILTIN_RECORD, evidenceDoc);
+                saved(file);
+              })
+            }
+          >
+            Download evidence record (HTML)
+          </button>
+        </div>
+      </section>
+
+      <WordPanel
+        choice={evidenceChoice}
+        doc={evidenceDoc}
+        content={content}
+        project={project}
+        generatedAt={generatedAt}
+        fileBase={`trd-evidence-${stamp}`}
+        guard={guard}
+        onExported={(template) => record("trd-evidence-docx", template, evidenceDoc)}
+        modes={GENERIC_MODES}
+        tagData={(m) => m.buildDocumentTagData(evidenceDoc)}
+        testIdPrefix="trd-evidence"
+        idPrefix="trd-evidence-word"
+        title="Evidence record (Word)"
       />
 
       <ExportHistory exports={exports} idPrefix="trd-export-history" title="Export history" />

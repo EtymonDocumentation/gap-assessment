@@ -5,7 +5,7 @@
 # flagged. Regulatory wording is fixed: "Requires regulatory affairs assessment."
 ruleset:
   id: gap-core-rules
-  version: 1.6.0
+  version: 1.7.0
 
 rules:
   # ------------------------------------------------------------------ site
@@ -846,7 +846,7 @@ rules:
     why: RU inspectors are not qualified for routine manual inspection until qualification and requalification are in place.
     activities: [inspector_qualification, training]
 
-  # ---- labeling and packaging
+  # ---- labelling and packaging
   - id: R-SERIALIZATION
     version: 1.0.0
     title: Serialization and aggregation level
@@ -873,7 +873,7 @@ rules:
     comparator: upper_limit
     severity: high
     regulatory: true
-    why: Product is warmed during labeling and packaging. A longer time out of refrigeration is not supported unless stability data cover it.
+    why: Product is warmed during labelling and packaging. A longer time out of refrigeration is not supported unless stability data cover it.
     activities: [stability_assessment, hold_time_study]
 
   - id: R-EV-SERIALIZATION
@@ -1029,6 +1029,19 @@ rules:
     outcomes:
       within_validated_range:
         why: The planned maximum hold time is within the {{validated|demonstrated}} hold time.
+
+  - id: R-FILTRATION-TIME
+    version: 1.0.0
+    title: Sterile filtration time (maximum)
+    match: [uo.sterile_filtration.param.max_filtration_time.max]
+    comparator: upper_limit
+    severity: medium
+    regulatory: true
+    why: A longer filtration extends product exposure upstream of the sterilizing filter and must stay within the {{validated|demonstrated}} filtration time of the bacterial retention study.
+    activities: [filter_sizing, risk_assessment_update]
+    outcomes:
+      within_validated_range:
+        why: The planned maximum filtration time is within the {{validated|demonstrated}} filtration time.
 
   - id: R-FILL-DURATION
     version: 1.0.0
@@ -1953,6 +1966,36 @@ rules:
     regulatory: true
     why: Product is warmed while it is packed. A longer time out of refrigeration is not supported unless stability data cover it.
     activities: [stability_assessment, hold_time_study]
+
+  - id: R-INSP-TIME-OUT
+    version: 1.0.0
+    title: Maximum time out of refrigeration during visual inspection
+    match: [uo.visual_inspection.param.max_time_out_of_refrigeration.max]
+    comparator: upper_limit
+    severity: high
+    regulatory: true
+    why: Product is warmed during inspection. A longer time out of refrigeration is not supported unless stability data cover it.
+    activities: [stability_assessment, hold_time_study]
+
+  - id: R-TOTAL-TIME-OUT
+    version: 1.0.0
+    title: Total time out of refrigeration
+    match: [uo.storage_shipping.param.max_total_time_out_of_refrigeration.max]
+    comparator: upper_limit
+    severity: high
+    regulatory: true
+    why: The total time out of refrigeration across all steps must stay within what stability data support.
+    activities: [stability_assessment, hold_time_study]
+
+  - id: R-COLD-HOLD
+    version: 1.0.0
+    title: Maximum cold hold at 2 to 8 °C
+    match: [uo.ds_receipt_thaw.param.max_cold_hold.max, uo.bbr_filtration.param.max_cold_hold.max]
+    comparator: upper_limit
+    severity: high
+    regulatory: true
+    why: A longer cold hold of the thawed drug substance or the bioburden-reduced bulk is not supported unless hold data cover it.
+    activities: [hold_time_study, stability_assessment]
 
   - id: R-EV-BP-TOR
     version: 1.0.0

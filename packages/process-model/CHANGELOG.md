@@ -2,6 +2,33 @@
 
 All notable changes to `@gap/process-model`. Versions follow semver; see README.md for what counts as breaking.
 
+## 1.12.0
+
+Project schema 1.22.0, catalog 1.9.0, questions 1.8.0. Additive in the type and the schema; the catalog changes are described below. Nothing was removed.
+
+### Added
+- `TRD_DRAWING_IDS`, `TrdDrawingId`: a library figure part may name a standard drawing (`drawing`), shown until the author attaches a picture.
+- Catalog items (parameters, all with set point / NOR / PAR like any parameter): `ds_receipt_thaw.max_cold_hold`, `bbr_filtration.max_cold_hold`,
+  `visual_inspection.max_time_out_of_refrigeration`, `storage_shipping.max_total_time_out_of_refrigeration`. New target-side questions
+  `rt.cold_hold`, `bbr.cold_hold`, `vi.time_out`, `ss.total_tor` bind them.
+- Shipper options `dry_ice_shipper` and `dry_vapour_shipper` (the dry-vapour liquid-nitrogen shipper).
+- Demo answers may be not applicable (`notApplicable` with a justification).
+- Migration 1.21.0 -> 1.22.0: version only.
+
+### Changed
+- The label of `aseptic_filling.max_interventions` is "Interventions". The shipper option `dry_shipper_frozen` is kept for projects that chose it,
+  and now reads "Dry-vapour or dry-ice shipper (type not specified)". Labels with "100%" read "100 %". No item key was renamed or removed.
+
+## 1.11.0
+
+Project schema 1.21.0. The TRD export is two documents: the short standard TRD (`trd-docx`, `trd-html`) and the evidence record (`trd-evidence-docx`, `trd-evidence-html`). Additive: nothing was removed.
+
+### Added
+- Export formats `trd-evidence-docx` and `trd-evidence-html`.
+- `printableUnit` (the unit "count" is never printed); `formatRange` writes "-80 to -65 °C" when an end is negative.
+- Catalog 1.8.0: prefilled syringe and cartridge container formats (options only), the PUPSIT label "Pre-use, post-sterilization integrity test (PUPSIT)".
+- Migration 1.20.0 -> 1.21.0: version only.
+
 ## 1.10.0
 
 TRD format 1.2.0, write-up library format 1.1.0 (project schema 1.20.0). Additive: nothing was removed, and a TRD without pictures, rows or a moved write-up is unchanged.

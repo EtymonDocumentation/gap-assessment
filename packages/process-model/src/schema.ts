@@ -194,7 +194,7 @@ export const documentStateSchema = z.object({
     z.object({
       at: z.string(),
       by: z.string().optional(),
-      format: z.enum(["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html", "sampling-plan-docx", "sampling-plan-html", "sampling-cmo-instructions-docx", "sampling-cmo-instructions-html", "risk-assessment-docx", "risk-assessment-html", "trd-docx", "trd-html", "mbr-docx", "mbr-html"]),
+      format: z.enum(["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html", "sampling-plan-docx", "sampling-plan-html", "sampling-cmo-instructions-docx", "sampling-cmo-instructions-html", "risk-assessment-docx", "risk-assessment-html", "trd-docx", "trd-html", "trd-evidence-docx", "trd-evidence-html", "mbr-docx", "mbr-html"]),
       template: templateRecord,
       revision: z.number().int().positive().optional(),
       fingerprint: z.string(),
@@ -448,7 +448,7 @@ const MIGRATIONS: { from: string; to: string; migrate: Migrate }[] = [
     to: "1.14.0",
     migrate: (raw) => ({ ...raw, schemaVersion: "1.14.0", risk: raw.risk ?? { assessments: [] } }),
   },
-  // 1.14.0 -> 1.15.0: technology transfer documents (project.trd.documents), TRD format 1.0.0. Older projects have none, which is
+  // 1.14.0 -> 1.15.0: technical requirements documents (project.trd.documents), TRD format 1.0.0. Older projects have none, which is
   // what they always had: no TRD is invented and nothing else in the project changes.
   {
     from: "1.14.0",
@@ -494,6 +494,21 @@ const MIGRATIONS: { from: string; to: string; migrate: Migrate }[] = [
     to: "1.20.0",
     migrate: (raw) => ({ ...raw, schemaVersion: "1.20.0" }),
   },
+  // 1.20.0 -> 1.21.0: the TRD export is split in two. The short standard TRD keeps the export kinds trd-docx and trd-html; the evidence
+  // record (for audit and inspection, not for approval) is recorded as trd-evidence-docx and trd-evidence-html. The new kinds only add
+  // values to the export history, so no data changes; only the version moves and an older project opens unchanged.
+  {
+    from: "1.20.0",
+    to: "1.21.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.21.0" }),
+  },
+  // 1.21.0 -> 1.22.0: a library figure part may name a standard drawing ("drawing"), which a TRD's copy of the part keeps. The field is
+  // optional and absent in every older record, so no data changes; only the version moves and an older project opens unchanged.
+  {
+    from: "1.21.0",
+    to: "1.22.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.22.0" }),
+  },
 ];
 
 /**
@@ -514,7 +529,7 @@ export const STEP_ORDER_AT_1130: readonly (readonly [key: string, label: string]
   ["capping", "Capping and crimping"],
   ["visual_inspection", "Visual inspection"],
   ["bulk_packaging", "Bulk packaging"],
-  ["labeling_packaging", "Labeling and packaging"],
+  ["labeling_packaging", "Labelling and packaging"],
   ["storage_shipping", "Storage and shipping from the fill site"],
 ];
 

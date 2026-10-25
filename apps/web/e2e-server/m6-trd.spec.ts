@@ -27,7 +27,7 @@ test("server build: the TRD seed downloads and appears in the export history aft
   expect(json.file).toMatch(/^trd-seed-.+-\d{4}-\d{2}-\d{2}\.json$/);
   expect(parseTrdSeed(json.bytes.toString("utf8")).meta.format).toBe("gap-assessment.trd-seed");
   const html = await dl("Download draft outline (HTML)");
-  expect(html.bytes.toString("utf8")).toContain("Technology transfer document");
+  expect(html.bytes.toString("utf8")).toContain("Technical requirements document");
 
   const history = page.getByRole("region", { name: "Export history table" });
   await expect(history.getByRole("cell", { name: "TRD seed (JSON)" })).toBeVisible();

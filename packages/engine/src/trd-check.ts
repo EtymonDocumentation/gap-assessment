@@ -1,4 +1,4 @@
-import type { TrdLimits, TrdRange, TrdSetPoint } from "@gap/process-model";
+import { printableUnit, type TrdLimits, type TrdRange, type TrdSetPoint } from "@gap/process-model";
 
 /**
  * Report-only check of the numbers a person entered for a parameter: set point, normal operating range (NOR) and proven
@@ -30,7 +30,8 @@ export interface LimitCheck {
   working: string[];
 }
 
-const withUnit = (n: number, unit: string | undefined) => (unit ? `${n} ${unit}` : String(n));
+// "count" is never printed as a unit (see printableUnit); the other units follow the number.
+const withUnit = (n: number, unit: string | undefined) => (printableUnit(unit) ? `${n} ${printableUnit(unit)}` : String(n));
 const unitText = (u: string | undefined) => (u && u.trim() ? u.trim() : "no unit stated");
 const same = (a: string | undefined, b: string | undefined) => (a ?? "").trim() === (b ?? "").trim();
 
@@ -92,7 +93,7 @@ export function checkLimits(limits: TrdLimits | undefined): LimitCheck {
 /** A range as one line of words ("15 to 25 °C", "up to 25 °C", "from 15 °C"). Empty text for no range. */
 export function rangeText(r: TrdRange | undefined): string {
   if (!r) return "";
-  const u = r.unit ? ` ${r.unit}` : "";
+  const u = printableUnit(r.unit) ? ` ${printableUnit(r.unit)}` : "";
   const base = r.min !== undefined && r.max !== undefined ? `${r.min} to ${r.max}${u}` : r.max !== undefined ? `up to ${r.max}${u}` : r.min !== undefined ? `from ${r.min}${u}` : "";
   return r.provisional ? `${base} (provisional)` : base;
 }

@@ -11,7 +11,7 @@ import type { Block, DocModel, DocSection } from "./document";
  * outline never claims to be an approved TRD, and it never states a regulatory filing category.
  */
 
-export const TRD_OUTLINE_TITLE = "Technology transfer document — draft outline";
+export const TRD_OUTLINE_TITLE = "Technical requirements document — draft outline";
 export const TRD_BANNER = "Proof of concept. Not validated. Not for GMP use.";
 const NOT_ESTABLISHED = "Not established";
 
@@ -124,7 +124,7 @@ export function buildTrdOutline(seed: TrdSeed, opts: TrdOutlineOptions = {}): Do
     { type: "note", text: basis },
     {
       type: "paragraph",
-      text: `This outline lists what the gap assessment recorded about the planned process at the receiving unit (RU) for ${program}. It is meant as a starting point for the technology transfer document (TRD): each value shows whether it is established, still to be determined (TBD) or not established. Nothing has been filled in on behalf of the project, and unit operations or topics left out are not listed below.`,
+      text: `This outline lists what the gap assessment recorded about the planned process at the receiving unit (RU) for ${program}. It is meant as a starting point for the technical requirements document (TRD): each value shows whether it is established, still to be determined (TBD) or not established. Nothing has been filled in on behalf of the project, and unit operations or topics left out are not listed below.`,
     },
     { type: "table", columns: ["Unit operation or topic", "Scope", "Note"], rows: scopeRows, caption: "Scope of the outline" },
   ]);

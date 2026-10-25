@@ -1,0 +1,798 @@
+demo:
+  id: syr-305
+  title: "SYR-305 technology transfer: Example Biologics to Example Fill Site (fictional demo)"
+  version: 1.0.0
+responder: { name: Alex Example (fictional), role: MSAT engineer }
+date: "2026-10-01T09:00:00.000Z"
+entrySequence: paired
+documents:
+  - { identifier: DEMO-ENG-305-01, docType: Engineering run report, title: "SYR-305 engineering run report, Example Fill Site PFS Line 3 (fictional)", version: "1.0" }
+  - { identifier: DEMO-FV-305-01, docType: Study report, title: SYR-305 sterilizing and BBR filter validation (fictional), version: "1.0" }
+  - { identifier: DEMO-HT-305-01, docType: Study report, title: "SYR-305 thaw, hold and time out of refrigeration study (fictional)", version: "1.0" }
+  - { identifier: DEMO-APS-FS-26, docType: APS report, title: Example Fill Site PFS Line 3 media fill summary (fictional), version: "1.0" }
+  - { identifier: DEMO-SHIP-305-01, docType: Qualification report, title: SYR-305 shipping lane qualification (fictional), version: "1.0" }
+  - { identifier: DEMO-VI-305-01, docType: Qualification report, title: SYR-305 automated visual inspection qualification (fictional), version: "1.0" }
+
+answers:
+  - { q: scope.program, side: shared, value: SYR-305 }
+  - { q: scope.modality, side: shared, value: mab }
+  - { q: scope.dosage_form, side: shared, value: liquid }
+  - { q: scope.presentation, side: shared, value: prefilled_syringe }
+  - { q: scope.ds_state, side: shared, value: frozen }
+  - { q: scope.dilution, side: shared, value: yes }
+  - { q: scope.containment, side: shared, value: standard }
+  - { q: scope.markets, side: shared, value: [us, eu] }
+  - { q: scope.transfer_type, side: shared, value: site_to_site }
+  - { q: site.name, side: source, value: Example Biologics Drug Substance Site (fictional) }
+  - { q: site.name, side: target, value: Example Fill Site (fictional) }
+  - { q: site.line, side: source, value: DS Suite 1 }
+  - { q: site.line, side: target, value: PFS Line 3 }
+  - { q: site.stage, side: source, value: clinical }
+  - { q: site.stage, side: target, value: clinical }
+  - { q: site.labelling_location, side: source, value: another_site }
+  - { q: site.labelling_location, side: target, value: this_site }
+  - { q: site.barrier, side: source, value: conventional }
+  - { q: site.barrier, side: target, value: isolator }
+  - { q: site.background_grade, side: source, value: D }
+  - { q: site.background_grade, side: target, value: C }
+  - { q: site.batch_record, side: source, value: electronic }
+  - { q: site.batch_record, side: target, value: electronic }
+  - { q: dsi.presence, side: source, value: no }
+  - { q: dsi.presence, side: target, value: yes }
+  - { q: rt.presence, side: source, value: no }
+  - { q: rt.presence, side: target, value: yes }
+  - { q: buf.presence, side: source, value: no }
+  - { q: buf.presence, side: target, value: yes }
+  - { q: comp.presence, side: source, value: no }
+  - { q: comp.presence, side: target, value: yes }
+  - { q: bbr.presence, side: source, value: no }
+  - { q: bbr.presence, side: target, value: yes }
+  - { q: filt.presence, side: source, value: no }
+  - { q: filt.presence, side: target, value: yes }
+  - { q: fill.presence, side: source, value: no }
+  - { q: fill.presence, side: target, value: yes }
+  - { q: vi.presence, side: source, value: no }
+  - { q: vi.presence, side: target, value: yes }
+  - { q: bp.presence, side: source, value: no }
+  - { q: bp.presence, side: target, value: yes }
+  - { q: lp.presence, side: target, value: yes }
+  - { q: ss.presence, side: source, value: no }
+  - { q: ss.presence, side: target, value: yes }
+
+  - { q: site.labelling_site, side: source, value: Example Packaging Partner (fictional) }
+
+  # ---------------------------------------------------------------- drug substance shipping and receipt
+  - { q: dsi.shipper, side: target, value: dry_ice_shipper }
+  - { q: dsi.shipper_qual, side: target, value: pq_complete, docs: [DEMO-SHIP-305-01] }
+  - { q: dsi.transit, side: target, value: { value: 48, unit: h }, docs: [DEMO-SHIP-305-01] }
+  - q: dsi.temperature
+    side: target
+    docs: [DEMO-SHIP-305-01]
+    fields:
+      classification: KPP
+      setPoint: { value: -70, unit: "°C" }
+      nor: { min: { value: -80, unit: "°C" }, max: { value: -65, unit: "°C" } }
+      par: { min: { value: -90, unit: "°C" }, max: { value: -60, unit: "°C" } }
+      rangeBasis: characterization
+  - { q: dsi.monitoring, side: target, value: [data_logger, real_time] }
+  - { q: dsi.lane, side: target, value: "Example Biologics Drug Substance Site (fictional) to Example Fill Site (fictional)" }
+  - { q: dsi.lane_qualification, side: target, value: available, docs: [DEMO-SHIP-305-01] }
+  - { q: dsi.custody, side: target, value: [signed_handover, electronic_tracking, tamper_seal, receipt_inspection] }
+  - { q: dsi.excursion, side: target, value: { value: 2, unit: h } }
+  - { q: dsi.excursion_handling, side: target, value: stability_assessment }
+  - { q: dsi.procedures, side: target, value: in_place }
+
+  # ---------------------------------------------------------------- frozen storage and thaw
+  - { q: rt.container, side: target, value: rigid_bottle }
+  - q: rt.storage_temp
+    side: target
+    docs: [DEMO-HT-305-01]
+    fields:
+      classification: KPP
+      setPoint: { value: -70, unit: "°C" }
+      nor: { min: { value: -80, unit: "°C" }, max: { value: -65, unit: "°C" } }
+      par: { min: { value: -90, unit: "°C" }, max: { value: -60, unit: "°C" } }
+      rangeBasis: characterization
+  - { q: rt.transfer_bag, side: target, value: yes }
+  - { q: rt.thaw_principle, side: target, value: controlled_rate }
+  - { q: rt.thaw_capacity, side: target, value: { value: 20, unit: L } }
+  - q: rt.thaw_temp
+    side: target
+    docs: [DEMO-HT-305-01]
+    fields:
+      classification: CPP
+      setPoint: { value: 25, unit: "°C" }
+      nor: { min: { value: 20, unit: "°C" }, max: { value: 30, unit: "°C" } }
+      par: { min: { value: 15, unit: "°C" }, max: { value: 35, unit: "°C" } }
+      rangeBasis: characterization
+  - q: rt.thaw_duration
+    side: target
+    docs: [DEMO-HT-305-01]
+    fields:
+      classification: KPP
+      setPoint: { value: 4, unit: h }
+      nor: { min: { value: 3, unit: h }, max: { value: 5, unit: h } }
+      par: { min: { value: 2, unit: h }, max: { value: 6, unit: h } }
+      rangeBasis: characterization
+  - { q: rt.ambient_time, side: target, value: { value: 4, unit: h }, docs: [DEMO-HT-305-01] }
+  - { q: rt.cold_hold, side: target, value: { value: 24, unit: h }, docs: [DEMO-HT-305-01] }
+  - { q: rt.mixing, side: target, value: rocking }
+  - { q: rt.thaw_qual, side: target, value: pq_complete }
+  - { q: rt.storage_qual, side: target, value: pq_complete }
+  - { q: rt.procedures, side: target, value: update_required }
+
+  # ---------------------------------------------------------------- buffer (received ready to use)
+  - { q: buf.route, side: target, value: prepared_on_site }
+  - { q: buf.bbr_filtered, side: target, value: yes }
+  - { q: buf.procedures, side: target, value: in_place }
+
+  # ---------------------------------------------------------------- pooling, compounding and dilution
+  - q: comp.batch_size
+    side: target
+    docs: [DEMO-ENG-305-01]
+    fields:
+      classification: KPP
+      setPoint: { value: 40, unit: L }
+      nor: { min: { value: 38, unit: L }, max: { value: 42, unit: L } }
+      par: { min: { value: 30, unit: L }, max: { value: 45, unit: L } }
+      rangeBasis: characterization
+  - { q: comp.hold_time, side: target, value: { value: 24, unit: h }, docs: [DEMO-HT-305-01] }
+  - { q: comp.vessel_type, side: target, value: single_use_bag }
+  - { q: comp.vessel_capacity, side: target, value: { value: 100, unit: L } }
+  - { q: comp.mixer, side: target, value: single_use_impeller }
+  - q: comp.mixing_speed
+    side: target
+    docs: [DEMO-ENG-305-01]
+    fields:
+      classification: non_critical
+      setPoint: { value: 120, unit: rpm }
+      nor: { min: { value: 100, unit: rpm }, max: { value: 140, unit: rpm } }
+      par: { min: { value: 80, unit: rpm }, max: { value: 160, unit: rpm } }
+      rangeBasis: development_report
+  - q: comp.mixing_time
+    side: target
+    docs: [DEMO-ENG-305-01]
+    fields:
+      classification: non_critical
+      setPoint: { value: 30, unit: min }
+      nor: { min: { value: 25, unit: min }, max: { value: 35, unit: min } }
+      par: { min: { value: 20, unit: min }, max: { value: 60, unit: min } }
+      rangeBasis: development_report
+  - q: comp.temperature
+    side: target
+    docs: [DEMO-ENG-305-01]
+    fields:
+      classification: KPP
+      setPoint: { value: 5, unit: "°C" }
+      nor: { min: { value: 2, unit: "°C" }, max: { value: 8, unit: "°C" } }
+      par: { min: { value: 2, unit: "°C" }, max: { value: 10, unit: "°C" } }
+      rangeBasis: characterization
+  - { q: comp.ipc, side: target, value: [ph, osmolality, protein_concentration, appearance, bioburden] }
+  - { q: comp.diluent, side: target, value: "formulation buffer (histidine, sucrose, polysorbate; fictional)" }
+  - { q: comp.diluent_volume, side: target, value: { value: 15, unit: L } }
+  - q: comp.target_conc
+    side: target
+    docs: [DEMO-ENG-305-01]
+    fields:
+      classification: CPP
+      setPoint: { value: 100, unit: mg/mL }
+      nor: { min: { value: 95, unit: mg/mL }, max: { value: 105, unit: mg/mL } }
+      par: { min: { value: 90, unit: mg/mL }, max: { value: 110, unit: mg/mL } }
+      rangeBasis: characterization
+  - { q: comp.vessel_qual, side: target, value: pq_complete }
+  - { q: comp.mixer_qual, side: target, value: pq_complete }
+  - { q: comp.procedures, side: target, value: update_required }
+
+  # ---------------------------------------------------------------- BBR filtration
+  - { q: bbr.membrane, side: target, value: pes }
+  - { q: bbr.pore, side: target, value: "0.45" }
+  - { q: bbr.supplier, side: target, value: Filter Vendor A (fictional) }
+  - { q: bbr.part, side: target, value: BBR-0305-DEMO }
+  - { q: bbr.area, side: target, value: { value: 0.1, unit: "m²" } }
+  - q: bbr.pressure
+    side: target
+    docs: [DEMO-FV-305-01]
+    fields:
+      classification: non_critical
+      setPoint: { value: 1.0, unit: bar }
+      nor: { min: { value: 0.5, unit: bar }, max: { value: 1.5, unit: bar } }
+      par: { min: { value: 0.3, unit: bar }, max: { value: 2.0, unit: bar } }
+      rangeBasis: characterization
+  - q: bbr.duration
+    side: target
+    docs: [DEMO-FV-305-01]
+    fields:
+      classification: non_critical
+      setPoint: { value: 2, unit: h }
+      nor: { max: { value: 2, unit: h } }
+      par: { max: { value: 4, unit: h } }
+      rangeBasis: characterization
+  - { q: bbr.cold_hold, side: target, value: { value: 24, unit: h }, docs: [DEMO-HT-305-01] }
+  - { q: bbr.bioburden_limit, side: target, value: { value: 10, unit: CFU/100 mL } }
+  - { q: bbr.integrity, side: target, value: pre_and_post_use }
+  - { q: bbr.procedures, side: target, value: in_place }
+
+  # ---------------------------------------------------------------- sterile filtration with PUPSIT
+  - { q: filt.redundant, side: target, value: yes }
+  - { q: filt.membrane, side: target, value: pes }
+  - { q: filt.pore, side: target, value: "0.22" }
+  - { q: filt.supplier, side: target, value: Filter Vendor A (fictional) }
+  - { q: filt.part, side: target, value: SF-0305-DEMO }
+  - { q: filt.area, side: target, value: { value: 0.05, unit: "m²" } }
+  - { q: filt.sua, side: target, value: yes }
+  - q: filt.pressure
+    side: target
+    docs: [DEMO-FV-305-01]
+    fields:
+      classification: CPP
+      setPoint: { value: 1.5, unit: bar }
+      nor: { min: { value: 1.0, unit: bar }, max: { value: 2.0, unit: bar } }
+      par: { min: { value: 0.5, unit: bar }, max: { value: 2.5, unit: bar } }
+      rangeBasis: characterization
+  - { q: filt.filtration_time, side: target, value: { value: 4, unit: h }, docs: [DEMO-FV-305-01] }
+  - { q: filt.integrity, side: target, value: [pre_use_pre_sterilization, post_use] }
+  - { q: filt.bioburden_limit, side: target, value: { value: 10, unit: CFU/100 mL } }
+  - { q: filt.pupsit, side: target, value: performed }
+  - { q: filt.integrity_method, side: target, value: bubble_point }
+  - { q: filt.tester_qual, side: target, value: pq_complete }
+  - { q: filt.procedures, side: target, value: in_place }
+
+  # ---------------------------------------------------------------- aseptic filling and vacuum stoppering in the isolator
+  - { q: fill.pump, side: target, value: rotary_piston }
+  - q: fill.volume
+    side: target
+    docs: [DEMO-ENG-305-01]
+    fields:
+      classification: CPP
+      setPoint: { value: 1.10, unit: mL }
+      nor: { min: { value: 1.08, unit: mL }, max: { value: 1.12, unit: mL } }
+      par: { min: { value: 1.05, unit: mL }, max: { value: 1.15, unit: mL } }
+      rangeBasis: characterization
+  - q: fill.speed
+    side: target
+    docs: [DEMO-ENG-305-01]
+    fields:
+      classification: KPP
+      setPoint: { value: 150, unit: units/min }
+      nor: { min: { value: 130, unit: units/min }, max: { value: 170, unit: units/min } }
+      par: { min: { value: 100, unit: units/min }, max: { value: 200, unit: units/min } }
+      rangeBasis: characterization
+  - { q: fill.duration, side: target, value: { value: 6, unit: h }, docs: [DEMO-APS-FS-26] }
+  - { q: fill.check, side: target, value: inline_100 }
+  - { q: fill.container, side: target, value: pfs_1_long }
+  - { q: fill.container_supplier, side: target, value: Glass Vendor C (fictional) }
+  - { q: fill.stopper, side: target, value: "Stopper Vendor D, PLG-1ML-DEMO" }
+  - { q: fill.stopper_method, side: target, value: vacuum_placement }
+  - q: fill.stopper_position
+    side: target
+    docs: [DEMO-ENG-305-01]
+    fields:
+      classification: CPP
+      setPoint: { value: 6.5, unit: mm }
+      nor: { min: { value: 6.0, unit: mm }, max: { value: 7.0, unit: mm } }
+      par: { min: { value: 5.5, unit: mm }, max: { value: 7.5, unit: mm } }
+      rangeBasis: characterization
+  - { q: fill.headspace, side: target, value: { value: 4, unit: mm } }
+  - { q: fill.stopper_checks, side: target, value: [height_measurement, camera_inline_100] }
+  - { q: fill.stopper_criterion, side: target, value: "Stopper position measured on 5 syringes at the start, middle and end of filling, 6.0 to 7.0 mm; 100 % in-line camera check rejects units outside the limit (fictional)" }
+  - { q: fill.aps_runs, side: target, value: { value: 3, unit: count }, docs: [DEMO-APS-FS-26] }
+  - { q: fill.aps_interventions, side: target, value: { value: 12, unit: count }, docs: [DEMO-APS-FS-26] }
+  # Filling starts directly after sterile filtration, so there is no filtered bulk hold. Answered as not applicable (with the reason) rather than left open.
+  - { q: fill.filtered_hold, side: target, notApplicable: "Filling starts directly after sterile filtration; the sterile bulk is not held." }
+  - { q: fill.bulk_vessel, side: target, value: single_use_bag }
+  - { q: fill.filler_qual, side: target, value: pq_complete, docs: [DEMO-ENG-305-01] }
+  - { q: fill.bulk_vessel_qual, side: target, value: pq_complete }
+  - { q: fill.procedures, side: target, value: update_required }
+
+  # ---------------------------------------------------------------- visual inspection
+  - { q: vi.method, side: target, value: automated }
+  - q: vi.rate
+    side: target
+    docs: [DEMO-VI-305-01]
+    fields:
+      classification: KPP
+      setPoint: { value: 300, unit: units/min }
+      nor: { min: { value: 270, unit: units/min }, max: { value: 330, unit: units/min } }
+      par: { min: { value: 250, unit: units/min }, max: { value: 350, unit: units/min } }
+      rangeBasis: characterization
+  - { q: vi.time_out, side: target, value: { value: 3, unit: h }, docs: [DEMO-HT-305-01] }
+  - { q: vi.defects, side: target, value: [particulates, container_defects, closure_defects, fill_level] }
+  - { q: vi.aql, side: target, value: iso2859_standard }
+  - { q: vi.reject_limit, side: target, value: { value: 2, unit: "%" } }
+  - { q: vi.defect_library, side: target, value: product_specific }
+  - { q: vi.qual, side: target, value: pq_complete, docs: [DEMO-VI-305-01] }
+  - { q: vi.procedures, side: target, value: in_place }
+
+  # ---------------------------------------------------------------- bulk packaging
+  - { q: bp.container, side: target, value: nest_in_tub }
+  - { q: bp.units, side: target, value: { value: 100, unit: count } }
+  - { q: bp.seal, side: target, value: lid_closure }
+  - { q: bp.identity, side: target, value: [batch_label, status_label, second_person_check] }
+  - { q: bp.hold_time, side: target, value: { value: 24, unit: h } }
+  - { q: bp.time_out, side: target, value: { value: 1, unit: h } }
+  - { q: bp.storage, side: target, value: refrigerated }
+  - { q: bp.reconciliation, side: target, value: "Inspected, rejected and packed units are counted per tub and reconciled to the filled units by a second person" }
+  - { q: bp.integrity, side: target, value: [seal_visual, weight_check] }
+  - { q: bp.check, side: target, value: iso2859_standard }
+  - { q: bp.procedures, side: target, value: in_place }
+
+  # ---------------------------------------------------------------- labelling and packaging
+  - { q: lp.labeler, side: target, value: pressure_sensitive }
+  - q: lp.speed
+    side: target
+    docs: [DEMO-ENG-305-01]
+    fields:
+      classification: non_critical
+      setPoint: { value: 100, unit: units/min }
+      nor: { min: { value: 90, unit: units/min }, max: { value: 110, unit: units/min } }
+      par: { min: { value: 70, unit: units/min }, max: { value: 120, unit: units/min } }
+      rangeBasis: development_report
+  - { q: lp.serialization, side: target, value: serialization_aggregation }
+  - { q: lp.pack_config, side: target, value: single_unit_carton }
+  - { q: lp.time_out, side: target, value: { value: 2, unit: h }, docs: [DEMO-HT-305-01] }
+  - { q: lp.reconciliation, side: target, value: full_reconciliation }
+  - { q: lp.label_checks, side: target, value: [presence_position, print_legibility, barcode_verification] }
+  - { q: lp.labeler_qual, side: target, value: pq_complete }
+  - { q: lp.serialization_qual, side: target, value: pq_complete }
+  - { q: lp.procedures, side: target, value: in_place }
+
+  # ---------------------------------------------------------------- storage and shipping
+  - { q: ss.shipped_item, side: target, value: labelled_product }
+  - { q: ss.destination, side: target, value: distribution }
+  - { q: ss.condition, side: target, value: refrigerated }
+  - { q: ss.storage_unit, side: target, value: walk_in_cold_room }
+  - { q: ss.storage_monitoring, side: target, value: [continuous_alarmed, mapped_and_qualified] }
+  - { q: ss.shipper, side: target, value: passive_insulated }
+  - { q: ss.lane, side: target, value: "Example Fill Site (fictional) to Example Distribution Centre (fictional)" }
+  - { q: ss.transit, side: target, value: { value: 48, unit: h }, docs: [DEMO-SHIP-305-01] }
+  - { q: ss.excursion, side: target, value: { value: 24, unit: h }, docs: [DEMO-SHIP-305-01] }
+  - { q: ss.total_tor, side: target, value: { value: 12, unit: h }, docs: [DEMO-HT-305-01] }
+  - { q: ss.shipping_monitoring, side: target, value: [data_logger, real_time] }
+  - { q: ss.modes, side: target, value: [road, air] }
+  - { q: ss.storage_qual, side: target, value: pq_complete }
+  - { q: ss.shipper_qual, side: target, value: pq_complete, docs: [DEMO-SHIP-305-01] }
+  - { q: ss.procedures, side: target, value: in_place }
+
+  # ---------------------------------------------------------------- follow-up questions shown by the answers above
+  - { q: rt.thaw_range, side: target, value: { min: { value: 10, unit: "°C" }, max: { value: 40, unit: "°C" } } }
+  - { q: buf.bbr_membrane, side: target, value: pes }
+  - { q: buf.bbr_pore, side: target, value: "0.45" }
+  - { q: buf.bbr_bioburden, side: target, value: { value: 10, unit: CFU/100 mL } }
+  - { q: buf.bbr_integrity, side: target, value: pre_and_post_use }
+  - { q: comp.vessel_range, side: target, value: { min: { value: 20, unit: L }, max: { value: 100, unit: L } } }
+  - { q: comp.mixer_range, side: target, value: { min: { value: 60, unit: rpm }, max: { value: 180, unit: rpm } } }
+  - { q: filt.sua_supplier, side: target, value: Assembly Vendor E (fictional) }
+  - { q: filt.pupsit_method, side: target, value: bubble_point }
+  - { q: filt.pupsit_fluid, side: target, value: buffer }
+  - { q: filt.pupsit_downstream, side: target, value: closed_assembly }
+  - { q: filt.pupsit_assembly, side: target, value: available }
+  - { q: filt.pupsit_flush, side: target, value: defined_assessed }
+  - { q: fill.cleaning, side: target, value: covered }
+  - { q: fill.cleaning_worst, side: target, value: matrix_worst_case }
+  - { q: fill.cleaning_carryover, side: target, value: health_based_limits }
+  - { q: fill.filler_speed_range, side: target, value: { min: { value: 80, unit: units/min }, max: { value: 220, unit: units/min } } }
+  - { q: fill.filler_volume_range, side: target, value: { min: { value: 1.0, unit: mL }, max: { value: 1.3, unit: mL } } }
+  - { q: vi.rate_range, side: target, value: { min: { value: 200, unit: units/min }, max: { value: 400, unit: units/min } } }
+  - { q: lp.labeler_range, side: target, value: { min: { value: 60, unit: units/min }, max: { value: 150, unit: units/min } } }
+  - { q: ss.shipper_range, side: target, value: { min: { value: 0, unit: h }, max: { value: 72, unit: h } } }
+  # buffer prepared on site from raw materials
+  - { q: buf.dispensing, side: target, value: automated_dispensing }
+  - { q: buf.vessel_type, side: target, value: single_use_bag }
+  - { q: buf.vessel_capacity, side: target, value: { value: 50, unit: L } }
+  - q: buf.batch_volume
+    side: target
+    docs: [DEMO-ENG-305-01]
+    fields:
+      classification: non_critical
+      setPoint: { value: 20, unit: L }
+      nor: { min: { value: 18, unit: L }, max: { value: 22, unit: L } }
+      par: { min: { value: 15, unit: L }, max: { value: 25, unit: L } }
+      rangeBasis: development_report
+  - { q: buf.mixer, side: target, value: single_use_impeller }
+  - q: buf.mixing_speed
+    side: target
+    docs: [DEMO-ENG-305-01]
+    fields:
+      classification: non_critical
+      setPoint: { value: 150, unit: rpm }
+      nor: { min: { value: 120, unit: rpm }, max: { value: 180, unit: rpm } }
+      par: { min: { value: 100, unit: rpm }, max: { value: 200, unit: rpm } }
+      rangeBasis: development_report
+  - q: buf.mixing_time
+    side: target
+    docs: [DEMO-ENG-305-01]
+    fields:
+      classification: non_critical
+      setPoint: { value: 20, unit: min }
+      nor: { min: { value: 15, unit: min }, max: { value: 25, unit: min } }
+      par: { min: { value: 10, unit: min }, max: { value: 40, unit: min } }
+      rangeBasis: development_report
+  - { q: buf.ipc, side: target, value: [ph, conductivity, osmolality, appearance, bioburden] }
+  - { q: buf.hold_time, side: target, value: { value: 72, unit: h }, docs: [DEMO-ENG-305-01] }
+  - { q: buf.vessel_qual, side: target, value: pq_complete }
+  - { q: buf.mixer_qual, side: target, value: pq_complete }
+  - { q: buf.vessel_range, side: target, value: { min: { value: 10, unit: L }, max: { value: 50, unit: L } } }
+  - { q: buf.mixer_range, side: target, value: { min: { value: 80, unit: rpm }, max: { value: 220, unit: rpm } } }
+
+
+# ---------------------------------------------------------------- the technical requirements document (TRD)
+# Built from the answers above through the same functions a person uses: the TRD is created from the project, the team then types
+# the limits with their sources, switches optional paragraphs on, fills the blanks the project cannot know and edits the starting text.
+trd:
+  at: "2026-10-12T09:00:00.000Z"
+  by: Alex Example (fictional)
+  role: MSAT engineer
+  title: SYR-305 technical requirements document (fictional)
+  docRef: DEMO-TRD-305-01
+  version: "0.9 draft"
+  purpose: >-
+    This technical requirements document sets out the technical requirements for transferring the SYR-305 prefilled syringe process
+    from Example Biologics Drug Substance Site (fictional), which supplies frozen drug substance, to Example Fill Site (fictional),
+    which thaws, formulates, filters, fills, inspects, packs and ships the drug product. It is the basis from which the master batch
+    record of the receiving unit is written (fictional demonstration document).
+  scopeNote: >-
+    The scope runs from the receipt of frozen drug substance at Example Fill Site (fictional) to the shipment of labelled prefilled
+    syringes. Drug substance manufacture, analytical method transfer and release testing are outside this document.
+  approvals:
+    - { role: "Author (MSAT, receiving unit)", name: Alex Example (fictional) }
+    - { role: Technical reviewer (sending unit), name: Sam Example (fictional) }
+    - { role: Quality assurance approver (receiving unit), name: Robin Example (fictional) }
+  sources:
+    - { identifier: DEMO-PD-305-01, docType: Process development report, title: SYR-305 process development report (fictional), version: "1.0" }
+    - { identifier: DEMO-STB-305-01, docType: Study report, title: SYR-305 drug substance stability and hold time summary (fictional), version: "1.0" }
+  steps:
+    - uo: ds_shipping_inbound
+      description: Frozen drug substance travels in a qualified dry-ice shipper from the sending unit to the receiving unit by road, with data loggers and real-time telemetry, under signed custody at each handover.
+    - uo: ds_receipt_thaw
+      description: The shipment is inspected on arrival and the frozen bottles are stored at the specified temperature. Before use they are thawed in a controlled-rate thaw system and mixed on a rocking platform.
+    - uo: buffer_prep
+      description: The dilution buffer is prepared on site from weighed raw materials in a single-use bag, bioburden-reduction filtered and held in a controlled, time-limited hold before use.
+    - uo: compounding
+      description: Thawed drug substance lots are pooled in a single-use bag and diluted with the buffer to the target protein concentration under gentle impeller mixing.
+    - uo: bbr_filtration
+      description: The formulated bulk passes a bioburden-reduction filter into the holding bag before the sterilizing filter.
+    - uo: sterile_filtration
+      description: The bulk passes two sterilizing-grade filters in series, in a single-use assembly, with the pre-use post-sterilization integrity test (PUPSIT) performed on the primary filter.
+    - uo: aseptic_filling
+      description: Glass syringes are filled by a rotary piston pump and the plunger stoppers are placed under vacuum, in an isolator on the filling line.
+    - uo: visual_inspection
+      description: Every filled syringe is inspected on an automated inspection machine; rejects are counted against an alert limit.
+    - uo: bulk_packaging
+      description: Inspected syringes are packed into nested tubs, closed, labelled with batch and status labels and held refrigerated until labelling.
+    - uo: labeling_packaging
+      description: Pressure-sensitive labels are applied, serialization is applied and aggregated, and the units are packed into single-unit cartons.
+    - uo: storage_shipping
+      description: Labelled syringes are stored in the refrigerated warehouse and shipped refrigerated in qualified passive shippers.
+  limits:
+    - uo: ds_shipping_inbound
+      item: param.transport_temperature
+      setPoint: { value: -70, unit: "°C", source: DEMO-STB-305-01, section: "4.2", page: "11" }
+      nor: { min: -80, max: -65, unit: "°C", basis: Supported by stability and hold data, source: DEMO-STB-305-01, section: "5.3", page: "14" }
+      par: { min: -90, max: -60, unit: "°C", basis: Supported by the shipping lane qualification, source: DEMO-SHIP-305-01, section: "6.4", page: "17" }
+    - uo: ds_shipping_inbound
+      item: param.max_transit_time
+      setPoint: { value: 48, unit: "h", source: DEMO-SHIP-305-01, section: "7.5", page: "20" }
+      nor: { max: 48, unit: "h", basis: Supported by the shipping lane qualification, source: DEMO-SHIP-305-01, section: "8.1", page: "23" }
+      par: { max: 72, unit: "h", basis: Supported by the shipping lane qualification, source: DEMO-SHIP-305-01, section: "9.2", page: "26" }
+    - uo: ds_shipping_inbound
+      item: param.excursion_allowance
+      setPoint: { value: 2, unit: "h", source: DEMO-STB-305-01, section: "3.3", page: "29" }
+      nor: { max: 2, unit: "h", basis: Supported by stability and hold data, source: DEMO-STB-305-01, section: "4.4", page: "32" }
+      par: { max: 4, unit: "h", basis: Supported by the shipping lane qualification, source: DEMO-SHIP-305-01, section: "5.5", page: "35" }
+    - uo: ds_receipt_thaw
+      item: param.storage_temperature
+      setPoint: { value: -70, unit: "°C", source: DEMO-STB-305-01, section: "6.1", page: "38" }
+      nor: { min: -80, max: -65, unit: "°C", basis: Supported by stability and hold data, source: DEMO-STB-305-01, section: "7.2", page: "41" }
+      par: { min: -90, max: -60, unit: "°C", basis: Supported by stability and hold data, source: DEMO-STB-305-01, section: "8.3", page: "44" }
+    - uo: ds_receipt_thaw
+      item: param.thaw_temperature
+      setPoint: { value: 25, unit: "°C", source: DEMO-PD-305-01, section: "9.4", page: "47" }
+      nor: { min: 20, max: 30, unit: "°C", basis: Proposed from process development, source: DEMO-PD-305-01, section: "3.5", page: "10" }
+      par: { min: 15, max: 35, unit: "°C", basis: Supported by stability and hold data, source: DEMO-STB-305-01, section: "4.1", page: "13" }
+    - uo: ds_receipt_thaw
+      item: param.thaw_duration
+      setPoint: { value: 4, unit: "h", source: DEMO-PD-305-01, section: "5.2", page: "16" }
+      nor: { min: 3, max: 5, unit: "h", basis: Proposed from process development, source: DEMO-PD-305-01, section: "6.3", page: "19" }
+      par: { min: 2, max: 6, unit: "h", basis: Supported by stability and hold data, source: DEMO-STB-305-01, section: "7.4", page: "22" }
+    - uo: ds_receipt_thaw
+      item: param.max_ambient_time
+      setPoint: { value: 4, unit: "h", source: DEMO-STB-305-01, section: "8.5", page: "25" }
+      nor: { max: 4, unit: "h", basis: Supported by stability and hold data, source: DEMO-STB-305-01, section: "9.1", page: "28" }
+      par: { max: 6, unit: "h", basis: Supported by stability and hold data, source: DEMO-STB-305-01, section: "3.2", page: "31" }
+    - uo: ds_receipt_thaw
+      item: param.max_cold_hold
+      setPoint: { value: 24, unit: "h", source: DEMO-STB-305-01, section: "6.4", page: "39" }
+      nor: { max: 24, unit: "h", basis: Supported by stability and hold data, source: DEMO-STB-305-01, section: "6.5", page: "40" }
+      par: { max: 30, unit: "h", basis: Supported by stability and hold data, source: DEMO-STB-305-01, section: "6.6", page: "41" }
+    - uo: buffer_prep
+      item: param.batch_volume
+      setPoint: { value: 20, unit: "L", source: DEMO-PD-305-01, section: "4.3", page: "34" }
+      nor: { min: 18, max: 22, unit: "L", basis: Proposed from process development, source: DEMO-PD-305-01, section: "5.4", page: "37" }
+      par: { min: 15, max: 25, unit: "L", basis: Confirmed by the engineering run summary, source: DEMO-ENG-305-01, section: "6.5", page: "40" }
+    - uo: buffer_prep
+      item: param.mixing_speed
+      setPoint: { value: 150, unit: "rpm", source: DEMO-PD-305-01, section: "7.1", page: "43" }
+      nor: { min: 120, max: 180, unit: "rpm", basis: Proposed from process development, source: DEMO-PD-305-01, section: "8.2", page: "46" }
+      par: { min: 100, max: 200, unit: "rpm", basis: Confirmed by the engineering run summary, source: DEMO-ENG-305-01, section: "9.3", page: "9" }
+    - uo: buffer_prep
+      item: param.mixing_time
+      setPoint: { value: 20, unit: "min", source: DEMO-PD-305-01, section: "3.4", page: "12" }
+      nor: { min: 15, max: 25, unit: "min", basis: Proposed from process development, source: DEMO-PD-305-01, section: "4.5", page: "15" }
+      par: { min: 10, max: 40, unit: "min", basis: Confirmed by the engineering run summary, source: DEMO-ENG-305-01, section: "5.1", page: "18" }
+    - uo: buffer_prep
+      item: param.max_hold_time
+      setPoint: { value: 72, unit: "h", source: DEMO-PD-305-01, section: "6.2", page: "21" }
+      nor: { max: 72, unit: "h", basis: Proposed from process development, source: DEMO-PD-305-01, section: "7.3", page: "24" }
+      par: { max: 96, unit: "h", basis: Confirmed by the engineering run summary, source: DEMO-ENG-305-01, section: "8.4", page: "27" }
+    - uo: compounding
+      item: param.batch_size
+      setPoint: { value: 40, unit: "L", source: DEMO-PD-305-01, section: "9.5", page: "30" }
+      nor: { min: 38, max: 42, unit: "L", basis: Proposed from process development, source: DEMO-PD-305-01, section: "3.1", page: "33" }
+      par: { min: 30, max: 45, unit: "L", basis: Confirmed by the engineering run summary, source: DEMO-ENG-305-01, section: "4.2", page: "36" }
+    - uo: compounding
+      item: param.max_hold_time
+      setPoint: { value: 24, unit: "h", source: DEMO-HT-305-01, section: "5.1", page: "18" }
+      nor: { max: 24, unit: "h", basis: Supported by stability and hold data, source: DEMO-STB-305-01, section: "6.1", page: "21" }
+      par: { max: 30, unit: "h", basis: Supported by stability and hold data, source: DEMO-STB-305-01, section: "6.2", page: "22" }
+    - uo: compounding
+      item: param.mixing_speed
+      setPoint: { value: 120, unit: "rpm", source: DEMO-PD-305-01, section: "5.3", page: "39" }
+      nor: { min: 100, max: 140, unit: "rpm", basis: Proposed from process development, source: DEMO-PD-305-01, section: "6.4", page: "42" }
+      par: { min: 80, max: 160, unit: "rpm", basis: Confirmed by the engineering run summary, source: DEMO-ENG-305-01, section: "7.5", page: "45" }
+    - uo: compounding
+      item: param.mixing_time
+      setPoint: { value: 30, unit: "min", source: DEMO-PD-305-01, section: "8.1", page: "8" }
+      nor: { min: 25, max: 35, unit: "min", basis: Proposed from process development, source: DEMO-PD-305-01, section: "9.2", page: "11" }
+      par: { min: 20, max: 60, unit: "min", basis: Confirmed by the engineering run summary, source: DEMO-ENG-305-01, section: "3.3", page: "14" }
+    - uo: compounding
+      item: param.temperature
+      setPoint: { value: 5, unit: "°C", source: DEMO-PD-305-01, section: "4.4", page: "17" }
+      nor: { min: 2, max: 8, unit: "°C", basis: Proposed from process development, source: DEMO-PD-305-01, section: "5.5", page: "20" }
+      par: { min: 2, max: 10, unit: "°C", basis: Confirmed by the engineering run summary, source: DEMO-ENG-305-01, section: "6.1", page: "23" }
+    - uo: compounding
+      item: param.target_concentration
+      setPoint: { value: 100, unit: "mg/mL", source: DEMO-PD-305-01, section: "7.2", page: "26" }
+      nor: { min: 95, max: 105, unit: "mg/mL", basis: Proposed from process development, source: DEMO-PD-305-01, section: "8.3", page: "29" }
+      par: { min: 90, max: 110, unit: "mg/mL", basis: Confirmed by the engineering run summary, source: DEMO-ENG-305-01, section: "9.4", page: "32" }
+    - uo: bbr_filtration
+      item: param.differential_pressure
+      setPoint: { value: 1, unit: "bar", source: DEMO-FV-305-01, section: "3.5", page: "35" }
+      nor: { min: 0.5, max: 1.5, unit: "bar", basis: Confirmed by the filter validation summary, source: DEMO-FV-305-01, section: "4.1", page: "38" }
+      par: { min: 0.3, max: 2, unit: "bar", basis: Confirmed by the filter validation summary, source: DEMO-FV-305-01, section: "5.2", page: "41" }
+    - uo: bbr_filtration
+      item: param.max_filtration_time
+      setPoint: { value: 2, unit: "h", source: DEMO-FV-305-01, section: "6.3", page: "44" }
+      nor: { max: 2, unit: "h", basis: Confirmed by the filter validation summary, source: DEMO-FV-305-01, section: "7.4", page: "47" }
+      par: { max: 4, unit: "h", basis: Confirmed by the filter validation summary, source: DEMO-FV-305-01, section: "8.5", page: "10" }
+    - uo: bbr_filtration
+      item: param.max_cold_hold
+      setPoint: { value: 24, unit: "h", source: DEMO-STB-305-01, section: "6.7", page: "42" }
+      nor: { max: 24, unit: "h", basis: Supported by stability and hold data, source: DEMO-STB-305-01, section: "6.8", page: "43" }
+      par: { max: 30, unit: "h", basis: Supported by stability and hold data, source: DEMO-STB-305-01, section: "6.9", page: "44" }
+    - uo: sterile_filtration
+      item: param.differential_pressure
+      setPoint: { value: 1.5, unit: "bar", source: DEMO-FV-305-01, section: "9.1", page: "13" }
+      nor: { min: 1, max: 2, unit: "bar", basis: Confirmed by the filter validation summary, source: DEMO-FV-305-01, section: "3.2", page: "16" }
+      par: { min: 0.5, max: 2.5, unit: "bar", basis: Confirmed by the filter validation summary, source: DEMO-FV-305-01, section: "4.3", page: "19" }
+    - uo: sterile_filtration
+      item: param.max_filtration_time
+      setPoint: { value: 4, unit: "h", source: DEMO-FV-305-01, section: "9.2", page: "17" }
+      nor: { max: 4, unit: "h", basis: Confirmed by the filter validation summary, source: DEMO-FV-305-01, section: "9.3", page: "18" }
+      par: { max: 6, unit: "h", basis: Confirmed by the filter validation summary, source: DEMO-FV-305-01, section: "9.4", page: "19" }
+    - uo: aseptic_filling
+      item: param.fill_volume
+      setPoint: { value: 1.1, unit: "mL", source: DEMO-ENG-305-01, section: "5.4", page: "22" }
+      nor: { min: 1.08, max: 1.12, unit: "mL", basis: Confirmed by the engineering run summary, source: DEMO-ENG-305-01, section: "6.5", page: "25" }
+      par: { min: 1.05, max: 1.15, unit: "mL", basis: Confirmed by the engineering run summary, source: DEMO-ENG-305-01, section: "7.1", page: "28" }
+    - uo: aseptic_filling
+      item: param.line_speed
+      setPoint: { value: 150, unit: "units/min", source: DEMO-PD-305-01, section: "8.2", page: "31" }
+      nor: { min: 130, max: 170, unit: "units/min", basis: Proposed from process development, source: DEMO-PD-305-01, section: "9.3", page: "34" }
+      par: { min: 100, max: 200, unit: "units/min", basis: Confirmed by the engineering run summary, source: DEMO-ENG-305-01, section: "3.4", page: "37" }
+    - uo: aseptic_filling
+      item: param.max_fill_duration
+      setPoint: { value: 6, unit: "h", source: DEMO-ENG-305-01, section: "4.5", page: "40" }
+      nor: { max: 6, unit: "h", basis: Confirmed by the engineering run summary, source: DEMO-ENG-305-01, section: "5.1", page: "43" }
+      par: { max: 8, unit: "h", basis: Confirmed by the engineering run summary, source: DEMO-ENG-305-01, section: "6.2", page: "46" }
+    - uo: aseptic_filling
+      item: param.stopper_position
+      setPoint: { value: 6.5, unit: "mm", source: DEMO-ENG-305-01, section: "7.3", page: "9" }
+      nor: { min: 6, max: 7, unit: "mm", basis: Confirmed by the engineering run summary, source: DEMO-ENG-305-01, section: "8.4", page: "12" }
+      par: { min: 5.5, max: 7.5, unit: "mm", basis: Confirmed by the engineering run summary, source: DEMO-ENG-305-01, section: "9.5", page: "15" }
+    - uo: aseptic_filling
+      item: param.max_headspace
+      setPoint: { value: 4, unit: "mm", source: DEMO-ENG-305-01, section: "3.1", page: "18" }
+      nor: { max: 4, unit: "mm", basis: Confirmed by the engineering run summary, source: DEMO-ENG-305-01, section: "4.2", page: "21" }
+      par: { max: 5, unit: "mm", basis: Confirmed by the engineering run summary, source: DEMO-ENG-305-01, section: "5.3", page: "24" }
+    - uo: aseptic_filling
+      item: param.max_interventions
+      setPoint: { value: 12, unit: "per batch", source: DEMO-ENG-305-01, section: "6.4", page: "27" }
+      nor: { max: 12, unit: "per batch", basis: Confirmed by the engineering run summary, source: DEMO-ENG-305-01, section: "7.5", page: "30" }
+      par: { max: 16, unit: "per batch", basis: Confirmed by the engineering run summary, source: DEMO-ENG-305-01, section: "8.1", page: "33" }
+    - uo: visual_inspection
+      item: param.inspection_rate
+      setPoint: { value: 300, unit: "units/min", source: DEMO-PD-305-01, section: "5.5", page: "45" }
+      nor: { min: 270, max: 330, unit: "units/min", basis: Proposed from process development, source: DEMO-PD-305-01, section: "6.1", page: "8" }
+      par: { min: 250, max: 350, unit: "units/min", basis: Supported by the inspection qualification, source: DEMO-VI-305-01, section: "7.2", page: "11" }
+    - uo: visual_inspection
+      item: param.max_time_out_of_refrigeration
+      setPoint: { value: 3, unit: "h", source: DEMO-STB-305-01, section: "7.1", page: "30" }
+      nor: { max: 3, unit: "h", basis: Supported by stability and hold data, source: DEMO-STB-305-01, section: "7.2", page: "31" }
+      par: { max: 4, unit: "h", basis: Supported by stability and hold data, source: DEMO-STB-305-01, section: "7.3", page: "32" }
+    - uo: bulk_packaging
+      item: param.max_hold_time
+      setPoint: { value: 24, unit: "h", source: DEMO-STB-305-01, section: "8.3", page: "14" }
+      nor: { max: 24, unit: "h", basis: Supported by stability and hold data, source: DEMO-STB-305-01, section: "9.4", page: "17" }
+      par: { max: 36, unit: "h", basis: Supported by stability and hold data, source: DEMO-STB-305-01, section: "3.5", page: "20" }
+    - uo: bulk_packaging
+      item: param.max_time_out_of_refrigeration
+      setPoint: { value: 1, unit: "h", source: DEMO-STB-305-01, section: "4.1", page: "23" }
+      nor: { max: 1, unit: "h", basis: Supported by stability and hold data, source: DEMO-STB-305-01, section: "5.2", page: "26" }
+      par: { max: 1.5, unit: "h", basis: Supported by stability and hold data, source: DEMO-STB-305-01, section: "6.3", page: "29" }
+    - uo: labeling_packaging
+      item: param.labeling_speed
+      setPoint: { value: 100, unit: "units/min", source: DEMO-PD-305-01, section: "7.4", page: "32" }
+      nor: { min: 90, max: 110, unit: "units/min", basis: Proposed from process development, source: DEMO-PD-305-01, section: "8.5", page: "35" }
+      par: { min: 70, max: 120, unit: "units/min", basis: Confirmed by the engineering run summary, source: DEMO-ENG-305-01, section: "9.1", page: "38" }
+    - uo: labeling_packaging
+      item: param.max_time_out_of_refrigeration
+      setPoint: { value: 2, unit: "h", source: DEMO-STB-305-01, section: "3.2", page: "41" }
+      nor: { max: 2, unit: "h", basis: Supported by stability and hold data, source: DEMO-STB-305-01, section: "4.3", page: "44" }
+      par: { max: 3, unit: "h", basis: Supported by stability and hold data, source: DEMO-STB-305-01, section: "5.4", page: "47" }
+    - uo: storage_shipping
+      item: param.max_transit_time
+      setPoint: { value: 48, unit: "h", source: DEMO-SHIP-305-01, section: "6.5", page: "10" }
+      nor: { max: 48, unit: "h", basis: Supported by the shipping lane qualification, source: DEMO-SHIP-305-01, section: "7.1", page: "13" }
+      par: { max: 72, unit: "h", basis: Supported by the shipping lane qualification, source: DEMO-SHIP-305-01, section: "8.2", page: "16" }
+    - uo: storage_shipping
+      item: param.excursion_allowance
+      setPoint: { value: 24, unit: "h", source: DEMO-SHIP-305-01, section: "9.3", page: "19" }
+      nor: { max: 24, unit: "h", basis: Supported by the shipping lane qualification, source: DEMO-SHIP-305-01, section: "3.4", page: "22" }
+      par: { max: 36, unit: "h", basis: Supported by the shipping lane qualification, source: DEMO-SHIP-305-01, section: "4.5", page: "25" }
+    # The total is the sum of the per-step budgets (filling 6 h, inspection 3 h, bulk packing 1 h, labelling and packaging 2 h).
+    - uo: storage_shipping
+      item: param.max_total_time_out_of_refrigeration
+      setPoint: { value: 12, unit: "h", source: DEMO-STB-305-01, section: "8.1", page: "33" }
+      nor: { max: 12, unit: "h", basis: Supported by stability and hold data, source: DEMO-STB-305-01, section: "8.2", page: "34" }
+      par: { max: 12, unit: "h", basis: Supported by stability and hold data, source: DEMO-STB-305-01, section: "8.3", page: "35" }
+  # Process descriptions: the shipped write-up library seeds them; these entries are what the fictional team then added, typed, switched or edited.
+  writeups:
+    # Library write-ups a new TRD does not start with (offered in the "Add from library" picker).
+    add:
+      - sec_purpose
+      - sec_scope
+    # Purpose and scope open the document, like the arrows on the Descriptions tab would put them.
+    move:
+      - { writeup: sec_scope, by: -40 }
+      - { writeup: sec_purpose, by: -40 }
+    # Optional paragraphs the team switched on, with the condition the library gives for each.
+    optional:
+      - { writeup: sec_batch_size, part: dilution }
+      - { writeup: sec_formulation_precautions, part: temperature }
+      - { writeup: sec_rtu_components, part: sterilization }
+      - { writeup: wu_ds_receipt_thaw, part: thaw }
+      - { writeup: wu_ds_receipt_thaw, part: thaw_checks }
+      - { writeup: wu_ds_receipt_thaw, part: hold_limits }
+      - { writeup: wu_buffer_prep, part: n2_single_use }
+      - { writeup: wu_buffer_prep, part: onsite }
+      - { writeup: wu_buffer_prep, part: ipc }
+      - { writeup: wu_buffer_prep, part: bbr }
+      - { writeup: wu_compounding, part: dilution }
+      - { writeup: wu_compounding, part: ipc }
+      - { writeup: wu_bbr_filtration, part: flush }
+      - { writeup: wu_sterile_filtration, part: pupsit_required }
+      - { writeup: wu_sterile_filtration, part: flush }
+      - { writeup: wu_aseptic_filling, part: interventions }
+      - { writeup: wu_aseptic_filling, part: headspace }
+      - { writeup: wu_aseptic_filling, part: vacuum }
+      - { writeup: wu_aseptic_filling, part: placement_controls }
+      - { writeup: wu_aseptic_filling, part: direct_fill }
+      - { writeup: wu_visual_inspection, part: rate }
+      - { writeup: wu_bulk_packaging, part: checks }
+      - { writeup: wu_labeling_packaging, part: detail }
+    # Library sentences that are instructions to the author, or items this program does not use, are removed.
+    removed:
+      - { writeup: sec_acronyms, part: b2 }
+      - { writeup: sec_acronyms, part: b3 }
+      - { writeup: sec_acronyms, part: b6 }
+      - { writeup: sec_acronyms, part: b10 }
+      # The cleaning note for reusable equipment does not apply: the mixing bag and impeller are single-use (see the single-use note).
+      - { writeup: wu_buffer_prep, part: n2 }
+    # Values the project and the TRD record cannot supply: typed once by the team (key trd.*), or for items the process model has no field for.
+    values:
+      - { writeup: sec_introduction, key: trd.sendingSiteLocation, value: "Example Town A, Exampleland (fictional)" }
+      - { writeup: sec_introduction, key: trd.receivingSiteLocation, value: "Example Town B, Exampleland (fictional)" }
+      - { writeup: sec_scope, key: trd.scope.withdrawableVolume, value: 1.0 mL }
+      - { writeup: sec_scope, key: trd.scope.dsItemNumber, value: DS-305-0001 (fictional) }
+      - { writeup: sec_scope, key: trd.scope.dpItemNumber, value: DP-305-0001 (fictional) }
+      - { writeup: sec_batch_size, key: trd.batchSize.drugSubstanceLotMixingStatement, value: "Up to three drug substance lots from one drug substance campaign may be pooled into one batch, and lots from different campaigns are not combined" }
+      - { writeup: sec_general_attributes, key: trd.generalAttributes.sourceDocument, value: the SYR-305 drug substance specification DEMO-DSSPEC-305-01 (fictional) }
+      - { writeup: sec_formulation_precautions, key: trd.formulationPrecautions.manufacturingTemperature, value: 2 to 8 °C in a temperature-controlled room for the thawed and formulated material }
+      - { writeup: sec_dilution_buffer, key: trd.dilutionBuffer.assessmentProcedure, value: the excipient assessment procedure DEMO-SOP-EXC-01 (fictional) }
+      - { writeup: sec_dilution_buffer, key: trd.dilutionBuffer.assessmentDocument, value: "DEMO-EXA-305-01, version 1.0 (fictional)" }
+      - { writeup: sec_dilution_buffer, key: trd.dilutionBuffer.preDilutionNeeded, value: will }
+      - { writeup: sec_dilution_buffer, key: trd.dilutionBuffer.additionTolerance, value: ±2 % (fictional) }
+      - { writeup: sec_process_parameters, key: trd.processParameters.bioburdenSpecificationReference, value: the in-process specification DEMO-SPEC-305-02 (fictional) }
+      - { writeup: sec_process_parameters, key: trd.processParameters.endotoxinSampleHoldTime, value: 48 hours }
+      - { writeup: sec_contact_surfaces, key: trd.contactSurfaces.list, value: "stainless steel (316L), single-use bag film (ethylene vinyl acetate and polyethylene layers), thermoplastic and silicone tubing, polyethersulfone filter membrane, borosilicate glass syringe barrel and fluoropolymer-coated elastomer plunger stopper" }
+      - { writeup: sec_fill_weights, key: trd.fillWeights.density, value: "1.03 g/mL (fictional)" }
+      - { writeup: sec_stopper_position, key: trd.stopper_position.tolerance, value: "±0.5 mm" }
+      - { writeup: sec_stopper_position, key: trd.stopper_position.comment, value: "The position is measured on five syringes at the start, the middle and the end of filling (fictional)." }
+      - { writeup: sec_sampling_plan, key: trd.samplingPlan.endotoxinTestingLocation, value: the receiving unit }
+      - { writeup: sec_sampling_plan, key: trd.samplingPlan.additional, value: "In-process samples: pH, osmolality and protein concentration of the formulated bulk (5 mL each), and bioburden samples before each filtration step (100 mL each). Release and retain samples follow the product specification once it is effective (fictional)." }
+      - { writeup: sec_open_manipulations, key: trd.openManipulations.higherGradeNote, value: "Pooling is performed through a closed single-use assembly where the assembly allows it." }
+      - { writeup: sec_rtu_components, key: trd.rtuComponents.sterilizationMethod, value: "syringe barrels, tip caps and plunger stoppers are sterilized by their suppliers and delivered in sealed tubs and bags" }
+      - { writeup: wu_ds_receipt_thaw, key: trd.ds_receipt_thaw.storeWithinHoursOfReceipt, value: "2" }
+      - { writeup: wu_ds_receipt_thaw, key: trd.ds_receipt_thaw.damageReportRecipient, value: the quality assurance contacts of the sending unit and the receiving unit }
+      - { writeup: wu_ds_receipt_thaw, key: trd.ds_receipt_thaw.storeAfterUnpackHours, value: "2" }
+      - { writeup: wu_ds_receipt_thaw, key: trd.ds_receipt_thaw.monitoringDataRecipient, value: the logistics contact of the sending unit }
+      - { writeup: wu_ds_receipt_thaw, key: trd.ds_receipt_thaw.monitoringDataBusinessDays, value: "1" }
+      - { writeup: wu_ds_receipt_thaw, key: trd.ds_receipt_thaw.sideSampleLaboratory, value: the quality control laboratory of the sending unit }
+      - { writeup: wu_ds_receipt_thaw, key: trd.ds_receipt_thaw.sideSampleBusinessDays, value: "2" }
+      - { writeup: wu_ds_receipt_thaw, key: trd.ds_receipt_thaw.firstThawCheckHours, value: "3" }
+      - { writeup: wu_ds_receipt_thaw, key: trd.ds_receipt_thaw.holdTemperature, value: 2 to 8 °C }
+      - { writeup: wu_compounding, key: trd.compounding.poolingMethod, value: pumping through sterile tubing }
+      - { writeup: wu_compounding, key: trd.compounding.bottomTubeUsed, value: is not }
+      - { writeup: wu_compounding, key: trd.compounding.inversions, value: rocking of each thawed bottle for 10 minutes }
+      - { writeup: wu_compounding, key: trd.compounding.inversionsRequired, value: is }
+      - { writeup: wu_bbr_filtration, key: trd.bbr_filtration.productTemperature, value: 2 to 8 °C }
+      - { writeup: wu_bbr_filtration, key: trd.bbr_filtration.postTestFlushVolume, value: 1 L }
+      - { writeup: wu_sterile_filtration, key: trd.sterile_filtration.productTemperature, value: 2 to 8 °C }
+      - { writeup: wu_sterile_filtration, key: trd.sterile_filtration.flushEachFilter, value: 1 L }
+      - { writeup: wu_sterile_filtration, key: trd.sterile_filtration.flushTotal, value: 2 L }
+      - { writeup: wu_aseptic_filling, key: trd.aseptic_filling.productViscosity, value: "6 mPa·s, a fictional value" }
+      - { writeup: wu_aseptic_filling, key: trd.aseptic_filling.clogDelayHours, value: "4" }
+      - { writeup: wu_aseptic_filling, key: trd.aseptic_filling.clogLikelihood, value: not likely }
+      - { writeup: wu_aseptic_filling, key: trd.aseptic_filling.oxygenSensitive, value: is not }
+      - { writeup: wu_aseptic_filling, key: trd.aseptic_filling.overlayGas, value: none }
+      - { writeup: wu_aseptic_filling, key: trd.aseptic_filling.overlayRequired, value: is not }
+      - { writeup: wu_visual_inspection, key: trd.visual_inspection.artifactReference, value: the known-artefacts section of the qualification report DEMO-VI-305-01 (fictional) }
+      - { writeup: wu_labeling_packaging, key: site.labellingLocation, value: at this filling site }
+    # Rows typed into the tables (each row has one cell per column).
+    tableRows:
+      - writeup: sec_dilution_buffer
+        part: excipient_solution_table
+        rows:
+          - [Surfactant stock, Surfactant C (fictional), 10 % w/w, 20.0 g in 200 g of solution]
+          - [Stabilizer stock, Stabilizer B (fictional), 40 % w/w, 1600 g in 4000 g of solution]
+      - writeup: sec_dilution_buffer
+        part: formulation_table
+        rows:
+          - [Buffer salt A, Buffer salt A (fictional), 1.55 g/kg, 31.0 g]
+          - [Buffer salt B, Buffer salt B (fictional), 2.10 g/kg, 42.0 g]
+          - [Stabilizer B, Stabilizer stock (40 % w/w), 175 g/kg of stock, 3500 g of stock]
+          - [Surfactant C, Surfactant stock (10 % w/w), 2.0 g/kg of stock, 40.0 g of stock]
+          - [Water for injection, Water for injection, to 1.00 kg, to 20.0 kg]
+      - writeup: sec_container_closure
+        part: table
+        rows:
+          - ["Glass syringe barrel (1 mL long, with staked needle and rigid needle shield)", RU-PN-305-001 (fictional), DRW-305-001 (fictional), PFS-1L-DEMO]
+          - [Plunger stopper (fluoropolymer-coated), RU-PN-305-002 (fictional), DRW-305-002 (fictional), PLG-1ML-DEMO]
+          - ["Plunger rod (supplied separately, applied after labelling)", RU-PN-305-003 (fictional), DRW-305-003 (fictional), ROD-1ML-DEMO]
+      - writeup: sec_fill_weights
+        part: table
+        rows:
+          - ["Upper action limit", "103 %", "1.167", "1.133"]
+          - ["Upper alert limit", "102 %", "1.156", "1.122"]
+          - ["Target", "100 %", "1.133", "1.100"]
+          - ["Lower alert limit", "98 %", "1.110", "1.078"]
+          - ["Lower action limit", "97 %", "1.099", "1.067"]
+      - writeup: wu_bulk_packaging
+        part: table
+        rows:
+          - [Nest in tub (100 syringes), Packaging Vendor F (fictional), TUB-100-DEMO]
+          - [Tub lid with tamper-evident seal, Packaging Vendor F (fictional), LID-100-DEMO]
+          - [Bulk container batch label, Label Vendor G (fictional), LBL-BULK-DEMO]
+    # Starting text the team changed because it did not fit this program, or because it was an instruction to the author.
+    edits:
+      - { writeup: sec_acronyms, part: p1, text: Common abbreviations used in this document are listed below. }
+      - { writeup: sec_process_parameters, part: p1, text: "The process parameters are listed in the tables below, one block per process step in process order, with the set point, the normal operating range (NOR) and the proven acceptable range (PAR) of each. Sources are listed under References and in the TRD evidence record." }
+      - { writeup: sec_manufacturing_process_overview, part: p1, text: "Where this section says drug substance, the same applies to bulk placebo. The general process is described step by step below, in process order: drug substance shipping and receipt, frozen storage and thaw, buffer preparation, pooling, compounding and dilution, bioburden reduction filtration, sterile filtration with PUPSIT, aseptic filling with vacuum stoppering in an isolator, visual inspection, bulk packaging, labelling and packaging, and storage and shipping." }
+      - { writeup: sec_dilution_buffer, part: excipient_solution_n1, text: "The calculated quantity is based on a target solution amount of 4000 g for the stabilizer stock and 200 g for the surfactant stock. Mix with a gentle vortex until the excipient has visibly dissolved. Avoid splashing and foaming." }
+      - { writeup: sec_dilution_buffer, part: formulation_n3, text: "The calculated quantity is based on a target buffer amount of 20.0 kg, which matches the planned buffer batch volume. Mix with the impeller until each excipient has visibly dissolved. Avoid splashing and foaming." }
+      - { writeup: wu_ds_receipt_thaw, part: thaw, text: "**Thawing.** The bottles of frozen drug substance are thawed using {{uo.ds_receipt_thaw.equip.thaw_unit.operatingPrinciple|Thaw method ~a}}. The thaw set point is {{uo.ds_receipt_thaw.param.thaw_temperature.setPoint|Thaw temperature}} and the expected duration is {{uo.ds_receipt_thaw.param.thaw_duration.setPoint|Thaw duration}}. The post-thaw mixing method is {{uo.ds_receipt_thaw.equip.thaw_mixer.operatingPrinciple|Post-thaw mixing ~a}}, as set out in the overall process parameters section." }
+      - { writeup: wu_visual_inspection, part: p1, text: "The final drug product is inspected by {{uo.visual_inspection.equip.inspection.operatingPrinciple|Inspection method}}. The automated inspection recipe is specifically developed and validated for this product. The receiving unit is responsible for 100 % visual inspection in line with the pharmacopoeial chapters on visible particulates in injections (for example USP <790> and <1790>). The defect classes inspected are {{uo.visual_inspection.ipc.defects.tests|Defect classes}}. AQL sampling uses {{uo.visual_inspection.ipc.aql.frequency|Sampling plan ~the}}." }
+      - { writeup: wu_bulk_packaging, part: p2, text: "The assembled bulk packaging configuration for the {{uo.aseptic_filling.mat.container.format|Container format or size}} presentation is listed in the table below, with each component, its distributor and the manufacturer's part number." }
+      - { writeup: wu_buffer_prep, part: onsite, text: "Raw materials are dispensed using {{uo.buffer_prep.equip.dispensing.operatingPrinciple|Dispensing method ~a}} and prepared in {{uo.buffer_prep.equip.prep_vessel.type|Preparation vessel type ~a}} with a capacity of {{uo.buffer_prep.equip.prep_vessel.capacity|Vessel capacity}}, for a batch volume of {{uo.buffer_prep.param.batch_volume.setPoint|Buffer batch volume}}. Each component is added in the order of the formulation table. The buffer is mixed with {{uo.buffer_prep.equip.prep_mixer.operatingPrinciple|Mixer ~a}} at {{uo.buffer_prep.param.mixing_speed.setPoint|Mixing speed}} for {{uo.buffer_prep.param.mixing_time.setPoint|Mixing time}}, without foam, and the final mixing speed is recorded in the batch record." }
+      - { writeup: wu_sterile_filtration, part: p1, text: "Sterile filtration is performed by passing the bioburden-reduced drug substance from the holding vessel through a sterile {{uo.sterile_filtration.mat.sterilizing_filter.poreRating|Pore rating}} {{uo.sterile_filtration.mat.sterilizing_filter.materialOfConstruction|Membrane}} sterilizing-grade filter, the integrity of which is tested before use. {{uo.sterile_filtration.mat.redundant_filter.present|Redundant filter used ~A second, redundant sterilizing-grade filter is used in series. ~No second, redundant filter is used in series.}} Before filtration starts, the product temperature must be {{trd.sterile_filtration.productTemperature|Product temperature}}." }
+      - { writeup: wu_bulk_packaging, part: p1, text: "Inspected units are packed into {{uo.bulk_packaging.mat.bulk_container.type|Bulk container type ~a}} holding {{uo.bulk_packaging.mat.bulk_container.unitsPerContainer|Units per container}} units each, closed with {{uo.bulk_packaging.mat.bulk_container.seal|Seal or closure ~a}}. The packed bulk is stored under {{uo.bulk_packaging.mat.bulk_product.storageCondition|Bulk storage condition}} conditions and held for no more than {{uo.bulk_packaging.param.max_hold_time.max|Bulk hold time}}. The time out of refrigeration during bulk packing is no more than {{uo.bulk_packaging.param.max_time_out_of_refrigeration.max|Maximum time out of refrigeration during bulk packing}}." }

@@ -40,7 +40,7 @@ describe("the TRD write-up library on the server (M9.1)", () => {
     expect((await yes.get("/api/trd-writeups")).json.writeups).toHaveLength(0);
     expect((await yes.put(`/api/trd-writeups/${v2.id}`, { writeup: v2 })).status).toBe(200);
     const items = (await yes.get("/api/trd-writeups")).json.writeups as { id: string; version: number; title: string }[];
-    expect(items.find((w) => w.id === v2.id)).toMatchObject({ version: 2, title: "Compounding (edited, fictional)" });
+    expect(items.find((w) => w.id === v2.id)).toMatchObject({ version: v2.version, title: "Compounding (edited, fictional)" });
     // The id in the address must match the write-up, and the shape must be valid.
     expect((await yes.put("/api/trd-writeups/other_id", { writeup: v2 })).status).toBe(400);
     expect((await yes.put(`/api/trd-writeups/${v2.id}`, { writeup: { ...v2, parts: "no" } })).status).toBe(400);

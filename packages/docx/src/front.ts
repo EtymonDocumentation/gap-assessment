@@ -10,6 +10,8 @@ const NOT_RECORDED = "[not recorded]";
 export const DOCUMENT_ID_PLACEHOLDER = "[to be assigned]";
 export const NO_SIGNATURE_TEXT =
   "This tool does not capture approvals or electronic signatures. The names, roles and dates above are placeholders to be completed outside the tool.";
+export const NAMED_SIGNATURE_TEXT =
+  "This tool does not capture approvals or electronic signatures. The names and roles above were entered by the team; signatures and any missing dates are completed outside the tool.";
 export const TOC_PLACEHOLDER = "Table of contents. Word fills this in when the document is opened; if it stays empty, right-click here and choose Update Field.";
 export const TOC_INSTRUCTION = 'TOC \\o "1-3" \\h \\z \\u';
 
@@ -97,18 +99,28 @@ export function tocXml(): string {
 /** Document control: identifiers, a table of placeholders for author, reviewer and approver (no signatures), and the remaining facts. */
 export function documentControlXml(ctx: WriterCtx): string {
   const d = ctx.doc;
+  const known = d.control;
   const control: [string, string][] = [
-    ["Document ID", DOCUMENT_ID_PLACEHOLDER],
+    ["Document ID", known?.documentId?.trim() || DOCUMENT_ID_PLACEHOLDER],
+    ...(known?.version?.trim() ? ([["Version", known.version.trim()]] as [string, string][]) : []),
     ["Status", d.status],
   ];
-  const people = ["Author", "Reviewer", "Approver"].map((r) => [r, "[name]", "[role]", "[date]"]);
+  // A document that holds its own named roles prints them (a role written "Author (MSAT, receiving unit)" splits into the
+  // responsibility and the role); a missing name stays a placeholder and a missing date is an empty cell to write in. Without any, the three placeholder rows remain.
+  const people = known?.people.length
+    ? known.people.map((p) => {
+        const m = /^(.*?)\s*\((.*)\)\s*$/.exec(p.role.trim());
+        return [m ? m[1]! : p.role.trim(), p.name?.trim() || "[name]", m ? m[2]! : "Not given", p.date?.trim() || ""];
+      })
+    : ["Author", "Reviewer", "Approver"].map((r) => [r, "[name]", "[role]", "[date]"]);
+  const signatureNote = known?.people.length ? NAMED_SIGNATURE_TEXT : NO_SIGNATURE_TEXT;
   // The cover already shows these two lines; the rest of the document details keep their own table here, so no fact is lost.
-  const rest = d.meta.filter(([k]) => k !== "Generated");
+  const rest = d.meta.filter(([k]) => k !== "Generated" && !(known && (k === "Document reference" || k === "Version")));
   return (
     headingPara(ctx, 1, "Document control", { noNumber: true, pageBreakBefore: true }) +
     factsTable(ctx, control, { sz: 20, labelWidth: 3800, pad: 60 }) +
     tableXml(ctx, ["Responsibility", "Name", "Role", "Date"], people, { widths: equalWidths(ctx.tableWidth(true), 4) }) +
-    para(textRuns(NO_SIGNATURE_TEXT), { spacing: { before: 60, after: 160 } }) +
+    para(textRuns(signatureNote), { spacing: { before: 60, after: 160 } }) +
     (rest.length ? headingPara(ctx, 2, "Document summary", { noNumber: true }) + tableXml(ctx, ["Item", "Value"], rest.map(([k, v]) => [k, v]), { firstColumnBold: true }) : "")
   );
 }

@@ -300,16 +300,16 @@ blocks:
 
   - id: labeling_run
     version: 1
-    title: Labeling and packaging
+    title: Labelling and packaging
     unitOps: [labeling_packaging]
     steps:
-      - "Check the line clearance of the labeling area and record it: {line clearance form number}."
+      - "Check the line clearance of the labelling area and record it: {line clearance form number}."
       - "Record the label and carton lots and the quantity issued: {label lot}, {carton lot}, {quantity issued}."
       - "Run the label and print checks and record the results: {check time}, {result}."
       - "Reconcile the labels: issued, used, destroyed, returned. Record the result: {issued}, {used}, {destroyed}, {returned}."
     params:
-      - { key: labeling_speed, label: Labeling speed, collection: param, itemKey: labeling_speed, field: setPoint }
-      - { key: labeling_speed_range, label: Labeling speed range, collection: param, itemKey: labeling_speed, field: nor }
+      - { key: labeling_speed, label: Labelling speed, collection: param, itemKey: labeling_speed, field: setPoint }
+      - { key: labeling_speed_range, label: Labelling speed range, collection: param, itemKey: labeling_speed, field: nor }
       - { key: label_checks, label: Label and print checks, collection: ipc, itemKey: label_checks, field: tests }
       - { key: label_reconciliation, label: Label reconciliation, collection: ipc, itemKey: label_reconciliation, field: frequency }
     timeLimits:

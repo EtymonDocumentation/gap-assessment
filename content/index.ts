@@ -3,6 +3,7 @@ import { buildContent, parseFailureModes, parseGuidance, parseMbrLibrary, parseT
 import { catalog } from "@gap/process-model/catalog";
 import catalogOverlay from "./catalog/gap-overlay.yaml";
 import demoArx217 from "./demo/arx-217.yaml";
+import demoSyr305 from "./demo/syr-305.yaml";
 import guidanceRaw from "./guidance/guidance.yaml";
 import mbrBlocksRaw from "./mbr/blocks.yaml";
 import q00 from "./questions/00-scoping-and-site.yaml";
@@ -59,7 +60,7 @@ export const rawContent: RawContent = {
 export const content: ContentBundle = buildContent(rawContent);
 
 /** Raw demo scripts; build with buildDemoProject(content, raw). */
-export const demos = { "arx-217": demoArx217 } as const;
+export const demos = { "arx-217": demoArx217, "syr-305": demoSyr305 } as const;
 
 /**
  * The Guidance library (links to official regulatory text). Reference material: it is not part of the question and rule

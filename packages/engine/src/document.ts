@@ -86,6 +86,21 @@ export interface DocSection {
   blocks: Block[];
 }
 
+/** One named role of the document control page. A missing name or date stays a visible placeholder. */
+export interface DocControlPerson {
+  /** The role as the team wrote it, for example "Author (MSAT, receiving unit)". */
+  role: string;
+  name?: string;
+  date?: string;
+}
+
+export interface DocControl {
+  /** The document's own reference (for example the number the quality system gave it). */
+  documentId?: string;
+  version?: string;
+  people: DocControlPerson[];
+}
+
 export interface DocCover {
   /** Program or product code, e.g. "ARX-217". */
   program: string;
@@ -106,6 +121,12 @@ export interface DocModel {
   meta: [string, string][];
   /** Facts for renderers that draw a cover page (the built-in Word template). Values not established read "[not established]". */
   cover: DocCover;
+  /**
+   * Document control facts a document already holds (its own reference, version and named roles). Optional: the built-in Word look
+   * fills its Document control page from it, so the page does not print "[to be assigned]" and empty rows for a document that has
+   * the facts. Documents without it (the gap assessment) keep the placeholder page.
+   */
+  control?: DocControl;
   sections: DocSection[];
   /** How many TBD values the document lists as open items (also the "TBD values" line). Date-independent by design. */
   tbdCount: number;

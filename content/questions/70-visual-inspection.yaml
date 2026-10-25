@@ -56,6 +56,15 @@ questions:
     binds: uo.visual_inspection.param.inspection_rate
     input: { type: parameter, units: [units/min, units/h] }
 
+  - id: vi.time_out
+    section: uo.visual_inspection
+    prompt: Maximum time out of refrigeration during inspection
+    label: Maximum time out of refrigeration (inspection)
+    why: Filled units warm while they wait for inspection and pass through it. The time out of refrigeration must stay within what the stability data support, together with the other steps that count towards the total.
+    sides: target
+    binds: uo.visual_inspection.param.max_time_out_of_refrigeration.max
+    input: { type: quantity, units: [h, min] }
+
   - id: vi.defects
     section: uo.visual_inspection
     prompt: Which defect classes are inspected for?

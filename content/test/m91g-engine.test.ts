@@ -38,17 +38,18 @@ const base = buildDemoProject(content, demos["arx-217"], undefined, undefined, u
 const docOf = (p: Project): TrdDocument => p.trd.documents[0]!;
 const byLib = (p: Project, id: string) => docOf(p).writeups!.find((w) => w.libraryId === id)!;
 const exportOf = (p: Project) => buildTrdDocument(p, docOf(p), { generatedAt: T1, content });
+const evidenceOf = (p: Project) => buildTrdDocument(p, docOf(p), { generatedAt: T1, content, variant: "evidence" });
 const png = (w = 40, h = 20) => placeholderPng(w, h);
 const jpeg = (w: number, h: number) => new Uint8Array([0xff, 0xd8, 0xff, 0xc0, 0, 17, 8, h >> 8, h & 255, w >> 8, w & 255, 3, 1, 0x22, 0, 2, 0x11, 1, 3, 0x11, 1, 0xff, 0xd9]);
 const pictures = (p: Project) => exportOf(p).sections.flatMap((s) => s.blocks.filter((b): b is Extract<Block, { type: "picture" }> => b.type === "picture"));
 
 describe("versions (M9.1 gap closure)", () => {
-  it("are process model 1.10.0 and schema 1.20.0, and a 1.19.0 project opens with nothing else changed", () => {
-    expect(PROCESS_MODEL_VERSION).toBe("1.10.0");
-    expect(SCHEMA_VERSION).toBe("1.20.0");
+  it("are process model 1.12.0 and schema 1.22.0, and a 1.19.0 project opens with nothing else changed", () => {
+    expect(PROCESS_MODEL_VERSION).toBe("1.12.0");
+    expect(SCHEMA_VERSION).toBe("1.22.0");
     const old = JSON.parse(JSON.stringify({ ...base, schemaVersion: "1.19.0" }));
     const p = parseProject(old);
-    expect(p.schemaVersion).toBe("1.20.0");
+    expect(p.schemaVersion).toBe("1.22.0");
     expect(docOf(p).writeups).toEqual(docOf(base).writeups);
   });
 });
@@ -111,12 +112,13 @@ describe("figures", () => {
     expect(openFigures(byLib(base, "sec_stopper_position"))).toHaveLength(0);
     const added = addPart(base, docOf(base).id, w.id, { kind: "figure", text: "", caption: "Not yet drawn" }, who);
     expect(openFigures(byLib(added.project, "sec_stopper_position"))).toHaveLength(1);
-    const text = JSON.stringify(exportOf(added.project).sections);
-    expect(text).toContain("Figure to be added");
-    expect(text).toContain("Figures without a picture");
+    expect(JSON.stringify(exportOf(added.project).sections)).toContain("Figure to be added");
+    // The appendix of open figures is in the evidence record; the standard document has no appendix of values.
+    expect(JSON.stringify(exportOf(added.project).sections)).not.toContain("Figures without a picture");
+    expect(JSON.stringify(evidenceOf(added.project).sections)).toContain("Figures without a picture");
     const filled = setPartImage(added.project, docOf(base).id, w.id, added.partId, readTrdImage(png()), who);
     expect(openFigures(byLib(filled, "sec_stopper_position"))).toHaveLength(0);
-    expect(JSON.stringify(exportOf(filled).sections)).not.toContain("Figures without a picture");
+    expect(JSON.stringify(evidenceOf(filled).sections)).not.toContain("Figures without a picture");
   });
 
   it("removing the picture goes back to the note, and a non-figure part cannot hold a picture", () => {

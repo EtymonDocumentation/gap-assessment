@@ -3,7 +3,7 @@ import { trdWriteupSchema } from "./trd-writeups";
 import { SEED_COLLECTIONS, SEED_STATUSES, seedSourceSchema, SEED_VERIFICATIONS, seedReferenceSchema, seedValueSchema, type SeedAnswer } from "./trd-seed";
 
 /*
- * Technology transfer document (TRD) record (project schema 1.15.0). Module "trd".
+ * Technical requirements document (TRD) record (project schema 1.15.0). Module "trd".
  *
  * Design notes (the why):
  *  - THE TRD IS THE USER'S DOCUMENT; THE SEED IS ONLY WHERE IT STARTED. A field keeps the value as it came in (`pulled`, the seed

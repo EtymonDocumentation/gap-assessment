@@ -1,7 +1,7 @@
 # @gap/process-model
 
 The shared fill/finish process model. It describes WHAT a process is made of and how a value about it is recorded. It does not
-say how a tool compares, reports or documents it. The gap assessment tool uses it today; the technology transfer document (TRD)
+say how a tool compares, reports or documents it. The gap assessment tool uses it today; the technical requirements document (TRD)
 tool and the master batch record (MBR) tool are meant to read the same model and the same project files.
 
 Version 1.0.0. The package is `private: true` for now (it is used inside this repository through npm workspaces). Nothing is

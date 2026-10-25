@@ -1,5 +1,6 @@
 import type { TrdDocument, TrdPart, TrdWriteup } from "@gap/process-model";
 import type { Block, Run } from "./document";
+import { BUILTIN_DRAWINGS } from "./drawings";
 import { activeParts, plainOfSegments, resolveBlank, segmentsOf, type BlankContext, type ResolvedBlank, type TextSeg } from "./trd-writeup";
 import { OVERVIEW_SECTION_KEY, writeupOrder } from "./trd-writeup-order";
 
@@ -117,6 +118,11 @@ function partBlocks(p: TrdPart, t: PartTools, number: string): Block[] {
     case "note":
       return [{ type: "rich", style: "note", runs: runs() }];
     case "figure": {
+      // The author's own picture wins; otherwise the standard drawing the library names for this figure, if any.
+      const drawing = !p.image && p.drawing ? BUILTIN_DRAWINGS[p.drawing] : undefined;
+      if (drawing) {
+        return [{ type: "picture", number: ++t.figures.n, caption: (p.caption ?? "").trim(), alt: (p.alt ?? "").trim() || drawing.alt, mime: drawing.mime, data: drawing.data, width: drawing.width, height: drawing.height }];
+      }
       if (p.image) {
         // A numbered picture. The caption is the author's words; the alternative text falls back to the caption so a screen reader
         // never meets a picture with no name at all (an empty alt is still possible when both are empty, and the editor warns).
@@ -163,6 +169,8 @@ export interface WriteupSectionsResult {
   openFigures: { writeup: TrdWriteup; part: TrdPart }[];
   /** How many numbered pictures the document holds. */
   pictures: number;
+  /** Keys of the prose sections that received extra blocks (see `extras`). */
+  extrasPlaced: string[];
 }
 
 type AddSection = (id: string, title: string, make: (number: string) => Block[]) => void;
@@ -175,8 +183,18 @@ export const hasWriteups = (d: TrdDocument): boolean => Boolean(d.writeups?.leng
  * "Manufacturing process overview" with one numbered sub-section per step. `add` creates a section and tells the function its number.
  * The order is `writeupOrder`, the same order the Descriptions tab shows and "move up / down" changes.
  */
-export function addWriteupSections(ctx: BlankContext, d: TrdDocument, add: AddSection): WriteupSectionsResult {
-  const result: WriteupSectionsResult = { filled: [], open: [], openFigures: [], pictures: 0 };
+export function addWriteupSections(
+  ctx: BlankContext,
+  d: TrdDocument,
+  add: AddSection,
+  variant: "standard" | "evidence" = "standard",
+  /**
+   * Blocks the document builder puts at the end of a prose section, by the section's write-up key. The overall process parameters
+   * section holds the parameter tables of the steps this way: the tables follow the notes of the section that introduces them.
+   */
+  extras: Record<string, (number: string) => Block[]> = {},
+): WriteupSectionsResult {
+  const result: WriteupSectionsResult = { filled: [], open: [], openFigures: [], pictures: 0, extrasPlaced: [] };
   const all = d.writeups ?? [];
   if (!all.length) return result;
   const figures: FigureCounter = { n: 0 };
@@ -200,7 +218,9 @@ export function addWriteupSections(ctx: BlankContext, d: TrdDocument, add: AddSe
     add(`writeup-${w.key}`, w.title, (n) => {
       const r = writeupBlocks(ctx, w, n, figures);
       record(w, r);
-      return [...note(), ...r.blocks];
+      const extra = extras[w.key];
+      if (extra) result.extrasPlaced.push(w.key);
+      return [...note(), ...r.blocks, ...(extra ? extra(n) : [])];
     });
   }
 
@@ -223,14 +243,18 @@ export function addWriteupSections(ctx: BlankContext, d: TrdDocument, add: AddSe
   }
 
   result.pictures = figures.n;
-  if (noteBlock) noteBlock.text = openBlanksNote(result.open.length, result.openFigures.length);
+  if (noteBlock) noteBlock.text = openBlanksNote(result.open.length, result.openFigures.length, variant);
   return result;
 }
 
 /** The sentence about open blanks and figures, written once the counts are known. */
-export function openBlanksNote(open: number, openFigures = 0): string {
+export function openBlanksNote(open: number, openFigures = 0, variant: "standard" | "evidence" = "standard"): string {
   const figs = openFigures ? ` ${openFigures} figure${openFigures === 1 ? " has" : "s have"} no picture yet and ${openFigures === 1 ? "is" : "are"} shown as "Figure to be added".` : "";
+  // The standard document has no appendix of values; where each value came from is in the evidence record.
+  // Nothing open and no figure missing: the standard document says nothing (a sentence about the evidence record is noise to an approver).
+  if (variant === "standard" && !open && !openFigures) return "";
+  const where = variant === "evidence" ? 'the appendix "Process description values"' : "the evidence record";
   return open
-    ? `${open} blank${open === 1 ? " has" : "s have"} no value yet. Each is shown in square brackets and highlighted, and is listed in the appendix "Process description values".${figs}`
-    : `Every blank in the process descriptions has a value. The appendix "Process description values" shows where each came from.${figs}`;
+    ? `${open} blank${open === 1 ? " has" : "s have"} no value yet. Each is shown in square brackets and highlighted, and is listed in ${where}.${figs}`
+    : `Every blank in the process descriptions has a value. ${where[0]!.toUpperCase()}${where.slice(1)} shows where each came from.${figs}`;
 }

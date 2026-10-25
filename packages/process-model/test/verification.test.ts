@@ -240,8 +240,8 @@ describe("verification in the change log", () => {
 
 describe("schema 1.2.0 features", () => {
   it("is superseded by the current version", () => {
-    expect(SCHEMA_VERSION).toBe("1.20.0");
-    expect(newProject().schemaVersion).toBe("1.20.0");
+    expect(SCHEMA_VERSION).toBe("1.22.0");
+    expect(newProject().schemaVersion).toBe("1.22.0");
   });
 
   it("round-trips a project with verified, withdrawn and self-verified entries through JSON", () => {
@@ -259,7 +259,7 @@ describe("schema 1.2.0 features", () => {
     old.schemaVersion = "1.0.0";
     delete old.custom;
     const p = parseProject(old);
-    expect(p.schemaVersion).toBe("1.20.0");
+    expect(p.schemaVersion).toBe("1.22.0");
     expect(p.custom).toEqual({ unitOperations: [], items: [] });
     expect(verificationState(p, VESSEL_S).state).toBe("verified");
   });
@@ -276,7 +276,7 @@ describe("schema 1.2.0 features", () => {
       delete e.verification.selfVerification;
     }
     const migrated = parseProject(old);
-    expect(migrated.schemaVersion).toBe("1.20.0");
+    expect(migrated.schemaVersion).toBe("1.22.0");
     expect(getEntry(migrated, VESSEL_S)!.verification!.selfVerification).toBe(true);
     expect(getEntry(migrated, MIXER_S)!.verification!.selfVerification).toBeUndefined();
   });

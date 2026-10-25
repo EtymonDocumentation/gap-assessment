@@ -21,7 +21,7 @@ describe("Word draft TRD outline", () => {
     const res = strictDocx(out.bytes);
     const text = plainText(res);
     expect(text).toContain("Proof of concept. Not validated. Not for GMP use.");
-    expect(text).toContain("Technology transfer document — draft outline");
+    expect(text).toContain("Technical requirements document — draft outline");
     expect(text).toContain("Not an approved TRD");
     for (const h of ["Purpose and scope", "Product and presentation", "Receiving site and line", "Process overview", "Open items", "Source register", "Traceability to the gap assessment", "Versions"]) {
       expect(text, h).toContain(h);

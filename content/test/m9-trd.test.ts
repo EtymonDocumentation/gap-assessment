@@ -156,7 +156,10 @@ describe("overrides", () => {
     const r0 = createTrd(base, { title: "Blank (fictional)", start: { kind: "blank" } }, who);
     const p2 = setOverride(r0.project, r0.trdId, { part: "details", field: "program" }, { status: "established", display: "ARX-999 (fictional)" }, who);
     expect(trdOverrides(doc(p2, r0.trdId))[0]).toMatchObject({ overridesProject: false, projectValue: "" });
-    const out = buildTrdDocument(p2, doc(p2, r0.trdId), { generatedAt: T1 });
+    // The standard TRD has no Overrides appendix when nothing was overridden; the evidence record still states that.
+    const std = buildTrdDocument(p2, doc(p2, r0.trdId), { generatedAt: T1 });
+    expect(std.sections.find((s) => s.id === "overrides")).toBeUndefined();
+    const out = buildTrdDocument(p2, doc(p2, r0.trdId), { generatedAt: T1, variant: "evidence" });
     expect(out.sections.find((s) => s.id === "overrides")!.blocks[0]).toMatchObject({ text: "No value that came in from the project has been overridden." });
   });
 
@@ -437,7 +440,7 @@ describe("the demo TRD", () => {
   });
 
   it("shows the check: a NOR above its PAR and units that differ; the other cases read clean", () => {
-    const out = buildTrdDocument(full, d, { generatedAt: T1 });
+    const out = buildTrdDocument(full, d, { generatedAt: T1, variant: "evidence" });
     const check = out.sections.find((s) => s.id === "par-nor")!;
     const table = check.blocks.find((b) => b.type === "table") as { rows: string[][] };
     expect(table.rows.map((r) => r[3])).toEqual(expect.arrayContaining(["NOR max 170 rpm is above PAR max 160 rpm.", "NOR and PAR: cannot compare: units differ (min vs h)."]));
@@ -447,7 +450,7 @@ describe("the demo TRD", () => {
 
 describe("the TRD document", () => {
   const d = full.trd.documents[0]!;
-  const out = buildTrdDocument(full, d, { generatedAt: T1, appVersion: "9.9.9", catalogVersion: content.versions.catalog });
+  const out = buildTrdDocument(full, d, { generatedAt: T1, variant: "evidence", appVersion: "9.9.9", catalogVersion: content.versions.catalog });
   const flat = (o: typeof out) =>
     o.sections.flatMap((s) => s.blocks.flatMap((b) => (b.type === "table" ? b.rows.flat() : b.type === "list" ? b.items : b.type === "figure" || b.type === "picture" ? [b.alt] : b.type === "rich" ? [b.runs.map((r) => r.text).join("")] : b.type === "rich-list" ? b.items.map((i) => i.map((r) => r.text).join("")) : [b.text]))).join("\n");
 
@@ -456,7 +459,7 @@ describe("the TRD document", () => {
     expect(ids.slice(0, 4)).toEqual(["purpose-scope", "product", "site", "overview"]);
     expect(ids.filter((i) => i.startsWith("step-"))).toHaveLength(d.steps.length);
     expect(ids.slice(-6)).toEqual(["par-nor", "open-items", "overrides", "source-register", "traceability", "versions"]);
-    expect(out.title).toBe("Technology transfer document");
+    expect(out.title).toBe("Technical requirements document: evidence record");
     expect(out.meta).toContainEqual(["Document reference", "DEMO-TRD-217-01"]);
     expect(out.banner).toBe("Proof of concept. Not validated. Not for GMP use.");
   });
@@ -514,7 +517,7 @@ describe("the TRD document", () => {
   });
 
   it("leaves out the sections the person unticks, but never the overrides or open items", () => {
-    const less = buildTrdDocument(full, d, { generatedAt: T1, omit: ["overview", "source-register", "traceability"] });
+    const less = buildTrdDocument(full, d, { generatedAt: T1, variant: "evidence", omit: ["overview", "source-register", "traceability"] });
     const ids = less.sections.map((s) => s.id);
     expect(ids).not.toContain("overview");
     expect(ids).not.toContain("source-register");
@@ -524,12 +527,12 @@ describe("the TRD document", () => {
 
   it("traceability is for a project-origin TRD only", () => {
     const r = createTrd(base, { title: "From a file (fictional)", start: { kind: "seed-import", seed: seed0 } }, who);
-    expect(buildTrdDocument(r.project, doc(r.project, r.trdId), { generatedAt: T1 }).sections.map((s) => s.id)).not.toContain("traceability");
+    expect(buildTrdDocument(r.project, doc(r.project, r.trdId), { generatedAt: T1, variant: "evidence" }).sections.map((s) => s.id)).not.toContain("traceability");
   });
 
   it("a blank TRD says what is missing instead of filling it", () => {
     const r = createTrd(base, { title: "Blank (fictional)", start: { kind: "blank", steps: [{ label: "Hold (fictional)" }] } }, who);
-    const o = buildTrdDocument(r.project, doc(r.project, r.trdId), { generatedAt: T1 });
+    const o = buildTrdDocument(r.project, doc(r.project, r.trdId), { generatedAt: T1, variant: "evidence" });
     expect(o.tbdCount).toBe(7);
     const text = flat(o);
     expect(text).toContain("No purpose has been entered");
@@ -540,5 +543,66 @@ describe("the TRD document", () => {
 
   it("is deterministic for the same content", () => {
     expect(JSON.stringify(buildTrdDocument(full, d, { generatedAt: T1 }))).toBe(JSON.stringify(buildTrdDocument(full, d, { generatedAt: T1 })));
+  });
+});
+
+describe("the standard TRD document", () => {
+  const d = full.trd.documents[0]!;
+  const std = buildTrdDocument(full, d, { generatedAt: T1, appVersion: "9.9.9", catalogVersion: content.versions.catalog });
+  const evi = buildTrdDocument(full, d, { generatedAt: T1, appVersion: "9.9.9", catalogVersion: content.versions.catalog, variant: "evidence" });
+  const flat = (o: typeof std) =>
+    o.sections.flatMap((s) => s.blocks.flatMap((b) => (b.type === "table" ? [...b.columns, ...b.rows.flat()] : b.type === "list" ? b.items : b.type === "figure" || b.type === "picture" ? [b.alt] : b.type === "rich" ? [b.runs.map((r) => r.text).join("")] : b.type === "rich-list" ? b.items.map((i) => i.map((r) => r.text).join("")) : b.type === "heading" ? [b.text] : [b.text]))).join("\n");
+
+  it("has no appendix of values, no source register, no traceability and no PAR/NOR check section", () => {
+    const ids = std.sections.map((s) => s.id);
+    for (const gone of ["par-nor", "writeup-values", "source-register", "traceability", "versions"]) expect(ids).not.toContain(gone);
+    // Overrides are never hidden, so they stay in the standard document too.
+    expect(ids).toContain("overrides");
+    expect(ids).toContain("open-items");
+    expect(ids.at(-2)).toBe("references");
+    expect(std.title).toBe("Technical requirements document");
+  });
+
+  it("has one compact parameter table per step: five columns, no basis, sources, status or classification, no 'Other recorded values'", () => {
+    const tables = std.sections.flatMap((s) => s.blocks).flatMap((b) => (b.type === "table" ? [b] : []));
+    const params = tables.filter((t) => t.columns[0] === "Parameter");
+    expect(params.length).toBeGreaterThan(0);
+    for (const t of params) expect(t.columns).toEqual(["Parameter", "Set point", "NOR", "PAR", "Unit"]);
+    const text = flat(std);
+    for (const gone of ["Other recorded values", "Basis", "Sources", "Classification", "Status"]) expect(tables.flatMap((t) => t.columns).concat(tables.map((t) => t.caption ?? "")), gone).not.toContain(gone);
+    expect(text).not.toMatch(/\[\d+\]/);
+    const speed = params.flatMap((t) => t.rows).find((r) => r[0] === "Mixing speed")!;
+    expect(speed).toEqual(["Mixing speed", "140", "110 to 170", "100 to 160", "rpm"]);
+  });
+
+  it("is much shorter than the evidence record, which still carries everything the standard one leaves out", () => {
+    expect(JSON.stringify(std).length).toBeLessThan(JSON.stringify(evi).length * 0.6);
+    const ids = evi.sections.map((s) => s.id);
+    for (const kept of ["par-nor", "source-register", "traceability", "versions", "overrides", "open-items"]) expect(ids).toContain(kept);
+    expect(JSON.stringify(evi)).toContain("Basis");
+    expect(JSON.stringify(evi)).toContain("Other recorded values");
+    expect(evi.title).toBe("Technical requirements document: evidence record");
+    expect(flat(evi)).toMatch(/not for approval/i);
+  });
+
+  it("lists the documents it relies on at the end, one line each, with identifier and version", () => {
+    const refs = std.sections.find((s) => s.id === "references")!.blocks[0] as { type: "list"; items: string[] };
+    expect(refs.items.length).toBeGreaterThan(0);
+    for (const line of refs.items) expect(line).toMatch(/^\S+/);
+    expect(new Set(refs.items).size).toBe(refs.items.length);
+  });
+
+  it("fills the document control from the TRD's own reference, version and roles", () => {
+    expect(std.control?.documentId).toBe("DEMO-TRD-217-01");
+    expect(std.control?.people.map((p) => p.role)).toEqual((d.approvals ?? []).map((a) => a.role));
+  });
+
+  it("says shipping is outside the document only when the TRD has no shipping step", () => {
+    const noShipping = { ...d, steps: d.steps.filter((s) => !/shipping/i.test(s.label) && !(s.key ?? "").includes("shipping")) };
+    expect(flat(buildTrdDocument(full, noShipping, { generatedAt: T1 }))).toContain("EHS or shipping");
+    const withShipping = { ...noShipping, steps: [...noShipping.steps, { ...d.steps[0]!, id: "step-ship", key: "storage_shipping", label: "Storage and shipping" }] };
+    const t = buildTrdDocument(full, withShipping, { generatedAt: T1 });
+    expect(flat(t)).toContain("including the shipping steps");
+    expect(flat(t)).not.toContain("EHS or shipping");
   });
 });
