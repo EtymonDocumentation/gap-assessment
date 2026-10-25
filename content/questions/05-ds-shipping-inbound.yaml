@@ -81,7 +81,7 @@ questions:
     prompt: Is lane qualification available for the RU shipper and lane (worst-case transit time and seasonal profiles)?
     label: Drug substance lane qualification (RU)
     why: Lane qualification shows that the shipper holds the drug substance temperature for the longest planned transit under summer and winter profiles. Without it the lane is not qualified.
-    triggerNote: Asked because the RU shipper or lane differs from the SU.
+    triggerNote: Asked because the RU shipper or lane differs from the SU, or because drug substance shipping is new at the RU.
     sides: target
     binds: uo.ds_shipping_inbound.study.lane_qualification.status
     input: { type: choice, optionsFrom: evidenceAvailability }
@@ -89,6 +89,11 @@ questions:
       any:
         - { changed: uo.ds_shipping_inbound.equip.shipper.operatingPrinciple }
         - { changed: uo.ds_shipping_inbound.doc.shipping_lane.name }
+        # A lane that has no SU counterpart at all has no qualification to rely on, so the question is asked there too.
+        - all:
+            - { isTrue: target.uo.ds_shipping_inbound.presence }
+            - { answered: source.uo.ds_shipping_inbound.presence }
+            - { not: { isTrue: source.uo.ds_shipping_inbound.presence } }
 
   - id: dsi.custody
     section: uo.ds_shipping_inbound

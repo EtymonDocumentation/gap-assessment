@@ -9,9 +9,9 @@ import { addItemFromGap, addItemFromSuggestion, gapSeeds, suggestFailureModes } 
 import { acceptSuggestion, addAgencyRequest, addBatch, addFigureItem, addPoint, addStep, addSubsection, applyDesignLoadout, createPlan, projectScopeSteps, setParties, setPointFlow, setTimeZero, updatePlan, updatePoint, updateStep, type PointPatch } from "./sampling";
 import { suggestPoints, type SamplingSuggestions } from "./sampling-seed";
 import { addTarget, createMbr, setParam } from "./mbr";
-import { createTrd, setLimits, setOverride, updateTrdStep } from "./trd";
+import { createTrd, setLimits, setOverride, updateTrd, updateTrdStep } from "./trd";
 import { buildTrdSeed } from "./trd-seed";
-import { removePart, setBlankValue, setNotApplicable, setPartImage, setPartIncluded, setPartText, setTableRows } from "./trd-writeup";
+import { addWriteupFromLibrary, moveWriteup, removePart, setBlankValue, setNotApplicable, setPartImage, setPartIncluded, setPartText, setTableRows } from "./trd-writeup";
 import { placeholderPng } from "./demo-image";
 import type { QuestionInstance } from "./sequencer";
 
@@ -26,6 +26,8 @@ const answerSchema = z.object({
   tbd: z.object({ bestGuess: z.unknown().optional(), owner: z.string().optional(), due: z.string().optional(), note: z.string().optional() }).optional(),
   fields: z.record(z.string(), fieldValue).optional(),
   docs: z.array(z.string()).optional(),
+  /** A not-applicable answer: the reason (the justification is required, as in the interview). */
+  notApplicable: z.string().optional(),
 });
 
 /** A later, dated action by a named person: add a source, verify entries, or change an answer. */
@@ -150,6 +152,11 @@ const trdDemoSchema = z.object({
   role: z.string().optional(),
   title: z.string(),
   docRef: z.string().optional(),
+  /** Document-level text a person types on the first tab: version, purpose, scope note and the named approval roles (all optional). */
+  version: z.string().optional(),
+  purpose: z.string().optional(),
+  scopeNote: z.string().optional(),
+  approvals: z.array(z.object({ role: z.string(), name: z.string().optional(), date: z.string().optional() })).default([]),
   sources: z.array(z.object({ identifier: z.string(), docType: z.string(), title: z.string().optional(), version: z.string().optional() })).default([]),
   steps: z.array(z.object({ uo: z.string(), description: z.string() })).default([]),
   overrides: z.array(z.object({ uo: z.string(), item: z.string(), field: z.string(), display: z.string(), unit: z.string().optional(), reason: z.string().optional() })).default([]),
@@ -170,6 +177,10 @@ const trdDemoSchema = z.object({
    */
   writeups: z
     .object({
+      /** Library write-ups that a new TRD does not start with (marked autoAdd false, offered in the "Add from library" picker); added first, like a person would. */
+      add: z.array(z.string()).default([]),
+      /** Move a process description up (negative) or down (positive) by this many places, one step at a time like the arrow buttons; a blocked move stops there. */
+      move: z.array(z.object({ writeup: z.string(), by: z.number().int() })).default([]),
       values: z.array(z.object({ writeup: z.string(), key: z.string(), value: z.string() })).default([]),
       optional: z.array(z.object({ writeup: z.string(), part: z.string() })).default([]),
       edits: z.array(z.object({ writeup: z.string(), part: z.string(), text: z.string() })).default([]),
@@ -262,6 +273,7 @@ function applyScripted(project: Project, content: ContentBundle, a: z.infer<type
   let input: AnswerInput;
   if (a.tbd) input = { kind: "tbd", ...(a.tbd.bestGuess !== undefined ? { bestGuess: a.tbd.bestGuess as never } : {}), ...(a.tbd.owner ? { owner: a.tbd.owner } : {}), ...(a.tbd.due ? { due: a.tbd.due } : {}), ...(a.tbd.note ? { note: a.tbd.note } : {}) };
   else if (a.same) input = { kind: "same_as_source" };
+  else if (a.notApplicable) input = { kind: "not_applicable", justification: a.notApplicable };
   else if (a.fields) {
     const fields: Partial<Record<ParameterField, FieldAnswer>> = {};
     for (const [k, v] of Object.entries(a.fields)) {
@@ -541,7 +553,14 @@ function applyMbrDemo(project: Project, content: ContentBundle, m: z.infer<typeo
 function applyTrdDemo(project: Project, content: ContentBundle, t: z.infer<typeof trdDemoSchema>, library?: readonly TrdLibraryWriteup[]): Project {
   const who: Actor = { name: t.by, at: t.at, ...(t.role ? { role: t.role } : {}) };
   const sourceIds = new Map<string, string>();
-  for (const s of t.sources) {
+  // A document the project already lists (the "documents" block) is cited, not added a second time: a duplicate would print twice in the
+  // References list under two almost identical titles. Only the sources that are new to the project are added here.
+  for (const s of [...t.sources, ...project.sources.flatMap((x) => (x.docRef ? [x.docRef] : []))]) {
+    const known = project.sources.find((x) => x.docRef?.identifier === s.identifier);
+    if (known) {
+      sourceIds.set(s.identifier, known.id);
+      continue;
+    }
     const r = addSource(project, { type: "document_reference", docRef: s }, who);
     project = r.project;
     sourceIds.set(s.identifier, r.source.id);
@@ -569,6 +588,14 @@ function applyTrdDemo(project: Project, content: ContentBundle, t: z.infer<typeo
     const loc = { ...(c.section ? { section: c.section } : {}), ...(c.page ? { page: c.page } : {}) };
     return { sourceIds: [sid], ...(Object.keys(loc).length ? { locations: { [sid]: loc } } : {}) };
   };
+  if (t.version || t.purpose || t.scopeNote || t.approvals.length) {
+    project = updateTrd(
+      project,
+      id,
+      { ...(t.version ? { version: t.version } : {}), ...(t.purpose ? { purpose: t.purpose } : {}), ...(t.scopeNote ? { scopeNote: t.scopeNote } : {}), ...(t.approvals.length ? { approvals: t.approvals.map((a) => ({ role: a.role, ...(a.name ? { name: a.name } : {}), ...(a.date ? { date: a.date } : {}) })) } : {}) },
+      who,
+    );
+  }
   for (const s of t.steps) project = updateTrdStep(project, id, stepFor(s.uo).id, { description: s.description }, who);
   for (const o of t.overrides) {
     const ref = itemRef(o.uo, o.item);
@@ -590,6 +617,20 @@ function applyTrdDemo(project: Project, content: ContentBundle, t: z.infer<typeo
       if (!w) throw new Error(`Demo TRD: no process description from library entry ${libId}`);
       return w.id;
     };
+    for (const libId of t.writeups.add) {
+      const lib = library.find((x) => x.id === libId);
+      if (!lib) throw new Error(`Demo TRD: unknown library write-up ${libId}`);
+      project = addWriteupFromLibrary(project, id, lib, lib.kind === "unitOp" ? stepFor(lib.key!).id : undefined, who).project;
+    }
+    for (const m of t.writeups.move) {
+      for (let n = 0; n < Math.abs(m.by); n++) {
+        try {
+          project = moveWriteup(project, id, wu(m.writeup), m.by < 0 ? -1 : 1, who);
+        } catch {
+          break;
+        }
+      }
+    }
     for (const e of t.writeups.edits) project = setPartText(project, id, wu(e.writeup), e.part, { text: e.text }, who);
     for (const o of t.writeups.optional) project = setPartIncluded(project, id, wu(o.writeup), o.part, true, who);
     for (const r of t.writeups.removed) project = removePart(project, id, wu(r.writeup), r.part, who);

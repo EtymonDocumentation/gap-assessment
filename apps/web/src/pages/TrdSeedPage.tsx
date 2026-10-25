@@ -14,7 +14,7 @@ import { BUILTIN_RECORD, ExportHistory } from "./document-panels";
 const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 /**
- * The TRD seed: the receiving unit's planned process as JSON for a technology transfer document tool, and a draft outline of that
+ * The TRD seed: the receiving unit's planned process as JSON for a technical requirements document tool, and a draft outline of that
  * document in Word or HTML. The outline is built from the seed only, so what a person reads and what a tool reads cannot differ.
  */
 export function TrdSeedPage() {
@@ -110,7 +110,7 @@ export function TrdSeedPage() {
       <section className="card stack no-print" aria-labelledby="trd-about-title">
         <h2 id="trd-about-title">What this is</h2>
         <p>
-          A technology transfer document (TRD) describes how a process will run at the receiving unit (RU). This page turns the RU side of your gap assessment into a starting point for it. The{" "}
+          A technical requirements document (TRD) describes how a process will run at the receiving unit (RU). This page turns the RU side of your gap assessment into a starting point for it. The{" "}
           <strong>TRD seed</strong> is a JSON file that a TRD tool can read. The <strong>draft outline</strong> is the same content as a Word or HTML document that a person can read.
         </p>
         <ul className="plain-list">

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /*
- * TRD write-ups (project schema 1.20.0, TRD format 1.2.0, write-up library format 1.1.0). Module "trd".
+ * TRD write-ups (project schema 1.22.0, TRD format 1.2.0, write-up library format 1.1.0). Module "trd".
  *
  * A write-up is the prose of the TRD for one unit operation (the "Process description" of a step) or for one TRD-level section
  * (introduction, scope, fill weights ...). It is kept as an ordered list of PARTS so a part can be edited, removed, switched on or
@@ -74,6 +74,10 @@ export const TRD_PART_KIND_LABELS: Record<TrdPartKind, string> = {
 const partId = z.string().regex(/^[a-z][a-z0-9_]*$/);
 
 /** One part as the library holds it. */
+/** Standard drawings the exports can embed for a library figure (the pictures themselves live in the engine). */
+export const TRD_DRAWING_IDS = ["syringe_barrel"] as const;
+export type TrdDrawingId = (typeof TRD_DRAWING_IDS)[number];
+
 export const trdLibraryPartSchema = z.object({
   /** Stable inside the write-up, so an update from the library can tell a changed part from a new one. */
   id: partId,
@@ -87,6 +91,8 @@ export const trdLibraryPartSchema = z.object({
   /** A figure: the words printed under it after "Figure N." and its alternative text (what the picture shows, for a screen reader). */
   caption: z.string().optional(),
   alt: z.string().optional(),
+  /** A figure: a standard drawing shown while the author has attached no picture of their own. A generic drawing, never a product's. */
+  drawing: z.enum(TRD_DRAWING_IDS).optional(),
   /** Present: the part is optional, off until switched on. The condition is plain words for the author. */
   optional: z.object({ condition: z.string().min(1) }).optional(),
 });
@@ -204,7 +210,8 @@ export function blanksOf(text: string): BlankRef[] {
   const out: BlankRef[] = [];
   for (const m of text.matchAll(BLANK_PATTERN)) {
     const key = m[1]!;
-    if (!out.some((b) => b.key === key)) out.push({ key, label: (m[2] ?? "").trim() || key });
+    // A label may carry modifiers after "~" (an article, or the wording for a Yes/No answer); the label itself is what comes before.
+    if (!out.some((b) => b.key === key)) out.push({ key, label: (m[2] ?? "").split("~")[0]!.trim() || key });
   }
   return out;
 }

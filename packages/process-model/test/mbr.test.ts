@@ -13,7 +13,7 @@ describe("migration to 1.19.0: batch records", () => {
     old.schemaVersion = "1.17.0";
     const before = old.changeLog.length;
     const p = parseProject(old);
-    expect(p.schemaVersion).toBe("1.20.0");
+    expect(p.schemaVersion).toBe("1.22.0");
     expect(p.mbr).toEqual({ records: [] });
     expect(p.meta.title).toBe("Old project (fictional)");
     expect(p.changeLog.length).toBe(before);

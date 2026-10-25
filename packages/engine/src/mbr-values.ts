@@ -1,4 +1,4 @@
-import type { MbrParamRow, MbrTrdRef, MbrTimeLimit, SeedStatus, TrdDocument, TrdItem, TrdRange, TrdStep } from "@gap/process-model";
+import { printableUnit, type MbrParamRow, MbrTrdRef, MbrTimeLimit, SeedStatus, TrdDocument, TrdItem, TrdRange, TrdStep } from "@gap/process-model";
 import { effectiveField } from "./trd";
 
 /*
@@ -90,7 +90,7 @@ export const trdHasValue = (t: MbrTrdRef | undefined): boolean => Boolean(t && t
 export function trdRefText(t: MbrTrdRef | undefined): string {
   if (!t) return "No TRD value linked";
   if (t.status === "not_established") return NOT_HELD;
-  const base = [t.text, t.unit].filter(Boolean).join(" ");
+  const base = [t.text, printableUnit(t.unit)].filter(Boolean).join(" ");
   return base || NOT_HELD;
 }
 

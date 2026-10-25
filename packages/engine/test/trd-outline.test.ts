@@ -16,7 +16,7 @@ describe("buildTrdOutline", () => {
   it("has the required title, banner and the basis line", () => {
     const d = buildTrdOutline(seed(demo()));
     expect(d.title).toBe(TRD_OUTLINE_TITLE);
-    expect(d.title).toBe("Technology transfer document — draft outline");
+    expect(d.title).toBe("Technical requirements document — draft outline");
     expect(d.banner).toBe("Proof of concept. Not validated. Not for GMP use.");
     expect(d.status).toBe("DRAFT");
     const basis = d.sections[0]!.blocks.find((b) => b.type === "note");
@@ -99,7 +99,7 @@ describe("buildTrdOutline", () => {
   it("renders to HTML and Markdown with the banner and the heading", () => {
     const d = buildTrdOutline(seed(demo()));
     expect(renderHtml(d)).toContain("Proof of concept. Not validated. Not for GMP use.");
-    expect(renderHtml(d)).toContain("Technology transfer document");
+    expect(renderHtml(d)).toContain("Technical requirements document");
     expect(renderMarkdown(d)).toContain("Process overview");
   });
 });

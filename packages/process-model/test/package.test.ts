@@ -40,7 +40,7 @@ describe("package independence", () => {
 
   it("keeps PROCESS_MODEL_VERSION equal to package.json", () => {
     expect(PROCESS_MODEL_VERSION).toBe(pkg.version);
-    expect(pkg.version).toBe("1.10.0");
+    expect(pkg.version).toBe("1.12.0");
   });
 
   it("is private until it is published on purpose", () => {
@@ -113,6 +113,7 @@ describe("public API", () => {
         "TIMING_OPTIONS",
         "TRD_BASIS_LOADOUTS",
         "TRD_DETAIL_KEYS",
+        "TRD_DRAWING_IDS",
         "TRD_FORMAT_VERSION",
         "TRD_IMAGES_MAX_TOTAL_BYTES",
         "TRD_IMAGE_LIMIT_TEXT",
@@ -219,6 +220,7 @@ describe("public API", () => {
         "planVerification",
         "pointFlowSchema",
         "pointSampleSizeSchema",
+        "printableUnit",
         "projectSchema",
         "pulledFromAnswer",
         "putEntry",

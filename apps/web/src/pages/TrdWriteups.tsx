@@ -105,7 +105,7 @@ export function TrdWriteups({ d, run }: { d: TrdDocument; run: Run }) {
       <section className="card stack" aria-labelledby="twu-h" data-testid="trd-writeups">
         <h2 id="twu-h">Process descriptions</h2>
         <p>
-          The text of the technology transfer document, one description per process step and the TRD-level sections. They start as a copy of the <a href={href("/trd/writeups")}>process description library</a>; edit any paragraph, remove one, or switch an optional one on. A blank that the TRD or the project can answer shows that value and its source. A blank with no value stays visible: nothing is filled in for you.
+          The text of the technical requirements document, one description per process step and the TRD-level sections. They start as a copy of the <a href={href("/trd/writeups")}>process description library</a>; edit any paragraph, remove one, or switch an optional one on. A blank that the TRD or the project can answer shows that value and its source. A blank with no value stays visible: nothing is filled in for you.
         </p>
         <p data-testid="twu-summary">
           {writeups.length} description{writeups.length === 1 ? "" : "s"}, {totalOpen} open blank{totalOpen === 1 ? "" : "s"}, {totalFigures} figure{totalFigures === 1 ? "" : "s"} without a picture. Open blanks and figures do not stop saving or exporting; a blank appears in the document in square brackets, highlighted, and a figure without a picture appears as "Figure to be added".

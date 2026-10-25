@@ -134,6 +134,23 @@ export function HomePage({ notice }: { notice?: string }) {
             </button>
           </div>
           <div className="start-option">
+            <h3>Prefilled syringe demo</h3>
+            <p className="muted">
+              SYR-305, a fictional liquid mAb in a prefilled syringe, filled at a receiving fill site from frozen drug substance. It comes with a
+              complete technical requirements document.
+            </p>
+            <button
+              className="btn"
+              onClick={() => {
+                if (!confirmReplace()) return;
+                loadDemo("syr-305");
+                navigate("/register");
+              }}
+            >
+              Open syringe example
+            </button>
+          </div>
+          <div className="start-option">
             <h3>New project</h3>
             <p className="muted">Start an empty interview. Scoping questions come first and decide which unit operations apply.</p>
             <button className="btn" onClick={() => confirmReplace() && setCreating(true)}>

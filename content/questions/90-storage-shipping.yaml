@@ -31,7 +31,7 @@ questions:
   - id: ss.condition
     section: uo.storage_shipping
     topic: storage
-    prompt: Labeled storage condition of the finished product
+    prompt: Labelled storage condition of the finished product
     label: Storage condition
     why: The storage condition is the one supported by the stability data and normally appears in the registered product information. A different condition is not covered by those data.
     sides: paired
@@ -95,7 +95,7 @@ questions:
     parent: ss.shipper
     prompt: Is shipping qualification available for the RU shipping configuration and lane (worst-case transit time and seasonal profiles)?
     label: Shipping lane qualification (RU)
-    why: Shipping qualification shows that the configuration holds the labeled temperature for the longest planned transit under summer and winter profiles. Without it the lane is not qualified.
+    why: Shipping qualification shows that the configuration holds the labelled temperature for the longest planned transit under summer and winter profiles. Without it the lane is not qualified.
     triggerNote: Asked because the RU shipping configuration or lane differs from the SU.
     sides: target
     binds: uo.storage_shipping.study.shipping_validation.status
@@ -119,13 +119,23 @@ questions:
   - id: ss.excursion
     section: uo.storage_shipping
     topic: transport
-    prompt: Temperature excursion allowance (maximum cumulative time outside the labeled storage condition)
+    prompt: Temperature excursion allowance (maximum cumulative time outside the labelled storage condition)
     label: Temperature excursion allowance
-    why: The allowance defines how long product may be outside its labeled condition during distribution and still be released. It is derived from stability data, so a longer allowance needs data to support it.
+    why: The allowance defines how long product may be outside its labelled condition during distribution and still be released. It is derived from stability data, so a longer allowance needs data to support it.
     sideLabels: { source: Supported excursion allowance, target: Planned excursion allowance }
     sides: paired
     binds: uo.storage_shipping.param.excursion_allowance.max
     input: { type: quantity, units: [h, d] }
+
+  - id: ss.total_tor
+    section: uo.storage_shipping
+    topic: storage
+    prompt: Maximum total time out of refrigeration, from the end of thaw until the product is back in refrigerated storage
+    label: Maximum total time out of refrigeration
+    why: The time out of refrigeration of each step adds up. The total is the limit the stability data must support, so the limits of the steps have to fit within it.
+    sides: target
+    binds: uo.storage_shipping.param.max_total_time_out_of_refrigeration.max
+    input: { type: quantity, units: [h, min] }
 
   - id: ss.shipping_monitoring
     section: uo.storage_shipping
@@ -210,7 +220,7 @@ questions:
     parent: ss.shipper_qual
     prompt: Qualified duration range of the RU shipping configuration
     label: Shipper qualified duration
-    why: The thermal qualification holds the labeled temperature for a stated duration. A planned transit time beyond that duration is not supported by the qualification.
+    why: The thermal qualification holds the labelled temperature for a stated duration. A planned transit time beyond that duration is not supported by the qualification.
     triggerNote: Asked because the RU shipping configuration is qualified or has a qualification planned.
     tags: [m3]
     sides: target

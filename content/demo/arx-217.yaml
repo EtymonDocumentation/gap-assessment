@@ -241,6 +241,7 @@ answers:
       par: { min: { value: 0.5, unit: h }, max: { value: 4, unit: h } }
       rangeBasis: characterization
   - { q: bbr.duration, side: target, same: true }
+  - { q: bbr.cold_hold, side: target, value: { value: 24, unit: h } }
   - { q: bbr.bioburden_limit, side: source, value: { value: 100, unit: CFU/100 mL } }
   - { q: bbr.bioburden_limit, side: target, same: true }
   - { q: bbr.integrity, side: source, value: pre_and_post_use }
@@ -262,6 +263,8 @@ answers:
   - { q: filt.part, side: target, same: true }
   - { q: filt.area, side: source, value: { value: 0.1, unit: "m²" } }
   - { q: filt.area, side: target, value: { value: 0.2, unit: "m²" } }
+  - { q: filt.filtration_time, side: source, value: { value: 3, unit: h } }
+  - { q: filt.filtration_time, side: target, same: true }
   - { q: filt.sizing, side: target, value: planned }
   - { q: filt.sua, side: source, value: no }
   - { q: filt.sua, side: target, value: yes }                        # new requirement
@@ -481,6 +484,7 @@ answers:
     fields:
       setPoint: { value: 200, unit: units/min }
       nor: { min: { value: 180, unit: units/min }, max: { value: 220, unit: units/min } }
+  - { q: vi.time_out, side: target, value: { value: 2, unit: h } }
   - { q: vi.defects, side: source, value: [particulates, container_defects, closure_defects, fill_level] }
   - { q: vi.defects, side: target, same: true }
   - { q: vi.aql, side: source, value: iso2859_standard }
@@ -581,6 +585,7 @@ answers:
   - { q: ss.transit, side: target, value: { value: 72, unit: h } }
   - { q: ss.excursion, side: source, value: { value: 24, unit: h } }
   - { q: ss.excursion, side: target, same: true }
+  - { q: ss.total_tor, side: target, value: { value: 8, unit: h } }
   - { q: ss.shipping_monitoring, side: source, value: [data_logger] }
   - { q: ss.shipping_monitoring, side: target, value: [data_logger, real_time] }
   - { q: ss.modes, side: source, value: [road] }
@@ -997,14 +1002,14 @@ risk:
       initial: { severity: 8, occurrence: 3, detection: 4 }
 
 # ---------------------------------------------------------------- TRD module (fictional)
-# One technology transfer document started from this project. The cited documents are fictional. PAR and NOR are the fictional
+# One technical requirements document started from this project. The cited documents are fictional. PAR and NOR are the fictional
 # team's own entries from those documents (they are not taken from the project values). Mixing speed has a NOR above its PAR, and
 # mixing time has a PAR in hours against a NOR in minutes, so the report-only check has something to show.
 trd:
   at: "2026-10-12T09:00:00.000Z"
   by: Alex Example (fictional)
   role: MSAT engineer
-  title: ARX-217 technology transfer document (fictional)
+  title: ARX-217 technical requirements document (fictional)
   docRef: DEMO-TRD-217-01
   sources:
     - { identifier: DEMO-PD-217-01, docType: Process development report, title: ARX-217 process development report (fictional), version: "1.0" }

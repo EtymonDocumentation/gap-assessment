@@ -160,6 +160,15 @@ questions:
     binds: uo.sterile_filtration.param.differential_pressure
     input: { type: parameter, units: [bar, mbar, kPa, psi] }
 
+  - id: filt.filtration_time
+    section: uo.sterile_filtration
+    prompt: Maximum sterile filtration time
+    label: Sterile filtration time (maximum)
+    why: A longer filtration extends product exposure upstream of the sterilizing filter and counts towards the time out of refrigeration. The RU maximum is compared with the SU {{validated|demonstrated}} time.
+    sides: paired
+    binds: uo.sterile_filtration.param.max_filtration_time.max
+    input: { type: quantity, units: [h, min] }
+
   - id: filt.integrity
     section: uo.sterile_filtration
     prompt: Which filter integrity tests are performed?

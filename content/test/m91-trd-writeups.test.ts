@@ -37,6 +37,7 @@ const without = buildDemoProject(content, demos["arx-217"]);
 const docOf = (p: Project): TrdDocument => p.trd.documents[0]!;
 const byLib = (d: TrdDocument, id: string) => d.writeups!.find((w) => w.libraryId === id)!;
 const exportOf = (p: Project) => buildTrdDocument(p, docOf(p), { generatedAt: T1, content });
+const evidenceOf = (p: Project) => buildTrdDocument(p, docOf(p), { generatedAt: T1, content, variant: "evidence" });
 const section = (p: Project, id: string) => exportOf(p).sections.find((s) => s.id === id);
 const textOf = (blocks: Block[]) =>
   JSON.stringify(blocks.map((b) => ("runs" in b ? b.runs.map((r) => r.text).join("") : "items" in b ? b.items.map((i) => (typeof i === "string" ? i : i.map((r) => r.text).join(""))).join("|") : "text" in b ? b.text : "")));
@@ -130,11 +131,16 @@ describe("blanks", () => {
     expect(openBlankCount(ctx(p2), byLib(docOf(p2), "wu_aseptic_filling"))).toBeGreaterThan(0);
   });
 
-  it("a choice label dropped mid-sentence loses its capital; acronyms, typed values and sentence starts keep theirs", () => {
-    const fill = (origin: "project" | "trd" | "entered", value: string) => () => ({ key: "uo.x.param.y.z", label: "x", filled: true, value, origin, where: "w" }) as const;
+  it("only a catalog choice label loses its capital mid-sentence; typed text, names, acronyms and sentence starts keep theirs", () => {
+    const fill = (origin: "project" | "trd" | "entered", value: string, choice = false) => () => ({ key: "uo.x.param.y.z", label: "x", filled: true, value, origin, where: "w", ...(choice ? { choice: true as const } : {}) }) as const;
     const val = (src: string, r: () => ReturnType<typeof resolveBlank>) =>
       segmentsOf(src, r).flatMap((s) => ("blank" in s ? [s.blank.value] : []))[0];
-    expect(val("The buffer is {{k|x}}.", fill("project", "Received as ready-to-use liquid"))).toBe("received as ready-to-use liquid");
+    expect(val("The buffer is {{k|x}}.", fill("project", "Received as ready-to-use liquid", true))).toBe("received as ready-to-use liquid");
+    // Free text and names are not choice labels: a site, a company or a person is never lowered.
+    expect(val("The buffer is {{k|x}}.", fill("project", "Received as ready-to-use liquid"))).toBe("Received as ready-to-use liquid");
+    expect(val("Filled at {{k|x}}.", fill("project", "Example Fill Site (fictional)"))).toBe("Example Fill Site (fictional)");
+    expect(val("Approved by {{k|x}}.", fill("project", "Alex Example (fictional)"))).toBe("Alex Example (fictional)");
+    expect(val("The filter is {{k|x}}.", fill("project", "PES membrane", true))).toBe("PES membrane");
     expect(val("Membrane: {{k|x}}", fill("trd", "Polyethersulfone"))).toBe("Polyethersulfone");
     expect(val("{{k|x}} is used.", fill("trd", "Polyethersulfone"))).toBe("Polyethersulfone");
     expect(val("The filter is {{k|x}}.", fill("trd", "PES membrane"))).toBe("PES membrane");
@@ -240,14 +246,14 @@ describe("the library: versions, copies and updates", () => {
     parts[0]!.text = "Changed wording (fictional).";
     const v2 = editLibraryWriteup(lib0, { parts }, T2, "Alex Example (fictional)");
     const lib = effectiveWriteupLibrary(trdWriteups, [v2]);
-    expect(writeupLibraryStatus(w, lib)).toMatchObject({ kind: "newer", libraryVersion: 2, usedVersion: 1 });
+    expect(writeupLibraryStatus(w, lib)).toMatchObject({ kind: "newer", libraryVersion: lib0.version + 1, usedVersion: lib0.version });
     expect(writeupLibraryStatus(w, [])).toEqual({ kind: "missing" });
     const diff = writeupDifference(w, v2);
     expect(diff.changed.length).toBe(1);
     expect(differenceIsEmpty(diff)).toBe(false);
     const u = updateWriteupFromLibrary(withLib, d.id, w.id, v2, who);
     const w2 = byLib(docOf(u), "wu_compounding");
-    expect(w2.libraryVersion).toBe(2);
+    expect(w2.libraryVersion).toBe(lib0.version + 1);
     expect(w2.parts[0]!.text).toBe("Changed wording (fictional).");
     expect(u.changeLog.at(-1)).toMatchObject({ action: "trd_writeup_update" });
   });
@@ -291,7 +297,9 @@ describe("the export", () => {
 
   it("shows filled blanks as their value, and lists values and gaps with sources in an appendix", () => {
     expect(textOf(overview.blocks)).toContain("2 to 8 °C (fictional)");
-    const appx = out.sections.find((s) => s.id === "writeup-values")!;
+    // The appendix of values is in the evidence record, not in the standard document.
+    expect(out.sections.some((s) => s.id === "writeup-values")).toBe(false);
+    const appx = evidenceOf(withLib).sections.find((s) => s.id === "writeup-values")!;
     expect(appx.appendix).toBe(true);
     const tables = appx.blocks.filter((b) => b.type === "table");
     expect(tables.length).toBeGreaterThanOrEqual(1);

@@ -107,6 +107,17 @@ questions:
     input: { type: quantity, units: [h, min] }
     showWhen: *frozen
 
+  - id: rt.cold_hold
+    section: uo.ds_receipt_thaw
+    prompt: Maximum hold time of the thawed drug substance under refrigeration before pooling
+    label: Thawed drug substance cold hold (maximum)
+    why: Thawed drug substance that waits before pooling is held refrigerated for a limited time, set by its stability and bioburden control. The hold must stay within what the hold time data support.
+    triggerNote: Asked because the drug substance is received frozen.
+    sides: target
+    binds: uo.ds_receipt_thaw.param.max_cold_hold.max
+    input: { type: quantity, units: [h, min, d] }
+    showWhen: *frozen
+
   - id: rt.mixing
     section: uo.ds_receipt_thaw
     prompt: How is thawed drug substance mixed before sampling or pooling?

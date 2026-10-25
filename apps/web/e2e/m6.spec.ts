@@ -10,7 +10,7 @@ import PizZip from "pizzip";
 import { parseTrdSeed } from "@gap/process-model";
 
 const BANNER = "Proof of concept. Not validated. Not for GMP use.";
-const TITLE = "Technology transfer document — draft outline";
+const TITLE = "Technical requirements document — draft outline";
 const SHOTS = tmpdir();
 
 test.beforeEach(async ({ page }) => {
@@ -122,7 +122,7 @@ test("downloads: the JSON parses with the schema, the Word file has the outline 
   await expect(history.getByRole("cell", { name: "TRD seed (JSON)" })).toBeVisible();
   await expect(history.getByRole("cell", { name: "TRD outline (Word)" })).toBeVisible();
   await expect(history.getByRole("cell", { name: "TRD outline (HTML)" })).toBeVisible();
-  await expect(history.getByTestId("export-versions").first()).toContainText("Process model 1.10.0; catalog 1.7.0; seed format 1.0.0");
+  await expect(history.getByTestId("export-versions").first()).toContainText("Process model 1.12.0; catalog 1.9.0; seed format 1.0.0");
   // The same seed behind all three: one fingerprint.
   const prints = await history.locator("tbody tr td:nth-child(4) code").allTextContents();
   expect(new Set(prints).size).toBe(1);

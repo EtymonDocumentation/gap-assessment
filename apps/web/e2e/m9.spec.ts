@@ -428,24 +428,48 @@ test("a project that changed since the TRD was updated gives a notice, not a blo
 test("Word and HTML downloads carry the banner, the sections, the overrides and the open items; the export history lists them", async ({ page }) => {
   await openDemoTrd(page, "output");
   await page.getByTestId("trd-preview-toggle").click();
-  await expect(page.getByTestId("trd-preview")).toContainText("Requires regulatory affairs assessment");
+  await expect(page.getByTestId("trd-preview")).toContainText(/requires regulatory affairs assessment/i);
 
   const word = await download(page, () => page.getByRole("button", { name: /Download Word|Word document/i }).first().click());
   expect(word.file).toMatch(/\.docx$/);
   const text = wordText(word.bytes);
   expect(text).toContain(BANNER);
-  expect(text).toContain("Requires regulatory affairs assessment");
+  expect(text).toMatch(/requires regulatory affairs assessment/i);
   expect(text).not.toMatch(/filing category/i);
 
   const html = await downloadId(page, "trd-download-html");
   expect(html.file).toMatch(/^trd-.*\.html$/);
   const h = html.bytes.toString("utf8");
   expect(h).toContain(BANNER);
-  expect(h).toContain("overridden; project:");
+  // The override wording with the project value beside it is evidence, so it is in the evidence record, not in the short document.
+  const ev = (await downloadId(page, "trd-evidence-download-html")).bytes.toString("utf8");
+  expect(ev).toContain("overridden; project:");
 
   const history = page.getByRole("region", { name: "Export history table" });
   await expect(history).toContainText(/TRD \(Word\)|TRD.*Word/);
   await expect(history).toContainText(/TRD \(HTML\)|TRD.*HTML/);
+});
+
+test("the standard TRD is short and the evidence record is its own download with all the sources", async ({ page }) => {
+  await openDemoTrd(page, "output");
+  // Standard: no appendices, no source columns.
+  const standard = (await downloadId(page, "trd-download-html")).bytes.toString("utf8");
+  for (const gone of ["Other recorded values", "Process description values", "Traceability", "Source register", "PAR and NOR check"]) expect(standard, gone).not.toContain(gone);
+  expect(standard).toContain("Set point");
+  // Evidence record: plain wording on the page, its own button, everything the standard leaves out.
+  const card = page.getByTestId("trd-evidence-output");
+  await expect(card).toContainText("audit and inspection");
+  await expect(card).toContainText("not for approval");
+  const evidence = await downloadId(page, "trd-evidence-download-html");
+  expect(evidence.file).toMatch(/^trd-evidence-.*.html$/);
+  const e = evidence.bytes.toString("utf8");
+  expect(e).toContain(BANNER);
+  for (const kept of ["PAR and NOR check", "Basis", "Sources", "evidence record"]) expect(e, kept).toContain(kept);
+  const history = page.getByRole("region", { name: "Export history table" });
+  await expect(history).toContainText("TRD evidence record (HTML)");
+  await expect(history).toContainText("TRD (HTML)");
+  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
+  expect(results.violations).toEqual([]);
 });
 
 test("the open-items warning shows the count before a download", async ({ page }) => {

@@ -258,7 +258,7 @@ Unit conversion uses the units table in `packages/process-model/src/units.ts` (v
 
 ## The TRD module (milestone 9)
 
-The **TRD** page (module `trd`, after TRD seed in the menu) turns the seed into a technology transfer document that belongs to the team. Like the sampling and risk modules it is checked on the server: an account without the module has no menu entry, sees "This account does not include the TRD module" on the page, and a project that holds a TRD is refused with `403 module-not-included`.
+The **TRD** page (module `trd`, after TRD seed in the menu) turns the seed into a technical requirements document that belongs to the team. Like the sampling and risk modules it is checked on the server: an account without the module has no menu entry, sees "This account does not include the TRD module" on the page, and a project that holds a TRD is refused with `403 module-not-included`.
 
 - **Three ways to start:** from this project, from a TRD seed file (JSON, with the reader's own error when the file is not a seed or is another major version), or blank. Nothing is chosen for you. The seed page also offers "Start a TRD from this project".
 - **Overrides.** Every value can be overridden. The project value stays beside the entered one (`Overridden (project: X)`), the reason is optional (without one the TRD reads "No reason recorded"), and every override and every removal is a change-log event with the old and new value.
@@ -271,11 +271,11 @@ The **TRD** page (module `trd`, after TRD seed in the menu) turns the seed into 
 
 ## Suite foundation: the process model and the TRD seed
 
-The gap assessment is the first tool of a planned suite (gap assessment, technology transfer document, master batch record). Milestone 6 prepares the shared part.
+The gap assessment is the first tool of a planned suite (gap assessment, technical requirements document, master batch record). Milestone 6 prepares the shared part.
 
 - **`@gap/process-model` 1.0.0** holds the catalog of unit operations, the schemas and the TRD seed format. Its only runtime dependency is `zod`, a test checks that, and another test snapshots the public API so a change to it needs a version decision. See `packages/process-model/README.md` and `CHANGELOG.md`. It is still `private`; nothing is published.
 - **TRD seed.** The page "TRD seed" (after Document in the menu) exports the planned process of the receiving unit (RU) as JSON in the format `gap-assessment.trd-seed` 1.0.0. It carries only RU values as values. SU values appear only as a reference, for traceability. Nothing is filled in by default: a value nobody recorded is "not established", and a TBD best guess is marked provisional. Process steps and topics left out in the Scope step are not exported. The tool never names a filing category.
-- **Draft outline.** The same page offers a draft outline of a technology transfer document, in Word and HTML, built from the seed alone. It uses the built-in style only. It is not an approved TRD. The Traceability section is on by default and can be switched off.
+- **Draft outline.** The same page offers a draft outline of a technical requirements document, in Word and HTML, built from the seed alone. It uses the built-in style only. It is not an approved TRD. The Traceability section is on by default and can be switched off.
 - **Export history.** All three downloads are recorded with the process model, catalog and seed format versions and a fingerprint of the seed.
 - The seed builder (`buildTrdSeed`) and the outline builder (`buildTrdOutline`) are in `@gap/engine`; the schema and the reader (`parseTrdSeed`) are in `@gap/process-model`.
 

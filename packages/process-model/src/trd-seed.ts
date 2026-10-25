@@ -2,7 +2,7 @@ import { z } from "zod";
 
 /**
  * TRD seed: the receiving unit's (RU, the target side) planned state of a process, exported as versioned JSON so that a
- * technology transfer document (TRD) generator can start from it. The format lives in the process model, not in the gap
+ * technical requirements document (TRD) generator can start from it. The format lives in the process model, not in the gap
  * engine, so the TRD tool can read a seed without any gap-assessment code.
  *
  * Rules the format enforces (they are GMP rules, not conveniences):

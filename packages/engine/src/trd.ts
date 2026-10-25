@@ -32,7 +32,7 @@ import { seedWriteups } from "./trd-writeup";
 import type { StepDraft } from "./sampling";
 
 /**
- * The editable TRD (technology transfer document) record. Every edit returns a new project and adds one change-log event with the
+ * The editable TRD (technical requirements document) record. Every edit returns a new project and adds one change-log event with the
  * old value kept (GMP: a reviewer must be able to see what a TRD said before it was changed, and by whom).
  *
  * Rules these functions keep (see process-model trd.ts for the shapes):

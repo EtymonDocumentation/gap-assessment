@@ -106,6 +106,8 @@ export const FORMAT_LABEL = {
   "risk-assessment-html": "Risk assessment (HTML)",
   "trd-docx": "TRD (Word)",
   "trd-html": "TRD (HTML)",
+  "trd-evidence-docx": "TRD evidence record (Word)",
+  "trd-evidence-html": "TRD evidence record (HTML)",
   "mbr-docx": "Batch record (Word)",
   "mbr-html": "Batch record (HTML)",
 } as const;

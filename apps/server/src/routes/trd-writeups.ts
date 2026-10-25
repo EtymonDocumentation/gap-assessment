@@ -14,7 +14,7 @@ export const TRD_MODULE = "trd";
  */
 export function requireTrdModule(ctx: Ctx): void {
   if (!ctx.user.plan.modules.includes(TRD_MODULE)) {
-    throw new HttpError(403, "module-not-included", "This account does not include the technology transfer document module.");
+    throw new HttpError(403, "module-not-included", "This account does not include the technical requirements document module.");
   }
 }
 

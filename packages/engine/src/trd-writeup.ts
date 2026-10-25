@@ -1,6 +1,7 @@
 import {
   BLANK_PATTERN,
   blanksOf,
+  printableUnit,
   resolveEntry,
   TRD_IMAGES_MAX_TOTAL_BYTES,
   trdDocumentSchema,
@@ -12,6 +13,7 @@ import {
   type ChangeEvent,
   type Project,
   type TrdDocument,
+  type TrdField,
   type TrdLibraryPart,
   type TrdLibraryWriteup,
   type TrdPart,
@@ -612,6 +614,16 @@ export interface ResolvedBlank {
   locations?: Record<string, { section?: string; page?: string }>;
   /** Why an unfilled blank is open when something was found ("To be determined (TBD)"). */
   note?: string;
+  /**
+   * True when the value is the label of a catalog choice ("Received as ready-to-use liquid"). Only such a value is lowered inside a
+   * sentence. A typed value, a site, a company or a person's name, a lane or a supplier is free text and keeps its capitals.
+   */
+  choice?: true;
+  /**
+   * The separate choices of a multi-choice answer, as catalog labels. `value` keeps them joined with "; " (the record's own form, shown in
+   * the evidence appendix); a sentence reads them as an English list ("a, b and c"), see `listText`.
+   */
+  items?: string[];
 }
 
 export interface BlankContext {
@@ -637,7 +649,13 @@ const SOURCE_SIDE_KEYS: Record<string, string> = { "site.sendingName": "site.nam
 
 const UO_KEY = /^uo\.([a-z0-9_]+)\.(param|equip|mat|ipc|doc|study)\.([A-Za-z0-9_]+)\.([A-Za-z0-9_]+)$/;
 
-function projectAnswer(ctx: BlankContext, path: string, side: "target" | "source"): string | undefined {
+/** True when the question that holds this path is answered from a catalog option list (its value is an option label). */
+function isChoicePath(content: ContentBundle | undefined, path: string): boolean {
+  const q = content?.questions.find((x) => x.binds === path);
+  return q?.input.type === "choice" || q?.input.type === "multi_choice" || q?.input.type === "yes_no";
+}
+
+function projectAnswer(ctx: BlankContext, path: string, side: "target" | "source"): { value: string; choice: boolean } | undefined {
   const content = ctx.content;
   if (!content) return undefined;
   const q = content.questions.find((x) => x.binds === path && !x.parent);
@@ -645,8 +663,24 @@ function projectAnswer(ctx: BlankContext, path: string, side: "target" | "source
   const ref = q.sides === "shared" ? path : `${side}.${path}`;
   const r = resolveEntry(ctx.project, ref);
   if (r.status !== "established" || r.value === undefined) return undefined;
-  return formatResolved(content, q, r);
+  return { value: formatResolved(content, q, r), choice: isChoicePath(content, path) };
 }
+
+/**
+ * The choices of a multi-choice answer, one label each, or undefined when the field holds one answer. The record keeps the joined
+ * display ("A; B; C") next to the list of values, so the labels are read back from it; when the two disagree (an old record whose label
+ * itself held a semicolon) the joined text is kept whole rather than cut in the wrong place.
+ */
+function choiceItems(f: TrdField | undefined): string[] | undefined {
+  const p = f && !f.override ? f.pulled : undefined;
+  const v = p?.value as unknown;
+  if (!p || !Array.isArray(v) || v.length < 2 || typeof p.display !== "string") return undefined;
+  const parts = p.display.split("; ").map((x) => x.trim());
+  return parts.length === v.length && parts.every(Boolean) ? parts : undefined;
+}
+
+/** The TRD detail keys whose values are catalog option labels (unless the team typed over them). */
+const CHOICE_DETAILS = new Set(["modality", "dosageForm", "presentation"]);
 
 /** The value of a blank from the TRD record and the project, ignoring anything typed into a write-up. */
 export function lookupBlank(ctx: BlankContext, key: string, label: string): ResolvedBlank {
@@ -656,7 +690,7 @@ export function lookupBlank(ctx: BlankContext, key: string, label: string): Reso
     const f = ctx.doc.details.find((x) => x.key === detailKey);
     if (f) {
       const v = effectiveField(f);
-      if (v.status === "established") return { key, label, filled: true, value: v.text, origin: "details", where: `TRD, ${f.label}` };
+      if (v.status === "established") return { key, label, filled: true, value: v.text, origin: "details", where: `TRD, ${f.label}`, ...(CHOICE_DETAILS.has(detailKey) && !v.overridden ? { choice: true as const } : {}) };
       if (v.status === "not_applicable") return { key, label, filled: true, value: v.text, origin: "details", where: `TRD, ${f.label}` };
       if (v.status === "tbd") return open("To be determined (TBD)");
     }
@@ -665,12 +699,16 @@ export function lookupBlank(ctx: BlankContext, key: string, label: string): Reso
   if (m) {
     const t = resolveTrdValue(ctx.doc, m[1]!, m[2] as Parameters<typeof resolveTrdValue>[2], m[3]!, m[4]!, ctx.doc.updatedAt);
     if (t.status === "established" && (t.text ?? "").trim()) {
+      const field = ctx.doc.steps.find((s) => s.key === m[1])?.items.find((i) => i.collection === m[2] && i.key === m[3])?.fields.find((x) => x.key === m[4]);
       return {
         key,
         label,
         filled: true,
-        value: [t.text, t.unit].filter(Boolean).join(" "),
+        // "count" is a unit for the data model only; it is never printed (printableUnit).
+        value: [t.text, printableUnit(t.unit)].filter(Boolean).join(" "),
         origin: "trd",
+        ...(!field?.override && isChoicePath(ctx.content, key) ? { choice: true as const } : {}),
+        ...(choiceItems(field) ? { items: choiceItems(field)! } : {}),
         where: `TRD, ${t.section || "process step"}`,
         ...(t.sourceIds.length ? { sourceIds: [...t.sourceIds] } : {}),
         ...(t.locations ? { locations: structuredClone(t.locations) } : {}),
@@ -682,11 +720,11 @@ export function lookupBlank(ctx: BlankContext, key: string, label: string): Reso
   const sourcePath = SOURCE_SIDE_KEYS[key];
   if (sourcePath) {
     const v = projectAnswer(ctx, sourcePath, "source");
-    return v !== undefined ? { key, label, filled: true, value: v, origin: "project", where: "Project answer (sending unit)" } : open();
+    return v !== undefined ? { key, label, filled: true, value: v.value, origin: "project", where: "Project answer (sending unit)", ...(v.choice ? { choice: true as const } : {}) } : open();
   }
   if ((key.startsWith("scope.") || key.startsWith("site.")) && !detailKey) {
     const v = projectAnswer(ctx, key, "target");
-    if (v !== undefined) return { key, label, filled: true, value: v, origin: "project", where: "Project answer (receiving unit)" };
+    if (v !== undefined) return { key, label, filled: true, value: v.value, origin: "project", where: "Project answer (receiving unit)", ...(v.choice ? { choice: true as const } : {}) };
   }
   return open();
 }
@@ -720,13 +758,106 @@ function midSentence(before: string, earlier: readonly TextSeg[]): boolean {
 
 /**
  * Catalog choice labels are written in sentence case to stand alone in a picker ("Received as ready-to-use liquid"); dropped into
- * a sentence they read as a stray capital ("The buffer is Received as ..."). Lower the first letter of a project or TRD value only,
- * never a typed value or a site name (both may be proper names), and never an acronym (second letter also upper case: "PES").
+ * a sentence they read as a stray capital ("The buffer is Received as ..."). Lower the first letter of a catalog choice label ONLY
+ * (the blank says so with `choice`). Free text is never touched: a typed value, a lane, a supplier, a site, a company or a person's
+ * name may begin with a proper noun. An acronym keeps its capitals (second letter also upper case: "PES").
  */
+const lowerFirst = (v: string): string => (/^[A-Z][a-z]/.test(v) ? v[0]!.toLowerCase() + v.slice(1) : v);
+
 function lowerChoiceLabel(b: ResolvedBlank): ResolvedBlank {
-  if (!b.filled || !b.value || (b.origin !== "project" && b.origin !== "trd") || b.key.startsWith("site.") || b.key.startsWith("trd.sending")) return b;
-  if (!/^[A-Z][a-z]/.test(b.value)) return b;
-  return { ...b, value: b.value[0]!.toLowerCase() + b.value.slice(1) };
+  if (!b.filled || !b.value || !b.choice) return b;
+  const lowered = lowerFirst(b.value);
+  return lowered === b.value ? b : { ...b, value: lowered };
+}
+
+/**
+ * Several choices read as an English list. "a and b", "a, b and c"; when a choice itself holds a comma the commas could not tell the
+ * items apart, so semicolons separate them ("a, b; c; and d"). Every item after the first is mid-sentence, so each is lowered by the same
+ * safe rule as a single choice (a catalog label only; "pH", "USP" and "2D code" keep their capitals).
+ */
+export function listText(items: readonly string[]): string {
+  if (items.length < 2) return items[0] ?? "";
+  const semi = items.some((i) => i.includes(","));
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return semi ? `${items.slice(0, -1).join("; ")}; and ${items[items.length - 1]}` : `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+}
+
+/**
+ * A blank's label may carry modifiers after "~": "Label ~a" (an article goes in front of the value), "Label ~qualified" or "Label ~by"
+ * (the value is a catalog choice that is turned into a clause, see below), "Label ~the" or "Label ~text if yes ~text if no".
+ */
+function splitBlankLabel(raw: string): { label: string; article: boolean; clause?: "qualified" | "by" | "the"; yes?: string; no?: string } {
+  const [label = "", ...mods] = raw.split("~").map((x) => x.trim());
+  if (mods.length === 1 && mods[0] === "a") return { label, article: true };
+  if (mods.length === 1 && (mods[0] === "qualified" || mods[0] === "by" || mods[0] === "the")) return { label, article: false, clause: mods[0] };
+  if (mods.length === 2) return { label, article: false, yes: mods[0]!, no: mods[1]! };
+  return { label, article: false };
+}
+
+/**
+ * "a" or "an" in front of a value, chosen by the sound of its first letter, or of its first number ("a 1 mL syringe", "an 8 mL vial",
+ * "an 11 mm needle"). Left alone when the value already begins with an article, or does not start with a letter or a digit. The few words
+ * that start with a vowel letter but a consonant sound are listed.
+ */
+function withArticle(v: string): string {
+  if (/^\d/.test(v)) return `${/^(8|11|18)(?!\d)|^8\d*(?!\d)/.test(v) ? "an" : "a"} ${v}`;
+  if (!/^[A-Za-z]/.test(v) || /^(a|an|the|one|some|any|no)\s/i.test(v)) return v;
+  const an = /^[aeiou]/i.test(v) && !/^(uni|use|usu|uti|eu|one|ubi)/i.test(v);
+  return `${an ? "an" : "a"} ${v}`;
+}
+
+/**
+ * A qualification status read as a clause: "The shipper is {{status ~qualified}}." A status that is only partly complete does not
+ * say "qualified", so a reader cannot take a half-finished qualification for a finished one. The wording follows the catalog's labels;
+ * a label it does not know is lowered and left as it is.
+ */
+function qualifiedClause(label: string): string {
+  const m = /^(Installation|Operational|Performance) qualification \((IQ|OQ|PQ)\) complete$/i.exec(label.trim());
+  if (m) {
+    const done = `${m[1]!.toLowerCase()} qualification complete`;
+    return m[2]!.toUpperCase() === "PQ" ? `qualified (${done})` : `not yet fully qualified (${done})`;
+  }
+  if (/^Qualified; requalification due$/i.test(label.trim())) return "qualified; requalification is due";
+  if (/^Qualification planned$/i.test(label.trim())) return "not yet qualified (qualification planned)";
+  return lowerFirst(label);
+}
+
+/** "the" in front of a plan or method named by its label ("uses the standard plan"), unless the value already starts with an article. */
+function withThe(v: string): string {
+  const t = lowerFirst(v.trim());
+  return /^(a|an|the)\s/i.test(t) ? t : `the ${t}`;
+}
+
+/** A handling approach read as "handled by ...": "by a documented assessment ...", "by rejecting any shipment ...". */
+function byClause(label: string): string {
+  const v = lowerFirst(label.trim());
+  const reject = /^reject\s+(.*)$/i.exec(v);
+  return reject ? `by rejecting ${reject[1]}` : `by ${withArticle(v)}`;
+}
+
+// A count of exactly one takes the singular noun. Only nouns that follow a number in the shipped wording are listed; "1 hours" and
+// "1 business days" are the cases the product owner met.
+const PLURAL_UNIT = /^(\s+(?:business\s+)?)(hours|days|minutes|weeks|months|runs|samples|bottles|units|syringes|filters|vials|lots|batches|times)\b/;
+const SINGULAR_OF: Record<string, string> = { hours: "hour", days: "day", minutes: "minute", weeks: "week", months: "month", runs: "run", samples: "sample", bottles: "bottle", units: "unit", syringes: "syringe", filters: "filter", vials: "vial", lots: "lot", batches: "batch", times: "time" };
+const ENDS_IN_ONE = /(^|[^\d.,])1(\.0+)?$/;
+
+/** "1 hours" becomes "1 hour": the noun after a value that is exactly one (in the value itself or in the text that follows). */
+function singularAfterOne(out: TextSeg[]): void {
+  for (let i = 0; i < out.length; i++) {
+    const s = out[i]!;
+    if ("blank" in s) {
+      const v = s.blank.filled ? s.blank.value ?? "" : "";
+      const own = /^(1(?:\.0+)?)(\s+(?:business\s+)?)(hours|days|minutes|weeks|months)$/.exec(v);
+      if (own) out[i] = { ...s, blank: { ...s.blank, value: `${own[1]}${own[2]}${SINGULAR_OF[own[3]!]}` } };
+      const next = out[i + 1];
+      if (v && ENDS_IN_ONE.test(v) && next && !("blank" in next)) {
+        const m = PLURAL_UNIT.exec(next.text);
+        if (m) out[i + 1] = { ...next, text: `${m[1]}${SINGULAR_OF[m[2]!]}${next.text.slice(m[0].length)}` };
+      }
+    } else if (/(^|[^\d.,])1(\.0+)?\s+(hours|days|minutes|weeks|months)\b/.test(s.text)) {
+      out[i] = { ...s, text: s.text.replace(/(^|[^\d.,])(1(?:\.0+)?)(\s+)(hours|days|minutes|weeks|months)\b/g, (_m, a, n, sp, u) => `${a}${n}${sp}${SINGULAR_OF[u as string]}`) };
+    }
+  }
 }
 
 /** Splits text into **bold** pieces, then into blanks. Bold marks cannot nest; a stray ** stays as typed. */
@@ -740,13 +871,27 @@ export function segmentsOf(src: string, resolve: (key: string, label: string) =>
     let last = 0;
     for (const m of body.matchAll(new RegExp(BLANK_PATTERN.source, "g"))) {
       if (m.index! > last) out.push({ text: body.slice(last, m.index), ...(bold ? { bold } : {}) });
-      const resolved = resolve(m[1]!, (m[2] ?? "").trim() || m[1]!);
-      const blank = midSentence(body.slice(0, m.index), out) ? lowerChoiceLabel(resolved) : resolved;
+      const mod = splitBlankLabel((m[2] ?? "").trim());
+      const resolved = resolve(m[1]!, mod.label || m[1]!);
+      const mid = midSentence(body.slice(0, m.index), out);
+      let blank = resolved;
+      const yesNo = resolved.filled && mod.yes !== undefined ? /^(yes|no)$/i.exec(resolved.value!.trim()) : null;
+      if (yesNo) {
+        // A Yes/No answer read as a sentence: the author's wording for each answer replaces the bare word ("...is used: Yes" never prints).
+        const { choice: _c, items: _i, ...rest } = resolved;
+        blank = { ...rest, value: yesNo[1]!.toLowerCase() === "yes" ? mod.yes! : mod.no! };
+      } else if (resolved.filled && resolved.items?.length) {
+        const items = mid ? resolved.items.map(lowerFirst) : [resolved.items[0]!, ...resolved.items.slice(1).map(lowerFirst)];
+        blank = { ...resolved, value: listText(items) };
+      } else if (mid) blank = lowerChoiceLabel(resolved);
+      if (mod.article && blank.filled && blank.value) blank = { ...blank, value: withArticle(blank.value) };
+      if (mod.clause && blank.filled && blank.value) blank = { ...blank, value: mod.clause === "qualified" ? qualifiedClause(blank.value) : mod.clause === "by" ? byClause(blank.value) : withThe(blank.value) };
       out.push({ blank, ...(bold ? { bold } : {}) });
       last = m.index! + m[0].length;
     }
     if (last < body.length) out.push({ text: body.slice(last), ...(bold ? { bold } : {}) });
   }
+  singularAfterOne(out);
   return out;
 }
 
@@ -764,7 +909,7 @@ function partBlankRefs(p: TrdPart) {
 }
 
 /** Active figure parts that still have no picture: open items of the description, like an open blank. */
-export const openFigures = (w: TrdWriteup): TrdPart[] => (w.notApplicable?.on ? [] : activeParts(w).filter((p) => p.kind === "figure" && !p.image));
+export const openFigures = (w: TrdWriteup): TrdPart[] => (w.notApplicable?.on ? [] : activeParts(w).filter((p) => p.kind === "figure" && !p.image && !p.drawing));
 
 /** Every blank of the write-up's active parts, resolved, each key once. */
 export function writeupBlanks(ctx: BlankContext, w: TrdWriteup): ResolvedBlank[] {

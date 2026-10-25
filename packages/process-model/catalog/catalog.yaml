@@ -7,7 +7,7 @@
 # not answered yet, uses the second. Quote any value that holds a marker when it sits inside a { } mapping.
 catalog:
   id: fill-finish-catalog
-  version: 1.7.0
+  version: 1.9.0
 
 # Stage groups of the Scope step: the broad stages of the fill-finish process, in process order. Every unit operation is in
 # exactly one group (a content test checks it), so the Scope step can show them all and a group tick covers them all.
@@ -70,6 +70,7 @@ unitOperations:
       - { coll: param, key: thaw_temperature, label: Thaw temperature }
       - { coll: param, key: thaw_duration, label: Thaw duration }
       - { coll: param, key: max_ambient_time, label: Maximum time at ambient temperature after thaw }
+      - { coll: param, key: max_cold_hold, label: Thawed drug substance hold at 2 to 8 °C }
       - { coll: equip, key: thaw_unit, label: Thaw system }
       - { coll: equip, key: thaw_mixer, label: Post-thaw mixing }
       - { coll: equip, key: ds_storage, label: Drug substance storage unit }
@@ -133,6 +134,7 @@ unitOperations:
     items:
       - { coll: param, key: differential_pressure, label: BBR filtration differential pressure }
       - { coll: param, key: max_filtration_time, label: BBR filtration duration }
+      - { coll: param, key: max_cold_hold, label: Bioburden-reduced bulk hold at 2 to 8 °C }
       - { coll: mat, key: bbr_filter, label: Bioburden-reduction filter }
       - { coll: ipc, key: integrity, label: BBR filter integrity testing }
       - { coll: ipc, key: bioburden, label: Pre-filtration bioburden (BBR inlet) }
@@ -172,7 +174,7 @@ unitOperations:
       - { coll: param, key: line_speed, label: Filling line speed }
       - { coll: param, key: max_fill_duration, label: Filling duration }
       - { coll: param, key: max_filtered_hold, label: Filtered (sterile) bulk hold time }
-      - { coll: param, key: max_interventions, label: Maximum interventions per batch }
+      - { coll: param, key: max_interventions, label: Interventions }
       - { coll: param, key: stopper_position, label: Plunger stopper position (depth from the reference) }
       - { coll: param, key: max_headspace, label: Headspace or air bubble size }
       - { coll: equip, key: filler, label: Filling machine }
@@ -245,9 +247,10 @@ unitOperations:
     label: Visual inspection
     sequence: 70
     milestone: 2
-    description: 100% visual inspection (manual, semi-automated or automated) and AQL.
+    description: 100 % visual inspection (manual, semi-automated or automated) and AQL.
     items:
       - { coll: param, key: inspection_rate, label: Inspection rate }
+      - { coll: param, key: max_time_out_of_refrigeration, label: Maximum time out of refrigeration during inspection }
       - { coll: equip, key: inspection, label: Inspection method }
       - { coll: mat, key: defect_library, label: Defect library or kit }
       - { coll: ipc, key: aql, label: AQL sampling }
@@ -280,22 +283,22 @@ unitOperations:
       - { coll: study, key: tor_stability, label: Time-out-of-refrigeration evidence (bulk packing) }
       - { coll: doc, key: procedures, label: Bulk packaging procedures }
   - key: labeling_packaging
-    label: Labeling and packaging
+    label: Labelling and packaging
     sequence: 80
     milestone: 2
-    description: Labeling, serialization and secondary packaging. Hidden for a side when labelling and secondary packaging are done at another site (site.labellingLocation).
+    description: Labelling, serialization and secondary packaging. Hidden for a side when labelling and secondary packaging are done at another site (site.labellingLocation).
     hiddenWhen: { eq: [site.labellingLocation, another_site] }
     items:
-      - { coll: param, key: labeling_speed, label: Labeling speed }
+      - { coll: param, key: labeling_speed, label: Labelling speed }
       - { coll: param, key: max_time_out_of_refrigeration, label: Maximum time out of refrigeration during packaging }
-      - { coll: equip, key: labeler, label: Labeling machine }
+      - { coll: equip, key: labeler, label: Labelling machine }
       - { coll: equip, key: serialization, label: Serialization and aggregation }
       - { coll: mat, key: secondary_pack, label: Secondary packaging }
       - { coll: ipc, key: label_reconciliation, label: Label reconciliation }
       - { coll: ipc, key: label_checks, label: Label and print checks }
       - { coll: study, key: serialization_verification, label: Serialization verification }
       - { coll: study, key: tor_stability, label: Time-out-of-refrigeration evidence }
-      - { coll: doc, key: procedures, label: Labeling and packaging procedures }
+      - { coll: doc, key: procedures, label: Labelling and packaging procedures }
   - key: storage_shipping
     label: Storage and shipping from the fill site
     sequence: 90
@@ -310,6 +313,7 @@ unitOperations:
       - { coll: mat, key: shipped_product, label: What is shipped }
       - { coll: param, key: max_transit_time, label: Maximum transit time }
       - { coll: param, key: excursion_allowance, label: Temperature excursion allowance }
+      - { coll: param, key: max_total_time_out_of_refrigeration, label: Total time out of refrigeration }
       - { coll: equip, key: storage_unit, label: Storage equipment }
       - { coll: equip, key: shipper, label: Shipping configuration }
       - { coll: mat, key: drug_product, label: Finished product storage }
@@ -402,7 +406,10 @@ optionSets:
     - { value: this_site, label: At this (filling) site }
     - { value: another_site, label: At another site (outside this assessment) }
   dsShippingConfig:
-    - { value: dry_shipper_frozen, label: Dry-vapour or dry-ice shipper (frozen) }
+    - { value: dry_ice_shipper, label: Dry-ice shipper (frozen) }
+    - { value: dry_vapour_shipper, label: Dry-vapour liquid-nitrogen shipper (frozen) }
+    # Kept so a project that picked the old combined answer still opens and shows it; the type is then to be chosen. Not offered for a new answer.
+    - { value: dry_shipper_frozen, label: Dry-vapour or dry-ice shipper (type not specified) }
     - { value: passive_insulated_liquid, label: Passive insulated shipper with coolant (liquid) }
     - { value: active_container, label: Active temperature-controlled container }
     - { value: refrigerated_truck, label: Refrigerated truck or reefer }
@@ -529,7 +536,7 @@ optionSets:
     - { value: "0.2", label: 0.2 µm }
     - { value: "0.22", label: 0.22 µm }
   integrityTests:
-    - { value: pre_use_pre_sterilization, label: Pre-use pre-sterilization integrity test }
+    - { value: pre_use_pre_sterilization, label: "Pre-use, post-sterilization integrity test (PUPSIT)" }
     - { value: post_use, label: Post-use integrity test }
   # ---- buffer preparation, BBR filtration and PUPSIT (bank 1.4.0)
   bufferSupplyRoute:
@@ -594,7 +601,7 @@ optionSets:
     - { value: time_pressure, label: Time-pressure filling }
     - { value: rolling_diaphragm, label: Rolling diaphragm pump }
   fillCheck:
-    - { value: inline_100, label: 100% in-line weight check }
+    - { value: inline_100, label: 100 % in-line weight check }
     - { value: statistical, label: Statistical in-process weight checks }
     - { value: start_end, label: Start and end of filling only }
   containerFormat:
@@ -602,6 +609,12 @@ optionSets:
     - { value: 6R, label: 6R vial }
     - { value: 10R, label: 10R vial }
     - { value: 20R, label: 20R vial }
+    # Prefilled syringe and cartridge formats (catalog 1.8.0). Options only: the catalog never picks one for a project.
+    - { value: pfs_1_standard, label: 1 mL standard prefilled syringe }
+    - { value: pfs_1_long, label: 1 mL long prefilled syringe }
+    - { value: pfs_2_25, label: 2.25 mL prefilled syringe }
+    - { value: cartridge_1_5, label: 1.5 mL cartridge }
+    - { value: cartridge_3, label: 3 mL cartridge }
     - { value: other, label: Other format }
   cappingPrinciple:
     - { value: single_head_roller, label: Single-head roller capper }
@@ -674,7 +687,7 @@ optionSets:
   plungerPositionCheck:
     - { value: height_measurement, label: Stopper position or height measurement on samples }
     - { value: camera_sampling, label: Camera check of stopper position on samples }
-    - { value: camera_inline_100, label: 100% in-line camera check of stopper position }
+    - { value: camera_inline_100, label: 100 % in-line camera check of stopper position }
     - { value: manual_visual, label: Manual visual check }
   stopperCheck:
     - { value: height_measurement, label: Stopper height or protrusion measurement }
@@ -722,10 +735,10 @@ optionSets:
   visualDefects:
     - { value: particulates, label: Particulates and foreign matter }
     - { value: container_defects, label: Container defects (cracks or chips) }
-    - { value: closure_defects, label: Closure defects (stopper or crimp) }
+    - { value: closure_defects, label: Closure defects }
     - { value: fill_level, label: Fill level }
     - { value: cake_appearance, label: Cake appearance (lyophilized) }
-  # ---- milestone 2: labeling and packaging
+  # ---- milestone 2: labelling and packaging
   labelingPrinciple:
     - { value: pressure_sensitive, label: Pressure-sensitive (self-adhesive) labels }
     - { value: wet_glue, label: Wet-glue labels }
@@ -740,7 +753,7 @@ optionSets:
     - { value: multi_unit_carton, label: Multi-unit carton }
     - { value: tray_pack, label: Tray pack or kit }
   labelReconciliation:
-    - { value: full_reconciliation, label: 100% reconciliation of issued; used and destroyed labels }
+    - { value: full_reconciliation, label: "100 % reconciliation of issued, used and destroyed labels" }
     - { value: vision_verification, label: Automated vision verification only }
     - { value: line_clearance, label: Line clearance only }
   labelChecks:
@@ -755,7 +768,7 @@ optionSets:
     - { value: room_temperature, label: Controlled room temperature }
   storageEquipment:
     - { value: walk_in_cold_room, label: Walk-in cold room }
-    - { value: reach_in_units, label: Reach-in refrigerators or freezers }
+    - { value: reach_in_units, label: Reach-in refrigerator or freezer }
     - { value: automated_cold_storage, label: Automated cold storage }
   storageMonitoring:
     - { value: continuous_alarmed, label: Continuous monitoring with alarms }

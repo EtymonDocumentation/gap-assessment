@@ -42,7 +42,8 @@ interface State {
   setProject(p: Project | null, status?: string, fresh?: boolean): void;
   /** Applies an engine function. Returns an error message instead of throwing. */
   update(fn: (p: Project, actor: Actor) => Project, status?: string): string | null;
-  loadDemo(): void;
+  /** Opens a fictional demo project; the id picks the script from content/demo (default: the ARX-217 vial demo). */
+  loadDemo(id?: keyof typeof demos): void;
   newProject(title: string, responder: { name: string; role?: string }): void;
   importJson(text: string): string | null;
   clearError(): void;
@@ -104,8 +105,8 @@ export const useStore = create<State>((setState, getState) => ({
     }
   },
 
-  loadDemo() {
-    const demo = buildDemoProject(content, demos["arx-217"], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes }, { library: mbrLibrary }, { writeups: trdWriteups });
+  loadDemo(id = "arx-217") {
+    const demo = buildDemoProject(content, demos[id], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes }, { library: mbrLibrary }, { writeups: trdWriteups });
     // The demo carries a TRD. An account without the TRD module could not save it (the server refuses a project holding TRD
     // documents), so the demo opens without it there; the rest of the demo is unchanged.
     const trdOn = !SERVER_MODE || !!useSession.getState().user?.plan.modules.includes("trd");
@@ -115,8 +116,8 @@ export const useStore = create<State>((setState, getState) => ({
     if (!trdOn || !mbrOn) shown = { ...shown, mbr: { records: [] }, changeLog: shown.changeLog.filter((e) => !(e.path ?? "").startsWith("mbr.")) };
     getState().setProject(shown, "Demo project loaded", true);
     // The demo plan uses a fictional company table. Offer it in the library too, so the plan does not say its table has gone.
-    void useSamplingTables.getState().ensure(demoSamplingTables(demos["arx-217"]));
-    void useSubsectionLibrary.getState().ensure(demoSubsectionLibrary(demos["arx-217"]));
+    void useSamplingTables.getState().ensure(demoSamplingTables(demos[id]));
+    void useSubsectionLibrary.getState().ensure(demoSubsectionLibrary(demos[id]));
   },
 
   newProject(title, responder) {

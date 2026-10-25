@@ -40,12 +40,19 @@ questions:
     prompt: Maximum hold time of the formulated bulk before filtration
     label: Bulk hold time (maximum)
     why: Larger batches usually take longer to compound and filter. The RU maximum must stay within the {{validated|demonstrated}} hold time, or a hold time study is needed.
-    triggerNote: Asked because the RU batch size is larger than the SU.
+    triggerNote: Asked because the RU batch size is larger than the SU, or because compounding is new at the RU.
     sideLabels: { source: "{{Validated|Demonstrated}} maximum hold time", target: Planned maximum hold time }
     sides: paired
     binds: uo.compounding.param.max_hold_time.max
     input: { type: quantity, units: [h, min, d] }
-    showWhen: { increased: uo.compounding.param.batch_size.setPoint }
+    showWhen:
+      any:
+        - { increased: uo.compounding.param.batch_size.setPoint }
+        # Compounding with no SU counterpart has no demonstrated hold time, so the planned maximum is asked for there too.
+        - all:
+            - { isTrue: target.uo.compounding.presence }
+            - { answered: source.uo.compounding.presence }
+            - { not: { isTrue: source.uo.compounding.presence } }
 
   - id: comp.vessel_type
     section: uo.compounding

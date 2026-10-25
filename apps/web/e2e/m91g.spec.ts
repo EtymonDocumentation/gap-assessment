@@ -221,7 +221,7 @@ test("the library form edits the starting rows of a table and the place of a sec
   await expect(page.getByTestId("twl-form-error")).toContainText("Choose the unit operation");
   await page.getByTestId("twl-place-unitop").selectOption("compounding");
   await page.getByTestId("twl-save").click();
-  await expect(page.getByTestId("twl-message")).toContainText("version 2");
+  await expect(page.getByTestId("twl-message")).toContainText("version 3");
   // Reopened: the saved place and rows are there.
   await page.getByTestId("twl-edit-sec_dilution_buffer").click();
   await expect(page.getByTestId("twl-place-where")).toHaveValue("after");
@@ -230,7 +230,7 @@ test("the library form edits the starting rows of a table and the place of a sec
   // Clearing the place makes it a section of its own again (a new version).
   await page.getByTestId("twl-place-where").selectOption("");
   await page.getByTestId("twl-save").click();
-  await expect(page.getByTestId("twl-message")).toContainText("version 3");
+  await expect(page.getByTestId("twl-message")).toContainText("version 4");
   await page.getByTestId("twl-edit-sec_dilution_buffer").click();
   await expect(page.getByTestId("twl-place-where")).toHaveValue("");
 });
