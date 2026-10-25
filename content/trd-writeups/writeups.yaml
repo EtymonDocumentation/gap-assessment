@@ -476,6 +476,8 @@ writeups:
           container closure integrity report.
       - id: figure
         kind: figure
+        caption: Stopper position measured from the barrel flange
+        alt: Schematic of the stopper position measurement, showing the flange, the stopper, the product level and the measured distance.
         text: >-
           A schematic of the stopper position measurement (flange, stopper, product level and the measured distance) belongs here.
           Add the drawing in the final document.

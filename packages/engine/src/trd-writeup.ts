@@ -2,7 +2,12 @@ import {
   BLANK_PATTERN,
   blanksOf,
   resolveEntry,
+  TRD_IMAGES_MAX_TOTAL_BYTES,
   trdDocumentSchema,
+  trdImageMeta,
+  trdImageSchema,
+  type TrdImage,
+  type TrdPlacement,
   type Actor,
   type ChangeEvent,
   type Project,
@@ -18,6 +23,7 @@ import type { ContentBundle } from "./content";
 import { formatResolved } from "./format";
 import { resolveTrdValue } from "./mbr-values";
 import { effectiveField } from "./trd";
+import { planMove } from "./trd-writeup-order";
 
 /*
  * TRD write-ups: the record side. Copying a write-up from the library, editing its parts, switching optional parts, typing a value for
@@ -75,6 +81,24 @@ function nextWriteupId(project: Project, d: TrdDocument, taken: readonly string[
 }
 
 const wuPath = (d: TrdDocument, w: TrdWriteup) => `trd.${d.id}.${w.id}`;
+
+/**
+ * A copy for the change log with every picture reduced to its facts (type, size, pixels, name, SHA-256). The log keeps what a
+ * description said before a change, but a 2 MB picture copied into each log line would swell the project file without limit; the
+ * hash lets a reviewer tell which picture it was.
+ */
+export function forChangeLog<T>(value: T): T {
+  const copy = structuredClone(value);
+  const walk = (o: unknown): void => {
+    if (!o || typeof o !== "object") return;
+    const rec = o as Record<string, unknown>;
+    const img = rec.image as Partial<TrdImage> | undefined;
+    if (img && typeof img.data === "string") rec.image = trdImageMeta(img as TrdImage);
+    for (const k of Object.keys(rec)) walk(rec[k]);
+  };
+  walk(copy);
+  return copy;
+}
 
 // ------------------------------------------------------------------ copying from the library
 
@@ -146,7 +170,7 @@ export function removeWriteup(project: Project, trdId: string, writeupId: string
   if (!d.writeups.length) delete d.writeups;
   d.updatedAt = actor.at;
   // The whole write-up is kept in the log, so removing it never loses what it said.
-  log(next, actor, { action: "trd_writeup_remove", path: wuPath(d, w), detail: `${w.id} "${w.title}" removed from ${d.id}`, before: w });
+  log(next, actor, { action: "trd_writeup_remove", path: wuPath(d, w), detail: `${w.id} "${w.title}" removed from ${d.id}`, before: forChangeLog(w) });
   return next;
 }
 
@@ -158,29 +182,64 @@ function partOf(w: TrdWriteup, partId: string): TrdPart {
   return p;
 }
 
-const partLabel = (p: TrdPart) => p.title || p.text.slice(0, 60) || p.id;
+const partLabel = (p: TrdPart) => p.title || p.caption || p.text.slice(0, 60) || (p.kind === "table" ? (p.columns ?? []).join(", ") : "") || p.id;
 
 /** Changes the text (and, for a heading, the title) of a part. */
-export function setPartText(project: Project, trdId: string, writeupId: string, partId: string, patch: { text?: string; title?: string }, actor: Actor): Project {
+export function setPartText(project: Project, trdId: string, writeupId: string, partId: string, patch: { text?: string; title?: string; caption?: string; alt?: string }, actor: Actor): Project {
   const next = structuredClone(project);
   const d = docOf(next, trdId);
   const w = writeupOf(d, writeupId);
   const p = partOf(w, partId);
-  const before = { text: p.text, ...(p.title !== undefined ? { title: p.title } : {}) };
+  const snap = () => ({ text: p.text, ...(p.title !== undefined ? { title: p.title } : {}), ...(p.caption !== undefined ? { caption: p.caption } : {}), ...(p.alt !== undefined ? { alt: p.alt } : {}) });
+  const before = snap();
   if (patch.text !== undefined) p.text = patch.text.replace(/\r\n/g, "\n");
   if (patch.title !== undefined) {
     if ((p.kind === "subsection" || p.kind === "heading") && !text(patch.title)) throw new TrdWriteupError("A heading needs its words");
     p.title = patch.title;
   }
-  if (p.text === before.text && p.title === before.title) return project;
+  // A caption and alternative text belong to a figure; an emptied one is removed rather than kept as an empty string.
+  if (patch.caption !== undefined || patch.alt !== undefined) {
+    if (p.kind !== "figure") throw new TrdWriteupError("Only a figure has a caption and alternative text");
+    if (patch.caption !== undefined) {
+      if (text(patch.caption)) p.caption = patch.caption.trim();
+      else delete p.caption;
+    }
+    if (patch.alt !== undefined) {
+      if (text(patch.alt)) p.alt = patch.alt.trim();
+      else delete p.alt;
+    }
+  }
+  if (JSON.stringify(snap()) === JSON.stringify(before)) return project;
   p.edited = true;
   d.updatedAt = actor.at;
-  log(next, actor, { action: "trd_writeup_edit", path: `${wuPath(d, w)}.${p.id}`, detail: `${w.id} "${w.title}": text of "${partLabel(p)}" edited`, before, after: { text: p.text, ...(p.title !== undefined ? { title: p.title } : {}) } });
+  log(next, actor, { action: "trd_writeup_edit", path: `${wuPath(d, w)}.${p.id}`, detail: `${w.id} "${w.title}": text of "${partLabel(p)}" edited`, before, after: snap() });
   assertValid(d);
   return next;
 }
 
-/** Sets the rows of a table part (the author's cells). The column heads stay as the library has them. */
+/** How a table changed, in words for the change log ("1 row added, 1 row moved, 2 cells changed"). */
+export function describeRowChange(before: readonly (readonly string[])[], after: readonly (readonly string[])[]): string {
+  const key = (r: readonly string[]) => JSON.stringify(r);
+  const bits: string[] = [];
+  const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
+  if (after.length > before.length) bits.push(`${plural(after.length - before.length, "row")} added`);
+  if (after.length < before.length) bits.push(`${plural(before.length - after.length, "row")} removed`);
+  // Same rows in another order: moved. Same length: compare cell by cell.
+  const sameSet = after.length === before.length && [...before].map(key).sort().join("|") === [...after].map(key).sort().join("|");
+  if (sameSet) bits.push("rows moved");
+  else if (after.length === before.length) {
+    let cells = 0;
+    after.forEach((r, i) => r.forEach((c, j) => (c !== (before[i]?.[j] ?? "") ? cells++ : 0)));
+    if (cells) bits.push(`${plural(cells, "cell")} changed`);
+  } else bits.push("cells changed");
+  return bits.join(", ") || "rows changed";
+}
+
+/**
+ * Sets the rows of a table part (the author's cells: add, remove, move a row, edit a cell). The column heads stay as the library has
+ * them. A cell is text like any other, so it may hold a blank {{key|Label}}; an empty cell stays empty (nothing is filled in).
+ * One change-log event per save, with the rows before and after.
+ */
 export function setTableRows(project: Project, trdId: string, writeupId: string, partId: string, rows: string[][], actor: Actor): Project {
   const next = structuredClone(project);
   const d = docOf(next, trdId);
@@ -188,16 +247,107 @@ export function setTableRows(project: Project, trdId: string, writeupId: string,
   const p = partOf(w, partId);
   if (p.kind !== "table") throw new TrdWriteupError("Only a table part has rows");
   const width = p.columns?.length ?? 0;
-  const clean = rows.map((r) => Array.from({ length: width }, (_, i) => r[i] ?? ""));
+  const clean = rows.map((r) => Array.from({ length: width }, (_, i) => (r[i] ?? "").replace(/\r?\n/g, " ")));
   if (JSON.stringify(clean) === JSON.stringify(p.rows ?? [])) return project;
   const before = p.rows ?? [];
   if (clean.length) p.rows = clean;
   else delete p.rows;
   p.edited = true;
   d.updatedAt = actor.at;
-  log(next, actor, { action: "trd_writeup_edit", path: `${wuPath(d, w)}.${p.id}`, detail: `${w.id} "${w.title}": rows of the table "${partLabel(p)}" edited`, before: { rows: before }, after: { rows: clean } });
+  log(next, actor, { action: "trd_writeup_edit", path: `${wuPath(d, w)}.${p.id}`, detail: `${w.id} "${w.title}": rows of the table "${partLabel(p)}" edited (${describeRowChange(before, clean)})`, before: { rows: before }, after: { rows: clean } });
   assertValid(d);
   return next;
+}
+
+// ------------------------------------------------------------------ pictures
+
+/** Bytes of all pictures in a TRD, optionally leaving one part out (the one being replaced). */
+function imageBytesIn(d: TrdDocument, except?: { writeupId: string; partId: string }): number {
+  let total = 0;
+  for (const w of d.writeups ?? []) for (const p of w.parts) if (p.image && !(except && except.writeupId === w.id && except.partId === p.id)) total += p.image.bytes;
+  return total;
+}
+
+/**
+ * Attaches a picture to a figure part, replaces it, or removes it (image null). The caller has read the file with `readTrdImage` (type,
+ * size and pixels). The picture lives inside the project, so the totals are limited (see TRD_IMAGES_MAX_TOTAL_BYTES). The change
+ * log names the picture by its facts and SHA-256, not its bytes.
+ */
+export function setPartImage(project: Project, trdId: string, writeupId: string, partId: string, image: TrdImage | null, actor: Actor): Project {
+  const next = structuredClone(project);
+  const d = docOf(next, trdId);
+  const w = writeupOf(d, writeupId);
+  const p = partOf(w, partId);
+  if (p.kind !== "figure") throw new TrdWriteupError("Only a figure can hold a picture");
+  if (image) {
+    const ok = trdImageSchema.safeParse(image);
+    if (!ok.success) throw new TrdWriteupError(ok.error.issues[0]?.message ?? "That picture cannot be used");
+    if (imageBytesIn(d, { writeupId, partId }) + image.bytes > TRD_IMAGES_MAX_TOTAL_BYTES) {
+      throw new TrdWriteupError("This TRD already holds as many pictures as a project file should carry (10 MB in all). Remove or shrink a picture first.");
+    }
+  }
+  if (!image && !p.image) return project;
+  const before = p.image ? trdImageMeta(p.image) : null;
+  if (image) p.image = structuredClone(image);
+  else delete p.image;
+  p.edited = true;
+  d.updatedAt = actor.at;
+  log(next, actor, {
+    action: "trd_writeup_image",
+    path: `${wuPath(d, w)}.${p.id}`,
+    detail: `${w.id} "${w.title}": picture of "${partLabel(p)}" ${image ? (before ? "replaced" : "attached") : "removed"}`,
+    ...(before ? { before } : {}),
+    ...(image ? { after: trdImageMeta(image) } : {}),
+  });
+  assertValid(d);
+  return next;
+}
+
+// ------------------------------------------------------------------ place in the document
+
+/**
+ * Moves a write-up one place up (-1) or down (+1) in the document. A top-level section swaps with its neighbour; a section inside the
+ * process overview swaps with a neighbour of the same place or takes the place of the neighbour it passes (the placement the author
+ * chose is kept on later library updates); a process description swaps only with another description of the same step, because the
+ * step order sets where it sits. The export follows `writeupOrder`, so what the tab shows is what the document prints.
+ */
+export function moveWriteup(project: Project, trdId: string, writeupId: string, dir: -1 | 1, actor: Actor): Project {
+  const next = structuredClone(project);
+  const d = docOf(next, trdId);
+  const w = writeupOf(d, writeupId);
+  const plan = planMove(d, writeupId, dir);
+  if (plan.blocked) throw new TrdWriteupError(plan.blocked);
+  const list = d.writeups ?? [];
+  const at = list.findIndex((x) => x.id === writeupId);
+  const beforePlace: TrdPlacement | null = w.placement ? { ...w.placement } : null;
+  if (plan.swapWith) {
+    const to = list.findIndex((x) => x.id === plan.swapWith);
+    [list[at], list[to]] = [list[to]!, list[at]!];
+  } else if (plan.placeBy) {
+    list.splice(at, 1);
+    const near = list.findIndex((x) => x.id === plan.placeBy!.nextTo);
+    list.splice(plan.placeBy.side === "before" ? near : near + 1, 0, w);
+    w.placement = plan.placeBy.placement;
+    w.placementEdited = true;
+  }
+  d.writeups = list;
+  d.updatedAt = actor.at;
+  const neighbour = list.find((x) => x.id === (plan.swapWith ?? plan.placeBy?.nextTo));
+  log(next, actor, {
+    action: "trd_writeup_move",
+    path: wuPath(d, w),
+    detail: `${w.id} "${w.title}" moved ${dir === -1 ? "up" : "down"} past ${neighbour ? `${neighbour.id} "${neighbour.title}"` : "its neighbour"}${plan.placeBy ? ` (now placed ${describePlacement(plan.placeBy.placement)})` : ""}`,
+    ...(plan.placeBy ? { before: { placement: beforePlace }, after: { placement: plan.placeBy.placement } } : {}),
+  });
+  assertValid(d);
+  return next;
+}
+
+/** A placement in words, for the change log: "before step ds_receipt_thaw". The web app shows labels instead of keys. */
+export function describePlacement(p: TrdPlacement | undefined): string {
+  if (!p) return "as a section of its own";
+  if (p.where === "last") return "at the end of the process overview";
+  return `${p.where} the step ${p.unitOp ?? "?"}`;
 }
 
 /** Switches an optional part on or off. A part that is not optional is always in. */
@@ -240,7 +390,7 @@ export function removePart(project: Project, trdId: string, writeupId: string, p
   if (!isAuthorPart(p.id)) w.removed = [...new Set([...(w.removed ?? []), p.id])];
   d.updatedAt = actor.at;
   // The whole part is kept in the log.
-  log(next, actor, { action: "trd_writeup_part_remove", path: `${wuPath(d, w)}.${p.id}`, detail: `${w.id} "${w.title}": "${partLabel(p)}" removed`, before: p });
+  log(next, actor, { action: "trd_writeup_part_remove", path: `${wuPath(d, w)}.${p.id}`, detail: `${w.id} "${w.title}": "${partLabel(p)}" removed`, before: forChangeLog(p) });
   assertValid(d);
   return next;
 }
@@ -252,7 +402,11 @@ export interface NewPart {
   kind: TrdPartKind;
   text: string;
   title?: string;
+  /** A table's column heads. */
   columns?: string[];
+  /** A figure's caption and alternative text. */
+  caption?: string;
+  alt?: string;
 }
 
 /** Adds a part the author wrote (after another part, or at the end). */
@@ -270,6 +424,8 @@ export function addPart(project: Project, trdId: string, writeupId: string, inpu
     text: input.kind === "subsection" || input.kind === "heading" || input.kind === "table" ? "" : input.text.replace(/\r\n/g, "\n"),
     ...(text(input.title) ? { title: text(input.title) } : {}),
     ...(input.kind === "table" ? { columns: input.columns!.map((c) => c.trim()).filter(Boolean) } : {}),
+    ...(input.kind === "figure" && text(input.caption) ? { caption: text(input.caption) } : {}),
+    ...(input.kind === "figure" && text(input.alt) ? { alt: text(input.alt) } : {}),
   };
   const at = afterPartId ? w.parts.findIndex((p) => p.id === afterPartId) : -1;
   if (at >= 0) w.parts.splice(at + 1, 0, part);
@@ -302,10 +458,19 @@ export function setBlankValue(project: Project, trdId: string, writeupId: string
 // ------------------------------------------------------------------ update from the library
 
 const sameContent = (a: TrdLibraryPart, b: TrdLibraryPart) =>
-  a.kind === b.kind && a.text === b.text && (a.title ?? "") === (b.title ?? "") && JSON.stringify(a.columns ?? []) === JSON.stringify(b.columns ?? []) && (a.optional?.condition ?? "") === (b.optional?.condition ?? "");
+  a.kind === b.kind &&
+  a.text === b.text &&
+  (a.title ?? "") === (b.title ?? "") &&
+  (a.caption ?? "") === (b.caption ?? "") &&
+  (a.alt ?? "") === (b.alt ?? "") &&
+  JSON.stringify(a.columns ?? []) === JSON.stringify(b.columns ?? []) &&
+  JSON.stringify(a.rows ?? []) === JSON.stringify(b.rows ?? []) &&
+  (a.optional?.condition ?? "") === (b.optional?.condition ?? "");
 
 export interface WriteupDifference {
   titleChanged: boolean;
+  /** The library's place for the write-up differs from the TRD's and the author did not choose the TRD's. */
+  placementChanged: boolean;
   /** Library parts the TRD does not hold (new in the library, and not removed by the author). */
   added: TrdLibraryPart[];
   /** Parts whose library text differs and which the author did not edit: they would be replaced. */
@@ -343,20 +508,28 @@ export function writeupDifference(w: TrdWriteup, lib: TrdLibraryWriteup): Writeu
     if (p.edited) keptEdited.push(p);
     else dropped.push(p);
   }
-  return { titleChanged: w.title !== lib.title, added, changed, dropped, keptEdited, skippedRemoved };
+  const placementChanged = !w.placementEdited && JSON.stringify(w.placement ?? null) !== JSON.stringify(lib.placement ?? null);
+  return { titleChanged: w.title !== lib.title, placementChanged, added, changed, dropped, keptEdited, skippedRemoved };
 }
 
-export const differenceIsEmpty = (x: WriteupDifference): boolean => !x.titleChanged && !x.added.length && !x.changed.length && !x.dropped.length;
+export const differenceIsEmpty = (x: WriteupDifference): boolean => !x.titleChanged && !x.placementChanged && !x.added.length && !x.changed.length && !x.dropped.length;
 
-/** One line saying what the update does, for the note and the change log. */
+/** One line saying what the update does, for the note and the change log. Table and figure changes are named, since rows are easy to miss. */
 export function differenceText(x: WriteupDifference): string {
+  const tables = x.added.filter((p) => p.kind === "table").length + x.changed.filter((c) => c.library.kind === "table" || c.part.kind === "table").length + x.dropped.filter((p) => p.kind === "table").length;
+  const figures = x.added.filter((p) => p.kind === "figure").length + x.changed.filter((c) => c.library.kind === "figure").length + x.dropped.filter((p) => p.kind === "figure").length;
+  const tableNote = tables ? `${tables} table${tables === 1 ? "" : "s"} with other column heads or rows` : "";
+  const figureNote = figures ? `${figures} figure${figures === 1 ? "" : "s"} with another caption or text` : "";
   const bits = [
     x.titleChanged ? "new title" : "",
+    x.placementChanged ? "another place in the document" : "",
     x.added.length ? `${x.added.length} new part${x.added.length === 1 ? "" : "s"}` : "",
     x.changed.length ? `${x.changed.length} changed part${x.changed.length === 1 ? "" : "s"}` : "",
     x.dropped.length ? `${x.dropped.length} part${x.dropped.length === 1 ? "" : "s"} no longer in the library` : "",
+    tableNote,
+    figureNote,
   ].filter(Boolean);
-  const kept = x.keptEdited.length ? `${x.keptEdited.length} part${x.keptEdited.length === 1 ? "" : "s"} you edited stay${x.keptEdited.length === 1 ? "s" : ""} as you wrote ${x.keptEdited.length === 1 ? "it" : "them"}` : "";
+  const kept = x.keptEdited.length ? `${x.keptEdited.length} part${x.keptEdited.length === 1 ? "" : "s"} you edited stay${x.keptEdited.length === 1 ? "s" : ""} as you wrote ${x.keptEdited.length === 1 ? "it" : "them"}${x.keptEdited.some((p) => p.kind === "table") ? " (including a table)" : ""}` : "";
   const skipped = x.skippedRemoved.length ? `${x.skippedRemoved.length} new part${x.skippedRemoved.length === 1 ? "" : "s"} you had removed earlier ${x.skippedRemoved.length === 1 ? "is" : "are"} not brought back` : "";
   return [bits.join(", ") || "no change to the parts", kept, skipped].filter(Boolean).join("; ");
 }
@@ -371,7 +544,7 @@ export function updateWriteupFromLibrary(project: Project, trdId: string, writeu
   const w = writeupOf(d, writeupId);
   if (w.libraryId !== lib.id) throw new TrdWriteupError("This write-up was not made from that library entry");
   const diff = writeupDifference(w, lib);
-  const before = structuredClone(w);
+  const before = forChangeLog(w);
   const local = new Map(w.parts.map((p) => [p.id, p]));
   const removed = new Set(w.removed ?? []);
   const merged: TrdPart[] = [];
@@ -402,8 +575,11 @@ export function updateWriteupFromLibrary(project: Project, trdId: string, writeu
   w.libraryVersion = lib.version;
   if (lib.appliesWhen) w.appliesWhen = lib.appliesWhen;
   else delete w.appliesWhen;
-  if (lib.placement) w.placement = structuredClone(lib.placement);
-  else delete w.placement;
+  // A place the author chose in this TRD is kept; otherwise the library's place is taken.
+  if (!w.placementEdited) {
+    if (lib.placement) w.placement = structuredClone(lib.placement);
+    else delete w.placement;
+  }
   if (lib.notApplicable) w.notApplicable = { ...structuredClone(lib.notApplicable), on: w.notApplicable?.on ?? false };
   else delete w.notApplicable;
   d.updatedAt = actor.at;
@@ -582,13 +758,21 @@ export function plainOfSegments(segs: readonly TextSeg[]): string {
 /** The parts that are in the document: not optional, or optional and switched on. */
 export const activeParts = (w: TrdWriteup): TrdPart[] => w.parts.filter((p) => !p.optional || p.included);
 
+/** The blanks a part holds: in its text, and in the cells of a table (a cell resolves like a paragraph's blank). */
+function partBlankRefs(p: TrdPart) {
+  return [...blanksOf(p.text), ...(p.kind === "table" ? (p.rows ?? []).flatMap((r) => r.flatMap((c) => blanksOf(c))) : [])];
+}
+
+/** Active figure parts that still have no picture: open items of the description, like an open blank. */
+export const openFigures = (w: TrdWriteup): TrdPart[] => (w.notApplicable?.on ? [] : activeParts(w).filter((p) => p.kind === "figure" && !p.image));
+
 /** Every blank of the write-up's active parts, resolved, each key once. */
 export function writeupBlanks(ctx: BlankContext, w: TrdWriteup): ResolvedBlank[] {
   if (w.notApplicable?.on) return blanksOf(w.notApplicable.text).map((b) => resolveBlank(ctx, w, b.key, b.label));
   const seen = new Set<string>();
   const out: ResolvedBlank[] = [];
   for (const p of activeParts(w)) {
-    for (const b of [...blanksOf(p.text)]) {
+    for (const b of partBlankRefs(p)) {
       if (seen.has(b.key)) continue;
       seen.add(b.key);
       out.push(resolveBlank(ctx, w, b.key, b.label));

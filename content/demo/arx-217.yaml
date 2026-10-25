@@ -1059,6 +1059,19 @@ trd:
     optional:
       - { writeup: wu_sterile_filtration, part: pupsit_required }
       - { writeup: wu_compounding, part: dilution }
+    # Rows typed into the pre-dilution table, and a figure with a generated placeholder picture (fictional).
+    tableRows:
+      - writeup: sec_dilution_buffer
+        part: excipient_solution_table
+        rows:
+          - [Excipient A, "Excipient A (fictional)", "10 % w/v", "{{trd.dilutionBuffer.excipientAQuantity|Quantity of excipient A solution}}"]
+          - [Excipient B, "Excipient B (fictional)", "5 % w/w", ""]
+    figures:
+      - writeup: sec_stopper_position
+        part: figure
+        caption: Stopper position measured from the barrel flange (fictional placeholder)
+        alt: Placeholder panel standing in for a schematic of the stopper position measurement.
+        picture: { width: 240, height: 135 }
     edits:
       - { writeup: wu_aseptic_filling, part: p1, text: "Filling is performed with {{uo.aseptic_filling.equip.filler.operatingPrinciple|Filling technology}}. Vials are filled and stoppered in line under Grade A conditions (fictional text edited by the team)." }
 

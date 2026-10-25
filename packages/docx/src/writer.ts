@@ -183,11 +183,11 @@ export class WriterCtx {
   }
 
   /** A new picture for the package: returns the relationship id the body refers to. */
-  addPicture(bytes: Uint8Array): { relId: string; docPrId: number } {
+  addPicture(bytes: Uint8Array, ext: "png" | "jpg" = "png"): { relId: string; docPrId: number } {
     const n = this.media.length + 1;
     // "rIdFig<n>" cannot clash with the template's own "rId<n>" relationship ids.
     const relId = `rIdFig${n}`;
-    this.media.push({ relId, part: `word/media/gapfigure${n}.png`, bytes });
+    this.media.push({ relId, part: `word/media/gapfigure${n}.${ext}`, bytes });
     return { relId, docPrId: this.drawingId++ };
   }
 
@@ -477,7 +477,7 @@ export const figureKey = (figureNumber: number, pageIndex: number): string => `$
 
 const EMU_PER_POINT = 12700;
 
-function drawingXml(relId: string, docPrId: number, name: string, descr: string, wPt: number, hPt: number): string {
+function drawingXml(relId: string, docPrId: number, name: string, descr: string, wPt: number, hPt: number, ext = "png"): string {
   const cx = Math.round(wPt * EMU_PER_POINT);
   const cy = Math.round(hPt * EMU_PER_POINT);
   return (
@@ -485,7 +485,7 @@ function drawingXml(relId: string, docPrId: number, name: string, descr: string,
     `<wp:extent cx="${cx}" cy="${cy}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="${docPrId}" name="${esc(name)}" descr="${esc(descr)}"/>` +
     `<wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr>` +
     `<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">` +
-    `<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="${esc(name)}.png" descr="${esc(descr)}"/><pic:cNvPicPr/></pic:nvPicPr>` +
+    `<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="${esc(name)}.${ext}" descr="${esc(descr)}"/><pic:cNvPicPr/></pic:nvPicPr>` +
     `<pic:blipFill><a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="${relId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>` +
     `<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic>` +
     `</a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`
@@ -523,6 +523,28 @@ function figureXml(ctx: WriterCtx, b: Extract<Block, { type: "figure" }>): strin
   return out.join("");
 }
 
+/**
+ * A picture the author attached to a TRD figure, with its numbered caption under it ("Figure 3. Stopper position").
+ * Sizing: the picture's natural size (96 pixels to the inch), scaled DOWN to the text width of the page and to a height that leaves
+ * room for the caption, always keeping the aspect ratio; a small picture is never blown up. It sits in the normal flow, so it works
+ * in the built-in look, a customer's look and a tagged template alike (the tags fill the same section XML).
+ */
+function pictureXml(ctx: WriterCtx, b: Extract<Block, { type: "picture" }>): string {
+  const bytes = Uint8Array.from(atob(b.data), (c) => c.charCodeAt(0));
+  const availW = ctx.tableWidth(ctx.page.startsLandscape) / 20;
+  const availH = ctx.page.startsLandscape ? 360 : 580;
+  const scale = Math.min(1, availW / (b.width * 0.75), availH / (b.height * 0.75));
+  const wPt = Math.max(1, b.width * 0.75 * scale);
+  const hPt = Math.max(1, b.height * 0.75 * scale);
+  const caption = `Figure ${b.number}.${b.caption ? ` ${b.caption}` : ""}`;
+  const { relId, docPrId } = ctx.addPicture(bytes, b.mime === "image/jpeg" ? "jpg" : "png");
+  return (
+    // keepNext keeps the picture on the page of its caption; cantSplit is not needed for a single inline picture.
+    para(drawingXml(relId, docPrId, `Figure ${b.number}`, b.alt, wPt, hPt, b.mime === "image/jpeg" ? "jpg" : "png"), { keepNext: true, jc: "center", spacing: { before: 120, after: 60 } }) +
+    para(textRuns(caption, { b: true }), { jc: "center", spacing: { before: 0, after: 160 } })
+  );
+}
+
 export interface BlockOpts {
   /** Heading level for "heading" blocks inside the section. */
   subLevel: number;
@@ -550,6 +572,8 @@ export function blockXml(ctx: WriterCtx, b: Block, o: BlockOpts): string {
       return (b.caption ? para(textRuns(b.caption, { b: true }), { keepNext: true }) : "") + tableXml(ctx, b.columns, b.rows, { sectionId: o.sectionId, weights: b.weights });
     case "figure":
       return figureXml(ctx, b);
+    case "picture":
+      return pictureXml(ctx, b);
   }
 }
 

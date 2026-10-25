@@ -118,7 +118,7 @@ describe("project schema 1.12.0", () => {
   const fresh = () => emptyProject({ title: "Sampling schema test (fictional)", actor: ACTOR, contentRefs: { catalog: "1.0.0", questions: "1.0.0", rules: "1.0.0", templates: "1.0.0" } });
 
   it("starts a new project with no plans", () => {
-    expect(SCHEMA_VERSION).toBe("1.19.0");
+    expect(SCHEMA_VERSION).toBe("1.20.0");
     expect(fresh().sampling).toEqual({ plans: [] });
   });
 
@@ -127,7 +127,7 @@ describe("project schema 1.12.0", () => {
     old.schemaVersion = "1.10.0";
     delete old.sampling;
     const p = parseProject(old);
-    expect(p.schemaVersion).toBe("1.19.0");
+    expect(p.schemaVersion).toBe("1.20.0");
     expect(p.sampling).toEqual({ plans: [] });
     expect(p.meta.title).toBe("Sampling schema test (fictional)");
   });
@@ -151,7 +151,7 @@ describe("project schema 1.12.0", () => {
     old.sampling = { plans: [oldPlan] };
     const before = old.changeLog.length;
     const p = parseProject(old);
-    expect(p.schemaVersion).toBe("1.19.0");
+    expect(p.schemaVersion).toBe("1.20.0");
     const pts = p.sampling.plans[0]!.points;
     expect(pts[0]!.type).toBeUndefined();
     expect(pts[1]!.type).toBe("ppq_enhanced");

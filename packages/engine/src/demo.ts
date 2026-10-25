@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { addSource, companyTableSnapshotSchema, emptyProject, subsectionBlockSchema, subsectionLibraryItemSchema, verifyEntry, type Actor, type CompanyTableSnapshot, type DesignLoadouts, type DocRef, type FailureModeSuggestions, type MbrLibraryBlock, type TrdLibraryWriteup, type RiskLoadouts, type Project, type SubsectionLibraryItem } from "@gap/process-model";
+import { addSource, readTrdImage, companyTableSnapshotSchema, emptyProject, subsectionBlockSchema, subsectionLibraryItemSchema, verifyEntry, type Actor, type CompanyTableSnapshot, type DesignLoadouts, type DocRef, type FailureModeSuggestions, type MbrLibraryBlock, type TrdLibraryWriteup, type RiskLoadouts, type Project, type SubsectionLibraryItem } from "@gap/process-model";
 import type { ContentBundle } from "./content";
 import { PARAMETER_FIELDS, type ParameterField } from "./content-schema";
 import { applyAnswer, type AnswerInput, type FieldAnswer } from "./interview";
@@ -11,7 +11,8 @@ import { suggestPoints, type SamplingSuggestions } from "./sampling-seed";
 import { addTarget, createMbr, setParam } from "./mbr";
 import { createTrd, setLimits, setOverride, updateTrdStep } from "./trd";
 import { buildTrdSeed } from "./trd-seed";
-import { removePart, setBlankValue, setNotApplicable, setPartIncluded, setPartText } from "./trd-writeup";
+import { removePart, setBlankValue, setNotApplicable, setPartImage, setPartIncluded, setPartText, setTableRows } from "./trd-writeup";
+import { placeholderPng } from "./demo-image";
 import type { QuestionInstance } from "./sequencer";
 
 const fieldValue = z.union([z.literal("tbd"), z.literal("same"), z.unknown()]);
@@ -174,6 +175,10 @@ const trdDemoSchema = z.object({
       edits: z.array(z.object({ writeup: z.string(), part: z.string(), text: z.string() })).default([]),
       removed: z.array(z.object({ writeup: z.string(), part: z.string() })).default([]),
       notApplicable: z.array(z.string()).default([]),
+      /** Rows typed into a table part (each row has one cell per column; a cell may hold a blank). */
+      tableRows: z.array(z.object({ writeup: z.string(), part: z.string(), rows: z.array(z.array(z.string())) })).default([]),
+      /** A figure with a caption, alternative text and a small GENERATED placeholder picture (no image file is stored in the repository). */
+      figures: z.array(z.object({ writeup: z.string(), part: z.string(), caption: z.string(), alt: z.string(), picture: z.object({ width: z.number().int().min(16).max(800), height: z.number().int().min(16).max(800) }).optional() })).default([]),
     })
     .optional(),
 });
@@ -590,6 +595,11 @@ function applyTrdDemo(project: Project, content: ContentBundle, t: z.infer<typeo
     for (const r of t.writeups.removed) project = removePart(project, id, wu(r.writeup), r.part, who);
     for (const n of t.writeups.notApplicable) project = setNotApplicable(project, id, wu(n), true, who);
     for (const v of t.writeups.values) project = setBlankValue(project, id, wu(v.writeup), v.key, v.value, who);
+    for (const r of t.writeups.tableRows) project = setTableRows(project, id, wu(r.writeup), r.part, r.rows, who);
+    for (const fg of t.writeups.figures) {
+      project = setPartText(project, id, wu(fg.writeup), fg.part, { caption: fg.caption, alt: fg.alt }, who);
+      if (fg.picture) project = setPartImage(project, id, wu(fg.writeup), fg.part, readTrdImage(placeholderPng(fg.picture.width, fg.picture.height), { name: "placeholder.png" }), who);
+    }
   }
   return project;
 }

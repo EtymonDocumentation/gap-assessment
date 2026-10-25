@@ -486,6 +486,14 @@ const MIGRATIONS: { from: string; to: string; migrate: Migrate }[] = [
     to: "1.19.0",
     migrate: (raw) => ({ ...raw, schemaVersion: "1.19.0" }),
   },
+  // 1.19.0 -> 1.20.0: TRD format 1.2.0. A write-up figure part may hold an attached picture, a caption and alternative text; a table part
+  // may hold rows with blanks; a write-up may carry the place its author gave it. Every new field is optional and absent from every
+  // stored TRD, so no data changes; only the version moves and an older project opens unchanged.
+  {
+    from: "1.19.0",
+    to: "1.20.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.20.0" }),
+  },
 ];
 
 /**

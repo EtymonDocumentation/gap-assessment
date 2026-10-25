@@ -157,8 +157,8 @@ Last updated: 2026-10-23. Update this file (no machine-specific details) wheneve
 - What: each TRD can hold "process descriptions": one write-up per included process step (in step order) plus TRD-level
   prose sections. They export (Word and HTML) as the section "Manufacturing process overview" with numbered
   sub-sections per step (for example 18.1), lettered sub-steps, notes styled as notes and open blanks highlighted.
-- Versions: process model 1.9.0, project schema 1.19.0 (version-only migration), TRD format 1.1.0 (optional
-  `writeups`), write-up library format 1.0.0. A TRD without write-ups exports exactly as before.
+- Versions: process model 1.10.0, project schema 1.20.0 (version-only migration), TRD format 1.2.0 (optional
+  `writeups`, pictures and placement), write-up library format 1.1.0. A TRD without write-ups exports exactly as before.
 - Library: `content/trd-writeups/writeups.yaml` (35 write-ups: 20 sections, 15 unit operations), account level like the
   MBR step blocks (static = IndexedDB, server = `/api/trd-writeups`, module `trd`). Edit makes a new version with its
   history, duplicate, create new, back to shipped. The TRD keeps its own copy and shows "Update from library" with
@@ -171,6 +171,30 @@ Last updated: 2026-10-23. Update this file (no machine-specific details) wheneve
   headings, so customer templates show the same numbers.
 - Code: engine `trd-writeup*.ts`, process model `trd-writeups.ts`, web `TrdWriteups.tsx`, `TrdLibraryPage.tsx`,
   `trd-writeups-store.ts`, server `routes/trd-writeups.ts`.
+- Gap closure (figures, table rows, placement):
+  - Figures: a figure part takes a PNG or JPEG (file picker or a pasted screenshot) with a caption and alternative text.
+    The type is decided from the first bytes of the file, never from its name. Limits: 2 MB per picture and 10 MB of
+    pictures per TRD, stated beside the picker and in every refusal. Pictures are stored inside the project (base64 in
+    the TRD part): there is no per-project file store, and the server accepts project bodies up to 25 MB, so the TRD cap
+    keeps a project well below that. The change log keeps the type, size, pixel size and SHA-256 of a picture, never
+    its bytes, so removing a figure or a write-up cannot be undone from the log. Figures are numbered through the document
+    ("Figure N. caption") in Word, HTML and Markdown (Markdown and HTML embed the picture as a data: image). In Word
+    the picture is scaled down to the text width (never enlarged), keeps its shape, and has its caption under it; it
+    works in the built-in look, a customer look and tags mode (new block type "picture"). A figure with no picture
+    keeps the "Figure to be added" note and counts as an open item (summary, card, appendix "Figures without a picture").
+    A library figure may have a caption and no picture.
+  - Table rows: the TRD tab edits rows (add, remove, move up or down, edit each cell; a cell may hold a blank) and the
+    library form edits column heads and starting rows. Every save is change-logged with what changed. Rows are cut or
+    padded to the column heads, and a cell has no line breaks. Exports have a header row; an empty cell stays empty; an
+    open blank in a cell shows as [Label] (plain text, not highlighted). "Update from library" keeps rows the team
+    typed and its difference note names table changes.
+  - Placement and order: a library section can be placed before or after a unit operation (picker in process order) or at
+    the end of the overview, or left unplaced; clearing it makes a new version. In the TRD, Up and Down move a
+    description past its neighbour (change-logged). A description of a unit operation sits with its step, so it moves only
+    among descriptions of the same step; the button explains why otherwise. A placed section that passes a unit-operation
+    description takes that place and keeps it on update (`placementEdited`). Export order follows the Descriptions order.
+  - Code: engine `trd-writeup-order.ts` (order and move plan), `demo-image.ts` (generated placeholder picture for the
+    fictional demo), process model `trd-image.ts`; web `rows-editor.tsx`.
 
 ## 6. Stack and checks
 - npm workspaces: `packages/process-model`, `packages/engine`, `packages/renderers`, `packages/docx`,

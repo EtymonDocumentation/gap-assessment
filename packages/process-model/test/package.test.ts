@@ -40,7 +40,7 @@ describe("package independence", () => {
 
   it("keeps PROCESS_MODEL_VERSION equal to package.json", () => {
     expect(PROCESS_MODEL_VERSION).toBe(pkg.version);
-    expect(pkg.version).toBe("1.9.0");
+    expect(pkg.version).toBe("1.10.0");
   });
 
   it("is private until it is published on purpose", () => {
@@ -114,6 +114,10 @@ describe("public API", () => {
         "TRD_BASIS_LOADOUTS",
         "TRD_DETAIL_KEYS",
         "TRD_FORMAT_VERSION",
+        "TRD_IMAGES_MAX_TOTAL_BYTES",
+        "TRD_IMAGE_LIMIT_TEXT",
+        "TRD_IMAGE_MAX_BYTES",
+        "TRD_IMAGE_TYPES",
         "TRD_ORIGIN_KINDS",
         "TRD_PART_KINDS",
         "TRD_PART_KIND_LABELS",
@@ -121,6 +125,7 @@ describe("public API", () => {
         "TRD_SEED_VERSION",
         "TRD_SOURCE_DOC_TYPES",
         "TRD_WRITEUP_FORMAT_VERSION",
+        "TrdImageError",
         "TrdSeedError",
         "UNITS",
         "UNIT_OP_CUSTOM_STEP",
@@ -134,8 +139,10 @@ describe("public API", () => {
         "allEntries",
         "attachSource",
         "attachSourceMany",
+        "base64ToBytes",
         "batchResultSchema",
         "blanksOf",
+        "bytesToBase64",
         "catalogProblems",
         "catalogSchema",
         "categoryToType",
@@ -222,6 +229,7 @@ describe("public API", () => {
         "rangeSupportSchema",
         "rangeWithin",
         "rangesEqual",
+        "readTrdImage",
         "recordersOf",
         "removeSource",
         "reportOnlyAllowed",
@@ -261,6 +269,7 @@ describe("public API", () => {
         "seedUnitOperationSchema",
         "seedValueSchema",
         "sideOfRef",
+        "sniffTrdImage",
         "sourceById",
         "sourceUsage",
         "stableStringify",
@@ -274,6 +283,10 @@ describe("public API", () => {
         "trdBlankValueSchema",
         "trdDocumentSchema",
         "trdFieldSchema",
+        "trdImageMeta",
+        "trdImageSchema",
+        "trdImageSize",
+        "trdImageUrl",
         "trdItemSchema",
         "trdLibraryFileSchema",
         "trdLibraryPartSchema",

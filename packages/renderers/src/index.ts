@@ -10,6 +10,11 @@ function tableColgroup(weights: number[] | undefined, n: number): string {
   return `<colgroup>${weights.map((w) => `<col style="width:${Math.round((w / sum) * 1000) / 10}%">`).join("")}</colgroup>`;
 }
 
+/** Alt text goes between square brackets, so those and line breaks are made safe. */
+function mdAlt(s: string): string {
+  return s.replace(/[[\]\\]/g, (c) => `\\${c}`).replace(/\r?\n/g, " ");
+}
+
 function mdCell(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\r?\n/g, "<br>");
 }
@@ -38,6 +43,10 @@ function mdBlock(b: Block): string {
       const rows = b.rows.map((r) => `| ${r.map(mdCell).join(" | ")} |`);
       return [head, sep, ...rows].join("\n");
     }
+    case "picture":
+      // Markdown cannot carry a file by itself, so the picture is EMBEDDED as a data: image (the document stays one self-contained
+      // file, and a viewer that shows images shows it). The caption sits under it; the alt text describes the image.
+      return [`![${mdAlt(b.alt)}](data:${b.mime};base64,${b.data})`, "", `**Figure ${b.number}.${b.caption ? ` ${b.caption}` : ""}**`].join("\n");
     case "figure":
       // Markdown cannot hold the drawing, so the figure is its caption and its plain-text description.
       return [`**Figure ${b.number}: ${b.caption}**`, "", b.alt, ...(b.hoursNotGiven.length ? ["", `Hours not given: ${b.hoursNotGiven.join(", ")}.`] : [])].join("\n");
@@ -99,6 +108,9 @@ function htmlBlock(b: Block): string {
       return `<div class="table-wrap" role="region" aria-label="Table" tabindex="0"><table>${tableColgroup(b.weights, b.columns.length)}<thead><tr>${b.columns.map((c) => `<th scope="col">${escapeHtml(c)}</th>`).join("")}</tr></thead><tbody>${b.rows
         .map((r) => `<tr>${r.map((c) => `<td>${escapeHtml(c)}</td>`).join("")}</tr>`)
         .join("")}</tbody></table></div>`;
+    case "picture":
+      // Embedded as a data: URL so the HTML file stays one file. It never overflows the page (max-width in the CSS below).
+      return `<figure class="figure picture"><img src="data:${b.mime};base64,${b.data}" alt="${escapeHtml(b.alt)}" width="${b.width}" height="${b.height}"><figcaption>Figure ${b.number}.${b.caption ? ` ${escapeHtml(b.caption)}` : ""}</figcaption></figure>`;
     case "figure":
       // The SVG is the same drawing the Word export turns into a picture; it carries its own role="img" and label. Wide pages scroll
       // inside a focusable region instead of the page.
@@ -124,6 +136,9 @@ export const DOCUMENT_CSS = `
 .gap-doc .table-wrap { overflow-x: auto; }
 .gap-doc h4 { font-size: 10.5pt; margin: 12px 0 4px; }
 .gap-doc .note { font-style: italic; }
+.gap-doc figure.picture { margin: 10px 0; text-align: center; }
+.gap-doc figure.picture img { max-width: 100%; height: auto; }
+.gap-doc figcaption { font-weight: 600; font-size: 9.5pt; margin-top: 4px; }
 .gap-doc .blank-open { background: #dbe8ff; color: #0b3a8a; border-bottom: 1px dotted #0b3a8a; padding: 0 2px; }
 .gap-doc .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .gap-doc .footer { margin-top: 28px; border-top: 1px solid #999; padding-top: 6px; font-size: 9pt; color: #8a1c1c; font-weight: 600; }
