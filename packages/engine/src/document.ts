@@ -21,7 +21,11 @@ export type Block =
   | { type: "paragraph"; text: string }
   | { type: "heading"; text: string }
   | { type: "list"; items: string[] }
-  | { type: "table"; columns: string[]; rows: string[][]; caption?: string }
+  /**
+   * `weights` (optional, one per column) are the preferred relative column widths of a table whose long text sits in one column. Word and
+   * HTML follow them (Word still gives every column room for its longest word); renderers that cannot size columns ignore them.
+   */
+  | { type: "table"; columns: string[]; rows: string[][]; caption?: string; weights?: number[] }
   | { type: "note"; text: string }
   | FigureBlock;
 

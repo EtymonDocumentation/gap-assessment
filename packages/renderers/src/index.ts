@@ -2,6 +2,14 @@ import type { Block, DocModel } from "@gap/engine";
 
 // ------------------------------------------------------------------ Markdown
 
+/** Preferred column shares of a table as percentages (HTML sizes columns from them, but never narrower than the longest word needs). */
+function tableColgroup(weights: number[] | undefined, n: number): string {
+  if (!weights || weights.length !== n) return "";
+  const sum = weights.reduce((a, b) => a + b, 0);
+  if (sum <= 0) return "";
+  return `<colgroup>${weights.map((w) => `<col style="width:${Math.round((w / sum) * 1000) / 10}%">`).join("")}</colgroup>`;
+}
+
 function mdCell(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\r?\n/g, "<br>");
 }
@@ -63,7 +71,7 @@ function htmlBlock(b: Block): string {
     case "table":
       if (!b.rows.length) return `<p class="none">None.</p>`;
       // Focusable so keyboard users can scroll a wide table sideways.
-      return `<div class="table-wrap" role="region" aria-label="Table" tabindex="0"><table><thead><tr>${b.columns.map((c) => `<th scope="col">${escapeHtml(c)}</th>`).join("")}</tr></thead><tbody>${b.rows
+      return `<div class="table-wrap" role="region" aria-label="Table" tabindex="0"><table>${tableColgroup(b.weights, b.columns.length)}<thead><tr>${b.columns.map((c) => `<th scope="col">${escapeHtml(c)}</th>`).join("")}</tr></thead><tbody>${b.rows
         .map((r) => `<tr>${r.map((c) => `<td>${escapeHtml(c)}</td>`).join("")}</tr>`)
         .join("")}</tbody></table></div>`;
     case "figure":

@@ -385,6 +385,8 @@ export interface TableOpts {
   sectionId?: string;
   /** Fixed column widths in twips (they must add up to the table width); default: sized from the content. */
   widths?: number[];
+  /** Preferred relative column widths from the document model (a table block's `weights`); minimums for the longest words still apply. */
+  weights?: number[];
 }
 
 const CELL_MARGIN = '<w:tblCellMar><w:top w:w="40" w:type="dxa"/><w:left w:w="80" w:type="dxa"/><w:bottom w:w="40" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar>';
@@ -393,8 +395,8 @@ const COMPACT_CELL_MARGIN = '<w:tblCellMar><w:top w:w="25" w:type="dxa"/><w:left
 const BORDER = (n: string, color = "808080") => `<w:${n} w:val="single" w:sz="4" w:space="0" w:color="${color}"/>`;
 
 /** Content-aware widths, or the tool's preferred proportions for a table whose columns are known (see COLUMN_WEIGHTS). */
-function autoWidths(cols: string[], rows: string[][], total: number, fontPt: number, boldFirst: boolean): number[] {
-  const weights = weightsFor(cols);
+function autoWidths(cols: string[], rows: string[][], total: number, fontPt: number, boldFirst: boolean, given?: number[]): number[] {
+  const weights = given && given.length === cols.length ? given : weightsFor(cols);
   if (weights) {
     const fitted = weightedWidths(columnNeeds(cols, rows, fontPt, boldFirst).min, weights, total);
     if (fitted) return fitted;
@@ -414,7 +416,7 @@ export function tableXml(ctx: WriterCtx, columns: string[], rows: string[][], o:
   const needsMin = canTurn ? columnNeeds(cols, rows, fontPt, boldFirst).min.reduce((a, b) => a + b, 0) : 0;
   const wide = canTurn && (ncols > 8 || needsMin > ctx.tableWidth(false) * 1.15);
   const total = ctx.tableWidth(ctx.page.startsLandscape || wide);
-  const widths = o.widths && o.widths.length === ncols && o.widths.reduce((a, b) => a + b, 0) === total ? o.widths : autoWidths(cols, rows, total, fontPt, boldFirst);
+  const widths = o.widths && o.widths.length === ncols && o.widths.reduce((a, b) => a + b, 0) === total ? o.widths : autoWidths(cols, rows, total, fontPt, boldFirst, o.weights);
   const textStyle = ctx.style("tableText");
 
   // The upgraded built-in look: accent header with white bold text, zebra rows, and a tint (plus the text) in category and severity columns.
@@ -522,7 +524,7 @@ export function blockXml(ctx: WriterCtx, b: Block, o: BlockOpts): string {
       return listParas(ctx, b.items);
     case "table":
       if (!b.rows.length) return para(textRuns("None.", { i: true }));
-      return (b.caption ? para(textRuns(b.caption, { b: true }), { keepNext: true }) : "") + tableXml(ctx, b.columns, b.rows, { sectionId: o.sectionId });
+      return (b.caption ? para(textRuns(b.caption, { b: true }), { keepNext: true }) : "") + tableXml(ctx, b.columns, b.rows, { sectionId: o.sectionId, weights: b.weights });
     case "figure":
       return figureXml(ctx, b);
   }

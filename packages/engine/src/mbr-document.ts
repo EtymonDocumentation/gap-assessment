@@ -81,6 +81,15 @@ function trdWords(ref: MbrTrdRef | undefined, src: SourceNumbers): string {
   return `TRD value ${v}${s ? `; ${s}` : ""}`;
 }
 
+/**
+ * Column shares (percent) of the MBR parameter table: Parameter, MBR value (with TRD value and source), Choice, Reason and notes.
+ * Left to the content, the reason column came out a sliver (its header wrapped to three lines and reasons were squeezed), yet the
+ * reason is what a reviewer reads to judge a tightened or undecided value. The value column keeps a large share for the TRD and source text.
+ */
+export const MBR_PARAM_WEIGHTS = [22, 34, 14, 30];
+/** Time limit or target, Value, Applies to, Source (TRD): the label and the TRD source text are the long ones. */
+export const MBR_TIME_LIMIT_WEIGHTS = [32, 16, 20, 32];
+
 function paramRow(r: MbrParamRow, src: SourceNumbers): string[] {
   const mbr = withUnit(r.mbrValue, r.mbrUnit);
   const choice = r.choice ? MBR_CHOICE_LABEL[r.choice] : "Not decided";
@@ -122,7 +131,7 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
         blocks.push({ type: "table", columns: ["Step", "Instruction"], rows: b.steps.map((st) => [numbers.get(st.id) ?? "", renderStepText(st.text, numbers)]) });
       }
       if (b.params.length) {
-        blocks.push({ type: "table", columns: ["Parameter", "MBR value (TRD value, source)", "Choice", "Reason and notes"], rows: b.params.map((r) => paramRow(r, src)), caption: "Parameters" });
+        blocks.push({ type: "table", columns: ["Parameter", "MBR value (TRD value, source)", "Choice", "Reason and notes"], rows: b.params.map((r) => paramRow(r, src)), caption: "Parameters", weights: MBR_PARAM_WEIGHTS });
       }
       if (b.timeLimits.length) {
         const rows: string[][] = [];
@@ -136,7 +145,7 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
           }
           if (t.targets.length) notes.push(`${t.label}: ${targetSum(t).text}`);
         }
-        blocks.push({ type: "table", columns: ["Time limit or target", "Value", "Applies to", "Source (TRD)"], rows, caption: "Time limits" });
+        blocks.push({ type: "table", columns: ["Time limit or target", "Value", "Applies to", "Source (TRD)"], rows, caption: "Time limits", weights: MBR_TIME_LIMIT_WEIGHTS });
         if (notes.length) blocks.push({ type: "list", items: notes });
       }
       if (b.samples.length) {

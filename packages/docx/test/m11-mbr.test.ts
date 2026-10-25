@@ -36,6 +36,39 @@ describe("Word and HTML master batch record (M11)", () => {
     writeFileSync(join(dir, "mbr.txt"), text);
   });
 
+  it("the parameter table gives the reason column its share, in Word and in HTML (samples go to m11b)", async () => {
+    // A long reason, as a CMO would write one, to see that it reads well in the wider column.
+    const long = "The CMO's filter validation covers 0.45 to 1.8 bar only for this filter family, and the shorter hold time was agreed with quality assurance after the second engineering batch; confirm again before the PPQ campaign starts.";
+    const rec2 = structuredClone(rec);
+    const param = rec2.sections.flatMap((s) => s.blocks).flatMap((b) => b.params)[0]!;
+    param.choice = "tightened_by_cmo";
+    param.reason = long;
+    const doc2 = buildMbrDocument(project, rec2, { generatedAt: GENERATED_AT, appVersion: "0.0.0-test" });
+    const out = await renderDocx({ doc: doc2, mode: "builtin", generatedAt: GENERATED_AT });
+    const xml = strictDocx(out.bytes).text("word/document.xml");
+    const tables = xml.match(/<w:tbl>[\s\S]*?<\/w:tbl>/g)!;
+    const tbl = tables.find((t) => t.includes("Reason and notes"))!;
+    const grid = [...tbl.match(/<w:tblGrid>[\s\S]*?<\/w:tblGrid>/)![0].matchAll(/<w:gridCol w:w="(\d+)"/g)].map((m) => Number(m[1]));
+    const total = grid.reduce((a, b) => a + b, 0);
+    expect(grid).toHaveLength(4);
+    const share = grid.map((g) => Math.round((g / total) * 100));
+    // 22 / 34 / 14 / 30 percent, give or take the rounding and the room the longest words need.
+    expect(share[3]).toBeGreaterThanOrEqual(28);
+    expect(share[3]).toBeLessThanOrEqual(32);
+    expect(share[0]).toBeGreaterThanOrEqual(20);
+    expect(share[1]).toBeGreaterThanOrEqual(32);
+    expect(plainText(strictDocx(out.bytes))).toContain("The CMO's filter validation");
+
+    const html = renderHtml(doc2);
+    const cols = [...html.match(/<colgroup>(?:<col style="width:[\d.]+%">){4}<\/colgroup><thead><tr><th scope="col">Parameter</)![0].matchAll(/width:([\d.]+)%/g)].map((m) => Number(m[1]));
+    expect(cols).toEqual([22, 34, 14, 30]);
+
+    const dir2 = join(tmpdir(), "gap-docx-samples", "m11b");
+    mkdirSync(dir2, { recursive: true });
+    writeFileSync(join(dir2, "mbr.docx"), out.bytes);
+    writeFileSync(join(dir2, "mbr.html"), html);
+  });
+
   it("html carries the banner and the CMO placeholder", () => {
     const html = renderHtml(doc);
     expect(html).toContain(BANNER);
