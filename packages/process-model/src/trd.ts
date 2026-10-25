@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { trdWriteupSchema } from "./trd-writeups";
 import { SEED_COLLECTIONS, SEED_STATUSES, seedSourceSchema, SEED_VERIFICATIONS, seedReferenceSchema, seedValueSchema, type SeedAnswer } from "./trd-seed";
 
 /*
@@ -19,7 +20,7 @@ import { SEED_COLLECTIONS, SEED_STATUSES, seedSourceSchema, SEED_VERIFICATIONS, 
  */
 
 /** Version of the TRD format (shapes, output). Independent of the project schema version and of the seed format version. */
-export const TRD_FORMAT_VERSION = "1.0.0";
+export const TRD_FORMAT_VERSION = "1.1.0";
 
 /** Suggestions for the basis of a PAR or NOR (load-outs: the user may type any other text). */
 export const TRD_BASIS_LOADOUTS = ["Proposed from process development", "Confirmed by PPQ summary report", "Internal technical report"] as const;
@@ -200,6 +201,8 @@ export const trdDocumentSchema = z
     scopeNote: z.string().optional(),
     steps: z.array(trdStepSchema),
     approvals: z.array(trdApprovalSchema).optional(),
+    /** Process descriptions and TRD-level prose (TRD format 1.1.0). Absent in a TRD made before; it then exports as it always did. */
+    writeups: z.array(trdWriteupSchema).optional(),
     createdAt: z.string(),
     updatedAt: z.string(),
   })
@@ -214,6 +217,11 @@ export const trdDocumentSchema = z
         if (keys.has(k)) ctx.addIssue({ code: "custom", message: `TRD ${d.id}: ${s.id} has ${k} twice` });
         keys.add(k);
       }
+    }
+    const wu = new Set<string>();
+    for (const w of d.writeups ?? []) {
+      if (wu.has(w.id)) ctx.addIssue({ code: "custom", message: `TRD ${d.id}: write-up ${w.id} appears twice` });
+      wu.add(w.id);
     }
   });
 export type TrdDocument = z.infer<typeof trdDocumentSchema>;

@@ -1,4 +1,4 @@
-import type { Block, DocModel, DocSection } from "@gap/engine";
+import type { Block, DocModel, DocSection, Run } from "@gap/engine";
 import { ACCENT, BANNER_COLOR, BORDER_COLOR, ON_ACCENT, ZEBRA_FILL, tintForColumn } from "./palette";
 import { BUILTIN_STYLE_ID, COMPACT_TABLE_HEADER_HALF_POINTS, STYLE_NAME, StyleTable, styleXml, withBulletList, type StyleKey } from "./styles";
 import { cleanXmlText, esc } from "./xml";
@@ -241,6 +241,23 @@ export function spacerPara(): string {
 function listParas(ctx: WriterCtx, items: string[]): string {
   const numId = ctx.bulletNumId();
   return items.map((t) => para(textRuns(t), { style: ctx.style("listParagraph"), numPr: { ilvl: 0, numId } })).join("");
+}
+
+/**
+ * Rich runs (bold text, open blanks). An open blank is highlighted yellow in Word AND carries its label in square brackets in the text,
+ * so a printout in black and white still shows the gap.
+ */
+export function richRunsXml(runs: Run[], base: RPr = {}): string {
+  return runs.map((r) => textRuns(r.text, { ...base, ...(r.bold ? { b: true } : {}), ...(r.open ? { highlight: "yellow" } : {}) })).join("");
+}
+
+function richListParas(ctx: WriterCtx, style: "bullet" | "letter", items: Run[][]): string {
+  if (style === "bullet") {
+    const numId = ctx.bulletNumId();
+    return items.map((r) => para(richRunsXml(r), { style: ctx.style("listParagraph"), numPr: { ilvl: 0, numId } })).join("");
+  }
+  // Lettered sub-steps are written out ("a." and a tab, hanging indent) so no numbering definition is needed in a customer's template.
+  return items.map((r, i) => para(textRuns(`${String.fromCharCode(97 + (i % 26))}.	`) + richRunsXml(r), { ind: { left: 720, hanging: 360 }, spacing: { after: 80 } })).join("");
 }
 
 // ------------------------------------------------------------------ column widths
@@ -517,7 +534,13 @@ export function blockXml(ctx: WriterCtx, b: Block, o: BlockOpts): string {
     case "paragraph":
       return para(textRuns(b.text));
     case "heading":
-      return headingPara(ctx, o.subLevel, b.text, { noNumber: true });
+      return headingPara(ctx, b.level === 2 ? o.subLevel + 1 : o.subLevel, b.text, { noNumber: true });
+    case "rich":
+      return b.style === "note"
+        ? para(richRunsXml(b.runs, { i: true }), { pBdr: '<w:pBdr><w:left w:val="single" w:sz="12" w:space="8" w:color="808080"/></w:pBdr>', ind: { left: 200 } })
+        : para(richRunsXml(b.runs));
+    case "rich-list":
+      return richListParas(ctx, b.style, b.items);
     case "note":
       return notePara(b.text);
     case "list":

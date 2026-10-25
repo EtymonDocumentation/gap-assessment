@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { addSource, companyTableSnapshotSchema, emptyProject, subsectionBlockSchema, subsectionLibraryItemSchema, verifyEntry, type Actor, type CompanyTableSnapshot, type DesignLoadouts, type DocRef, type FailureModeSuggestions, type MbrLibraryBlock, type RiskLoadouts, type Project, type SubsectionLibraryItem } from "@gap/process-model";
+import { addSource, companyTableSnapshotSchema, emptyProject, subsectionBlockSchema, subsectionLibraryItemSchema, verifyEntry, type Actor, type CompanyTableSnapshot, type DesignLoadouts, type DocRef, type FailureModeSuggestions, type MbrLibraryBlock, type TrdLibraryWriteup, type RiskLoadouts, type Project, type SubsectionLibraryItem } from "@gap/process-model";
 import type { ContentBundle } from "./content";
 import { PARAMETER_FIELDS, type ParameterField } from "./content-schema";
 import { applyAnswer, type AnswerInput, type FieldAnswer } from "./interview";
@@ -11,6 +11,7 @@ import { suggestPoints, type SamplingSuggestions } from "./sampling-seed";
 import { addTarget, createMbr, setParam } from "./mbr";
 import { createTrd, setLimits, setOverride, updateTrdStep } from "./trd";
 import { buildTrdSeed } from "./trd-seed";
+import { removePart, setBlankValue, setNotApplicable, setPartIncluded, setPartText } from "./trd-writeup";
 import type { QuestionInstance } from "./sequencer";
 
 const fieldValue = z.union([z.literal("tbd"), z.literal("same"), z.unknown()]);
@@ -162,6 +163,19 @@ const trdDemoSchema = z.object({
       }),
     )
     .default([]),
+  /**
+   * Process descriptions (write-ups): the demo TRD is created with the shipped library; these entries then do what a person does.
+   * `writeup` is the library id (wu_<unit op> or sec_<key>), `part` a part id of that write-up.
+   */
+  writeups: z
+    .object({
+      values: z.array(z.object({ writeup: z.string(), key: z.string(), value: z.string() })).default([]),
+      optional: z.array(z.object({ writeup: z.string(), part: z.string() })).default([]),
+      edits: z.array(z.object({ writeup: z.string(), part: z.string(), text: z.string() })).default([]),
+      removed: z.array(z.object({ writeup: z.string(), part: z.string() })).default([]),
+      notApplicable: z.array(z.string()).default([]),
+    })
+    .optional(),
 });
 
 /**
@@ -270,7 +284,7 @@ const actorOf = (p: { at: string; by: string; role?: string | undefined }): Acto
  * answers through the same code path a user takes, so every demo entry has
  * a real interview source, responder and date.
  */
-export function buildDemoProject(content: ContentBundle, raw: unknown, suggestions?: SamplingSuggestions, loadouts?: DesignLoadouts, risk?: { loadouts: RiskLoadouts; failureModes: FailureModeSuggestions }, mbr?: { library: readonly MbrLibraryBlock[] }): Project {
+export function buildDemoProject(content: ContentBundle, raw: unknown, suggestions?: SamplingSuggestions, loadouts?: DesignLoadouts, risk?: { loadouts: RiskLoadouts; failureModes: FailureModeSuggestions }, mbr?: { library: readonly MbrLibraryBlock[] }, trd?: { writeups: readonly TrdLibraryWriteup[] }): Project {
   const demo = demoSchema.parse(raw);
   const actor: Actor = { name: demo.responder.name, at: demo.date, ...(demo.responder.role ? { role: demo.responder.role } : {}) };
   let project = emptyProject({
@@ -305,7 +319,7 @@ export function buildDemoProject(content: ContentBundle, raw: unknown, suggestio
   // Likewise the risk assessment needs the method load-outs and the failure-mode catalog; its sampling-point links need the plan above.
   if (demo.risk && risk) project = applyRiskDemo(project, content, demo.risk, risk.loadouts, risk.failureModes);
   // The TRD starts from the project's own seed, so it needs nothing but the content.
-  if (demo.trd) project = applyTrdDemo(project, content, demo.trd);
+  if (demo.trd) project = applyTrdDemo(project, content, demo.trd, trd?.writeups);
   // The batch record takes its values from the TRD and its sample rows from the plan, so it comes last and needs the step-blocks library.
   if (demo.mbr && mbr && project.trd.documents.length > 0 && project.sampling.plans.length > 0) project = applyMbrDemo(project, content, demo.mbr, mbr.library);
   return project;
@@ -519,7 +533,7 @@ function applyMbrDemo(project: Project, content: ContentBundle, m: z.infer<typeo
   return project;
 }
 
-function applyTrdDemo(project: Project, content: ContentBundle, t: z.infer<typeof trdDemoSchema>): Project {
+function applyTrdDemo(project: Project, content: ContentBundle, t: z.infer<typeof trdDemoSchema>, library?: readonly TrdLibraryWriteup[]): Project {
   const who: Actor = { name: t.by, at: t.at, ...(t.role ? { role: t.role } : {}) };
   const sourceIds = new Map<string, string>();
   for (const s of t.sources) {
@@ -528,7 +542,7 @@ function applyTrdDemo(project: Project, content: ContentBundle, t: z.infer<typeo
     sourceIds.set(s.identifier, r.source.id);
   }
   const seed = buildTrdSeed(content, project, { exportedAt: t.at });
-  const created = createTrd(project, { title: t.title, ...(t.docRef ? { docRef: t.docRef } : {}), start: { kind: "project", seed } }, who);
+  const created = createTrd(project, { title: t.title, ...(t.docRef ? { docRef: t.docRef } : {}), start: { kind: "project", seed }, ...(library ? { library } : {}) }, who);
   project = created.project;
   const id = created.trdId;
   const doc = () => project.trd.documents.find((d) => d.id === id)!;
@@ -564,6 +578,18 @@ function applyTrdDemo(project: Project, content: ContentBundle, t: z.infer<typeo
       { ...(l.setPoint ? { setPoint: { value: l.setPoint.value, ...(l.setPoint.unit ? { unit: l.setPoint.unit } : {}), ...cite(l.setPoint) } } : {}), ...(l.nor ? { nor: range(l.nor) } : {}), ...(l.par ? { par: range(l.par) } : {}) },
       who,
     );
+  }
+  if (t.writeups && library) {
+    const wu = (libId: string) => {
+      const w = (doc().writeups ?? []).find((x) => x.libraryId === libId);
+      if (!w) throw new Error(`Demo TRD: no process description from library entry ${libId}`);
+      return w.id;
+    };
+    for (const e of t.writeups.edits) project = setPartText(project, id, wu(e.writeup), e.part, { text: e.text }, who);
+    for (const o of t.writeups.optional) project = setPartIncluded(project, id, wu(o.writeup), o.part, true, who);
+    for (const r of t.writeups.removed) project = removePart(project, id, wu(r.writeup), r.part, who);
+    for (const n of t.writeups.notApplicable) project = setNotApplicable(project, id, wu(n), true, who);
+    for (const v of t.writeups.values) project = setBlankValue(project, id, wu(v.writeup), v.key, v.value, who);
   }
   return project;
 }

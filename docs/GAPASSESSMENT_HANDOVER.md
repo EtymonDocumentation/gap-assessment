@@ -153,6 +153,25 @@ Last updated: 2026-10-23. Update this file (no machine-specific details) wheneve
 - Known limits: process sections only (no facility or quality sections), no CSV, approval roles are text only,
   a renamed step in a newer seed shows as removed plus added.
 
+## 5c. M9.1 TRD process descriptions (Step B)
+- What: each TRD can hold "process descriptions": one write-up per included process step (in step order) plus TRD-level
+  prose sections. They export (Word and HTML) as the section "Manufacturing process overview" with numbered
+  sub-sections per step (for example 18.1), lettered sub-steps, notes styled as notes and open blanks highlighted.
+- Versions: process model 1.9.0, project schema 1.19.0 (version-only migration), TRD format 1.1.0 (optional
+  `writeups`), write-up library format 1.0.0. A TRD without write-ups exports exactly as before.
+- Library: `content/trd-writeups/writeups.yaml` (35 write-ups: 20 sections, 15 unit operations), account level like the
+  MBR step blocks (static = IndexedDB, server = `/api/trd-writeups`, module `trd`). Edit makes a new version with its
+  history, duplicate, create new, back to shipped. The TRD keeps its own copy and shows "Update from library" with
+  a note of what would change; edited paragraphs are kept, removed ones stay removed.
+- Blanks are written `{{key|Label}}`. Order: typed in this write-up, typed in another write-up of the TRD, TRD record,
+  project answer, otherwise open (shown as `[Label]`, highlighted; nothing is filled in by default). Typed values are
+  TRD-level entries, not new project questions. A value appendix lists filled blanks with sources and the open ones.
+- Optional parts start off and are plain switches; nothing is required and nothing blocks saving or export.
+- Deviation from the spec: heading numbers are written into the heading text instead of using auto-numbered
+  headings, so customer templates show the same numbers.
+- Code: engine `trd-writeup*.ts`, process model `trd-writeups.ts`, web `TrdWriteups.tsx`, `TrdLibraryPage.tsx`,
+  `trd-writeups-store.ts`, server `routes/trd-writeups.ts`.
+
 ## 6. Stack and checks
 - npm workspaces: `packages/process-model`, `packages/engine`, `packages/renderers`, `packages/docx`,
   `packages/sampling`, `packages/risk`, `content/`, `apps/web` (React, Vite, Zustand), `apps/server` (optional self-hosted mode).

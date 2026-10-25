@@ -24,7 +24,7 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
   const [omit, setOmit] = useState<TrdOptionalSection[]>([]);
 
   const choice = useWordChoice();
-  const doc = useMemo(() => buildTrdDocument(project, d, { generatedAt, appVersion: APP_VERSION, catalogVersion: content.versions.catalog, omit }), [project, d, content, generatedAt, omit]);
+  const doc = useMemo(() => buildTrdDocument(project, d, { generatedAt, appVersion: APP_VERSION, catalogVersion: content.versions.catalog, omit, content }), [project, d, content, generatedAt, omit]);
   const body = useMemo(() => (showPreview ? renderHtmlBody(doc) : ""), [doc, showPreview]);
   const stamp = `${project.meta.id}-${d.id}-${today()}`;
   const tbd = doc.tbdCount ?? 0;

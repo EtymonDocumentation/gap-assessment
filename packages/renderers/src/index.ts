@@ -1,4 +1,4 @@
-import type { Block, DocModel } from "@gap/engine";
+import type { Block, DocModel, Run } from "@gap/engine";
 
 // ------------------------------------------------------------------ Markdown
 
@@ -14,12 +14,19 @@ function mdCell(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\r?\n/g, "<br>");
 }
 
+/** Rich runs as markdown: bold stays bold; an open blank shows its label in brackets (the brackets are already in the run text). */
+const mdRuns = (runs: Run[]): string => runs.map((r) => (r.bold ? `**${r.text}**` : r.text)).join("");
+
 function mdBlock(b: Block): string {
   switch (b.type) {
     case "paragraph":
       return b.text;
     case "heading":
-      return `### ${b.text}`;
+      return `${b.level === 2 ? "####" : "###"} ${b.text}`;
+    case "rich":
+      return b.style === "note" ? `> ${mdRuns(b.runs)}` : mdRuns(b.runs);
+    case "rich-list":
+      return b.items.map((i, n) => `${b.style === "letter" ? `${String.fromCharCode(97 + (n % 26))}.` : "-"} ${mdRuns(i)}`).join("\n");
     case "note":
       return `> ${b.text}`;
     case "list":
@@ -58,12 +65,30 @@ export function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
+/**
+ * Rich runs as HTML. An open blank is a span with a class (blue, dotted underline) AND its label in square brackets, so the gap is
+ * visible without colour; a screen reader reads "open blank" first.
+ */
+function htmlRuns(runs: Run[]): string {
+  return runs
+    .map((r) => {
+      const t = escapeHtml(r.text);
+      const inner = r.open ? `<span class="blank-open"><span class="visually-hidden">Open blank: </span>${t}</span>` : t;
+      return r.bold ? `<strong>${inner}</strong>` : inner;
+    })
+    .join("");
+}
+
 function htmlBlock(b: Block): string {
   switch (b.type) {
     case "paragraph":
       return `<p>${escapeHtml(b.text)}</p>`;
     case "heading":
-      return `<h3>${escapeHtml(b.text)}</h3>`;
+      return b.level === 2 ? `<h4>${escapeHtml(b.text)}</h4>` : `<h3>${escapeHtml(b.text)}</h3>`;
+    case "rich":
+      return `<p${b.style === "note" ? ' class="note"' : ""}>${htmlRuns(b.runs)}</p>`;
+    case "rich-list":
+      return b.style === "letter" ? `<ol type="a" class="lettered">${b.items.map((i) => `<li>${htmlRuns(i)}</li>`).join("")}</ol>` : `<ul>${b.items.map((i) => `<li>${htmlRuns(i)}</li>`).join("")}</ul>`;
     case "note":
       return `<p class="note">${escapeHtml(b.text)}</p>`;
     case "list":
@@ -97,7 +122,10 @@ export const DOCUMENT_CSS = `
 .gap-doc th, .gap-doc td { border: 1px solid #888; padding: 3px 5px; vertical-align: top; text-align: left; }
 .gap-doc th { background: #e8e8e8; }
 .gap-doc .table-wrap { overflow-x: auto; }
+.gap-doc h4 { font-size: 10.5pt; margin: 12px 0 4px; }
 .gap-doc .note { font-style: italic; }
+.gap-doc .blank-open { background: #dbe8ff; color: #0b3a8a; border-bottom: 1px dotted #0b3a8a; padding: 0 2px; }
+.gap-doc .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .gap-doc .footer { margin-top: 28px; border-top: 1px solid #999; padding-top: 6px; font-size: 9pt; color: #8a1c1c; font-weight: 600; }
 @media print {
   @page { size: A4 landscape; margin: 14mm; }

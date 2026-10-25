@@ -1,5 +1,5 @@
-import type { DesignLoadouts, FailureModeSuggestions, MbrLibraryBlock, RiskLoadouts } from "@gap/process-model";
-import { buildContent, parseFailureModes, parseGuidance, parseMbrLibrary, parseDesignLoadouts, parseRiskLoadouts, parseSamplingSuggestions, type ContentBundle, type GuidanceLibrary, type RawContent, type SamplingSuggestions } from "@gap/engine";
+import type { DesignLoadouts, FailureModeSuggestions, MbrLibraryBlock, RiskLoadouts, TrdLibraryWriteup } from "@gap/process-model";
+import { buildContent, parseFailureModes, parseGuidance, parseMbrLibrary, parseTrdWriteupLibrary, parseDesignLoadouts, parseRiskLoadouts, parseSamplingSuggestions, type ContentBundle, type GuidanceLibrary, type RawContent, type SamplingSuggestions } from "@gap/engine";
 import { catalog } from "@gap/process-model/catalog";
 import catalogOverlay from "./catalog/gap-overlay.yaml";
 import demoArx217 from "./demo/arx-217.yaml";
@@ -26,6 +26,7 @@ import rules from "./rules/rules.yaml";
 import designLoadoutsRaw from "./sampling/design-loadouts.yaml";
 import ppqSuggestionsRaw from "./sampling/ppq-suggestions.yaml";
 import templates from "./templates/gap-assessment.yaml";
+import trdWriteupsRaw from "./trd-writeups/writeups.yaml";
 
 /** Raw parsed YAML, keyed by file name so validation errors name the file. */
 export const rawContent: RawContent = {
@@ -106,3 +107,13 @@ export const mbrLibrary: MbrLibraryBlock[] = (() => {
   }
   return file.blocks;
 })();
+
+/**
+ * The shipped TRD write-up library (process descriptions per unit operation and the TRD-level prose, own neutral wording). Offers only:
+ * a TRD gets a copy when it is created or when the author adds one, and the copy is the author's to edit. Checked here against the
+ * catalog's unit operations, so a misspelt step key stops the build.
+ */
+export const trdWriteups: TrdLibraryWriteup[] = parseTrdWriteupLibrary(
+  trdWriteupsRaw,
+  content.catalog.unitOperations.map((u) => u.key),
+).writeups;

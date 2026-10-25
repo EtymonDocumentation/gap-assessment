@@ -3,6 +3,8 @@ import type { Block, DocModel, DocSection } from "./document";
 import { effectiveField, trdLimitChecks, trdOpenItems, trdOverrides, type TrdOpenItem } from "./trd";
 import { rangeText, setPointText } from "./trd-check";
 import { TRD_BANNER } from "./trd-outline";
+import type { ContentBundle } from "./content";
+import { addWriteupSections } from "./trd-writeup-document";
 
 /**
  * The TRD as a document (the same DocModel the other outputs use, so the shared renderers, the built-in Word style, a customer's
@@ -33,6 +35,8 @@ export interface TrdDocumentOptions {
   /** Version of the catalog the project was assessed with (for the versions table). */
   catalogVersion?: string;
   omit?: readonly TrdOptionalSection[];
+  /** Content bundle: lets blanks in the process descriptions read the project's answers (barrier, labelling site ...). Optional. */
+  content?: ContentBundle;
 }
 
 export const trdBasisText = (projectId: string, d: TrdDocument): string =>
@@ -154,6 +158,14 @@ export function buildTrdDocument(project: Project, d: TrdDocument, opts: TrdDocu
     ]);
   }
 
+  // Process descriptions (TRD format 1.1.0): the TRD-level prose sections and the "Manufacturing process overview". A TRD without
+  // write-ups adds nothing here, so it exports exactly as it did before.
+  const blankCtx = { project, doc: d, ...(opts.content ? { content: opts.content } : {}) };
+  const wu = addWriteupSections(blankCtx, d, (id, title, make) => {
+    const number = String(sections.filter((s) => !s.appendix).length + 1);
+    sections.push({ id, number, title, blocks: make(number) });
+  });
+
   // 5... one section per step
   for (const s of d.steps) {
     const blocks: Block[] = [];
@@ -201,6 +213,22 @@ export function buildTrdDocument(project: Project, d: TrdDocument, opts: TrdDocu
       : []),
     ...(overrides.some((o) => !o.overridesProject) ? ([{ type: "paragraph", text: `${overrides.filter((o) => !o.overridesProject).length} value${overrides.filter((o) => !o.overridesProject).length === 1 ? " was" : "s were"} entered by the team where the project had none; they are shown in the sections above.` }] as Block[]) : []),
   ]);
+
+  // Appendix: where each filled blank of the process descriptions came from, and which blanks have no value yet. Built before the
+  // source register so the documents it cites are numbered in it.
+  if (wu.filled.length || wu.open.length) {
+    appendix("writeup-values", "Process description values", [
+      { type: "paragraph", text: "The blanks of the process descriptions. A value found in the TRD or the project, or typed by the team, is shown with where it came from. A blank with no value is left open; the tool does not supply one." },
+      ...(wu.filled.length
+        ? ([
+            { type: "table", columns: ["Description", "Item", "Value", "Source"], caption: "Filled blanks", rows: wu.filled.map(({ writeup, blank }) => [`${writeup.id}: ${writeup.title}`, blank.label, blank.value ?? "", [blank.where, blank.sourceIds?.length ? src.cite(blank.sourceIds, blank.locations) : ""].filter(Boolean).join("; ")]) },
+          ] as Block[])
+        : []),
+      ...(wu.open.length
+        ? ([{ type: "table", columns: ["Description", "Item still open", "Note"], caption: "Blanks without a value", rows: wu.open.map(({ writeup, blank }) => [`${writeup.id}: ${writeup.title}`, blank.label, blank.note ?? "No value in the TRD or the project"]) }] as Block[])
+        : []),
+    ]);
+  }
 
   // Appendix: source register
   const traceBlocks = !omit.has("traceability") && d.origin.kind === "project" ? traceability(d) : undefined;

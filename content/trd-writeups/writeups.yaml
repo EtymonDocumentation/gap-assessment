@@ -1,0 +1,1320 @@
+# TRD write-up library (shipped). One write-up per catalog unit operation and per TRD-level prose section, in neutral wording.
+#
+# Conventions
+#  - A blank is written {{fieldKey|Fallback label}}. The key names the project or TRD value that can fill it (uo.<unit op>.<collection>.<item>.<field>,
+#    scope.*, site.*) or a write-up level entry typed by the team (trd.*). An unknown value stays a visible placeholder: no defaults.
+#  - A part with "optional" is a load-out the author switches on; it starts off. Nothing here is a rule.
+#  - Cross-references use the section title, not a number (numbers come from the generated document).
+#  - The tool never states a filing category; where a change needs one, the only wording is "Requires regulatory affairs assessment".
+#  - Fictional / generic wording only: no client, product, supplier or person names.
+formatVersion: 1.0.0
+libraryVersion: 1.0.0
+writeups:
+  - id: sec_acronyms
+    version: 1
+    kind: section
+    key: acronyms
+    title: Acronyms
+    parts:
+      - id: p1
+        kind: paragraph
+        text: Common abbreviations used in this document are listed below. Add or delete entries to match the program.
+      - id: b1
+        kind: bullet
+        text: Bioburden reduction filtration (BBRF)
+      - id: b2
+        kind: bullet
+        text: Bulk placebo (BP)
+      - id: b3
+        kind: bullet
+        text: Contract manufacturing organization (CMO)
+      - id: b4
+        kind: bullet
+        text: Drug product (DP)
+      - id: b5
+        kind: bullet
+        text: European Union (EU)
+      - id: b6
+        kind: bullet
+        text: Formulated drug substance (FDS)
+      - id: b7
+        kind: bullet
+        text: Good Manufacturing Practice (GMP)
+      - id: b8
+        kind: bullet
+        text: High-efficiency particulate air (HEPA)
+      - id: b9
+        kind: bullet
+        text: In-process control (IPC)
+      - id: b10
+        kind: bullet
+        text: Item master number (IMN)
+      - id: b11
+        kind: bullet
+        text: Light-emitting diode (LED)
+      - id: b12
+        kind: bullet
+        text: Not more than (NMT)
+      - id: b13
+        kind: bullet
+        text: Pre-use post-sterilization integrity test (PUPSIT)
+      - id: b14
+        kind: bullet
+        text: Process performance qualification (PPQ)
+      - id: b15
+        kind: bullet
+        text: Quality control (QC)
+      - id: b16
+        kind: bullet
+        text: Receiving unit (RU)
+      - id: b17
+        kind: bullet
+        text: Restricted access barrier system (RABS)
+      - id: b18
+        kind: bullet
+        text: Sending unit (SU)
+      - id: b19
+        kind: bullet
+        text: Sterile filtration (SF)
+      - id: b20
+        kind: bullet
+        text: Technical requirements document (TRD)
+      - id: b21
+        kind: bullet
+        text: Time out of refrigeration (TOR)
+      - id: b22
+        kind: bullet
+        text: Ultraviolet (UV)
+      - id: b23
+        kind: bullet
+        text: United States Pharmacopeia (USP)
+      - id: b24
+        kind: bullet
+        text: Water for injection (WFI)
+      - id: b25
+        kind: bullet
+        text: Weight to volume (w/v)
+      - id: b26
+        kind: bullet
+        text: Weight to weight (w/w)
+  - id: sec_introduction
+    version: 1
+    kind: section
+    key: introduction
+    title: Introduction
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          The technology transfer takes place between the sending unit ({{site.sendingName|Sending unit name}},
+          {{trd.sendingSiteLocation|Sending unit location}}) and the receiving unit ({{site.name|Receiving unit name}},
+          {{trd.receivingSiteLocation|Receiving unit location}}).
+  - id: sec_purpose
+    version: 1
+    kind: section
+    key: purpose
+    title: Purpose
+    autoAdd: false
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          This technical requirements document summarizes the technical, in-process analytical and microbial testing requirements
+          for transferring the configuration described here from the sending unit to the receiving unit.
+  - id: sec_scope
+    version: 1
+    kind: section
+    key: scope
+    title: Scope
+    autoAdd: false
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          This document covers {{scope.program|Program or product}}, a {{scope.dosage_form|Dosage form}}
+          {{scope.modality|Modality}} product presented as {{scope.presentation|Presentation}} in
+          {{uo.aseptic_filling.mat.container.format|Container format or size}}, with a withdrawable or expellable volume of
+          {{trd.scope.withdrawableVolume|Withdrawable volume}}, filled at {{site.name|Receiving unit name}} from formulated drug
+          substance item {{trd.scope.dsItemNumber|Drug substance item number}}. Product item number: {{trd.scope.dpItemNumber|Drug
+          product item number}}.
+      - id: unlabeled
+        kind: paragraph
+        text: The filled units are supplied unlabeled.
+        optional:
+          condition: include if the filled units are supplied unlabeled
+  - id: sec_batch_size
+    version: 1
+    kind: section
+    key: batch_size
+    title: Batch size
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          The batch size range for this bulk drug product program is {{uo.compounding.param.batch_size.setPoint|Batch size range
+          (mass, volume or number of units)}}.
+      - id: dilution
+        kind: paragraph
+        text: >-
+          For a program with dilution, the batch size stated above is the size after dilution.
+          {{trd.batchSize.drugSubstanceLotMixingStatement|State how drug substance lots may be combined or not combined}}.
+        optional:
+          condition: include for programs with dilution
+  - id: sec_general_attributes
+    version: 1
+    kind: section
+    key: general_attributes
+    title: Drug substance and bulk placebo general attributes
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          The general attributes of the formulated drug substance and the bulk placebo are given in
+          {{trd.generalAttributes.sourceDocument|Document that states the general attributes}}.
+  - id: sec_formulation_precautions
+    version: 1
+    kind: section
+    key: formulation_precautions
+    title: Formulation and manufacturing precautions
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          The material must be protected from light during storage. Where a risk of light exposure in storage is identified by a
+          technical assessment or by light mapping, the sending unit and the receiving unit agree the measures that reduce it.
+          Measures to protect from light may include, but are not limited to, the following.
+      - id: b1
+        kind: bullet
+        text: >-
+          Lights switched off in the storage room when nobody is present (for example motion-sensor lighting or a manual
+          switch-off rule).
+      - id: b2
+        kind: bullet
+        text: >-
+          Dark or opaque covering (for example a tarpaulin or film) over the material in storage when the lights must stay on in
+          the area.
+      - id: b3
+        kind: bullet
+        text: Opaque packaging materials.
+      - id: b4
+        kind: bullet
+        text: Lower emission of ultraviolet radiation by using darker-coloured lamps or LED lamps.
+      - id: post_ppq
+        kind: bullet
+        text: >-
+          Refer to the product-specific light exposure assessment ({{trd.lightExposure.assessmentReference|Light exposure
+          assessment reference}}).
+        optional:
+          condition: include in a TRD issued after process performance qualification
+      - id: temperature
+        kind: bullet
+        text: >-
+          Manufacturing takes place at {{trd.formulationPrecautions.manufacturingTemperature|Temperature range, controlled room
+          temperature, or temperature-controlled room}}.
+        optional:
+          condition: include to state the manufacturing temperature condition
+      - id: additional
+        kind: bullet
+        text: '{{trd.formulationPrecautions.additional|Additional precautions}}'
+        optional:
+          condition: include to add further precautions
+  - id: sec_dilution_buffer
+    version: 1
+    kind: section
+    key: dilution_buffer
+    title: Dilution buffer
+    appliesWhen: >-
+      include only when dilution is performed at the receiving unit (otherwise mark not applicable and state where dilution is
+      performed)
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          This section describes the buffer used to dilute the formulated drug substance and the excipient solutions prepared
+          ahead of it. The detailed preparation of the buffer is described under the buffer preparation unit operation.
+      - id: excipient_assessment
+        kind: subsection
+        title: Excipient assessment
+        text: ''
+      - id: excipient_assessment_p2
+        kind: paragraph
+        text: >-
+          To support the evaluation of every excipient needed for buffer preparation, the sending unit works with the responsible
+          counterpart at the receiving unit to carry out an excipient assessment before production when dilution is performed at
+          the receiving unit, as set out in {{trd.dilutionBuffer.assessmentProcedure|Procedure or agreement that governs the
+          assessment}}.
+      - id: excipient_assessment_p3
+        kind: paragraph
+        text: The approved excipient assessment is {{trd.dilutionBuffer.assessmentDocument|Excipient assessment document reference}}.
+      - id: excipient_solution
+        kind: subsection
+        title: Excipient solution for the dilution buffer
+        text: ''
+      - id: excipient_solution_p4
+        kind: paragraph
+        text: >-
+          To support formulation of the required buffer, the receiving unit {{trd.dilutionBuffer.preDilutionNeeded|will / will
+          not}} need to prepare a solution of one or more excipients before adding them to the buffer. The table lists any
+          excipients that must be mixed into a solution before the buffer (diluent) is added. Rows can be added or removed to
+          match the excipient components that need pre-dilution as a separate solution.
+      - id: excipient_solution_table
+        kind: table
+        text: ''
+        columns:
+          - Component
+          - Material name
+          - Composition (% w/w or % w/v)
+          - Calculated quantity for the target total solution amount
+      - id: excipient_solution_n1
+        kind: note
+        text: >-
+          The calculated quantity is based on an example target amount that can be adjusted to the receiving unit's needs. Mix
+          with a gentle vortex until the excipient has visibly dissolved. Avoid splashing and foaming.
+      - id: formulation
+        kind: subsection
+        title: Dilution buffer (diluent) formulation
+        text: ''
+      - id: formulation_p5
+        kind: paragraph
+        text: >-
+          To formulate the required buffer, the receiving unit adds each component below within
+          {{trd.dilutionBuffer.additionTolerance|Tolerance range}} of the target weight, in the order shown.
+      - id: formulation_table
+        kind: table
+        text: ''
+        columns:
+          - Component
+          - Material name
+          - Composition (g/kg, g/L or other unit)
+          - Calculated quantity for the target buffer amount
+      - id: formulation_n2
+        kind: note
+        text: >-
+          Each excipient must be in solution before the next one is added. Every excipient must be visibly dissolved before the
+          next manufacturing step starts.
+      - id: formulation_n3
+        kind: note
+        text: >-
+          The calculated quantity is based on an example target amount that can be adjusted to the receiving unit's needs. Mix
+          with a gentle vortex until the excipient has visibly dissolved. Avoid splashing and foaming.
+    notApplicable:
+      condition: >-
+        include only when dilution is performed at the receiving unit (otherwise mark not applicable and state where dilution is
+        performed)
+      text: 'Not applicable: dilution is performed at {{trd.dilutionBuffer.dilutionSite|Site where dilution is performed}}.'
+  - id: sec_process_parameters
+    version: 1
+    kind: section
+    key: process_parameters
+    title: Overall process parameters
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          The proposed process parameters are listed in the process parameter tables of this document, one block per process
+          segment, with the source document of each value. This section can be changed to suit the program.
+      - id: fn_bioburden
+        kind: note
+        text: >-
+          Bioburden limits follow the acceptance criterion in {{trd.processParameters.bioburdenSpecificationReference|Source
+          specification reference}}. Where the source specification states a limit per small volume, the in-process limit for bulk
+          manufacture may be stated per a larger volume at the same ratio, which keeps the same level of control.
+      - id: fn_qc_hold
+        kind: note
+        text: 'Process hold steps: the quality control results are required before dilution starts.'
+      - id: fn_endotoxin_hold
+        kind: note
+        text: >-
+          Endotoxin samples must be tested within the established endotoxin sample hold time of
+          {{trd.processParameters.endotoxinSampleHoldTime|Endotoxin sample hold time}}. If the receiving unit does not test them
+          itself, the samples are returned to the sending unit (or to another approved laboratory) so that testing meets the
+          established hold time.
+      - id: fn_endotoxin_no_hold
+        kind: note
+        text: >-
+          Where the low-endotoxin-recovery assessment has not been formally completed, endotoxin testing is done as close to the
+          sample collection time as possible and no later than {{trd.processParameters.endotoxinFallbackHours|Maximum hours from
+          sample receipt at the laboratory}} hours after the sample is received at the quality control laboratory, as set by
+          {{trd.processParameters.endotoxinFallbackReference|Governing document}}, provided the receiving unit has shown adequate
+          control of the sample until it is submitted.
+        optional:
+          condition: include if no endotoxin sample hold time is established
+      - id: fn_inline_filtration_tor
+        kind: note
+        text: >-
+          The inline sterile filtration time counts towards the time out of refrigeration of the filling process. The total time
+          out of refrigeration must not exceed {{trd.total.maxTimeOutOfRefrigerationHours|Total time out of refrigeration
+          (hours)}} hours, measured from the end of thaw to the last unit filled and stoppered, with the drug product placed into
+          refrigerated storage.
+      - id: fn_inspection_packaging_time
+        kind: note
+        text: >-
+          {{trd.processParameters.transmittalReference|Process transmittal reference}} allows
+          {{trd.visual_inspection.allowedHoursInspectionPackaging|Total hours}} hours for visual inspection and bulk packaging at
+          the filling site. No more than {{trd.visual_inspection.allocatedHours|Allocated hours}} hours are allocated to those two
+          steps, so that the remaining time is left for final packaging and labelling.
+      - id: fn_filter_flush
+        kind: note
+        text: >-
+          Before filter integrity testing, both pre-use and post-use, the filters are flushed with water for injection in the
+          amount stated in the site procedures.
+  - id: sec_contact_surfaces
+    version: 1
+    kind: section
+    key: contact_surfaces
+    title: Approved product contact surfaces
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          The direct product contact surfaces listed below are compatible with this drug substance or bulk placebo program:
+          {{trd.contactSurfaces.list|List every approved product contact surface}}.
+  - id: sec_container_closure
+    version: 1
+    kind: section
+    key: container_closure
+    title: Primary container closure
+    parts:
+      - id: p1
+        kind: paragraph
+        text: All critical product contact materials must be approved by the sending unit before production.
+      - id: table
+        kind: table
+        text: ''
+        columns:
+          - Item description
+          - Receiving unit part number
+          - Manufacturer drawing number
+          - Manufacturer part number
+      - id: n1
+        kind: note
+        text: Rows (syringe, stopper and other components) can be added or deleted as needed.
+  - id: sec_filling_technology
+    version: 1
+    kind: section
+    key: filling_technology
+    title: Filling technology recommendation
+    parts:
+      - id: p1
+        kind: paragraph
+        text: This program is filled by {{uo.aseptic_filling.equip.filler.operatingPrinciple|Filling technology}}.
+      - id: excluded
+        kind: note
+        text: >-
+          Based on the development studies performed at {{trd.fillingTechnology.studySite|Site where the studies were performed}},
+          {{trd.fillingTechnology.excludedTechnology|Filling technology that must not be used}} must not be used to process this
+          molecule. Basis: {{trd.fillingTechnology.excludedBasis|Study or report that supports the restriction}}.
+        optional:
+          condition: include if development data exclude a filling technology for this product
+  - id: sec_fill_weights
+    version: 1
+    kind: section
+    key: fill_weights
+    title: Fill weights
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          The fill weights in the table are a recommendation. Alert and action limits are adjusted to the process capability of
+          the receiving unit's filling equipment.
+      - id: table
+        kind: table
+        text: ''
+        columns:
+          - Limit
+          - Percent of target
+          - Weight (g)
+          - Volume (mL)
+        rows:
+          - - Upper action limit
+            - ''
+            - ''
+            - ''
+          - - Upper alert limit
+            - ''
+            - ''
+            - ''
+          - - Target
+            - ''
+            - ''
+            - ''
+          - - Lower alert limit
+            - ''
+            - ''
+            - ''
+          - - Lower action limit
+            - ''
+            - ''
+            - ''
+      - id: n1
+        kind: note
+        text: 'Product density: {{trd.fillWeights.density|Product density (g/mL)}}.'
+      - id: n2
+        kind: note
+        text: A site-specific in-process check, such as expellable volume or gross content, may be added where it applies.
+      - id: n3
+        kind: note
+        text: The number of decimal places and the rounding rule may differ between sites.
+  - id: sec_stopper_position
+    version: 1
+    kind: section
+    key: stopper_position
+    title: Stopper position
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          Vacuum-assisted stoppering is required for this drug product program because of the stopper coating used
+          ({{uo.aseptic_filling.mat.stopper.partNumber|Stopper description or part number}}). The stopper position, measured from
+          the top of the barrel flange down to the back of the stopper, is
+          {{uo.aseptic_filling.param.stopper_position.setPoint|Stopper position (mm)}} with a tolerance of
+          {{trd.stopper_position.tolerance|Tolerance (mm)}}.
+      - id: p2
+        kind: paragraph
+        text: >-
+          The filling and stoppering process for the container closure system must be supported by a qualified media fill and a
+          container closure integrity report.
+      - id: figure
+        kind: figure
+        text: >-
+          A schematic of the stopper position measurement (flange, stopper, product level and the measured distance) belongs here.
+          Add the drawing in the final document.
+      - id: n1
+        kind: note
+        text: Alternative stopper position measurements may be used if they are confirmed by the cross-functional team.
+      - id: n2
+        kind: note
+        text: '{{trd.stopper_position.comment|Further notes or comments}}'
+  - id: sec_sampling_plan
+    version: 1
+    kind: section
+    key: sampling_plan
+    title: Sampling plan
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          The proposed routine sampling plan for this program is described below. Once the product specification is effective, it
+          is used to set the release and retain sample quantities.
+      - id: p2
+        kind: paragraph
+        text: >-
+          In-process endotoxin samples are collected at the receiving unit and tested at:
+          {{trd.samplingPlan.endotoxinTestingLocation|receiving unit / sending unit or other laboratory}}.
+      - id: p3
+        kind: paragraph
+        text: Non-routine sample requests are communicated outside this document, using a non-routine sample request form.
+      - id: p4
+        kind: paragraph
+        text: '{{trd.samplingPlan.additional|Additional sample descriptions or details}}'
+  - id: sec_manufacturing_process_overview
+    version: 1
+    kind: section
+    key: manufacturing_process_overview
+    title: Manufacturing process overview
+    parts:
+      - id: p1
+        kind: paragraph
+        text: The general process is described step by step below, in process order. The text can be changed to match the program.
+  - id: sec_open_manipulations
+    version: 1
+    kind: section
+    key: open_manipulations
+    title: Open bottle manipulations
+    placement:
+      where: after
+      unitOp: ds_receipt_thaw
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          All open bottle manipulations (for example opening bottles and pooling) are performed under HEPA-filtered air of Grade C
+          or better. {{trd.openManipulations.higherGradeNote|Optional further requirement, for example a higher grade for certain
+          steps}}
+      - id: n1
+        kind: note
+        text: The identification label removed from each bottle is attached to the production batch record.
+  - id: sec_rtu_components
+    version: 1
+    kind: section
+    key: rtu_components
+    title: Ready-to-fill syringe and stopper production process
+    placement:
+      where: before
+      unitOp: aseptic_filling
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          Components are delivered in a ready-to-use sterile configuration (sealed tubs and bags). They can be introduced into the
+          production equipment by validated automated processes or by compliant media-qualified aseptic manipulations.
+      - id: sterilization
+        kind: paragraph
+        text: 'Component sterilization: {{trd.rtuComponents.sterilizationMethod|Sterilization method of the components}}.'
+        optional:
+          condition: include to state how the components are sterilized
+  - id: sec_aseptic_environment
+    version: 1
+    kind: section
+    key: aseptic_environment
+    title: Aseptic processing environment
+    placement:
+      where: before
+      unitOp: aseptic_filling
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          Isolator or closed restricted access barrier system (RABS) technology is preferred for aseptic processing. The planned
+          barrier is {{site.barrier|Barrier technology}} with a background of {{site.backgroundGrade|Background grade}}. The
+          design follows the contamination control expectations of EU GMP Annex 1 and the FDA aseptic processing guidance (2004).
+  - id: sec_total_time_out_of_refrigeration
+    version: 1
+    kind: section
+    key: total_time_out_of_refrigeration
+    title: Total time out of refrigeration (TOR)
+    placement:
+      where: last
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          The total time out of refrigeration limits given in the overall process parameters section are strictly observed. The
+          total limit is {{trd.total.maxTimeOutOfRefrigerationHours|Total time out of refrigeration (hours)}} hours.
+  - id: wu_ds_shipping_inbound
+    version: 1
+    kind: unitOp
+    key: ds_shipping_inbound
+    title: Drug substance shipping to the fill site
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          The drug substance is shipped from {{trd.sendingSiteName|Sending site}} to the receiving unit in
+          {{uo.ds_shipping_inbound.equip.shipper.operatingPrinciple|Shipper configuration}}. The shipper is
+          {{uo.ds_shipping_inbound.equip.shipper.qualificationStatus|Shipper qualification status}} and is loaded and closed
+          according to the shipping procedure of the sending unit.
+      - id: p2
+        kind: paragraph
+        text: >-
+          The transport temperature is {{uo.ds_shipping_inbound.param.transport_temperature.setPoint|Transport temperature}} and
+          the maximum transit time is {{uo.ds_shipping_inbound.param.max_transit_time.max|Maximum transit time}}. The shipment
+          temperature is monitored throughout transport with {{uo.ds_shipping_inbound.ipc.transport_monitoring.tests|Temperature
+          monitoring devices}}, and the data are kept with the shipment record.
+      - id: p3
+        kind: paragraph
+        text: >-
+          The shipping lane {{uo.ds_shipping_inbound.doc.shipping_lane.name|Shipping lane}} is qualified:
+          {{uo.ds_shipping_inbound.study.lane_qualification.status|Lane qualification status}}. Custody of the shipment is
+          documented with {{uo.ds_shipping_inbound.ipc.custody.tests|Chain of custody controls}}.
+      - id: s1
+        kind: step
+        text: >-
+          The sending unit confirms the shipping details (content, quantity, planned arrival date and the receiving contact)
+          before dispatch.
+      - id: s2
+        kind: step
+        text: >-
+          Temperature monitoring devices are started and placed according to the shipper configuration before the shipper is
+          closed.
+      - id: s3
+        kind: step
+        text: The carrier hands over the shipment with a signed record of transfer at every change of custody.
+      - id: s4
+        kind: step
+        text: The sending unit informs the receiving unit of the dispatch and of any delay in transit.
+      - id: n1
+        kind: note
+        text: >-
+          A temperature excursion is allowed for at most {{uo.ds_shipping_inbound.param.excursion_allowance.max|Excursion
+          allowance}}. Any excursion is handled according to {{uo.ds_shipping_inbound.doc.excursion_handling.approach|Excursion
+          handling approach}} and recorded in the shipping record.
+      - id: liquid
+        kind: note
+        text: Liquid drug substance is protected from freezing, from agitation and from light during transport.
+        optional:
+          condition: include if the drug substance is shipped as a refrigerated liquid
+  - id: wu_ds_receipt_thaw
+    version: 1
+    kind: unitOp
+    key: ds_receipt_thaw
+    title: Receipt and storage, and thawing
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          On arrival, before the shipment is opened, receiving unit personnel inspect it for damage. If damage is found, the
+          sending unit is notified immediately by the agreed notification route. The drug substance or bulk placebo, still in the
+          shipment container, is placed at the specified storage temperature within
+          {{trd.ds_receipt_thaw.storeWithinHoursOfReceipt|Hours after receipt}} hours of receipt.
+      - id: p2
+        kind: paragraph
+        text: A suggested receipt process for the shipment is described below.
+      - id: s1
+        kind: step
+        text: >-
+          Open the shipment container. Take care, because the shipping box may contain dry ice pellets. Suitable personal
+          protective equipment is required.
+      - id: s2
+        kind: step
+        text: >-
+          Take the protective inner bags holding the frozen bottles out of the shipping container, then take the bottles out of
+          the bags.
+      - id: s3
+        kind: step
+        text: >-
+          If a sealed bottle shows visible damage (for example dents, holes or a loose cap), photograph the damage and notify the
+          sending unit immediately by the agreed route. Send copies of the photographs to
+          {{trd.ds_receipt_thaw.damageReportRecipient|Role or function that receives damage reports}}.
+      - id: s4
+        kind: step
+        text: Remove the side samples and the temperature monitoring devices.
+      - id: s5
+        kind: step
+        text: >-
+          Store the bottles at the temperature stated in the drug substance or bulk placebo specification, no more than
+          {{trd.ds_receipt_thaw.storeAfterUnpackHours|Hours after removal from the shipping container}} hours after they are taken
+          out of the shipping container.
+      - id: s6
+        kind: step
+        text: Download the data from the temperature monitoring devices.
+      - id: s7
+        kind: step
+        text: >-
+          Send the monitoring data to {{trd.ds_receipt_thaw.monitoringDataRecipient|Recipient of the shipment temperature data}}
+          within {{trd.ds_receipt_thaw.monitoringDataBusinessDays|Business days}} business day(s) of receipt.
+      - id: s8
+        kind: step
+        text: >-
+          Send the side samples to {{trd.ds_receipt_thaw.sideSampleLaboratory|Laboratory that tests the side samples}} within
+          {{trd.ds_receipt_thaw.sideSampleBusinessDays|Business days}} business days of receipt.
+      - id: n1
+        kind: note
+        text: >-
+          If the shipment arrives on a Friday or on the day before a public holiday, the samples are shipped on the next business
+          day.
+      - id: thaw
+        kind: paragraph
+        text: >-
+          **Thawing.** The bottles of frozen drug substance or bulk placebo are thawed by
+          {{uo.ds_receipt_thaw.equip.thaw_unit.operatingPrinciple|Thaw method}} at controlled room temperature (thaw set point
+          {{uo.ds_receipt_thaw.param.thaw_temperature.setPoint|Thaw temperature}}, expected duration
+          {{uo.ds_receipt_thaw.param.thaw_duration.setPoint|Thaw duration}}). After thawing, bottles are mixed by
+          {{uo.ds_receipt_thaw.equip.thaw_mixer.operatingPrinciple|Post-thaw mixing}} as set out in the overall process parameters
+          section, where this applies.
+        optional:
+          condition: include if the drug substance is received frozen
+      - id: thaw_checks
+        kind: paragraph
+        text: >-
+          In-process thaw checks are required after {{trd.ds_receipt_thaw.firstThawCheckHours|Hours of total thaw}} hours of
+          thawing and are then performed every hour until the drug substance or bulk placebo is completely thawed.
+        optional:
+          condition: include if in-process thaw checks are performed
+      - id: hold_limits
+        kind: note
+        text: >-
+          Note: if the drug substance or bulk placebo is not pooled within {{uo.ds_receipt_thaw.param.max_ambient_time.max|Time at
+          ambient temperature after thaw}} of the end of thaw, the thawed bottle is stored at
+          {{trd.ds_receipt_thaw.holdTemperature|Storage temperature after thaw}}. The longest time the thawed material can be held
+          at that temperature before pooling is {{trd.ds_receipt_thaw.maxColdHoldBeforePooling|Maximum cold hold before pooling}}.
+          If the thawed material is kept in refrigerated storage it is protected from light as described in the formulation and
+          manufacturing precautions section.
+        optional:
+          condition: include if the thawed material can be held before pooling
+      - id: hold_temperature_update
+        kind: note
+        text: Update the post-thaw hold temperature to the one that applies to this program.
+        optional:
+          condition: include if refrigerated storage at 2 to 8 degrees Celsius is not used for the post-thaw hold
+  - id: wu_buffer_prep
+    version: 1
+    kind: unitOp
+    key: buffer_prep
+    title: Buffer preparation
+    appliesWhen: scope.dilution is yes
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          The buffer or diluent is {{uo.buffer_prep.mat.buffer.supplyRoute|Buffer supply route}}. Dilution of the formulated drug
+          substance uses the buffer described in the dilution buffer section of this document.
+      - id: n1
+        kind: note
+        text: Each excipient must be visibly dissolved before the next one is added. Avoid splashing and foaming while mixing.
+      - id: n2
+        kind: note
+        text: >-
+          Equipment used for preparation is cleaned according to the cleaning validation program for the preparation vessel and
+          mixer.
+      - id: onsite
+        kind: paragraph
+        text: >-
+          Raw materials are dispensed {{uo.buffer_prep.equip.dispensing.operatingPrinciple|Dispensing method}} and prepared in
+          {{uo.buffer_prep.equip.prep_vessel.type|Preparation vessel type}} of {{uo.buffer_prep.equip.prep_vessel.capacity|Vessel
+          capacity}}, for a batch volume of {{uo.buffer_prep.param.batch_volume.setPoint|Buffer batch volume}}. Each component is
+          added in the order of the formulation table and is in solution before the next one is added. The buffer is mixed with
+          {{uo.buffer_prep.equip.prep_mixer.operatingPrinciple|Mixer}} at {{uo.buffer_prep.param.mixing_speed.setPoint|Mixing
+          speed}} for {{uo.buffer_prep.param.mixing_time.setPoint|Mixing time}}, without foam, and the final mixing speed is
+          recorded in the batch record.
+        optional:
+          condition: include if the buffer is prepared on site from raw materials
+      - id: ipc
+        kind: paragraph
+        text: >-
+          In-process testing of the buffer covers {{uo.buffer_prep.ipc.panel.tests|Buffer in-process tests}}. Limits are stated in
+          the overall process parameters section. Buffer hold is limited to {{uo.buffer_prep.param.max_hold_time.max|Buffer hold
+          time}}.
+        optional:
+          condition: include if the buffer has in-process testing
+      - id: frozen
+        kind: paragraph
+        text: >-
+          The frozen buffer is stored at {{uo.buffer_prep.param.storage_temperature.setPoint|Buffer storage temperature}} and
+          thawed by {{uo.buffer_prep.equip.thaw_unit.operatingPrinciple|Buffer thaw method}} at
+          {{uo.buffer_prep.param.thaw_temperature.setPoint|Buffer thaw temperature}} for
+          {{uo.buffer_prep.param.thaw_duration.setPoint|Buffer thaw duration}}, then mixed by
+          {{uo.buffer_prep.equip.thaw_mixer.operatingPrinciple|Post-thaw buffer mixing}}.
+        optional:
+          condition: include if the buffer is received frozen
+      - id: rtu
+        kind: paragraph
+        text: >-
+          The ready-to-use buffer is supplied by {{uo.buffer_prep.mat.buffer.supplier|Buffer supplier}}
+          ({{uo.buffer_prep.mat.buffer.supplierQualification|Supplier qualification status}}), stored at
+          {{uo.buffer_prep.mat.buffer.storageCondition|Buffer storage condition}} and used within
+          {{uo.buffer_prep.mat.buffer.shelfLife|Use-by period}}.
+        optional:
+          condition: include if the buffer is received as a ready-to-use liquid
+      - id: bbr
+        kind: paragraph
+        text: >-
+          The buffer is filtered through a {{uo.buffer_prep.mat.buffer_bbr_filter.poreRating|Pore rating}}
+          {{uo.buffer_prep.mat.buffer_bbr_filter.materialOfConstruction|Membrane}} bioburden-reduction filter. Pre-filtration
+          bioburden is not more than {{uo.buffer_prep.ipc.bioburden.limit|Bioburden limit}} and the filter integrity testing
+          approach is {{uo.buffer_prep.ipc.integrity.approach|Integrity testing approach}}.
+        optional:
+          condition: include if the buffer is filtered through a bioburden-reduction filter
+  - id: wu_compounding
+    version: 1
+    kind: unitOp
+    key: compounding
+    title: Pooling, compounding and dilution
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          The thawed drug substance or bulk placebo may be pooled by gentle pumping through a peristaltic pump, or by pouring from
+          the bottle into a sterile receiving bag or a dedicated stainless-steel vessel. Take steps to limit splashing and foaming
+          during pooling, for example by using a sterilized funnel or by watching the amount and level of foam closely.
+      - id: p2
+        kind: paragraph
+        text: >-
+          Sterile tubing, a J-tube or a dip tube that reaches the bottom of the vessel is not the preferred approach, because it
+          can create a concentration gradient. If the product, or the receiving unit's equipment, requires a pump or tubing that
+          reaches the bottom of the vessel during pooling, measures must be in place to break the concentration gradient. For this
+          product, a pooling method with {{trd.compounding.poolingMethod|Pooling method, for example sterile tubing, J-tube or dip
+          tube}} reaching the bottom of the vessel {{trd.compounding.bottomTubeUsed|is / is not}} to be used, and
+          {{trd.compounding.inversions|Number of container inversions or other mixing process}}
+          {{trd.compounding.inversionsRequired|are / are not}} required. These are followed as stated in the overall process
+          parameters section.
+      - id: p3
+        kind: paragraph
+        text: >-
+          The pooled drug substance or bulk placebo and the buffer, where dilution is required, are mixed as described in the
+          overall process parameters section so that the mixture swirls gently and does not foam or splash. Mixing uses
+          {{uo.compounding.equip.mixer.operatingPrinciple|Mixer}} in {{uo.compounding.equip.vessel.type|Vessel type}} at
+          {{uo.compounding.param.mixing_speed.setPoint|Mixing speed}} for {{uo.compounding.param.mixing_time.setPoint|Mixing
+          time}}. The final mixing speed is recorded in the production batch record.
+      - id: steps_heading
+        kind: heading
+        title: Dead volume measures
+        text: ''
+      - id: p4
+        kind: paragraph
+        text: >-
+          Before pooling, the sending unit works with the receiving unit to put in place measures that keep dead volumes in the
+          pooling or mixing assembly bag to a minimum. These measures may include, but are not limited to, placing a clamp on the
+          sampling port or on any unused port, as close to the opening as possible.
+      - id: n1
+        kind: note
+        text: >-
+          Make sure the mixing impeller is covered by the product and that the product is completely pooled before the impeller is
+          started.
+      - id: dilution
+        kind: paragraph
+        text: >-
+          The formulated bulk is diluted with {{uo.compounding.mat.diluent.description|Buffer or diluent}} to a target
+          concentration of {{uo.compounding.param.target_concentration.setPoint|Target concentration after dilution}}. The batch
+          is {{uo.compounding.param.batch_size.setPoint|Batch size}} and the formulated bulk may be held for up to
+          {{uo.compounding.param.max_hold_time.max|Formulated bulk hold time}}.
+        optional:
+          condition: include if the product is diluted at the receiving unit
+      - id: ipc
+        kind: paragraph
+        text: In-process controls on the compounded bulk are {{uo.compounding.ipc.panel.tests|Compounding in-process tests}}.
+        optional:
+          condition: include to list in-process controls
+  - id: wu_bbr_filtration
+    version: 1
+    kind: unitOp
+    key: bbr_filtration
+    title: Bioburden reduction filtration (pre-filtration)
+    appliesWhen: process has a bioburden-reduction step
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          After mixing, bioburden reduction filtration is performed by passing the pooled or diluted drug substance or bulk
+          placebo through a single sterile filter ({{uo.bbr_filtration.mat.bbr_filter.poreRating|Pore rating}},
+          {{uo.bbr_filtration.mat.bbr_filter.materialOfConstruction|Membrane}}) that has had its integrity tested before use
+          ({{uo.bbr_filtration.ipc.integrity.approach|Integrity testing approach}}). The filter is supplied by
+          {{uo.bbr_filtration.mat.bbr_filter.supplier|Filter supplier}} (part number
+          {{uo.bbr_filtration.mat.bbr_filter.partNumber|Filter part number}}). Before filtration starts, the product temperature
+          must be {{trd.bbr_filtration.productTemperature|Product temperature}}.
+      - id: p2
+        kind: paragraph
+        text: >-
+          Filtration runs at a differential pressure of {{uo.bbr_filtration.param.differential_pressure.setPoint|Differential
+          pressure}} and takes no more than {{uo.bbr_filtration.param.max_filtration_time.setPoint|Filtration time}}. The bulk
+          bioburden before the filter is not more than {{uo.bbr_filtration.ipc.bioburden.limit|Bioburden limit}}.
+      - id: n1
+        kind: note
+        text: >-
+          Note: if the formulation process has to be aligned with an unplanned production delay, the filtered bioburden-reduced
+          product can be placed in refrigerated storage.
+      - id: n2
+        kind: note
+        text: >-
+          The longest time the bioburden-reduced product can be held in refrigerated storage before sterile filtration is
+          {{trd.bbr_filtration.coldHoldLimitHours|Maximum cold hold before sterile filtration}}.
+      - id: n3
+        kind: note
+        text: >-
+          While in storage, the filtered bioburden-reduced product is protected from light, as described in the formulation and
+          manufacturing precautions section.
+      - id: cold_hold
+        kind: note
+        text: >-
+          The cold hold limit above applies. If no cold hold is permitted, state that the filtered product goes straight to
+          sterile filtration.
+        optional:
+          condition: include if a cold hold between bioburden reduction and sterile filtration is permitted
+      - id: flush
+        kind: note
+        text: >-
+          After the post-use integrity test, a product flush of at least {{trd.bbr_filtration.postTestFlushVolume|Flush volume or
+          weight}} is sent to waste.
+        optional:
+          condition: include to state the post-use flush
+  - id: wu_sterile_filtration
+    version: 1
+    kind: unitOp
+    key: sterile_filtration
+    title: Sterile filtration
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          Sterile filtration is performed by passing the bioburden-reduced drug substance or bulk placebo from the holding vessel
+          through a sterile 0.22 micrometre-class sterilizing-grade filter
+          ({{uo.sterile_filtration.mat.sterilizing_filter.poreRating|Pore rating}},
+          {{uo.sterile_filtration.mat.sterilizing_filter.materialOfConstruction|Membrane}}), the integrity of which is tested
+          before use, with a second redundant filter in series where one is used
+          ({{uo.sterile_filtration.mat.redundant_filter.present|Redundant filter used}}). Before filtration starts, the product
+          temperature must be {{trd.sterile_filtration.productTemperature|Product temperature}}.
+      - id: p2
+        kind: paragraph
+        text: >-
+          Filtration runs at a differential pressure of {{uo.sterile_filtration.param.differential_pressure.setPoint|Differential
+          pressure}} and takes no more than {{uo.sterile_filtration.param.max_filtration_time.max|Filtration time}}. The bioburden
+          before the sterilizing filter is not more than {{uo.sterile_filtration.ipc.bioburden.limit|Bioburden limit}}. Filter
+          integrity is tested with {{uo.sterile_filtration.ipc.integrity.tests|Integrity tests performed}}.
+      - id: note_post_use
+        kind: note
+        text: >-
+          Note: if redundant sterile filtration is not used, an investigation is carried out for every post-use integrity test
+          failure.
+      - id: note_pressure_monitoring
+        kind: note
+        text: >-
+          Note: continuous monitoring of the filtration pressure is required during sterile filtration, in line with current
+          regulatory expectations for sterile filtration. The maximum pressure is given in the overall process parameters section.
+      - id: note_no_cold_storage
+        kind: note
+        text: >-
+          Note: storage of the sterile filtrate in refrigerated storage is not allowed for clinical or commercial projects after
+          validation.
+      - id: pupsit_required
+        kind: note
+        text: >-
+          Note: the pre-use integrity tests are performed after the filter has been sterilized (pre-use post-sterilization
+          integrity testing, PUPSIT), in line with EU GMP Annex 1 on the manufacture of sterile medicinal products. The test
+          method is {{uo.sterile_filtration.ipc.pupsit.method|PUPSIT test method}}, with
+          {{uo.sterile_filtration.ipc.pupsit.wettingFluid|Wetting fluid}} as wetting fluid, and the sterile downstream side is
+          protected by {{uo.sterile_filtration.ipc.pupsit.downstreamProtection|Downstream protection approach}}.
+        optional:
+          condition: include if PUPSIT is performed
+      - id: pupsit_not_performed
+        kind: note
+        text: >-
+          Note: PUPSIT is not performed at the receiving unit. The justification is recorded in
+          {{trd.sterile_filtration.pupsitAlternativeReference|Risk assessment or document that justifies not performing PUPSIT}},
+          which is based on {{uo.sterile_filtration.ipc.pupsit.justificationBasis|Basis of the justification}}.
+        optional:
+          condition: include if PUPSIT is not performed
+      - id: pressure_not_possible
+        kind: note
+        text: >-
+          Note: continuous monitoring of the filtration pressure cannot be done at the receiving unit. The reference to the risk
+          assessment is {{trd.sterile_filtration.pressureMonitoringAlternativeReference|Risk assessment or document that justifies
+          the alternative}}.
+        optional:
+          condition: include if continuous pressure monitoring cannot be performed at the receiving unit
+      - id: flush
+        kind: note
+        text: >-
+          After the post-use integrity test, product is flushed to waste: at least {{trd.sterile_filtration.flushEachFilter|Flush
+          volume per filter}} for each filter and at least {{trd.sterile_filtration.flushTotal|Total flush volume}} in total.
+        optional:
+          condition: include to state the filter flush volumes
+  - id: wu_aseptic_filling
+    version: 1
+    kind: unitOp
+    key: aseptic_filling
+    title: Filling, stoppering and stopper insertion
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          Filling is performed with {{uo.aseptic_filling.equip.filler.operatingPrinciple|Filling technology}}. Syringes are filled
+          and stoppered in line. Fill weight in-process checks are performed during filling and stoppering:
+          {{uo.aseptic_filling.ipc.fill_check.frequency|Fill weight check approach}}. The preferred approach is a fill weight
+          check performed automatically by the filling system. If the filling system cannot support that approach, an agreed
+          statistical process can be used. If an offline method is used for the fill weight controls, the procedure is captured in
+          the media fill strategy for the filling line.
+      - id: filling_h
+        kind: subsection
+        title: Filling
+        text: ''
+      - id: filling
+        kind: paragraph
+        text: >-
+          The fill volume is {{uo.aseptic_filling.param.fill_volume.setPoint|Fill volume}} at a line speed of
+          {{uo.aseptic_filling.param.line_speed.setPoint|Line speed}}. Fill weights and limits are described in the fill weights
+          section.
+      - id: caution_h
+        kind: subsection
+        title: Caution
+        text: ''
+      - id: caution
+        kind: paragraph
+        text: >-
+          Given the viscosity of this product ({{trd.aseptic_filling.productViscosity|Product viscosity}}), the chance of needle
+          clogging during extended non-routine and routine production delays of {{trd.aseptic_filling.clogDelayHours|Delay
+          (hours)}} hours or more is {{trd.aseptic_filling.clogLikelihood|likely / not likely}}.
+      - id: gas_overlay_h
+        kind: subsection
+        title: Gas overlay
+        text: ''
+      - id: gas_overlay
+        kind: paragraph
+        text: >-
+          This drug product program {{trd.aseptic_filling.oxygenSensitive|is / is not}} oxygen sensitive, so an overlay with
+          nitrogen or another inert gas ({{trd.aseptic_filling.overlayGas|Gas, if applicable}})
+          {{trd.aseptic_filling.overlayRequired|is / is not}} required.
+      - id: stopper_insertion_h
+        kind: subsection
+        title: Stopper insertion
+        text: ''
+      - id: stopper_insertion
+        kind: paragraph
+        text: >-
+          The filled syringes are stoppered in line with filling, at the stopper position stated in the stopper position section,
+          using {{uo.aseptic_filling.equip.stopper_placement_unit.operatingPrinciple|Stopper placement method}}. In-process checks
+          of the stopper position ({{uo.aseptic_filling.ipc.stopper_position_check.tests|Stopper position checks}}) are required
+          throughout manufacturing.
+      - id: n1
+        kind: note
+        text: >-
+          The longest time allowed from the end of thaw to the last unit filled and stoppered and the product placed in
+          refrigerated storage is given in the overall process parameters section. The filled units are protected from light while
+          in refrigerated storage, as described in the formulation and manufacturing precautions section. The sterile bulk may be
+          held for up to {{uo.aseptic_filling.param.max_filtered_hold.max|Filtered bulk hold time}} before filling is complete.
+      - id: interventions
+        kind: paragraph
+        text: >-
+          No more than {{uo.aseptic_filling.param.max_interventions.max|Maximum interventions per batch}} interventions are
+          permitted per batch, and every intervention is recorded and is covered by the media fill program.
+        optional:
+          condition: include to limit interventions
+      - id: headspace
+        kind: paragraph
+        text: >-
+          The headspace or air bubble after stopper placement is not more than
+          {{uo.aseptic_filling.param.max_headspace.max|Headspace or bubble size}}.
+        optional:
+          condition: include to state the headspace limit
+  - id: wu_aseptic_filling_stopper_placement
+    version: 1
+    kind: unitOp
+    key: aseptic_filling
+    title: Plunger stopper placement in prefilled syringes and cartridges
+    appliesWhen: scope.presentation is prefilled syringe or cartridge
+    autoAdd: false
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          The plunger stopper is placed into the filled barrel by
+          {{uo.aseptic_filling.equip.stopper_placement_unit.operatingPrinciple|Stopper placement method}}. Placement sets the
+          headspace or air bubble, the dose accuracy and the position of the stopper relative to the plunger rod or the device.
+          The stopper position is measured from the top of the barrel flange down to the back of the stopper and its tolerance is
+          stated in the stopper position section.
+      - id: vacuum
+        kind: paragraph
+        text: >-
+          Vacuum-assisted placement is required for this program because of the stopper coating. The vacuum level is set and
+          recorded for each batch.
+        optional:
+          condition: include if vacuum-assisted placement is used
+      - id: generic
+        kind: paragraph
+        text: >-
+          The placement unit is set up and checked before filling starts. The stopper path is protected by Grade A air and the
+          stopper travels only over barrel surface that is within the aseptic zone. Stopper position is checked on samples or by
+          camera as stated above. Stoppers that are out of position are rejected and recorded.
+        optional:
+          condition: include for generic placement controls
+  - id: wu_stoppering
+    version: 1
+    kind: unitOp
+    key: stoppering
+    title: Stoppering (stand-alone)
+    appliesWhen: scope.dosage_form is lyophilized
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          Stoppers are placed as a separate operation from filling: {{uo.stoppering.equip.stoppering_unit.type|Partial or full
+          insertion}} by {{uo.stoppering.equip.stoppering_unit.operatingPrinciple|Stopper placement method}}. The stoppers are
+          {{uo.stoppering.mat.stopper.type|Stopper preparation}} and {{uo.stoppering.mat.stopper.siliconization|Siliconization}}.
+      - id: p2
+        kind: paragraph
+        text: >-
+          Where partially stoppered vials wait before the next step, they may remain partially stoppered for no more than
+          {{uo.stoppering.param.max_open_time.max|Maximum open time}}. Stopper placement is checked with
+          {{uo.stoppering.ipc.placement_check.tests|Placement checks}}, and the process is covered by the aseptic process
+          simulation program.
+      - id: n1
+        kind: note
+        text: Partially stoppered vials remain in the Grade A zone until they are fully closed.
+  - id: wu_lyophilization
+    version: 1
+    kind: unitOp
+    key: lyophilization
+    title: Lyophilization
+    appliesWhen: scope.dosage_form is lyophilized
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          The partially stoppered vials are loaded into the lyophilizer by
+          {{uo.lyophilization.equip.loading_system.operatingPrinciple|Loading method}}. The freeze-drying cycle runs in three
+          stages: freezing at a shelf temperature of {{uo.lyophilization.param.freeze_shelf_temp.setPoint|Freezing shelf
+          temperature}} (nucleation: {{uo.lyophilization.equip.lyophilizer.nucleation|Freezing nucleation}}), primary drying at
+          {{uo.lyophilization.param.primary_shelf_temp.setPoint|Primary drying shelf temperature}} and
+          {{uo.lyophilization.param.primary_pressure.setPoint|Primary drying chamber pressure}}, and secondary drying at
+          {{uo.lyophilization.param.secondary_shelf_temp.setPoint|Secondary drying shelf temperature}} for
+          {{uo.lyophilization.param.secondary_time.setPoint|Secondary drying time}}. The total cycle time is no more than
+          {{uo.lyophilization.param.total_cycle_time.max|Total cycle time}}.
+      - id: p2
+        kind: paragraph
+        text: >-
+          At the end of the cycle the vials are closed {{uo.lyophilization.equip.lyophilizer.closure|Closure approach}} with
+          {{uo.lyophilization.mat.backfill_gas.type|Backfill gas}} as backfill gas, then unloaded in the aseptic zone.
+      - id: p3
+        kind: paragraph
+        text: >-
+          The residual moisture of the lyophilized product is determined by
+          {{uo.lyophilization.ipc.residual_moisture.tests|Residual moisture method}} and does not exceed
+          {{uo.lyophilization.ipc.residual_moisture.limit|Residual moisture limit}}. The cycle is monitored with
+          {{uo.lyophilization.ipc.cycle_monitoring.tests|Cycle monitoring}}.
+      - id: n1
+        kind: note
+        text: Loading and unloading take place in the aseptic zone and are covered by the aseptic process simulation program.
+      - id: n2
+        kind: note
+        text: Any deviation from the validated cycle is investigated before the product is released for the next step.
+  - id: wu_capping
+    version: 1
+    kind: unitOp
+    key: capping
+    title: Capping and crimping
+    appliesWhen: scope.presentation is vial
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          Filled and stoppered vials are fitted with an aluminium seal ({{uo.capping.mat.seal.partNumber|Seal part number}}) and
+          crimped with {{uo.capping.equip.capper.operatingPrinciple|Capping principle}}. Capping is done
+          {{uo.capping.equip.capper.type|Capping environment}}. The residual seal force is
+          {{uo.capping.param.rsf.setPoint|Residual seal force}}.
+      - id: p2
+        kind: paragraph
+        text: >-
+          In-process capping controls are {{uo.capping.ipc.panel.tests|Capping in-process controls}}. Vials with a missing,
+          damaged or poorly crimped seal are rejected and recorded. Container closure integrity of the capped vial is supported by
+          the container closure integrity testing program.
+      - id: n1
+        kind: note
+        text: >-
+          Capping parts are cleaned or sterilized according to the equipment procedure, and the capping area is protected from
+          particles so that it does not affect the aseptic zone.
+  - id: wu_visual_inspection
+    version: 1
+    kind: unitOp
+    key: visual_inspection
+    title: Inspection
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          The final drug product may be inspected manually, semi-automatically or automatically:
+          {{uo.visual_inspection.equip.inspection.operatingPrinciple|Inspection method}}. Where an automated inspection recipe is
+          used, it is specifically developed and validated for this product. The receiving unit is responsible for 100 percent
+          visual inspection in line with the pharmacopoeial chapters on visible particulates in injections (for example USP <790>
+          and <1790>). Defect classes inspected: {{uo.visual_inspection.ipc.defects.tests|Defect classes}}; acceptance quality
+          limit plan: {{uo.visual_inspection.ipc.aql.frequency|Sampling plan}}.
+      - id: p2
+        kind: paragraph
+        text: >-
+          Where supplemental testing of 100 percent visually inspected units is needed (for example when a product is difficult to
+          inspect), the receiving unit, or a qualified laboratory, selects a small sample of units and inspects them for visible
+          particulates under the same pharmacopoeial chapters.
+      - id: n1
+        kind: note
+        text: >-
+          The longest time allowed for inspection is given in the overall process parameters section
+          ({{trd.visual_inspection.maxInspectionTime|Maximum inspection time}}).
+      - id: n2
+        kind: note
+        text: >-
+          Include a reference that summarizes known visual inspection artefacts that are not product-quality related, for the
+          device component and the filled drug product ({{trd.visual_inspection.artifactReference|Reference to the summary of
+          known artefacts}}).
+      - id: rate
+        kind: paragraph
+        text: >-
+          Inspection rate is {{uo.visual_inspection.param.inspection_rate.setPoint|Inspection rate}} and the reject rate is
+          monitored against a limit of {{uo.visual_inspection.ipc.reject_rate.limit|Reject rate limit}}. Inspectors are qualified
+          before they inspect, using {{uo.visual_inspection.mat.defect_library.type|Defect library}}.
+        optional:
+          condition: include to state inspection rate and reject monitoring
+  - id: wu_bulk_packaging
+    version: 1
+    kind: unitOp
+    key: bulk_packaging
+    title: Bulk packaging
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          Inspected units are packed into {{uo.bulk_packaging.mat.bulk_container.type|Bulk container type}} with
+          {{uo.bulk_packaging.mat.bulk_container.unitsPerContainer|Units per container}} units each, closed with
+          {{uo.bulk_packaging.mat.bulk_container.seal|Seal or closure}}. The packed bulk is stored at
+          {{uo.bulk_packaging.mat.bulk_product.storageCondition|Bulk storage condition}} and held for no more than
+          {{uo.bulk_packaging.param.max_hold_time.max|Bulk hold time}}. The time out of refrigeration during bulk packing is no
+          more than {{uo.bulk_packaging.param.max_time_out_of_refrigeration.max|Maximum time out of refrigeration during bulk
+          packing}}.
+      - id: p2
+        kind: paragraph
+        text: >-
+          The assembled bulk packaging configuration for the {{uo.aseptic_filling.mat.container.format|Container format or size}}
+          presentation is listed in the table below, with each component, its distributor and the manufacturer's part number. A
+          second table lists the release and stability sample packaging configuration. Rows and columns can be added or deleted as
+          needed.
+      - id: table
+        kind: table
+        text: ''
+        columns:
+          - Component
+          - Distributor
+          - Manufacturer part number
+      - id: n1
+        kind: note
+        text: The longest time allowed for bulk packaging is given in the overall process parameters section.
+      - id: checks
+        kind: paragraph
+        text: >-
+          Each bulk container is labelled with {{uo.bulk_packaging.ipc.bulk_identity.tests|Identity labelling}}. Inspected and
+          packed units are reconciled ({{uo.bulk_packaging.ipc.bulk_reconciliation.description|Reconciliation approach}}). The
+          container is checked by {{uo.bulk_packaging.ipc.container_integrity.tests|Integrity checks}}, and the packed bulk is
+          checked against {{uo.bulk_packaging.ipc.bulk_aql.frequency|Sampling plan}}.
+        optional:
+          condition: include to state counts and container checks
+  - id: wu_labeling_packaging
+    version: 1
+    kind: unitOp
+    key: labeling_packaging
+    title: Tray and shipper labelling and packaging
+    appliesWhen: Leave out when labelling is done at another site (site.labellingLocation = another site)
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          The receiving unit performs the labelling and packaging required by the sending unit. The labelling and packaging
+          configuration is supplied by the sending unit as part of the technology transfer. Labelling and secondary packaging take
+          place {{site.labellingLocation|Labelling location}}.
+      - id: temperature
+        kind: note
+        text: Update the storage temperature to the one that applies to this program.
+        optional:
+          condition: include if refrigerated storage at 2 to 8 degrees Celsius is not used
+      - id: detail
+        kind: paragraph
+        text: >-
+          Labels are applied by {{uo.labeling_packaging.equip.labeler.operatingPrinciple|Labelling method}} at
+          {{uo.labeling_packaging.param.labeling_speed.setPoint|Labelling speed}}. Serialization:
+          {{uo.labeling_packaging.equip.serialization.type|Serialization level}}. Secondary packaging is
+          {{uo.labeling_packaging.mat.secondary_pack.format|Pack configuration}}. Labels are reconciled
+          ({{uo.labeling_packaging.ipc.label_reconciliation.frequency|Label reconciliation}}) and checked for
+          {{uo.labeling_packaging.ipc.label_checks.tests|Label checks}}, in line with the labelling and production record
+          expectations of 21 CFR Part 211. The time out of refrigeration during packaging is no more than
+          {{uo.labeling_packaging.param.max_time_out_of_refrigeration.max|Maximum time out of refrigeration during packaging}}.
+        optional:
+          condition: include for labelling line detail
+      - id: other_site
+        kind: paragraph
+        text: Labelling and secondary packaging are done at {{site.labellingSite|Labelling site}} and are outside this document.
+        optional:
+          condition: include if labelling is done at another site
+  - id: wu_storage_shipping
+    version: 1
+    kind: unitOp
+    key: storage_shipping
+    title: Storage and shipping from the fill site
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          The product is stored at {{uo.storage_shipping.mat.drug_product.storageCondition|Storage condition}} in
+          {{uo.storage_shipping.equip.storage_unit.operatingPrinciple|Storage equipment}}. The product is always kept at this
+          temperature, apart from the time needed for inspection and packaging. Filled units are protected from light when stored
+          in refrigerated storage, as described in the formulation and manufacturing precautions section. Storage temperature is
+          monitored with {{uo.storage_shipping.ipc.storage_monitoring.tests|Storage monitoring}}.
+      - id: p2
+        kind: paragraph
+        text: >-
+          {{uo.storage_shipping.mat.shipped_product.form|Form shipped}} is shipped to
+          {{uo.storage_shipping.doc.shipping_lane.destination|Destination}} on the lane
+          {{uo.storage_shipping.doc.shipping_lane.name|Shipping lane}} by {{uo.storage_shipping.doc.shipping_lane.modes|Transport
+          modes}} in {{uo.storage_shipping.equip.shipper.operatingPrinciple|Shipper configuration}}. Maximum transit time is
+          {{uo.storage_shipping.param.max_transit_time.max|Maximum transit time}}, and temperature excursions are limited to
+          {{uo.storage_shipping.param.excursion_allowance.max|Excursion allowance}}. Shipping temperature is monitored with
+          {{uo.storage_shipping.ipc.shipping_monitoring.tests|Shipping monitoring}}.
+      - id: temperature
+        kind: note
+        text: Update the storage temperature to the one that applies to this program.
+        optional:
+          condition: include if refrigerated storage at 2 to 8 degrees Celsius is not used

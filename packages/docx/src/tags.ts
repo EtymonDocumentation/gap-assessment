@@ -277,7 +277,7 @@ export const RISK_SECTION_IDS: readonly string[] = ["purpose-scope", "method", "
  * "step-TS-nn" that depend on the TRD, so they are reachable with {@body} and with their own tag (section_step_TS_01), which the
  * renderer makes for every section of the document; they are not listed here because their number is not fixed.
  */
-export const TRD_SECTION_IDS: readonly string[] = ["product", "site", "overview", "par-nor", "overrides"];
+export const TRD_SECTION_IDS: readonly string[] = ["product", "site", "overview", "manufacturing-overview", "par-nor", "overrides", "writeup-values"];
 
 /**
  * Fixed section ids of the master batch record that no other document has ("open-items" and "versions" are shared). The unit-operation

@@ -28,6 +28,10 @@
   --c-removed: #8a3a5c;
   --c-info: #8a6d00;
   --provisional: #7a5c00;
+  /* Open blanks of the TRD process descriptions: blue with a dotted underline and the label in square brackets (not colour alone). */
+  --blank-bg: #dbe8ff;
+  --blank-text: #0b3a8a;
+  --blank-fill-bg: #e6f3e8;
 
   --radius: 8px;
   /* Compact spacing: tighter than before, text sizes unchanged (not below 13px). */
@@ -67,6 +71,9 @@
     --c-removed: #f09ac0;
     --c-info: #e6c84d;
   --provisional: #f0d46a;
+    --blank-bg: #1d3a63;
+    --blank-text: #cfe3ff;
+    --blank-fill-bg: #1f3a28;
   }
 }
 
@@ -96,6 +103,9 @@
   --c-removed: #f09ac0;
   --c-info: #e6c84d;
   --provisional: #f0d46a;
+  --blank-bg: #1d3a63;
+  --blank-text: #cfe3ff;
+  --blank-fill-bg: #1f3a28;
 }
 
 *,
@@ -3014,3 +3024,26 @@ tr.row-hl > td {
     flex-direction: column;
   }
 }
+
+/* ---- TRD process descriptions (M9.1) ---- */
+.twu-part { display: grid; gap: 6px; padding: 8px 0; border-top: 1px solid var(--border); }
+.twu-part:first-child { border-top: 0; }
+.twu-kind { font-size: 0.8125rem; color: var(--muted); }
+.twu-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.twu-text.twu-note { font-style: italic; border-left: 3px solid var(--border); padding-left: 8px; }
+.twu-text.twu-step::before { content: attr(data-letter) ". "; font-weight: 600; }
+.twu-text.twu-bullet::before { content: "- "; }
+.twu-head { font-weight: 700; margin: 0; }
+.blank-open,
+.blank-filled { padding: 0 3px; border-radius: 3px; }
+/* Open: blue, dotted underline AND the label in brackets, so the gap shows without colour. */
+.blank-open { background: var(--blank-bg); color: var(--blank-text); border-bottom: 2px dotted var(--blank-text); }
+/* Filled: shown as the value, with a solid underline; the source is named beside the blank, not hidden. */
+.blank-filled { background: var(--blank-fill-bg); border-bottom: 2px solid var(--ok); }
+.twu-blanks { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.twu-blank { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: flex-end; }
+.twu-blank .field { flex: 1 1 14rem; }
+.twu-state { font-weight: 600; font-size: 0.8125rem; }
+.twu-diff { border-left: 4px solid var(--accent); padding: 6px 10px; background: var(--accent-soft); }
+.twu-head-row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; }
+.twu-toggle { min-height: 24px; min-width: 24px; }

@@ -33,6 +33,7 @@ import { fileRoutes } from "./routes/files";
 import { myFilesRoutes } from "./routes/myfiles";
 import { projectRoutes } from "./routes/projects";
 import { mbrBlockRoutes } from "./routes/mbr-blocks";
+import { trdWriteupRoutes } from "./routes/trd-writeups";
 import { riskMethodRoutes } from "./routes/risk-methods";
 import { samplingTableRoutes } from "./routes/sampling-tables";
 import { subsectionRoutes } from "./routes/subsections";
@@ -75,7 +76,7 @@ export interface RunningServer {
   close(): Promise<void>;
 }
 
-const routes: Route[] = [...authRoutes, ...projectRoutes, ...templateRoutes, ...samplingTableRoutes, ...riskMethodRoutes, ...mbrBlockRoutes, ...subsectionRoutes, ...fileRoutes, ...myFilesRoutes];
+const routes: Route[] = [...authRoutes, ...projectRoutes, ...templateRoutes, ...samplingTableRoutes, ...riskMethodRoutes, ...mbrBlockRoutes, ...trdWriteupRoutes, ...subsectionRoutes, ...fileRoutes, ...myFilesRoutes];
 const HOUR_MS = 60 * 60 * 1000;
 const MINUTE_MS = 60 * 1000;
 const WINDOW_15_MIN = 15 * 60 * 1000;

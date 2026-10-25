@@ -11,9 +11,10 @@ import { FieldRow } from "./TrdFieldRow";
 import { TrdOutput } from "./TrdOutput";
 import { TrdSteps } from "./TrdSteps";
 import { TrdUpdate } from "./TrdUpdate";
+import { TrdWriteups } from "./TrdWriteups";
 
-export type TrdTab = "details" | "process" | "open" | "output";
-const TAB_LABEL: Record<TrdTab, string> = { details: "1. Details", process: "2. Process", open: "3. Open items", output: "4. Output" };
+export type TrdTab = "details" | "process" | "writeups" | "open" | "output";
+const TAB_LABEL: Record<TrdTab, string> = { details: "1. Details", process: "2. Process", writeups: "3. Descriptions", open: "4. Open items", output: "5. Output" };
 export const TRD_TABS = Object.keys(TAB_LABEL) as TrdTab[];
 
 /** What the page and the document both carry: what the tool does and what it leaves to people. */
@@ -74,6 +75,7 @@ export function TrdEditor({ d, initialTab }: { d: TrdDocument; initialTab: TrdTa
 
       {tab === "details" && <Details d={d} run={run} />}
       {tab === "process" && <TrdSteps d={d} run={run} />}
+      {tab === "writeups" && <TrdWriteups d={d} run={run} />}
       {tab === "open" && <OpenItems d={d} open={open} />}
       {tab === "output" && <TrdOutput d={d} run={run} />}
 

@@ -478,6 +478,14 @@ const MIGRATIONS: { from: string; to: string; migrate: Migrate }[] = [
     to: "1.18.0",
     migrate: (raw) => ({ ...raw, schemaVersion: "1.18.0", mbr: raw.mbr ?? { records: [] } }),
   },
+  // 1.18.0 -> 1.19.0: TRD format 1.1.0. A TRD may carry write-ups (process descriptions per step and TRD-level prose). All of it is
+  // optional and absent from every stored TRD, which is exactly what they were, so no data changes; only the version moves. An old
+  // TRD exports as it always did and never gains text on its own.
+  {
+    from: "1.18.0",
+    to: "1.19.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.19.0" }),
+  },
 ];
 
 /**
