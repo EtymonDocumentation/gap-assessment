@@ -150,7 +150,7 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
       if (b.samples.length) {
         blocks.push({
           type: "table",
-          columns: ["Sample", "Test", "Step", "Quantity", "Container", "Storage", "Hour", "Hold", "Result"],
+          columns: ["Sample", "Test", "Step", "Quantity", "Container", "Storage", "Moment in the process", "Hold", "Result"],
           rows: b.samples.map((x) => [x.pointId, x.test, x.step ?? "", x.quantity ?? "", x.container ?? "", x.storage ?? "", x.hour ?? "", x.hold ?? "", CMO_PLACEHOLDER]),
           caption: "Samples (from the sampling plan)",
         });

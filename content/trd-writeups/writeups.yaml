@@ -220,7 +220,7 @@ writeups:
         optional:
           condition: include to state the manufacturing temperature condition
   - id: sec_dilution_buffer
-    version: 2
+    version: 3
     kind: section
     key: dilution_buffer
     title: Dilution buffer
@@ -268,8 +268,9 @@ writeups:
       - id: excipient_solution_n1
         kind: note
         text: >-
-          The calculated quantity is based on an example target amount that can be adjusted to the receiving unit's needs. Mix
-          with a gentle vortex until the excipient has visibly dissolved. Avoid splashing and foaming.
+          This calculation is for an estimated batch. The receiving unit is free to change the amounts to fit its manufacturing
+          constraints, as long as the same ratios (the formula) are followed. Mix with a gentle vortex until the excipient has
+          visibly dissolved. Avoid splashing and foaming.
       - id: formulation
         kind: subsection
         title: Dilution buffer (diluent) formulation
@@ -294,13 +295,94 @@ writeups:
       - id: formulation_n3
         kind: note
         text: >-
-          The calculated quantity is based on an example target amount that can be adjusted to the receiving unit's needs. Mix
-          with a gentle vortex until the excipient has visibly dissolved. Avoid splashing and foaming.
+          This calculation is for an estimated batch. The receiving unit is free to change the amounts to fit its manufacturing
+          constraints, as long as the same ratios (the formula) are followed. Mix with a gentle vortex until the excipient has
+          visibly dissolved. Avoid splashing and foaming.
     notApplicable:
       condition: >-
         include only when dilution is performed at the receiving unit (otherwise mark not applicable and state where dilution is
         performed)
       text: 'Not applicable: dilution is performed at {{trd.dilutionBuffer.dilutionSite|Site where dilution is performed}}.'
+    history:
+      - version: 2
+        title: Dilution buffer
+        appliesWhen: >-
+          include only when dilution is performed at the receiving unit (otherwise mark not applicable and state where dilution is
+          performed)
+        parts:
+          - id: p1
+            kind: paragraph
+            text: >-
+              This section describes the buffer used to dilute the formulated drug substance and the excipient solutions prepared
+              ahead of it. The detailed preparation of the buffer is described under the buffer preparation unit operation.
+          - id: excipient_assessment
+            kind: subsection
+            title: Excipient assessment
+            text: ''
+          - id: excipient_assessment_p2
+            kind: paragraph
+            text: >-
+              To support the evaluation of every excipient needed for buffer preparation, the sending unit works with the responsible
+              counterpart at the receiving unit to carry out an excipient assessment before production when dilution is performed at
+              the receiving unit, as set out in {{trd.dilutionBuffer.assessmentProcedure|Procedure or agreement that governs the
+              assessment}}.
+          - id: excipient_assessment_p3
+            kind: paragraph
+            text: The approved excipient assessment is {{trd.dilutionBuffer.assessmentDocument|Excipient assessment document reference}}.
+          - id: excipient_solution
+            kind: subsection
+            title: Excipient solution for the dilution buffer
+            text: ''
+          - id: excipient_solution_p4
+            kind: paragraph
+            text: >-
+              To support formulation of the required buffer, the receiving unit {{trd.dilutionBuffer.preDilutionNeeded|will / will
+              not}} need to prepare a solution of one or more excipients before adding them to the buffer. The table lists any
+              excipients that must be mixed into a solution before the buffer (diluent) is added.
+          - id: excipient_solution_table
+            kind: table
+            text: ''
+            columns:
+              - Component
+              - Material name
+              - Composition (% w/w or % w/v)
+              - Calculated quantity for the target total solution amount
+          - id: excipient_solution_n1
+            kind: note
+            text: >-
+              The calculated quantity is based on an example target amount that can be adjusted to the receiving unit's needs. Mix
+              with a gentle vortex until the excipient has visibly dissolved. Avoid splashing and foaming.
+          - id: formulation
+            kind: subsection
+            title: Dilution buffer (diluent) formulation
+            text: ''
+          - id: formulation_p5
+            kind: paragraph
+            text: >-
+              To formulate the required buffer, the receiving unit adds each component below within
+              {{trd.dilutionBuffer.additionTolerance|Tolerance range}} of the target weight, in the order shown.
+          - id: formulation_table
+            kind: table
+            text: ''
+            columns:
+              - Component
+              - Material name
+              - Composition (g/kg, g/L or other unit)
+              - Calculated quantity for the target buffer amount
+          - id: formulation_n2
+            kind: note
+            text: >-
+              Every excipient must be visibly dissolved before the next manufacturing step starts.
+          - id: formulation_n3
+            kind: note
+            text: >-
+              The calculated quantity is based on an example target amount that can be adjusted to the receiving unit's needs. Mix
+              with a gentle vortex until the excipient has visibly dissolved. Avoid splashing and foaming.
+        notApplicable:
+          condition: >-
+            include only when dilution is performed at the receiving unit (otherwise mark not applicable and state where dilution is
+            performed)
+          text: 'Not applicable: dilution is performed at {{trd.dilutionBuffer.dilutionSite|Site where dilution is performed}}.'
   - id: sec_process_parameters
     version: 3
     kind: section
