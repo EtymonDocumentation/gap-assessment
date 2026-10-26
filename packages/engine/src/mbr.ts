@@ -202,7 +202,10 @@ export type SampleFields = Pick<MbrSampleRow, "test" | "step" | "quantity" | "co
 export function sampleFieldsOf(plan: SamplingPlan, p: SamplingPoint): SampleFields {
   const step = p.flow ? plan.steps.find((s) => s.id === p.flow!.stepId)?.label : undefined;
   const hold = p.flow?.holdId ? (plan.holds ?? []).find((h) => h.id === p.flow!.holdId)?.label : undefined;
-  const q = p.quantity ? `${p.quantity.value} ${p.quantity.unit}` : undefined;
+  // "2 x 10 mL": a sample is often a set of identical containers (the sample and its backup), and the batch record must tell the
+  // sampler how many to fill, not only how much one holds.
+  const per = p.quantity ? `${p.quantity.value} ${p.quantity.unit}` : undefined;
+  const q = per && (p.containerUnitsPerSample ?? 1) > 1 ? `${p.containerUnitsPerSample} × ${per}` : per;
   return clean({
     test: text(p.attribute) || text(p.typeLabel) || p.type || p.id,
     step,

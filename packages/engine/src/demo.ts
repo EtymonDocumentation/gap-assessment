@@ -100,6 +100,8 @@ const samplingDemoSchema = z.object({
           originFrom: z.string().optional(),
           /** Identifiers of demo documents the point cites as sources. */
           docs: z.array(z.string()).default([]),
+          /** Labels of the plan's batches the point applies to (a point left out of this list applies to all batches). The plan assigns the B-### ids. */
+          appliesTo: z.array(z.string()).optional(),
           patch: z.record(z.string(), z.unknown()).default({}),
         }),
       ),
@@ -365,7 +367,12 @@ function applySamplingDemo(project: Project, content: ContentBundle, s: z.infer<
   for (const pl of s.plans) {
     const created = createPlan(project, { title: pl.title, ...(pl.notes ? { notes: pl.notes } : {}) }, who);
     project = updatePlan(created.project, created.planId, { batchRationale: pl.batchRationale }, who);
-    for (const b of pl.batches) project = addBatch(project, created.planId, b, who).project;
+    const batchIds = new Map<string, string>();
+    for (const b of pl.batches) {
+      const added = addBatch(project, created.planId, b, who);
+      project = added.project;
+      batchIds.set(b.label, added.batchId);
+    }
     if (pl.parties.length) project = setParties(project, created.planId, pl.parties, who);
     const stepIds = new Map<string, string>();
     for (const st of pl.steps) {
@@ -437,6 +444,13 @@ function applySamplingDemo(project: Project, content: ContentBundle, s: z.infer<
           const s = project.sources.find((x) => x.docRef?.identifier === id);
           if (!s) throw new Error(`Demo sampling: document ${id} is not a source of the demo project`);
           return s.id;
+        });
+      }
+      if (pt.appliesTo) {
+        patch.appliesTo = pt.appliesTo.map((label) => {
+          const id = batchIds.get(label);
+          if (!id) throw new Error(`Demo sampling: unknown batch ${label}`);
+          return id;
         });
       }
       if (pt.table) {

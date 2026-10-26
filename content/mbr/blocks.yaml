@@ -384,16 +384,16 @@ blocks:
     cmoFields: [Capping machine ID, Cap lot, Units capped, Results, Signature and date]
 
   - id: visual_inspection_run
-    version: 2
+    version: 3
     title: Visual inspection
     unitOps: [visual_inspection]
     steps:
       - "Record the inspection method and the inspector identification: {method}, {inspector IDs}."
-      - "Record the time the units leave refrigerated storage for inspection: {out time}."
+      - "Record the time this portion leaves refrigerated storage for inspection, before it is handled: {portion ID}, {out time}."
       - "Inspect all units at the rate shown in the table below, for the defect classes shown there. Record the start and end of inspection: {start}, {end}."
       - "Record the number of accepted and rejected units and the defects found: {accepted}, {rejected}, {defects found}."
       - "Apply the sampling check to the accepted units and record the result: {sample size}, {result}."
-      - "Record the time the units return to refrigerated storage: {return time}."
+      - "Record the time this portion returns to refrigerated storage: {portion ID}, {return time}."
     params:
       - { key: inspection_rate, label: Inspection rate, collection: param, itemKey: inspection_rate, field: setPoint }
       - { key: inspection_rate_range, label: Inspection rate range, collection: param, itemKey: inspection_rate, field: nor }
@@ -421,18 +421,38 @@ blocks:
         timeLimits: []
         sampleTypes: []
         cmoFields: [Inspector IDs and qualification, Inspection equipment ID, Counts, Results, Signature and date]
+      - version: 2
+        title: Visual inspection
+        unitOps: [visual_inspection]
+        steps:
+          - "Record the inspection method and the inspector identification: {method}, {inspector IDs}."
+          - "Record the time the units leave refrigerated storage for inspection: {out time}."
+          - "Inspect all units at the rate shown in the table below, for the defect classes shown there. Record the start and end of inspection: {start}, {end}."
+          - "Record the number of accepted and rejected units and the defects found: {accepted}, {rejected}, {defects found}."
+          - "Apply the sampling check to the accepted units and record the result: {sample size}, {result}."
+          - "Record the time the units return to refrigerated storage: {return time}."
+        params:
+          - { key: inspection_rate, label: Inspection rate, collection: param, itemKey: inspection_rate, field: setPoint }
+          - { key: inspection_rate_range, label: Inspection rate range, collection: param, itemKey: inspection_rate, field: nor }
+          - { key: defect_classes, label: Defect classes inspected, collection: ipc, itemKey: defects, field: tests }
+          - { key: aql, label: Sampling check of accepted units, collection: ipc, itemKey: aql, field: frequency }
+          - { key: reject_rate, label: Reject rate monitoring, collection: ipc, itemKey: reject_rate, field: limit }
+        timeLimits:
+          - { key: out_of_refrigeration, label: Maximum time out of refrigeration during inspection, collection: param, itemKey: max_time_out_of_refrigeration, field: max }
+        sampleTypes: []
+        cmoFields: [Inspector IDs and qualification, Inspection equipment ID, Times out of and back in refrigerated storage, Counts, Results, Signature and date]
 
   - id: bulk_packing
-    version: 2
+    version: 3
     title: Bulk packaging
     unitOps: [bulk_packaging]
     steps:
       - "Check the line clearance of the packing area and record it: {line clearance form number}."
-      - "Record the time the units leave refrigerated storage for packing, before they are handled: {out time}."
+      - "Record the time this portion leaves refrigerated storage for packing, before it is handled: {portion ID}, {out time}."
       - "Pack the accepted units into the bulk containers and record the container identification and the number of units in each: {container ID}, {units}."
       - "Label each bulk container as shown in the table below and record the label check: {label check}."
       - "Check each bulk container as shown in the table below and record the result: {check result}."
-      - "Record the time the units return to refrigerated storage: {return time}."
+      - "Record the time this portion returns to refrigerated storage: {portion ID}, {return time}."
     params:
       - { key: bulk_identity, label: Bulk container identity labelling, collection: ipc, itemKey: bulk_identity, field: tests }
       - { key: container_integrity, label: Bulk container integrity check, collection: ipc, itemKey: container_integrity, field: tests }
@@ -458,6 +478,25 @@ blocks:
           - { key: out_of_refrigeration, label: Maximum time out of refrigeration during bulk packing, collection: param, itemKey: max_time_out_of_refrigeration, field: max }
         sampleTypes: []
         cmoFields: [Bulk container IDs, Label stock reference, Units per container, Signature and date]
+      - version: 2
+        title: Bulk packaging
+        unitOps: [bulk_packaging]
+        steps:
+          - "Check the line clearance of the packing area and record it: {line clearance form number}."
+          - "Record the time the units leave refrigerated storage for packing, before they are handled: {out time}."
+          - "Pack the accepted units into the bulk containers and record the container identification and the number of units in each: {container ID}, {units}."
+          - "Label each bulk container as shown in the table below and record the label check: {label check}."
+          - "Check each bulk container as shown in the table below and record the result: {check result}."
+          - "Record the time the units return to refrigerated storage: {return time}."
+        params:
+          - { key: bulk_identity, label: Bulk container identity labelling, collection: ipc, itemKey: bulk_identity, field: tests }
+          - { key: container_integrity, label: Bulk container integrity check, collection: ipc, itemKey: container_integrity, field: tests }
+          - { key: bulk_aql, label: Check of the packed bulk, collection: ipc, itemKey: bulk_aql, field: frequency }
+        timeLimits:
+          - { key: bulk_hold, label: Bulk hold time, collection: param, itemKey: max_hold_time, field: max }
+          - { key: out_of_refrigeration, label: Maximum time out of refrigeration during bulk packing, collection: param, itemKey: max_time_out_of_refrigeration, field: max }
+        sampleTypes: []
+        cmoFields: [Bulk container IDs, Label stock reference, Units per container, Times out of and back in refrigerated storage, Signature and date]
 
   - id: reconciliation_chain
     version: 1
@@ -474,16 +513,16 @@ blocks:
     cmoFields: [All unit counts, Calculated result, Investigation number, Signature and date]
 
   - id: labeling_run
-    version: 2
+    version: 3
     title: Labelling and packaging
     unitOps: [labeling_packaging]
     steps:
       - "Check the line clearance of the labelling area and record it: {line clearance form number}."
       - "Record the label and carton lots and the quantity issued: {label lot}, {carton lot}, {quantity issued}."
-      - "Record the time the units leave refrigerated storage for labelling and packaging, before they are handled: {out time}."
+      - "Record the time this portion leaves refrigerated storage for labelling and packaging, before it is handled: {portion ID}, {out time}."
       - "Run the label and print checks and record the results: {check time}, {result}."
       - "Reconcile the labels: issued, used, destroyed, returned. Record the result: {issued}, {used}, {destroyed}, {returned}."
-      - "Record the time the units return to refrigerated storage: {return time}."
+      - "Record the time this portion returns to refrigerated storage: {portion ID}, {return time}."
     params:
       - { key: labeling_speed, label: Labelling speed, collection: param, itemKey: labeling_speed, field: setPoint }
       - { key: labeling_speed_range, label: Labelling speed range, collection: param, itemKey: labeling_speed, field: nor }
@@ -511,20 +550,52 @@ blocks:
           - { key: out_of_refrigeration, label: Maximum time out of refrigeration during packaging, collection: param, itemKey: max_time_out_of_refrigeration, field: max }
         sampleTypes: []
         cmoFields: [Label and carton lots, Quantities, Printer ID, Reconciliation counts, Signature and date]
+      - version: 2
+        title: Labelling and packaging
+        unitOps: [labeling_packaging]
+        steps:
+          - "Check the line clearance of the labelling area and record it: {line clearance form number}."
+          - "Record the label and carton lots and the quantity issued: {label lot}, {carton lot}, {quantity issued}."
+          - "Record the time the units leave refrigerated storage for labelling and packaging, before they are handled: {out time}."
+          - "Run the label and print checks and record the results: {check time}, {result}."
+          - "Reconcile the labels: issued, used, destroyed, returned. Record the result: {issued}, {used}, {destroyed}, {returned}."
+          - "Record the time the units return to refrigerated storage: {return time}."
+        params:
+          - { key: labeling_speed, label: Labelling speed, collection: param, itemKey: labeling_speed, field: setPoint }
+          - { key: labeling_speed_range, label: Labelling speed range, collection: param, itemKey: labeling_speed, field: nor }
+          - { key: label_checks, label: Label and print checks, collection: ipc, itemKey: label_checks, field: tests }
+          - { key: label_reconciliation, label: Label reconciliation, collection: ipc, itemKey: label_reconciliation, field: frequency }
+        timeLimits:
+          - { key: out_of_refrigeration, label: Maximum time out of refrigeration during packaging, collection: param, itemKey: max_time_out_of_refrigeration, field: max }
+        sampleTypes: []
+        cmoFields: [Label and carton lots, Quantities, Printer ID, Reconciliation counts, Times out of and back in refrigerated storage, Signature and date]
 
   - id: time_out_of_refrigeration_total
-    version: 1
+    version: 2
     title: Total time out of refrigeration
     unitOps: [storage_shipping]
     steps:
-      - "The total counts from the start of filling until the units are back in refrigerated storage. Record, for each stage listed under the critical limit in the table below, the time the units leave refrigerated storage and the time they return, and the time spent out of refrigeration in that stage: {out time}, {return time}, {stage time}."
-      - "Add up the stage times and record the total against the critical limit shown in the table below: {total time}."
+      - "The total is tracked for each portion of the batch separately and counts from the start of filling of that portion until its units are back in refrigerated storage. Record, for each portion and for each stage listed under the critical limit in the table below, the time the units leave refrigerated storage and the time they return, and the time spent out of refrigeration in that stage: {portion ID}, {out time}, {return time}, {stage time}."
+      - "Add up the stage times of each portion and record the total against the critical limit shown in the table below: {portion ID}, {total time}."
     params: []
     timeLimits:
       - { key: total_out_of_refrigeration, label: Maximum total time out of refrigeration, collection: param, itemKey: max_total_time_out_of_refrigeration, field: max }
     sampleTypes: []
-    cmoFields: [Times out of and back in refrigerated storage per stage, Stage times, Total time, Signature and date]
-    note: The stages are the targets under the critical limit. Their times add up to the total, which is compared with the critical limit for information only.
+    cmoFields: [Portion IDs, Times out of and back in refrigerated storage per stage, Stage times, Total time per portion, Signature and date]
+    note: The stages are the targets under the critical limit. Their times add up to the total, which is compared with the critical limit for information only. Time out of refrigeration is tracked per portion, so one slow portion does not count against the others.
+    history:
+      - version: 1
+        title: Total time out of refrigeration
+        unitOps: [storage_shipping]
+        steps:
+          - "The total counts from the start of filling until the units are back in refrigerated storage. Record, for each stage listed under the critical limit in the table below, the time the units leave refrigerated storage and the time they return, and the time spent out of refrigeration in that stage: {out time}, {return time}, {stage time}."
+          - "Add up the stage times and record the total against the critical limit shown in the table below: {total time}."
+        params: []
+        timeLimits:
+          - { key: total_out_of_refrigeration, label: Maximum total time out of refrigeration, collection: param, itemKey: max_total_time_out_of_refrigeration, field: max }
+        sampleTypes: []
+        cmoFields: [Times out of and back in refrigerated storage per stage, Stage times, Total time, Signature and date]
+        note: The stages are the targets under the critical limit. Their times add up to the total, which is compared with the critical limit for information only.
 
   - id: storage_and_shipment
     version: 1
