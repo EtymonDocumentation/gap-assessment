@@ -56,7 +56,9 @@ for (const [name, size] of [["desktop", { width: 1280, height: 900 }], ["phone",
     await expect(tightened.locator('[data-testid^="mbr-note-"]')).toContainText("Tighter than the TRD");
 
     // No filtered-bulk-hold block and no vial wording: filling starts directly after sterile filtration.
-    await expect(page.locator("article.mbr-block", { hasText: /Filtered bulk hold/ })).toHaveCount(0);
+    // Checked on the block titles only: the BBR sample rows name the approved post-BBR hold ("Filtered bulk hold in the holding bag"),
+    // which is a different hold from the sterile-bulk hold this line guards against.
+    await expect(page.locator("article.mbr-block h3.mbr-block-title", { hasText: /Filtered bulk hold$/ })).toHaveCount(0);
     await expect(page.getByRole("main")).not.toContainText(/\bvials?\b/i);
 
     const open = page.getByTestId("mbr-open-items");

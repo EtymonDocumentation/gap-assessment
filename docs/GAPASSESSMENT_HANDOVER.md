@@ -4,7 +4,7 @@ This is the public, cleaned-up handover for any machine or new session. It holds
 steps only. Machine-specific notes (local paths, server addresses, accounts, invite details) are kept in a
 private handover outside the repo and must never be copied in here. Read this file, then `README.md`.
 
-Last updated: 2026-10-23. Update this file (no machine-specific details) whenever a milestone lands.
+Last updated: 2026-10-26. Update this file (no machine-specific details) whenever a milestone lands.
 
 ## 1. Where things stand
 - **M10 (PPQ flow figures in the sampling plan) is built and verified, waiting for the product owner's review and commit** (section 5b).
@@ -221,6 +221,25 @@ Last updated: 2026-10-23. Update this file (no machine-specific details) wheneve
   question `ss.total_tor` (question bank 1.9.0), write-ups `sec_process_parameters` v3 and `wu_aseptic_filling` v4, and the
   MBR block `time_out_of_refrigeration_total`. The value 12 h and the rule text are unchanged.
 - Not in the data: per-step rooms and operator counts. Durations exist as TRD limits and set points only.
+- Syringe PPQ plan (2026-10-26): `content/demo/syr-305.yaml` now has a `sampling:` block, "SYR-305 PPQ sampling plan
+  (fictional)", with Table 4 samples 1 to 17 as points SP-001..SP-017 over three batches (PPQ 1 50 L, PPQ 2 100 L, PPQ 3
+  9 L). Mixing homogeneity T0/T1/T2 top and bottom (1-6), post-filtration hold in the holding bag (7-9; sample 9 applies
+  to PPQ 2 and 3 only, demo point field `appliesTo` = batch labels, resolved to batch ids in `applySamplingDemo`),
+  enhanced filling samples (10-14, 14 after a 60-minute line stop), surge bag hold (15), stability after the time-out
+  challenge (16: 600 syringes = 2 conditions x 5 time points x 60) and the T0 total-time sample (17). Everything is
+  complete except the plan-level "not yet stated whether agency requests exist" item, which the demo schema cannot
+  clear. PPQ-only extended holds (36 h) are challenges in the plan, never MBR limits.
+- Batch record sample rows: the compounding (1-6), BBR filtration (7-9) and aseptic filling (10-17) sections carry a
+  `sample_table` block linked to the plan through the M11 mechanism (`planId`, `pointId`). `sampleFieldsOf` shows a set
+  of containers as "2 x 10 mL" (`containerUnitsPerSample`).
+- TRD changes with the plan: batch size after dilution 50 L (NOR 45-55, PAR 9-100) in a 100 L single-use mixing bag whose
+  impeller is covered from 9 L; BBR filter contact time set point 4 h, NOR 4 h, PAR 24 h; filling duration PAR 8 h now
+  rests on the media fill (filling speed PAR stays 200). Time out of refrigeration is tracked per portion, 12 h from the
+  start of filling of that portion: demo-specific write-up edits in `trd.writeups.edits`, and MBR blocks
+  `time_out_of_refrigeration_total`, `visual_inspection_run`, `bulk_packing`, `labeling_run` went to new versions
+  (earlier ones in `history`) with a portion ID field. Kept on purpose: the dilution buffer table stays the 20 kg
+  buffer batch (a separate batch from the drug product; `comp.diluent_volume` is 18.75 L = 50 L x 80 mL/L).
+- Tests: `content/test/syr-305-ppq.test.ts`, `packages/docx/test/syr305-ppq.test.ts` (plan and CMO exports).
 - Tests: `content/test/syr-305-mbr.test.ts`, `packages/docx/test/syr305-mbr.test.ts`, `apps/web/e2e/syr-demo.spec.ts`,
   `apps/web/e2e-server/m11-mbr.spec.ts`.
 
@@ -229,7 +248,8 @@ Last updated: 2026-10-23. Update this file (no machine-specific details) wheneve
   `packages/sampling`, `packages/risk`, `content/`, `apps/web` (React, Vite, Zustand), `apps/server` (optional self-hosted mode).
 - Checks that must all pass before a commit: `npx tsc -p tsconfig.json`, `npx vitest run`, `npm run build`,
   the web e2e suite (Playwright, desktop/tablet/phone projects, axe), `npm run build:server`, `npm run e2e:server`.
-  Latest counts (M8 follow-ups): vitest 1818 (90 files), web e2e 572 passed (7 skipped), server e2e 44.
+  Latest counts (syringe PPQ plan, 2026-10-26): vitest 2145 (120 files), web e2e 804 passed first run, the 11 that failed (6 from a
+  renamed hold label, 5 phone timeouts under load) pass on rerun, 7 skipped, server e2e 70.
 - Parallel Playwright runs need separate `--output` folders.
 - Commit with a message file (`git commit -F <file>`); CI (`.github/workflows/deploy.yml`) runs typecheck,
   tests, build, e2e and deploys the static demo to GitHub Pages on every push to main.

@@ -17,7 +17,7 @@ vi.setConfig({ testTimeout: 60000 });
  * step-block wording changes (gap-docx-samples/arx217-mbr), to see that it still reads right.
  */
 describe("Syringe demo batch record in Word and HTML", () => {
-  const syr = buildDemoProject(content, demos["syr-305"], undefined, undefined, undefined, { library: mbrLibrary }, { writeups: trdWriteups });
+  const syr = buildDemoProject(content, demos["syr-305"], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes }, { library: mbrLibrary }, { writeups: trdWriteups });
   const syrDoc = buildMbrDocument(syr, syr.mbr.records[0]!, { generatedAt: GENERATED_AT, appVersion: "0.0.0-test" });
   const arx = buildDemoProject(content, demos["arx-217"], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes }, { library: mbrLibrary });
   const arxDoc = buildMbrDocument(arx, arx.mbr.records[0]!, { generatedAt: GENERATED_AT, appVersion: "0.0.0-test" });
@@ -34,6 +34,11 @@ describe("Syringe demo batch record in Word and HTML", () => {
     expect(text).toContain("Requires regulatory affairs assessment");
     // A study point reads as such in the Choice column, never as an undecided row; the sterile filtration step refers to the integrity test steps.
     expect(text).toContain("Study point (not a limit)");
+    // The PPQ sample tables (sampling plan points) are in the record, with the quantity as "2 x 10 mL" for a set of containers.
+    expect(text).toContain("SP-001");
+    expect(text).toContain("SP-017");
+    expect(text).toContain("2 × 10 mL");
+    expect(text).toContain("tracked for each portion of the batch separately");
     expect(text).not.toContain("Not decided; study point");
     expect(text).toMatch(/Run the filter integrity test \(Step 6\.\d+\) before use/);
     expect(text).not.toMatch(/filter integrity block/);

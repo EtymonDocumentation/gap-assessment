@@ -1,11 +1,11 @@
 import { blockLibraryStatus, buildDemoProject, buildMbrDocument, mbrOpenItems, NOTE_TIGHTER, numberSteps, paramNote, renderStepText, stepRefsIn, targetSum, trdNotices, trdRequirementsWithoutStep } from "@gap/engine";
 import { mbrChoiceText } from "@gap/process-model";
 import { describe, expect, it } from "vitest";
-import { content, demos, designLoadouts, mbrLibrary, samplingSuggestions, trdWriteups } from "../index";
+import { content, demos, designLoadouts, failureModes, mbrLibrary, riskLoadouts, samplingSuggestions, trdWriteups } from "../index";
 
 // The SYR-305 demo master batch record (MBR), built from its approved TRD. The TRD numbers are final, so these tests read them from the
 // TRD record and check the MBR agrees; none of them is typed a second time here except where the test states the TRD's own figure.
-const project = buildDemoProject(content, demos["syr-305"], undefined, undefined, undefined, { library: mbrLibrary }, { writeups: trdWriteups });
+const project = buildDemoProject(content, demos["syr-305"], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes }, { library: mbrLibrary }, { writeups: trdWriteups });
 const doc = project.trd.documents[0]!;
 const rec = project.mbr.records[0]!;
 const blocks = rec.sections.flatMap((s) => s.blocks);
@@ -20,13 +20,19 @@ const trdMax = (uo: string, item: string) => {
 const limitOf = (uo: string, key: string) => rec.sections.find((s) => s.unitOp === uo)!.blocks.flatMap((b) => b.timeLimits).find((t) => t.key === key)!;
 
 describe("SYR-305 demo batch record", () => {
-  it("is built from the TRD record, without a sampling plan", () => {
+  it("is built from the TRD record and linked to the PPQ sampling plan", () => {
     expect(project.mbr.records).toHaveLength(1);
     expect(rec.id).toBe("MBR-001");
     expect(rec.docRef).toBe("DEMO-MBR-305-01");
     expect(rec.trdId).toBe(doc.id);
-    expect(rec.planId).toBeUndefined();
-    expect(blocks.flatMap((b) => b.samples)).toEqual([]);
+    expect(rec.planId).toBe("SPL-001");
+    // The sample tables list the PPQ points of the sections they belong to; thaw, buffer, sterile filtration, inspection and packing pull none.
+    const bySection = (uo: string) => rec.sections.find((s) => s.unitOp === uo)!.blocks.flatMap((b) => b.samples);
+    expect(bySection("compounding").map((x) => x.pointId)).toEqual(["SP-001", "SP-002", "SP-003", "SP-004", "SP-005", "SP-006"]);
+    expect(bySection("bbr_filtration").map((x) => x.pointId)).toEqual(["SP-007", "SP-008", "SP-009"]);
+    expect(bySection("aseptic_filling")).toHaveLength(8);
+    expect(blocks.flatMap((b) => b.samples)).toHaveLength(17);
+    for (const uo of ["ds_receipt_thaw", "buffer_prep", "sterile_filtration", "visual_inspection", "bulk_packaging"]) expect(bySection(uo), uo).toEqual([]);
   });
 
   it("is not added when the caller gives no library", () => {
@@ -46,7 +52,8 @@ describe("SYR-305 demo batch record", () => {
   it("has no sterile-filtrate hold and no needle-clog block: the TRD supports neither", () => {
     expect(blocks.map((b) => b.libraryId)).not.toContain("filtered_hold");
     expect(blocks.map((b) => b.libraryId)).not.toContain("needle_clog_check");
-    expect(JSON.stringify(rec)).not.toMatch(/filtered bulk hold|holding vessel/i);
+    // The PPQ plan's own hold (filtered bulk in the single-use holding bag, before sterile filtration) is a sample hold name, not a block.
+    expect(JSON.stringify(blocks.map((b) => ({ ...b, samples: [] })))).not.toMatch(/filtered bulk hold|holding vessel/i);
     // The TRD item for a filtered hold is answered "not applicable", so it is not a requirement either.
     expect(trdRequirementsWithoutStep(rec, doc, mbrLibrary).map((r) => r.itemKey)).not.toContain("max_filtered_hold");
   });
@@ -87,8 +94,9 @@ describe("SYR-305 demo batch record", () => {
     expect(stages).toEqual([6, 3, 1, 2]);
     expect(total.targets.map((t) => Number(t.value))).toEqual(stages);
     expect(targetSum(total).sum).toBe(12);
-    // The stage rows of the sections show the same figures as the TRD.
-    expect(limitOf("aseptic_filling", "fill_duration").value).toBe("6");
+    // The stage rows of the sections show the same figures as the TRD. The filling row is the 8 h the media fill supports (the TRD proven
+    // acceptable range); the 6 h stage target above is its budget inside the 12 h total, which stays the binding limit.
+    expect(limitOf("aseptic_filling", "fill_duration").value).toBe("8");
     expect(limitOf("visual_inspection", "out_of_refrigeration").value).toBe("3");
     expect(limitOf("bulk_packaging", "out_of_refrigeration").value).toBe("1");
     expect(limitOf("labeling_packaging", "out_of_refrigeration").value).toBe("2");
@@ -111,11 +119,11 @@ describe("SYR-305 demo batch record", () => {
     const texts = (uo: string) => rec.sections.find((s) => s.unitOp === uo)!.blocks.flatMap((b) => b.steps.map((s) => s.text));
     for (const [uo, packing] of [["bulk_packaging", /^Pack the accepted units/], ["labeling_packaging", /^Run the label and print checks/]] as const) {
       const steps = texts(uo);
-      const out = steps.findIndex((t) => /leave refrigerated storage/.test(t) && t.includes("{out time}"));
+      const out = steps.findIndex((t) => /leaves? refrigerated storage/.test(t) && t.includes("{out time}"));
       const work = steps.findIndex((t) => packing.test(t));
       expect(out, uo).toBeGreaterThanOrEqual(0);
       expect(out, uo).toBeLessThan(work);
-      const back = steps.findIndex((t) => /return to refrigerated storage/.test(t) && t.includes("{return time}"));
+      const back = steps.findIndex((t) => /returns? to refrigerated storage/.test(t) && t.includes("{return time}"));
       expect(back, uo).toBeGreaterThan(work);
       // The block's own last step; reconciliation of units (a separate block) follows it in the bulk packaging section.
       const own = rec.sections.find((s) => s.unitOp === uo)!.blocks.find((b) => b.libraryId === (uo === "bulk_packaging" ? "bulk_packing" : "labeling_run"))!;
@@ -130,8 +138,8 @@ describe("SYR-305 demo batch record", () => {
     const targets = limitOf("storage_shipping", "total_out_of_refrigeration").targets;
     const byLabel = (l: string) => targets.find((t) => t.label === l)!;
     for (const l of ["Visual inspection", "Bulk packaging", "Labelling and packaging"]) {
-      expect(textOf(byLabel(l).fromStepId!), l).toMatch(/leave refrigerated storage/);
-      expect(textOf(byLabel(l).toStepId!), l).toMatch(/return to refrigerated storage/);
+      expect(textOf(byLabel(l).fromStepId!), l).toMatch(/leaves? refrigerated storage/);
+      expect(textOf(byLabel(l).toStepId!), l).toMatch(/returns? to refrigerated storage/);
     }
     // Filling has no out/return pair (the units are in the isolator): its range is the start to the end of filling.
     expect(textOf(byLabel("Filling").fromStepId!)).toMatch(/^Start the filling/);
@@ -168,11 +176,13 @@ describe("SYR-305 demo batch record", () => {
     expect(q.prompt).toContain("from the start of filling until the product is back in refrigerated storage");
     expect(JSON.stringify(q)).not.toMatch(/end of thaw/);
     const block = mbrLibrary.find((b) => b.id === "time_out_of_refrigeration_total")!;
-    expect(block.steps[0]).toContain("from the start of filling until the units are back in refrigerated storage");
+    expect(block.steps[0]).toContain("from the start of filling of that portion until its units are back in refrigerated storage");
+    expect(block.steps[0]).toContain("tracked for each portion of the batch separately");
+    expect(block.cmoFields[0]).toBe("Portion IDs");
     const total = rec.sections.find((s) => s.unitOp === "storage_shipping")!.blocks.find((b) => b.libraryId === "time_out_of_refrigeration_total")!;
     expect(total.steps[0]!.text).toContain("start of filling");
     // The batch record document carries the same words.
-    expect(JSON.stringify(buildMbrDocument(project, rec, { generatedAt: "2026-10-25T09:00:00.000Z" }))).toContain("from the start of filling until the units are back in refrigerated storage");
+    expect(JSON.stringify(buildMbrDocument(project, rec, { generatedAt: "2026-10-25T09:00:00.000Z" }))).toContain("from the start of filling of that portion until its units are back in refrigerated storage");
   });
 
   it("keeps the other approved figures", () => {

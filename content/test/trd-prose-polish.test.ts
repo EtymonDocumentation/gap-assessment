@@ -73,7 +73,9 @@ describe("the SYR-305 standard TRD reads as prose", () => {
     for (const gone of ["(s)", ": Yes", "Available and applicable", "[placeholder]", "[date]", "crimp", "Labeling", "single sterile filter"]) expect(plain, gone).not.toContain(gone);
     expect(plain).toContain("Product density: 1.03 g/mL");
     expect(plain).toContain("tolerance of ±0.5 mm");
-    expect(plain).toContain("The batch size for this bulk drug product program is 40 L.");
+    expect(plain).toContain("The batch size for this bulk drug product program is 50 L.");
+    // The impeller point of the 100 L single-use mixing bag is stated next to the batch size.
+    expect(plain).toContain("The impeller of the bag is covered from a volume of 9 L");
   });
 
   it("states maximum-only limits as up to, never as max in the set point cell", () => {
@@ -115,8 +117,11 @@ describe("the SYR-305 standard TRD reads as prose", () => {
 
   it("keeps the time values of the demo consistent", () => {
     // The total time out of refrigeration is the sum of the per-step budgets, all read from structured parameter items.
-    expect(plain).toContain("The total time out of refrigeration must not exceed 12 h");
+    // Time out of refrigeration is tracked per portion, from the start of filling of that portion.
+    expect(plain).toContain("tracked for each portion of the batch separately");
+    expect(plain).toContain("The total for a portion must not exceed 12 h");
     expect(plain).toContain("filling up to 6 h, visual inspection up to 3 h, bulk packing up to 1 h, and labelling and packaging up to 2 h");
-    expect(plain).toMatch(/takes no more than 2 h/);
+    // Bioburden reduction filtration: the filter contact time is 4 h in normal operation (the proven range, 24 h, is in the parameter table).
+    expect(plain).toMatch(/takes no more than 4 h/);
   });
 });
