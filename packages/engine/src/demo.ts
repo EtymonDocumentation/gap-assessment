@@ -8,7 +8,7 @@ import { addAction, addItem, createAssessment, pointRef, setMethod, updateItem }
 import { addItemFromGap, addItemFromSuggestion, gapSeeds, suggestFailureModes } from "./risk-seed";
 import { acceptSuggestion, addAgencyRequest, addBatch, addFigureItem, addPoint, addStep, addSubsection, applyDesignLoadout, createPlan, projectScopeSteps, setParties, setPointFlow, setTimeZero, updatePlan, updatePoint, updateStep, type PointPatch } from "./sampling";
 import { suggestPoints, type SamplingSuggestions } from "./sampling-seed";
-import { addTarget, createMbr, setParam } from "./mbr";
+import { addTarget, createMbr, setParam, stepRefToken, updateMbrStep } from "./mbr";
 import { createTrd, setLimits, setOverride, updateTrd, updateTrdStep } from "./trd";
 import { buildTrdSeed } from "./trd-seed";
 import { addWriteupFromLibrary, moveWriteup, removePart, setBlankValue, setNotApplicable, setPartImage, setPartIncluded, setPartText, setTableRows } from "./trd-writeup";
@@ -200,6 +200,10 @@ const trdDemoSchema = z.object({
  * the rows named in `undecided`; `rows` then edit single rows (a tightened value with its reason, a study point), and `limits` add the
  * targets under a critical time limit. Rows are found by unit operation and row key; steps by their place (1 = first) in the block.
  */
+// A step is named by its place (1 = first) in the block that holds the time limit or, for a limit that spans stages, by unit operation,
+// library block and place in that block.
+const stepPlace = z.union([z.number().int(), z.object({ uo: z.string(), block: z.string(), step: z.number().int() })]);
+
 const mbrDemoSchema = z.object({
   at: z.string(),
   by: z.string(),
@@ -221,12 +225,15 @@ const mbrDemoSchema = z.object({
       }),
     )
     .default([]),
+  // A cross-reference inside a step: `insert` goes right after `find` in the text of the step, and {ref} in it becomes the automatic
+  // reference to the step named by `to` (stored as an id, shown as "(Step 6.6)" and renumbered when steps move).
+  refs: z.array(z.object({ uo: z.string(), block: z.string(), step: z.number().int(), find: z.string(), insert: z.string(), to: z.object({ uo: z.string(), block: z.string(), step: z.number().int() }) })).default([]),
   limits: z
     .array(
       z.object({
         uo: z.string(),
         limit: z.string(),
-        targets: z.array(z.object({ label: z.string(), value: z.string(), unit: z.string().optional(), fromStep: z.number().int().optional(), toStep: z.number().int().optional() })),
+        targets: z.array(z.object({ label: z.string(), value: z.string(), unit: z.string().optional(), fromStep: stepPlace.optional(), toStep: stepPlace.optional() })),
       }),
     )
     .default([]),
@@ -338,7 +345,7 @@ export function buildDemoProject(content: ContentBundle, raw: unknown, suggestio
   // The TRD starts from the project's own seed, so it needs nothing but the content.
   if (demo.trd) project = applyTrdDemo(project, content, demo.trd, trd?.writeups);
   // The batch record takes its values from the TRD and its sample rows from the plan, so it comes last and needs the step-blocks library.
-  if (demo.mbr && mbr && project.trd.documents.length > 0 && project.sampling.plans.length > 0) project = applyMbrDemo(project, content, demo.mbr, mbr.library);
+  if (demo.mbr && mbr && project.trd.documents.length > 0) project = applyMbrDemo(project, content, demo.mbr, mbr.library);
   return project;
 }
 
@@ -484,7 +491,8 @@ function applyMbrDemo(project: Project, content: ContentBundle, m: z.infer<typeo
       title: m.title,
       ...(m.docRef ? { docRef: m.docRef } : {}),
       trdId: project.trd.documents[0]!.id,
-      planId: project.sampling.plans[0]!.id,
+      // A demo without a sampling plan gets a batch record without sample tables: the plan is a source the author chooses, not a requirement.
+      ...(project.sampling.plans[0] ? { planId: project.sampling.plans[0].id } : {}),
       sections: m.sections.map((sec) => ({
         ...(sec.uo ? { unitOp: sec.uo } : {}),
         title: sec.title ?? (sec.uo ? uoLabel(sec.uo) : "General"),
@@ -532,17 +540,36 @@ function applyMbrDemo(project: Project, content: ContentBundle, m: z.infer<typeo
       who,
     );
   }
+  const stepAt = (uo: string, blockId: string, place: number) => {
+    const id = sectionFor(uo).blocks.find((b) => b.libraryId === blockId)?.steps[place - 1]?.id;
+    if (!id) throw new Error(`Demo MBR: ${uo} has no step ${place} in block ${blockId}`);
+    return id;
+  };
+  for (const r of m.refs) {
+    const from = sectionFor(r.uo).blocks.find((b) => b.libraryId === r.block)?.steps[r.step - 1];
+    if (!from || !from.text.includes(r.find)) throw new Error(`Demo MBR: ${r.uo} step ${r.step} of ${r.block} has no text "${r.find}"`);
+    const text = from.text.replace(r.find, () => r.find + r.insert.replace("{ref}", stepRefToken(stepAt(r.to.uo, r.to.block, r.to.step))));
+    project = updateMbrStep(project, recordId, from.id, text, who);
+  }
   for (const l of m.limits) {
     const sec = sectionFor(l.uo);
     const block = sec.blocks.find((b) => b.timeLimits.some((t) => t.key === l.limit));
     const limit = block?.timeLimits.find((t) => t.key === l.limit);
     if (!block || !limit) throw new Error(`Demo MBR: ${l.uo} has no time limit ${l.limit}`);
+    // A step place becomes a step id of the record as it stands now (every edit returns a new project, so it is looked up each time).
+    const stepId = (p: z.infer<typeof stepPlace>): string | undefined => {
+      if (typeof p === "number") return block.steps[p - 1]?.id;
+      const owner = sectionFor(p.uo).blocks.find((b) => b.libraryId === p.block);
+      const id = owner?.steps[p.step - 1]?.id;
+      if (!id) throw new Error(`Demo MBR: ${p.uo} has no step ${p.step} in block ${p.block}`);
+      return id;
+    };
     for (const t of l.targets) {
       project = addTarget(
         project,
         recordId,
         limit.id,
-        { label: t.label, value: t.value, ...(t.unit ? { unit: t.unit } : {}), ...(t.fromStep ? { fromStepId: block.steps[t.fromStep - 1]?.id } : {}), ...(t.toStep ? { toStepId: block.steps[t.toStep - 1]?.id } : {}) },
+        { label: t.label, value: t.value, ...(t.unit ? { unit: t.unit } : {}), ...(t.fromStep !== undefined ? { fromStepId: stepId(t.fromStep) } : {}), ...(t.toStep !== undefined ? { toStepId: stepId(t.toStep) } : {}) },
         who,
       ).project;
     }

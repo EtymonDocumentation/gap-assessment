@@ -1,4 +1,4 @@
-import { docRefLabel, MBR_CHOICE_LABEL, MBR_FORMAT_VERSION, printableUnit, PROCESS_MODEL_VERSION, SCHEMA_VERSION, type MbrParamRow, type MbrRecord, type MbrTrdRef, type Project, type TrdDocument } from "@gap/process-model";
+import { docRefLabel, mbrChoiceText, MBR_FORMAT_VERSION, printableUnit, PROCESS_MODEL_VERSION, SCHEMA_VERSION, type MbrParamRow, type MbrRecord, type MbrTrdRef, type Project, type TrdDocument } from "@gap/process-model";
 import type { Block, DocModel, DocSection } from "./document";
 import { effectiveField } from "./trd";
 import { TRD_BANNER } from "./trd-outline";
@@ -92,14 +92,13 @@ export const MBR_TIME_LIMIT_WEIGHTS = [32, 16, 20, 32];
 
 function paramRow(r: MbrParamRow, src: SourceNumbers): string[] {
   const mbr = withUnit(r.mbrValue, r.mbrUnit);
-  const choice = r.choice ? MBR_CHOICE_LABEL[r.choice] : "Not decided";
   const note = paramNote(r);
   const notes = [r.reason?.trim() ? `Reason: ${r.reason.trim()}` : "", r.studyPoint ? "Study point, not a limit" : "", note ? `${note}` : ""].filter(Boolean).join(". ");
   let value: string;
   if (r.choice === "same_as_trd") value = r.trd && r.trd.status === "established" && mbr ? `${mbr} (same as TRD; ${trdSource(r.trd, src)})` : NOT_HELD;
   else if (r.choice === "tightened_by_cmo") value = `${mbr || "[value not entered]"} (${trdWords(r.trd, src)})`;
   else value = `${mbr || "Not decided"} (${trdWords(r.trd, src)})`;
-  return [r.label, value, r.studyPoint ? `${choice}; study point` : choice, notes];
+  return [r.label, value, mbrChoiceText(r), notes];
 }
 
 export function mbrDocumentOpenItems(project: Project, rec: MbrRecord): MbrOpenItem[] {
@@ -168,7 +167,7 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
     rec.purpose?.trim() ? { type: "paragraph", text: rec.purpose.trim() } : { type: "paragraph", text: "No purpose has been entered. This is left to the team; the tool does not supply wording." },
     { type: "list", items: [
       "TRD value: the value in the technical requirements document at the time it was copied. MBR value: the value this batch record states.",
-      "Same as TRD: the MBR value is the TRD value. Tightened by the CMO: the MBR value is the CMO's own, with its reason. Not decided: nobody has chosen yet.",
+      "Same as TRD: the MBR value is the TRD value. Tightened by the CMO: the MBR value is the CMO's own, with its reason. Not decided: nobody has chosen yet. Study point (not a limit): a challenge value kept for a study; it is not a limit and is not counted as not decided.",
       `${NOT_HELD}: the TRD record has no established value for it. Nothing was filled in.`,
       `${NOTE_OUTSIDE} and ${NOTE_TIGHTER} are comparisons for information only. They do not say a value is acceptable.`,
       `${CMO_PLACEHOLDER}: entries only the CMO can make (batch number, equipment IDs, calibration, BOM and ERP IDs, form and SOP numbers, alarm values, weights, densities, signatures and all results).`,

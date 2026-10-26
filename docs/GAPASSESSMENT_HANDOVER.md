@@ -196,6 +196,34 @@ Last updated: 2026-10-23. Update this file (no machine-specific details) wheneve
   - Code: engine `trd-writeup-order.ts` (order and move plan), `demo-image.ts` (generated placeholder picture for the
     fictional demo), process model `trd-image.ts`; web `rows-editor.tsx`.
 
+## 5d. SYR-305 demo batch record
+- What: the fictional prefilled-syringe demo now carries a master batch record (DEMO-MBR-305-01) built from its approved
+  TRD, reachable like the vial demo's ("Open syringe example", then Batch record), in static and server modes.
+- Content: 11 unit-operation sections in process order plus a review section. Mostly "same as TRD"; one row tightened by
+  the CMO with a reason (stopper position range); one time limit with targets (12 h out of refrigeration = filling 6 +
+  inspection 3 + bulk packing 1 + labelling 2); one study point beyond a limit (inspection rate range); one TRD
+  requirement without a step (compounding in-process controls); several "not decided". No filtered-hold block (the TRD
+  has none) and no needle-clog block (the TRD says clogging is not likely).
+- Library `content/mbr/blocks.yaml` format 1.1.0: six blocks went to version 2 (receipt and thaw, buffer preparation,
+  BBR filtration, sterile filtration, visual inspection, bulk packing) with the earlier version kept in `history`; four
+  new blocks (shipment monitoring and custody, syringe nest debagging, plunger stopper placement, total time out of
+  refrigeration). Records made from version 1 are offered "Update from library".
+- Demo recipe (`packages/engine/src/demo.ts`): a target may span steps in different blocks (`stepPlace`). The demo is built
+  from the current library, so the vial demo also uses the version 2 blocks.
+- Review fixes (2026-10-25): out-of-refrigeration times are recorded before handling and the return time is the last step
+  (bulk packing 9.2 / 9.6, labelling 10.3 / 10.6, inspection 8.2 / 8.6; labelling is now library version 2, bulk packing
+  and sterile filtration were edited in place at version 2 because version 2 was never committed). The total-time targets
+  span those out and return steps. The sterile filtration steps refer to the integrity test steps by an automatic
+  cross-reference (demo recipe `refs:`; stored as ids, shown as "(Step 6.7)"). A study point reads "Study point (not a
+  limit)" in the Choice column (`mbrChoiceText`) and is never counted as not decided.
+- Decision (product owner, 2026-10-25): the 12 h total time out of refrigeration counts from the start of filling until the
+  product is back in refrigerated storage (not from the end of thaw; the post-thaw ambient time has its own limit). Changed in
+  question `ss.total_tor` (question bank 1.9.0), write-ups `sec_process_parameters` v3 and `wu_aseptic_filling` v4, and the
+  MBR block `time_out_of_refrigeration_total`. The value 12 h and the rule text are unchanged.
+- Not in the data: per-step rooms and operator counts. Durations exist as TRD limits and set points only.
+- Tests: `content/test/syr-305-mbr.test.ts`, `packages/docx/test/syr305-mbr.test.ts`, `apps/web/e2e/syr-demo.spec.ts`,
+  `apps/web/e2e-server/m11-mbr.spec.ts`.
+
 ## 6. Stack and checks
 - npm workspaces: `packages/process-model`, `packages/engine`, `packages/renderers`, `packages/docx`,
   `packages/sampling`, `packages/risk`, `content/`, `apps/web` (React, Vite, Zustand), `apps/server` (optional self-hosted mode).

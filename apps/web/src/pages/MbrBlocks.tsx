@@ -33,7 +33,7 @@ import {
   type SampleNotice,
   type TrdNotice,
 } from "@gap/engine";
-import { MBR_CHOICE_LABEL, type MbrBlock, type MbrChoice, type MbrLibraryBlock, type MbrParamRow, type MbrRecord, type MbrSection, type MbrTimeLimit, type MbrTrdRef, type Project } from "@gap/process-model";
+import { MBR_CHOICE_LABEL, mbrChoiceText, type MbrBlock, type MbrChoice, type MbrLibraryBlock, type MbrParamRow, type MbrRecord, type MbrSection, type MbrTimeLimit, type MbrTrdRef, type Project } from "@gap/process-model";
 import { useId, useRef, useState } from "react";
 import { useStore } from "../store";
 import type { Run } from "./SamplingFlow";
@@ -226,9 +226,8 @@ function ParamRowView({ env, block, row }: { env: BlockEnv; block: MbrBlock; row
     <li className="mbr-row" id={`mbr-row-${row.id}`} data-testid={`mbr-row-${row.id}`} tabIndex={-1}>
       <div className="mbr-row-head">
         <strong className="mbr-row-label">{row.label}</strong>
-        {row.studyPoint && <span className="tag">Study point, not a limit</span>}
         <span className="tag" data-testid={`mbr-choice-state-${row.id}`}>
-          {row.choice ? MBR_CHOICE_LABEL[row.choice] : "Not decided"}
+          {mbrChoiceText(row)}
         </span>
       </div>
       <TrdValue ref={row.trd} testId={`mbr-trd-${row.id}`} />

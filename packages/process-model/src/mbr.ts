@@ -31,6 +31,11 @@ export const MBR_CHOICE_LABEL: Record<MbrChoice, string> = {
   not_decided: "Not decided",
 };
 
+/** What the Choice column reads for a row. A study point is a challenge beyond a limit, not a limit, so it is never "Not decided". */
+export const MBR_STUDY_POINT_CHOICE = "Study point (not a limit)";
+export const mbrChoiceText = (row: { choice?: MbrChoice | undefined; studyPoint?: boolean | undefined }): string =>
+  row.studyPoint ? MBR_STUDY_POINT_CHOICE : row.choice ? MBR_CHOICE_LABEL[row.choice] : "Not decided";
+
 /** Where a TRD value is taken from. `field` is "setPoint", "nor" or "par" (the limits) or the key of an item field. */
 export const MBR_TRD_COLLECTIONS = ["param", "equip", "mat", "ipc"] as const;
 

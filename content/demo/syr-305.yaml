@@ -796,3 +796,56 @@ trd:
       - { writeup: wu_buffer_prep, part: onsite, text: "Raw materials are dispensed using {{uo.buffer_prep.equip.dispensing.operatingPrinciple|Dispensing method ~a}} and prepared in {{uo.buffer_prep.equip.prep_vessel.type|Preparation vessel type ~a}} with a capacity of {{uo.buffer_prep.equip.prep_vessel.capacity|Vessel capacity}}, for a batch volume of {{uo.buffer_prep.param.batch_volume.setPoint|Buffer batch volume}}. Each component is added in the order of the formulation table. The buffer is mixed with {{uo.buffer_prep.equip.prep_mixer.operatingPrinciple|Mixer ~a}} at {{uo.buffer_prep.param.mixing_speed.setPoint|Mixing speed}} for {{uo.buffer_prep.param.mixing_time.setPoint|Mixing time}}, without foam, and the final mixing speed is recorded in the batch record." }
       - { writeup: wu_sterile_filtration, part: p1, text: "Sterile filtration is performed by passing the bioburden-reduced drug substance from the holding vessel through a sterile {{uo.sterile_filtration.mat.sterilizing_filter.poreRating|Pore rating}} {{uo.sterile_filtration.mat.sterilizing_filter.materialOfConstruction|Membrane}} sterilizing-grade filter, the integrity of which is tested before use. {{uo.sterile_filtration.mat.redundant_filter.present|Redundant filter used ~A second, redundant sterilizing-grade filter is used in series. ~No second, redundant filter is used in series.}} Before filtration starts, the product temperature must be {{trd.sterile_filtration.productTemperature|Product temperature}}." }
       - { writeup: wu_bulk_packaging, part: p1, text: "Inspected units are packed into {{uo.bulk_packaging.mat.bulk_container.type|Bulk container type ~a}} holding {{uo.bulk_packaging.mat.bulk_container.unitsPerContainer|Units per container}} units each, closed with {{uo.bulk_packaging.mat.bulk_container.seal|Seal or closure ~a}}. The packed bulk is stored under {{uo.bulk_packaging.mat.bulk_product.storageCondition|Bulk storage condition}} conditions and held for no more than {{uo.bulk_packaging.param.max_hold_time.max|Bulk hold time}}. The time out of refrigeration during bulk packing is no more than {{uo.bulk_packaging.param.max_time_out_of_refrigeration.max|Maximum time out of refrigeration during bulk packing}}." }
+# ---------------------------------------------------------------- the master batch record (MBR)
+# Built from the TRD above through the same functions a person uses (sections follow the selected unit operations in process order; blocks come
+# from the step-blocks library). There is no sampling plan in this demo, so the record has no sample tables. There is no filtered-bulk-hold block:
+# filling starts directly after sterile filtration. There is no needle-check block either: the TRD states that needle clogging is not likely.
+mbr:
+  at: "2026-10-19T09:00:00.000Z"
+  by: Alex Example (fictional)
+  role: MSAT engineer
+  title: SYR-305 master batch record, Example Fill Site PFS Line 3 (fictional)
+  docRef: DEMO-MBR-305-01
+  sections:
+    - { uo: ds_shipping_inbound, blocks: [inbound_shipment_check, shipment_monitoring_custody] }
+    - { uo: ds_receipt_thaw, blocks: [receipt_and_thaw] }
+    - { uo: buffer_prep, blocks: [buffer_preparation] }
+    - { uo: compounding, blocks: [pooling_with_weights, dilution_and_mixing] }
+    - { uo: bbr_filtration, blocks: [bbr_filtration_run] }
+    - { uo: sterile_filtration, blocks: [sterile_filtration_run, filter_integrity_test] }
+    - { uo: aseptic_filling, blocks: [line_preparation, syringe_nest_debagging, filling_run, plunger_stopper_placement] }
+    - { uo: visual_inspection, blocks: [visual_inspection_run] }
+    - { uo: bulk_packaging, blocks: [bulk_packing, reconciliation_chain] }
+    - { uo: labeling_packaging, blocks: [labeling_run] }
+    - { uo: storage_shipping, blocks: [time_out_of_refrigeration_total, storage_and_shipment] }
+    - { title: Batch record review, blocks: [batch_review] }
+  # Rows the team has not decided yet; every other row with a TRD value is set to "same as TRD".
+  undecided:
+    - buffer_prep.mixing_speed_range
+    - compounding.temperature
+    - compounding.temperature_range
+    - sterile_filtration.differential_pressure_range
+    - aseptic_filling.fill_volume_range
+    - aseptic_filling.headspace
+    - labeling_packaging.labeling_speed_range
+    # The study point row below carries its own value, so it has no "same as TRD" choice.
+    - visual_inspection.inspection_rate_range
+  rows:
+    # One value the receiving unit tightens inside the TRD range, with its reason.
+    - { uo: aseptic_filling, row: stopper_position_range, choice: tightened_by_cmo, mbrValue: 6.2 to 6.8, mbrUnit: mm, reason: "The placement unit repeats within a narrower band than the TRD range, so the receiving unit keeps the position inside it (fictional)" }
+    # One study point beyond the TRD range: a challenge run of the inspection machine, not a limit.
+    - { uo: visual_inspection, row: inspection_rate_range, mbrValue: "360", mbrUnit: units/min, studyPoint: true, reason: "Challenge run at a higher inspection rate for the machine qualification study (fictional)" }
+  refs:
+    # The sterile filtration steps point at the integrity test steps by reference, so the numbers follow when steps move.
+    - { uo: sterile_filtration, block: sterile_filtration_run, step: 2, find: "Run the filter integrity test", insert: " {ref}", to: { uo: sterile_filtration, block: filter_integrity_test, step: 2 } }
+    - { uo: sterile_filtration, block: sterile_filtration_run, step: 4, find: "Run the filter integrity test", insert: " {ref}", to: { uo: sterile_filtration, block: filter_integrity_test, step: 3 } }
+  limits:
+    # The total time out of refrigeration is the critical limit; each stage has its own target under it. The stage values are the TRD's
+    # budgets for the stage (filling, inspection, bulk packing, labelling) and add up to the critical limit.
+    - uo: storage_shipping
+      limit: total_out_of_refrigeration
+      targets:
+        - { label: Filling, value: "6", unit: h, fromStep: { uo: aseptic_filling, block: filling_run, step: 2 }, toStep: { uo: aseptic_filling, block: filling_run, step: 5 } }
+        - { label: Visual inspection, value: "3", unit: h, fromStep: { uo: visual_inspection, block: visual_inspection_run, step: 2 }, toStep: { uo: visual_inspection, block: visual_inspection_run, step: 6 } }
+        - { label: Bulk packaging, value: "1", unit: h, fromStep: { uo: bulk_packaging, block: bulk_packing, step: 2 }, toStep: { uo: bulk_packaging, block: bulk_packing, step: 6 } }
+        - { label: Labelling and packaging, value: "2", unit: h, fromStep: { uo: labeling_packaging, block: labeling_run, step: 3 }, toStep: { uo: labeling_packaging, block: labeling_run, step: 6 } }

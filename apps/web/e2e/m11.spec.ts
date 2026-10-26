@@ -86,7 +86,7 @@ test.describe("batch record: the demo record", () => {
     await expect(tightened.locator('[data-testid^="mbr-note-"]')).toContainText("nothing is blocked");
 
     // The study point has the marker and no comparison note.
-    const study = page.locator("li.mbr-row", { hasText: "Study point, not a limit" }).first();
+    const study = page.locator("li.mbr-row", { hasText: "Study point (not a limit)" }).first();
     await expect(study).toBeVisible();
     await expect(study.locator('[data-testid^="mbr-note-"]')).toHaveCount(0);
     await page.locator("article.mbr-block", { has: tightened }).first().screenshot({ path: join(SHOTS, "m11-params.png") });

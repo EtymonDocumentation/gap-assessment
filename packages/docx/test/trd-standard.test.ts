@@ -16,14 +16,14 @@ vi.setConfig({ testTimeout: 60000 });
 /**
  * The TRD is two documents: the short standard one sent for approval, and the evidence record for audit and inspection. The standard
  * one must stay short (about 15 pages for SYR-305) and the evidence record must still hold everything the standard one leaves out.
- * Samples go to the temp folder (gap-docx-samples/syr305d) for a look at the pages.
+ * Samples go to the temp folder (gap-docx-samples/syr305e) for a look at the pages.
  */
 describe("Standard TRD and evidence record in Word", () => {
   const project = buildDemoProject(content, demos["syr-305"], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes }, undefined, { writeups: trdWriteups });
   const d = project.trd.documents[0]!;
   const standard = buildTrdDocument(project, d, { generatedAt: GENERATED_AT, appVersion: "0.0.0-test", content });
   const evidence = buildTrdDocument(project, d, { generatedAt: GENERATED_AT, appVersion: "0.0.0-test", content, variant: "evidence" });
-  const dir = join(tmpdir(), "gap-docx-samples", "syr305d");
+  const dir = join(tmpdir(), "gap-docx-samples", "syr305e");
 
   it("writes the standard TRD without appendices, other recorded values or source columns", async () => {
     const out = await renderDocx({ doc: standard, mode: "builtin", generatedAt: GENERATED_AT });
@@ -50,6 +50,9 @@ describe("Standard TRD and evidence record in Word", () => {
     expect(text).toContain("within 1 business day of receipt");
     expect(text).toContain("Product density: 1.03 g/mL");
     expect(text).toContain("tolerance of ±0.5 mm");
+    // The total time out of refrigeration counts from the start of filling (the time at ambient temperature after thaw has its own limit).
+    expect(text).toContain("counted from the start of filling until the drug product is back in refrigerated storage");
+    expect(text).not.toContain("measured from the end of thaw");
     expect(text).toContain("A second, redundant sterilizing-grade filter is used in series.");
     // Acronym list: the abbreviations the text uses are in, the ones it never uses are out.
     const list = text.slice(text.indexOf("Common abbreviations"), text.indexOf("Common abbreviations") + 900);

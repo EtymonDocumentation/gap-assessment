@@ -3,11 +3,11 @@ import { blocksForUnitOp } from "@gap/engine";
 import { mbrLibrary } from "../index";
 
 describe("M11 shipped step-blocks library", () => {
-  it("loads, every block starts at version 1 and the ids are unique", () => {
+  it("loads, an edited block keeps every earlier version in full and the ids are unique", () => {
     expect(mbrLibrary.length).toBeGreaterThanOrEqual(20);
     expect(new Set(mbrLibrary.map((b) => b.id)).size).toBe(mbrLibrary.length);
     for (const b of mbrLibrary) {
-      expect(b.version).toBe(1);
+      expect((b.history ?? []).map((h) => h.version)).toEqual(Array.from({ length: b.version - 1 }, (_, i) => i + 1));
       expect(b.steps.length).toBeGreaterThan(0);
     }
   });
