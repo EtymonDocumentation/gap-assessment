@@ -233,6 +233,8 @@ test("the agency section comes last in both interview views", async ({ page }) =
 });
 
 test("the plan page is accessible, has no sideways scroll at 390 px, and looks right in light and dark", async ({ page }) => {
+  // Several axe scans of a long plan page: about 14 s alone, past 30 s when the whole suite runs in parallel.
+  test.setTimeout(120_000);
   await page.setViewportSize({ width: 1366, height: 900 });
   await openDemoPlan(page);
   await expectAccessible(page, "plan page 1366");

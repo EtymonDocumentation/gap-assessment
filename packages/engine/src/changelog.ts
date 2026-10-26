@@ -335,7 +335,7 @@ const SAMPLING_FIELD_TEXT: Record<string, string> = {
   test: "Test",
   container: "Container",
   storage: "Storage",
-  hour: "Hour",
+  hour: "Moment in the process",
   hold: "Hold",
   targets: "Targets",
 };

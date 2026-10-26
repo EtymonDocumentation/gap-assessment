@@ -564,7 +564,7 @@ function Samples({ env, block }: { env: BlockEnv; block: MbrBlock }) {
                 <th scope="col">Quantity</th>
                 <th scope="col">Container</th>
                 <th scope="col">Storage</th>
-                <th scope="col">Hour and hold</th>
+                <th scope="col">Moment and hold</th>
                 <th scope="col">Plan check</th>
               </tr>
             </thead>

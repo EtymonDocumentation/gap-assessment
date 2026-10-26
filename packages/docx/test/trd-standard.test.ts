@@ -16,14 +16,14 @@ vi.setConfig({ testTimeout: 60000 });
 /**
  * The TRD is two documents: the short standard one sent for approval, and the evidence record for audit and inspection. The standard
  * one must stay short (about 15 pages for SYR-305) and the evidence record must still hold everything the standard one leaves out.
- * Samples go to the temp folder (gap-docx-samples/syr305f) for a look at the pages.
+ * Samples go to the temp folder (gap-docx-samples/syr305g) for a look at the pages.
  */
 describe("Standard TRD and evidence record in Word", () => {
   const project = buildDemoProject(content, demos["syr-305"], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes }, undefined, { writeups: trdWriteups });
   const d = project.trd.documents[0]!;
   const standard = buildTrdDocument(project, d, { generatedAt: GENERATED_AT, appVersion: "0.0.0-test", content });
   const evidence = buildTrdDocument(project, d, { generatedAt: GENERATED_AT, appVersion: "0.0.0-test", content, variant: "evidence" });
-  const dir = join(tmpdir(), "gap-docx-samples", "syr305f");
+  const dir = join(tmpdir(), "gap-docx-samples", "syr305g");
 
   it("writes the standard TRD without appendices, other recorded values or source columns", async () => {
     const out = await renderDocx({ doc: standard, mode: "builtin", generatedAt: GENERATED_AT });
@@ -32,6 +32,9 @@ describe("Standard TRD and evidence record in Word", () => {
     for (const gone of ["Other recorded values", "Process description values", "Traceability", "Source register", "PAR and NOR check", "Basis", "Classification"]) expect(text, gone).not.toContain(gone);
     // Sources are named once, in a sentence, and no source column or register is printed.
     expect(text).toContain("Sources are listed under References and in the TRD evidence record.");
+    // The dilution buffer quantities are an estimated batch: the receiving unit may change the amounts if the ratios (the formula) are kept.
+    expect(text).toContain("This calculation is for an estimated buffer batch of 25.0 kg");
+    expect(text).toContain("free to change the amounts to fit its manufacturing constraints, as long as the same ratios (the formula) are followed");
     expect(text).not.toContain("Source register");
     expect(text).not.toContain("Section 18");
     // One parameter table per step with the five columns of a TRD reader.

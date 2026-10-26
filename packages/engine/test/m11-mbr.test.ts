@@ -200,8 +200,8 @@ describe("M11 batch record engine", () => {
     expect(editLibraryBlock(cur, { title: cur.title }, "2026-10-24T09:00:00.000Z", "A")).toBe(cur);
     const v2 = editLibraryBlock(cur, { steps: [...cur.steps, "One more step (fictional)."] }, "2026-10-24T09:00:00.000Z", "A");
     expect(v2.version).toBe(cur.version + 1);
-    expect(v2.history).toHaveLength(1);
-    expect(v2.history![0]!.steps).toEqual(cur.steps);
+    expect(v2.history).toHaveLength((cur.history?.length ?? 0) + 1);
+    expect(v2.history!.at(-1)!.steps).toEqual(cur.steps);
   });
 
   it("shows 'newer' for a record made from an older library version and updates on request, keeping choices and step ids", () => {
@@ -211,11 +211,11 @@ describe("M11 batch record engine", () => {
     const row = block.params[0]!;
     project = setParam(project, id, row.id, { choice: "tightened_by_cmo", mbrValue: "7" }, ACTOR);
     const v2 = editLibraryBlock(lib(block.libraryId!), { steps: [...lib(block.libraryId!).steps, "Added step (fictional)."] }, "2026-10-24T09:00:00.000Z", "A");
-    expect(blockLibraryStatus(block, [v2])).toEqual({ kind: "newer", libraryVersion: 2, usedVersion: 1 });
+    expect(blockLibraryStatus(block, [v2])).toEqual({ kind: "newer", libraryVersion: block.libraryVersion! + 1, usedVersion: block.libraryVersion! });
     const stepIds = block.steps.map((s) => s.id);
     project = updateBlockFromLibrary(project, id, block.id, v2, ACTOR);
     const nb = rec(project, id).sections[0]!.blocks[0]!;
-    expect(nb.libraryVersion).toBe(2);
+    expect(nb.libraryVersion).toBe(block.libraryVersion! + 1);
     expect(nb.steps.slice(0, stepIds.length).map((s) => s.id)).toEqual(stepIds);
     expect(nb.steps.at(-1)!.text).toBe("Added step (fictional).");
     expect(nb.params.find((r) => r.id === row.id)!.mbrValue).toBe("7");

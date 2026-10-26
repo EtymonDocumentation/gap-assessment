@@ -78,12 +78,13 @@ blocks:
         cmoFields: [Drug substance lot number, Container IDs, Thaw equipment ID, Calibration status of the temperature probe, Signature and date]
 
   - id: buffer_preparation
-    version: 2
+    version: 3
     title: Buffer preparation
     unitOps: [buffer_prep]
     steps:
       - "Check the line clearance of the preparation area and record it: {line clearance form number}."
-      - "Weigh or measure each component of the buffer and record the amounts: {component}, {lot number}, {weight or volume}."
+      - "State the buffer batch size for this record and calculate the amount of each component from the TRD formulation table: amount = ratio in the TRD table x buffer batch size. Check the buffer batch size against the range shown in the table below. Write the working next to each result: {buffer batch size}, {component}, {ratio from the TRD}, {calculated amount}."
+      - "Weigh or measure each component of the buffer to the calculated amount, within the addition tolerance of the TRD, and record the amounts: {component}, {lot number}, {weight or volume}."
       - "Mix at the speed and for the time shown in the table below until all components are dissolved. Record the start and end of mixing and the mixer settings: {start}, {end}, {mixer settings}."
       - "Take the in-process samples listed in the table below and record the results: {sampling time}, {results}."
       - "Filter the buffer through the bioburden-reduction filter and run the filter integrity test as described in the table below. Record the filter identification, the start and end of filtration and the test results: {filter lot}, {start}, {end}, {integrity result}."
@@ -115,6 +116,30 @@ blocks:
         timeLimits: []
         sampleTypes: []
         cmoFields: [Component lot numbers, Weights and volumes, Balance ID, Vessel ID, Signature and date]
+      - version: 2
+        title: Buffer preparation
+        unitOps: [buffer_prep]
+        steps:
+          - "Check the line clearance of the preparation area and record it: {line clearance form number}."
+          - "Weigh or measure each component of the buffer and record the amounts: {component}, {lot number}, {weight or volume}."
+          - "Mix at the speed and for the time shown in the table below until all components are dissolved. Record the start and end of mixing and the mixer settings: {start}, {end}, {mixer settings}."
+          - "Take the in-process samples listed in the table below and record the results: {sampling time}, {results}."
+          - "Filter the buffer through the bioburden-reduction filter and run the filter integrity test as described in the table below. Record the filter identification, the start and end of filtration and the test results: {filter lot}, {start}, {end}, {integrity result}."
+          - "Record the buffer volume and the storage vessel, and the time the buffer is placed in hold and the time it is taken for use: {volume}, {vessel ID}, {hold start}, {hold end}."
+        params:
+          - { key: batch_volume, label: Buffer batch volume, collection: param, itemKey: batch_volume, field: setPoint }
+          - { key: batch_volume_range, label: Buffer batch volume range, collection: param, itemKey: batch_volume, field: nor }
+          - { key: mixing_speed, label: Buffer mixing speed, collection: param, itemKey: mixing_speed, field: setPoint }
+          - { key: mixing_speed_range, label: Buffer mixing speed range, collection: param, itemKey: mixing_speed, field: nor }
+          - { key: mixing_time, label: Buffer mixing time, collection: param, itemKey: mixing_time, field: setPoint }
+          - { key: mixing_time_range, label: Buffer mixing time range, collection: param, itemKey: mixing_time, field: nor }
+          - { key: buffer_controls, label: Buffer in-process controls, collection: ipc, itemKey: panel, field: tests }
+          - { key: bioburden, label: Buffer pre-filtration bioburden, collection: ipc, itemKey: bioburden, field: limit }
+          - { key: integrity, label: Buffer filter integrity testing approach, collection: ipc, itemKey: integrity, field: approach }
+        timeLimits:
+          - { key: buffer_hold, label: Buffer hold time, collection: param, itemKey: max_hold_time, field: max }
+        sampleTypes: []
+        cmoFields: [Component lot numbers, Weights and volumes, Balance ID, Mixer ID and settings, Filter lot and ID, Vessel ID, Signature and date]
 
   - id: pooling_with_weights
     version: 1
@@ -131,10 +156,11 @@ blocks:
     cmoFields: [Container IDs, Gross and net weights, Balance ID and calibration status, Vessel ID, Density, Signature and date]
 
   - id: dilution_and_mixing
-    version: 1
+    version: 2
     title: Dilution and mixing
     unitOps: [compounding]
     steps:
+      - "Calculate the volume of buffer or diluent to add: volume = the TRD diluent ratio (diluent volume per unit of batch size) x the batch size of this batch. Write the working next to the result: {batch size}, {diluent ratio from the TRD}, {calculated volume}."
       - "Add the buffer or diluent to the pool to reach the batch size shown in the table below and record the amount: {buffer lot}, {amount}."
       - "Mix at the speed and for the time shown in the table below. Record the start and end of mixing and the mixer settings: {start}, {end}, {mixer settings}."
       - "Record the temperature of the bulk during mixing: {temperature reading}."
@@ -155,6 +181,31 @@ blocks:
       - { key: bulk_hold, label: Formulated bulk hold time, collection: param, itemKey: max_hold_time, field: max }
     sampleTypes: []
     cmoFields: [Buffer lot numbers, Amounts added, Mixer ID and settings, Temperature probe ID and calibration status, Final weight and volume, Signature and date]
+    history:
+      - version: 1
+        title: Dilution and mixing
+        unitOps: [compounding]
+        steps:
+          - "Add the buffer or diluent to the pool to reach the batch size shown in the table below and record the amount: {buffer lot}, {amount}."
+          - "Mix at the speed and for the time shown in the table below. Record the start and end of mixing and the mixer settings: {start}, {end}, {mixer settings}."
+          - "Record the temperature of the bulk during mixing: {temperature reading}."
+          - "Take the in-process samples listed in the sample table of this section and record the time: {sampling time}."
+          - "Record the final weight and volume of the formulated bulk: {final weight}, {final volume}."
+        params:
+          - { key: batch_size, label: Batch size (formulated bulk), collection: param, itemKey: batch_size, field: setPoint }
+          - { key: batch_size_range, label: Batch size range, collection: param, itemKey: batch_size, field: nor }
+          - { key: mixing_speed, label: Mixing speed, collection: param, itemKey: mixing_speed, field: setPoint }
+          - { key: mixing_speed_range, label: Mixing speed range, collection: param, itemKey: mixing_speed, field: nor }
+          - { key: mixing_time, label: Mixing time, collection: param, itemKey: mixing_time, field: setPoint }
+          - { key: mixing_time_range, label: Mixing time range, collection: param, itemKey: mixing_time, field: nor }
+          - { key: temperature, label: Compounding temperature, collection: param, itemKey: temperature, field: setPoint }
+          - { key: temperature_range, label: Compounding temperature range, collection: param, itemKey: temperature, field: nor }
+          - { key: target_concentration, label: Target protein concentration after dilution, collection: param, itemKey: target_concentration, field: setPoint }
+          - { key: target_concentration_range, label: Target protein concentration range, collection: param, itemKey: target_concentration, field: nor }
+        timeLimits:
+          - { key: bulk_hold, label: Formulated bulk hold time, collection: param, itemKey: max_hold_time, field: max }
+        sampleTypes: []
+        cmoFields: [Buffer lot numbers, Amounts added, Mixer ID and settings, Temperature probe ID and calibration status, Final weight and volume, Signature and date]
 
   - id: bbr_filtration_run
     version: 2
@@ -277,7 +328,7 @@ blocks:
     cmoFields: [Barrel lot, Number of tubs, Plunger stopper lot, Transfer port ID, Damaged tubs or nests, Operators, Signature and date]
 
   - id: filling_run
-    version: 1
+    version: 2
     title: Filling
     unitOps: [aseptic_filling]
     steps:
@@ -294,9 +345,30 @@ blocks:
       - { key: max_interventions, label: Interventions per batch, collection: param, itemKey: max_interventions, field: max }
       - { key: fill_check, label: Fill weight check frequency, collection: ipc, itemKey: fill_check, field: frequency }
     timeLimits:
-      - { key: fill_duration, label: Filling duration, collection: param, itemKey: max_fill_duration, field: max }
+      - { key: fill_duration, label: Filling duration of the whole batch (media-fill limit), collection: param, itemKey: max_fill_duration, field: max }
     sampleTypes: []
     cmoFields: [Filling machine ID, Balance ID and calibration status, Alarm values, Fill weights, Units filled, Signature and date]
+    history:
+      - version: 1
+        title: Filling
+        unitOps: [aseptic_filling]
+        steps:
+          - "Set the filling machine to the values shown in the table below and record the settings: {machine settings}."
+          - "Start the filling and record the start time and the first filled unit: {start}, {first unit}."
+          - "Check the fill at the frequency shown in the table below and record each reading: {check time}, {reading}."
+          - "Record the interventions made during the run: {intervention list}."
+          - "Record the end of filling and the number of units filled: {end}, {units filled}."
+        params:
+          - { key: fill_volume, label: Fill volume, collection: param, itemKey: fill_volume, field: setPoint }
+          - { key: fill_volume_range, label: Fill volume range, collection: param, itemKey: fill_volume, field: nor }
+          - { key: line_speed, label: Filling line speed, collection: param, itemKey: line_speed, field: setPoint }
+          - { key: line_speed_range, label: Filling line speed range, collection: param, itemKey: line_speed, field: nor }
+          - { key: max_interventions, label: Interventions per batch, collection: param, itemKey: max_interventions, field: max }
+          - { key: fill_check, label: Fill weight check frequency, collection: ipc, itemKey: fill_check, field: frequency }
+        timeLimits:
+          - { key: fill_duration, label: Filling duration, collection: param, itemKey: max_fill_duration, field: max }
+        sampleTypes: []
+        cmoFields: [Filling machine ID, Balance ID and calibration status, Alarm values, Fill weights, Units filled, Signature and date]
 
   - id: stopper_position_check
     version: 1

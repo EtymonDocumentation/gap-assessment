@@ -196,8 +196,38 @@ export function brokenReferences(rec: MbrRecord): { sectionId: string; blockId: 
 
 // ------------------------------------------------------------------ sample rows from the sampling plan
 
-/** The live shape of a sample row, as the sampling plan says it now. */
+/** The live shape of a sample row, as the sampling plan says it now. `hour` holds the moment in process words (see sampleMomentOf). */
 export type SampleFields = Pick<MbrSampleRow, "test" | "step" | "quantity" | "container" | "storage" | "hour" | "hold">;
+
+/**
+ * The moment in the process a sample is taken, in process words ("Beginning of aseptic filling", "After 30 h hold"). A batch record is
+ * read at the bench, where nobody knows what "116 h" on the plan's flow figure means, so the hour on the figure is NOT printed here.
+ * The author's own timing note wins (it can name the exact moment); otherwise the words come from the timing choice and the step.
+ * Nothing is guessed: no timing choice and no note leaves the cell empty.
+ */
+export function sampleMomentOf(p: SamplingPoint, step: string | undefined, hold: string | undefined): string | undefined {
+  const note = text(p.timing.note);
+  if (note) return note;
+  const o = p.timing.options[0];
+  if (!o) return undefined;
+  const at = step ? step.replace(/^([A-Z])(?=[a-z])/, (c) => c.toLowerCase()) : undefined;
+  if (hold) {
+    if (o === "beginning") return `Start of hold (${hold})`;
+    if (o === "end") return `End of hold (${hold})`;
+    return `During hold (${hold})`;
+  }
+  const where = at ? ` ${at}` : "";
+  switch (o) {
+    case "beginning": return `Beginning of${where || " the run"}`;
+    case "middle": return `Middle of${where || " the run"}`;
+    case "end": return `End of${where || " the run"}`;
+    case "after_stoppage": return `After a line stop${at ? ` in ${at}` : ""}`;
+    case "after_intervention": return `After an intervention${at ? ` in ${at}` : ""}`;
+    case "interval": return `At defined intervals${at ? ` during ${at}` : ""}`;
+    case "other": return text(p.timing.other) || undefined;
+    default: return undefined;
+  }
+}
 
 export function sampleFieldsOf(plan: SamplingPlan, p: SamplingPoint): SampleFields {
   const step = p.flow ? plan.steps.find((s) => s.id === p.flow!.stepId)?.label : undefined;
@@ -212,7 +242,7 @@ export function sampleFieldsOf(plan: SamplingPlan, p: SamplingPoint): SampleFiel
     quantity: q,
     container: text(p.container) || undefined,
     storage: text(p.storageCondition) || undefined,
-    hour: p.takenAtHour !== undefined ? `${p.takenAtHour} h` : undefined,
+    hour: sampleMomentOf(p, step, hold),
     hold,
   });
 }

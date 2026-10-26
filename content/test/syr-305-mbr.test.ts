@@ -137,14 +137,14 @@ describe("SYR-305 demo batch record", () => {
     const textOf = (id: string) => blocks.flatMap((b) => b.steps).find((s) => s.id === id)!.text;
     const targets = limitOf("storage_shipping", "total_out_of_refrigeration").targets;
     const byLabel = (l: string) => targets.find((t) => t.label === l)!;
-    for (const l of ["Visual inspection", "Bulk packaging", "Labelling and packaging"]) {
+    for (const l of ["Visual inspection (per portion)", "Bulk packaging (per portion)", "Labelling and packaging (per portion)"]) {
       expect(textOf(byLabel(l).fromStepId!), l).toMatch(/leaves? refrigerated storage/);
       expect(textOf(byLabel(l).toStepId!), l).toMatch(/returns? to refrigerated storage/);
     }
     // Filling has no out/return pair (the units are in the isolator): its range is the start to the end of filling.
-    expect(textOf(byLabel("Filling").fromStepId!)).toMatch(/^Start the filling/);
-    expect(textOf(byLabel("Filling").toStepId!)).toMatch(/^Record the end of filling/);
-    expect([byLabel("Visual inspection"), byLabel("Bulk packaging"), byLabel("Labelling and packaging")].map((t) => `${nums.get(t.fromStepId!)}-${nums.get(t.toStepId!)}`)).toEqual(["8.2-8.6", "9.2-9.6", "10.3-10.6"]);
+    expect(textOf(byLabel("Filling (per portion)").fromStepId!)).toMatch(/^Start the filling/);
+    expect(textOf(byLabel("Filling (per portion)").toStepId!)).toMatch(/^Record the end of filling/);
+    expect([byLabel("Visual inspection (per portion)"), byLabel("Bulk packaging (per portion)"), byLabel("Labelling and packaging (per portion)")].map((t) => `${nums.get(t.fromStepId!)}-${nums.get(t.toStepId!)}`)).toEqual(["8.2-8.6", "9.2-9.6", "10.3-10.6"]);
   });
 
   it("refers from sterile filtration to the integrity test steps by an automatic reference", () => {
