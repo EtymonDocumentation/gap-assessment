@@ -45,3 +45,14 @@ test("server build: with the module a batch record is shown, edited and kept on 
   await go(page, "#/mbr/library");
   await expect(page.getByTestId("mbl-row-pooling_with_weights")).toContainText("Shipped, edited by you");
 });
+
+test("server build: the syringe example opens with its batch record, and the server keeps it with the project", async ({ page }) => {
+  test.setTimeout(150_000);
+  await signUp(page, newAccount("mbrsyr"), makeSamplingInvite());
+  await go(page, "#/");
+  await page.getByRole("button", { name: "Open syringe example" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
+  await go(page, "#/mbr");
+  await expect(page.getByTestId("mbr-list-table")).toContainText("SYR-305 master batch record");
+  await expect.poll(() => serverRevision(page, "SYR-305 technology transfer: Example Biologics to Example Fill Site (fictional demo)")).toBeGreaterThan(0);
+});

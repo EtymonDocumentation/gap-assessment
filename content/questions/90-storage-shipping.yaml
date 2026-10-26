@@ -130,9 +130,9 @@ questions:
   - id: ss.total_tor
     section: uo.storage_shipping
     topic: storage
-    prompt: Maximum total time out of refrigeration, from the end of thaw until the product is back in refrigerated storage
+    prompt: Maximum total time out of refrigeration, from the start of filling until the product is back in refrigerated storage
     label: Maximum total time out of refrigeration
-    why: The time out of refrigeration of each step adds up. The total is the limit the stability data must support, so the limits of the steps have to fit within it.
+    why: The time out of refrigeration of each step adds up. It is counted from the start of filling until the product is back in refrigerated storage; the time at ambient temperature after thaw has its own limit. The total is the limit the stability data must support, so the limits of the steps have to fit within it.
     sides: target
     binds: uo.storage_shipping.param.max_total_time_out_of_refrigeration.max
     input: { type: quantity, units: [h, min] }

@@ -4,7 +4,7 @@
 # offers an option such as "unknown" or "not yet known" of its own.
 bank:
   id: gap-core
-  version: 1.8.0
+  version: 1.9.0
 
 sections:
   - { id: scoping, title: Scoping, kind: scoping, order: 0, intro: These answers decide which unit operations and questions apply. They are shared by SU and RU. }

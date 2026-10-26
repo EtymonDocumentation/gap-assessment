@@ -302,7 +302,7 @@ writeups:
         performed)
       text: 'Not applicable: dilution is performed at {{trd.dilutionBuffer.dilutionSite|Site where dilution is performed}}.'
   - id: sec_process_parameters
-    version: 2
+    version: 3
     kind: section
     key: process_parameters
     title: Overall process parameters
@@ -344,8 +344,8 @@ writeups:
         text: >-
           The inline sterile filtration time counts towards the time out of refrigeration of the filling process. The total time
           out of refrigeration must not exceed {{uo.storage_shipping.param.max_total_time_out_of_refrigeration.max|Total time out of
-          refrigeration}}, measured from the end of thaw to the last unit filled and stoppered, with the drug product placed into
-          refrigerated storage.
+          refrigeration}}, counted from the start of filling until the drug product is back in refrigerated storage. The
+          time at ambient temperature after thaw has its own limit and is not part of this total.
       - id: fn_tor_budget
         kind: note
         text: >-
@@ -971,7 +971,7 @@ writeups:
         optional:
           condition: include to state the filter flush volumes
   - id: wu_aseptic_filling
-    version: 3
+    version: 4
     kind: unitOp
     key: aseptic_filling
     title: Filling, stoppering and stopper insertion
@@ -1052,9 +1052,8 @@ writeups:
       - id: n1
         kind: note
         text: >-
-          The longest time allowed from the end of thaw to the last unit filled and stoppered and the product placed in
-          refrigerated storage is given in the overall process parameters section. The filled units are protected from light while
-          in refrigerated storage, as described in the formulation and manufacturing precautions section.
+          The longest time allowed from the start of filling until the product is back in refrigerated storage is given in the overall process
+          parameters section. The filled units are protected from light while in refrigerated storage, as described in the formulation and manufacturing precautions section.
       - id: filtered_hold
         kind: paragraph
         text: >-
