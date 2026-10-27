@@ -3,3 +3,4 @@ export const RISK_SCORING_VERSION = "0.1.0";
 export * from "./bands";
 export * from "./score";
 export * from "./config";
+export * from "./tr44";

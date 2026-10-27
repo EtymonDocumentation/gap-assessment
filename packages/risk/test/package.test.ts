@@ -44,8 +44,17 @@ describe("public API", () => {
   it("exports these names", () => {
     expect(Object.keys(api).sort()).toMatchInlineSnapshot(`
       [
+        "INTERVENTION_LABEL",
+        "INTERVENTION_SIMULATION_HINT",
+        "LMH_LABEL",
         "METHOD_LABEL",
         "RISK_SCORING_VERSION",
+        "SEVERITY_CONFIDENCE_HINT",
+        "TR44_DETECTION_TEXT",
+        "TR44_GUIDANCE",
+        "TR44_SCALE_ENDS",
+        "TR44_THRESHOLD_HINT",
+        "aboveThreshold",
         "bandProblems",
         "bandsFor",
         "configProblems",
@@ -53,6 +62,9 @@ describe("public API", () => {
         "describeMethod",
         "factorColumns",
         "heatCounts",
+        "interventionIsEmpty",
+        "interventionTally",
+        "isTr44",
         "scoreCustom",
         "scoreFmea",
         "scoreIsEmpty",
@@ -60,6 +72,7 @@ describe("public API", () => {
         "scoreMatrix",
         "scoreQualitative",
         "scoreRange",
+        "severityConfidenceText",
       ]
     `);
   });

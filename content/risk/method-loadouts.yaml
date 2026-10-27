@@ -5,13 +5,16 @@
 #  - FMEA load-outs give the SCALE RANGES only (severity, occurrence, detection). They carry no level descriptions, no RPN bands and
 #    no "severity alone triggers" rule: what a "7" means and which RPN needs action are the organisation's decisions (ICH Q9(R1)
 #    asks the organisation to define its own criteria). The user adds descriptions and bands in the editor, or leaves them out.
+#  - The PDA TR 44 FMEA load-out is the same 1 to 10 FMEA with the register laid out the way PDA TR 44 shows it (risk accepted?, action
+#    threshold, review triggers). It writes only the direction of each scale (detection is REVERSED: a high number is poor detection) and no
+#    middle-of-scale wording, no bands and no threshold. Nothing is preselected for any item.
 #  - Matrix load-outs give level names and a grid of risk labels as a STARTING SHAPE. The labels follow the sum of the row and column
 #    positions (low sums Low, middle sums Medium, high sums High). They are the user's to change cell by cell; the tool treats no
 #    cell as acceptable or not.
 #  - The qualitative load-out gives three level names. Each item still needs a written reason.
 # Editable without code changes. Bump catalog.version on any change.
 catalog:
-  version: 1.0.0
+  version: 1.1.0
 loadouts:
   - id: fmea-1-10
     title: FMEA 1-10 (S, O, D)
@@ -33,6 +36,32 @@ loadouts:
       detection: { min: 1, max: 5, levels: [] }
       bands: []
       loadoutId: fmea-1-5
+  - id: fmea-pda-tr44
+    title: FMEA, PDA TR 44 layout (1-10)
+    description: Severity, occurrence and detection, each scored 1 to 10; risk priority is the product. Detection is a reversed scale (a high number means poor detection). The register adds "risk accepted?", an action threshold you set, and review triggers. Nothing is preselected.
+    config:
+      method: fmea
+      layout: tr44
+      severity:
+        min: 1
+        max: 10
+        levels:
+          - { value: 1, description: Least severe effect (scale direction only) }
+          - { value: 10, description: Most severe effect (scale direction only) }
+      occurrence:
+        min: 1
+        max: 10
+        levels:
+          - { value: 1, description: Failure very unlikely to occur (scale direction only) }
+          - { value: 10, description: Failure almost certain to occur (scale direction only) }
+      detection:
+        min: 1
+        max: 10
+        levels:
+          - { value: 1, description: "Almost certain to be detected: best detection (reversed scale)" }
+          - { value: 10, description: "Almost certain NOT to be detected: poorest detection (reversed scale)" }
+      bands: []
+      loadoutId: fmea-pda-tr44
   - id: matrix-3x3
     title: Matrix 3x3
     description: Three likelihood levels by three severity levels, with risk labels you can change cell by cell.

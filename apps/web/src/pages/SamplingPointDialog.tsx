@@ -1281,7 +1281,7 @@ export function PointForm({
               onChange={(e) => setBasis({ confidencePercent: e.target.value === "" ? undefined : Number(e.target.value) })}
               data-testid="point-stat-confidence"
             />
-            <span className="muted small">Hint: at least 90% at the rejectable quality level. Nothing is filled in for you.</span>
+            <span className="muted small">Hint: at least 90% at the rejectable quality level. PDA TR 60 s6.1 links it to the severity of the failure: high 99%, medium 95%, low 90%. Nothing is filled in for you.</span>
           </label>
           <label className="field">
             <span>Rejectable quality level</span>

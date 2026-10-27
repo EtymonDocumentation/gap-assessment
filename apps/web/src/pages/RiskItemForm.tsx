@@ -1,5 +1,6 @@
-import { gapSeeds, pointRef, removeItem, samplingPointExists, updateItem } from "@gap/engine";
-import type { RiskAssessment, RiskItem } from "@gap/process-model";
+import { evaluateItem, gapSeeds, linkedConfidence, pointRef, removeItem, samplingPointExists, thresholdReading, updateItem, usesTr44 } from "@gap/engine";
+import { RISK_INTERVENTION_FACTORS, type RiskAccepted, type RiskAssessment, type RiskIntervention, type RiskItem, type RiskLmh } from "@gap/process-model";
+import { INTERVENTION_LABEL, INTERVENTION_SIMULATION_HINT, interventionTally, LMH_LABEL, severityConfidenceText, TR44_GUIDANCE } from "@gap/risk";
 import { useMemo, useState } from "react";
 import { useSamplingAllowed } from "../risk-module";
 import { useContent, useStore } from "../store";
@@ -38,6 +39,10 @@ export function RiskItemForm({ a, item, run, onDone, onCancel }: { a: RiskAssess
   const [residual, setResidual] = useState(() => (item.residual ? scoreToForm(item.residual) : blankScore()));
   const [links, setLinks] = useState<string[]>(item.samplingPointIds);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const tr44 = usesTr44(a);
+  const [accepted, setAccepted] = useState<"" | RiskAccepted>(item.accepted ?? "");
+  const [wantIv, setWantIv] = useState(!!item.intervention);
+  const [iv, setIv] = useState<RiskIntervention>(item.intervention ?? {});
   const seeds = useMemo(() => gapSeeds(content, project, a), [content, project, a]);
 
   function save() {
@@ -58,6 +63,8 @@ export function RiskItemForm({ a, item, run, onDone, onCancel }: { a: RiskAssess
             initial: formToScore(initial),
             residual: wantResidual && !formIsEmpty(residual) ? formToScore(residual) : undefined,
             samplingPointIds: links,
+            // Only the PDA TR 44 layout has these two answers; blank stays blank (no default).
+            ...(tr44 ? { accepted: accepted || undefined, intervention: wantIv ? iv : undefined } : {}),
           },
           actor,
         ),
@@ -65,6 +72,12 @@ export function RiskItemForm({ a, item, run, onDone, onCancel }: { a: RiskAssess
     );
     if (ok) onDone();
   }
+
+  // Live reading of the typed scores against the team's threshold. Nothing is stored until Save.
+  const live = tr44 && a.config ? thresholdReading(a, evaluateItem(a, { ...item, initial: formToScore(initial), residual: wantResidual && !formIsEmpty(residual) ? formToScore(residual) : undefined })) : undefined;
+  const flag = (above: boolean | undefined, t: number | undefined) => (above === undefined ? (t === undefined ? "No action threshold entered yet" : "Not compared") : above ? `⚑ Above the action threshold (${t})` : `Not above the action threshold (${t})`);
+  const confidences = tr44 ? linkedConfidence(project, item) : [];
+  const tally = interventionTally(iv);
 
   const linkedGaps = item.gapIds.map((g) => seeds.find((s) => s.gapId === g) ?? { gapId: g, attribute: "(gap no longer in the assessment)", severity: "" });
 
@@ -116,6 +129,13 @@ export function RiskItemForm({ a, item, run, onDone, onCancel }: { a: RiskAssess
         ) : (
           <p className="notice">Choose a method on step 1 to score this item. Until then it stays "Not scored".</p>
         )}
+        {tr44 && (
+          <ul className="muted small" data-testid="item-tr44-guidance">
+            {TR44_GUIDANCE.map((g) => (
+              <li key={g}>{g}</li>
+            ))}
+          </ul>
+        )}
         {a.config && (
           <>
             <label className="check">
@@ -125,6 +145,73 @@ export function RiskItemForm({ a, item, run, onDone, onCancel }: { a: RiskAssess
           </>
         )}
       </fieldset>
+
+      {tr44 && live && (
+        <div className="notice" data-testid="item-priority">
+          <p>
+            <strong>Risk priority (S x O x D):</strong> {live.priority ?? "Not scored"}
+            {live.priority !== undefined ? `. ${flag(live.above, live.threshold)}.` : ""}
+          </p>
+          {live.residualPriority !== undefined && (
+            <p>
+              <strong>After actions:</strong> {live.residualPriority}. {flag(live.residualAbove, live.threshold)}.
+            </p>
+          )}
+        </div>
+      )}
+      {tr44 && (
+        <label className="field">
+          <span>Risk accepted? (the team's decision; the tool does not answer it)</span>
+          <select value={accepted} onChange={(e) => setAccepted(e.target.value as "" | RiskAccepted)} data-testid="item-accepted">
+            <option value="">Not answered</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </label>
+      )}
+      {tr44 && (
+        <fieldset className="fs stack" data-testid="item-intervention">
+          <legend>Intervention scoring (optional, for aseptic interventions)</legend>
+          <label className="check">
+            <input type="checkbox" checked={wantIv} onChange={(e) => setWantIv(e.target.checked)} data-testid="item-intervention-on" /> <span>Score this row as an intervention (PDA TR 22 Example 3)</span>
+          </label>
+          {wantIv && (
+            <>
+              <div className="row wrap">
+                {RISK_INTERVENTION_FACTORS.map((k) => (
+                  <label key={k} className="field">
+                    <span>{INTERVENTION_LABEL[k]}</span>
+                    <select value={iv[k] ?? ""} onChange={(e) => setIv({ ...iv, [k]: e.target.value || undefined })} data-testid={`item-iv-${k}`}>
+                      <option value="">Not rated</option>
+                      {(["low", "medium", "high"] as RiskLmh[]).map((l) => (
+                        <option key={l} value={l}>
+                          {LMH_LABEL[l]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ))}
+              </div>
+              <p className="muted small" data-testid="item-iv-tally">
+                Answers so far: {tally.high} high, {tally.medium} medium, {tally.low} low
+                {tally.missing.length ? `; not rated: ${tally.missing.join(", ")}` : ""}. The tool counts but does not choose the overall level.
+              </p>
+              <label className="field">
+                <span>Overall level (your choice)</span>
+                <select value={iv.level ?? ""} onChange={(e) => setIv({ ...iv, level: (e.target.value || undefined) as RiskLmh | undefined })} data-testid="item-iv-level">
+                  <option value="">Not chosen</option>
+                  {(["low", "medium", "high"] as RiskLmh[]).map((l) => (
+                    <option key={l} value={l}>
+                      {LMH_LABEL[l]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {iv.level && <p className="muted small" data-testid="item-iv-hint">{INTERVENTION_SIMULATION_HINT[iv.level]} A hint for the media fill plan, not a decision.</p>}
+            </>
+          )}
+        </fieldset>
+      )}
 
       {linkedGaps.length > 0 && (
         <div data-testid="item-gaps">
@@ -146,6 +233,12 @@ export function RiskItemForm({ a, item, run, onDone, onCancel }: { a: RiskAssess
         <fieldset className="fs stack" data-testid="item-points">
           <legend>Linked sampling points</legend>
           <p className="muted small">Sampling points that detect or control this failure mode.</p>
+          {tr44 && (
+            <p className="muted small" data-testid="item-confidence-hint">
+              {severityConfidenceText()}
+              {confidences.length ? ` Entered on the linked points: ${confidences.map((c) => `${c.ref} ${c.confidencePercent !== undefined ? c.confidencePercent + " %" : "not entered"}`).join("; ")}.` : ""}
+            </p>
+          )}
           <div className="step-checks">
             {points.map((p) => (
               <label key={p.ref} className="check">

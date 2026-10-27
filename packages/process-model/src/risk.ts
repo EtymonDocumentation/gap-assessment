@@ -2,7 +2,8 @@ import { z } from "zod";
 import { planStepSchema } from "./sampling";
 
 /*
- * Risk assessment shapes (project schema 1.14.0). Framework: ICH Q9(R1) quality risk management.
+ * Risk assessment shapes (project schema 1.14.0; the PDA TR 44 layout, review triggers and intervention scoring from schema 1.24.0).
+ * Framework: ICH Q9(R1) quality risk management.
  *
  * Design notes (the why):
  *  - THE TOOL SUPPORTS THE USER'S METHOD, IT NEVER IMPOSES ONE. There is no default method, scale, band or matrix anywhere in these
@@ -17,7 +18,7 @@ import { planStepSchema } from "./sampling";
  */
 
 /** Version of the risk assessment format (shapes, method configs, output). Independent of the project schema version. */
-export const RISK_FORMAT_VERSION = "1.0.0";
+export const RISK_FORMAT_VERSION = "1.1.0";
 
 export const RISK_METHODS = ["fmea", "matrix", "custom", "qualitative"] as const;
 export type RiskMethod = (typeof RISK_METHODS)[number];
@@ -67,6 +68,12 @@ export const fmeaConfigSchema = z.object({
   occurrence: riskScaleSchema,
   detection: riskScaleSchema,
   bands: z.array(riskBandSchema),
+  /**
+   * Optional presentation layout. "tr44" is the PDA TR 44 style FMEA register (S x O x D on 1 to 10 with a REVERSED detection scale,
+   * "risk accepted?" per row, an action threshold). It changes what the page and the document show and which answers count as open
+   * items; it never changes how a score is calculated. Absent = the plain FMEA every project had before.
+   */
+  layout: z.literal("tr44").optional(),
   /** Only if the user enters it: a severity at or above `min` triggers `label` whatever the RPN is. */
   severityTrigger: z.object({ min: z.number().int(), label: z.string().min(1), note: z.string().optional() }).optional(),
   loadoutId,
@@ -178,6 +185,31 @@ export const riskOriginSchema = z.object({
   catalogVersion: z.string().optional(),
 });
 
+/** "Risk accepted?" of one register row (PDA TR 44 FMEA). It is the team's answer; a missing answer is an open item, never a "no". */
+export const RISK_ACCEPTED = ["yes", "no"] as const;
+export type RiskAccepted = (typeof RISK_ACCEPTED)[number];
+
+/**
+ * Intervention risk scoring after the PDA TR 22 worked example: five aspects of an aseptic intervention, each low, medium or high.
+ * The OVERALL level is chosen by the team (`level`); the tool shows a tally of the five answers but does not turn it into a level,
+ * because the cut-offs are the organisation's decision. A missing aspect stays absent (shown as "Not given").
+ */
+export const RISK_INTERVENTION_FACTORS = ["complexity", "duration", "proximity", "frequency", "airflow"] as const;
+export type RiskInterventionFactor = (typeof RISK_INTERVENTION_FACTORS)[number];
+export const RISK_LMH = ["low", "medium", "high"] as const;
+export type RiskLmh = (typeof RISK_LMH)[number];
+export const riskInterventionSchema = z.object({
+  complexity: z.enum(RISK_LMH).optional(),
+  duration: z.enum(RISK_LMH).optional(),
+  /** Closeness to the product or to open product-contact surfaces. */
+  proximity: z.enum(RISK_LMH).optional(),
+  frequency: z.enum(RISK_LMH).optional(),
+  /** Disruption of the unidirectional airflow. */
+  airflow: z.enum(RISK_LMH).optional(),
+  level: z.enum(RISK_LMH).optional(),
+});
+export type RiskIntervention = z.infer<typeof riskInterventionSchema>;
+
 export const riskItemSchema = z.object({
   /** RA-001, RA-002 ... stable, never reused inside an assessment. */
   id: z.string().regex(/^RA-\d{3,}$/),
@@ -191,6 +223,10 @@ export const riskItemSchema = z.object({
   initial: riskScoreSchema,
   /** Optional: only if the person fills it in. */
   residual: riskScoreSchema.optional(),
+  /** PDA TR 44 layout: the team's answer to "risk accepted?". Absent = not answered yet (an open item). */
+  accepted: z.enum(RISK_ACCEPTED).optional(),
+  /** Optional intervention scoring (PDA TR 22 example) for an item that is an aseptic intervention. */
+  intervention: riskInterventionSchema.optional(),
   gapIds: z.array(z.string()),
   samplingPointIds: z.array(z.string()),
   sourceIds: z.array(z.string()),
@@ -200,6 +236,28 @@ export const riskItemSchema = z.object({
   updatedAt: z.string(),
 });
 export type RiskItem = z.infer<typeof riskItemSchema>;
+
+/** Reasons to look at an assessment again (PDA TR 44 lists these as review triggers). A list the team ticks; none is preselected. */
+export const RISK_REVIEW_TRIGGERS = ["investigation", "new_risk", "change_control", "process_change", "periodic"] as const;
+export type RiskReviewTrigger = (typeof RISK_REVIEW_TRIGGERS)[number];
+export const RISK_REVIEW_TRIGGER_LABEL: Record<RiskReviewTrigger, string> = {
+  investigation: "An investigation (deviation, out-of-specification result, complaint)",
+  new_risk: "A new risk is found",
+  change_control: "A change control",
+  process_change: "A process change",
+  periodic: "Periodic review",
+};
+
+/** One line of the revision history: a review that took place (the assessment is a living document). */
+export const riskReviewSchema = z.object({
+  /** RV-001 ... never reused inside an assessment. */
+  id: z.string().regex(/^RV-\d{3,}$/),
+  date: z.string().min(1),
+  trigger: z.enum(RISK_REVIEW_TRIGGERS).optional(),
+  note: z.string().min(1),
+  by: z.string().optional(),
+});
+export type RiskReview = z.infer<typeof riskReviewSchema>;
 
 export const riskApprovalSchema = z.object({ role: z.string().min(1), name: z.string().optional(), date: z.string().optional() });
 export type RiskApproval = z.infer<typeof riskApprovalSchema>;
@@ -221,6 +279,15 @@ export const riskAssessmentSchema = z
     steps: z.array(planStepSchema),
     items: z.array(riskItemSchema),
     actions: z.array(riskActionSchema),
+    /**
+     * PDA TR 44 layout: the risk priority above which actions are required. Blank by default: the threshold is the organisation's
+     * decision, not the tool's. The page only compares a row's priority with it; it never calls a row acceptable.
+     */
+    actionThreshold: z.number().positive().optional(),
+    /** Review triggers the team ticked, the planned next review date and the history of reviews held. */
+    reviewTriggers: z.array(z.enum(RISK_REVIEW_TRIGGERS)).optional(),
+    nextReview: z.string().optional(),
+    reviews: z.array(riskReviewSchema).optional(),
     /** Optional section: who approves. Empty = the section is not in the output unless chosen. */
     approvals: z.array(riskApprovalSchema).optional(),
     createdAt: z.string(),
@@ -237,6 +304,8 @@ export const riskAssessmentSchema = z
     dup(a.items.map((i) => i.id), "item");
     dup(a.actions.map((x) => x.id), "action");
     dup(a.steps.map((s) => s.id), "step");
+    dup((a.reviews ?? []).map((r) => r.id), "review");
+    dup(a.reviewTriggers ?? [], "review trigger");
     if ((a.method ?? null) !== (a.config?.method ?? null)) ctx.addIssue({ code: "custom", message: `Assessment ${a.id}: the method and its configuration do not match` });
     const stepIds = new Set(a.steps.map((s) => s.id));
     const itemIds = new Set(a.items.map((i) => i.id));

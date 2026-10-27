@@ -19,7 +19,7 @@ describe("buildTrdSeed", () => {
     const seed = seedOf(p);
     const back = parseTrdSeed(JSON.stringify(seed));
     expect(back).toEqual(JSON.parse(JSON.stringify(seed)));
-    expect(back.meta).toMatchObject({ format: TRD_SEED_FORMAT, formatVersion: TRD_SEED_VERSION, exportedAt: AT, generator: { version: "9.9.9" }, processModelVersion: "1.14.0" });
+    expect(back.meta).toMatchObject({ format: TRD_SEED_FORMAT, formatVersion: TRD_SEED_VERSION, exportedAt: AT, generator: { version: "9.9.9" }, processModelVersion: "1.15.0" });
     expect(back.meta.product.program).toMatchObject({ status: "established", value: "ARX-217" });
     expect(back.unitOperations.length).toBeGreaterThan(5);
     expect(back.meta.gapAssessment.revision).toBeUndefined();

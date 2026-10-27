@@ -1,6 +1,7 @@
 import type { CustomConfig, RiskConfig, RiskMethod, RiskScale, RiskScore } from "@gap/process-model";
 import { bandProblems } from "./bands";
 import { scoreItem } from "./score";
+import { TR44_GUIDANCE } from "./tr44";
 
 /*
  * Reading a method config: its problems, its description for the document, its score columns, and the counts for the heat view.
@@ -165,6 +166,11 @@ export function describeMethod(config: RiskConfig): MethodDescription {
         bands: bandsOf(config.bands),
         bandsText: config.bands.length ? "Bands defined by the user:" : noBands,
       };
+      // The TR 44 layout adds reading guidance (reversed detection, how to reduce a sterility risk). Hints, never answers.
+      if (config.layout === "tr44") {
+        d.title = "FMEA, PDA TR 44 layout (severity x occurrence x detection)";
+        d.extra.push(...TR44_GUIDANCE);
+      }
       if (config.severityTrigger) d.extra.push(`Rule defined by the user: a severity of ${config.severityTrigger.min} or more gives "${config.severityTrigger.label}" whatever the RPN.${config.severityTrigger.note ? ` ${config.severityTrigger.note}` : ""}`);
       return d;
     }

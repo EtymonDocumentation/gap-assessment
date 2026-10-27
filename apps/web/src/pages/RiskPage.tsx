@@ -10,6 +10,7 @@ import { useContent, useStore } from "../store";
 import { RiskActions } from "./RiskActions";
 import { RiskItems } from "./RiskItems";
 import { RiskMethod } from "./RiskMethod";
+import { RiskReview } from "./RiskReview";
 import { RiskOutput } from "./RiskOutput";
 import type { Run } from "./SamplingFlow";
 
@@ -197,7 +198,12 @@ function Editor({ a, initialTab }: { a: RiskAssessment; initialTab: Tab }) {
         ))}
       </div>
 
-      {tab === "method" && <RiskMethod a={a} run={run} />}
+      {tab === "method" && (
+        <>
+          <RiskMethod a={a} run={run} />
+          <RiskReview a={a} run={run} />
+        </>
+      )}
       {tab === "items" && <RiskItems a={a} run={run} />}
       {tab === "actions" && <RiskActions a={a} run={run} />}
       {tab === "output" && <RiskOutput a={a} run={run} />}

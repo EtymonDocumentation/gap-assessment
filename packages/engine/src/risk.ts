@@ -11,9 +11,13 @@ import {
   type RiskAssessment,
   type RiskConfig,
   type RiskItem,
+  type RiskReview,
+  type RiskReviewTrigger,
   type RiskScore,
+  RISK_REVIEW_TRIGGERS,
+  RISK_REVIEW_TRIGGER_LABEL,
 } from "@gap/process-model";
-import { configProblems, scoreIsEmpty, scoreItem, type RiskResult } from "@gap/risk";
+import { aboveThreshold, configProblems, interventionIsEmpty, isTr44, scoreIsEmpty, scoreItem, type RiskResult } from "@gap/risk";
 import type { StepDraft } from "./sampling";
 
 /**
@@ -31,7 +35,7 @@ const pad = (n: number) => String(n).padStart(3, "0");
 const padStep = (n: number) => String(n).padStart(2, "0");
 
 /** Next id of a kind. Ids are never reused: an id that only survives in the change log still counts as taken. */
-function nextId(project: Project, prefix: "RAS" | "RA" | "AC" | "ST", assessmentId: string | undefined, existing: readonly string[]): string {
+function nextId(project: Project, prefix: "RAS" | "RA" | "AC" | "ST" | "RV", assessmentId: string | undefined, existing: readonly string[]): string {
   let max = 0;
   const take = (id: string) => {
     const m = new RegExp(`^${prefix}-(\\d+)$`).exec(id);
@@ -90,14 +94,24 @@ export function createAssessment(project: Project, input: { title: string; scope
   return { project: next, assessmentId: id };
 }
 
-export type AssessmentPatch = { title?: string; scopeNote?: string; context?: string; approvals?: RiskApproval[] };
+export type AssessmentPatch = {
+  title?: string;
+  scopeNote?: string;
+  context?: string;
+  approvals?: RiskApproval[];
+  /** PDA TR 44 layout: the risk priority above which actions are required. `undefined` (key present) clears it. */
+  actionThreshold?: number | undefined;
+  reviewTriggers?: RiskReviewTrigger[];
+  /** Planned date of the next review (free text date). Empty clears it. */
+  nextReview?: string;
+};
 
 export function updateAssessment(project: Project, id: string, patch: AssessmentPatch, actor: Actor): Project {
   const next = structuredClone(project);
   const a = assessmentOf(next, id);
   const before: Record<string, unknown> = {};
   const after: Record<string, unknown> = {};
-  for (const k of ["title", "scopeNote", "context"] as const) {
+  for (const k of ["title", "scopeNote", "context", "nextReview"] as const) {
     if (!(k in patch)) continue;
     const v = text(patch[k]);
     if (k === "title" && !v) throw new RiskError("The assessment needs a title");
@@ -106,6 +120,26 @@ export function updateAssessment(project: Project, id: string, patch: Assessment
     after[k] = v;
     if (v) a[k] = v;
     else delete a[k];
+  }
+  if ("actionThreshold" in patch) {
+    const v = patch.actionThreshold;
+    if (v !== undefined && !(Number.isFinite(v) && v > 0)) throw new RiskError("The action threshold must be a number above zero, or left blank");
+    if (v !== a.actionThreshold) {
+      before.actionThreshold = a.actionThreshold ?? null;
+      after.actionThreshold = v ?? null;
+      if (v === undefined) delete a.actionThreshold;
+      else a.actionThreshold = v;
+    }
+  }
+  if ("reviewTriggers" in patch) {
+    // Kept in the order of the catalog so the same ticks always read the same.
+    const list = RISK_REVIEW_TRIGGERS.filter((t) => (patch.reviewTriggers ?? []).includes(t));
+    if (JSON.stringify(list) !== JSON.stringify(a.reviewTriggers ?? [])) {
+      before.reviewTriggers = a.reviewTriggers ?? [];
+      after.reviewTriggers = list;
+      if (list.length) a.reviewTriggers = list;
+      else delete a.reviewTriggers;
+    }
   }
   if ("approvals" in patch) {
     const list = (patch.approvals ?? []).map((x) => ({ role: text(x.role), ...(text(x.name) ? { name: text(x.name) } : {}), ...(text(x.date) ? { date: text(x.date) } : {}) })).filter((x) => x.role);
@@ -120,6 +154,45 @@ export function updateAssessment(project: Project, id: string, patch: Assessment
   assertValid(a);
   a.updatedAt = actor.at;
   log(next, actor, { action: "risk_assessment_update", path: `risk.${id}`, detail: `Risk assessment ${id} edited`, before, after });
+  return next;
+}
+
+// ------------------------------------------------------------------ review history (a living document)
+
+export interface ReviewDraft {
+  date: string;
+  note: string;
+  trigger?: RiskReviewTrigger;
+  by?: string;
+}
+
+/** Adds one line to the revision history: a review that took place. Removing a line is allowed and logged. */
+export function addReview(project: Project, id: string, draft: ReviewDraft, actor: Actor): { project: Project; reviewId: string } {
+  if (!text(draft.date)) throw new RiskError("The review needs a date");
+  if (!text(draft.note)) throw new RiskError("The review needs a note on what was looked at and what changed");
+  const next = structuredClone(project);
+  const a = assessmentOf(next, id);
+  const reviewId = nextId(next, "RV", id, (a.reviews ?? []).map((r) => r.id));
+  const review: RiskReview = { id: reviewId, date: text(draft.date), note: text(draft.note) };
+  if (draft.trigger) review.trigger = draft.trigger;
+  if (text(draft.by)) review.by = text(draft.by);
+  a.reviews = [...(a.reviews ?? []), review];
+  assertValid(a);
+  a.updatedAt = actor.at;
+  log(next, actor, { action: "risk_review_add", path: `risk.${id}.${reviewId}`, detail: `Review ${reviewId} recorded for ${id}${review.trigger ? ` (${RISK_REVIEW_TRIGGER_LABEL[review.trigger]})` : ""}`, after: review });
+  return { project: next, reviewId };
+}
+
+export function removeReview(project: Project, id: string, reviewId: string, actor: Actor): Project {
+  const next = structuredClone(project);
+  const a = assessmentOf(next, id);
+  const review = (a.reviews ?? []).find((r) => r.id === reviewId);
+  if (!review) throw new RiskError(`Review ${reviewId} is not in ${id}`);
+  const rest = (a.reviews ?? []).filter((r) => r.id !== reviewId);
+  if (rest.length) a.reviews = rest;
+  else delete a.reviews;
+  a.updatedAt = actor.at;
+  log(next, actor, { action: "risk_review_remove", path: `risk.${id}.${reviewId}`, detail: `Review ${reviewId} removed from ${id}`, before: review });
   return next;
 }
 
@@ -395,6 +468,15 @@ export function updateItem(project: Project, id: string, itemId: string, patch: 
     else delete item.stepId;
   }
   if (patch.initial) item.initial = cleanScore(patch.initial);
+  // "Risk accepted?" is the team's answer. Clearing it puts the row back to "not answered", which is an open item.
+  if ("accepted" in patch) {
+    if (patch.accepted) item.accepted = patch.accepted;
+    else delete item.accepted;
+  }
+  if ("intervention" in patch) {
+    if (patch.intervention && !interventionIsEmpty(patch.intervention)) item.intervention = Object.fromEntries(Object.entries(patch.intervention).filter(([, v]) => v)) as RiskItem["intervention"];
+    else delete item.intervention;
+  }
   if ("residual" in patch) {
     // Residual risk is OPTIONAL: nothing entered means no residual at all, not a residual of "not scored".
     if (patch.residual && !scoreIsEmpty(patch.residual)) item.residual = cleanScore(patch.residual);
@@ -504,11 +586,59 @@ export const openActions = (a: RiskAssessment, itemId?: string): RiskAction[] =>
 /** True if any item carries a residual score: the output then shows the residual columns. */
 export const hasResidual = (a: RiskAssessment): boolean => a.items.some((i) => i.residual !== undefined);
 
-export type RiskOpenKind = "method" | "method-problem" | "not-scored" | "score-problem" | "no-failure-mode" | "dangling-link" | "no-items";
+export type RiskOpenKind = "method" | "method-problem" | "not-scored" | "score-problem" | "no-failure-mode" | "dangling-link" | "no-items" | "threshold-missing" | "accepted-missing" | "action-missing";
 export interface RiskOpenItem {
   kind: RiskOpenKind;
   itemId?: string;
   text: string;
+}
+
+// ------------------------------------------------------------------ PDA TR 44 layout
+
+/** The register rows are read the PDA TR 44 way only when the method asks for that layout. */
+export const usesTr44 = (a: RiskAssessment): boolean => isTr44(a.config);
+
+export interface ThresholdReading {
+  threshold: number | undefined;
+  /** The initial risk priority, if scored. */
+  priority: number | undefined;
+  /** True / false when both the priority and the threshold exist, else undefined (unknown stays unknown). */
+  above: boolean | undefined;
+  residualPriority: number | undefined;
+  residualAbove: boolean | undefined;
+}
+
+/**
+ * Compares a row's risk priority with the threshold the team typed. Only a comparison: the result says "above" or "not above",
+ * never "acceptable". With no threshold, or no score, the answer is undefined and the page says so.
+ */
+export function thresholdReading(a: RiskAssessment, ev: ItemEvaluation): ThresholdReading {
+  const priority = ev.initial.scored ? ev.initial.score : undefined;
+  const residualPriority = ev.residual?.scored ? ev.residual.score : undefined;
+  return {
+    threshold: a.actionThreshold,
+    priority,
+    above: aboveThreshold(priority, a.actionThreshold),
+    residualPriority,
+    residualAbove: aboveThreshold(residualPriority, a.actionThreshold),
+  };
+}
+
+/** Actions that still count as recommended actions of the row (a dropped one no longer does). */
+export const recommendedActions = (a: RiskAssessment, itemId: string): RiskAction[] => a.actions.filter((x) => x.itemId === itemId && x.status !== "dropped");
+
+export interface LinkedConfidence {
+  ref: string;
+  /** The confidence the sample set carries now, as the team entered it; undefined = not entered. */
+  confidencePercent: number | undefined;
+}
+/** The confidence entered on each sampling point a risk item links to (so the severity hint can sit next to the real field). */
+export function linkedConfidence(project: Project, item: RiskItem): LinkedConfidence[] {
+  return item.samplingPointIds.flatMap((ref) => {
+    const p = splitPointRef(ref);
+    const pt = p ? project.sampling.plans.find((pl) => pl.id === p.planId)?.points.find((x) => x.id === p.pointId) : undefined;
+    return pt ? [{ ref, confidencePercent: pt.statisticalBasis?.confidencePercent }] : [];
+  });
 }
 
 /** Qualified id of a sampling point inside the risk data: "SPL-001.SP-003" (point ids are only unique inside a plan). */
@@ -536,6 +666,7 @@ export function riskOpenItems(project: Project, a: RiskAssessment): RiskOpenItem
     for (const p of configProblems(a.config)) out.push({ kind: "method-problem", text: `Method: ${p}` });
   }
   if (!a.items.length) out.push({ kind: "no-items", text: "No items yet" });
+  if (usesTr44(a) && a.actionThreshold === undefined) out.push({ kind: "threshold-missing", text: "The action threshold (the risk priority above which actions are required) is not set" });
   const sourceIds = new Set(project.sources.map((s) => s.id));
   for (const i of a.items) {
     if (!i.failureMode.trim()) out.push({ kind: "no-failure-mode", itemId: i.id, text: `${i.id}: the failure mode is not described yet` });
@@ -547,6 +678,11 @@ export function riskOpenItems(project: Project, a: RiskAssessment): RiskOpenItem
         if (!r.scored) out.push({ kind: "not-scored", itemId: i.id, text: `${who(which)} is not scored: ${r.problems.join("; ")}` });
         else for (const p of r.problems) out.push({ kind: "score-problem", itemId: i.id, text: `${who(which)}: ${p}` });
       }
+    }
+    if (usesTr44(a)) {
+      if (!i.accepted) out.push({ kind: "accepted-missing", itemId: i.id, text: `${i.id}: "risk accepted?" is not answered` });
+      const t = a.actionThreshold !== undefined ? thresholdReading(a, evaluateItem(a, i)) : undefined;
+      if (t?.above && recommendedActions(a, i.id).length === 0) out.push({ kind: "action-missing", itemId: i.id, text: `${i.id}: the risk priority ${t.priority} is above the action threshold ${t.threshold} and no recommended action is entered` });
     }
     for (const ref of i.samplingPointIds) if (!samplingPointExists(project, ref)) out.push({ kind: "dangling-link", itemId: i.id, text: `${i.id} cites sampling point ${ref}, which no longer exists` });
     for (const sid of i.sourceIds) if (!sourceIds.has(sid)) out.push({ kind: "dangling-link", itemId: i.id, text: `${i.id} cites source ${sid}, which is not in the source register` });

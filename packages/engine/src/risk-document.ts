@@ -1,10 +1,10 @@
-import { PROCESS_MODEL_VERSION, RISK_FORMAT_VERSION, SCHEMA_VERSION, type FailureModeSuggestions, type Project, type RiskAssessment, type RiskItem } from "@gap/process-model";
-import { describeAnswers, describeMethod, factorColumns, heatCounts, RISK_SCORING_VERSION } from "@gap/risk";
+import { PROCESS_MODEL_VERSION, RISK_FORMAT_VERSION, RISK_REVIEW_TRIGGER_LABEL, SCHEMA_VERSION, type FailureModeSuggestions, type Project, type RiskAssessment, type RiskItem } from "@gap/process-model";
+import { describeAnswers, describeMethod, factorColumns, heatCounts, INTERVENTION_LABEL, INTERVENTION_SIMULATION_HINT, interventionIsEmpty, interventionTally, isTr44, LMH_LABEL, RISK_SCORING_VERSION, severityConfidenceText } from "@gap/risk";
 import { assess } from "./compare";
 import type { ContentBundle } from "./content";
 import type { Block, DocModel, DocSection } from "./document";
 import { documentSourceRefs } from "./document";
-import { evaluateItem, hasResidual, riskOpenItems, type RiskOpenItem } from "./risk";
+import { evaluateItem, hasResidual, linkedConfidence, riskOpenItems, thresholdReading, type RiskOpenItem } from "./risk";
 import { buildTrdSeed } from "./trd-seed";
 
 /**
@@ -106,6 +106,15 @@ export function buildRiskAssessmentDocument(
     if (d.bands.length) methodBlocks.push({ type: "table", columns: ["Band (user's label)", "Range", "Note"], rows: d.bands.map((b) => [b.label, b.range, b.note ?? ""]) });
     if (d.extra.length) methodBlocks.push({ type: "list", items: d.extra });
     for (const p of d.problems) methodBlocks.push({ type: "note", text: `Method problem: ${p}` });
+    if (isTr44(cfg)) {
+      // The threshold is the team's number; the document only repeats it. The one example figure of the report is not printed as a value.
+      methodBlocks.push({ type: "heading", text: "Action threshold" });
+      methodBlocks.push({
+        type: "paragraph",
+        text: a.actionThreshold !== undefined ? `A row whose risk priority is above ${a.actionThreshold} needs recommended actions (threshold entered by the team).` : "No action threshold has been entered. This is an open item.",
+      });
+      methodBlocks.push({ type: "note", text: `Layout after PDA TR 44 s4.1; severity and sampling confidence after PDA TR 60 s6.1; intervention scoring after PDA TR 22 Example 3 (paraphrased, not reproduced).` });
+    }
   }
   add("method", "Risk method", methodBlocks);
 
@@ -137,6 +146,34 @@ export function buildRiskAssessmentDocument(
     row.push(actionsOf(i));
     return row;
   });
+  // PDA TR 44 layout: the columns of the report's FMEA, in its order. The failure mode carries its effect so no entered text is lost.
+  const tr44 = isTr44(cfg);
+  const tr44Columns = ["ID", "Step", "Failure mode and effect", "Severity", "Causes", "Occurrence", "Current controls", "Detection (reversed: high = poor)", "Risk priority (S x O x D)", "Risk accepted?", "Recommended actions", "After actions: S, O, D", "After actions: priority"];
+  const tr44Rows = tr44
+    ? a.items.map((i) => {
+        const e = evals.get(i.id)!;
+        const t = thresholdReading(a, e);
+        const v = (k: string) => (i.initial.values[k] !== undefined ? String(i.initial.values[k]) : "Not given");
+        const side = (above: boolean | undefined) => (above === true ? `; above the action threshold (${t.threshold})` : above === false ? `; not above the action threshold (${t.threshold})` : "");
+        const priority = e.initial.scored ? `${e.initial.score}${side(t.above)}` : "Not scored";
+        const after = !e.residual ? "None entered" : e.residual.scored ? `${e.residual.score}${t.residualAbove === true ? `; still above the action threshold (${t.threshold})` : t.residualAbove === false ? `; not above the action threshold (${t.threshold})` : ""}` : "Not scored";
+        return [
+          i.id,
+          stepLabel(i.stepId),
+          [i.failureMode || "Not described", i.effect ? `Effect: ${i.effect}` : ""].filter(Boolean).join(". "),
+          v("severity"),
+          i.causes ?? "",
+          v("occurrence"),
+          controls(i),
+          v("detection"),
+          priority,
+          i.accepted === "yes" ? "Yes" : i.accepted === "no" ? "No" : "Not answered",
+          actionsOf(i),
+          i.residual ? describeAnswers(cfg!, i.residual) || "Not given" : "None entered",
+          after,
+        ];
+      })
+    : [];
   add("register", "Risk register", [
     {
       type: "paragraph",
@@ -144,7 +181,7 @@ export function buildRiskAssessmentDocument(
         ? `The register lists ${a.items.length} item${a.items.length === 1 ? "" : "s"}, in the order the team entered them. ${cfg ? "Each score is calculated from the team's answers with the method above; the working for every score is in the project, and can be repeated by hand." : "Nothing is scored because no method has been chosen."} ${showResidual ? "Residual columns show the score after the controls and actions, where the team entered one." : "No residual score was entered."}`
         : "No items have been entered yet. This is an open item.",
     },
-    ...(a.items.length ? ([{ type: "table", columns, rows, caption: `Risk register ${a.id}` }] as Block[]) : []),
+    ...(a.items.length ? ([{ type: "table", columns: tr44 ? tr44Columns : columns, rows: tr44 ? tr44Rows : rows, caption: `Risk register ${a.id}` }] as Block[]) : []),
     ...(cfg?.method === "fmea" && cfg.severityTrigger ? ([{ type: "note", text: `Rule defined by the user: a severity of ${cfg.severityTrigger.min} or more gives "${cfg.severityTrigger.label}" whatever the RPN.` }] as Block[]) : []),
   ]);
 
@@ -154,6 +191,45 @@ export function buildRiskAssessmentDocument(
     add("heat", "Items per matrix cell", [
       { type: "paragraph", text: `${heat.placed} item${heat.placed === 1 ? " is" : "s are"} placed in the matrix (initial scores); ${heat.notScored} ${heat.notScored === 1 ? "is" : "are"} not scored and cannot be placed.` },
       { type: "table", columns: ["Likelihood \\ Severity", ...cfg.severity.map((s) => s.label)], rows: cfg.likelihood.map((l, r) => [l.label, ...cfg.severity.map((_, c) => `${heat.counts[r]![c]} item${heat.counts[r]![c] === 1 ? "" : "s"}${cfg.cells.find((x) => x.row === r + 1 && x.col === c + 1)?.label ? ` (${cfg.cells.find((x) => x.row === r + 1 && x.col === c + 1)!.label})` : ""}`)] ) },
+    ]);
+  }
+
+  // 3c. Intervention scoring (PDA TR 22 example): only for items that carry it. The overall level is the team's choice.
+  const withIv = a.items.filter((i) => !interventionIsEmpty(i.intervention));
+  if (tr44 && withIv.length) {
+    add("interventions", "Intervention risk scoring", [
+      { type: "paragraph", text: "Each aseptic intervention below was rated low, medium or high on five aspects, and the team chose the overall level. The tool counts the answers but does not turn them into a level. The simulation frequency is a hint from PDA TR 22, not a decision." },
+      {
+        type: "table",
+        columns: ["Item", "Intervention", ...Object.values(INTERVENTION_LABEL), "Overall level (team's choice)", "Simulation frequency hint"],
+        rows: withIv.map((i) => [
+          i.id,
+          i.failureMode || "Not described",
+          ...(["complexity", "duration", "proximity", "frequency", "airflow"] as const).map((k) => (i.intervention?.[k] ? LMH_LABEL[i.intervention[k]!] : "Not given")),
+          i.intervention?.level ? LMH_LABEL[i.intervention.level] : "Not chosen",
+          i.intervention?.level ? INTERVENTION_SIMULATION_HINT[i.intervention.level] : "",
+        ]),
+      },
+      ...(withIv.some((i) => interventionTally(i.intervention).missing.length) ? ([{ type: "note", text: "At least one intervention has an aspect that was not rated. It stays \"Not given\"." }] as Block[]) : []),
+    ]);
+  }
+  const linked = tr44 ? a.items.flatMap((i) => linkedConfidence(project, i).map((l) => ({ item: i.id, ...l }))) : [];
+  if (tr44 && linked.length) {
+    add("confidence", "Severity and sampling confidence", [
+      { type: "paragraph", text: severityConfidenceText() },
+      { type: "table", columns: ["Item", "Sampling point", "Confidence entered on the sample set"], rows: linked.map((l) => [l.item, l.ref, l.confidencePercent !== undefined ? `${l.confidencePercent} %` : "Not entered"]) },
+    ]);
+  }
+
+  // 3d. Review triggers and history (a living document). Present only when the team entered any of it.
+  if (a.reviewTriggers?.length || a.nextReview || a.reviews?.length) {
+    add("review", "Review triggers and history", [
+      { type: "paragraph", text: "This assessment is a living document. It is looked at again when one of the reasons below arises." },
+      ...(a.reviewTriggers?.length ? ([{ type: "list", items: a.reviewTriggers.map((t) => RISK_REVIEW_TRIGGER_LABEL[t]) }] as Block[]) : ([{ type: "paragraph", text: "No review triggers were ticked." }] as Block[])),
+      { type: "paragraph", text: a.nextReview ? `Next periodic review planned: ${a.nextReview}.` : "No date for the next periodic review has been entered." },
+      a.reviews?.length
+        ? { type: "table", columns: ["Review", "Date", "Reason", "Note", "By"], rows: a.reviews.map((r) => [r.id, r.date, r.trigger ? RISK_REVIEW_TRIGGER_LABEL[r.trigger] : "Not given", r.note, r.by ?? "Not given"]) }
+        : { type: "paragraph", text: "No review has been recorded yet." },
     ]);
   }
 

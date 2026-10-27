@@ -54,8 +54,8 @@ const base = (): { project: Project; id: string } => {
 const asm = (p: Project, id: string) => p.risk.assessments.find((a) => a.id === id)!;
 
 describe("the method load-outs are starting shapes, not answers", () => {
-  it("has the five load-outs of the contract", () => {
-    expect(riskLoadouts.loadouts.map((l) => l.title)).toEqual(["FMEA 1-10 (S, O, D)", "FMEA 1-5", "Matrix 3x3", "Matrix 5x5", "Qualitative H/M/L"]);
+  it("has the six load-outs of the contract", () => {
+    expect(riskLoadouts.loadouts.map((l) => l.title)).toEqual(["FMEA 1-10 (S, O, D)", "FMEA 1-5", "FMEA, PDA TR 44 layout (1-10)", "Matrix 3x3", "Matrix 5x5", "Qualitative H/M/L"]);
     expect(riskLoadouts.catalog.version).toMatch(/^\d+\.\d+\.\d+$/);
   });
 
@@ -86,7 +86,7 @@ describe("the method load-outs are starting shapes, not answers", () => {
 
   it("refuses an unknown key, a repeated id and a half-built method", () => {
     const good = structuredClone(riskLoadouts) as unknown as { loadouts: Record<string, unknown>[] };
-    expect(parseRiskLoadouts(good).loadouts).toHaveLength(5);
+    expect(parseRiskLoadouts(good).loadouts).toHaveLength(6);
     expect(() => parseRiskLoadouts({ ...good, loadouts: [{ ...good.loadouts[0], bonus: 1 }] })).toThrow(/invalid/);
     expect(() => parseRiskLoadouts({ ...good, loadouts: [good.loadouts[0], good.loadouts[0]] })).toThrow(/duplicate id/);
     const bad = structuredClone(good.loadouts[0]!) as { config: { bands: unknown[] } };

@@ -1,9 +1,17 @@
-import { addItem, addItemFromGap, addItemFromSuggestion, evaluateItem, gapSeeds, openActions, suggestFailureModes } from "@gap/engine";
+import { addItem, addItemFromGap, addItemFromSuggestion, evaluateItem, gapSeeds, openActions, suggestFailureModes, thresholdReading, usesTr44 } from "@gap/engine";
 import { failureModes } from "@gap/content";
 import type { RiskAssessment, RiskItem } from "@gap/process-model";
 import { describeAnswers, heatCounts } from "@gap/risk";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Modal } from "../components";
+
+/** Text for the threshold comparison. The flag and the words travel together, so colour is never the only cue. */
+export function thresholdText(above: boolean | undefined, t: number | undefined): string {
+  if (above === undefined) return t === undefined ? "No action threshold entered yet" : "Not compared";
+  return above ? `⚑ Above the action threshold (${t})` : `Not above the action threshold (${t})`;
+}
+
+const acceptedText = (v: "yes" | "no" | undefined): string => (v === "yes" ? "Yes" : v === "no" ? "No" : "Not answered");
 import { href } from "../router";
 import { useSamplingAllowed } from "../risk-module";
 import { useContent, useStore } from "../store";
@@ -308,6 +316,18 @@ function ItemCard({ a, item, ev, onEdit }: { a: RiskAssessment; item: RiskItem; 
               {a.config && item.initial && describeAnswers(a.config, item.initial) ? <span className="muted small"> ({describeAnswers(a.config, item.initial)})</span> : null}
             </dd>
           </div>
+          {usesTr44(a) && (
+            <div>
+              <dt>Threshold:</dt>
+              <dd data-testid={`risk-threshold-flag-${item.id}`}>{thresholdText(thresholdReading(a, ev).above, a.actionThreshold)}</dd>
+            </div>
+          )}
+          {usesTr44(a) && (
+            <div>
+              <dt>Risk accepted?</dt>
+              <dd data-testid={`risk-accepted-${item.id}`}>{acceptedText(item.accepted)}</dd>
+            </div>
+          )}
           {ev.residual && (
             <div>
               <dt>Residual:</dt>
@@ -419,6 +439,8 @@ function Register({ a, evals, onEdit }: { a: RiskAssessment; evals: Evals; onEdi
               <th scope="col">Failure mode</th>
               <th scope="col">Score</th>
               <th scope="col">Residual</th>
+              {usesTr44(a) && <th scope="col">Threshold</th>}
+              {usesTr44(a) && <th scope="col">Risk accepted?</th>}
               <th scope="col">Open actions</th>
               <th scope="col">Edit</th>
             </tr>
@@ -436,6 +458,8 @@ function Register({ a, evals, onEdit }: { a: RiskAssessment; evals: Evals; onEdi
                     {a.config && describeAnswers(a.config, i.initial) ? <div className="muted small">{describeAnswers(a.config, i.initial)}</div> : null}
                   </td>
                   <td>{e.residual ? <ScoreBadge config={a.config} res={e.residual} /> : <span className="muted">None entered</span>}</td>
+                  {usesTr44(a) && <td>{thresholdText(thresholdReading(a, e).above, a.actionThreshold)}</td>}
+                  {usesTr44(a) && <td>{acceptedText(i.accepted)}</td>}
                   <td className="num">{openActions(a, i.id).length}</td>
                   <td>
                     <button type="button" className="btn small" aria-label={`Edit ${i.id}`} data-testid={`risk-row-edit-${i.id}`} onClick={(ev) => onEdit(i.id, ev.currentTarget)}>
