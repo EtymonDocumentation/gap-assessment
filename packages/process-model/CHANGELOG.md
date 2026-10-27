@@ -2,6 +2,21 @@
 
 All notable changes to `@gap/process-model`. Versions follow semver; see README.md for what counts as breaking.
 
+## 1.13.0
+
+Project schema 1.22.0 (unchanged), catalog 1.9.0 (unchanged), questions 1.8.0 (unchanged). Additive: the step-blocks library file (not the project) gains one optional field.
+
+### Added
+- `MBR_SAMPLE_MOMENTS`, `MbrSampleMoment`, `mbrSampleSlotSchema`, `MbrSampleSlot`: a library block may list `sampleSlots` (a moment, a place in the block and a step text). The engine
+  puts a sampling step at that place when the sampling plan has sample points of that moment, so a sample is taken where it is due and not in one table step after the work.
+- Library file 1.2.0 (content/mbr/blocks.yaml): new versions of the receipt and thaw, pooling, dilution, bioburden-reduction filtration, sterile filtration, filter integrity test,
+  filling, plunger stopper placement, bulk packing, labelling, time-out-of-refrigeration, storage and shipment and sample-table blocks, and new blocks for in-line sterile filtration,
+  the stopper placement set-up and the portion definition. The earlier versions stay in each block's history.
+- Hold samples are taken at the end of the hold: the sample slots of the bioburden-reduction filtration block say "take the sample at the end of the hold, in the step that ends the hold"
+  (no fixed hour), and the receipt and thaw block starts the ambient clock at the end of the thaw (the thaw has its own limit).
+- TRD write-up library (content/trd-writeups/writeups.yaml): "Overall process parameters" is version 4 (a note: after PPQ the PAR of a hold or time limit is the most conservative, lowest, value
+  achieved across the PPQ lots, not the full tested range) and "Receipt and storage, and thawing" is version 4 (the ambient time starts at the end of the thaw).
+
 ## 1.12.0
 
 Project schema 1.22.0, catalog 1.9.0, questions 1.8.0. Additive in the type and the schema; the catalog changes are described below. Nothing was removed.

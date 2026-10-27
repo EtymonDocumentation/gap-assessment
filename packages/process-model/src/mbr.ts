@@ -230,6 +230,26 @@ export const mbrLibraryTimeLimitSchema = z.object({
 });
 export type MbrLibraryTimeLimit = z.infer<typeof mbrLibraryTimeLimitSchema>;
 
+/**
+ * The moments a sample can be taken at, in process words. A sampling-plan point has one (from its timing choice and from the hold it
+ * sits in); a block names the moments it has a place for (`sampleSlots`), so a sample is taken at its moment and not in a table step
+ * that comes after the work is done.
+ */
+export const MBR_SAMPLE_MOMENTS = ["beginning", "middle", "end", "after_stoppage", "after_intervention", "interval", "hold_start", "hold_during", "hold_end"] as const;
+export type MbrSampleMoment = (typeof MBR_SAMPLE_MOMENTS)[number];
+
+/**
+ * A place in a block where samples of one moment are taken. `afterStep` is the place in the block (1 = after the first step, 0 = before
+ * all steps); several slots after the same step keep the order they are written in. The text may hold {samples}, which becomes the
+ * list of sample numbers of the sample table of the same section.
+ */
+export const mbrSampleSlotSchema = z.object({
+  moment: z.enum(MBR_SAMPLE_MOMENTS),
+  afterStep: z.number().int().min(0),
+  text: z.string().min(1),
+});
+export type MbrSampleSlot = z.infer<typeof mbrSampleSlotSchema>;
+
 /** The content of one block version (what is kept in the history when the block is edited). */
 const libraryContent = {
   title: z.string().min(1),
@@ -243,6 +263,8 @@ const libraryContent = {
   sampleTypes: z.array(z.string()),
   cmoFields: z.array(z.string()),
   note: z.string().optional(),
+  /** Where samples of a moment are taken inside this block (library 1.2.0). Absent: the block has no place for samples. */
+  sampleSlots: z.array(mbrSampleSlotSchema).optional(),
 };
 
 export const mbrLibraryVersionSchema = z.object({ version: z.number().int().min(1), ...libraryContent, at: z.string().optional(), by: z.string().optional() });

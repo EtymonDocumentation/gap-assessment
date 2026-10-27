@@ -3,16 +3,17 @@
 # record. A parameter row only names which TRD value it pulls (the values come from the TRD record, never from this file).
 # Placeholders in curly braces, {like this}, stand for entries only the CMO can make; they stay visible until the CMO fills them in.
 # Editing a block on the site makes a new version (the earlier text is kept); this shipped file is not changed by the site.
-formatVersion: "1.1.0"
+formatVersion: "1.2.0"
 blocks:
   - id: inbound_shipment_check
-    version: 1
+    version: 2
     title: Inbound shipment check
     unitOps: [ds_shipping_inbound]
     steps:
       - "Record the shipment identification and the date and time of arrival: {shipment ID}, {arrival date and time}."
       - "Check the seal of the shipping container and record its condition: {seal number}, {seal condition}."
       - "Read out the transport temperature record, attach it to this record and note the lowest and highest reading: {logger ID}, {lowest reading}, {highest reading}."
+      - "Calculate from the temperature record the total time the shipment was outside the transport temperature range and compare it with the excursion allowance shown in the table below: {excursion start}, {excursion end}, {time outside the range}, {result against the allowance}."
       - "Record the time from dispatch to arrival: {transit time}."
     params:
       - { key: transport_temperature, label: Transport temperature, collection: param, itemKey: transport_temperature, field: setPoint }
@@ -21,7 +22,24 @@ blocks:
     timeLimits:
       - { key: transit_time, label: Maximum transit time, collection: param, itemKey: max_transit_time, field: max }
     sampleTypes: []
-    cmoFields: [Shipment ID, Logger ID, Seal number, Signature and date]
+    cmoFields: [Shipment ID, Logger ID, Seal number, Time outside the range, Signature and date]
+    history:
+      - version: 1
+        title: Inbound shipment check
+        unitOps: [ds_shipping_inbound]
+        steps:
+          - "Record the shipment identification and the date and time of arrival: {shipment ID}, {arrival date and time}."
+          - "Check the seal of the shipping container and record its condition: {seal number}, {seal condition}."
+          - "Read out the transport temperature record, attach it to this record and note the lowest and highest reading: {logger ID}, {lowest reading}, {highest reading}."
+          - "Record the time from dispatch to arrival: {transit time}."
+        params:
+          - { key: transport_temperature, label: Transport temperature, collection: param, itemKey: transport_temperature, field: setPoint }
+          - { key: transport_temperature_range, label: Transport temperature range, collection: param, itemKey: transport_temperature, field: nor }
+          - { key: excursion_allowance, label: Temperature excursion allowance, collection: param, itemKey: excursion_allowance, field: max }
+        timeLimits:
+          - { key: transit_time, label: Maximum transit time, collection: param, itemKey: max_transit_time, field: max }
+        sampleTypes: []
+        cmoFields: [Shipment ID, Logger ID, Seal number, Signature and date]
 
   - id: shipment_monitoring_custody
     version: 1
@@ -38,16 +56,17 @@ blocks:
     cmoFields: [Custody form number, Monitoring record reference, Signature and date]
 
   - id: receipt_and_thaw
-    version: 2
+    version: 3
     title: Drug substance receipt and thaw check
     unitOps: [ds_receipt_thaw]
     steps:
       - "Record the drug substance lot and the identification of each container: {lot number}, {container IDs}."
       - "Inspect each container on receipt and record its condition: {condition}."
       - "Store the containers until thaw at the condition shown in the table below and record the storage location: {storage location}."
-      - "Thaw the containers in the equipment {thaw equipment ID} at the temperature and for the duration shown in the table below, and record the start and end of the thaw: {start}, {end}."
+      - "Thaw the containers in the equipment {thaw equipment ID} at the temperature and for the duration shown in the table below. If the thaw unit takes fewer containers than the batch needs, thaw them in loads and record the containers, the start and the end of the thaw of each load: {load}, {container IDs}, {start}, {end}."
       - "Record the temperature reading at the end of the thaw: {reading}."
-      - "Record the time the thawed drug substance spends at ambient temperature and the time it is placed in cold storage and taken out for the next step: {ambient start}, {ambient end}, {cold storage start}, {cold storage end}."
+      - "Record the time the ambient clock starts. It starts at the end of the thaw, the time recorded for the end of the thaw above. The thaw is its own controlled step with its own duration limit and does not count towards the ambient time limit: {ambient clock start}."
+      - "Record the time the thawed drug substance is placed in cold storage (the start of the cold hold), the cold storage unit and the ambient time used up to this point. The cold hold ends, and the ambient clock runs again, when the containers are taken out for pooling (recorded in the pooling section): {ambient time used}, {cold storage start}, {cold storage unit ID}."
     params:
       - { key: storage_temperature, label: Drug substance storage temperature, collection: param, itemKey: storage_temperature, field: setPoint }
       - { key: storage_temperature_range, label: Drug substance storage temperature range, collection: param, itemKey: storage_temperature, field: nor }
@@ -59,7 +78,7 @@ blocks:
       - { key: ambient_time, label: Maximum time at ambient temperature after thaw, collection: param, itemKey: max_ambient_time, field: max }
       - { key: cold_hold, label: Maximum hold of the thawed drug substance in cold storage, collection: param, itemKey: max_cold_hold, field: max }
     sampleTypes: []
-    cmoFields: [Drug substance lot number, Container IDs, Thaw equipment ID, Calibration status of the temperature probe, Cold storage unit ID, Signature and date]
+    cmoFields: [Drug substance lot number, Container IDs, Thaw equipment ID, Calibration status of the temperature probe, Cold storage unit ID, Ambient clock start, Signature and date]
     history:
       - version: 1
         title: Drug substance receipt and thaw check
@@ -76,6 +95,28 @@ blocks:
         timeLimits: []
         sampleTypes: []
         cmoFields: [Drug substance lot number, Container IDs, Thaw equipment ID, Calibration status of the temperature probe, Signature and date]
+      - version: 2
+        title: Drug substance receipt and thaw check
+        unitOps: [ds_receipt_thaw]
+        steps:
+          - "Record the drug substance lot and the identification of each container: {lot number}, {container IDs}."
+          - "Inspect each container on receipt and record its condition: {condition}."
+          - "Store the containers until thaw at the condition shown in the table below and record the storage location: {storage location}."
+          - "Thaw the containers in the equipment {thaw equipment ID} at the temperature and for the duration shown in the table below, and record the start and end of the thaw: {start}, {end}."
+          - "Record the temperature reading at the end of the thaw: {reading}."
+          - "Record the time the thawed drug substance spends at ambient temperature and the time it is placed in cold storage and taken out for the next step: {ambient start}, {ambient end}, {cold storage start}, {cold storage end}."
+        params:
+          - { key: storage_temperature, label: Drug substance storage temperature, collection: param, itemKey: storage_temperature, field: setPoint }
+          - { key: storage_temperature_range, label: Drug substance storage temperature range, collection: param, itemKey: storage_temperature, field: nor }
+          - { key: thaw_temperature, label: Thaw temperature, collection: param, itemKey: thaw_temperature, field: setPoint }
+          - { key: thaw_temperature_range, label: Thaw temperature range, collection: param, itemKey: thaw_temperature, field: nor }
+          - { key: thaw_duration, label: Thaw duration, collection: param, itemKey: thaw_duration, field: setPoint }
+          - { key: thaw_duration_range, label: Thaw duration range, collection: param, itemKey: thaw_duration, field: nor }
+        timeLimits:
+          - { key: ambient_time, label: Maximum time at ambient temperature after thaw, collection: param, itemKey: max_ambient_time, field: max }
+          - { key: cold_hold, label: Maximum hold of the thawed drug substance in cold storage, collection: param, itemKey: max_cold_hold, field: max }
+        sampleTypes: []
+        cmoFields: [Drug substance lot number, Container IDs, Thaw equipment ID, Calibration status of the temperature probe, Cold storage unit ID, Signature and date]
 
   - id: buffer_preparation
     version: 3
@@ -142,30 +183,48 @@ blocks:
         cmoFields: [Component lot numbers, Weights and volumes, Balance ID, Mixer ID and settings, Filter lot and ID, Vessel ID, Signature and date]
 
   - id: pooling_with_weights
-    version: 1
+    version: 2
     title: Pooling of drug substance containers
     unitOps: [compounding]
     steps:
       - "Check the line clearance of the compounding area and record it: {line clearance form number}."
+      - "Take the thawed containers out of cold storage and record the time. This ends the cold hold and the ambient clock runs again from this time: {out of cold storage time}, {cold hold time}."
       - "Weigh each thawed container before pooling and record the gross and net weights: {container ID}, {gross weight}, {net weight}."
       - "Pool the contents into the compounding vessel {vessel ID} and record the total pooled weight: {total weight}."
-      - "Record the density of the pool and the volume calculated from it: {density}, {calculated volume}."
+      - "Record the density of the pool, measured with the instrument {density instrument ID}, and the volume calculated from it: {density}, {calculated volume}."
+      - "Record the time the ambient clock stops for the pooled drug substance and add up the ambient time before and after the cold hold. Record the total against the ambient limit shown in the receipt and thaw section: {ambient clock stop}, {total ambient time}."
     params: []
     timeLimits: []
     sampleTypes: []
-    cmoFields: [Container IDs, Gross and net weights, Balance ID and calibration status, Vessel ID, Density, Signature and date]
+    cmoFields: [Container IDs, Gross and net weights, Balance ID and calibration status, Density instrument ID and calibration status, Vessel ID, Density, Times out of cold storage, Total ambient time, Signature and date]
+    history:
+      - version: 1
+        title: Pooling of drug substance containers
+        unitOps: [compounding]
+        steps:
+          - "Check the line clearance of the compounding area and record it: {line clearance form number}."
+          - "Weigh each thawed container before pooling and record the gross and net weights: {container ID}, {gross weight}, {net weight}."
+          - "Pool the contents into the compounding vessel {vessel ID} and record the total pooled weight: {total weight}."
+          - "Record the density of the pool and the volume calculated from it: {density}, {calculated volume}."
+        params: []
+        timeLimits: []
+        sampleTypes: []
+        cmoFields: [Container IDs, Gross and net weights, Balance ID and calibration status, Vessel ID, Density, Signature and date]
 
   - id: dilution_and_mixing
-    version: 2
+    version: 3
     title: Dilution and mixing
     unitOps: [compounding]
     steps:
       - "Calculate the volume of buffer or diluent to add: volume = the TRD diluent ratio (diluent volume per unit of batch size) x the batch size of this batch. Write the working next to the result: {batch size}, {diluent ratio from the TRD}, {calculated volume}."
+      - "Record the protein concentration of the pooled drug substance (measured, or taken from the certificate of analysis where the TRD allows it). Calculate the concentration after dilution = pool concentration x pool volume / batch size, and check it against the target and range in the table below: {pool concentration}, {pool volume}, {calculated concentration after dilution}."
       - "Add the buffer or diluent to the pool to reach the batch size shown in the table below and record the amount: {buffer lot}, {amount}."
-      - "Mix at the speed and for the time shown in the table below. Record the start and end of mixing and the mixer settings: {start}, {end}, {mixer settings}."
+      - "Start mixing at the speed shown in the table below. Record the start of mixing and the mixer settings: {start}, {mixer settings}."
       - "Record the temperature of the bulk during mixing: {temperature reading}."
-      - "Take the in-process samples listed in the sample table of this section and record the time: {sampling time}."
+      - "Stop mixing when the mixing time shown in the table below has passed. Record the end of mixing: {end}."
       - "Record the final weight and volume of the formulated bulk: {final weight}, {final volume}."
+      - "Run the in-process controls listed in the table below on the formulated bulk and record each result against its limit before the bulk goes to filtration: {pH}, {osmolality}, {protein concentration}, {appearance}, {bioburden result}, {reviewed by}."
+      - "Record the time the formulated bulk is placed in hold (the start of the formulated bulk hold), the holding vessel and the holding temperature. The hold ends when the bulk is taken to filtration (recorded in the filtration section): {hold start}, {holding vessel ID}, {holding temperature}."
     params:
       - { key: batch_size, label: Batch size (formulated bulk), collection: param, itemKey: batch_size, field: setPoint }
       - { key: batch_size_range, label: Batch size range, collection: param, itemKey: batch_size, field: nor }
@@ -177,10 +236,15 @@ blocks:
       - { key: temperature_range, label: Compounding temperature range, collection: param, itemKey: temperature, field: nor }
       - { key: target_concentration, label: Target protein concentration after dilution, collection: param, itemKey: target_concentration, field: setPoint }
       - { key: target_concentration_range, label: Target protein concentration range, collection: param, itemKey: target_concentration, field: nor }
+      - { key: compounding_controls, label: Compounding in-process controls, collection: ipc, itemKey: panel, field: tests }
     timeLimits:
       - { key: bulk_hold, label: Formulated bulk hold time, collection: param, itemKey: max_hold_time, field: max }
     sampleTypes: []
-    cmoFields: [Buffer lot numbers, Amounts added, Mixer ID and settings, Temperature probe ID and calibration status, Final weight and volume, Signature and date]
+    sampleSlots:
+      - { moment: beginning, afterStep: 4, text: "Take {samples} (sample table of this section) at the start of mixing and record the time and the person who took them: {sampling time}, {sampled by}." }
+      - { moment: middle, afterStep: 5, text: "Take {samples} (sample table of this section) in the middle of the mixing time and record the time and the person who took them: {sampling time}, {sampled by}." }
+      - { moment: end, afterStep: 5, text: "Take {samples} (sample table of this section) at the end of the mixing time, before the mixer is stopped, and record the time and the person who took them: {sampling time}, {sampled by}." }
+    cmoFields: [Buffer lot numbers, Amounts added, Mixer ID and settings, Temperature probe ID and calibration status, Final weight and volume, In-process control results, Holding vessel ID, Signature and date]
     history:
       - version: 1
         title: Dilution and mixing
@@ -206,27 +270,61 @@ blocks:
           - { key: bulk_hold, label: Formulated bulk hold time, collection: param, itemKey: max_hold_time, field: max }
         sampleTypes: []
         cmoFields: [Buffer lot numbers, Amounts added, Mixer ID and settings, Temperature probe ID and calibration status, Final weight and volume, Signature and date]
+      - version: 2
+        title: Dilution and mixing
+        unitOps: [compounding]
+        steps:
+          - "Calculate the volume of buffer or diluent to add: volume = the TRD diluent ratio (diluent volume per unit of batch size) x the batch size of this batch. Write the working next to the result: {batch size}, {diluent ratio from the TRD}, {calculated volume}."
+          - "Add the buffer or diluent to the pool to reach the batch size shown in the table below and record the amount: {buffer lot}, {amount}."
+          - "Mix at the speed and for the time shown in the table below. Record the start and end of mixing and the mixer settings: {start}, {end}, {mixer settings}."
+          - "Record the temperature of the bulk during mixing: {temperature reading}."
+          - "Take the in-process samples listed in the sample table of this section and record the time: {sampling time}."
+          - "Record the final weight and volume of the formulated bulk: {final weight}, {final volume}."
+        params:
+          - { key: batch_size, label: Batch size (formulated bulk), collection: param, itemKey: batch_size, field: setPoint }
+          - { key: batch_size_range, label: Batch size range, collection: param, itemKey: batch_size, field: nor }
+          - { key: mixing_speed, label: Mixing speed, collection: param, itemKey: mixing_speed, field: setPoint }
+          - { key: mixing_speed_range, label: Mixing speed range, collection: param, itemKey: mixing_speed, field: nor }
+          - { key: mixing_time, label: Mixing time, collection: param, itemKey: mixing_time, field: setPoint }
+          - { key: mixing_time_range, label: Mixing time range, collection: param, itemKey: mixing_time, field: nor }
+          - { key: temperature, label: Compounding temperature, collection: param, itemKey: temperature, field: setPoint }
+          - { key: temperature_range, label: Compounding temperature range, collection: param, itemKey: temperature, field: nor }
+          - { key: target_concentration, label: Target protein concentration after dilution, collection: param, itemKey: target_concentration, field: setPoint }
+          - { key: target_concentration_range, label: Target protein concentration range, collection: param, itemKey: target_concentration, field: nor }
+        timeLimits:
+          - { key: bulk_hold, label: Formulated bulk hold time, collection: param, itemKey: max_hold_time, field: max }
+        sampleTypes: []
+        cmoFields: [Buffer lot numbers, Amounts added, Mixer ID and settings, Temperature probe ID and calibration status, Final weight and volume, Signature and date]
 
   - id: bbr_filtration_run
-    version: 2
+    version: 3
     title: Bioburden reduction filtration
     unitOps: [bbr_filtration]
     steps:
       - "Assemble the filter and the bulk transfer path as described in {form or SOP number} and record the filter identification: {filter lot}, {filter ID}."
-      - "Record the differential pressure at the start of the filtration and at its end: {pressure at start}, {pressure at end}."
-      - "Filter the formulated bulk and record the start and end of the filtration: {start}, {end}."
+      - "Wet the filter as described in {form or SOP number} and run the integrity test before use. Record the wetting fluid, the time, the reading and the filter specification: {wetting fluid}, {time}, {pre-use reading}, {specification}, {pre-use result}."
+      - "Record the time the formulated bulk is taken from its hold to this filtration (the end of the formulated bulk hold) and the hold time: {hold end}, {hold time}."
+      - "Take the bioburden sample before the filter as set out in the table below and record the time, the volume and the sample number: {sampling time}, {sample volume}, {sample number}."
+      - "Filter the formulated bulk and record the start and end of the filtration and the differential pressure at both times: {start}, {end}, {pressure at start}, {pressure at end}."
+      - "Run the integrity test after use and record the reading against the filter specification: {post-use reading}, {specification}, {post-use result}."
       - "Record the weight of the filtrate: {filtrate weight}."
-      - "Record the time the filtrate is placed in cold storage and the time it is taken for sterile filtration: {cold storage start}, {cold storage end}."
+      - "Place the filtrate in the holding container (bag) and record its identification and lot, the time it is placed in cold storage (the start of the hold) and the cold storage unit: {holding bag ID}, {holding bag lot}, {cold storage start}, {cold storage unit ID}."
+      - "Record the time the filtrate is taken out of cold storage for sterile filtration (the end of the hold) and the hold time: {cold storage end}, {hold time}."
     params:
       - { key: differential_pressure, label: Filtration differential pressure, collection: param, itemKey: differential_pressure, field: setPoint }
       - { key: differential_pressure_range, label: Filtration differential pressure range, collection: param, itemKey: differential_pressure, field: nor }
+      - { key: expected_duration, label: Expected filtration duration, collection: param, itemKey: max_filtration_time, field: setPoint }
       - { key: integrity, label: Filter integrity testing approach, collection: ipc, itemKey: integrity, field: approach }
       - { key: bioburden, label: Bioburden before the filter, collection: ipc, itemKey: bioburden, field: limit }
     timeLimits:
-      - { key: filtration_time, label: Filtration duration, collection: param, itemKey: max_filtration_time, field: setPoint }
+      - { key: filtration_time, label: Maximum filtration duration, collection: param, itemKey: max_filtration_time, field: nor }
       - { key: cold_hold, label: Maximum hold of the bioburden-reduced bulk in cold storage, collection: param, itemKey: max_cold_hold, field: max }
     sampleTypes: []
-    cmoFields: [Filter lot and ID, Pressure gauge ID and calibration status, Pressure readings, Filtrate weight, Cold storage unit ID, Signature and date]
+    sampleSlots:
+      - { moment: hold_start, afterStep: 8, text: "Take {samples} (sample table of this section) at the start of the hold and record the time and the person who took them: {sampling time}, {sampled by}." }
+      - { moment: hold_during, afterStep: 8, text: "In the middle of the hold (halfway through the planned hold time), take {samples} (sample table of this section) from the holding bag and record the time and the person who took them: {sampling time}, {sampled by}." }
+      - { moment: hold_end, afterStep: 8, text: "Take {samples} (sample table of this section) at the end of the hold, in the step that ends the hold: when the hold is over and before the filtrate is taken out of the holding bag in the next step. Record the time and the person who took them: {sampling time}, {sampled by}." }
+    cmoFields: [Filter lot and ID, Pressure gauge ID and calibration status, Pressure readings, Integrity tester ID and printouts, Filtrate weight, Holding bag ID and lot, Cold storage unit ID, Signature and date]
     history:
       - version: 1
         title: Bioburden reduction filtration
@@ -245,25 +343,46 @@ blocks:
           - { key: filtration_time, label: Filtration duration, collection: param, itemKey: max_filtration_time, field: setPoint }
         sampleTypes: []
         cmoFields: [Filter lot and ID, Pressure gauge ID and calibration status, Pressure readings, Filtrate weight, Signature and date]
+      - version: 2
+        title: Bioburden reduction filtration
+        unitOps: [bbr_filtration]
+        steps:
+          - "Assemble the filter and the bulk transfer path as described in {form or SOP number} and record the filter identification: {filter lot}, {filter ID}."
+          - "Record the differential pressure at the start of the filtration and at its end: {pressure at start}, {pressure at end}."
+          - "Filter the formulated bulk and record the start and end of the filtration: {start}, {end}."
+          - "Record the weight of the filtrate: {filtrate weight}."
+          - "Record the time the filtrate is placed in cold storage and the time it is taken for sterile filtration: {cold storage start}, {cold storage end}."
+        params:
+          - { key: differential_pressure, label: Filtration differential pressure, collection: param, itemKey: differential_pressure, field: setPoint }
+          - { key: differential_pressure_range, label: Filtration differential pressure range, collection: param, itemKey: differential_pressure, field: nor }
+          - { key: integrity, label: Filter integrity testing approach, collection: ipc, itemKey: integrity, field: approach }
+          - { key: bioburden, label: Bioburden before the filter, collection: ipc, itemKey: bioburden, field: limit }
+        timeLimits:
+          - { key: filtration_time, label: Filtration duration, collection: param, itemKey: max_filtration_time, field: setPoint }
+          - { key: cold_hold, label: Maximum hold of the bioburden-reduced bulk in cold storage, collection: param, itemKey: max_cold_hold, field: max }
+        sampleTypes: []
+        cmoFields: [Filter lot and ID, Pressure gauge ID and calibration status, Pressure readings, Filtrate weight, Cold storage unit ID, Signature and date]
 
   - id: sterile_filtration_run
-    version: 2
+    version: 3
     title: Sterile filtration
     unitOps: [sterile_filtration]
     steps:
-      - "Assemble the sterilizing-grade filter and the sterile transfer path as described in {form or SOP number}. Record the filter identification: {filter lot}, {filter ID}."
-      - "Run the filter integrity test before use and record the result: {pre-use result}."
-      - "Filter the formulated bulk into the sterile bulk vessel. Record the start and end of the filtration and the differential pressure at both times: {start}, {end}, {pressure at start}, {pressure at end}."
-      - "Run the filter integrity test after use and record the result: {post-use result}."
+      - "Assemble the sterilizing-grade filter and the sterile transfer path as described in {form or SOP number}. Record the filter identification and the receiving vessel: {filter lot}, {filter ID}, {receiving vessel ID}."
+      - "Wet the filter as described in {form or SOP number} and run the integrity test before use. Record the wetting fluid, the time, the reading and the filter specification: {wetting fluid}, {time}, {pre-use reading}, {specification}, {pre-use result}."
+      - "Take the bioburden sample before the sterilizing filter as set out in the table below and record the time, the volume and the sample number: {sampling time}, {sample volume}, {sample number}."
+      - "Filter the bulk into the receiving vessel. Record the start and end of the filtration and the differential pressure at both times: {start}, {end}, {pressure at start}, {pressure at end}."
+      - "Run the integrity test after use and record the reading against the filter specification: {post-use reading}, {specification}, {post-use result}."
       - "Record the weight of the sterile bulk: {sterile bulk weight}."
     params:
       - { key: differential_pressure, label: Filtration differential pressure, collection: param, itemKey: differential_pressure, field: setPoint }
       - { key: differential_pressure_range, label: Filtration differential pressure range, collection: param, itemKey: differential_pressure, field: nor }
+      - { key: expected_duration, label: Expected filtration duration, collection: param, itemKey: max_filtration_time, field: setPoint }
       - { key: bioburden, label: Bioburden before the sterilizing filter, collection: ipc, itemKey: bioburden, field: limit }
     timeLimits:
-      - { key: filtration_time, label: Filtration duration, collection: param, itemKey: max_filtration_time, field: setPoint }
+      - { key: filtration_time, label: Maximum filtration duration, collection: param, itemKey: max_filtration_time, field: nor }
     sampleTypes: []
-    cmoFields: [Filter lot and ID, Sterile bulk vessel ID, Pressure gauge ID and calibration status, Pressure readings, Sterile bulk weight, Signature and date]
+    cmoFields: [Filter lot and ID, Receiving vessel ID, Pressure gauge ID and calibration status, Pressure readings, Integrity tester ID and printouts, Sterile bulk weight, Signature and date]
     history:
       - version: 1
         title: Sterile filtration
@@ -281,23 +400,87 @@ blocks:
         timeLimits: []
         sampleTypes: []
         cmoFields: [Filter lot and ID, Holding vessel ID, Pressure gauge ID and calibration status, Pressure readings, Sterile bulk weight, Signature and date]
+      - version: 2
+        title: Sterile filtration
+        unitOps: [sterile_filtration]
+        steps:
+          - "Assemble the sterilizing-grade filter and the sterile transfer path as described in {form or SOP number}. Record the filter identification: {filter lot}, {filter ID}."
+          - "Run the filter integrity test before use and record the result: {pre-use result}."
+          - "Filter the formulated bulk into the sterile bulk vessel. Record the start and end of the filtration and the differential pressure at both times: {start}, {end}, {pressure at start}, {pressure at end}."
+          - "Run the filter integrity test after use and record the result: {post-use result}."
+          - "Record the weight of the sterile bulk: {sterile bulk weight}."
+        params:
+          - { key: differential_pressure, label: Filtration differential pressure, collection: param, itemKey: differential_pressure, field: setPoint }
+          - { key: differential_pressure_range, label: Filtration differential pressure range, collection: param, itemKey: differential_pressure, field: nor }
+          - { key: bioburden, label: Bioburden before the sterilizing filter, collection: ipc, itemKey: bioburden, field: limit }
+        timeLimits:
+          - { key: filtration_time, label: Filtration duration, collection: param, itemKey: max_filtration_time, field: setPoint }
+        sampleTypes: []
+        cmoFields: [Filter lot and ID, Sterile bulk vessel ID, Pressure gauge ID and calibration status, Pressure readings, Sterile bulk weight, Signature and date]
+
+  - id: sterile_filtration_inline
+    version: 1
+    title: Sterile filtration in line with filling (set-up and start)
+    unitOps: [sterile_filtration]
+    steps:
+      - "Assemble the sterilizing-grade filter and connect its outlet to the surge bag of the filling line as described in {form or SOP number}. Record the filter identification and the surge bag: {filter lot}, {filter ID}, {surge bag ID}, {surge bag lot}."
+      - "Wet the filter as described in {form or SOP number} and run the integrity test before use. Record the wetting fluid, the time, the reading and the filter specification: {wetting fluid}, {time}, {pre-use reading}, {specification}, {pre-use result}."
+      - "Take the bioburden sample before the sterilizing filter as set out in the table below and record the time, the volume and the sample number: {sampling time}, {sample volume}, {sample number}."
+      - "Start the filtration into the surge bag when the filling line is connected, primed and purged (see the filling section). Record the start of the filtration and the differential pressure: {start}, {pressure at start}. The filtration runs in line with the filling; its end, the integrity test after use and the filtration time are recorded in the filling section after the end of filling."
+    params:
+      - { key: differential_pressure, label: Filtration differential pressure, collection: param, itemKey: differential_pressure, field: setPoint }
+      - { key: differential_pressure_range, label: Filtration differential pressure range, collection: param, itemKey: differential_pressure, field: nor }
+      - { key: expected_duration, label: Expected filtration duration, collection: param, itemKey: max_filtration_time, field: setPoint }
+      - { key: bioburden, label: Bioburden before the sterilizing filter, collection: ipc, itemKey: bioburden, field: limit }
+    timeLimits:
+      - { key: filtration_time, label: Maximum filtration duration (covers the filling run), collection: param, itemKey: max_filtration_time, field: nor }
+    sampleTypes: []
+    note: For a process where the sterilizing filter feeds the filler directly (no vessel between the filter and the filler). The steps after the end of filling are in the block "Sterile filtration in line with filling (end)".
+    cmoFields: [Filter lot and ID, Surge bag ID and lot, Pressure gauge ID and calibration status, Pressure readings, Integrity tester ID and printouts, Signature and date]
+
+  - id: sterile_filtration_inline_end
+    version: 1
+    title: Sterile filtration in line with filling (end)
+    unitOps: [aseptic_filling, sterile_filtration]
+    steps:
+      - "When filling has ended, stop the sterile filtration. Record the end of the filtration, the differential pressure at the end and the filtration time (start to end; it covers the filling run) against the maximum shown in the sterile filtration section: {end}, {pressure at end}, {filtration time}."
+      - "Run the integrity test after use and record the reading against the filter specification: {post-use reading}, {specification}, {post-use result}."
+      - "Record the weight or volume of product that passed the filter: {weight or volume}."
+    params: []
+    timeLimits: []
+    sampleTypes: []
+    cmoFields: [Filtration end time, Filtration time, Integrity tester ID and printouts, Weight or volume, Signature and date]
 
   - id: filter_integrity_test
-    version: 1
-    title: Filter integrity test (before and after use)
+    version: 2
+    title: Filter integrity test (method and printouts)
     unitOps: [sterile_filtration, bbr_filtration]
     steps:
-      - "Wet the filter as described in {form or SOP number} and record the wetting fluid and the time: {wetting fluid}, {time}."
-      - "Run the integrity test before use (and, where the process includes it, before sterilization of the assembly) and record the reading against the filter specification: {reading}, {specification}."
-      - "Run the integrity test after use and record the reading against the filter specification: {reading}, {specification}."
-      - "Attach the printout of each test to this record: {tester ID}."
+      - "Attach the printout of each integrity test (before and after use) to this record, check each reading against the filter specification and record who tested: {tester ID}, {printout reference}."
     params:
       - { key: integrity_tests, label: Filter integrity testing, collection: ipc, itemKey: integrity, field: tests }
       - { key: integrity_method, label: Filter integrity test method, collection: ipc, itemKey: integrity, field: method }
       - { key: pupsit, label: Pre-use post-sterilization integrity test (PUPSIT), collection: ipc, itemKey: pupsit, field: status }
     timeLimits: []
     sampleTypes: []
+    note: The wetting and the tests themselves are steps of the filtration block, in the order they are done. This block holds the method, the PUPSIT status and the printouts.
     cmoFields: [Integrity tester ID and calibration status, Filter specification values, Test results, Printouts, Signature and date]
+    history:
+      - version: 1
+        title: Filter integrity test (before and after use)
+        unitOps: [sterile_filtration, bbr_filtration]
+        steps:
+          - "Wet the filter as described in {form or SOP number} and record the wetting fluid and the time: {wetting fluid}, {time}."
+          - "Run the integrity test before use (and, where the process includes it, before sterilization of the assembly) and record the reading against the filter specification: {reading}, {specification}."
+          - "Run the integrity test after use and record the reading against the filter specification: {reading}, {specification}."
+          - "Attach the printout of each test to this record: {tester ID}."
+        params:
+          - { key: integrity_tests, label: Filter integrity testing, collection: ipc, itemKey: integrity, field: tests }
+          - { key: integrity_method, label: Filter integrity test method, collection: ipc, itemKey: integrity, field: method }
+          - { key: pupsit, label: Pre-use post-sterilization integrity test (PUPSIT), collection: ipc, itemKey: pupsit, field: status }
+        timeLimits: []
+        sampleTypes: []
+        cmoFields: [Integrity tester ID and calibration status, Filter specification values, Test results, Printouts, Signature and date]
 
   - id: line_preparation
     version: 1
@@ -327,16 +510,28 @@ blocks:
     sampleTypes: []
     cmoFields: [Barrel lot, Number of tubs, Plunger stopper lot, Transfer port ID, Damaged tubs or nests, Operators, Signature and date]
 
+  - id: portion_definition
+    version: 1
+    title: Portions of the batch (definition)
+    unitOps: [aseptic_filling]
+    steps:
+      - "Define the portions of this batch before filling starts. A portion is {tubs per portion} tubs of {units per tub} units, so {units per portion} units, and is the smallest group that leaves and returns to refrigerated storage together. Every time-out-of-refrigeration entry later in this record names the portion by its ID: {tubs per portion}, {units per tub}, {units per portion}, {portion IDs}."
+    params: []
+    timeLimits: []
+    sampleTypes: []
+    cmoFields: [Portion size, Portion IDs, Signature and date]
+
   - id: filling_run
-    version: 2
+    version: 3
     title: Filling
     unitOps: [aseptic_filling]
     steps:
       - "Set the filling machine to the values shown in the table below and record the settings: {machine settings}."
-      - "Start the filling and record the start time and the first filled unit: {start}, {first unit}."
+      - "Connect the sterile product path to the filling line, prime the line and purge it as described in {form or SOP number}. Record the connection, the volume purged and the time: {connection check}, {purge volume}, {purge time}."
+      - "Start the filling and record the start time, the first filled unit and the ID of the first portion: {start}, {first unit}, {portion ID}."
       - "Check the fill at the frequency shown in the table below and record each reading: {check time}, {reading}."
       - "Record the interventions made during the run: {intervention list}."
-      - "Record the end of filling and the number of units filled: {end}, {units filled}."
+      - "Record the end of filling, the time each portion was completed and the number of units filled: {end}, {portion ID}, {portion completed}, {units filled}."
     params:
       - { key: fill_volume, label: Fill volume, collection: param, itemKey: fill_volume, field: setPoint }
       - { key: fill_volume_range, label: Fill volume range, collection: param, itemKey: fill_volume, field: nor }
@@ -347,7 +542,12 @@ blocks:
     timeLimits:
       - { key: fill_duration, label: Filling duration of the whole batch (media-fill limit), collection: param, itemKey: max_fill_duration, field: max }
     sampleTypes: []
-    cmoFields: [Filling machine ID, Balance ID and calibration status, Alarm values, Fill weights, Units filled, Signature and date]
+    sampleSlots:
+      - { moment: beginning, afterStep: 3, text: "Take {samples} (sample table of this section) at the beginning of filling and record the time and the person who took them: {sampling time}, {sampled by}." }
+      - { moment: middle, afterStep: 4, text: "Take {samples} (sample table of this section) in the middle of the filling run and record the time and the person who took them: {sampling time}, {sampled by}." }
+      - { moment: after_stoppage, afterStep: 5, text: "After a planned line stop and the purge that follows it, take {samples} (sample table of this section) and record the stop time, the restart time and the person who took them: {stop time}, {restart time}, {sampled by}." }
+      - { moment: end, afterStep: 6, text: "Take {samples} (sample table of this section) at the end of the filling run and record the time and the person who took them: {sampling time}, {sampled by}." }
+    cmoFields: [Filling machine ID, Balance ID and calibration status, Alarm values, Fill weights, Units filled, Portion IDs, Signature and date]
     history:
       - version: 1
         title: Filling
@@ -369,6 +569,37 @@ blocks:
           - { key: fill_duration, label: Filling duration, collection: param, itemKey: max_fill_duration, field: max }
         sampleTypes: []
         cmoFields: [Filling machine ID, Balance ID and calibration status, Alarm values, Fill weights, Units filled, Signature and date]
+      - version: 2
+        title: Filling
+        unitOps: [aseptic_filling]
+        steps:
+          - "Set the filling machine to the values shown in the table below and record the settings: {machine settings}."
+          - "Start the filling and record the start time and the first filled unit: {start}, {first unit}."
+          - "Check the fill at the frequency shown in the table below and record each reading: {check time}, {reading}."
+          - "Record the interventions made during the run: {intervention list}."
+          - "Record the end of filling and the number of units filled: {end}, {units filled}."
+        params:
+          - { key: fill_volume, label: Fill volume, collection: param, itemKey: fill_volume, field: setPoint }
+          - { key: fill_volume_range, label: Fill volume range, collection: param, itemKey: fill_volume, field: nor }
+          - { key: line_speed, label: Filling line speed, collection: param, itemKey: line_speed, field: setPoint }
+          - { key: line_speed_range, label: Filling line speed range, collection: param, itemKey: line_speed, field: nor }
+          - { key: max_interventions, label: Interventions per batch, collection: param, itemKey: max_interventions, field: max }
+          - { key: fill_check, label: Fill weight check frequency, collection: ipc, itemKey: fill_check, field: frequency }
+        timeLimits:
+          - { key: fill_duration, label: Filling duration of the whole batch (media-fill limit), collection: param, itemKey: max_fill_duration, field: max }
+        sampleTypes: []
+        cmoFields: [Filling machine ID, Balance ID and calibration status, Alarm values, Fill weights, Units filled, Signature and date]
+
+  - id: portion_cold_storage
+    version: 1
+    title: Filled portions into refrigerated storage
+    unitOps: [aseptic_filling]
+    steps:
+      - "As soon as a portion is filled, put its tubs into refrigerated storage (2 to 8 degrees C) and record for each portion the portion ID, the number of tubs, the time they enter the storage and the storage unit: {portion ID}, {tub count}, {storage start}, {storage unit ID}."
+    params: []
+    timeLimits: []
+    sampleTypes: []
+    cmoFields: [Portion IDs, Storage unit ID, Times into storage, Signature and date]
 
   - id: stopper_position_check
     version: 1
@@ -382,13 +613,23 @@ blocks:
     sampleTypes: []
     cmoFields: [Measuring device ID and calibration status, Readings, Signature and date]
 
-  - id: plunger_stopper_placement
+  - id: stopper_placement_setup
     version: 1
-    title: Plunger stopper placement and position check (prefilled syringes)
+    title: Plunger stopper placement set-up (before filling)
     unitOps: [aseptic_filling, stoppering]
     steps:
       - "Set the stopper placement unit as described in {form or SOP number}. Record the vacuum level set for placement and the other placement settings: {vacuum level}, {placement settings}."
       - "Check the placement unit before filling starts and record the result: {set-up check result}."
+    params: []
+    timeLimits: []
+    sampleTypes: []
+    cmoFields: [Placement unit ID, Vacuum level, Signature and date]
+
+  - id: plunger_stopper_placement
+    version: 2
+    title: Plunger stopper position check (prefilled syringes)
+    unitOps: [aseptic_filling, stoppering]
+    steps:
       - "Take the position check syringes at the points shown in the table below. Measure the stopper position from the top of the barrel flange to the back of the stopper and record each reading against the position shown there: {check time}, {reading}."
       - "Check the headspace or air bubble size against the value in the table below and record each reading: {reading}."
       - "Record the syringes rejected by the in-line position check and the stoppers found out of position: {rejected syringes}, {out of position}."
@@ -399,7 +640,25 @@ blocks:
       - { key: position_checks, label: Plunger stopper position checks, collection: ipc, itemKey: stopper_position_check, field: tests }
     timeLimits: []
     sampleTypes: []
-    cmoFields: [Placement unit ID, Vacuum level, Measuring device ID and calibration status, Readings, Rejected syringes, Signature and date]
+    cmoFields: [Placement unit ID, Measuring device ID and calibration status, Readings, Rejected syringes, Signature and date]
+    history:
+      - version: 1
+        title: Plunger stopper placement and position check (prefilled syringes)
+        unitOps: [aseptic_filling, stoppering]
+        steps:
+          - "Set the stopper placement unit as described in {form or SOP number}. Record the vacuum level set for placement and the other placement settings: {vacuum level}, {placement settings}."
+          - "Check the placement unit before filling starts and record the result: {set-up check result}."
+          - "Take the position check syringes at the points shown in the table below. Measure the stopper position from the top of the barrel flange to the back of the stopper and record each reading against the position shown there: {check time}, {reading}."
+          - "Check the headspace or air bubble size against the value in the table below and record each reading: {reading}."
+          - "Record the syringes rejected by the in-line position check and the stoppers found out of position: {rejected syringes}, {out of position}."
+        params:
+          - { key: stopper_position, label: Plunger stopper position (depth from the reference), collection: param, itemKey: stopper_position, field: setPoint }
+          - { key: stopper_position_range, label: Plunger stopper position range, collection: param, itemKey: stopper_position, field: nor }
+          - { key: headspace, label: Headspace or air bubble size, collection: param, itemKey: max_headspace, field: setPoint }
+          - { key: position_checks, label: Plunger stopper position checks, collection: ipc, itemKey: stopper_position_check, field: tests }
+        timeLimits: []
+        sampleTypes: []
+        cmoFields: [Placement unit ID, Vacuum level, Measuring device ID and calibration status, Readings, Rejected syringes, Signature and date]
 
   - id: filtered_hold
     version: 1
@@ -515,7 +774,7 @@ blocks:
         cmoFields: [Inspector IDs and qualification, Inspection equipment ID, Times out of and back in refrigerated storage, Counts, Results, Signature and date]
 
   - id: bulk_packing
-    version: 3
+    version: 4
     title: Bulk packaging
     unitOps: [bulk_packaging]
     steps:
@@ -524,7 +783,7 @@ blocks:
       - "Pack the accepted units into the bulk containers and record the container identification and the number of units in each: {container ID}, {units}."
       - "Label each bulk container as shown in the table below and record the label check: {label check}."
       - "Check each bulk container as shown in the table below and record the result: {check result}."
-      - "Record the time this portion returns to refrigerated storage: {portion ID}, {return time}."
+      - "Record the time this portion returns to refrigerated storage. This is the start of the packed bulk hold of the portion. Record the storage unit: {portion ID}, {return time}, {hold start}, {storage unit ID}."
     params:
       - { key: bulk_identity, label: Bulk container identity labelling, collection: ipc, itemKey: bulk_identity, field: tests }
       - { key: container_integrity, label: Bulk container integrity check, collection: ipc, itemKey: container_integrity, field: tests }
@@ -533,7 +792,7 @@ blocks:
       - { key: bulk_hold, label: Bulk hold time, collection: param, itemKey: max_hold_time, field: max }
       - { key: out_of_refrigeration, label: Maximum time out of refrigeration during bulk packing, collection: param, itemKey: max_time_out_of_refrigeration, field: max }
     sampleTypes: []
-    cmoFields: [Bulk container IDs, Label stock reference, Units per container, Times out of and back in refrigerated storage, Signature and date]
+    cmoFields: [Bulk container IDs, Label stock reference, Units per container, Times out of and back in refrigerated storage, Hold start, Signature and date]
     history:
       - version: 1
         title: Bulk packaging
@@ -569,6 +828,25 @@ blocks:
           - { key: out_of_refrigeration, label: Maximum time out of refrigeration during bulk packing, collection: param, itemKey: max_time_out_of_refrigeration, field: max }
         sampleTypes: []
         cmoFields: [Bulk container IDs, Label stock reference, Units per container, Times out of and back in refrigerated storage, Signature and date]
+      - version: 3
+        title: Bulk packaging
+        unitOps: [bulk_packaging]
+        steps:
+          - "Check the line clearance of the packing area and record it: {line clearance form number}."
+          - "Record the time this portion leaves refrigerated storage for packing, before it is handled: {portion ID}, {out time}."
+          - "Pack the accepted units into the bulk containers and record the container identification and the number of units in each: {container ID}, {units}."
+          - "Label each bulk container as shown in the table below and record the label check: {label check}."
+          - "Check each bulk container as shown in the table below and record the result: {check result}."
+          - "Record the time this portion returns to refrigerated storage: {portion ID}, {return time}."
+        params:
+          - { key: bulk_identity, label: Bulk container identity labelling, collection: ipc, itemKey: bulk_identity, field: tests }
+          - { key: container_integrity, label: Bulk container integrity check, collection: ipc, itemKey: container_integrity, field: tests }
+          - { key: bulk_aql, label: Check of the packed bulk, collection: ipc, itemKey: bulk_aql, field: frequency }
+        timeLimits:
+          - { key: bulk_hold, label: Bulk hold time, collection: param, itemKey: max_hold_time, field: max }
+          - { key: out_of_refrigeration, label: Maximum time out of refrigeration during bulk packing, collection: param, itemKey: max_time_out_of_refrigeration, field: max }
+        sampleTypes: []
+        cmoFields: [Bulk container IDs, Label stock reference, Units per container, Times out of and back in refrigerated storage, Signature and date]
 
   - id: reconciliation_chain
     version: 1
@@ -585,13 +863,13 @@ blocks:
     cmoFields: [All unit counts, Calculated result, Investigation number, Signature and date]
 
   - id: labeling_run
-    version: 3
+    version: 4
     title: Labelling and packaging
     unitOps: [labeling_packaging]
     steps:
       - "Check the line clearance of the labelling area and record it: {line clearance form number}."
       - "Record the label and carton lots and the quantity issued: {label lot}, {carton lot}, {quantity issued}."
-      - "Record the time this portion leaves refrigerated storage for labelling and packaging, before it is handled: {portion ID}, {out time}."
+      - "Record the time this portion leaves refrigerated storage for labelling and packaging, before it is handled. This is the end of the packed bulk hold of the portion; record the hold time from the hold start in the bulk packaging section: {portion ID}, {out time}, {hold end}, {packed bulk hold time}."
       - "Run the label and print checks and record the results: {check time}, {result}."
       - "Reconcile the labels: issued, used, destroyed, returned. Record the result: {issued}, {used}, {destroyed}, {returned}."
       - "Record the time this portion returns to refrigerated storage: {portion ID}, {return time}."
@@ -603,7 +881,7 @@ blocks:
     timeLimits:
       - { key: out_of_refrigeration, label: Maximum time out of refrigeration during packaging, collection: param, itemKey: max_time_out_of_refrigeration, field: max }
     sampleTypes: []
-    cmoFields: [Label and carton lots, Quantities, Printer ID, Reconciliation counts, Times out of and back in refrigerated storage, Signature and date]
+    cmoFields: [Label and carton lots, Quantities, Printer ID, Reconciliation counts, Times out of and back in refrigerated storage, Hold end, Signature and date]
     history:
       - version: 1
         title: Labelling and packaging
@@ -641,20 +919,39 @@ blocks:
           - { key: out_of_refrigeration, label: Maximum time out of refrigeration during packaging, collection: param, itemKey: max_time_out_of_refrigeration, field: max }
         sampleTypes: []
         cmoFields: [Label and carton lots, Quantities, Printer ID, Reconciliation counts, Times out of and back in refrigerated storage, Signature and date]
+      - version: 3
+        title: Labelling and packaging
+        unitOps: [labeling_packaging]
+        steps:
+          - "Check the line clearance of the labelling area and record it: {line clearance form number}."
+          - "Record the label and carton lots and the quantity issued: {label lot}, {carton lot}, {quantity issued}."
+          - "Record the time this portion leaves refrigerated storage for labelling and packaging, before it is handled: {portion ID}, {out time}."
+          - "Run the label and print checks and record the results: {check time}, {result}."
+          - "Reconcile the labels: issued, used, destroyed, returned. Record the result: {issued}, {used}, {destroyed}, {returned}."
+          - "Record the time this portion returns to refrigerated storage: {portion ID}, {return time}."
+        params:
+          - { key: labeling_speed, label: Labelling speed, collection: param, itemKey: labeling_speed, field: setPoint }
+          - { key: labeling_speed_range, label: Labelling speed range, collection: param, itemKey: labeling_speed, field: nor }
+          - { key: label_checks, label: Label and print checks, collection: ipc, itemKey: label_checks, field: tests }
+          - { key: label_reconciliation, label: Label reconciliation, collection: ipc, itemKey: label_reconciliation, field: frequency }
+        timeLimits:
+          - { key: out_of_refrigeration, label: Maximum time out of refrigeration during packaging, collection: param, itemKey: max_time_out_of_refrigeration, field: max }
+        sampleTypes: []
+        cmoFields: [Label and carton lots, Quantities, Printer ID, Reconciliation counts, Times out of and back in refrigerated storage, Signature and date]
 
   - id: time_out_of_refrigeration_total
-    version: 2
+    version: 3
     title: Total time out of refrigeration
     unitOps: [storage_shipping]
     steps:
-      - "The total is tracked for each portion of the batch separately and counts from the start of filling of that portion until its units are back in refrigerated storage. Record, for each portion and for each stage listed under the critical limit in the table below, the time the units leave refrigerated storage and the time they return, and the time spent out of refrigeration in that stage: {portion ID}, {out time}, {return time}, {stage time}."
-      - "Add up the stage times of each portion and record the total against the critical limit shown in the table below: {portion ID}, {total time}."
+      - "The total is tracked for each portion of the batch separately (portions are defined before filling) and counts from the start of filling of that portion until its units are back in refrigerated storage. For each portion and each stage listed under the critical limit in the table below, copy the time the units leave refrigerated storage and the time they return from the records of that stage, and the time spent out of refrigeration in that stage. The out and return times include the handling before and after the work of the stage: {portion ID}, {out time}, {return time}, {stage time}."
+      - "Add up the recorded stage times of each portion and record the total against the critical limit shown in the table below. The total is the sum of the recorded times, never an estimate: {portion ID}, {total time}."
     params: []
     timeLimits:
       - { key: total_out_of_refrigeration, label: Maximum total time out of refrigeration, collection: param, itemKey: max_total_time_out_of_refrigeration, field: max }
     sampleTypes: []
+    note: The stages are the targets under the critical limit. Their times add up to the total, which is compared with the critical limit for information only. Time out of refrigeration is tracked per portion, so one slow portion does not count against the others. Stage targets include the handling time of the stage.
     cmoFields: [Portion IDs, Times out of and back in refrigerated storage per stage, Stage times, Total time per portion, Signature and date]
-    note: The stages are the targets under the critical limit. Their times add up to the total, which is compared with the critical limit for information only. Time out of refrigeration is tracked per portion, so one slow portion does not count against the others.
     history:
       - version: 1
         title: Total time out of refrigeration
@@ -668,15 +965,28 @@ blocks:
         sampleTypes: []
         cmoFields: [Times out of and back in refrigerated storage per stage, Stage times, Total time, Signature and date]
         note: The stages are the targets under the critical limit. Their times add up to the total, which is compared with the critical limit for information only.
+      - version: 2
+        title: Total time out of refrigeration
+        unitOps: [storage_shipping]
+        steps:
+          - "The total is tracked for each portion of the batch separately and counts from the start of filling of that portion until its units are back in refrigerated storage. Record, for each portion and for each stage listed under the critical limit in the table below, the time the units leave refrigerated storage and the time they return, and the time spent out of refrigeration in that stage: {portion ID}, {out time}, {return time}, {stage time}."
+          - "Add up the stage times of each portion and record the total against the critical limit shown in the table below: {portion ID}, {total time}."
+        params: []
+        timeLimits:
+          - { key: total_out_of_refrigeration, label: Maximum total time out of refrigeration, collection: param, itemKey: max_total_time_out_of_refrigeration, field: max }
+        sampleTypes: []
+        cmoFields: [Portion IDs, Times out of and back in refrigerated storage per stage, Stage times, Total time per portion, Signature and date]
+        note: The stages are the targets under the critical limit. Their times add up to the total, which is compared with the critical limit for information only. Time out of refrigeration is tracked per portion, so one slow portion does not count against the others.
 
   - id: storage_and_shipment
-    version: 1
+    version: 2
     title: Storage and shipment from the fill site
     unitOps: [storage_shipping]
     steps:
       - "Record the location and the conditions of storage and the monitoring device: {location}, {conditions}, {monitor ID}."
       - "Record the shipment: destination, carrier and time of dispatch: {destination}, {carrier}, {dispatch time}."
       - "Attach the temperature record of storage and shipping to this record."
+      - "Calculate from the temperature record the total time outside the storage and shipping temperature range and compare it with the excursion allowance shown in the table below: {excursion start}, {excursion end}, {time outside the range}, {result against the allowance}."
     params:
       - { key: excursion_allowance, label: Temperature excursion allowance, collection: param, itemKey: excursion_allowance, field: max }
       - { key: storage_monitoring, label: Storage temperature monitoring, collection: ipc, itemKey: storage_monitoring, field: tests }
@@ -684,19 +994,46 @@ blocks:
     timeLimits:
       - { key: transit_time, label: Maximum transit time, collection: param, itemKey: max_transit_time, field: max }
     sampleTypes: []
-    cmoFields: [Storage location, Monitoring device ID, Carrier, Shipment documents, Signature and date]
+    cmoFields: [Storage location, Monitoring device ID, Carrier, Shipment documents, Time outside the range, Signature and date]
+    history:
+      - version: 1
+        title: Storage and shipment from the fill site
+        unitOps: [storage_shipping]
+        steps:
+          - "Record the location and the conditions of storage and the monitoring device: {location}, {conditions}, {monitor ID}."
+          - "Record the shipment: destination, carrier and time of dispatch: {destination}, {carrier}, {dispatch time}."
+          - "Attach the temperature record of storage and shipping to this record."
+        params:
+          - { key: excursion_allowance, label: Temperature excursion allowance, collection: param, itemKey: excursion_allowance, field: max }
+          - { key: storage_monitoring, label: Storage temperature monitoring, collection: ipc, itemKey: storage_monitoring, field: tests }
+          - { key: shipping_monitoring, label: Shipping temperature monitoring, collection: ipc, itemKey: shipping_monitoring, field: tests }
+        timeLimits:
+          - { key: transit_time, label: Maximum transit time, collection: param, itemKey: max_transit_time, field: max }
+        sampleTypes: []
+        cmoFields: [Storage location, Monitoring device ID, Carrier, Shipment documents, Signature and date]
 
   - id: sample_table
-    version: 1
+    version: 2
     title: Samples for this step
     unitOps: []
     steps:
-      - "Take the samples listed in the table below at the point shown and record the time and the person who took them: {sampling time}, {sampled by}."
+      - "Check that every sample of the table below was taken at the step of this section that names it, and that the quantity, container and storage match the table: {check result}, {checked by}."
     params: []
     timeLimits: []
     sampleTypes: ["*"]
-    note: The rows come from the PPQ sampling plan and are brought up to date from it, not typed here.
+    note: The rows come from the PPQ sampling plan and are brought up to date from it, not typed here. Each sample is taken at its own step (the blocks of the section place those steps); a row no step names shows as an open item.
     cmoFields: [Sampling times, Sampled by, Results]
+    history:
+      - version: 1
+        title: Samples for this step
+        unitOps: []
+        steps:
+          - "Take the samples listed in the table below at the point shown and record the time and the person who took them: {sampling time}, {sampled by}."
+        params: []
+        timeLimits: []
+        sampleTypes: ["*"]
+        note: The rows come from the PPQ sampling plan and are brought up to date from it, not typed here.
+        cmoFields: [Sampling times, Sampled by, Results]
 
   - id: time_limits_section
     version: 1

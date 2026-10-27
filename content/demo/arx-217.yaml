@@ -1118,5 +1118,5 @@ mbr:
     - uo: compounding
       limit: bulk_hold
       targets:
-        - { label: Mixing end to start of sterile filtration, value: "24", unit: h, fromStep: 2, toStep: 5 }
-        - { label: Transfer and waiting before filtration, value: "8", unit: h, fromStep: 5, toStep: 5 }
+        - { label: Mixing end to start of sterile filtration, value: "24", unit: h, fromStep: 6, toStep: 9 }
+        - { label: Transfer and waiting before filtration, value: "8", unit: h, fromStep: 9, toStep: 9 }

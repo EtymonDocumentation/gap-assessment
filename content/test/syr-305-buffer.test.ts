@@ -52,11 +52,16 @@ describe("SYR-305 TRD buffer example", () => {
 describe("SYR-305 batch record buffer calculation", () => {
   const trd = table("formulation_table");
   const steps = rec.sections.find((s) => s.unitOp === "buffer_prep")!.blocks.find((b) => b.libraryId === "buffer_preparation")!.steps.map((s) => s.text);
-  const recordSize = num(/Buffer batch size of this record: ([\d.]+) kg/.exec(steps.join("\n"))![1]!);
+  const recordSize = num(/Each amount below is the TRD ratio x ([\d.]+) kg/.exec(steps.join("\n"))![1]!);
 
-  it("has its own buffer batch, not the TRD example", () => {
+  it("works the amounts for a 50.0 kg buffer batch (PPQ 2, a study point) and says the 25.0 kg TRD example takes half", () => {
     expect(recordSize).toBe(50);
     expect(recordSize).toBeGreaterThan(37.5); // 100 L x 0.375 L/L: the largest PPQ batch
+    expect(steps[1]).toContain("25.0 kg (the TRD example, used for PPQ 1 and PPQ 3) takes half of each amount");
+    expect(steps[1]).toContain("study point");
+    const row = rec.sections.find((s) => s.unitOp === "buffer_prep")!.blocks[0]!.params.find((p) => p.label.startsWith("Study point: buffer batch"))!;
+    expect(row.studyPoint).toBe(true);
+    expect(row.mbrValue).toBe("50");
   });
 
   it("each component amount equals the TRD ratio x the record's buffer batch size", () => {
@@ -98,11 +103,11 @@ describe("SYR-305 batch record buffer calculation", () => {
 describe("SYR-305 batch record sample rows", () => {
   const samples = rec.sections.flatMap((s) => s.blocks.flatMap((b) => b.samples));
   it("name the moment in process words, never an hour of the flow figure", () => {
-    expect(samples.length).toBe(17);
+    expect(samples.length).toBe(21);
     for (const x of samples.filter((y) => y.hour)) expect(x.hour, x.pointId).not.toMatch(/^\d+(\.\d+)? h$/);
     const moments = new Set(samples.map((x) => x.hour));
     expect(moments).toContain("End of BBR filtration (start of hold)");
-    expect(moments).toContain("After 30 h hold");
+    expect([...moments].some((m) => /end of the hold, in the step that ends the hold/.test(m ?? ""))).toBe(true);
     expect([...moments].some((m) => /^Beginning of /.test(m ?? ""))).toBe(true);
   });
 });

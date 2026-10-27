@@ -8,7 +8,7 @@ import { addAction, addItem, createAssessment, pointRef, setMethod, updateItem }
 import { addItemFromGap, addItemFromSuggestion, gapSeeds, suggestFailureModes } from "./risk-seed";
 import { acceptSuggestion, addAgencyRequest, addBatch, addFigureItem, addPoint, addStep, addSubsection, applyDesignLoadout, createPlan, projectScopeSteps, setParties, setPointFlow, setTimeZero, updatePlan, updatePoint, updateStep, type PointPatch } from "./sampling";
 import { suggestPoints, type SamplingSuggestions } from "./sampling-seed";
-import { addMbrStep, addTarget, createMbr, setParam, stepRefToken, updateMbrStep } from "./mbr";
+import { addMbrStep, addParamRow, addTarget, createMbr, setParam, stepRefToken, updateMbrStep } from "./mbr";
 import { createTrd, setLimits, setOverride, updateTrd, updateTrdStep } from "./trd";
 import { buildTrdSeed } from "./trd-seed";
 import { addWriteupFromLibrary, moveWriteup, removePart, setBlankValue, setNotApplicable, setPartImage, setPartIncluded, setPartText, setTableRows } from "./trd-writeup";
@@ -227,6 +227,9 @@ const mbrDemoSchema = z.object({
       }),
     )
     .default([]),
+  // New study point rows (a challenge beyond the record's limits, run on purpose in PPQ): added to the first block of the section made from
+  // library block `block`, then marked as a study point with their value and reason. The approved plan is kept; the record says it is planned.
+  studyPoints: z.array(z.object({ uo: z.string(), block: z.string(), label: z.string(), mbrValue: z.string(), mbrUnit: z.string().optional(), reason: z.string() })).default([]),
   // A cross-reference inside a step: `insert` goes right after `find` in the text of the step, and {ref} in it becomes the automatic
   // reference to the step named by `to` (stored as an id, shown as "(Step 6.6)" and renumbered when steps move).
   refs: z.array(z.object({ uo: z.string(), block: z.string(), step: z.number().int(), find: z.string(), insert: z.string(), to: z.object({ uo: z.string(), block: z.string(), step: z.number().int() }) })).default([]),
@@ -556,6 +559,12 @@ function applyMbrDemo(project: Project, content: ContentBundle, m: z.infer<typeo
       { ...(e.choice ? { choice: e.choice } : {}), ...(e.mbrValue !== undefined ? { mbrValue: e.mbrValue } : {}), ...(e.mbrUnit !== undefined ? { mbrUnit: e.mbrUnit } : {}), ...(e.reason !== undefined ? { reason: e.reason } : {}), ...(e.studyPoint !== undefined ? { studyPoint: e.studyPoint } : {}) },
       who,
     );
+  }
+  for (const e of m.studyPoints) {
+    const block = sectionFor(e.uo).blocks.find((b) => b.libraryId === e.block);
+    if (!block) throw new Error(`Demo MBR: ${e.uo} has no block ${e.block}`);
+    const added = addParamRow(project, recordId, block.id, { label: e.label }, who);
+    project = setParam(added.project, recordId, added.rowId, { mbrValue: e.mbrValue, ...(e.mbrUnit ? { mbrUnit: e.mbrUnit } : {}), reason: e.reason, studyPoint: true }, who);
   }
   const stepAt = (uo: string, blockId: string, place: number) => {
     const id = sectionFor(uo).blocks.find((b) => b.libraryId === blockId)?.steps[place - 1]?.id;

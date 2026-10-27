@@ -24,13 +24,14 @@ export function versionOf(b: MbrLibraryBlock | MbrLibraryVersion): MbrLibraryVer
     timeLimits: structuredClone(b.timeLimits),
     sampleTypes: [...b.sampleTypes],
     cmoFields: [...b.cmoFields],
+    ...(b.sampleSlots ? { sampleSlots: structuredClone(b.sampleSlots) } : {}),
     ...(b.note ? { note: b.note } : {}),
     ...(b.at ? { at: b.at } : {}),
     ...(b.by ? { by: b.by } : {}),
   };
 }
 
-export type LibraryEdit = Partial<Pick<MbrLibraryBlock, "title" | "unitOps" | "steps" | "params" | "timeLimits" | "sampleTypes" | "cmoFields" | "note">>;
+export type LibraryEdit = Partial<Pick<MbrLibraryBlock, "title" | "unitOps" | "steps" | "params" | "timeLimits" | "sampleTypes" | "cmoFields" | "note" | "sampleSlots">>;
 
 const clean = (b: MbrLibraryBlock): MbrLibraryBlock => mbrLibraryBlockSchema.parse(b);
 

@@ -244,10 +244,10 @@ test.describe("batch record: step blocks library", () => {
     await steps.fill(`${old}\nRecord the final check (fictional).`);
     await page.screenshot({ path: join(SHOTS, "m11-library.png"), fullPage: true });
     await page.getByTestId("mbl-save").click();
-    await expect(page.getByTestId("mbl-message")).toContainText("version 2");
+    await expect(page.getByTestId("mbl-message")).toContainText("version 3");
     await expect(page.getByTestId("mbl-row-pooling_with_weights")).toContainText("Shipped, edited by you");
 
-    // The record made from version 1 keeps its copy and offers the update.
+    // The record made from the earlier version keeps its copy and offers the update.
     await page.getByRole("link", { name: "Batch records" }).click();
     await page.getByTestId("mbr-list-table").getByRole("link").first().click();
     const notice = page.locator('[data-testid^="mbr-library-newer-"]').first();

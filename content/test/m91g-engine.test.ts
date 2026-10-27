@@ -44,8 +44,8 @@ const jpeg = (w: number, h: number) => new Uint8Array([0xff, 0xd8, 0xff, 0xc0, 0
 const pictures = (p: Project) => exportOf(p).sections.flatMap((s) => s.blocks.filter((b): b is Extract<Block, { type: "picture" }> => b.type === "picture"));
 
 describe("versions (M9.1 gap closure)", () => {
-  it("are process model 1.12.0 and schema 1.22.0, and a 1.19.0 project opens with nothing else changed", () => {
-    expect(PROCESS_MODEL_VERSION).toBe("1.12.0");
+  it("are process model 1.13.0 and schema 1.22.0, and a 1.19.0 project opens with nothing else changed", () => {
+    expect(PROCESS_MODEL_VERSION).toBe("1.13.0");
     expect(SCHEMA_VERSION).toBe("1.22.0");
     const old = JSON.parse(JSON.stringify({ ...base, schemaVersion: "1.19.0" }));
     const p = parseProject(old);
