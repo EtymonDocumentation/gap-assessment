@@ -1,12 +1,14 @@
 import {
   mbrRecordSchema,
   MBR_CHOICE_LABEL,
+  MBR_SAMPLE_MOMENTS,
   type Actor,
   type ChangeEvent,
   type MbrBlock,
   type MbrChoice,
   type MbrLibraryBlock,
   type MbrParamRow,
+  type MbrSampleMoment,
   type MbrRecord,
   type MbrSampleRow,
   type MbrSection,
@@ -269,6 +271,58 @@ function sampleRow(plan: SamplingPlan, p: SamplingPoint, id: string): MbrSampleR
   return { id, planId: plan.id, pointId: p.id, ...sampleFieldsOf(plan, p) };
 }
 
+// ------------------------------------------------------------------ sampling steps at their moment
+
+/**
+ * The moment of a plan point as a key a block can have a place for. A point inside a hold reads as the start, the end or "during" the hold;
+ * otherwise the timing choice names it. No timing choice (or "other") gives no key: the sample then has no place and shows as an open item,
+ * because nothing is guessed.
+ */
+export function sampleMomentKey(p: SamplingPoint): MbrSampleMoment | undefined {
+  const o = p.timing.options[0];
+  if (!o) return undefined;
+  if (p.flow?.holdId) return o === "beginning" ? "hold_start" : o === "end" ? "hold_end" : o === "other" ? undefined : "hold_during";
+  return (MBR_SAMPLE_MOMENTS as readonly string[]).includes(o) ? (o as MbrSampleMoment) : undefined;
+}
+
+/**
+ * Puts a sampling step into the blocks of a section at the place each block names for the moment (its `sampleSlots`), for the sample rows
+ * the section holds. A batch record is worked step by step: a sample due at the start of mixing is taken at that step, not in a table step
+ * after the mixing is over. Steps are only added where the plan has samples of that moment. `libs` lines up with `section.blocks`.
+ */
+export function placeSampleSteps(section: MbrSection, libs: readonly (MbrLibraryBlock | undefined)[], plan: SamplingPlan | undefined, ids: IdIssuer, only?: ReadonlySet<string>): void {
+  if (!plan) return;
+  const byMoment = new Map<string, string[]>();
+  for (const b of section.blocks) {
+    for (const r of b.samples) {
+      const pt = plan.points.find((p) => p.id === r.pointId);
+      const key = pt ? sampleMomentKey(pt) : undefined;
+      if (key) byMoment.set(key, [...(byMoment.get(key) ?? []), r.pointId]);
+    }
+  }
+  if (byMoment.size === 0) return;
+  section.blocks.forEach((block, i) => {
+    const slots = libs[i]?.sampleSlots;
+    if (!slots || (only && !only.has(block.id))) return;
+    // Latest place first, and for one place the last-written slot first, so the steps end up in the order the slots are written.
+    const order = slots.map((s, n) => ({ s, n })).sort((a, b) => b.s.afterStep - a.s.afterStep || b.n - a.n);
+    for (const { s } of order) {
+      const points = byMoment.get(s.moment);
+      if (!points?.length) continue;
+      const at = Math.max(0, Math.min(s.afterStep, block.steps.length));
+      block.steps.splice(at, 0, { id: ids("ST"), text: s.text.replace("{samples}", `sample${points.length === 1 ? "" : "s"} ${points.join(", ")}`) });
+    }
+  });
+}
+
+/** Sample rows no step of their section names (by the point number): nobody is told when to take them. */
+export function unplacedSamples(section: MbrSection): { blockId: string; rowId: string; pointId: string; test: string }[] {
+  const texts = section.blocks.flatMap((b) => b.steps.map((s) => s.text));
+  const out: { blockId: string; rowId: string; pointId: string; test: string }[] = [];
+  for (const b of section.blocks) for (const r of b.samples) if (!texts.some((t) => new RegExp(`(^|[^\\w-])${r.pointId}(?![\\w-])`).test(t))) out.push({ blockId: b.id, rowId: r.id, pointId: r.pointId, test: r.test });
+  return out;
+}
+
 // ------------------------------------------------------------------ building blocks from the library
 
 export interface BlockContext {
@@ -354,14 +408,14 @@ export function createMbr(project: Project, input: NewMbrInput, actor: Actor): {
   const rec: MbrRecord = clean({ id, title, status: "draft" as const, docRef: text(input.docRef) || undefined, trdId: input.trdId, planId: input.planId, sections: [], createdAt: actor.at, updatedAt: actor.at });
   const ids = issuerFor(next, rec, id);
   for (const sp of input.sections) {
-    rec.sections.push(
-      clean({
-        id: ids("SC"),
-        unitOp: sp.unitOp,
-        title: text(sp.title) || "Section",
-        blocks: sp.blocks.map((lib) => instantiateBlock(lib, ids, { unitOp: sp.unitOp, trd, plan, at: actor.at })),
-      }),
-    );
+    const section = clean({
+      id: ids("SC"),
+      unitOp: sp.unitOp,
+      title: text(sp.title) || "Section",
+      blocks: sp.blocks.map((lib) => instantiateBlock(lib, ids, { unitOp: sp.unitOp, trd, plan, at: actor.at })),
+    });
+    placeSampleSteps(section, sp.blocks, plan, ids);
+    rec.sections.push(clean(section));
   }
   assertValid(rec);
   next.mbr.records.push(rec);
@@ -460,6 +514,9 @@ export function addBlockFromLibrary(project: Project, recordId: string, sectionI
     blockId = block.id;
     const at = index === undefined ? s.blocks.length : Math.max(0, Math.min(index, s.blocks.length));
     s.blocks.splice(at, 0, block);
+    // A block with places for samples gets its sampling steps from the sample rows the section already holds. (A sample table added after
+    // the process blocks cannot see their places: the rows then show as open items until a step names them.)
+    placeSampleSteps(s, s.blocks.map((b) => (b.id === block.id ? lib : undefined)), planOf(project, rec), ids, new Set([block.id]));
     return { action: "mbr_block_add", path: rowPath(rec, s, block), detail: `Block "${block.title}" (library version ${lib.version}) added to "${s.title}" in ${rec.id}`, after: { title: block.title } };
   });
   return { project: out, blockId };
@@ -1116,7 +1173,7 @@ export function addBlockForRequirement(
 }
 
 export interface MbrOpenItem {
-  kind: "not_decided" | "no_step" | "broken_reference" | "no_trd_value";
+  kind: "not_decided" | "no_step" | "broken_reference" | "no_trd_value" | "sample_not_placed";
   where: string;
   text: string;
   blockId?: string;
@@ -1134,6 +1191,7 @@ export function mbrOpenItems(project: Project, rec: MbrRecord, library: readonly
       else if (r.choice === "same_as_trd" && !r.mbrValue) out.push({ kind: "no_trd_value", where, text: "Same as TRD, but the TRD value is not held by the site", blockId: b.id, rowId: r.id });
     }
   }
+  for (const s of rec.sections) for (const x of unplacedSamples(s)) out.push({ kind: "sample_not_placed", where: `${s.title}, sample ${x.pointId}`, text: `No step names this sample (${x.test}): add the step where it is taken`, blockId: x.blockId, rowId: x.rowId });
   for (const q of trdRequirementsWithoutStep(rec, trdOf(project, rec), library)) out.push({ kind: "no_step", where: `${q.stepLabel}, ${q.label}`, text: "TRD requirement without an MBR step" });
   for (const x of brokenReferences(rec)) {
     const s = rec.sections.find((sec) => sec.id === x.sectionId)!;

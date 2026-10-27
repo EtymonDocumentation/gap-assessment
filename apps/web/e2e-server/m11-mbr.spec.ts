@@ -40,7 +40,7 @@ test("server build: with the module a batch record is shown, edited and kept on 
   await page.getByTestId("mbl-edit-pooling_with_weights").click();
   await page.getByTestId("mbl-steps").fill("Only step (fictional).");
   await page.getByTestId("mbl-save").click();
-  await expect(page.getByTestId("mbl-message")).toContainText("version 2");
+  await expect(page.getByTestId("mbl-message")).toContainText("version 3");
   await page.reload();
   await go(page, "#/mbr/library");
   await expect(page.getByTestId("mbl-row-pooling_with_weights")).toContainText("Shipped, edited by you");

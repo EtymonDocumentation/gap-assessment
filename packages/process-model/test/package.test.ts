@@ -40,7 +40,7 @@ describe("package independence", () => {
 
   it("keeps PROCESS_MODEL_VERSION equal to package.json", () => {
     expect(PROCESS_MODEL_VERSION).toBe(pkg.version);
-    expect(pkg.version).toBe("1.12.0");
+    expect(pkg.version).toBe("1.13.0");
   });
 
   it("is private until it is published on purpose", () => {
@@ -75,6 +75,7 @@ describe("public API", () => {
         "MBR_CHOICES",
         "MBR_CHOICE_LABEL",
         "MBR_FORMAT_VERSION",
+        "MBR_SAMPLE_MOMENTS",
         "MBR_STUDY_POINT_CHOICE",
         "MBR_TRD_COLLECTIONS",
         "MEMO_LINES",
@@ -198,6 +199,7 @@ describe("public API", () => {
         "mbrParamRowSchema",
         "mbrRecordSchema",
         "mbrSampleRowSchema",
+        "mbrSampleSlotSchema",
         "mbrSectionSchema",
         "mbrStateSchema",
         "mbrStepSchema",

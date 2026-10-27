@@ -15,13 +15,13 @@ vi.setConfig({ testTimeout: 120000 });
 
 /**
  * The SYR-305 PPQ sampling plan (Table 4 samples 1 to 17, three batches), its CMO instructions and the flow figure in Word and HTML.
- * Samples go to the temp folder (gap-docx-samples/syr305g-ppq) so a person can read them; a plain-text dump is written too.
+ * Samples go to the temp folder (gap-docx-samples/syr305i-ppq) so a person can read them; a plain-text dump is written too.
  */
 describe("SYR-305 PPQ sampling plan in Word and HTML", () => {
   const project = buildDemoProject(content, demos["syr-305"], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes });
   const plan = project.sampling.plans[0]!;
   const opts = { generatedAt: GENERATED_AT, appVersion: "0.0.0-test" };
-  const dir = join(tmpdir(), "gap-docx-samples", "syr305g-ppq");
+  const dir = join(tmpdir(), "gap-docx-samples", "syr305i-ppq");
   const flat = (t: string) => t.replace(/[ \t]+/g, " ");
 
   it("writes the plan with the process flow figure, all 17 points and the three batches", async () => {

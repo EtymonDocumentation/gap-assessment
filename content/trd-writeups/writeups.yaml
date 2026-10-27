@@ -384,7 +384,7 @@ writeups:
             performed)
           text: 'Not applicable: dilution is performed at {{trd.dilutionBuffer.dilutionSite|Site where dilution is performed}}.'
   - id: sec_process_parameters
-    version: 3
+    version: 4
     kind: section
     key: process_parameters
     title: Overall process parameters
@@ -395,6 +395,14 @@ writeups:
           The proposed process parameters are listed in the tables below, one block per process step in process order, with the
           set point, the normal operating range (NOR) and the proven acceptable range (PAR) of each. Sources are listed under
           References and in the TRD evidence record. This section can be changed to suit the program.
+      - id: fn_par_after_ppq
+        kind: note
+        text: >-
+          Before process performance qualification (PPQ), a hold time or time limit is a target to exceed (for example more than
+          24 h), not a validated value, and every hold and time is run in every PPQ lot. After PPQ, the proven acceptable range (PAR)
+          of a hold time or time limit is set to the most conservative (lowest) value achieved across the PPQ lots, not to the full
+          range tested. A longer time reached in one lot is a buffer between the limit and the longest time with data; it is not a
+          range the receiving unit may use.
       - id: fn_bioburden
         kind: note
         text: >-
@@ -716,7 +724,7 @@ writeups:
         optional:
           condition: include if the drug substance is shipped as a refrigerated liquid
   - id: wu_ds_receipt_thaw
-    version: 3
+    version: 4
     kind: unitOp
     key: ds_receipt_thaw
     title: Receipt and storage, and thawing
@@ -795,8 +803,10 @@ writeups:
       - id: hold_limits
         kind: note
         text: >-
-          Note: if the drug substance is not pooled within {{uo.ds_receipt_thaw.param.max_ambient_time.max|Time at
-          ambient temperature after thaw}} of the end of thaw, the thawed bottle is stored at
+          Note: the time at ambient temperature starts at the end of the thaw. The thaw is its own controlled step with its own
+          duration limit and does not count towards the ambient time. If the drug substance is not pooled within
+          {{uo.ds_receipt_thaw.param.max_ambient_time.max|Time at ambient temperature after thaw}} of the end of thaw, the thawed
+          bottle is stored at
           {{trd.ds_receipt_thaw.holdTemperature|Storage temperature after thaw}}. The longest time the thawed material can be held
           at that temperature before pooling is {{uo.ds_receipt_thaw.param.max_cold_hold.max|Maximum cold hold before pooling}}.
           If the thawed material is kept in refrigerated storage it is protected from light as described in the formulation and

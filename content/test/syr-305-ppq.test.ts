@@ -25,8 +25,8 @@ describe("SYR-305 PPQ sampling plan", () => {
     expect(JSON.stringify(open)).toMatch(/agency/i);
   });
 
-  it("has Table 4 samples 1 to 17 in order, with the expected types", () => {
-    expect(plan.points.map((p) => p.id)).toEqual(Array.from({ length: 17 }, (_, i) => `SP-${String(i + 1).padStart(3, "0")}`));
+  it("has Table 4 samples 1 to 21 in order, with the expected types", () => {
+    expect(plan.points.map((p) => p.id)).toEqual(Array.from({ length: 21 }, (_, i) => `SP-${String(i + 1).padStart(3, "0")}`));
     const types = plan.points.map((p) => p.type);
     expect(types.slice(0, 6)).toEqual(Array(6).fill("mixing_homogeneity"));
     expect(types.slice(6, 9)).toEqual(Array(3).fill("hold_time"));
@@ -34,24 +34,43 @@ describe("SYR-305 PPQ sampling plan", () => {
     expect(types[14]).toBe("hold_time");
     expect(types[15]).toBe("stability");
     expect(types[16]).toBe("supporting_study");
+    // SP-018 to SP-021: the T0 of the thawed drug substance hold and the end-of-hold samples of the thaw, buffer and formulated bulk holds.
+    expect(types.slice(17)).toEqual(Array(4).fill("hold_time"));
   });
 
-  it("has three batches of 50 L, 100 L and 9 L, and sample 9 applies to the two outer batches only", () => {
+  it("has three batches of 50 L, 100 L and 9 L, and every sample applies to all three", () => {
     expect(plan.batches.map((b) => b.label)).toEqual(["PPQ 1", "PPQ 2", "PPQ 3"]);
-    const nine = plan.points[8]!;
-    expect(nine.appliesTo).toHaveLength(2);
-    expect(nine.appliesTo).toEqual([plan.batches[1]!.id, plan.batches[2]!.id]);
-    for (const p of plan.points.filter((x) => x.id !== nine.id)) expect(p.appliesTo, p.id).toBe("all");
-    // Units are counted on the batches a point applies to, so sample 9 adds nothing to PPQ 1.
-    expect(unitsPerBatch(plan, nine).filter((u) => u.applies).map((u) => u.batchId)).toEqual(nine.appliesTo);
+    // Every point applies to all three batches. In particular the holding-bag hold (SP-007 to SP-009), the line stop (SP-014) and the
+    // time-out-of-refrigeration challenge (SP-016, SP-017) are made in EVERY batch: a validated hold or time is the lowest value
+    // achieved across the three lots, and a batch with no challenge would count as a 0 h hold.
+    for (const p of plan.points) expect(p.appliesTo, p.id).toBe("all");
+    for (const p of plan.points) expect(unitsPerBatch(plan, p).filter((u) => u.applies), p.id).toHaveLength(3);
     expect(planTotals(plan).perBatch).toHaveLength(3);
   });
 
-  it("derives the stability quantity from conditions x time points x units: 600 syringes", () => {
+  it("derives the stability quantity from conditions x time points x units: 300 syringes in every batch", () => {
     const stab = plan.points[15]!;
     expect(stab.detail?.stability?.conditions).toHaveLength(2);
     expect(stab.detail?.stability?.timePoints).toHaveLength(5);
-    expect(unitsPerBatch(plan, stab).every((u) => u.units === 600)).toBe(true);
+    // It applies to all three batches. On the 9 L batch (5 000 units) the syringe samples stay below 15 % of the units.
+    expect(unitsPerBatch(plan, stab).filter((u) => u.applies)).toHaveLength(3);
+    expect(unitsPerBatch(plan, stab).every((u) => u.units === 300)).toBe(true);
+    const small = plan.batches[2]!;
+    const syringes = plan.points.filter((p) => p.quantity?.unit === "syringes").reduce((a, p) => a + (unitsPerBatch(plan, p).find((u) => u.batchId === small.id)?.units ?? 0), 0);
+    expect(syringes / small.plannedLotSizeUnits!).toBeLessThan(0.15);
+  });
+
+  it("runs every hold in every batch: only the batch size is bracketed, and the hold table shows a target to exceed before PPQ", () => {
+    const text = JSON.stringify(plan);
+    expect(text).toContain("> 24 h");
+    expect(text).toContain("is run in every one of the three batches");
+    expect(text).toContain("a T0 and an end-of-hold sample");
+    expect(text).toContain("T0 sample");
+    expect(text).toContain("lowest time achieved across the three PPQ lots");
+    expect(text).not.toMatch(/PPQ 1 and PPQ 3 only|PPQ 1 and PPQ 2 only|PPQ 2 has no line stop/);
+    // Every hold of the plan names a duration for PPQ 1 as well as for PPQ 2 and 3.
+    expect((plan.holds ?? []).length).toBeGreaterThan(0);
+    for (const h of plan.holds ?? []) expect(h.durationText, h.label).toMatch(/PPQ target \d+ h in every batch/);
   });
 
   it("states the impeller point and the batch bracket in the rationale, matching the TRD", () => {
@@ -81,7 +100,8 @@ describe("SYR-305 TRD figures after the PPQ proposal", () => {
 
   it("allows 4 h filter contact in the normal range and 24 h in the proven range", () => {
     const l = limitsOf("bbr_filtration", "max_filtration_time");
-    expect(setPointOf("bbr_filtration", "max_filtration_time")).toBe(4);
+    // The set point is the expected time (about 1 h for 50 L); the limit stays the normal operating range maximum.
+    expect(setPointOf("bbr_filtration", "max_filtration_time")).toBe(1);
     expect(l.nor?.max).toBe(4);
     expect(l.par?.max).toBe(24);
   });
@@ -119,7 +139,7 @@ describe("SYR-305 batch record sample rows", () => {
 
   it("does not hard-code the PPQ-only extended holds as limits: hold limits equal the TRD claims", () => {
     const limits = rec.sections.flatMap((s) => s.blocks).flatMap((b) => b.timeLimits);
-    for (const t of limits.filter((x) => x.trd?.status === "established")) expect(Number.isFinite(Number(t.value)), t.key).toBe(true);
+    for (const t of limits.filter((x) => x.trd?.status === "established")) expect(Number.isFinite(Number(String(t.value).replace(/^up to /, ""))), t.key).toBe(true);
     // The PPQ plan challenges holds up to 36 h; no batch-record limit takes that figure.
     expect(limits.map((t) => t.value)).not.toContain("36");
   });

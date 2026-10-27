@@ -81,7 +81,9 @@ describe("the SYR-305 standard TRD reads as prose", () => {
   it("states maximum-only limits as up to, never as max in the set point cell", () => {
     expect(html).not.toMatch(/<td>max \d/);
     expect(html).toMatch(/Formulated bulk hold time<\/td><td>24<\/td><td>up to 24<\/td><td>up to 30<\/td><td>h<\/td>/);
-    expect(html).toMatch(/Filtration duration<\/td><td>4<\/td><td>up to 4<\/td><td>up to 6<\/td><td>h<\/td>/);
+    expect(html).toMatch(/BBR filtration duration<\/td><td>1<\/td><td>up to 4<\/td><td>up to 24<\/td><td>h<\/td>/);
+    // The sterilizing filtration runs in line with filling: its time limit covers the filling run (the 8 h filling limit).
+    expect(html).toMatch(/Filtration duration<\/td><td>6<\/td><td>up to 8<\/td><td>up to 8<\/td><td>h<\/td>/);
   });
 
   it("leaves the sign-off cells empty and lists each cited document once", () => {
@@ -115,13 +117,24 @@ describe("the SYR-305 standard TRD reads as prose", () => {
     expect(plain).toContain("Where this section says drug substance, the same applies to bulk placebo.");
   });
 
+  it("states the pre-PPQ hold requirement as a target to exceed and the claim as the lowest PPQ value, not the tested range", () => {
+    // A validated hold is the lowest (most conservative) value achieved across the three lots; the longer tested times are a buffer, not a range
+    // the receiving unit may use. A batch with no challenge would count as a 0 h hold, so every hold runs in every batch.
+    expect(plain).toContain("a hold time or time limit is a target to exceed");
+    expect(plain).toContain("every hold and time is run in every PPQ lot");
+    expect(plain).toContain("set to the most conservative (lowest) value achieved across the PPQ lots, not to the full range tested");
+    expect(plain).toContain("it is not a range the receiving unit may use");
+    expect(plain).toContain("Before PPQ the requirement is a target to exceed (more than 12 h)");
+  });
+
   it("keeps the time values of the demo consistent", () => {
     // The total time out of refrigeration is the sum of the per-step budgets, all read from structured parameter items.
     // Time out of refrigeration is tracked per portion, from the start of filling of that portion.
     expect(plain).toContain("tracked for each portion of the batch separately");
     expect(plain).toContain("The total for a portion must not exceed 12 h");
     expect(plain).toContain("filling up to 6 h, visual inspection up to 3 h, bulk packing up to 1 h, and labelling and packaging up to 2 h");
-    // Bioburden reduction filtration: the filter contact time is 4 h in normal operation (the proven range, 24 h, is in the parameter table).
-    expect(plain).toMatch(/takes no more than 4 h/);
+    // Bioburden reduction filtration: about 1 h is expected, the normal operating range is up to 4 h (the proven range, up to 24 h, is in the parameter table).
+    expect(plain).toMatch(/is expected to take 1 h; the normal operating range of the filtration time is up to 4 h/);
+    expect(plain).toMatch(/takes no more than 8 h/);
   });
 });
