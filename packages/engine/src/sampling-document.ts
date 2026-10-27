@@ -1,6 +1,9 @@
 import {
   MEMO_LINE_LABEL,
   PROCESS_MODEL_VERSION,
+  POINT_AFTER_PPQ_LABEL,
+  PPQ_READINESS_ITEMS,
+  READINESS_STATUS_LABEL,
   SAMPLING_PLAN_FORMAT_VERSION,
   SCHEMA_VERSION,
   UNIT_OP_CUSTOM_STEP,
@@ -221,6 +224,53 @@ export function buildSamplingPlanDocument(
     ...subsAfter("product-site"),
   ]);
 
+  /**
+   * Plan format 1.5.0: the PPQ design decisions, the readiness checklist and the after-PPQ sampling list (PDA TR 60 s6, TR 59). Printed
+   * only when the plan holds at least one such entry, so an older plan prints as before. A question without an answer reads "Not
+   * stated" (never a default), and the closing statement about enhanced sampling after PPQ is the team's own text.
+   */
+  const ppqDesignBlocks = (): Block[] => {
+    const dsg = plan.design;
+    const ready = plan.readiness ?? [];
+    const flagged = plan.points.some((p) => p.afterPpq);
+    if (!dsg && !ready.length && !flagged) return [];
+    const say = (v: string | undefined) => v?.trim() || "Not stated";
+    const eb = dsg?.engineeringBatch;
+    const out: Block[] = [
+      { type: "heading", text: "PPQ design decisions" },
+      {
+        type: "table",
+        columns: ["Decision", "Entry"],
+        rows: [
+          ["Bracketing rationale", say(dsg?.bracketing)],
+          ["Rework and reprocessing", say(dsg?.rework)],
+          ["Engineering batch", eb?.decision === "planned" ? "Planned before PPQ" : eb?.decision === "not_planned" ? "Not planned" : "Not stated"],
+          ["Engineering batch: reasoning", say(eb?.note)],
+          ["Freeze rule (what may not change between the engineering batch and PPQ)", say(dsg?.freezeRule)],
+        ],
+        caption: "PPQ design decisions",
+      },
+      { type: "heading", text: "Readiness before PPQ starts" },
+      {
+        type: "table",
+        columns: ["Item", "Status", "Note"],
+        rows: PPQ_READINESS_ITEMS.map((i) => {
+          const e = ready.find((x) => x.key === i.key);
+          return [i.label, e?.status ? READINESS_STATUS_LABEL[e.status] : "Unknown", e?.note ?? ""];
+        }),
+        caption: "Readiness checklist (an item with no status is unknown)",
+      },
+    ];
+    if (plan.points.length) {
+      out.push(
+        { type: "heading", text: "Sampling after PPQ" },
+        { type: "table", columns: ["Point", "Test", "After PPQ"], rows: plan.points.map((p) => [p.id, p.attribute.trim() || NOT_GIVEN, p.afterPpq ? POINT_AFTER_PPQ_LABEL[p.afterPpq] : "Not stated"]), caption: "PPQ-only samples and samples that continue into routine production / CPV" },
+      );
+    }
+    out.push({ type: "paragraph", text: say(dsg?.postPpq) });
+    return out;
+  };
+
   // 3. PPQ batches and responsible parties
   add("batches", "PPQ batches", [
     {
@@ -242,6 +292,7 @@ export function buildSamplingPlanDocument(
     plan.parties.length
       ? { type: "table", columns: ["Party", "Name", "Role"], rows: plan.parties.map((p) => [RESPONSIBLE_LABEL[p.party], p.name, p.role ?? ""]) }
       : { type: "paragraph", text: "No responsible parties have been named yet. This is an open item." },
+    ...ppqDesignBlocks(),
     ...subsAfter("batches"),
   ]);
 
@@ -317,6 +368,23 @@ export function buildSamplingPlanDocument(
     }
     if (working.length) basisBlocks.push({ type: "table", columns: ["Point", "Batch", "Step", "Value"], rows: working, caption: `Working: ${METHOD_LABEL[method]}` });
   }
+  // Plan format 1.5.0: the confidence the team states per attribute. The hint ("at least 90% at the rejectable quality level") is only
+  // text next to the entry field; nothing is preselected. An AQL table is not a capability argument (PDA TR 60 s6.2.3).
+  const justified = plan.points.filter((p) => p.statisticalBasis);
+  if (justified.length) {
+    basisBlocks.push(
+      { type: "heading", text: "Statistical justification per attribute" },
+      {
+        type: "table",
+        columns: ["Point", "Attribute", "Confidence", "Rejectable quality level", "Note"],
+        rows: justified.map((p) => [p.id, p.attribute.trim() || NOT_GIVEN, p.statisticalBasis!.confidencePercent !== undefined ? `${p.statisticalBasis!.confidencePercent}%` : "Not stated", p.statisticalBasis!.rejectableQualityLevel?.trim() || "Not stated", p.statisticalBasis!.note ?? ""]),
+        caption: "Confidence stated per attribute",
+      },
+    );
+  }
+  if (justified.length || used.includes("aql-105e") || used.includes("var-414")) {
+    basisBlocks.push({ type: "note", text: "An acceptance quality limit (AQL) table gives a sampling plan for a stated quality level. It is not an argument that the process is capable, and it does not justify the number of samples taken in PPQ." });
+  }
   add("statistical-bases", "Statistical bases used", [...basisBlocks, ...subsAfter("statistical-bases")]);
 
   // 5. One section per study type, in a fixed order. Each point: a summary row, its details, any subsection placed inside it,
@@ -363,6 +431,7 @@ export function buildSamplingPlanDocument(
       ["Process step", stepOf(plan, p)?.label ?? stepText(p.unitOp)],
       ["Position on the process flow", placementText(plan, p)],
       ["Purpose and rationale", p.rationale.trim() || NOT_GIVEN],
+      ["After PPQ", p.afterPpq ? POINT_AFTER_PPQ_LABEL[p.afterPpq] : undefined],
       ["Responsible", p.responsible ? `${RESPONSIBLE_LABEL[p.responsible.party]}${p.responsible.name?.trim() ? `, ${p.responsible.name.trim()}` : ""}` : NOT_GIVEN],
       ["Applies to", p.appliesTo === "all" ? "All batches" : p.appliesTo.map(batchLabel).join(", ")],
       ["Container", p.container],

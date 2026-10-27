@@ -8,7 +8,7 @@
 #  - The tool never states a filing category; where a change needs one, the only wording is "Requires regulatory affairs assessment".
 #  - Fictional / generic wording only: no client, product, supplier or person names.
 formatVersion: 1.0.0
-libraryVersion: 1.0.0
+libraryVersion: 1.1.0
 writeups:
   - id: sec_acronyms
     version: 1
@@ -384,7 +384,7 @@ writeups:
             performed)
           text: 'Not applicable: dilution is performed at {{trd.dilutionBuffer.dilutionSite|Site where dilution is performed}}.'
   - id: sec_process_parameters
-    version: 4
+    version: 5
     kind: section
     key: process_parameters
     title: Overall process parameters
@@ -406,9 +406,28 @@ writeups:
       - id: fn_bioburden
         kind: note
         text: >-
-          Bioburden limits follow the acceptance criterion in {{trd.processParameters.bioburdenSpecificationReference|Source
-          specification reference}}. Where the source specification states a limit per small volume, the in-process limit for bulk
-          manufacture may be stated per a larger volume at the same ratio, which keeps the same level of control.
+          The bioburden limit stated for the sterile filtration step is the limit on the load that reaches the final sterilizing
+          filter. It is not a general limit for the bulk at every earlier stage. Bioburden limits follow the acceptance criterion in
+          {{trd.processParameters.bioburdenSpecificationReference|Source specification reference}}. Where the source specification
+          states a limit per small volume, the in-process limit may be stated per a larger volume at the same ratio, which keeps
+          the same level of control.
+      - id: fn_limits_ladder
+        kind: note
+        text: >-
+          Limits are used in three levels. An alert limit is a limit that triggers a defined follow-up in the site procedure; it
+          is not an investigation. An action limit is a limit that triggers an investigation. A specification is a binding limit
+          that the material or process must meet. The levels are not interchangeable, and a result between the alert limit and the
+          action limit is recorded and followed up as defined, not investigated.
+        optional:
+          condition: include to define the alert, action and specification levels used in this document
+      - id: fn_hold_qualification
+        kind: note
+        text: >-
+          A media fill (aseptic process simulation) does not on its own qualify a hold. Holds are qualified by separate hold-time
+          studies or by the holds run in the process performance qualification lots. The media fill periodically includes material
+          that was held for the maximum qualified time.
+        optional:
+          condition: include to state how holds are qualified
       - id: fn_qc_hold
         kind: note
         text: 'Process hold steps: the quality control results are required before dilution starts.'
@@ -670,6 +689,44 @@ writeups:
         text: >-
           The total time out of refrigeration limits given in the overall process parameters section are strictly observed. The
           total limit is {{uo.storage_shipping.param.max_total_time_out_of_refrigeration.max|Total time out of refrigeration}}.
+  # Optional sections (offered in the "Add from library" picker): what the sending unit knows and has not written down, and how the
+  # process came to be as it is. The team writes the content; the library supplies only the headings and the prompts.
+  - id: sec_tacit_knowledge
+    version: 1
+    kind: section
+    key: tacit_knowledge
+    title: Tacit knowledge
+    autoAdd: false
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          This section records what the sending unit's operators and scientists know about the process and that is not written in a
+          procedure: practices that make the process work, signs that something is going wrong, and handling that is learned by
+          doing. {{trd.tacitKnowledge.summary|Tacit knowledge to be handed over}}
+      - id: n1
+        kind: note
+        text: >-
+          Each item is confirmed with the person who holds the knowledge, and where it matters for quality it is moved into a
+          procedure or the batch record.
+  - id: sec_process_history
+    version: 1
+    kind: section
+    key: process_history
+    title: Process history
+    autoAdd: false
+    parts:
+      - id: p1
+        kind: paragraph
+        text: >-
+          This section summarises how the process reached its present form: the batches made so far, the changes made along the
+          way and the reason for each, and the deviations that led to a change in the process. {{trd.processHistory.summary|Process history to be handed over}}
+      - id: n1
+        kind: note
+        text: >-
+          A change recorded here that is not yet covered by the change control of the receiving unit requires regulatory affairs
+          assessment before it is made.
+
   - id: wu_ds_shipping_inbound
     version: 3
     kind: unitOp
@@ -947,7 +1004,7 @@ writeups:
         optional:
           condition: include to list in-process controls
   - id: wu_bbr_filtration
-    version: 3
+    version: 4
     kind: unitOp
     key: bbr_filtration
     title: Bioburden reduction filtration (pre-filtration)
@@ -991,8 +1048,42 @@ writeups:
           weight}} is sent to waste.
         optional:
           condition: include to state the post-use flush
+      - id: filtration_limits
+        kind: table
+        text: ''
+        columns:
+          - Filtration limit
+          - Value
+        rows:
+          - - Filter type and membrane
+            - '{{trd.bbr_filtration.filterTypeMembrane|Filter type and membrane}}'
+          - - Pore size
+            - '{{trd.bbr_filtration.poreSize|Pore size}}'
+          - - Effective filtration area
+            - '{{trd.bbr_filtration.effectiveArea|Effective filtration area}}'
+          - - Scale at which the flux was proven
+            - '{{trd.bbr_filtration.fluxScale|Scale at which the flux was proven}}'
+          - - Maximum filtration time
+            - '{{trd.bbr_filtration.maxFiltrationTimeLimit|Maximum filtration time}}'
+          - - Maximum differential pressure
+            - '{{trd.bbr_filtration.maxDifferentialPressure|Maximum differential pressure}}'
+          - - Temperature range
+            - '{{trd.bbr_filtration.filtrationTemperatureRange|Temperature range}}'
+          - - Flush or priming volume
+            - '{{trd.bbr_filtration.flushPrimingVolume|Flush or priming volume}}'
+          - - Reference to the bacterial-retention validation
+            - '{{trd.bbr_filtration.retentionValidationReference|Reference to the bacterial-retention validation}}'
+        optional:
+          condition: include to state the filtration limits of each bioburden-reduction filtration
+      - id: serial_unit
+        kind: note
+        text: >-
+          Filters in series that together make the bioburden-reduction filtration step are counted as one filtration unit: the limits above apply to the
+          unit, and every filter of the unit is integrity tested after use.
+        optional:
+          condition: include if more than one filter is used in series
   - id: wu_sterile_filtration
-    version: 3
+    version: 4
     kind: unitOp
     key: sterile_filtration
     title: Sterile filtration
@@ -1013,7 +1104,7 @@ writeups:
         text: >-
           Filtration runs at a differential pressure of {{uo.sterile_filtration.param.differential_pressure.setPoint|Differential
           pressure}} and takes no more than {{uo.sterile_filtration.param.max_filtration_time.max|Filtration time}}. The bioburden
-          before the sterilizing filter is not more than {{uo.sterile_filtration.ipc.bioburden.limit|Bioburden limit}}. Filter
+          of the load that reaches the final sterilizing filter is not more than {{uo.sterile_filtration.ipc.bioburden.limit|Bioburden limit}}. Filter
           integrity is tested with {{uo.sterile_filtration.ipc.integrity.tests|Integrity tests performed}}.
       - id: note_post_use
         kind: note
@@ -1062,6 +1153,40 @@ writeups:
           volume per filter}} for each filter and at least {{trd.sterile_filtration.flushTotal|Total flush volume}} in total.
         optional:
           condition: include to state the filter flush volumes
+      - id: filtration_limits
+        kind: table
+        text: ''
+        columns:
+          - Filtration limit
+          - Value
+        rows:
+          - - Filter type and membrane
+            - '{{trd.sterile_filtration.filterTypeMembrane|Filter type and membrane}}'
+          - - Pore size
+            - '{{trd.sterile_filtration.poreSize|Pore size}}'
+          - - Effective filtration area
+            - '{{trd.sterile_filtration.effectiveArea|Effective filtration area}}'
+          - - Scale at which the flux was proven
+            - '{{trd.sterile_filtration.fluxScale|Scale at which the flux was proven}}'
+          - - Maximum filtration time
+            - '{{trd.sterile_filtration.maxFiltrationTimeLimit|Maximum filtration time}}'
+          - - Maximum differential pressure
+            - '{{trd.sterile_filtration.maxDifferentialPressure|Maximum differential pressure}}'
+          - - Temperature range
+            - '{{trd.sterile_filtration.filtrationTemperatureRange|Temperature range}}'
+          - - Flush or priming volume
+            - '{{trd.sterile_filtration.flushPrimingVolume|Flush or priming volume}}'
+          - - Reference to the bacterial-retention validation
+            - '{{trd.sterile_filtration.retentionValidationReference|Reference to the bacterial-retention validation}}'
+        optional:
+          condition: include to state the filtration limits of each sterile filtration
+      - id: serial_unit
+        kind: note
+        text: >-
+          Filters in series that together make the sterile filtration step are counted as one sterilizing unit: the limits above apply to the
+          unit, and every filter of the unit is integrity tested after use.
+        optional:
+          condition: include if more than one filter is used in series
   - id: wu_aseptic_filling
     version: 4
     kind: unitOp

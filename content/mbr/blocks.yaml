@@ -3,7 +3,7 @@
 # record. A parameter row only names which TRD value it pulls (the values come from the TRD record, never from this file).
 # Placeholders in curly braces, {like this}, stand for entries only the CMO can make; they stay visible until the CMO fills them in.
 # Editing a block on the site makes a new version (the earlier text is kept); this shipped file is not changed by the site.
-formatVersion: "1.2.0"
+formatVersion: "1.3.0"
 blocks:
   - id: inbound_shipment_check
     version: 2
@@ -481,6 +481,51 @@ blocks:
         timeLimits: []
         sampleTypes: []
         cmoFields: [Integrity tester ID and calibration status, Filter specification values, Test results, Printouts, Signature and date]
+
+  # Filter records (library 1.3.0): one row per filtration. A serial arrangement of filters that together make the sterilizing step counts
+  # as ONE sterilizing unit, so every filter of the unit is tested after use. Nothing is prefilled; the operators write the entries.
+  - id: filter_records
+    version: 1
+    title: Filter records (identification and integrity tests)
+    unitOps: [sterile_filtration, bbr_filtration]
+    steps:
+      - "Record the identification and lot of each filter used in this filtration, and the result of its integrity test before use, in the filter record table. Compare each reading with the filter specification: {tester ID}."
+      - "After use, and before the filter is discarded, test the filter again and record the result in the same row. Do not discard a filter before its post-use test is recorded."
+    params: []
+    timeLimits: []
+    sampleTypes: []
+    forms:
+      - key: filter_record
+        title: Filter record (one row per filter)
+        columns: [Filtration, Filter ID, Filter lot, Pre-use test value, Limit, Pass or fail, Pre-use test signed by, Post-use test value, Post-use limit, Post-use pass or fail, Post-use test signed by]
+        blankRows: 4
+        note: Filters in series that together make the sterilizing step are one sterilizing unit. Each filter of the unit is tested after use, and a failed post-use test is a deviation reported to the quality unit.
+    note: The integrity test method and the printouts are in the filter integrity test block.
+    cmoFields: [Filter specification values, Integrity tester ID and calibration status]
+
+  # Intervention log (library 1.3.0): the filling section keeps a log of every intervention and line stop. Only interventions on the
+  # qualified list may be performed; anything else is a deviation reported to the quality unit.
+  - id: intervention_log
+    version: 1
+    title: Intervention log
+    unitOps: [aseptic_filling]
+    steps:
+      - "Record every intervention and every line stop in the intervention log, when it happens, with the time, the operators and the number of repetitions."
+    params: []
+    timeLimits: []
+    sampleTypes: []
+    forms:
+      - key: intervention_log
+        title: Intervention log (one row per intervention)
+        columns: [Type (inherent or corrective), Description, Start time, Duration, Operators, Repetitions]
+        blankRows: 8
+        note: Only interventions on the qualified intervention list may be performed. Any other intervention is a deviation and is reported to the quality unit.
+      - key: line_stops
+        title: Line stops
+        columns: [Reason, Start time, Duration, Operators, Action taken]
+        blankRows: 3
+    note: An inherent intervention is part of the normal set-up or operation of the line; a corrective intervention responds to an event such as a jam or a fault.
+    cmoFields: [Reference of the qualified intervention list]
 
   - id: line_preparation
     version: 1

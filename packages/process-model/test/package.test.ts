@@ -40,7 +40,7 @@ describe("package independence", () => {
 
   it("keeps PROCESS_MODEL_VERSION equal to package.json", () => {
     expect(PROCESS_MODEL_VERSION).toBe(pkg.version);
-    expect(pkg.version).toBe("1.13.0");
+    expect(pkg.version).toBe("1.14.0");
   });
 
   it("is private until it is published on purpose", () => {
@@ -65,6 +65,7 @@ describe("public API", () => {
         "CUSTOM_KEY_MAX",
         "CUSTOM_KEY_PREFIX",
         "CatalogError",
+        "ENGINEERING_BATCH_DECISIONS",
         "FILTER_TESTS",
         "FLOW_POSITIONS",
         "HOLD_UNITS",
@@ -82,9 +83,14 @@ describe("public API", () => {
         "MEMO_LINE_LABEL",
         "MIXING_POSITIONS",
         "PLACEMENT_PATTERN",
+        "POINT_AFTER_PPQ",
+        "POINT_AFTER_PPQ_LABEL",
+        "PPQ_READINESS_ITEMS",
         "PROCESS_MODEL_VERSION",
         "PathError",
         "RANGE_KINDS",
+        "READINESS_STATUSES",
+        "READINESS_STATUS_LABEL",
         "REPORT_ONLY_CATEGORIES",
         "REPORT_ONLY_TYPES",
         "REPORT_PRESENTATION",
@@ -114,6 +120,8 @@ describe("public API", () => {
         "TIME_EDGES",
         "TIMING_OPTIONS",
         "TRD_BASIS_LOADOUTS",
+        "TRD_CONTROL_METHODS",
+        "TRD_CONTROL_METHOD_LABEL",
         "TRD_DETAIL_KEYS",
         "TRD_DRAWING_IDS",
         "TRD_FORMAT_VERSION",
@@ -191,6 +199,7 @@ describe("public API", () => {
         "matrixConfigSchema",
         "mbrBlockSchema",
         "mbrChoiceText",
+        "mbrFormSchema",
         "mbrLibraryBlockSchema",
         "mbrLibraryFileSchema",
         "mbrLibraryParamSchema",
@@ -215,6 +224,7 @@ describe("public API", () => {
         "parseTrdSeed",
         "pathMatches",
         "placementSchema",
+        "planDesignSchema",
         "planHoldSchema",
         "planPartySchema",
         "planStepSchema",
@@ -224,6 +234,7 @@ describe("public API", () => {
         "planVerification",
         "pointFlowSchema",
         "pointSampleSizeSchema",
+        "pointStatisticalBasisSchema",
         "printableUnit",
         "projectSchema",
         "pulledFromAnswer",
@@ -236,6 +247,7 @@ describe("public API", () => {
         "rangeWithin",
         "rangesEqual",
         "readTrdImage",
+        "readinessEntrySchema",
         "recordersOf",
         "removeSource",
         "reportOnlyAllowed",
@@ -287,6 +299,7 @@ describe("public API", () => {
         "toBase",
         "trdApprovalSchema",
         "trdBlankValueSchema",
+        "trdControlSchema",
         "trdDocumentSchema",
         "trdFieldSchema",
         "trdImageMeta",

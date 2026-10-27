@@ -1,4 +1,5 @@
-import { docRefLabel, mbrChoiceText, MBR_FORMAT_VERSION, printableUnit, PROCESS_MODEL_VERSION, SCHEMA_VERSION, type MbrParamRow, type MbrRecord, type MbrTrdRef, type Project, type TrdDocument } from "@gap/process-model";
+import {
+  POINT_AFTER_PPQ_LABEL, docRefLabel, mbrChoiceText, MBR_FORMAT_VERSION, printableUnit, PROCESS_MODEL_VERSION, SCHEMA_VERSION, type MbrParamRow, type MbrRecord, type MbrTrdRef, type Project, type TrdDocument } from "@gap/process-model";
 import type { Block, DocModel, DocSection } from "./document";
 import { effectiveField } from "./trd";
 import { TRD_BANNER } from "./trd-outline";
@@ -147,11 +148,23 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
         blocks.push({ type: "table", columns: ["Time limit or target", "Value", "Applies to", "Source (TRD)"], rows, caption: "Time limits", weights: MBR_TIME_LIMIT_WEIGHTS });
         if (notes.length) blocks.push({ type: "list", items: notes });
       }
+      for (const f of b.forms ?? []) {
+        // A fill-in table: the operators write the entries while the batch is made. The rows are empty on purpose.
+        blocks.push({ type: "table", columns: f.columns, rows: Array.from({ length: f.blankRows }, () => f.columns.map(() => "")), caption: f.title });
+        if (f.note?.trim()) blocks.push({ type: "note", text: f.note.trim() });
+      }
       if (b.samples.length) {
+        // The flag is read from the sampling plan point when the document is built (the plan stays the record of truth); a
+        // point the plan does not flag reads "Not stated", never a guess.
+        const plan = rec.planId ? project.sampling.plans.find((p) => p.id === rec.planId) : undefined;
+        const flag = (pointId: string) => {
+          const af = plan?.points.find((p) => p.id === pointId)?.afterPpq;
+          return af ? POINT_AFTER_PPQ_LABEL[af] : "Not stated";
+        };
         blocks.push({
           type: "table",
-          columns: ["Sample", "Test", "Step", "Quantity", "Container", "Storage", "Moment in the process", "Hold", "Result"],
-          rows: b.samples.map((x) => [x.pointId, x.test, x.step ?? "", x.quantity ?? "", x.container ?? "", x.storage ?? "", x.hour ?? "", x.hold ?? "", CMO_PLACEHOLDER]),
+          columns: ["Sample", "Test", "Step", "Quantity", "Container", "Storage", "Moment in the process", "Hold", "After PPQ", "Result"],
+          rows: b.samples.map((x) => [x.pointId, x.test, x.step ?? "", x.quantity ?? "", x.container ?? "", x.storage ?? "", x.hour ?? "", x.hold ?? "", flag(x.pointId), CMO_PLACEHOLDER]),
           caption: "Samples (from the sampling plan)",
         });
       }
@@ -205,7 +218,8 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
   return {
     title: MBR_DOCUMENT_TITLE,
     banner: TRD_BANNER,
-    status: "DRAFT",
+    // The record is written for the sending side's idea of the process and has to be adapted by the unit that will run it.
+    status: "DRAFT FOR RECEIVING-UNIT ADAPTATION",
     meta: [
       ["Project", project.meta.title],
       ["Batch record", `${rec.id}: ${rec.title}`],

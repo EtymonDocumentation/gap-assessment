@@ -24,6 +24,9 @@ import {
   type RunParameter,
   type SamplingMethod,
   type SamplingPlan,
+  POINT_AFTER_PPQ,
+  POINT_AFTER_PPQ_LABEL,
+  type PointAfterPpq,
   type SamplingPoint,
   type SamplingType,
   type TypeDetail,
@@ -753,6 +756,13 @@ export function PointForm({
   const setAllGroups = (open: boolean) => setGroups(open ? [...POINT_GROUPS] : []);
   const steps = useStepChoices();
   const set = (patch: Partial<SamplingPoint>) => setD((cur) => ({ ...cur, ...patch }));
+  const setBasis = (patch: NonNullable<SamplingPoint["statisticalBasis"]>) =>
+    setD((cur) => {
+      const next = { ...cur.statisticalBasis, ...patch };
+      for (const k of Object.keys(next) as (keyof typeof next)[]) if (next[k] === undefined) delete next[k];
+      const { statisticalBasis: _drop, ...rest } = cur;
+      return Object.keys(next).length ? { ...rest, statisticalBasis: next } : rest;
+    });
   const setInputs = (patch: Partial<SamplingPoint["sampleSize"]["inputs"]>) => setD((cur) => ({ ...cur, sampleSize: { ...cur.sampleSize, inputs: { ...cur.sampleSize.inputs, ...patch } } }));
   const setDetail = <K extends DetailKey>(key: K, patch: Partial<NonNullable<TypeDetail[K]>>) =>
     setD((cur) => {
@@ -1246,6 +1256,43 @@ export function PointForm({
           <span>Rationale: why is this point sampled</span>
           <textarea rows={3} value={d.rationale} onChange={(e) => set({ rationale: e.target.value })} data-testid="point-rationale" />
         </label>
+        <label className="field">
+          <span>After PPQ</span>
+          <select value={d.afterPpq ?? ""} onChange={(e) => set({ afterPpq: (e.target.value || undefined) as PointAfterPpq | undefined })} data-testid="point-after-ppq">
+            <option value="">Not decided yet</option>
+            {POINT_AFTER_PPQ.map((v) => (
+              <option key={v} value={v}>
+                {POINT_AFTER_PPQ_LABEL[v]}
+              </option>
+            ))}
+          </select>
+          <span className="muted small">Whether this sample is taken only during PPQ or continues into routine monitoring / CPV. The tool does not choose.</span>
+        </label>
+        <fieldset className="fs stack" data-testid="point-stat-basis">
+          <legend>Statistical justification (optional)</legend>
+          <label className="field">
+            <span>Confidence level (%)</span>
+            <input
+              type="number"
+              min={1}
+              max={99.9}
+              step="any"
+              value={d.statisticalBasis?.confidencePercent ?? ""}
+              onChange={(e) => setBasis({ confidencePercent: e.target.value === "" ? undefined : Number(e.target.value) })}
+              data-testid="point-stat-confidence"
+            />
+            <span className="muted small">Hint: at least 90% at the rejectable quality level. Nothing is filled in for you.</span>
+          </label>
+          <label className="field">
+            <span>Rejectable quality level</span>
+            <input value={d.statisticalBasis?.rejectableQualityLevel ?? ""} onChange={(e) => setBasis({ rejectableQualityLevel: e.target.value || undefined })} data-testid="point-stat-rql" />
+          </label>
+          <label className="field">
+            <span>Note</span>
+            <input value={d.statisticalBasis?.note ?? ""} onChange={(e) => setBasis({ note: e.target.value || undefined })} data-testid="point-stat-note" />
+          </label>
+          <p className="muted small">An acceptable quality limit (AQL) is a sampling-plan setting, not a statement of process capability.</p>
+        </fieldset>
       </Group>
 
       <Group id="reporting" title="Reporting instructions (what the CMO reports)" summary={groupSummary(d, "reporting")} count={check.byGroup.reporting.length} open={isOpen("reporting")} onToggle={() => toggleGroup("reporting")}>

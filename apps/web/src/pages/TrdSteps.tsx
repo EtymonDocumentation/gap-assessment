@@ -5,6 +5,7 @@ import { Modal } from "../components";
 import { useContent, useStore } from "../store";
 import type { Run } from "./SamplingFlow";
 import { FieldRow, FieldTags } from "./TrdFieldRow";
+import { ControlEditor, ControlSummary } from "./TrdControl";
 import { LimitsEditor, LimitsSummary } from "./TrdLimits";
 
 /** The filters of the process view. A filter only hides items from the view; it never changes the TRD. */
@@ -412,6 +413,7 @@ function ItemCard({ d, s, item, run }: { d: TrdDocument; s: TrdStep; item: TrdIt
           </ul>
         </div>
       )}
+      {item.collection === "param" && !open && <ControlSummary item={item} />}
       {hasLimits && !limitsOpen && <LimitsSummary item={item} sources={project.sources} testId={tid} docId={d.id} itemRef={ref} run={run} />}
 
       {open && (
@@ -431,6 +433,7 @@ function ItemCard({ d, s, item, run }: { d: TrdDocument; s: TrdStep; item: TrdIt
                 </button>
               </div>
             ))}
+          {item.collection === "param" && <ControlEditor key={JSON.stringify(item.control ?? null)} docId={d.id} item={item} itemRef={ref} run={run} />}
           {(item.entered || item.custom) && (
             <div>
               <button

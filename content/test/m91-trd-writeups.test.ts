@@ -44,8 +44,8 @@ const textOf = (blocks: Block[]) =>
 
 describe("the shipped write-up library", () => {
   it("holds the reviewed write-ups with unique ids, and names only known unit operations", () => {
-    expect(trdWriteups).toHaveLength(35);
-    expect(new Set(trdWriteups.map((w) => w.id)).size).toBe(35);
+    expect(trdWriteups).toHaveLength(37);
+    expect(new Set(trdWriteups.map((w) => w.id)).size).toBe(37);
     expect(trdWriteups.filter((w) => w.kind === "unitOp")).toHaveLength(15);
     const keys = content.catalog.unitOperations.map((u) => u.key);
     for (const w of trdWriteups.filter((x) => x.kind === "unitOp")) expect(keys).toContain(w.key);

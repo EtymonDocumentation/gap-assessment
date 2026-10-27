@@ -16,20 +16,24 @@ vi.setConfig({ testTimeout: 60000 });
 /**
  * The TRD is two documents: the short standard one sent for approval, and the evidence record for audit and inspection. The standard
  * one must stay short (about 15 pages for SYR-305) and the evidence record must still hold everything the standard one leaves out.
- * Samples go to the temp folder (gap-docx-samples/syr305i) for a look at the pages.
+ * Samples go to the temp folder (gap-docx-samples/syr305j) for a look at the pages.
  */
 describe("Standard TRD and evidence record in Word", () => {
   const project = buildDemoProject(content, demos["syr-305"], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes }, undefined, { writeups: trdWriteups });
   const d = project.trd.documents[0]!;
   const standard = buildTrdDocument(project, d, { generatedAt: GENERATED_AT, appVersion: "0.0.0-test", content });
   const evidence = buildTrdDocument(project, d, { generatedAt: GENERATED_AT, appVersion: "0.0.0-test", content, variant: "evidence" });
-  const dir = join(tmpdir(), "gap-docx-samples", "syr305i");
+  const dir = join(tmpdir(), "gap-docx-samples", "syr305j");
 
   it("writes the standard TRD without appendices, other recorded values or source columns", async () => {
     const out = await renderDocx({ doc: standard, mode: "builtin", generatedAt: GENERATED_AT });
     const text = plainText(strictDocx(out.bytes));
     expect(text).toContain(BANNER);
-    for (const gone of ["Other recorded values", "Process description values", "Traceability", "Source register", "PAR and NOR check", "Basis", "Classification"]) expect(text, gone).not.toContain(gone);
+    for (const gone of ["Other recorded values", "Process description values", "Traceability", "Source register", "PAR and NOR check", "Basis"]) expect(text, gone).not.toContain(gone);
+    // The classification is no column of the parameter tables; it comes as a generated table with the data map (TRD format 1.3.0).
+    expect(text).toContain("Parameter classification and data map");
+    expect(text).toContain("Quality attribute protected");
+    expect(text).toContain("Where it is recorded");
     // Sources are named once, in a sentence, and no source column or register is printed.
     expect(text).toContain("Sources are listed under References and in the TRD evidence record.");
     // The dilution buffer quantities are an estimated batch: the receiving unit may change the amounts if the ratios (the formula) are kept.

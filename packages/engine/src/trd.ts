@@ -18,6 +18,8 @@ import {
   type TrdField,
   type TrdItem,
   type TrdLibraryWriteup,
+  type TrdControl,
+  trdControlSchema,
   type TrdLimits,
   type TrdOverride,
   type TrdPulled,
@@ -556,6 +558,33 @@ export function setLimits(project: Project, id: string, ref: ItemRef, limits: Tr
   d.updatedAt = actor.at;
   const parts = [clean.setPoint ? `set point ${setPointText(clean.setPoint)}` : "", clean.nor ? `NOR ${rangeText(clean.nor)}` : "", clean.par ? `PAR ${rangeText(clean.par)}` : ""].filter(Boolean);
   log(next, actor, { action: "trd_limits_update", path: `${itemPath(id, ref)}.limits`, detail: `${step.label}, ${item.label}: ${parts.length ? parts.join("; ") : "set point, NOR and PAR removed"}`, before, after: nothing ? null : clean });
+  return next;
+}
+
+/**
+ * Classification evidence and data map entries of a parameter (CQA protected, evidence, how it is controlled, where it is recorded).
+ * Text is trimmed; an emptied entry is removed so it reads "Not established" again. Nothing is filled in by the tool.
+ */
+export function setControl(project: Project, id: string, ref: ItemRef, control: TrdControl, actor: Actor): Project {
+  const next = structuredClone(project);
+  const d = docOf(next, id);
+  const { step, item } = itemOf(d, ref);
+  if (item.collection !== "param") throw new TrdError("Classification evidence and the data map belong to parameters");
+  const clean: TrdControl = {};
+  for (const k of ["cqa", "evidence", "recordedIn"] as const) {
+    const v = text(control[k]);
+    if (v) clean[k] = v;
+  }
+  if (control.controlledBy) clean.controlledBy = control.controlledBy;
+  const parsed = trdControlSchema.safeParse(clean);
+  if (!parsed.success) throw new TrdError(parsed.error.issues[0]?.message ?? "The entry is not valid");
+  const before = item.control ?? null;
+  const nothing = !Object.keys(clean).length;
+  if (stableStringify(before) === stableStringify(nothing ? null : clean)) return project;
+  if (nothing) delete item.control;
+  else item.control = clean;
+  d.updatedAt = actor.at;
+  log(next, actor, { action: "trd_control_update", path: `${itemPath(id, ref)}.control`, detail: `${step.label}, ${item.label}: classification evidence or data map edited`, before, after: nothing ? null : clean });
   return next;
 }
 

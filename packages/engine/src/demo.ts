@@ -6,10 +6,10 @@ import { applyAnswer, type AnswerInput, type FieldAnswer } from "./interview";
 import { setGapOverlay } from "./overlays";
 import { addAction, addItem, createAssessment, pointRef, setMethod, updateItem } from "./risk";
 import { addItemFromGap, addItemFromSuggestion, gapSeeds, suggestFailureModes } from "./risk-seed";
-import { acceptSuggestion, addAgencyRequest, addBatch, addFigureItem, addPoint, addStep, addSubsection, applyDesignLoadout, createPlan, projectScopeSteps, setParties, setPointFlow, setTimeZero, updatePlan, updatePoint, updateStep, type PointPatch } from "./sampling";
+import { acceptSuggestion, addAgencyRequest, addBatch, addFigureItem, addPoint, addStep, addSubsection, applyDesignLoadout, createPlan, projectScopeSteps, setParties, setPointFlow, setReadiness, setTimeZero, updatePlan, updatePlanDesign, updatePoint, updateStep, type PointPatch } from "./sampling";
 import { suggestPoints, type SamplingSuggestions } from "./sampling-seed";
 import { addMbrStep, addParamRow, addTarget, createMbr, setParam, stepRefToken, updateMbrStep } from "./mbr";
-import { createTrd, setLimits, setOverride, updateTrd, updateTrdStep } from "./trd";
+import { createTrd, setControl, setLimits, setOverride, updateTrd, updateTrdStep } from "./trd";
 import { buildTrdSeed } from "./trd-seed";
 import { addWriteupFromLibrary, moveWriteup, removePart, setBlankValue, setNotApplicable, setPartImage, setPartIncluded, setPartText, setTableRows } from "./trd-writeup";
 import { placeholderPng } from "./demo-image";
@@ -63,6 +63,9 @@ const samplingDemoSchema = z.object({
       title: z.string(),
       notes: z.string().optional(),
       batchRationale: z.string(),
+      /** PPQ design decisions and the readiness checklist (plan format 1.5.0). A readiness item left out of the list stays unknown. */
+      design: z.object({ bracketing: z.string().optional(), rework: z.string().optional(), engineeringBatch: z.object({ decision: z.enum(["planned", "not_planned"]).optional(), note: z.string().optional() }).optional(), freezeRule: z.string().optional(), postPpq: z.string().optional() }).optional(),
+      readiness: z.array(z.object({ key: z.string(), status: z.enum(["complete", "open", "not_applicable"]).optional(), note: z.string().optional() })).default([]),
       parties: z.array(z.object({ party: z.enum(["cmo", "sponsor", "contract_lab", "other"]), name: z.string(), role: z.string().optional(), department: z.string().optional(), memoLine: z.enum(["from", "to", "cc"]).optional() })).default([]),
       /** Agency requests in order; a point links one by its `ref`. The plan assigns the AR-### ids. */
       agencyRequests: z.array(z.object({ ref: z.string(), agency: z.string(), marketCode: z.string().optional(), kind: z.string().optional(), reference: z.string().optional(), dateReceived: z.string().optional(), question: z.string(), response: z.string().optional(), responseDate: z.string().optional(), status: z.string().optional() })).default([]),
@@ -162,6 +165,8 @@ const trdDemoSchema = z.object({
   sources: z.array(z.object({ identifier: z.string(), docType: z.string(), title: z.string().optional(), version: z.string().optional() })).default([]),
   steps: z.array(z.object({ uo: z.string(), description: z.string() })).default([]),
   overrides: z.array(z.object({ uo: z.string(), item: z.string(), field: z.string(), display: z.string(), unit: z.string().optional(), reason: z.string().optional() })).default([]),
+  /** Classification evidence and data map of parameters (TRD format 1.3.0). `item` is "param.<key>". */
+  controls: z.array(z.object({ uo: z.string(), item: z.string(), cqa: z.string().optional(), evidence: z.string().optional(), controlledBy: z.enum(["batch_record", "automated_control", "in_process_test", "other"]).optional(), recordedIn: z.string().optional() })).default([]),
   limits: z
     .array(
       z.object({
@@ -373,6 +378,8 @@ function applySamplingDemo(project: Project, content: ContentBundle, s: z.infer<
   for (const pl of s.plans) {
     const created = createPlan(project, { title: pl.title, ...(pl.notes ? { notes: pl.notes } : {}) }, who);
     project = updatePlan(created.project, created.planId, { batchRationale: pl.batchRationale }, who);
+    if (pl.design) project = updatePlanDesign(project, created.planId, pl.design, who);
+    for (const r of pl.readiness) project = setReadiness(project, created.planId, r.key, { ...(r.status ? { status: r.status } : {}), ...(r.note ? { note: r.note } : {}) }, who);
     const batchIds = new Map<string, string>();
     for (const b of pl.batches) {
       const added = addBatch(project, created.planId, b, who);
@@ -671,6 +678,9 @@ function applyTrdDemo(project: Project, content: ContentBundle, t: z.infer<typeo
       { ...(l.setPoint ? { setPoint: { value: l.setPoint.value, ...(l.setPoint.unit ? { unit: l.setPoint.unit } : {}), ...cite(l.setPoint) } } : {}), ...(l.nor ? { nor: range(l.nor) } : {}), ...(l.par ? { par: range(l.par) } : {}) },
       who,
     );
+  }
+  for (const c of t.controls) {
+    project = setControl(project, id, itemRef(c.uo, c.item), { ...(c.cqa ? { cqa: c.cqa } : {}), ...(c.evidence ? { evidence: c.evidence } : {}), ...(c.controlledBy ? { controlledBy: c.controlledBy } : {}), ...(c.recordedIn ? { recordedIn: c.recordedIn } : {}) }, who);
   }
   if (t.writeups && library) {
     const wu = (libId: string) => {

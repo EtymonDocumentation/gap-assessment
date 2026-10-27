@@ -20,7 +20,7 @@ import { SEED_COLLECTIONS, SEED_STATUSES, seedSourceSchema, SEED_VERIFICATIONS, 
  */
 
 /** Version of the TRD format (shapes, output). Independent of the project schema version and of the seed format version. */
-export const TRD_FORMAT_VERSION = "1.2.0";
+export const TRD_FORMAT_VERSION = "1.3.0";
 
 /** Suggestions for the basis of a PAR or NOR (load-outs: the user may type any other text). */
 export const TRD_BASIS_LOADOUTS = ["Proposed from process development", "Confirmed by PPQ summary report", "Internal technical report"] as const;
@@ -107,6 +107,30 @@ export type TrdSetPoint = z.infer<typeof trdSetPointSchema>;
 export const trdLimitsSchema = z.object({ setPoint: trdSetPointSchema.optional(), nor: trdRangeSchema.optional(), par: trdRangeSchema.optional() });
 export type TrdLimits = z.infer<typeof trdLimitsSchema>;
 
+/**
+ * TRD format 1.3.0. How a parameter is controlled and recorded, and which quality attribute it protects (the classification
+ * table and the data map of the document are generated from these). All optional and never preselected: an entry that is not
+ * made reads "Not established". The CQA and the evidence are the team's words; the tool does not derive them.
+ */
+export const TRD_CONTROL_METHODS = ["batch_record", "automated_control", "in_process_test", "other"] as const;
+export type TrdControlMethod = (typeof TRD_CONTROL_METHODS)[number];
+export const TRD_CONTROL_METHOD_LABEL: Record<TrdControlMethod, string> = {
+  batch_record: "Operator instruction in the batch record",
+  automated_control: "Automated control (set point in the control system)",
+  in_process_test: "In-process test",
+  other: "Other (see note)",
+};
+export const trdControlSchema = z.object({
+  /** The critical quality attribute the parameter protects. */
+  cqa: z.string().optional(),
+  /** The evidence for the classification (study, risk assessment, report), in the team's words. */
+  evidence: z.string().optional(),
+  controlledBy: z.enum(TRD_CONTROL_METHODS).optional(),
+  /** Where the value is recorded (batch record page, historian tag, logbook). */
+  recordedIn: z.string().optional(),
+});
+export type TrdControl = z.infer<typeof trdControlSchema>;
+
 export const trdItemSchema = z.object({
   collection: z.enum(SEED_COLLECTIONS),
   /** Seed item key, or "x_..." for an item the user added in the TRD. Unique inside a step and collection. */
@@ -123,6 +147,8 @@ export const trdItemSchema = z.object({
   fields: z.array(trdFieldSchema),
   /** PAR / NOR / set point of a parameter (also allowed on an IPC). */
   limits: trdLimitsSchema.optional(),
+  /** TRD format 1.3.0: classification evidence and data map entries of a parameter. */
+  control: trdControlSchema.optional(),
 });
 export type TrdItem = z.infer<typeof trdItemSchema>;
 

@@ -30,6 +30,7 @@ import { ProcessStepsCard } from "./SamplingSteps";
 import { FigureDataCard } from "./SamplingFigureData";
 import { FigureView } from "./SamplingFigureView";
 import { SamplingOutput } from "./SamplingOutput";
+import { DesignCard } from "./SamplingDesign";
 import { NumField } from "./SamplingPointDialog";
 import { AgencyCard, Interview, PartiesCard, PointCard, type ViewBy } from "./SamplingInterview";
 import { SubsectionsEditor } from "./SamplingSubsections";
@@ -245,6 +246,7 @@ function PlanEditor({ plan }: { plan: SamplingPlan }) {
       <ProcessStepsCard plan={plan} run={run} />
       <FigureDataCard plan={plan} run={run} />
       <BatchesCard plan={plan} run={run} />
+      <DesignCard plan={plan} run={run} />
 
       <div role="group" aria-label="Plan sections" className="row wrap seg no-print" data-testid="plan-tabs">
         {(Object.keys(TAB_LABEL) as Tab[]).map((t) => (

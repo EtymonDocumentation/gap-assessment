@@ -1,10 +1,12 @@
 import {
   samplingPlanSchema,
+  PPQ_READINESS_ITEMS,
   type Actor,
   type AgencyRequest,
   type ChangeEvent,
   type CustomSubsection,
   type DesignLoadout,
+  type PlanDesign,
   type PlanHold,
   type PlanParty,
   type PlanStep,
@@ -12,6 +14,7 @@ import {
   type PlanTimeTarget,
   type PlanTimeZero,
   type PointFlow,
+  type ReadinessEntry,
   type Project,
   type SamplingBatch,
   type SamplingPlan,
@@ -177,6 +180,55 @@ export function updatePlan(project: Project, planId: string, patch: PlanPatch, a
   if (!Object.keys(after).length) return project;
   plan.updatedAt = actor.at;
   log(next, actor, { action: "sampling_plan_update", path: `sampling.${planId}`, detail: `Sampling plan ${planId} edited`, before, after });
+  return next;
+}
+
+/**
+ * The PPQ design decisions of the approval memo (bracketing, rework, engineering batch, freeze rule, sampling after PPQ). Text is
+ * trimmed and an emptied field is removed, so "not stated" stays visible in the document. No answer is ever filled in by the tool.
+ */
+export function updatePlanDesign(project: Project, planId: string, patch: PlanDesign, actor: Actor): Project {
+  const next = structuredClone(project);
+  const plan = planOf(next, planId);
+  const cur: PlanDesign = plan.design ?? {};
+  const merged: PlanDesign = { ...cur };
+  for (const k of ["bracketing", "rework", "freezeRule", "postPpq"] as const) {
+    if (!(k in patch)) continue;
+    const v = patch[k]?.trim();
+    if (v) merged[k] = v;
+    else delete merged[k];
+  }
+  if ("engineeringBatch" in patch) {
+    const d = patch.engineeringBatch?.decision;
+    const n = patch.engineeringBatch?.note?.trim();
+    if (d || n) merged.engineeringBatch = { ...(d ? { decision: d } : {}), ...(n ? { note: n } : {}) };
+    else delete merged.engineeringBatch;
+  }
+  if (JSON.stringify(merged) === JSON.stringify(cur)) return project;
+  if (Object.keys(merged).length) plan.design = merged;
+  else delete plan.design;
+  plan.updatedAt = actor.at;
+  log(next, actor, { action: "sampling_plan_update", path: `sampling.${planId}.design`, detail: `PPQ design decisions of ${planId} edited`, before: { design: cur }, after: { design: merged } });
+  return next;
+}
+
+/** One line of the readiness checklist before PPQ. No status = unknown; the tool never marks anything complete by itself. */
+export function setReadiness(project: Project, planId: string, key: string, patch: Pick<ReadinessEntry, "status" | "note">, actor: Actor): Project {
+  if (!PPQ_READINESS_ITEMS.some((i) => i.key === key)) throw new SamplingError(`Unknown readiness item ${key}`);
+  const next = structuredClone(project);
+  const plan = planOf(next, planId);
+  const list = plan.readiness ?? [];
+  const cur = list.find((e) => e.key === key);
+  const note = patch.note?.trim();
+  const entry: ReadinessEntry = { key, ...(patch.status ? { status: patch.status } : {}), ...(note ? { note } : {}) };
+  const empty = !entry.status && !entry.note;
+  if (JSON.stringify(cur ?? { key }) === JSON.stringify(empty ? { key } : entry)) return project;
+  const rest = list.filter((e) => e.key !== key);
+  const label = PPQ_READINESS_ITEMS.find((i) => i.key === key)!.label;
+  plan.readiness = empty ? rest : [...rest, entry].sort((a, b) => PPQ_READINESS_ITEMS.findIndex((i) => i.key === a.key) - PPQ_READINESS_ITEMS.findIndex((i) => i.key === b.key));
+  if (!plan.readiness.length) delete plan.readiness;
+  plan.updatedAt = actor.at;
+  log(next, actor, { action: "sampling_plan_update", path: `sampling.${planId}.readiness.${key}`, detail: `Readiness item "${label}" of ${planId} edited`, before: { readiness: cur?.status ?? "" }, after: { readiness: entry.status ?? "" } });
   return next;
 }
 
