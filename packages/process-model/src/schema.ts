@@ -517,6 +517,14 @@ const MIGRATIONS: { from: string; to: string; migrate: Migrate }[] = [
     to: "1.23.0",
     migrate: (raw) => ({ ...raw, schemaVersion: "1.23.0" }),
   },
+  // 1.23.0 -> 1.24.0: risk format 1.1.0 (the optional PDA TR 44 FMEA layout of a method, an assessment's action threshold, review
+  // triggers, next review date and review history, an item's "risk accepted?" answer and optional intervention scoring). Every new
+  // field is optional and absent in older records, so no data changes; only the version moves.
+  {
+    from: "1.23.0",
+    to: "1.24.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.24.0" }),
+  },
 ];
 
 /**

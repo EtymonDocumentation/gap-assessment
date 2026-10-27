@@ -83,7 +83,7 @@ test("the page says what the tool does; a new assessment has no method, and the 
   await page.getByTestId("risk-create").click();
   await expect(page.getByTestId("risk-open-items")).toContainText("No risk method has been chosen");
   await expect(page.getByTestId("risk-method-summary")).toHaveCount(0);
-  for (const id of ["fmea-1-10", "fmea-1-5", "matrix-3x3", "matrix-5x5", "qualitative-hml"]) await expect(page.getByTestId(`risk-loadout-${id}`)).toBeVisible();
+  for (const id of ["fmea-1-10", "fmea-1-5", "fmea-pda-tr44", "matrix-3x3", "matrix-5x5", "qualitative-hml"]) await expect(page.getByTestId(`risk-loadout-${id}`)).toBeVisible();
 });
 
 test("a starter is a copy the person edits: the FMEA scale and bands can be changed, and bands are the user's own", async ({ page }) => {

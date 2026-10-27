@@ -40,7 +40,7 @@ describe("package independence", () => {
 
   it("keeps PROCESS_MODEL_VERSION equal to package.json", () => {
     expect(PROCESS_MODEL_VERSION).toBe(pkg.version);
-    expect(pkg.version).toBe("1.14.0");
+    expect(pkg.version).toBe("1.15.0");
   });
 
   it("is private until it is published on purpose", () => {
@@ -97,11 +97,16 @@ describe("public API", () => {
         "REPORT_WHAT",
         "RESPONSIBLE_PARTIES",
         "RETAIN_PURPOSES",
+        "RISK_ACCEPTED",
         "RISK_ACTION_STATUSES",
         "RISK_COMBINES",
         "RISK_FORMAT_VERSION",
+        "RISK_INTERVENTION_FACTORS",
+        "RISK_LMH",
         "RISK_METHODS",
         "RISK_ORIGIN_KINDS",
+        "RISK_REVIEW_TRIGGERS",
+        "RISK_REVIEW_TRIGGER_LABEL",
         "RUN_TAGS",
         "SAMPLING_CATEGORIES",
         "SAMPLING_METHODS",
@@ -259,12 +264,14 @@ describe("public API", () => {
         "riskBandSchema",
         "riskConfigSchema",
         "riskFactorSchema",
+        "riskInterventionSchema",
         "riskItemSchema",
         "riskLevelSchema",
         "riskLoadoutSchema",
         "riskLoadoutsSchema",
         "riskMethodSnapshotSchema",
         "riskOriginSchema",
+        "riskReviewSchema",
         "riskScaleSchema",
         "riskScoreSchema",
         "riskStateSchema",

@@ -32,6 +32,7 @@ export interface FactorDraft {
 export interface Keep {
   loadoutId?: string;
   libraryRef?: { id: string; name: string; version: string };
+  layout?: "tr44";
 }
 
 export type Draft =
@@ -60,7 +61,7 @@ const scaleToDraft = (s: { min: number; max: number; levels: { value: number; de
   levels: s.levels.map((l) => ({ value: String(l.value), description: l.description })),
 });
 const bandToDraft = (b: { label: string; minRpn: number; maxRpn: number; note?: string | undefined }): BandDraft => ({ label: b.label, min: String(b.minRpn), max: String(b.maxRpn), note: b.note ?? "" });
-const keepOf = (c: RiskConfig): Keep => ({ ...(c.loadoutId ? { loadoutId: c.loadoutId } : {}), ...(c.libraryRef ? { libraryRef: c.libraryRef } : {}) });
+const keepOf = (c: RiskConfig): Keep => ({ ...(c.loadoutId ? { loadoutId: c.loadoutId } : {}), ...(c.libraryRef ? { libraryRef: c.libraryRef } : {}), ...(c.method === "fmea" && c.layout ? { layout: c.layout } : {}) });
 
 export function configToDraft(c: RiskConfig): Draft {
   switch (c.method) {

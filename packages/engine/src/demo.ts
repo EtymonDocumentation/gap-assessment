@@ -4,7 +4,7 @@ import type { ContentBundle } from "./content";
 import { PARAMETER_FIELDS, type ParameterField } from "./content-schema";
 import { applyAnswer, type AnswerInput, type FieldAnswer } from "./interview";
 import { setGapOverlay } from "./overlays";
-import { addAction, addItem, createAssessment, pointRef, setMethod, updateItem } from "./risk";
+import { addAction, addItem, addReview, createAssessment, pointRef, setMethod, updateAssessment, updateItem } from "./risk";
 import { addItemFromGap, addItemFromSuggestion, gapSeeds, suggestFailureModes } from "./risk-seed";
 import { acceptSuggestion, addAgencyRequest, addBatch, addFigureItem, addPoint, addStep, addSubsection, applyDesignLoadout, createPlan, projectScopeSteps, setParties, setPointFlow, setReadiness, setTimeZero, updatePlan, updatePlanDesign, updatePoint, updateStep, type PointPatch } from "./sampling";
 import { suggestPoints, type SamplingSuggestions } from "./sampling-seed";
@@ -118,6 +118,7 @@ const samplingDemoSchema = z.object({
  * (`step` is a catalog unit operation); `points` are 1-based point numbers of the demo's first sampling plan. The scores are the
  * fictional team's own judgement, typed in here, never derived from a gap severity.
  */
+const lmh = z.enum(["low", "medium", "high"]).optional();
 const riskDemoSchema = z.object({
   at: z.string(),
   by: z.string(),
@@ -126,6 +127,11 @@ const riskDemoSchema = z.object({
   scopeNote: z.string().optional(),
   context: z.string().optional(),
   loadout: z.string(),
+  /** PDA TR 44 layout: the action threshold, review triggers, next review date and review history the fictional team entered. */
+  actionThreshold: z.number().optional(),
+  reviewTriggers: z.array(z.enum(["investigation", "new_risk", "change_control", "process_change", "periodic"])).optional(),
+  nextReview: z.string().optional(),
+  reviews: z.array(z.object({ date: z.string(), note: z.string(), trigger: z.enum(["investigation", "new_risk", "change_control", "process_change", "periodic"]).optional(), by: z.string().optional() })).default([]),
   items: z.array(
     z.object({
       gap: z.string().optional(),
@@ -139,6 +145,8 @@ const riskDemoSchema = z.object({
       controlsDetection: z.string().optional(),
       initial: z.record(z.string(), z.number().int()).optional(),
       residual: z.record(z.string(), z.number().int()).optional(),
+      accepted: z.enum(["yes", "no"]).optional(),
+      intervention: z.object({ complexity: lmh, duration: lmh, proximity: lmh, frequency: lmh, airflow: lmh, level: lmh }).optional(),
       actions: z.array(z.object({ text: z.string(), owner: z.string().optional(), due: z.string().optional(), status: z.enum(["open", "in_progress", "done", "dropped"]).optional() })).default([]),
     }),
   ),
@@ -758,10 +766,16 @@ function applyRiskDemo(project: Project, content: ContentBundle, r: z.infer<type
         ...(links.length ? { samplingPointIds: links } : {}),
         ...(it.initial ? { initial: { values: it.initial } } : {}),
         ...(it.residual ? { residual: { values: it.residual } } : {}),
+        ...(it.accepted ? { accepted: it.accepted } : {}),
+        ...(it.intervention ? { intervention: it.intervention } : {}),
       },
       who,
     );
     for (const a of it.actions) project = addAction(project, id, { itemId, text: a.text, ...(a.owner ? { owner: a.owner } : {}), ...(a.due ? { due: a.due } : {}), ...(a.status ? { status: a.status } : {}) }, who).project;
   }
+  if (r.actionThreshold !== undefined || r.reviewTriggers || r.nextReview) {
+    project = updateAssessment(project, id, { ...(r.actionThreshold !== undefined ? { actionThreshold: r.actionThreshold } : {}), ...(r.reviewTriggers ? { reviewTriggers: r.reviewTriggers } : {}), ...(r.nextReview ? { nextReview: r.nextReview } : {}) }, who);
+  }
+  for (const rv of r.reviews) project = addReview(project, id, rv, who).project;
   return project;
 }

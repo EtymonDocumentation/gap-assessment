@@ -61,6 +61,8 @@ export const ACTION_LABELS: Record<string, string> = {
   risk_action_add: "Risk action added",
   risk_action_update: "Risk action edited",
   risk_action_remove: "Risk action removed",
+  risk_review_add: "Risk assessment review recorded",
+  risk_review_remove: "Risk assessment review removed",
   risk_step_add: "Process step added to a risk assessment",
   risk_step_update: "Process step of a risk assessment edited",
   risk_step_move: "Process step of a risk assessment moved",
