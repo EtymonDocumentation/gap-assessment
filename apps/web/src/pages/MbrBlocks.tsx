@@ -33,7 +33,7 @@ import {
   type SampleNotice,
   type TrdNotice,
 } from "@gap/engine";
-import { MBR_CHOICE_LABEL, mbrChoiceText, type MbrBlock, type MbrChoice, type MbrLibraryBlock, type MbrParamRow, type MbrRecord, type MbrSection, type MbrTimeLimit, type MbrTrdRef, type Project } from "@gap/process-model";
+import { MBR_CHOICE_LABEL, POINT_AFTER_PPQ_LABEL, mbrChoiceText, type MbrBlock, type MbrChoice, type MbrLibraryBlock, type MbrParamRow, type MbrRecord, type MbrSection, type MbrTimeLimit, type MbrTrdRef, type Project } from "@gap/process-model";
 import { useId, useRef, useState } from "react";
 import { useStore } from "../store";
 import type { Run } from "./SamplingFlow";
@@ -565,6 +565,7 @@ function Samples({ env, block }: { env: BlockEnv; block: MbrBlock }) {
                 <th scope="col">Container</th>
                 <th scope="col">Storage</th>
                 <th scope="col">Moment and hold</th>
+                <th scope="col">After PPQ</th>
                 <th scope="col">Plan check</th>
               </tr>
             </thead>
@@ -580,6 +581,7 @@ function Samples({ env, block }: { env: BlockEnv; block: MbrBlock }) {
                     <td>{r.container ?? ""}</td>
                     <td>{r.storage ?? ""}</td>
                     <td>{[r.hour, r.hold].filter(Boolean).join("; ")}</td>
+                    <td data-testid={`mbr-sample-after-ppq-${r.id}`}>{afterPpqOf(plan, r.pointId)}</td>
                     <td>
                       {n ? (
                         <span className="stack">
@@ -630,6 +632,41 @@ function Samples({ env, block }: { env: BlockEnv; block: MbrBlock }) {
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+/** The PPQ-only / continues flag, read live from the sampling plan point (never copied into the record). Unflagged = "Not stated". */
+function afterPpqOf(plan: { points: { id: string; afterPpq?: keyof typeof POINT_AFTER_PPQ_LABEL | undefined }[] } | undefined, pointId: string): string {
+  const a = plan?.points.find((p) => p.id === pointId)?.afterPpq;
+  return a ? POINT_AFTER_PPQ_LABEL[a] : "Not stated";
+}
+
+/** Read-only view of the forms a library block carries (filter records, intervention log). The record's form is printed blank for the operators. */
+function Forms({ block }: { block: MbrBlock }) {
+  if (!block.forms?.length) return null;
+  return (
+    <div className="stack" data-testid={`mbr-forms-${block.id}`}>
+      {block.forms.map((f) => (
+        <div key={f.key} className="stack">
+          <h4>{f.title}</h4>
+          <div className="table-scroll" role="region" aria-label={`Form columns of ${f.title}`} tabIndex={0}>
+            <table className="data" data-testid={`mbr-form-${block.id}-${f.key}`}>
+              <thead>
+                <tr>
+                  {f.columns.map((c) => (
+                    <th key={c} scope="col">
+                      {c}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+            </table>
+          </div>
+          <p className="muted small">Printed with {f.blankRows} blank rows for the operators to complete.</p>
+          {f.note && <p className="small">{f.note}</p>}
+        </div>
+      ))}
     </div>
   );
 }
@@ -693,6 +730,7 @@ export function BlockCard({ env, block, index, count, open, onToggle, onRemove }
           <Params env={env} block={block} />
           <TimeLimits env={env} block={block} />
           <Samples env={env} block={block} />
+          <Forms block={block} />
           <details className="mbr-more">
             <summary data-testid={`mbr-block-more-${block.id}`}>More details: what the CMO completes, and a note</summary>
             <div className="stack">

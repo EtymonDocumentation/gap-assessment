@@ -122,7 +122,7 @@ test("downloads: the JSON parses with the schema, the Word file has the outline 
   await expect(history.getByRole("cell", { name: "TRD seed (JSON)" })).toBeVisible();
   await expect(history.getByRole("cell", { name: "TRD outline (Word)" })).toBeVisible();
   await expect(history.getByRole("cell", { name: "TRD outline (HTML)" })).toBeVisible();
-  await expect(history.getByTestId("export-versions").first()).toContainText("Process model 1.13.0; catalog 1.9.0; seed format 1.0.0");
+  await expect(history.getByTestId("export-versions").first()).toContainText("Process model 1.14.0; catalog 1.9.0; seed format 1.0.0");
   // The same seed behind all three: one fingerprint.
   const prints = await history.locator("tbody tr td:nth-child(4) code").allTextContents();
   expect(new Set(prints).size).toBe(1);

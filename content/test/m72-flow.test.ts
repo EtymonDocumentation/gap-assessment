@@ -62,7 +62,7 @@ describe("migration 1.12.0 -> 1.13.0", () => {
     }
     const before = old.changeLog.length;
     const migrated = parseProject(old);
-    expect(migrated.schemaVersion).toBe("1.22.0");
+    expect(migrated.schemaVersion).toBe("1.23.0");
     const pl = migrated.sampling.plans.find((x) => x.id === withPlan.planId)!;
     expect(pl.steps.map((s) => s.unitOp)).toEqual(["compounding", "aseptic_filling"]);
     expect(pl.points.map((p) => p.flow?.stepId !== undefined)).toEqual([true, true, false, true]);

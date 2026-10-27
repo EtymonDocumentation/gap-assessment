@@ -1,4 +1,4 @@
-import { COLLECTION_LABELS, docRefLabel, PROCESS_MODEL_VERSION, printableUnit, SCHEMA_VERSION, TRD_FORMAT_VERSION, type Project, type SeedCollection, type TrdDocument, type TrdField, type TrdItem, type TrdRange, type TrdStep } from "@gap/process-model";
+import { COLLECTION_LABELS, docRefLabel, PROCESS_MODEL_VERSION, printableUnit, SCHEMA_VERSION, TRD_CONTROL_METHOD_LABEL, TRD_FORMAT_VERSION, type Project, type SeedCollection, type TrdDocument, type TrdField, type TrdItem, type TrdRange, type TrdStep } from "@gap/process-model";
 import type { Block, DocModel, DocSection, Run } from "./document";
 import { effectiveField, trdLimitChecks, trdOpenItems, trdOverrides, type TrdOpenItem } from "./trd";
 import { rangeText, setPointText } from "./trd-check";
@@ -24,6 +24,7 @@ export const TRD_DOCUMENT_TITLE = "Technical requirements document";
 /** Sections the person can leave out of one export. Everything else is always there, so an export cannot hide an override or an open item. */
 export const TRD_OPTIONAL_SECTIONS = [
   { id: "overview", label: "Process overview" },
+  { id: "classification", label: "Parameter classification and data map (generated from the parameters)" },
   { id: "source-register", label: "Source register" },
   { id: "traceability", label: "Traceability appendix (SU reference and gap ids; project origin only)" },
 ] as const;
@@ -261,6 +262,13 @@ export function buildTrdDocument(project: Project, d: TrdDocument, opts: TrdDocu
     }
     return blocks;
   };
+  /** The classification table and the data map as the last sub-blocks of the parameters section (left out when the export omits them). */
+  const controlSubsections = (number: string, after: number): Block[] => {
+    if (omit.has("classification")) return [];
+    const cb = controlBlocks(d, src);
+    if (!cb.length) return [];
+    return [{ type: "heading", text: `${number}.${after + 1} Parameter classification and data map` }, ...cb];
+  };
   /** The sub-blocks of the standard document, "10.1 Step" ..., one per step that has something to show. */
   const standardStepBlocks = (number: string): Block[] => {
     const out: Block[] = [];
@@ -285,7 +293,7 @@ export function buildTrdDocument(project: Project, d: TrdDocument, opts: TrdDocu
     },
     evidence ? "evidence" : "standard",
     // A closure over a function declared below: it is only called while the sections are made, after the declaration has run.
-    !evidence ? { process_parameters: (n) => standardStepBlocks(n) } : {},
+    !evidence ? { process_parameters: (n) => { const steps = standardStepBlocks(n); return [...steps, ...controlSubsections(n, steps.filter((b) => b.type === "heading").length)]; } } : {},
   );
   // An empty note (no open blank to point at) is not printed.
   for (const s of sections) s.blocks = s.blocks.filter((b) => !(b.type === "note" && b.text === ""));
@@ -294,7 +302,16 @@ export function buildTrdDocument(project: Project, d: TrdDocument, opts: TrdDocu
   // The extra blocks go into the library's section "Overall process parameters" when the TRD has it; a TRD without it keeps a section of its own.
   const placed = wu.extrasPlaced.includes("process_parameters");
   if (evidence) for (const s of d.steps) add(`step-${s.id}`, s.label, stepBlocksOf(s));
-  else if (d.steps.length && !placed) add("process-parameters", "Process steps and parameters", [paramIntro, ...standardStepBlocks(String(sections.filter((x) => !x.appendix).length + 1))]);
+  else if (d.steps.length && !placed) {
+    const n = String(sections.filter((x) => !x.appendix).length + 1);
+    const steps = standardStepBlocks(n);
+    add("process-parameters", "Process steps and parameters", [paramIntro, ...steps, ...controlSubsections(n, steps.filter((b) => b.type === "heading").length)]);
+  }
+  // The evidence record carries the same two tables as a section of their own.
+  if (evidence && !omit.has("classification")) {
+    const cb = controlBlocks(d, src);
+    if (cb.length) add("classification", "Parameter classification and data map", cb);
+  }
 
   // PAR / NOR check (evidence record only: the findings that matter to an approver are also listed in the open items)
   const checks = trdLimitChecks(d);
@@ -603,6 +620,35 @@ function statusSummary(fields: TrdField[], hasLimits: boolean): string {
   if (!fields.length) return hasLimits ? "Entered by the team" : NOT_ESTABLISHED;
   const base = [...new Set(fields.map((f) => statusWords(f).replace("; overridden", "")))];
   return fields.some((f) => f.override) ? `${base.join("; ")}; overridden` : base.join("; ");
+}
+
+/**
+ * The parameter classification table and the data map, GENERATED from the parameters of the model (so they cannot disagree with the
+ * parameter tables). Classification: CPP / KPP / non-critical as established, the quality attribute the parameter protects, and the
+ * evidence for it. Data map: how the parameter is controlled and where its value is recorded. A cell the team has not filled reads
+ * "Not established"; nothing is derived or assumed. Printed only when at least one parameter has an entry, so a TRD that never
+ * used the feature is unchanged. Basis: PDA TR 60 s4 (classification and control strategy).
+ */
+function controlBlocks(d: TrdDocument, src: SourceNumbers): Block[] {
+  // A parameter the project answered "not applicable" in full is left out, as in the parameter tables (unless the team entered something).
+  const shown = (i: TrdItem) => Boolean(i.control || i.limits?.setPoint || i.limits?.nor || i.limits?.par) || !i.fields.length || !i.fields.every((x) => effectiveField(x).status === "not_applicable");
+  const params = d.steps.flatMap((s) => s.items.filter((i) => i.collection === "param" && shown(i)).map((i) => ({ s, i })));
+  if (!params.some(({ i }) => i.control)) return [];
+  const cls = params.map(({ s, i }) => {
+    const c = fieldOf(i, "classification");
+    const basis = [i.limits?.nor?.basis ? `NOR: ${i.limits.nor.basis}` : "", i.limits?.par?.basis ? `PAR: ${i.limits.par.basis}` : ""].filter(Boolean).join(". ");
+    // NOR and PAR often rest on the same report; cite it once, not "[6] [6]".
+    const cite = src.cite([...new Set([...(i.limits?.nor?.sourceIds ?? []), ...(i.limits?.par?.sourceIds ?? [])])]);
+    // Joined with full stops: the standard document is prose and does not run clauses together with a semicolon before a capital.
+    const evidence = [i.control?.evidence ?? "", basis, cite].filter(Boolean).join(". ");
+    return [s.label, i.label, c ? valueWords(c) : NOT_ESTABLISHED, i.control?.cqa ?? NOT_ESTABLISHED, evidence || NOT_ESTABLISHED];
+  });
+  const map = params.map(({ s, i }) => [s.label, i.label, i.control?.controlledBy ? TRD_CONTROL_METHOD_LABEL[i.control.controlledBy] : NOT_ESTABLISHED, i.control?.recordedIn ?? NOT_ESTABLISHED]);
+  return [
+    { type: "paragraph", text: "Classification (critical process parameter, key process parameter or not critical), the quality attribute each parameter protects, and the evidence for the classification. Generated from the parameters above." },
+    { type: "table", columns: ["Step", "Parameter", "Classification", "Quality attribute protected", "Evidence"], rows: cls, caption: "Parameter classification", weights: [16, 20, 14, 22, 28] },
+    { type: "table", columns: ["Step", "Parameter", "How it is controlled", "Where it is recorded"], rows: map, caption: "Data map", weights: [18, 24, 32, 26] },
+  ];
 }
 
 /** Number text for a range cell: numbers only when the unit is shown in its own column. */

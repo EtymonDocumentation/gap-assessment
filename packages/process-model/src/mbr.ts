@@ -20,7 +20,7 @@ import { SEED_STATUSES } from "./trd-seed";
  */
 
 /** Version of the MBR format (shapes, output). Independent of the project schema version. */
-export const MBR_FORMAT_VERSION = "1.0.0";
+export const MBR_FORMAT_VERSION = "1.1.0";
 
 export const MBR_CHOICES = ["same_as_trd", "tightened_by_cmo", "not_decided"] as const;
 export type MbrChoice = (typeof MBR_CHOICES)[number];
@@ -132,6 +132,21 @@ export const mbrStepSchema = z.object({
 });
 export type MbrStep = z.infer<typeof mbrStepSchema>;
 
+/**
+ * A fill-in table printed in the record (an intervention log, filter records). The library author names the columns; the operators
+ * write the entries while the batch is made, so `blankRows` empty rows are printed. Nothing is prefilled: an empty cell is an
+ * unknown that stays visible (library 1.3.0, MBR format 1.1.0).
+ */
+export const mbrFormSchema = z.object({
+  key: z.string().regex(/^[a-z][a-z0-9_]*$/),
+  title: z.string().min(1),
+  columns: z.array(z.string().min(1)).min(1),
+  blankRows: z.number().int().min(1).max(40),
+  /** Text printed under the table (e.g. what the operators may and may not do). */
+  note: z.string().optional(),
+});
+export type MbrForm = z.infer<typeof mbrFormSchema>;
+
 export const mbrBlockSchema = z.object({
   /** BL-001 ... never reused inside a record. */
   id: z.string().regex(/^BL-\d{3,}$/),
@@ -146,6 +161,8 @@ export const mbrBlockSchema = z.object({
   /** Labels of what only the CMO can state ("Batch number", "Equipment ID" ...), shown as "To be completed by the CMO". */
   cmoFields: z.array(z.string()),
   note: z.string().optional(),
+  /** Fill-in tables (MBR format 1.1.0). Absent on records made before. */
+  forms: z.array(mbrFormSchema).optional(),
 });
 export type MbrBlock = z.infer<typeof mbrBlockSchema>;
 
@@ -265,6 +282,8 @@ const libraryContent = {
   note: z.string().optional(),
   /** Where samples of a moment are taken inside this block (library 1.2.0). Absent: the block has no place for samples. */
   sampleSlots: z.array(mbrSampleSlotSchema).optional(),
+  /** Fill-in tables printed in the block (library 1.3.0): intervention log, filter records. */
+  forms: z.array(mbrFormSchema).optional(),
 };
 
 export const mbrLibraryVersionSchema = z.object({ version: z.number().int().min(1), ...libraryContent, at: z.string().optional(), by: z.string().optional() });

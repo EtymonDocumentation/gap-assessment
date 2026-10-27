@@ -24,7 +24,7 @@ import { z } from "zod";
  */
 
 /** Format version of the plan data (semver). A new optional field is a minor change; a removed or re-meant field is major. */
-export const SAMPLING_PLAN_FORMAT_VERSION = "1.4.0";
+export const SAMPLING_PLAN_FORMAT_VERSION = "1.5.0";
 
 /** Run types. Only PPQ is built; the field exists so clinical GMP and engineering runs can be added without a schema break. */
 export const SAMPLING_RUN_TYPES = ["ppq"] as const;
@@ -459,6 +459,26 @@ export const reportingSchema = z.object({
 });
 export type PointReporting = z.infer<typeof reportingSchema>;
 
+/**
+ * Plan format 1.5.0. Whether a sample is taken in PPQ only or also continues into routine production / continued process
+ * verification (CPV). Never preselected: absent reads "not stated". PPQ-only samples are the enhanced ones that stop once PPQ is done.
+ */
+export const POINT_AFTER_PPQ = ["ppq_only", "continues"] as const;
+export type PointAfterPpq = (typeof POINT_AFTER_PPQ)[number];
+export const POINT_AFTER_PPQ_LABEL: Record<PointAfterPpq, string> = { ppq_only: "PPQ only", continues: "Continues into routine / CPV" };
+
+/**
+ * Plan format 1.5.0. The statistical justification of one attribute's sample size. The confidence level is the person's entry: the
+ * hint offered next to the field ("at least 90% at the rejectable quality level", PDA TR 60 s6.2.3) is never preselected.
+ */
+export const pointStatisticalBasisSchema = z.object({
+  confidencePercent: z.number().gt(0).lt(100).optional(),
+  /** The rejectable quality level the confidence refers to, in the person's words (e.g. "5% defective"). */
+  rejectableQualityLevel: z.string().optional(),
+  note: z.string().optional(),
+});
+export type PointStatisticalBasis = z.infer<typeof pointStatisticalBasisSchema>;
+
 export const samplingPointSchema = z
   .object({
     /** SP-001, SP-002 ... never reused inside a plan. */
@@ -500,6 +520,9 @@ export const samplingPointSchema = z
     chainOfCustody: z.string().optional(),
     destinationLab: z.string().optional(),
     acceptance: samplingAcceptanceSchema.optional(),
+    /** Plan format 1.5.0: PPQ only, or continues into routine / CPV. Absent = not stated. */
+    afterPpq: z.enum(POINT_AFTER_PPQ).optional(),
+    statisticalBasis: pointStatisticalBasisSchema.optional(),
     /** Purpose and rationale: why this point is sampled. */
     rationale: z.string(),
     /** "all" batches, or the ids of the batches the point applies to. */
@@ -643,6 +666,42 @@ export const planPartySchema = z.object({
 });
 export type PlanParty = z.infer<typeof planPartySchema>;
 
+/**
+ * Plan format 1.5.0. The PPQ design decisions the approval memo has to state (PDA TR 60 s6, TR 59): why bracketing is or is not used,
+ * whether rework is allowed, the engineering-batch decision and the freeze rule, and what happens after PPQ. All free text or a
+ * plain choice by the person; the tool supplies no answer.
+ */
+export const ENGINEERING_BATCH_DECISIONS = ["planned", "not_planned"] as const;
+export const planDesignSchema = z.object({
+  bracketing: z.string().optional(),
+  rework: z.string().optional(),
+  engineeringBatch: z.object({ decision: z.enum(ENGINEERING_BATCH_DECISIONS).optional(), note: z.string().optional() }).optional(),
+  /** What may no longer change between the engineering batch / lot sizes decided and the PPQ batches (the freeze rule). */
+  freezeRule: z.string().optional(),
+  /** The closing statement on enhanced sampling after PPQ and before CPV takes over. */
+  postPpq: z.string().optional(),
+});
+export type PlanDesign = z.infer<typeof planDesignSchema>;
+
+/** The readiness checklist before PPQ starts. A catalog of questions (never answers); status absent = unknown. */
+export const PPQ_READINESS_ITEMS = [
+  { key: "equipment_qualified", label: "Equipment, utilities and facility qualified" },
+  { key: "methods_ready", label: "Analytical methods validated or transferred" },
+  { key: "records_closed", label: "Deviations, CAPAs and change controls that affect PPQ closed or assessed" },
+  { key: "training", label: "Personnel trained" },
+  { key: "batch_records", label: "Batch records approved" },
+  { key: "release_procedure", label: "Release procedure approved" },
+  { key: "protocols", label: "PPQ protocol and sampling plan approved" },
+] as const;
+export const READINESS_STATUSES = ["complete", "open", "not_applicable"] as const;
+export const READINESS_STATUS_LABEL: Record<(typeof READINESS_STATUSES)[number], string> = { complete: "Complete", open: "Open", not_applicable: "Not applicable" };
+export const readinessEntrySchema = z.object({
+  key: z.string(),
+  status: z.enum(READINESS_STATUSES).optional(),
+  note: z.string().optional(),
+});
+export type ReadinessEntry = z.infer<typeof readinessEntrySchema>;
+
 export const samplingPlanSchema = z
   .object({
     /** SPL-001, SPL-002 ... */
@@ -662,6 +721,9 @@ export const samplingPlanSchema = z
     batches: z.array(samplingBatchSchema),
     /** Why this number of batches. Required for the plan to be complete. */
     batchRationale: z.string(),
+    /** Plan format 1.5.0: PPQ design decisions and the readiness checklist. Absent on older plans. */
+    design: planDesignSchema.optional(),
+    readiness: z.array(readinessEntrySchema).optional(),
     /** Who is responsible for sampling, testing and reporting (plan level). */
     parties: z.array(planPartySchema),
     /** The register of agency requests that refer to PPQ samples or studies. */

@@ -509,6 +509,14 @@ const MIGRATIONS: { from: string; to: string; migrate: Migrate }[] = [
     to: "1.22.0",
     migrate: (raw) => ({ ...raw, schemaVersion: "1.22.0" }),
   },
+  // 1.22.0 -> 1.23.0: TRD format 1.3.0 (a parameter's optional classification evidence and data map "control"), sampling plan format
+  // 1.5.0 (optional PPQ "design", "readiness" and a point's "afterPpq" and "statisticalBasis") and MBR format 1.1.0 (optional fill-in
+  // "forms" on a block). Every new field is optional and absent in older records, so no data changes; only the version moves.
+  {
+    from: "1.22.0",
+    to: "1.23.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.23.0" }),
+  },
 ];
 
 /**

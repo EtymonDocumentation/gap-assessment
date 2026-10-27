@@ -353,6 +353,7 @@ export function instantiateBlock(lib: MbrLibraryBlock, ids: IdIssuer, ctx: Block
     }),
     cmoFields: [...lib.cmoFields],
     note: lib.note,
+    forms: lib.forms ? structuredClone(lib.forms) : undefined,
   });
 }
 
@@ -624,6 +625,8 @@ export function updateBlockFromLibrary(project: Project, recordId: string, block
     block.title = lib.title;
     block.steps = lib.steps.map((t, i) => ({ id: block.steps[i]?.id ?? ids("ST"), text: t }));
     block.cmoFields = [...lib.cmoFields];
+    if (lib.forms) block.forms = structuredClone(lib.forms);
+    else delete block.forms;
     if (lib.note) block.note = lib.note;
     else delete block.note;
     for (const p of lib.params) {

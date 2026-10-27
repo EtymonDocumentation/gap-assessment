@@ -13,7 +13,7 @@ import { plainText, strictDocx } from "./strict";
 vi.setConfig({ testTimeout: 60000 });
 
 /**
- * The SYR-305 demo master batch record in Word and HTML (samples go to gap-docx-samples/syr305i-mbr), and the ARX-217 one again after the
+ * The SYR-305 demo master batch record in Word and HTML (samples go to gap-docx-samples/syr305j-mbr), and the ARX-217 one again after the
  * step-block wording changes (gap-docx-samples/arx217-mbr), to see that it still reads right.
  */
 describe("Syringe demo batch record in Word and HTML", () => {
@@ -47,7 +47,7 @@ describe("Syringe demo batch record in Word and HTML", () => {
     expect(text).not.toMatch(/\bvials?\b|crimp|capping|sterile holding vessel|sterile bulk vessel/i);
     expect(text).not.toMatch(/\b(violation|non-compliant)\b|filing category/i);
     expect(text).not.toMatch(/CTP\d{4}|QC\d{4}|VV-IOPS|C2P2/);
-    const dir = join(tmpdir(), "gap-docx-samples", "syr305i-mbr");
+    const dir = join(tmpdir(), "gap-docx-samples", "syr305j-mbr");
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "mbr.docx"), out.bytes);
     writeFileSync(join(dir, "mbr.html"), renderHtml(syrDoc));
