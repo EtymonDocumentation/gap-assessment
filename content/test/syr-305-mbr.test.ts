@@ -155,7 +155,7 @@ describe("SYR-305 demo batch record", () => {
     // Filling has no out/return pair (the units are in the isolator): its range is the start of filling to the step that puts the filled
     // portion into refrigerated storage.
     expect(textOf(byLabel("Filling (per portion)").fromStepId!)).toMatch(/^Start the filling/);
-    expect(textOf(byLabel("Filling (per portion)").toStepId!)).toMatch(/^As soon as a portion is filled, put its tubs into refrigerated storage/);
+    expect(textOf(byLabel("Filling (per portion)").toStepId!)).toMatch(/^Repeat this step for every portion in turn.*put them into refrigerated storage \(2 to 8 °C\) at once/);
     expect([byLabel("Visual inspection (per portion)"), byLabel("Bulk packaging (per portion)"), byLabel("Labelling and packaging (per portion)")].map((t) => `${nums.get(t.fromStepId!)}-${nums.get(t.toStepId!)}`)).toEqual(["8.2-8.6", "9.2-9.6", "10.3-10.6"]);
   });
 
@@ -167,7 +167,15 @@ describe("SYR-305 demo batch record", () => {
     const filling = blocks.find((b) => b.libraryId === "filling_run")!;
     expect(inline.steps.map((s) => s.text).join(" ")).toContain("surge bag");
     // Wetting, the integrity test before use and the bioburden sample come before the filtration starts, in that order.
-    expect(inline.steps.map((s) => s.text.slice(0, 20))).toEqual(["Assemble the sterili", "Wet the filter as de", "Check that the biobu", "Start the filtration"]);
+    expect(inline.steps.map((s) => s.text.slice(0, 20))).toEqual(["Assemble the sterili", "Wet the filter as de", "The bioburden sample"]);
+    // The start of the filtration is its own block in the filling section: the bioburden sample (SP-009, the end sample of the holding-bag
+    // hold) is taken first, the holding bag leaves cold storage only then, and the filtration starts last. The holding bag is never out
+    // of cold storage while the line is still being set up.
+    const start = blocks.find((b) => b.libraryId === "sterile_filtration_inline_start")!;
+    expect(start.steps.map((s) => s.text.slice(0, 24))).toEqual(["Take sample SP-009, the ", "Take the holding bag out", "Start the filtration int"]);
+    const order = blocks.map((b) => b.libraryId);
+    expect(order.indexOf("stopper_placement_setup")).toBeLessThan(order.indexOf("sterile_filtration_inline_start"));
+    expect(order.indexOf("sterile_filtration_inline_start")).toBeLessThan(order.indexOf("filling_run"));
     // The end of the filtration is recorded in the filling section, after the end of filling, with the filtration time against the limit.
     const endOfFilling = filling.steps.find((s) => s.text.startsWith("Record the end of filling"))!;
     expect(num(end.steps[0]!.id)[0]).toBe(num(endOfFilling.id)[0]);
@@ -203,7 +211,7 @@ describe("SYR-305 demo batch record", () => {
     // SP-019 thawed DS, SP-020 buffer, SP-021 formulated bulk, SP-009 holding bag, SP-017 total time out of refrigeration.
     for (const id of ["SP-009", "SP-019", "SP-020", "SP-021"]) {
       const t = all.find((x) => x.startsWith("Take") && x.includes(id))!;
-      expect(t, id).toMatch(/at the end of the hold|at the end of the cold hold|at the end of the formulated bulk hold/);
+      expect(t, id).toMatch(/at the end of the (cold |formulated bulk |buffer )?hold/);
       expect(t, id).toMatch(/in the step that ends/);
       expect(t, id).not.toMatch(/\bafter \d+ ?h\b|at \d+ ?h\b/);
     }
@@ -218,9 +226,12 @@ describe("SYR-305 demo batch record", () => {
     expect(text("portion_definition")).toContain("70 tubs of 100 syringes, so 7 000 syringes");
     expect(mbrLibrary.find((x) => x.id === "portion_definition")!.steps.join(" ")).toContain("{tubs per portion}");
     for (const id of ["visual_inspection_run", "bulk_packing", "labeling_run"]) expect(text(id), id).toContain("{portion ID}");
-    expect(text("portion_cold_storage")).toContain("storage unit");
+    // Each portion goes into cold storage in the per-portion step of the filling run itself (the separate cold storage block is not used:
+    // it came after the whole run and so could not give the time each portion was put into storage).
+    expect(blocks.map((b) => b.libraryId)).not.toContain("portion_cold_storage");
+    expect(text("filling_run")).toContain("storage unit");
+    expect(text("filling_run")).toContain("{portion start}");
     expect(blocks.map((b) => b.libraryId).indexOf("portion_definition")).toBeLessThan(blocks.map((b) => b.libraryId).indexOf("filling_run"));
-    expect(blocks.map((b) => b.libraryId).indexOf("filling_run")).toBeLessThan(blocks.map((b) => b.libraryId).indexOf("portion_cold_storage"));
   });
 
   it("reads a study point as 'Study point (not a limit)' in the Choice column and does not count it as not decided", () => {
@@ -293,5 +304,107 @@ describe("SYR-305 demo batch record", () => {
     const text = JSON.stringify(rec) + JSON.stringify(demos["syr-305"]);
     expect(text).not.toMatch(/CTP\d{4}|QC\d{4}|VV-IOPS|C2P2/);
     expect(JSON.stringify(rec)).not.toMatch(/\b(must|violation|non-compliant)\b/i);
+  });
+});
+
+// The operator walk-through of the demo record (29 findings). These tests keep the answers from drifting back: every hold ends in the step
+// that takes its end sample, every cross-reference points at a real step, and the setup comes before the product leaves its hold.
+describe("SYR-305 batch record after the operator walk-through", () => {
+  const nums = numberSteps(rec);
+  const steps = rec.sections.flatMap((s) => s.blocks.flatMap((b) => b.steps.map((x) => ({ ...x, section: s.unitOp, block: b.libraryId, number: nums.get(x.id)! }))));
+  const rendered = (re: RegExp) => steps.filter((x) => re.test(renderStepText(x.text, nums)));
+  const stepWith = (re: RegExp, section?: string) => steps.find((x) => re.test(x.text) && (!section || x.section === section))!;
+  const order = (a: { number: string }, b: { number: string }) => {
+    const [pa, pb] = [a.number, b.number].map((n) => n.split(".").map(Number));
+    return pa![0] !== pb![0] ? pa![0]! - pb![0]! : pa![1]! - pb![1]!;
+  };
+
+  it("has no cross-reference that points at a missing step, and no leftover word 'step' before a reference", () => {
+    for (const x of steps) {
+      expect(renderStepText(x.text, nums), x.number).not.toMatch(/step removed|\{ref\}|\(see \)/);
+      expect(renderStepText(x.text, nums), x.number).not.toMatch(/\bstep Step\b/i);
+    }
+    expect(steps.filter((x) => stepRefsIn(x.text).length).length).toBeGreaterThan(20);
+  });
+
+  it("starts the record with the batch identification and keeps one hold start for the formulated bulk", () => {
+    expect(steps[0]!.block).toBe("batch_identification");
+    expect(steps[0]!.text).toContain("{batch number}");
+    expect(steps.filter((x) => x.section === "compounding" && /the start of the formulated bulk hold/.test(x.text))).toHaveLength(1);
+    // The final weight and volume step is still there (an earlier override replaced it by mistake).
+    expect(steps.filter((x) => x.section === "compounding" && /^Weigh the formulated bulk|final weight/i.test(x.text)).length).toBeGreaterThan(0);
+  });
+
+  it("takes the end samples of the thawed drug substance, the buffer and the formulated bulk where each hold ends", () => {
+    const sp19 = stepWith(/^Take sample SP-019/, "compounding");
+    const outOfCold = stepWith(/^Take the thawed containers out of cold storage/, "compounding");
+    expect(order(sp19, outOfCold)).toBeLessThan(0); // sampled first, then the containers come out
+    const sp20 = stepWith(/^Take sample SP-020/, "compounding");
+    const bufferEnd = stepWith(/^Record the time the buffer is taken for use/, "compounding");
+    const addBuffer = stepWith(/^Add the buffer/, "compounding");
+    expect(order(sp20, bufferEnd)).toBeLessThan(0);
+    expect(order(bufferEnd, addBuffer)).toBeLessThan(0);
+    const sp21 = stepWith(/^Take sample SP-021/, "bbr_filtration");
+    const bulkEnd = stepWith(/^Record the time the formulated bulk is taken from its hold/, "bbr_filtration");
+    expect(order(sp21, bulkEnd)).toBeLessThan(0);
+    // No end sample is left as an orphan in the buffer or receipt section.
+    expect(steps.filter((x) => x.section === "buffer_prep" && /^Take sample SP-020/.test(x.text))).toHaveLength(0);
+  });
+
+  it("does not take the holding bag out of cold storage before the setup of the filling line is done, and samples SP-009 first", () => {
+    const sp9 = stepWith(/^Take sample SP-009/, "aseptic_filling");
+    const out = stepWith(/^Take the holding bag out of cold storage only now/, "aseptic_filling");
+    const start = stepWith(/^Start the filtration into the surge bag/, "aseptic_filling");
+    const setup = stepWith(/^Set the stopper placement unit/, "aseptic_filling");
+    expect(order(setup, sp9)).toBeLessThan(0);
+    expect(order(sp9, out)).toBeLessThan(0);
+    expect(order(out, start)).toBeLessThan(0);
+    // The BBR section no longer takes the bag out of cold storage; it points to the filling section.
+    expect(stepWith(/^Keep the holding bag in cold storage/, "bbr_filtration").text).toContain("[[step:");
+  });
+
+  it("makes the PPQ buffer at least 57 h before the thaw, and says so where the buffer is made and where the thaw starts", () => {
+    expect(stepWith(/do not start the thaw until the buffer/, "ds_receipt_thaw").text).toContain("at least 57 h");
+    expect(stepWith(/^Record the buffer volume and the storage vessel/, "buffer_prep").text).toContain("at least 57 h before the thaw");
+  });
+
+  it("marks the PPQ challenges as study points where the operator reads them, never as a deviation", () => {
+    for (const re of [/^Put the thawed containers into cold storage/, /^Put the holding bag with the filtrate into cold storage/, /^Take the holding bag out of cold storage only now/, /^Record the time the formulated bulk is taken from its hold/, /^Record the time the buffer is taken for use/]) {
+      const t = stepWith(re).text;
+      expect(t, String(re)).toMatch(/study point/);
+      expect(t, String(re)).toContain("is not a deviation");
+    }
+    expect(stepWith(/^PPQ batches only \(study point: the filter contact time/).text).toContain("24 h");
+    expect(stepWith(/^In every PPQ batch \(the 60-minute line stop is a study point/).text).toContain("60 minutes");
+  });
+
+  it("gives both buffer batch sizes in every component step and a volume balance that adds up for the three PPQ batches", () => {
+    const balance = stepWith(/^Volume balance \(fictional\)/, "compounding").text;
+    for (const part of ["49.70 L of 50 L", "87.10 L of 100 L", "8.945 L of 9 L"]) expect(balance).toContain(part);
+    expect(46.2 + 0.5 + 3.0).toBeCloseTo(49.7, 6);
+    expect(83.6 + 0.5 + 3.0).toBeCloseTo(87.1, 6);
+    expect(4950 * 0.0011 + 0.5 + 3.0).toBeCloseTo(8.945, 6);
+    expect(8.945).toBeLessThanOrEqual(9);
+  });
+
+  it("checks the fill by hand at a set interval per head, takes SP-014 after a purge, and keeps the PPQ hold to the shorter limit", () => {
+    expect(stepWith(/^Check the fill\./).text).toContain("{syringes per head}");
+    expect(stepWith(/^Check the fill\./).text).toContain("multiplied by the density of the formulated bulk");
+    expect(stepWith(/^In every PPQ batch \(the 60-minute/).text).toContain("{restart purge volume}");
+    expect(stepWith(/^PPQ batches only \(study point of this record\): when about 1 L/).text).toContain("[[step:");
+    expect(stepWith(/^Set the stopper placement unit/).text).toContain("60 kPa below atmospheric pressure");
+  });
+
+  it("states the limits that were missing: the sampling check of 315 of 7 000 units, the reconciliation window and the storage ranges", () => {
+    expect(stepWith(/^Apply the sampling check/).text).toMatch(/315 units.*7 000 units|7 000 units.*315 units/);
+    expect(stepWith(/^Calculate the reconciliation/).text).toContain("99.5 % to 100.5 %");
+    expect(stepWith(/^Record the location and the conditions of storage/).text).toContain("{shipping temperature range}");
+    expect(stepWith(/^Calculate from the temperature record/, "storage_shipping").text).toContain("2 to 8 °C");
+  });
+
+  it("copies the post-use filter reading into the filter record instead of testing the filter again", () => {
+    const fr = steps.filter((x) => x.block === "filter_records").map((x) => x.text).join(" ");
+    expect(fr).toContain("Do not test the filter again for this table");
+    expect(mbrLibrary.find((b) => b.id === "filter_records")!.version).toBe(2);
   });
 });

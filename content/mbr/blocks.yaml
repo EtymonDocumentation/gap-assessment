@@ -3,8 +3,21 @@
 # record. A parameter row only names which TRD value it pulls (the values come from the TRD record, never from this file).
 # Placeholders in curly braces, {like this}, stand for entries only the CMO can make; they stay visible until the CMO fills them in.
 # Editing a block on the site makes a new version (the earlier text is kept); this shipped file is not changed by the site.
-formatVersion: "1.3.0"
+formatVersion: "1.4.0"
 blocks:
+  # Batch identification (library 1.4.0): the first entries of a record. Several later steps give alternatives by batch (a buffer batch
+  # size, a volume balance, a challenge that runs in PPQ batches only), so the record must say which batch it is before any work starts.
+  - id: batch_identification
+    version: 1
+    title: Batch identification
+    unitOps: [ds_shipping_inbound]
+    steps:
+      - "Record which batch this record is for before any work starts: the batch number, the PPQ run if this is a PPQ batch (1, 2 or 3), the batch size and the planned number of units. Every step of this record that differs by batch (buffer batch size, volume balance, steps marked for PPQ batches only) applies to the batch recorded here: {batch number}, {PPQ run or not a PPQ batch}, {batch size}, {planned units}."
+    params: []
+    timeLimits: []
+    sampleTypes: []
+    cmoFields: [Batch number, PPQ run, Batch size, Planned units, Signature and date]
+
   - id: inbound_shipment_check
     version: 2
     title: Inbound shipment check
@@ -296,15 +309,17 @@ blocks:
         sampleTypes: []
         cmoFields: [Buffer lot numbers, Amounts added, Mixer ID and settings, Temperature probe ID and calibration status, Final weight and volume, Signature and date]
 
+  # Version 4: the bioburden sample is taken BEFORE the hold end is recorded. The sample is the end sample of the hold and is drawn while the
+  # bulk is still in its hold; the hold time is recorded in the step that takes the bulk out, so it cannot be signed before the sample exists.
   - id: bbr_filtration_run
-    version: 3
+    version: 4
     title: Bioburden reduction filtration
     unitOps: [bbr_filtration]
     steps:
       - "Assemble the filter and the bulk transfer path as described in {form or SOP number} and record the filter identification: {filter lot}, {filter ID}."
       - "Wet the filter as described in {form or SOP number} and run the integrity test before use. Record the wetting fluid, the time, the reading and the filter specification: {wetting fluid}, {time}, {pre-use reading}, {specification}, {pre-use result}."
+      - "Take the bioburden sample before the filter as set out in the table below, at the end of the formulated bulk hold and before the bulk is taken from its hold, and record the time, the volume and the sample number: {sampling time}, {sample volume}, {sample number}."
       - "Record the time the formulated bulk is taken from its hold to this filtration (the end of the formulated bulk hold) and the hold time: {hold end}, {hold time}."
-      - "Take the bioburden sample before the filter as set out in the table below and record the time, the volume and the sample number: {sampling time}, {sample volume}, {sample number}."
       - "Filter the formulated bulk and record the start and end of the filtration and the differential pressure at both times: {start}, {end}, {pressure at start}, {pressure at end}."
       - "Run the integrity test after use and record the reading against the filter specification: {post-use reading}, {specification}, {post-use result}."
       - "Record the weight of the filtrate: {filtrate weight}."
@@ -362,6 +377,34 @@ blocks:
           - { key: cold_hold, label: Maximum hold of the bioburden-reduced bulk in cold storage, collection: param, itemKey: max_cold_hold, field: max }
         sampleTypes: []
         cmoFields: [Filter lot and ID, Pressure gauge ID and calibration status, Pressure readings, Filtrate weight, Cold storage unit ID, Signature and date]
+      - version: 3
+        title: Bioburden reduction filtration
+        unitOps: [bbr_filtration]
+        steps:
+          - "Assemble the filter and the bulk transfer path as described in {form or SOP number} and record the filter identification: {filter lot}, {filter ID}."
+          - "Wet the filter as described in {form or SOP number} and run the integrity test before use. Record the wetting fluid, the time, the reading and the filter specification: {wetting fluid}, {time}, {pre-use reading}, {specification}, {pre-use result}."
+          - "Record the time the formulated bulk is taken from its hold to this filtration (the end of the formulated bulk hold) and the hold time: {hold end}, {hold time}."
+          - "Take the bioburden sample before the filter as set out in the table below and record the time, the volume and the sample number: {sampling time}, {sample volume}, {sample number}."
+          - "Filter the formulated bulk and record the start and end of the filtration and the differential pressure at both times: {start}, {end}, {pressure at start}, {pressure at end}."
+          - "Run the integrity test after use and record the reading against the filter specification: {post-use reading}, {specification}, {post-use result}."
+          - "Record the weight of the filtrate: {filtrate weight}."
+          - "Place the filtrate in the holding container (bag) and record its identification and lot, the time it is placed in cold storage (the start of the hold) and the cold storage unit: {holding bag ID}, {holding bag lot}, {cold storage start}, {cold storage unit ID}."
+          - "Record the time the filtrate is taken out of cold storage for sterile filtration (the end of the hold) and the hold time: {cold storage end}, {hold time}."
+        params:
+          - { key: differential_pressure, label: Filtration differential pressure, collection: param, itemKey: differential_pressure, field: setPoint }
+          - { key: differential_pressure_range, label: Filtration differential pressure range, collection: param, itemKey: differential_pressure, field: nor }
+          - { key: expected_duration, label: Expected filtration duration, collection: param, itemKey: max_filtration_time, field: setPoint }
+          - { key: integrity, label: Filter integrity testing approach, collection: ipc, itemKey: integrity, field: approach }
+          - { key: bioburden, label: Bioburden before the filter, collection: ipc, itemKey: bioburden, field: limit }
+        timeLimits:
+          - { key: filtration_time, label: Maximum filtration duration, collection: param, itemKey: max_filtration_time, field: nor }
+          - { key: cold_hold, label: Maximum hold of the bioburden-reduced bulk in cold storage, collection: param, itemKey: max_cold_hold, field: max }
+        sampleTypes: []
+        sampleSlots:
+          - { moment: hold_start, afterStep: 8, text: "Take {samples} (sample table of this section) at the start of the hold and record the time and the person who took them: {sampling time}, {sampled by}." }
+          - { moment: hold_during, afterStep: 8, text: "In the middle of the hold (halfway through the planned hold time), take {samples} (sample table of this section) from the holding bag and record the time and the person who took them: {sampling time}, {sampled by}." }
+          - { moment: hold_end, afterStep: 8, text: "Take {samples} (sample table of this section) at the end of the hold, in the step that ends the hold: when the hold is over and before the filtrate is taken out of the holding bag in the next step. Record the time and the person who took them: {sampling time}, {sampled by}." }
+        cmoFields: [Filter lot and ID, Pressure gauge ID and calibration status, Pressure readings, Integrity tester ID and printouts, Filtrate weight, Holding bag ID and lot, Cold storage unit ID, Signature and date]
 
   - id: sterile_filtration_run
     version: 3
@@ -418,15 +461,17 @@ blocks:
         sampleTypes: []
         cmoFields: [Filter lot and ID, Sterile bulk vessel ID, Pressure gauge ID and calibration status, Pressure readings, Sterile bulk weight, Signature and date]
 
+  # Version 2: the start of the filtration is no longer a step of the set-up block. Starting the filtration needs the filling line ready, and
+  # the line can only be primed with filtrate, so the start belongs in the filling section (block "Sterile filtration in line with filling
+  # (start)"), after the line is set up. Printed here it sent the operator in a circle (start waits for priming, priming waits for the start).
   - id: sterile_filtration_inline
-    version: 1
-    title: Sterile filtration in line with filling (set-up and start)
+    version: 2
+    title: Sterile filtration in line with filling (set-up)
     unitOps: [sterile_filtration]
     steps:
       - "Assemble the sterilizing-grade filter and connect its outlet to the surge bag of the filling line as described in {form or SOP number}. Record the filter identification and the surge bag: {filter lot}, {filter ID}, {surge bag ID}, {surge bag lot}."
       - "Wet the filter as described in {form or SOP number} and run the integrity test before use. Record the wetting fluid, the time, the reading and the filter specification: {wetting fluid}, {time}, {pre-use reading}, {specification}, {pre-use result}."
       - "Take the bioburden sample before the sterilizing filter as set out in the table below and record the time, the volume and the sample number: {sampling time}, {sample volume}, {sample number}."
-      - "Start the filtration into the surge bag when the filling line is connected, primed and purged (see the filling section). Record the start of the filtration and the differential pressure: {start}, {pressure at start}. The filtration runs in line with the filling; its end, the integrity test after use and the filtration time are recorded in the filling section after the end of filling."
     params:
       - { key: differential_pressure, label: Filtration differential pressure, collection: param, itemKey: differential_pressure, field: setPoint }
       - { key: differential_pressure_range, label: Filtration differential pressure range, collection: param, itemKey: differential_pressure, field: nor }
@@ -435,8 +480,44 @@ blocks:
     timeLimits:
       - { key: filtration_time, label: Maximum filtration duration (covers the filling run), collection: param, itemKey: max_filtration_time, field: nor }
     sampleTypes: []
-    note: For a process where the sterilizing filter feeds the filler directly (no vessel between the filter and the filler). The steps after the end of filling are in the block "Sterile filtration in line with filling (end)".
+    note: For a process where the sterilizing filter feeds the filler directly (no vessel between the filter and the filler). The start of the filtration is in the block "Sterile filtration in line with filling (start)", in the filling section; the steps after the end of filling are in the block "Sterile filtration in line with filling (end)".
     cmoFields: [Filter lot and ID, Surge bag ID and lot, Pressure gauge ID and calibration status, Pressure readings, Integrity tester ID and printouts, Signature and date]
+    history:
+      - version: 1
+        title: Sterile filtration in line with filling (set-up and start)
+        unitOps: [sterile_filtration]
+        steps:
+          - "Assemble the sterilizing-grade filter and connect its outlet to the surge bag of the filling line as described in {form or SOP number}. Record the filter identification and the surge bag: {filter lot}, {filter ID}, {surge bag ID}, {surge bag lot}."
+          - "Wet the filter as described in {form or SOP number} and run the integrity test before use. Record the wetting fluid, the time, the reading and the filter specification: {wetting fluid}, {time}, {pre-use reading}, {specification}, {pre-use result}."
+          - "Take the bioburden sample before the sterilizing filter as set out in the table below and record the time, the volume and the sample number: {sampling time}, {sample volume}, {sample number}."
+          - "Start the filtration into the surge bag when the filling line is connected, primed and purged (see the filling section). Record the start of the filtration and the differential pressure: {start}, {pressure at start}. The filtration runs in line with the filling; its end, the integrity test after use and the filtration time are recorded in the filling section after the end of filling."
+        params:
+          - { key: differential_pressure, label: Filtration differential pressure, collection: param, itemKey: differential_pressure, field: setPoint }
+          - { key: differential_pressure_range, label: Filtration differential pressure range, collection: param, itemKey: differential_pressure, field: nor }
+          - { key: expected_duration, label: Expected filtration duration, collection: param, itemKey: max_filtration_time, field: setPoint }
+          - { key: bioburden, label: Bioburden before the sterilizing filter, collection: ipc, itemKey: bioburden, field: limit }
+        timeLimits:
+          - { key: filtration_time, label: Maximum filtration duration (covers the filling run), collection: param, itemKey: max_filtration_time, field: nor }
+        sampleTypes: []
+        note: For a process where the sterilizing filter feeds the filler directly (no vessel between the filter and the filler). The steps after the end of filling are in the block "Sterile filtration in line with filling (end)".
+        cmoFields: [Filter lot and ID, Surge bag ID and lot, Pressure gauge ID and calibration status, Pressure readings, Integrity tester ID and printouts, Signature and date]
+
+  # Start of the in-line sterile filtration (library 1.4.0), a block of the filling section: it is done after the filter is assembled and
+  # tested and after the filling line is set up, so the holding bag leaves cold storage only when the work can start at once (nothing
+  # stands at room temperature without a clock), and the first filtrate primes the filling line.
+  - id: sterile_filtration_inline_start
+    version: 1
+    title: Sterile filtration in line with filling (start)
+    unitOps: [aseptic_filling, sterile_filtration]
+    steps:
+      - "Take the bioburden sample before the sterilizing filter as set out in the sample table where it is listed, at the end of the hold of the filtrate and immediately before the filtration starts, and record the time, the volume and the sample number: {sampling time}, {sample volume}, {sample number}."
+      - "Take the holding bag out of cold storage only now, when the filter is assembled and tested and the filling line is set up (the steps above are signed). Record the time it leaves cold storage (the end of the hold) and the hold time: {cold storage end}, {hold time}."
+      - "Start the filtration into the surge bag and record the start of the filtration and the differential pressure. Use the first {purge volume} of filtrate to prime and purge the filling line in the filling step below. The filtration runs in line with the filling; its end, the integrity test after use and the filtration time are recorded after the end of filling: {start}, {pressure at start}."
+    params: []
+    timeLimits: []
+    sampleTypes: []
+    note: For a process where the sterilizing filter feeds the filler directly. The set-up of the filter is in the block "Sterile filtration in line with filling (set-up)" and the end in the block "Sterile filtration in line with filling (end)".
+    cmoFields: [Cold storage end time, Hold time, Filtration start time, Pressure reading, Signature and date]
 
   - id: sterile_filtration_inline_end
     version: 1
@@ -484,13 +565,15 @@ blocks:
 
   # Filter records (library 1.3.0): one row per filtration. A serial arrangement of filters that together make the sterilizing step counts
   # as ONE sterilizing unit, so every filter of the unit is tested after use. Nothing is prefilled; the operators write the entries.
+  # Version 2: the filter table does not ask for a second test. The post-use test is run once, in the filtration block; this block copies the
+  # reading into the filter row. Version 1 said "test the filter again", which an operator can read as a second test of the same filter.
   - id: filter_records
-    version: 1
+    version: 2
     title: Filter records (identification and integrity tests)
     unitOps: [sterile_filtration, bbr_filtration]
     steps:
       - "Record the identification and lot of each filter used in this filtration, and the result of its integrity test before use, in the filter record table. Compare each reading with the filter specification: {tester ID}."
-      - "After use, and before the filter is discarded, test the filter again and record the result in the same row. Do not discard a filter before its post-use test is recorded."
+      - "When the filtration has ended and its integrity test after use is recorded in the filtration steps, copy that post-use reading into the same row of the filter record table. Do not test the filter again for this table. Do not discard a filter before its post-use test is recorded."
     params: []
     timeLimits: []
     sampleTypes: []
@@ -502,6 +585,24 @@ blocks:
         note: Filters in series that together make the sterilizing step are one sterilizing unit. Each filter of the unit is tested after use, and a failed post-use test is a deviation reported to the quality unit.
     note: The integrity test method and the printouts are in the filter integrity test block.
     cmoFields: [Filter specification values, Integrity tester ID and calibration status]
+    history:
+      - version: 1
+        title: Filter records (identification and integrity tests)
+        unitOps: [sterile_filtration, bbr_filtration]
+        steps:
+          - "Record the identification and lot of each filter used in this filtration, and the result of its integrity test before use, in the filter record table. Compare each reading with the filter specification: {tester ID}."
+          - "After use, and before the filter is discarded, test the filter again and record the result in the same row. Do not discard a filter before its post-use test is recorded."
+        params: []
+        timeLimits: []
+        sampleTypes: []
+        forms:
+          - key: filter_record
+            title: Filter record (one row per filter)
+            columns: [Filtration, Filter ID, Filter lot, Pre-use test value, Limit, Pass or fail, Pre-use test signed by, Post-use test value, Post-use limit, Post-use pass or fail, Post-use test signed by]
+            blankRows: 4
+            note: Filters in series that together make the sterilizing step are one sterilizing unit. Each filter of the unit is tested after use, and a failed post-use test is a deviation reported to the quality unit.
+        note: The integrity test method and the printouts are in the filter integrity test block.
+        cmoFields: [Filter specification values, Integrity tester ID and calibration status]
 
   # Intervention log (library 1.3.0): the filling section keeps a log of every intervention and line stop. Only interventions on the
   # qualified list may be performed; anything else is a deviation reported to the quality unit.

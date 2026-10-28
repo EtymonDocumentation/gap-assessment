@@ -52,43 +52,48 @@ describe("SYR-305 TRD buffer example", () => {
 describe("SYR-305 batch record buffer calculation", () => {
   const trd = table("formulation_table");
   const steps = rec.sections.find((s) => s.unitOp === "buffer_prep")!.blocks.find((b) => b.libraryId === "buffer_preparation")!.steps.map((s) => s.text);
-  const recordSize = num(/Each amount below is the TRD ratio x ([\d.]+) kg/.exec(steps.join("\n"))![1]!);
+  // The record gives every amount for BOTH buffer batch sizes, so the operator never has to scale a figure at the bench.
+  const sizes = [25, 50];
 
-  it("works the amounts for a 50.0 kg buffer batch (PPQ 2, a study point) and says the 25.0 kg TRD example takes half", () => {
-    expect(recordSize).toBe(50);
-    expect(recordSize).toBeGreaterThan(37.5); // 100 L x 0.375 L/L: the largest PPQ batch
-    expect(steps[1]).toContain("25.0 kg (the TRD example, used for PPQ 1 and PPQ 3) takes half of each amount");
+  it("lets the operator make 25.0 kg (the TRD example, PPQ 1 and PPQ 3) or 50.0 kg (PPQ 2, a study point) and record which", () => {
+    expect(steps[1]).toContain("25.0 kg (the TRD example batch, used for PPQ 1 and PPQ 3) or 50.0 kg");
     expect(steps[1]).toContain("study point");
+    expect(steps[1]).toContain("{buffer batch size}");
+    expect(Math.max(...sizes)).toBeGreaterThan(37.5); // 100 L x 0.375 L/L: the largest PPQ batch
     const row = rec.sections.find((s) => s.unitOp === "buffer_prep")!.blocks[0]!.params.find((p) => p.label.startsWith("Study point: buffer batch"))!;
     expect(row.studyPoint).toBe(true);
     expect(row.mbrValue).toBe("50");
   });
 
-  it("each component amount equals the TRD ratio x the record's buffer batch size", () => {
+  it("each component amount equals the TRD ratio x the buffer batch size, for both sizes", () => {
     for (const r of trd.filter((x) => x[0] !== "Water for injection")) {
       const name = r[1]!.replace(/ \(.*$/, "");
       const step = steps.find((t) => t.startsWith(`${name}: `))!;
       expect(step, name).toBeDefined();
-      const worked = /= ([\d.]+) g/.exec(step)![1]!;
-      expect(Number(worked), name).toBeCloseTo(num(r[2]!) * recordSize, 6);
-      expect(step, name).toContain(`${num(r[2]!)}`);
+      for (const size of sizes) expect(step, `${name} ${size} kg`).toContain(`${Math.round(num(r[2]!) * size * 1e6) / 1e6} g for the ${size.toFixed(1)} kg batch`);
     }
   });
 
-  it("the water step closes the balance to the batch size", () => {
-    const parts = trd.filter((x) => x[0] !== "Water for injection").map((r) => num(r[2]!) * recordSize);
-    const total = parts.reduce((a, b) => a + b, 0);
-    expect(recordSize * 1000 - total).toBeCloseTo(40967.5, 6);
-    expect(steps.find((t) => t.startsWith("Water for injection to"))!).toContain("= 40 967.5 g");
+  it("the water step closes the balance to the batch size, for both sizes", () => {
+    const water = steps.find((t) => t.startsWith("Water for injection to"))!;
+    for (const [size, left] of [[25, "20 483.75"], [50, "40 967.5"]] as const) {
+      const total = trd.filter((x) => x[0] !== "Water for injection").reduce((a, r) => a + num(r[2]!) * size, 0);
+      expect(size * 1000 - total).toBeCloseTo(Number(left.replace(" ", "")), 6);
+      expect(water).toContain(`= ${left} g`);
+    }
   });
 
-  it("the stock solutions of the record follow the TRD w/w and cover the stock the buffer needs", () => {
+  it("the stock solutions of the record follow the TRD w/w and cover the stock the buffer needs, for both sizes", () => {
     const stab = steps.find((t) => t.startsWith("Stabilizer stock (40 % w/w"))!;
     const sur = steps.find((t) => t.startsWith("Surfactant stock (10 % w/w"))!;
+    expect(stab).toContain("4500 g x 40 % = 1800 g");
     expect(stab).toContain("9000 g x 40 % = 3600 g");
+    expect(sur).toContain("100 g x 10 % = 10.0 g");
     expect(sur).toContain("200 g x 10 % = 20.0 g");
-    expect(9000).toBeGreaterThanOrEqual(175 * recordSize);
-    expect(200).toBeGreaterThanOrEqual(2.0 * recordSize);
+    for (const size of sizes) {
+      expect(4500 * (size / 25)).toBeGreaterThanOrEqual(175 * size);
+      expect(100 * (size / 25)).toBeGreaterThanOrEqual(2.0 * size);
+    }
   });
 
   it("the diluent volume follows the TRD ratio for 9, 50 and 100 L", () => {
@@ -96,7 +101,7 @@ describe("SYR-305 batch record buffer calculation", () => {
     const ratio = 18.75 / 50;
     expect(ratio).toBe(0.375);
     for (const [l, v] of [[9, "3.375"], [50, "18.75"], [100, "37.5"]] as const) expect(text).toContain(`${l} L x 0.375 = ${v} L`);
-    expect(100 * ratio).toBeLessThan(recordSize);
+    expect(100 * ratio).toBeLessThan(50);
   });
 });
 
