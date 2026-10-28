@@ -523,6 +523,7 @@ Admin commands (all take `--data <dir>`; each prints a plain-English result and 
 | `users` | List accounts (role, plan, modules, disabled). |
 | `disable <username>` / `enable <username>` | Block or allow an account. Disabling also signs the person out everywhere. |
 | `sessions-revoke <username>` | Sign an account out of all its sessions. |
+| `reset-password <username>` | For a forgotten password: give the account a new random password (same shape as an invite code), print it **once**, store only its hash and sign the account out everywhere. After signing in, choose your own with **Change password** in the account menu. |
 | `set-plan <username> <planId>` | Change the account's plan, for example `trial-free`. Its modules are kept. |
 | `set-modules <username> <comma list>` | Change the modules the account may use, for example `gap,other`. Accounts made before modules existed read as `gap`. |
 

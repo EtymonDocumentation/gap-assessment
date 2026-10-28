@@ -178,8 +178,23 @@ describe("admin users", () => {
     expect((await admin(dataDir, "set-plan", "eli.user")).code).toBe(1);
   });
 
+  it("resets a forgotten password: the old one stops working, the printed one works, sessions are closed", async () => {
+    const c = await signup("fay.user");
+    const res = await admin(dataDir, "reset-password", "fay.user");
+    expect(res.code).toBe(0);
+    const temporary = /copy it now\): (\S+)/.exec(res.out)?.[1] ?? "";
+    expect(temporary).toMatch(/^[A-Z0-9]{5}(-[A-Z0-9]{5}){3}$/i);
+    expect(res.out).toContain("signed out of 1 session.");
+    expect((await c.get("/api/auth/me")).status).toBe(401);
+    expect((await new Client(server.port).post("/api/auth/login", { username: "fay.user", password: GOOD_PASSWORD })).status).toBe(401);
+    expect((await new Client(server.port).post("/api/auth/login", { username: "fay.user", password: temporary })).status).toBe(200);
+    const log = await readFile(join(dataDir, "audit.log"), "utf8");
+    expect(log).toContain('"event":"password-reset"');
+    expect(log).not.toContain(temporary);
+  });
+
   it("fails with a non-zero code and a plain message for an unknown user", async () => {
-    for (const cmd of [["disable", "ghost"], ["enable", "ghost"], ["sessions-revoke", "ghost"], ["set-plan", "ghost", "x-plan"]]) {
+    for (const cmd of [["disable", "ghost"], ["enable", "ghost"], ["sessions-revoke", "ghost"], ["reset-password", "ghost"], ["set-plan", "ghost", "x-plan"]]) {
       const res = await admin(dataDir, ...cmd);
       expect(res.code, cmd.join(" ")).toBe(1);
       expect(res.err).toContain('no user named "ghost"');
