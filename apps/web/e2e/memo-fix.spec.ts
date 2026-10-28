@@ -6,6 +6,7 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
+import { goTo } from "./nav-helper";
 
 const BANNER = "Proof of concept. Not validated. Not for GMP use.";
 const SHOTS = tmpdir();
@@ -21,9 +22,7 @@ async function loadDemo(page: Page) {
 }
 
 async function openSamplingPlan(page: Page) {
-  const nav = page.getByRole("link", { name: "Sampling plan", exact: true });
-  if (!(await nav.isVisible())) await page.getByRole("button", { name: /menu/i }).click();
-  await nav.click();
+  await goTo(page, "Sampling plan");
   await page.getByTestId("plan-list").getByRole("link").first().click();
   await expect(page.getByTestId("points-table")).toBeVisible();
 }

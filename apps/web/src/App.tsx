@@ -25,33 +25,15 @@ import { MappingPage } from "./pages/MappingPage";
 import { TemplatesPage } from "./pages/TemplatesPage";
 import { ValidationPage } from "./pages/ValidationPage";
 import { PocBanner, PocFooter } from "./components";
-import { href, useRoute } from "./router";
+import { MainNav, type NavGroup } from "./nav";
+import { GAP_STEPS, nextStep } from "./next-step";
+import { GapStepBar, GapStepFooter, gapStepIndex } from "./steps";
+import { useRoute } from "./router";
 import { AccountBar, ConflictDialog, ServerGate, useIsRemote } from "./server/ServerUi";
 import { SERVER_MODE } from "./server/mode";
 import { useSession } from "./server/session-store";
 import { useMbrAllowed, useRiskAllowed, useTrdAllowed } from "./risk-module";
-import { useStore } from "./store";
-
-const NAV = [
-  { path: "/", label: "Project" },
-  { path: "/scope", label: "Scope" },
-  { path: "/interview", label: "Interview" },
-  { path: "/compare", label: "Side by side" },
-  { path: "/register", label: "Gap register" },
-  { path: "/validation", label: "Validation" },
-  { path: "/document", label: "Document" },
-  { path: "/trd-seed", label: "TRD seed" },
-  { path: "/trd", label: "TRD" },
-  { path: "/mbr", label: "Batch record" },
-  { path: "/sampling", label: "Sampling plan" },
-  { path: "/risk", label: "Risk" },
-  { path: "/templates", label: "Templates" },
-  { path: "/guidance", label: "Guidance" },
-  { path: "/builder", label: "Builder" },
-  { path: "/sources", label: "Sources" },
-  { path: "/changes", label: "Change log" },
-  { path: "/myfiles", label: "My files" },
-] as const;
+import { useAssessment, useStore } from "./store";
 
 /** Shown instead of the sampling pages on an account without the sampling module. */
 function SamplingNotIncluded() {
@@ -142,6 +124,7 @@ function AppShell() {
   const trdAllowed = useTrdAllowed();
   const mbrAllowed = useMbrAllowed();
   const [theme, setTheme] = useTheme();
+  const assessment = useAssessment();
 
   useEffect(() => {
     void init();
@@ -159,6 +142,38 @@ function AppShell() {
   // which is reference material and has nothing to do with the open project.
   const needsProject = route.path !== "/" && route.path !== "/templates" && route.path !== "/guidance" && route.path !== "/sampling/tables" && route.path !== "/sampling/subsections" && route.path !== "/risk/methods" && route.path !== "/mbr/library" && route.path !== "/trd/writeups" && route.path !== "/myfiles";
   const mappingId = /^\/templates\/([^/]+)\/mapping$/.exec(route.path)?.[1];
+  const groups: NavGroup[] = [
+    {
+      label: "Documents",
+      items: [
+        { path: "/trd-seed", label: "TRD seed" },
+        ...(trdAllowed ? [{ path: "/trd", label: "TRD" }] : []),
+        ...(mbrAllowed ? [{ path: "/mbr", label: "Batch record" }] : []),
+        ...(samplingAllowed ? [{ path: "/sampling", label: "Sampling plan" }] : []),
+        ...(riskAllowed ? [{ path: "/risk", label: "Risk" }] : []),
+      ],
+    },
+    {
+      label: "Library",
+      items: [
+        { path: "/templates", label: "Templates" },
+        { path: "/guidance", label: "Guidance" },
+        { path: "/sources", label: "Sources" },
+        { path: "/builder", label: "Builder" },
+        { path: "/changes", label: "Change log" },
+      ],
+      // Libraries that used to be reachable only from inside their module; each follows its module's gating.
+      sub: {
+        heading: "Module libraries",
+        items: [
+          ...(samplingAllowed ? [{ path: "/sampling/tables", label: "Sampling tables" }, { path: "/sampling/subsections", label: "Plan subsections" }] : []),
+          ...(riskAllowed ? [{ path: "/risk/methods", label: "Risk methods" }] : []),
+          ...(mbrAllowed ? [{ path: "/mbr/library", label: "Step blocks library" }] : []),
+          ...(trdAllowed ? [{ path: "/trd/writeups", label: "Process description library" }] : []),
+        ],
+      },
+    },
+  ];
   let page: React.ReactNode;
   if (!ready) page = <p className="muted">Loading…</p>;
   else if (needsProject && !project) page = <HomePage notice="Open the demo or start a new project first." />;
@@ -202,17 +217,14 @@ function AppShell() {
             {project && <span className="brand-project"> · {project.meta.title}</span>}
           </span>
         </div>
-        <nav aria-label="Main">
-          <ul className="nav">
-            {NAV.filter((n) => (n.path !== "/myfiles" || SERVER_MODE) && (n.path !== "/sampling" || samplingAllowed) && (n.path !== "/risk" || riskAllowed) && (n.path !== "/trd" || trdAllowed) && (n.path !== "/mbr" || mbrAllowed)).map((n) => (
-              <li key={n.path}>
-                <a href={href(n.path)} aria-current={route.path === n.path || (n.path === "/builder" && route.path === "/model") || (n.path === "/templates" && !!mappingId) || (n.path === "/sampling" && (route.path === "/sampling/tables" || route.path === "/sampling/subsections")) || (n.path === "/risk" && route.path === "/risk/methods") || (n.path === "/mbr" && route.path === "/mbr/library") || (n.path === "/trd" && route.path === "/trd/writeups") ? "page" : undefined}>
-                  {n.label}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        <MainNav
+          routePath={route.path}
+          home={{ path: "/", label: "Home" }}
+          // "Gap assessment" goes to wherever the open project needs attention next; with no project it goes Home, where the project is started.
+          gap={{ path: project && assessment ? nextStep(project, assessment).path : "/", label: "Gap assessment", covers: GAP_STEPS.map((s) => s.path) }}
+          groups={groups}
+          extra={SERVER_MODE ? [{ path: "/myfiles", label: "My files" }] : []}
+        />
         <label className="theme-select">
           <span className="visually-hidden">Colour theme</span>
           <select value={theme} onChange={(e) => setTheme(e.target.value as Theme)}>
@@ -232,7 +244,9 @@ function AppShell() {
         </div>
       )}
       <main id="main" tabIndex={-1}>
+        {ready && project && gapStepIndex(route.path) >= 0 && <GapStepBar path={route.path} />}
         {page}
+        {ready && project && gapStepIndex(route.path) >= 0 && <GapStepFooter path={route.path} />}
       </main>
       <div className="visually-hidden" aria-live="polite">
         {status}

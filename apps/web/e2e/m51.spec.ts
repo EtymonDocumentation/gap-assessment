@@ -27,7 +27,7 @@ async function expectNoHorizontalScroll(page: Page, label: string) {
 async function newProject(page: Page) {
   await page.goto("./");
   await expect(page.getByText(BANNER).first()).toBeVisible();
-  await page.getByRole("button", { name: "New project…" }).click();
+  await page.getByRole("button", { name: "Start a new project" }).click();
   const dialog = page.getByRole("dialog", { name: "New project" });
   await dialog.getByLabel("Project title").fill("Stage test (fictional)");
   await dialog.getByLabel("Responder name").fill("A. Reviewer (fictional)");

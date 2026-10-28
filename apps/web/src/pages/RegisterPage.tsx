@@ -83,6 +83,7 @@ export function RegisterPage() {
       <PageBanner art="page-register">
         <h1>Gap register</h1>
       </PageBanner>
+      <p className="lede">Every difference found, with its category and severity. Open a row to see why, then record who owns it and what is decided. Export the list as a spreadsheet if you need it elsewhere.</p>
       <div className="row end wrap">
         <button className="btn" onClick={() => download(`${slug(project.meta.title)}-gap-register-${today()}.csv`, gapsToCsv(content, rows, project), "text/csv;charset=utf-8")}>
           Export CSV ({rows.length} rows)

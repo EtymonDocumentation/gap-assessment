@@ -152,7 +152,7 @@ test("branching: making the target pump the same closes its follow-ups and keeps
 
 test("new project: responder, scoping answers, TBD and not-applicable handling", async ({ page }) => {
   await page.goto("./");
-  await page.getByRole("button", { name: "New project…" }).click();
+  await page.getByRole("button", { name: "Start a new project" }).click();
   const dialog = page.getByRole("dialog", { name: "New project" });
   await dialog.getByLabel("Project title").fill("Smoke test (fictional)");
   await dialog.getByLabel("Responder name").fill("Test Person (fictional)");

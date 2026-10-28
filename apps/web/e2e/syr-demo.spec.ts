@@ -4,6 +4,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { goTo } from "./nav-helper";
 
 test.beforeEach(async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
@@ -14,9 +15,7 @@ test("the syringe demo opens from the start page with a complete TRD", async ({ 
   await expect(page.getByRole("button", { name: "Load demo" })).toHaveCount(1);
   await page.getByRole("button", { name: "Open syringe example" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
-  const nav = page.getByRole("link", { name: "TRD", exact: true });
-  if (!(await nav.isVisible())) await page.getByRole("button", { name: /menu/i }).click();
-  await nav.click();
+  await goTo(page, "TRD");
   await expect(page.getByTestId("trd-list-table")).toContainText("SYR-305 technical requirements document (fictional)");
   await page.getByTestId("trd-list-table").getByRole("link").first().click();
   await page.getByTestId("trd-tab-output").click();
@@ -30,9 +29,7 @@ async function openSyringeRecord(page: Page) {
   await page.goto("./");
   await page.getByRole("button", { name: "Open syringe example" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
-  const nav = page.getByRole("link", { name: "Batch record", exact: true });
-  if (!(await nav.isVisible())) await page.getByRole("button", { name: /menu/i }).click();
-  await nav.click();
+  await goTo(page, "Batch record");
   await expect(page.getByTestId("mbr-list-table")).toContainText("SYR-305 master batch record");
   await page.getByTestId("mbr-list-table").getByRole("link").first().click();
   await expect(page.getByRole("heading", { level: 1, name: /MBR-001/ })).toBeVisible();

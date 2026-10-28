@@ -1,5 +1,6 @@
 // Milestone 11, server build: the batch record module gates the menu, the page and the step-blocks library page, and a batch record is
 // kept with the project on the server.
+import { expectNoMenuEntry } from "../e2e/nav-helper";
 import { expect, go, loadDemo, makeSamplingInvite, newAccount, serverRevision, signUp, test } from "./helpers";
 
 const DEMO_TITLE = "ARX-217 transfer: Site North Line 2 to Site South Line 4 (fictional demo)";
@@ -8,7 +9,7 @@ test("server build: an account without the batch record module has no menu entry
   test.setTimeout(120_000);
   await signUp(page, newAccount("nombr"));
   await loadDemo(page);
-  await expect(page.getByRole("link", { name: "Batch record", exact: true })).toHaveCount(0);
+  await expectNoMenuEntry(page, "Batch record");
   await go(page, "#/mbr");
   await expect(page.getByTestId("mbr-not-included")).toBeVisible();
   await go(page, "#/mbr/library");

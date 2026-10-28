@@ -7,6 +7,7 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
+import { goTo } from "./nav-helper";
 
 const BANNER = "Proof of concept. Not validated. Not for GMP use.";
 const SHOTS = tmpdir();
@@ -24,9 +25,7 @@ async function loadDemo(page: Page) {
 /** Through the navigation, so the "Risk" link is part of what is tested. On a phone it sits behind the menu button. */
 async function openRisk(page: Page) {
   await loadDemo(page);
-  const nav = page.getByRole("link", { name: "Risk", exact: true });
-  if (!(await nav.isVisible())) await page.getByRole("button", { name: /menu/i }).click();
-  await nav.click();
+  await goTo(page, "Risk");
   await expect(page.getByTestId("risk-scope-text")).toBeVisible();
 }
 

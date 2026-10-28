@@ -37,6 +37,10 @@ test("opens without a project, with the note, the last-checked date and every it
   await expect(page.getByText(/Last checked: \d{4}-\d{2}-\d{2}/)).toBeVisible();
   await expect(page.getByRole("status").filter({ hasText: "shown" })).toHaveText("162 of 162 shown");
   await expect(entries(page)).toHaveCount(162);
+  const mainNav = page.getByRole("navigation", { name: "Main" });
+  const library = mainNav.getByRole("button", { name: /^Library/ });
+  if (await library.isVisible()) await library.click();
+  else await mainNav.getByRole("button", { name: /^Menu/ }).click();
   await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Guidance" })).toHaveAttribute("aria-current", "page");
 });
 

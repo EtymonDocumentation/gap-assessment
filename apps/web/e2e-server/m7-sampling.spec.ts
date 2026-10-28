@@ -1,11 +1,12 @@
 // Milestone 7, server build: the sampling module gates the menu and the page, and company tables are kept on the server.
+import { expectNoMenuEntry } from "../e2e/nav-helper";
 import { expect, go, loadDemo, makeSamplingInvite, newAccount, signUp, test } from "./helpers";
 
 test("server build: an account without the sampling module has no menu entry and is told why", async ({ page }) => {
   test.setTimeout(120_000);
   await signUp(page, newAccount("nosamp"));
   await loadDemo(page);
-  await expect(page.getByRole("link", { name: "Sampling plan", exact: true })).toHaveCount(0);
+  await expectNoMenuEntry(page, "Sampling plan");
   await go(page, "#/sampling");
   await expect(page.getByTestId("sampling-not-included")).toBeVisible();
   const r = await page.request.get("/api/sampling-tables");

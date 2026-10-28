@@ -3061,3 +3061,261 @@ table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
 .twu-part .stack, .twu-part .table-scroll { max-width: 100%; }
 .fs { min-width: 0; }
 .twu-part, .twu-part .stack, .twu-figure-box { grid-template-columns: minmax(0, 1fr); }
+
+/* ---------------------------------------------------------------- short top menu, step bar, guided home page */
+
+.nav > li {
+  position: relative;
+}
+.nav-group-btn {
+  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+.nav-group-btn:hover,
+.nav-group-btn[aria-expanded="true"] {
+  background: var(--surface-2);
+}
+/* The current section is marked by weight and an underline as well as the tint, so colour is never the only cue. */
+.nav-group-btn.is-current {
+  background: var(--accent-soft);
+  font-weight: 600;
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+.nav-panel {
+  position: absolute;
+  z-index: 30;
+  top: 100%;
+  left: 0;
+  min-width: 14rem;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.nav-panel[hidden] {
+  display: none;
+}
+.nav-panel-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.nav-panel a,
+.nav-menu-panel a {
+  display: block;
+  padding: 6px 10px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--text);
+}
+.nav-panel a:hover,
+.nav-menu-panel a:hover {
+  background: var(--surface-2);
+}
+.nav-panel a[aria-current="page"],
+.nav-menu-panel a[aria-current="page"] {
+  background: var(--accent-soft);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.nav-panel-sub,
+.nav-panel-head {
+  margin: 8px 10px 2px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  padding-top: 6px;
+}
+.nav-narrow {
+  position: relative;
+}
+.nav-menu-panel {
+  position: absolute;
+  z-index: 30;
+  left: 0;
+  top: 100%;
+  width: min(20rem, calc(100vw - 24px));
+  max-height: 75vh;
+  overflow-y: auto;
+  margin-top: 4px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.nav-menu-panel[hidden] {
+  display: none;
+}
+
+.gap-step-bar {
+  margin: 0 0 12px;
+}
+.gap-step-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.gap-step-list a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px 5px 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+}
+.gap-step-list a:hover {
+  background: var(--surface-2);
+}
+.gap-step-num {
+  display: inline-grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.gap-step-list a[aria-current="step"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  font-weight: 600;
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+.gap-step-list a[aria-current="step"] .gap-step-num {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+.gap-step-tick {
+  color: var(--ok);
+  font-weight: 700;
+}
+.gap-step-compact {
+  display: none;
+  margin: 0;
+}
+.gap-step-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.btn.big {
+  font-size: 1.15rem;
+  padding: 12px 22px;
+}
+.home-intro h2,
+.needs summary h2,
+.about summary h2 {
+  margin: 0;
+}
+.needs summary,
+.about summary {
+  cursor: pointer;
+}
+.needs summary h2,
+.about summary h2 {
+  display: inline;
+}
+.needs ul,
+.about ul {
+  margin-top: 10px;
+}
+.next-step {
+  padding: 12px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+}
+.next-step-label {
+  margin: 0 0 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.stats-quiet dd {
+  font-size: 1rem;
+  font-weight: 500;
+}
+.quiet-actions {
+  opacity: 0.95;
+}
+.checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.checklist li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.checklist p {
+  margin: 0;
+}
+.check-mark {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 2px solid var(--border);
+  border-radius: 4px;
+  color: var(--ok);
+  font-weight: 700;
+}
+.checklist li.is-done .check-mark {
+  border-color: var(--ok);
+}
+
+@media (max-width: 700px) {
+  .gap-step-list {
+    display: none;
+  }
+  .gap-step-compact {
+    display: block;
+  }
+  .app-header .nav-narrow {
+    flex: none;
+  }
+}
+
+/* The phone's menu panel spans the header (not the button it hangs from), so it never runs off the right edge. */
+.app-header {
+  position: relative;
+}
+.nav-narrow {
+  position: static;
+}
+.nav-menu-panel {
+  left: 12px;
+  right: 12px;
+  width: auto;
+  top: 100%;
+  margin-top: 0;
+}
