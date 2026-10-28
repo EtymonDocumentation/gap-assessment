@@ -3,18 +3,41 @@ import { useMemo, useRef, useState } from "react";
 import { PageBanner } from "../art";
 import { Modal, ResponderForm } from "../components";
 import { download, slug, today } from "../lib";
+import { nextStep, stepDone } from "../next-step";
+import { useTrdAllowed } from "../risk-module";
 import { href, navigate } from "../router";
 import { CloseProjectButton, ProjectListCard, useIsRemote } from "../server/ServerUi";
 import { SERVER_MODE } from "../server/mode";
 import { content, useAssessment, useContent, useStageWording, useStore } from "../store";
 
+const HIDE_KEY = "gap-getting-started-hidden";
+
+/** The checklist's hidden state is a per-browser convenience; storage can throw (private window, blocked site data), so the card then simply stays shown. */
+function readHidden(): boolean {
+  try {
+    return localStorage.getItem(HIDE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+function writeHidden(hidden: boolean): void {
+  try {
+    if (hidden) localStorage.setItem(HIDE_KEY, "1");
+    else localStorage.removeItem(HIDE_KEY);
+  } catch {
+    /* storage unavailable: the choice holds for this visit only */
+  }
+}
+
 export function HomePage({ notice }: { notice?: string }) {
   const { project, loadDemo, newProject, importJson, setProject } = useStore();
   const a = useAssessment();
   const wording = useStageWording();
+  const trdAllowed = useTrdAllowed();
   const [creating, setCreating] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [importError, setImportError] = useState("");
+  const [hidden, setHidden] = useState(readHidden);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Server storage: every project is its own saved project on the server, so nothing is replaced.
@@ -24,6 +47,25 @@ export function HomePage({ notice }: { notice?: string }) {
   const eff = useContent();
   const tbd = useMemo(() => (project && a ? tbdSummary(tbdItems(eff, project, a), localDate()) : null), [eff, project, a]);
   const differences = a?.gaps.filter((g) => g.category !== "equivalent").length ?? 0;
+  const next = project && a ? nextStep(project, a) : null;
+  const done = project && a ? stepDone(project, a) : {};
+
+  const setHide = (h: boolean) => {
+    setHidden(h);
+    writeHidden(h);
+  };
+
+  // Each item ticks only where the project data proves it; the rest are plain links (no tick never means "not done").
+  const checklist: { key: string; label: string; hint: string; path?: string; ticked: boolean }[] = [
+    { key: "create", label: "Create a project", hint: "Give it a name and say who is answering.", ticked: !!project },
+    { key: "scope", label: "Choose the scope", hint: "Untick the process steps and document sections that do not apply.", path: "/scope", ticked: !!done.scope },
+    { key: "interview", label: "Answer the interview", hint: "One question at a time, for the sending and receiving side. Choose TBD for anything not known yet.", path: "/interview", ticked: !!done.interview },
+    { key: "register", label: "Review the gap register", hint: "Check every difference the tool found and decide what to do about each.", path: "/register", ticked: false },
+    { key: "document", label: "Write the gap assessment document", hint: "Add your own text, then download the finished document.", path: "/document", ticked: false },
+    ...(trdAllowed
+      ? [{ key: "trd", label: "Start the TRD (optional)", hint: "The technical requirements document that follows the gap assessment.", path: "/trd-seed", ticked: !!project && project.trd.documents.length > 0 }]
+      : []),
+  ];
 
   return (
     <div className="stack-lg">
@@ -35,20 +77,38 @@ export function HomePage({ notice }: { notice?: string }) {
           {notice}
         </p>
       )}
-      <p className="lede">
-        Compare a <strong>sending unit</strong> (SU) process with a planned <strong>receiving unit</strong> (RU) site through a guided interview. The tool
-        classifies every difference, builds a gap register and drafts a gap assessment document. Values are never filled in for you: anything
-        not yet known stays visible as an open item (TBD).
-      </p>
 
-      {project && a ? (
-        <section className="card" aria-labelledby="current-h">
+      <section className="stack home-intro" aria-labelledby="what-h">
+        <h2 id="what-h">What this tool does</h2>
+        <p className="lede">
+          You compare how a product is made at the <strong>sending unit</strong> (SU) with how the <strong>receiving unit</strong> (RU) site plans to make it. The tool asks guided
+          questions, lists every difference (gap), and drafts the gap assessment and the follow-on documents: TRD, batch record, sampling plan and risk assessment.
+        </p>
+        <p className="muted">Anything not yet known stays visible as an open item (TBD). The tool never fills in values for you.</p>
+        <div className="row wrap">
+          <button className="btn primary big" onClick={() => confirmReplace() && setCreating(true)}>
+            Start a new project
+          </button>
+        </div>
+      </section>
+
+      {project && a && next ? (
+        <section className="card stack" aria-labelledby="current-h" data-testid="open-project">
           <h2 id="current-h">Open project</h2>
           <p className="project-title">
             {project.meta.title}
             {project.meta.demo && <span className="tag">Fictional demo</span>}
           </p>
-          <dl className="stats">
+          <div className="next-step" data-testid="next-step">
+            <p className="next-step-label">Next step</p>
+            <div className="row wrap">
+              <a className="btn primary big" href={href(next.path)}>
+                {next.label}
+              </a>
+              <a href={href("/document")}>Go to the document</a>
+            </div>
+          </div>
+          <dl className="stats stats-quiet">
             <div>
               <dt>Questions answered</dt>
               <dd>
@@ -84,26 +144,14 @@ export function HomePage({ notice }: { notice?: string }) {
               <dd>{project.interview.responder?.name ?? "Not set"}</dd>
             </div>
           </dl>
-          <div className="row wrap">
-            <a className="btn primary" href={href("/interview")}>
-              Continue interview
-            </a>
-            <a className="btn" href={href("/scope")}>
-              Scope
-            </a>
-            <a className="btn" href={href("/register")}>
-              Gap register
-            </a>
-            <a className="btn" href={href("/document")}>
-              Document
-            </a>
-            <button className="btn" onClick={() => download(`${slug(project.meta.title)}-${today()}.json`, JSON.stringify(project, null, 2), "application/json")}>
+          <div className="row wrap quiet-actions">
+            <button className="btn small" onClick={() => download(`${slug(project.meta.title)}-${today()}.json`, JSON.stringify(project, null, 2), "application/json")}>
               Export project (JSON)
             </button>
             {remote ? (
               <CloseProjectButton />
             ) : (
-              <button className="btn danger" onClick={() => setConfirmDelete(true)}>
+              <button className="btn small danger" onClick={() => setConfirmDelete(true)}>
                 Close and delete…
               </button>
             )}
@@ -113,17 +161,64 @@ export function HomePage({ notice }: { notice?: string }) {
 
       {remote && <ProjectListCard />}
 
-      <section className="card" aria-labelledby="start-h">
-        <h2 id="start-h">Start</h2>
+      {hidden ? (
+        <p>
+          <button className="link-btn" onClick={() => setHide(false)}>
+            Show getting started
+          </button>
+        </p>
+      ) : (
+        <section className="card stack" aria-labelledby="started-h" data-testid="getting-started">
+          <div className="row between wrap">
+            <h2 id="started-h">Getting started</h2>
+            <button className="btn small" onClick={() => setHide(true)}>
+              Hide
+            </button>
+          </div>
+          <ol className="checklist">
+            {checklist.map((c) => (
+              <li key={c.key} className={c.ticked ? "is-done" : undefined}>
+                <span className="check-mark" aria-hidden="true">
+                  {c.ticked ? "✓" : ""}
+                </span>
+                <div>
+                  {c.path && project ? <a href={href(c.path)}>{c.label}</a> : <strong>{c.label}</strong>}
+                  {c.ticked && <span className="visually-hidden"> (done)</span>}
+                  <p className="muted small">{c.hint}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      <details className="card needs" open={!project} data-testid="before-you-start">
+        <summary>
+          <h2 id="needs-h">Before you start: what you need</h2>
+        </summary>
+        <ul className="plain-list">
+          <li>A project title, and the name (and optionally the role) of the person answering.</li>
+          <li>The sending unit process description, and the documents you will cite as sources, such as the process description, a batch record or specifications.</li>
+          <li>What the receiving site plans: the filling line, the equipment and the scale.</li>
+          <li>Your choice of which process steps and document sections apply (the Scope step asks for this before the interview).</li>
+          <li>Unknowns are fine. Choose TBD for anything not known yet: it becomes an open item you can track, and nothing is filled in for you.</li>
+        </ul>
+      </details>
+
+      <section className="card stack" aria-labelledby="demo-h">
+        <h2 id="demo-h">Or try a demo</h2>
+        <p className="muted small">
+          Both demos are fictional. {remote ? "Opening one adds it to your projects on the server." : "Opening one replaces the project open in this browser (you are asked first)."}
+        </p>
         <div className="start-grid">
           <div className="start-option">
-            <h3>Load the demo project</h3>
+            <h3>ARX-217 vials</h3>
             <p className="muted">
-              ARX-217, a fictional liquid mAb in 2R vials, moving from Site North Line 2 to Site South Line 4. It covers all eight comparison
-              categories.
+              A fictional liquid mAb in 2R vials moving between two sites. It shows every kind of difference the tool can find (all eight comparison categories), so it is a good way to
+              see the gap assessment from start to finish. It also carries a short TRD, batch record, sampling plan and risk assessment.
             </p>
             <button
-              className="btn primary"
+              className="btn"
               onClick={() => {
                 if (!confirmReplace()) return;
                 loadDemo();
@@ -134,10 +229,10 @@ export function HomePage({ notice }: { notice?: string }) {
             </button>
           </div>
           <div className="start-option">
-            <h3>Prefilled syringe demo</h3>
+            <h3>SYR-305 syringe</h3>
             <p className="muted">
-              SYR-305, a fictional liquid mAb in a prefilled syringe, filled at a receiving fill site from frozen drug substance. It comes with a
-              complete technical requirements document.
+              A fictional prefilled syringe, filled at a receiving fill site from frozen drug substance. The whole document chain is filled in (a complete TRD, batch record, sampling
+              plan and risk assessment), so it is a good way to see the follow-on documents.
             </p>
             <button
               className="btn"
@@ -148,13 +243,6 @@ export function HomePage({ notice }: { notice?: string }) {
               }}
             >
               Open syringe example
-            </button>
-          </div>
-          <div className="start-option">
-            <h3>New project</h3>
-            <p className="muted">Start an empty interview. Scoping questions come first and decide which unit operations apply.</p>
-            <button className="btn" onClick={() => confirmReplace() && setCreating(true)}>
-              New project…
             </button>
           </div>
           <div className="start-option">
@@ -189,8 +277,10 @@ export function HomePage({ notice }: { notice?: string }) {
         </div>
       </section>
 
-      <section className="card" aria-labelledby="about-h">
-        <h2 id="about-h">About this proof of concept</h2>
+      <details className="card about" data-testid="about-poc">
+        <summary>
+          <h2 id="about-h">About this proof of concept</h2>
+        </summary>
         <ul className="plain-list">
           {remote ? (
             <li>Your projects are saved on the server under your account, as you work. This browser keeps an offline copy of the open project only. Export a project as JSON to share it.</li>
@@ -204,7 +294,7 @@ export function HomePage({ notice }: { notice?: string }) {
             {content.versions.templates}.
           </li>
         </ul>
-      </section>
+      </details>
 
       <Modal open={creating} onOpenChange={setCreating} title="New project" description="Name the project and the person answering.">
         <ResponderForm

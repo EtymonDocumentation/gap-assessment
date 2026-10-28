@@ -149,7 +149,7 @@ export async function go(page: Page, hash: string): Promise<void> {
 
 export async function startProject(page: Page, title: string): Promise<void> {
   await go(page, "#/");
-  await page.getByRole("button", { name: "New project…" }).click();
+  await page.getByRole("button", { name: "Start a new project" }).click();
   const dialog = page.getByRole("dialog", { name: "New project" });
   await dialog.getByLabel("Project title").fill(title);
   await dialog.getByLabel("Responder name").fill("A. Reviewer (fictional)");

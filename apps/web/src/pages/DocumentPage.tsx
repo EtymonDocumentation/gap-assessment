@@ -62,6 +62,7 @@ export function DocumentPage() {
       <PageBanner art="page-document">
         <h1>Document</h1>
       </PageBanner>
+      <p className="lede">Draft the gap assessment document from your answers and gap decisions. Check what it covers, add your own text where asked, then download it.</p>
 
       <section className="card stack no-print" aria-labelledby="doc-scope-title" data-testid="doc-scope-panel">
         <div className="row between wrap">

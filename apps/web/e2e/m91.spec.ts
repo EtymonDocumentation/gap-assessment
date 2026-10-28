@@ -8,6 +8,7 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
+import { goTo } from "./nav-helper";
 
 const BANNER = "Proof of concept. Not validated. Not for GMP use.";
 const SHOTS = tmpdir();
@@ -24,9 +25,7 @@ async function loadDemo(page: Page) {
 
 async function openTrdList(page: Page) {
   await loadDemo(page);
-  const nav = page.getByRole("link", { name: "TRD", exact: true });
-  if (!(await nav.isVisible())) await page.getByRole("button", { name: /menu/i }).click();
-  await nav.click();
+  await goTo(page, "TRD");
   await expect(page.getByTestId("trd-scope-text")).toBeVisible();
 }
 
@@ -99,7 +98,7 @@ test("editing a paragraph is kept, marked as edited and logged", async ({ page }
   await expect(card.getByTestId(`twu-part-${id}-p1`)).toContainText("edited here");
   // Focus returns to the Edit button after saving.
   await expect(card.getByTestId(`twu-edit-${id}-p1`)).toBeFocused();
-  await page.getByRole("link", { name: "Change log" }).first().click().catch(() => undefined);
+  await goTo(page, "Change log");
 });
 
 test("typing a value fills the blank, shared with the other descriptions; clearing it reopens it", async ({ page }) => {

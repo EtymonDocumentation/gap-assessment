@@ -8,6 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
 import { parseTrdSeed } from "@gap/process-model";
+import { goTo } from "./nav-helper";
 
 const BANNER = "Proof of concept. Not validated. Not for GMP use.";
 const TITLE = "Technical requirements document — draft outline";
@@ -30,9 +31,7 @@ async function loadDemo(page: Page) {
 async function openTrdPage(page: Page) {
   await loadDemo(page);
   // Through the navigation, so the "TRD seed" link is part of what is tested. On a phone the navigation sits behind a menu button.
-  const nav = page.getByRole("link", { name: "TRD seed", exact: true });
-  if (!(await nav.isVisible())) await page.getByRole("button", { name: /menu/i }).click();
-  await nav.click();
+  await goTo(page, "TRD seed");
   await expect(page.getByRole("heading", { level: 1, name: "TRD seed" })).toBeVisible();
 }
 

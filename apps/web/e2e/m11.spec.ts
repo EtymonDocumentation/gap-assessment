@@ -7,6 +7,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { goTo } from "./nav-helper";
 
 const BANNER = "Proof of concept. Not validated. Not for GMP use.";
 const SHOTS = tmpdir();
@@ -24,9 +25,7 @@ async function loadDemo(page: Page) {
 /** Through the navigation, so the "Batch record" link is part of what is tested. On a phone it sits behind the menu button. */
 async function openMbr(page: Page) {
   await loadDemo(page);
-  const nav = page.getByRole("link", { name: "Batch record", exact: true });
-  if (!(await nav.isVisible())) await page.getByRole("button", { name: /menu/i }).click();
-  await nav.click();
+  await goTo(page, "Batch record");
   await expect(page.getByTestId("mbr-scope-text")).toBeVisible();
 }
 
@@ -109,9 +108,7 @@ test.describe("batch record: the demo record", () => {
     await row.getByTestId(`mbr-choice-unset-${id}`).check();
     await expect(row.getByTestId(`mbr-choice-state-${id}`)).toHaveText("Not decided");
 
-    const nav = page.getByRole("link", { name: "Change log", exact: true });
-    if (!(await nav.isVisible())) await page.getByRole("button", { name: /menu/i }).click();
-    await nav.click();
+    await goTo(page, "Change log");
     const table = page.getByRole("region", { name: "Change log table" });
     await expect(table.getByText(/Parameter row .* edited in block/).first()).toBeVisible();
     await expect(table).toContainText("Tightened by the CMO");

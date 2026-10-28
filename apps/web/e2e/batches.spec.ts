@@ -4,6 +4,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { goTo } from "./nav-helper";
 
 const SHOTS = tmpdir();
 
@@ -15,9 +16,7 @@ async function newPlanWithBatch(page: Page) {
   await page.goto("./");
   await page.getByRole("button", { name: "Load demo" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
-  const nav = page.getByRole("link", { name: "Sampling plan", exact: true });
-  if (!(await nav.isVisible())) await page.getByRole("button", { name: /menu/i }).click();
-  await nav.click();
+  await goTo(page, "Sampling plan");
   await page.getByTestId("plan-title-input").fill("Batch rows plan (fictional)");
   await page.getByTestId("plan-create").click();
   await page.getByTestId("batch-label-input").fill("PPQ batch 1");

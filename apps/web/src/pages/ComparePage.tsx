@@ -23,6 +23,7 @@ export function ComparePage() {
       <PageBanner art="page-compare">
         <h1>Side by side</h1>
       </PageBanner>
+      <p className="lede">Each row shows what the sending unit (SU) does beside what the receiving unit (RU) plans, and how the tool classified the difference. Read it to check the answers before you review the gaps.</p>
       <div className="row between wrap">
         <label className="row inline">
           <input type="checkbox" checked={hideEqual} onChange={(e) => setHideEqual(e.target.checked)} /> Hide equivalent rows

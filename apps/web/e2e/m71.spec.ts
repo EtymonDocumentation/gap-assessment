@@ -7,6 +7,7 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
+import { goTo } from "./nav-helper";
 
 const BANNER = "Proof of concept. Not validated. Not for GMP use.";
 const SHOTS = tmpdir();
@@ -20,9 +21,7 @@ async function openDemoPlan(page: Page) {
   await page.goto("./");
   await page.getByRole("button", { name: "Load demo" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
-  const nav = page.getByRole("link", { name: "Sampling plan", exact: true });
-  if (!(await nav.isVisible())) await page.getByRole("button", { name: /menu/i }).click();
-  await nav.click();
+  await goTo(page, "Sampling plan");
   await page.getByTestId("plan-list").getByRole("link").first().click();
   await expect(page.getByTestId("points-table")).toBeVisible();
 }

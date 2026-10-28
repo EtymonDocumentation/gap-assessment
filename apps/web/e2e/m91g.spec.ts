@@ -7,6 +7,7 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
+import { goTo } from "./nav-helper";
 
 const SHOTS = tmpdir();
 /** A real 1 by 1 pixel PNG (so the reader sees a true PNG header). */
@@ -24,9 +25,7 @@ async function loadDemo(page: Page) {
 
 async function openTrdList(page: Page) {
   await loadDemo(page);
-  const nav = page.getByRole("link", { name: "TRD", exact: true });
-  if (!(await nav.isVisible())) await page.getByRole("button", { name: /menu/i }).click();
-  await nav.click();
+  await goTo(page, "TRD");
   await expect(page.getByTestId("trd-scope-text")).toBeVisible();
 }
 

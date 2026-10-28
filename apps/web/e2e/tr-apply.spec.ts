@@ -5,6 +5,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { goTo } from "./nav-helper";
 
 test.beforeEach(async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
@@ -14,9 +15,7 @@ async function openDemo(page: Page, link: string) {
   await page.goto("./");
   await page.getByRole("button", { name: "Open syringe example" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
-  const nav = page.getByRole("link", { name: link, exact: true });
-  if (!(await nav.isVisible())) await page.getByRole("button", { name: /menu/i }).click();
-  await nav.click();
+  await goTo(page, link);
 }
 
 const AXE_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
