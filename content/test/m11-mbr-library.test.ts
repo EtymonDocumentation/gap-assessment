@@ -25,3 +25,34 @@ describe("M11 shipped step-blocks library", () => {
     expect(text).not.toMatch(/\b(must|violation|non-compliant)\b/i);
   });
 });
+
+// Blocks changed after the operator walk-through of the SYR-305 demo record: each change is a new version and the old text stays in full.
+describe("blocks changed after the operator walk-through", () => {
+  const block = (id: string) => mbrLibrary.find((b) => b.id === id)!;
+
+  it("keeps the old text of the bioburden sample, the filtration start and the filter record in the history", () => {
+    expect(block("bbr_filtration_run").version).toBe(4);
+    expect(block("sterile_filtration_inline").version).toBe(2);
+    expect(block("filter_records").version).toBe(2);
+    expect(block("sterile_filtration_inline").history![0]!.steps).toHaveLength(4); // v1 still had the start step
+    expect(block("sterile_filtration_inline").steps).toHaveLength(3);
+  });
+
+  it("takes the bioburden sample of the formulated bulk before the hold ends, and starts the filtration in its own block", () => {
+    const steps = block("bbr_filtration_run").steps;
+    const sample = steps.findIndex((t) => /bioburden sample/.test(t));
+    const holdEnd = steps.findIndex((t) => /hold end|end of the hold/i.test(t) && !/bioburden/.test(t));
+    expect(sample).toBeGreaterThanOrEqual(0);
+    expect(sample).toBeLessThan(holdEnd);
+    const start = block("sterile_filtration_inline_start");
+    expect(start.version).toBe(1);
+    expect(start.steps[0]).toMatch(/bioburden sample/);
+    expect(start.steps[1]).toMatch(/out of cold storage only now/);
+    expect(start.steps[2]).toMatch(/^Start the filtration into the surge bag/);
+  });
+
+  it("has a batch identification block for the first section, and a filter record that copies the post-use reading", () => {
+    expect(block("batch_identification").steps[0]).toContain("{batch number}");
+    expect(block("filter_records").steps.join(" ")).toContain("Do not test the filter again for this table");
+  });
+});

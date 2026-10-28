@@ -248,7 +248,7 @@ const mbrDemoSchema = z.object({
   refs: z.array(z.object({ uo: z.string(), block: z.string(), step: z.number().int(), find: z.string(), insert: z.string(), to: z.object({ uo: z.string(), block: z.string(), step: z.number().int() }) })).default([]),
   // Step texts the team wrote for this record: `text` replaces the text of step `step` (1 = first) of the block, `after` adds steps behind it.
   // Used for the worked buffer calculation, which is the record's own (the library only says how to calculate).
-  steps: z.array(z.object({ uo: z.string(), block: z.string(), step: z.number().int(), text: z.string(), after: z.array(z.string()).default([]) })).default([]),
+  steps: z.array(z.object({ uo: z.string(), block: z.string(), step: z.number().int(), text: z.string().optional(), after: z.array(z.string()).default([]) })).default([]),
   limits: z
     .array(
       z.object({
@@ -586,19 +586,22 @@ function applyMbrDemo(project: Project, content: ContentBundle, m: z.infer<typeo
     if (!id) throw new Error(`Demo MBR: ${uo} has no step ${place} in block ${blockId}`);
     return id;
   };
+  for (const e of m.steps) {
+    const block = sectionFor(e.uo).blocks.find((x) => x.libraryId === e.block);
+    const step = block?.steps[e.step - 1];
+    if (!block || !step) throw new Error(`Demo MBR: ${e.uo} has no step ${e.step} in block ${e.block}`);
+    // No text: the step keeps its library wording and only the steps after it are added.
+    if (e.text !== undefined) project = updateMbrStep(project, recordId, step.id, e.text, who);
+    let at = e.step;
+    for (const t of e.after) project = addMbrStep(project, recordId, block.id, t, who, at++).project;
+  }
+  // Cross-references come after the step edits, so the places they name are the places in the finished record (a step number in a
+  // reference moves with the steps, the place written here does not).
   for (const r of m.refs) {
     const from = sectionFor(r.uo).blocks.find((b) => b.libraryId === r.block)?.steps[r.step - 1];
     if (!from || !from.text.includes(r.find)) throw new Error(`Demo MBR: ${r.uo} step ${r.step} of ${r.block} has no text "${r.find}"`);
     const text = from.text.replace(r.find, () => r.find + r.insert.replace("{ref}", stepRefToken(stepAt(r.to.uo, r.to.block, r.to.step))));
     project = updateMbrStep(project, recordId, from.id, text, who);
-  }
-  for (const e of m.steps) {
-    const block = sectionFor(e.uo).blocks.find((x) => x.libraryId === e.block);
-    const step = block?.steps[e.step - 1];
-    if (!block || !step) throw new Error(`Demo MBR: ${e.uo} has no step ${e.step} in block ${e.block}`);
-    project = updateMbrStep(project, recordId, step.id, e.text, who);
-    let at = e.step;
-    for (const t of e.after) project = addMbrStep(project, recordId, block.id, t, who, at++).project;
   }
   for (const l of m.limits) {
     const sec = sectionFor(l.uo);
