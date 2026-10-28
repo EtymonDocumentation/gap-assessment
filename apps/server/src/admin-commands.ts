@@ -2,7 +2,7 @@
 import { mkdir, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 import { UsageError, parseArgs, type ParsedArgs } from "./args";
-import { deleteSessions, hashInviteCode, invitesFile, loadUsers, newInviteCode, sessionsFile, usersFile } from "./auth";
+import { deleteSessions, hashInviteCode, hashPassword, invitesFile, loadUsers, newInviteCode, sessionsFile, usersFile } from "./auth";
 import { ConfigError, configPath, loadConfig, type ServerConfig } from "./config";
 import { usageOf } from "./myfiles";
 import { Store } from "./store";
@@ -17,6 +17,7 @@ export const USAGE = `Gap Assessment admin. Usage: admin <command> --data <dir> 
   users                                                        list accounts
   disable <username> | enable <username>                       block or allow an account
   sessions-revoke <username>                                   sign an account out everywhere
+  reset-password <username>                                    give an account a new random password (shown once)
   set-plan <username> <planId>                                 change the plan (e.g. trial-free)
   set-modules <username> <comma list>                          change the modules an account may use (e.g. gap)
   files-usage                                                  My files: files and megabytes per account (and each quota)
@@ -178,6 +179,21 @@ async function sessionsRevoke(args: ParsedArgs, io: AdminIo): Promise<void> {
   io.out(`${user.username} was signed out of ${removed} session${removed === 1 ? "" : "s"}.`);
 }
 
+async function resetPassword(args: ParsedArgs, io: AdminIo): Promise<void> {
+  const { store } = await openStore(args);
+  const user = await findUser(store, args.positional[1]);
+  // The new password is made here, never typed on the command line, so it does not end up in the shell history.
+  // It reuses the invite-code shape (4 groups of 5 easy-to-read characters), well above the minimum length.
+  const temporary = newInviteCode();
+  const passwordHash = await hashPassword(temporary);
+  await store.update<UserRecord[]>(usersFile(store), [], (all) => all.map((u) => (u.id === user.id ? { ...u, passwordHash } : u)));
+  // Whoever had the old password may still hold a session; a reset must close those too.
+  const removed = await deleteSessions(store, (s) => s.userId !== user.id);
+  await store.audit("password-reset", { userId: user.id, username: user.username, sessionsClosed: removed, actor: "admin-cli" });
+  io.out(`New password for ${user.username} (shown only this once, copy it now): ${temporary}`);
+  io.out(`${user.username} was signed out of ${removed} session${removed === 1 ? "" : "s"}. After signing in, choose your own with "Change password" in the account menu.`);
+}
+
 async function setPlan(args: ParsedArgs, io: AdminIo): Promise<void> {
   const { store } = await openStore(args);
   const user = await findUser(store, args.positional[1]);
@@ -272,6 +288,9 @@ export async function runAdmin(argv: string[], io: AdminIo): Promise<number> {
         break;
       case "sessions-revoke":
         await sessionsRevoke(args, io);
+        break;
+      case "reset-password":
+        await resetPassword(args, io);
         break;
       case "set-plan":
         await setPlan(args, io);
