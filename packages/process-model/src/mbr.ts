@@ -20,7 +20,7 @@ import { SEED_STATUSES } from "./trd-seed";
  */
 
 /** Version of the MBR format (shapes, output). Independent of the project schema version. */
-export const MBR_FORMAT_VERSION = "1.1.0";
+export const MBR_FORMAT_VERSION = "1.2.0";
 
 export const MBR_CHOICES = ["same_as_trd", "tightened_by_cmo", "not_decided"] as const;
 export type MbrChoice = (typeof MBR_CHOICES)[number];
@@ -124,11 +124,25 @@ export const mbrTimeLimitSchema = z.object({
 });
 export type MbrTimeLimit = z.infer<typeof mbrTimeLimitSchema>;
 
+/**
+ * The moments a sample can be taken at, in process words. A sampling-plan point has one (from its timing choice and from the hold it
+ * sits in); a block names the moments it has a place for (`sampleSlots`), so a sample is taken at its moment and not in a table step
+ * that comes after the work is done.
+ */
+export const MBR_SAMPLE_MOMENTS = ["beginning", "middle", "end", "after_stoppage", "after_intervention", "interval", "hold_start", "hold_during", "hold_end"] as const;
+export type MbrSampleMoment = (typeof MBR_SAMPLE_MOMENTS)[number];
+
 export const mbrStepSchema = z.object({
   /** ST-0001 ... never reused inside a record. */
   id: z.string().regex(/^ST-\d{4,}$/),
   /** Step text. "[[step:ST-0007]]" is a cross-reference to another step and is shown as "(Step 9.14)". */
   text: z.string(),
+  /**
+   * Set when the site wrote this step to tell the operator when to take samples (see placeSampleSteps): the moment and the plan points it
+   * names (MBR format 1.2.0). It lets a split record take the hold-start and hold-end sampling steps out of the process sections and show
+   * them on the hold entries instead, and put them back on a merge. Absent on steps typed by an author and on records made before.
+   */
+  placedFor: z.object({ moment: z.enum(MBR_SAMPLE_MOMENTS), points: z.array(z.string()) }).optional(),
 });
 export type MbrStep = z.infer<typeof mbrStepSchema>;
 
@@ -176,6 +190,27 @@ export const mbrSectionSchema = z.object({
 });
 export type MbrSection = z.infer<typeof mbrSectionSchema>;
 
+/**
+ * A batch record split in two parts at one point between two sections (MBR format 1.2.0). Part 1 is the compounding / mixing side and
+ * ends with the "hold start" entry; Part 2 is the filling side and opens with the "hold end" entry. It stays ONE record: both parts share
+ * the TRD links, notices, time limits and the continuous section and step numbers, and each part has its own document number because the
+ * two parts are issued, executed and signed as two documents. The author chooses the point; the site only suggests where a hold of the
+ * sampling plan sits and never splits by itself.
+ */
+export const mbrSplitSchema = z.object({
+  /** The split sits after this section: it and the sections before it are Part 1. It cannot be the last section (Part 2 would be empty). */
+  afterSectionId: z.string().regex(/^SC-\d{2,}$/),
+  part1DocRef: z.string().optional(),
+  part2DocRef: z.string().optional(),
+  /** The hold (HD-nn) of the record's sampling plan this gap is, if the author says so. The plan's hold-start and hold-end samples go on the entries. */
+  planHoldId: z.string().regex(/^HD-\d{2,}$/).optional(),
+  /** The time limit row (R-nnnn) of this record the elapsed hold time is compared with. Never preselected: absent reads "no limit stated". */
+  holdLimitId: z.string().regex(/^R-\d{4,}$/).optional(),
+  /** Sampling steps taken out of the sections when the split was made, so that a merge puts each back where it was. */
+  moved: z.array(z.object({ blockId: z.string(), at: z.number().int().min(0), step: mbrStepSchema })).optional(),
+});
+export type MbrSplit = z.infer<typeof mbrSplitSchema>;
+
 export const mbrRecordSchema = z
   .object({
     /** MBR-001, MBR-002 ... */
@@ -189,6 +224,8 @@ export const mbrRecordSchema = z
     planId: z.string().optional(),
     purpose: z.string().optional(),
     sections: z.array(mbrSectionSchema),
+    /** Absent = one unsplit record (as before MBR format 1.2.0). */
+    split: mbrSplitSchema.optional(),
     createdAt: z.string(),
     updatedAt: z.string(),
   })
@@ -211,6 +248,14 @@ export const mbrRecordSchema = z
           for (const g of t.targets) take(g.id, "row");
         }
       }
+    }
+    if (r.split) {
+      // The split must sit BETWEEN two sections: not before the first (the split is "after" a section) and not after the last.
+      const at = r.sections.findIndex((s) => s.id === r.split!.afterSectionId);
+      if (at < 0) ctx.addIssue({ code: "custom", message: `MBR ${r.id}: the split is after section ${r.split.afterSectionId}, which is not in the record` });
+      else if (at >= r.sections.length - 1) ctx.addIssue({ code: "custom", message: `MBR ${r.id}: the split must sit between two sections; Part 2 would be empty` });
+      const limits = new Set(r.sections.flatMap((s) => s.blocks.flatMap((b) => b.timeLimits.map((t) => t.id))));
+      if (r.split.holdLimitId && !limits.has(r.split.holdLimitId)) ctx.addIssue({ code: "custom", message: `MBR ${r.id}: the hold limit ${r.split.holdLimitId} is not a time limit of the record` });
     }
   });
 export type MbrRecord = z.infer<typeof mbrRecordSchema>;
@@ -246,14 +291,6 @@ export const mbrLibraryTimeLimitSchema = z.object({
   field: z.string().min(1),
 });
 export type MbrLibraryTimeLimit = z.infer<typeof mbrLibraryTimeLimitSchema>;
-
-/**
- * The moments a sample can be taken at, in process words. A sampling-plan point has one (from its timing choice and from the hold it
- * sits in); a block names the moments it has a place for (`sampleSlots`), so a sample is taken at its moment and not in a table step
- * that comes after the work is done.
- */
-export const MBR_SAMPLE_MOMENTS = ["beginning", "middle", "end", "after_stoppage", "after_intervention", "interval", "hold_start", "hold_during", "hold_end"] as const;
-export type MbrSampleMoment = (typeof MBR_SAMPLE_MOMENTS)[number];
 
 /**
  * A place in a block where samples of one moment are taken. `afterStep` is the place in the block (1 = after the first step, 0 = before

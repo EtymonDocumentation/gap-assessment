@@ -8,7 +8,7 @@ import { addAction, addItem, addReview, createAssessment, pointRef, setMethod, u
 import { addItemFromGap, addItemFromSuggestion, gapSeeds, suggestFailureModes } from "./risk-seed";
 import { acceptSuggestion, addAgencyRequest, addBatch, addFigureItem, addPoint, addStep, addSubsection, applyDesignLoadout, createPlan, projectScopeSteps, setParties, setPointFlow, setReadiness, setTimeZero, updatePlan, updatePlanDesign, updatePoint, updateStep, type PointPatch } from "./sampling";
 import { suggestPoints, type SamplingSuggestions } from "./sampling-seed";
-import { addMbrStep, addParamRow, addTarget, createMbr, setParam, stepRefToken, updateMbrStep } from "./mbr";
+import { addMbrStep, addParamRow, addTarget, createMbr, setParam, splitMbr, stepRefToken, updateMbrStep, updateSplit } from "./mbr";
 import { createTrd, setControl, setLimits, setOverride, updateTrd, updateTrdStep } from "./trd";
 import { buildTrdSeed } from "./trd-seed";
 import { addWriteupFromLibrary, moveWriteup, removePart, setBlankValue, setNotApplicable, setPartImage, setPartIncluded, setPartText, setTableRows } from "./trd-writeup";
@@ -249,6 +249,20 @@ const mbrDemoSchema = z.object({
   // Step texts the team wrote for this record: `text` replaces the text of step `step` (1 = first) of the block, `after` adds steps behind it.
   // Used for the worked buffer calculation, which is the record's own (the library only says how to calculate).
   steps: z.array(z.object({ uo: z.string(), block: z.string(), step: z.number().int(), text: z.string().optional(), after: z.array(z.string()).default([]) })).default([]),
+  // The record is split in two parts after the section of unit operation `after`, at the plan hold with the label `hold` (found in the first
+  // sampling plan). `limit` names the time limit row (by unit operation and library key) the elapsed hold time is compared with.
+  // `rewrite` changes the wording of steps that the split makes untrue (the end of the hold is now recorded in Part 2): the step of the
+  // block whose text contains `find` has each `from` text replaced by its `to` text.
+  split: z
+    .object({
+      after: z.string(),
+      hold: z.string().optional(),
+      part1DocRef: z.string().optional(),
+      part2DocRef: z.string().optional(),
+      limit: z.object({ uo: z.string(), limit: z.string() }).optional(),
+      rewrite: z.array(z.object({ uo: z.string(), block: z.string(), find: z.string(), replace: z.array(z.object({ from: z.string(), to: z.string() })) })).default([]),
+    })
+    .optional(),
   limits: z
     .array(
       z.object({
@@ -624,6 +638,26 @@ function applyMbrDemo(project: Project, content: ContentBundle, m: z.infer<typeo
         { label: t.label, value: t.value, ...(t.unit ? { unit: t.unit } : {}), ...(t.fromStep !== undefined ? { fromStepId: stepId(t.fromStep) } : {}), ...(t.toStep !== undefined ? { toStepId: stepId(t.toStep) } : {}) },
         who,
       ).project;
+    }
+  }
+  if (m.split) {
+    const sp = m.split;
+    const plan = project.sampling.plans[0];
+    const hold = sp.hold ? plan?.holds?.find((h) => h.label === sp.hold) : undefined;
+    if (sp.hold && !hold) throw new Error(`Demo MBR: the sampling plan has no hold "${sp.hold}"`);
+    project = splitMbr(project, recordId, { afterSectionId: sectionFor(sp.after).id, ...(hold ? { planHoldId: hold.id } : {}) }, who);
+    const limit = sp.limit ? sectionFor(sp.limit.uo).blocks.flatMap((b) => b.timeLimits).find((t) => t.key === sp.limit!.limit) : undefined;
+    if (sp.limit && !limit) throw new Error(`Demo MBR: ${sp.limit.uo} has no time limit ${sp.limit.limit}`);
+    project = updateSplit(project, recordId, { ...(sp.part1DocRef ? { part1DocRef: sp.part1DocRef } : {}), ...(sp.part2DocRef ? { part2DocRef: sp.part2DocRef } : {}), ...(limit ? { holdLimitId: limit.id } : {}) }, who);
+    for (const r of sp.rewrite) {
+      const step = sectionFor(r.uo).blocks.find((b) => b.libraryId === r.block)?.steps.find((x) => x.text.includes(r.find));
+      if (!step) throw new Error(`Demo MBR: ${r.uo} has no step with the text "${r.find}" in block ${r.block}`);
+      let text = step.text;
+      for (const x of r.replace) {
+        if (!text.includes(x.from)) throw new Error(`Demo MBR: the step "${r.find}" has no text "${x.from}"`);
+        text = text.replace(x.from, () => x.to);
+      }
+      project = updateMbrStep(project, recordId, step.id, text, who);
     }
   }
   return project;

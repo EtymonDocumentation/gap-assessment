@@ -215,6 +215,7 @@ describe("public API", () => {
         "mbrSampleRowSchema",
         "mbrSampleSlotSchema",
         "mbrSectionSchema",
+        "mbrSplitSchema",
         "mbrStateSchema",
         "mbrStepSchema",
         "mbrTargetSchema",

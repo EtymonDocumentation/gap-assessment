@@ -3319,3 +3319,18 @@ table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
   top: 100%;
   margin-top: 0;
 }
+
+/* ---------------------------------------------------------------- split batch record */
+.split-gap {
+  display: grid;
+  gap: 8px;
+  padding: 4px 0;
+}
+.split-part {
+  margin-left: 12px;
+  font-size: 0.8rem;
+  vertical-align: middle;
+}
+.split-panel {
+  border-left: 4px solid var(--accent);
+}

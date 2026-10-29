@@ -11,9 +11,11 @@ import {
   type MbrSampleMoment,
   type MbrRecord,
   type MbrSampleRow,
+  type MbrSplit,
   type MbrSection,
   type MbrTimeLimit,
   type MbrTrdRef,
+  type PlanHold,
   type Project,
   type SamplingPlan,
   type SamplingPoint,
@@ -79,6 +81,8 @@ function issuerFor(project: Project, rec: MbrRecord | undefined, recordId: strin
     if (m) max[m[1] as Prefix] = Math.max(max[m[1] as Prefix], Number(m[2]));
   };
   if (rec) {
+    // A sampling step parked by a split is not in any block, yet its id is still the record's: a new step must never reuse it.
+    rec.split?.moved?.forEach((m) => take(m.step.id));
     for (const s of rec.sections) {
       take(s.id);
       for (const b of s.blocks) {
@@ -129,6 +133,8 @@ function mutate(project: Project, recordId: string, actor: Actor, fn: (rec: MbrR
   const rec = recOf(next, recordId);
   const ev = fn(rec, issuerFor(next, rec, recordId));
   if (!ev) return project;
+  const note = keepSplitValid(rec);
+  if (note) ev.detail = `${ev.detail} (${note})`;
   rec.updatedAt = actor.at;
   assertValid(rec);
   log(next, actor, ev);
@@ -285,6 +291,9 @@ export function sampleMomentKey(p: SamplingPoint): MbrSampleMoment | undefined {
   return (MBR_SAMPLE_MOMENTS as readonly string[]).includes(o) ? (o as MbrSampleMoment) : undefined;
 }
 
+/** "sample SP-001" or "samples SP-001, SP-002": how a placed sampling step names its sample numbers. */
+const samplesWords = (points: readonly string[]) => `sample${points.length === 1 ? "" : "s"} ${points.join(", ")}`;
+
 /**
  * Puts a sampling step into the blocks of a section at the place each block names for the moment (its `sampleSlots`), for the sample rows
  * the section holds. A batch record is worked step by step: a sample due at the start of mixing is taken at that step, not in a table step
@@ -310,16 +319,19 @@ export function placeSampleSteps(section: MbrSection, libs: readonly (MbrLibrary
       const points = byMoment.get(s.moment);
       if (!points?.length) continue;
       const at = Math.max(0, Math.min(s.afterStep, block.steps.length));
-      block.steps.splice(at, 0, { id: ids("ST"), text: s.text.replace("{samples}", `sample${points.length === 1 ? "" : "s"} ${points.join(", ")}`) });
+      block.steps.splice(at, 0, { id: ids("ST"), text: s.text.replace("{samples}", samplesWords(points)), placedFor: { moment: s.moment, points: [...points] } });
     }
   });
 }
 
-/** Sample rows no step of their section names (by the point number): nobody is told when to take them. */
-export function unplacedSamples(section: MbrSection): { blockId: string; rowId: string; pointId: string; test: string }[] {
+/**
+ * Sample rows no step of their section names (by the point number): nobody is told when to take them. `onEntries` holds the point numbers
+ * that a split record prints on its hold entries (see holdEntryInfo): those samples are told there and are not open.
+ */
+export function unplacedSamples(section: MbrSection, onEntries: ReadonlySet<string> = new Set()): { blockId: string; rowId: string; pointId: string; test: string }[] {
   const texts = section.blocks.flatMap((b) => b.steps.map((s) => s.text));
   const out: { blockId: string; rowId: string; pointId: string; test: string }[] = [];
-  for (const b of section.blocks) for (const r of b.samples) if (!texts.some((t) => new RegExp(`(^|[^\\w-])${r.pointId}(?![\\w-])`).test(t))) out.push({ blockId: b.id, rowId: r.id, pointId: r.pointId, test: r.test });
+  for (const b of section.blocks) for (const r of b.samples) if (!onEntries.has(r.pointId) && !texts.some((t) => new RegExp(`(^|[^\\w-])${r.pointId}(?![\\w-])`).test(t))) out.push({ blockId: b.id, rowId: r.id, pointId: r.pointId, test: r.test });
   return out;
 }
 
@@ -502,6 +514,248 @@ export function removeSection(project: Project, recordId: string, sectionId: str
     const s = sectionOf(rec, sectionId);
     rec.sections = rec.sections.filter((x) => x.id !== sectionId);
     return { action: "mbr_section_remove", path: `mbr.${rec.id}.${s.id}`, detail: `Section "${s.title}" removed from ${rec.id} (with ${s.blocks.length} blocks)`, before: { title: s.title, blocks: s.blocks } };
+  });
+}
+
+// ------------------------------------------------------------------ split into two parts
+
+/*
+ * A record can be split in two parts at one point between two sections (Part 1 = compounding / mixing side, Part 2 = filling side) because
+ * the product waits in a hold between them and the two parts are issued and signed as two documents (PDA TR 65 describes a record split
+ * in a mixing part and a filling part with a defined hold start and hold end entry; it gives no numbers and neither does this code).
+ * The record stays ONE record: section and step numbers run on across the parts, so "(Step 7.3)" means the same step wherever it is read,
+ * and the TRD links, notices and time limits are shared. The tool never splits by itself: mbrHoldSuggestions only points at a hold of the
+ * sampling plan for the author to consider.
+ */
+
+export type MbrPart = 1 | 2;
+
+/** Index of the last section of Part 1, or -1 for an unsplit record. */
+export function splitIndex(rec: MbrRecord): number {
+  return rec.split ? rec.sections.findIndex((s) => s.id === rec.split!.afterSectionId) : -1;
+}
+
+/** The sections of a part. An unsplit record has only Part 1 and it is the whole record. */
+export function sectionsOfPart(rec: MbrRecord, part: MbrPart): MbrSection[] {
+  const at = splitIndex(rec);
+  if (at < 0) return part === 1 ? rec.sections : [];
+  return part === 1 ? rec.sections.slice(0, at + 1) : rec.sections.slice(at + 1);
+}
+
+/** A hold of the sampling plan that sits in the gap after a section: a place the author may want to split at. */
+export interface MbrHoldSuggestion {
+  afterSectionId: string;
+  hold: PlanHold;
+  stepLabel: string;
+}
+
+/**
+ * Holds of the record's sampling plan that fall between two sections. A hold sits after a plan step (`afterStepId`); the gap after the
+ * section whose unit operation is that step's is where it falls. Holds of a sub-process (the buffer preparation) are not a wait in the main
+ * line and are left out; a custom plan step has no unit operation to match. This only POINTS at a gap: nothing is split or preselected.
+ */
+export function mbrHoldSuggestions(plan: SamplingPlan | undefined, rec: MbrRecord): MbrHoldSuggestion[] {
+  if (!plan) return [];
+  const out: MbrHoldSuggestion[] = [];
+  rec.sections.forEach((s, i) => {
+    if (i >= rec.sections.length - 1 || !s.unitOp) return;
+    for (const hold of plan.holds ?? []) {
+      const step = plan.steps.find((x) => x.id === hold.afterStepId);
+      if (step && !step.subProcess && step.unitOp === s.unitOp) out.push({ afterSectionId: s.id, hold, stepLabel: step.label });
+    }
+  });
+  return out;
+}
+
+/** What one hold entry prints: which edge of the hold it is and the plan samples taken there. */
+export interface HoldEntry {
+  edge: "start" | "end";
+  /** Part the entry belongs to: the start closes Part 1, the end opens Part 2. */
+  part: MbrPart;
+  samples: MbrSampleRow[];
+}
+
+export interface HoldEntryInfo {
+  /** The plan hold the author named for the gap. Absent when none was named, or when the plan no longer has it (`holdMissing`). */
+  hold?: PlanHold;
+  holdMissing: boolean;
+  /** The time limit row of the record the elapsed hold time is compared with. Absent: "no limit stated". */
+  limit?: MbrTimeLimit;
+  entries: HoldEntry[];
+}
+
+/**
+ * The content of the hold-start and hold-end entries of a split record. The samples are those of the sampling plan that sit in the named
+ * hold at its start (Part 1 entry) and at its end (Part 2 entry); they are read from the sample rows the record already holds, so the plan
+ * stays the record of truth. Nothing is guessed: no named hold gives entries without samples, and no limit row reads "no limit stated".
+ */
+export function holdEntryInfo(project: Project, rec: MbrRecord): HoldEntryInfo {
+  const sp = rec.split;
+  if (!sp) return { holdMissing: false, entries: [] };
+  const plan = planOf(project, rec);
+  const hold = sp.planHoldId ? (plan?.holds ?? []).find((h) => h.id === sp.planHoldId) : undefined;
+  const rows = rec.sections.flatMap((s) => s.blocks.flatMap((b) => b.samples));
+  const at = (moment: MbrSampleMoment) =>
+    hold && plan
+      ? rows.filter((r) => {
+          const pt = plan.points.find((p) => p.id === r.pointId);
+          return pt?.flow?.holdId === hold.id && sampleMomentKey(pt) === moment;
+        })
+      : [];
+  const limit = sp.holdLimitId ? rec.sections.flatMap((s) => s.blocks.flatMap((b) => b.timeLimits)).find((t) => t.id === sp.holdLimitId) : undefined;
+  return {
+    ...(hold ? { hold } : {}),
+    holdMissing: Boolean(sp.planHoldId && !hold),
+    ...(limit ? { limit } : {}),
+    entries: [
+      { edge: "start", part: 1, samples: at("hold_start") },
+      { edge: "end", part: 2, samples: at("hold_end") },
+    ],
+  };
+}
+
+/**
+ * Takes the hold-start and hold-end sampling steps of the named hold out of the process sections (they are told on the hold entries now).
+ * A step that names samples of other holds too keeps those: only the numbers of this hold leave it. The original step is parked in
+ * `split.moved` so that a merge puts the sections back exactly as they were.
+ */
+function takeHoldSteps(rec: MbrRecord, plan: SamplingPlan, holdId: string): NonNullable<MbrSplit["moved"]> {
+  const inHold = new Set(plan.points.filter((p) => p.flow?.holdId === holdId).map((p) => p.id));
+  const moved: NonNullable<MbrSplit["moved"]> = [];
+  for (const s of rec.sections) for (const b of s.blocks) {
+    for (let i = b.steps.length - 1; i >= 0; i--) {
+      const st = b.steps[i]!;
+      const pf = st.placedFor;
+      if (!pf || (pf.moment !== "hold_start" && pf.moment !== "hold_end") || !pf.points.some((id) => inHold.has(id))) continue;
+      const rest = pf.points.filter((id) => !inHold.has(id));
+      if (rest.length === 0) {
+        b.steps.splice(i, 1);
+      } else {
+        const listed = samplesWords(pf.points);
+        if (!st.text.includes(listed)) continue; // the author reworded the step: leave their text alone
+        b.steps[i] = { ...st, text: st.text.replace(listed, samplesWords(rest)), placedFor: { moment: pf.moment, points: rest } };
+      }
+      moved.push({ blockId: b.id, at: i, step: st });
+    }
+  }
+  return moved.reverse();
+}
+
+/** Puts the parked sampling steps back (a step that was only shortened is replaced by its original). A block that is gone drops its step. */
+function putBackHoldSteps(rec: MbrRecord): void {
+  for (const m of rec.split?.moved ?? []) {
+    const block = rec.sections.flatMap((s) => s.blocks).find((b) => b.id === m.blockId);
+    if (!block) continue;
+    const now = block.steps.findIndex((x) => x.id === m.step.id);
+    if (now >= 0) block.steps[now] = m.step;
+    else block.steps.splice(Math.min(m.at, block.steps.length), 0, m.step);
+  }
+}
+
+/**
+ * Called after every edit: a split must keep sitting between two sections and its hold limit must still exist. When an edit (a section
+ * removed or moved last, a time limit removed) breaks that, the split is merged back (or the limit link dropped) and the change-log event
+ * says so. The alternative, refusing the edit, would make removing a section impossible while a split points at it.
+ */
+function keepSplitValid(rec: MbrRecord): string | undefined {
+  const sp = rec.split;
+  if (!sp) return undefined;
+  const at = rec.sections.findIndex((s) => s.id === sp.afterSectionId);
+  if (at < 0 || at >= rec.sections.length - 1) {
+    putBackHoldSteps(rec);
+    delete rec.split;
+    return "the split was removed and the record is one again, because a part would have been empty";
+  }
+  if (sp.holdLimitId && !rec.sections.some((s) => s.blocks.some((b) => b.timeLimits.some((t) => t.id === sp.holdLimitId)))) {
+    delete sp.holdLimitId;
+    return "the time limit the hold entries were compared with is gone, so they now read no limit stated";
+  }
+  return undefined;
+}
+
+const holdWords = (plan: SamplingPlan | undefined, id: string | undefined) => (id ? (plan?.holds ?? []).find((h) => h.id === id)?.label ?? id : undefined);
+
+/** Splits the record after a section the author chose. `planHoldId` is optional: the author says which plan hold this gap is. */
+export function splitMbr(project: Project, recordId: string, input: { afterSectionId: string; planHoldId?: string }, actor: Actor): Project {
+  return mutate(project, recordId, actor, (rec) => {
+    if (rec.split) throw new MbrError(`${rec.id} is already split; merge the parts first`);
+    const at = rec.sections.findIndex((s) => s.id === input.afterSectionId);
+    if (at < 0) throw new MbrError(`Section ${input.afterSectionId} is not in ${rec.id}`);
+    if (at >= rec.sections.length - 1) throw new MbrError("The split must sit between two sections: Part 2 would be empty");
+    const plan = planOf(project, rec);
+    if (input.planHoldId && !(plan?.holds ?? []).some((h) => h.id === input.planHoldId)) throw new MbrError(`Hold ${input.planHoldId} is not in the sampling plan of ${rec.id}`);
+    const split: MbrSplit = clean({ afterSectionId: input.afterSectionId, planHoldId: input.planHoldId });
+    rec.split = split;
+    if (input.planHoldId && plan) {
+      const moved = takeHoldSteps(rec, plan, input.planHoldId);
+      if (moved.length) split.moved = moved;
+    }
+    const a = rec.sections[at]!;
+    const b = rec.sections[at + 1]!;
+    return { action: "mbr_split", path: `mbr.${rec.id}`, detail: `Batch record ${rec.id} split into two parts between "${a.title}" and "${b.title}"`, after: clean({ afterSection: a.title, hold: holdWords(plan, input.planHoldId) }) };
+  });
+}
+
+/** Undoes the split: one record again, with the sampling steps back where they were. The document numbers of the parts stay in the change log. */
+export function mergeMbr(project: Project, recordId: string, actor: Actor): Project {
+  return mutate(project, recordId, actor, (rec) => {
+    const sp = rec.split;
+    if (!sp) return undefined;
+    const plan = planOf(project, rec);
+    putBackHoldSteps(rec);
+    delete rec.split;
+    return { action: "mbr_merge", path: `mbr.${rec.id}`, detail: `Parts of batch record ${rec.id} merged back into one`, before: clean({ part1DocRef: sp.part1DocRef, part2DocRef: sp.part2DocRef, hold: holdWords(plan, sp.planHoldId) }) };
+  });
+}
+
+export interface SplitPatch {
+  part1DocRef?: string;
+  part2DocRef?: string;
+  /** null clears it. */
+  planHoldId?: string | null;
+  holdLimitId?: string | null;
+}
+
+/** Edits the document numbers of the parts, the plan hold the gap is, and the time limit the elapsed hold time is compared with. */
+export function updateSplit(project: Project, recordId: string, patch: SplitPatch, actor: Actor): Project {
+  return mutate(project, recordId, actor, (rec) => {
+    const sp = rec.split;
+    if (!sp) throw new MbrError(`${rec.id} is not split`);
+    const plan = planOf(project, rec);
+    const before: Record<string, string | undefined> = {};
+    const after: Record<string, string | undefined> = {};
+    for (const k of ["part1DocRef", "part2DocRef"] as const) {
+      if (patch[k] === undefined) continue;
+      const v = text(patch[k]) || undefined;
+      if (sp[k] === v) continue;
+      before[k] = sp[k];
+      after[k] = v;
+      if (v === undefined) delete sp[k];
+      else sp[k] = v;
+    }
+    if (patch.holdLimitId !== undefined && (patch.holdLimitId ?? undefined) !== sp.holdLimitId) {
+      const label = (id: string | undefined) => (id ? rec.sections.flatMap((s) => s.blocks.flatMap((b) => b.timeLimits)).find((t) => t.id === id)?.label ?? id : undefined);
+      before.holdLimit = label(sp.holdLimitId);
+      after.holdLimit = label(patch.holdLimitId ?? undefined);
+      if (patch.holdLimitId === null) delete sp.holdLimitId;
+      else sp.holdLimitId = patch.holdLimitId;
+    }
+    if (patch.planHoldId !== undefined && (patch.planHoldId ?? undefined) !== sp.planHoldId) {
+      if (patch.planHoldId && !(plan?.holds ?? []).some((h) => h.id === patch.planHoldId)) throw new MbrError(`Hold ${patch.planHoldId} is not in the sampling plan of ${rec.id}`);
+      before.hold = holdWords(plan, sp.planHoldId);
+      after.hold = holdWords(plan, patch.planHoldId ?? undefined);
+      // The sampling steps follow the hold: the old ones go back, the new hold's leave the sections.
+      putBackHoldSteps(rec);
+      delete sp.moved;
+      if (patch.planHoldId === null) delete sp.planHoldId;
+      else {
+        sp.planHoldId = patch.planHoldId;
+        const moved = plan ? takeHoldSteps(rec, plan, patch.planHoldId) : [];
+        if (moved.length) sp.moved = moved;
+      }
+    }
+    if (Object.keys(after).length === 0) return undefined;
+    return { action: "mbr_split_update", path: `mbr.${rec.id}`, detail: `Split of batch record ${rec.id} edited`, before, after };
   });
 }
 
@@ -1194,7 +1448,8 @@ export function mbrOpenItems(project: Project, rec: MbrRecord, library: readonly
       else if (r.choice === "same_as_trd" && !r.mbrValue) out.push({ kind: "no_trd_value", where, text: "Same as TRD, but the TRD value is not held by the site", blockId: b.id, rowId: r.id });
     }
   }
-  for (const s of rec.sections) for (const x of unplacedSamples(s)) out.push({ kind: "sample_not_placed", where: `${s.title}, sample ${x.pointId}`, text: `No step names this sample (${x.test}): add the step where it is taken`, blockId: x.blockId, rowId: x.rowId });
+  const onEntries = new Set(holdEntryInfo(project, rec).entries.flatMap((e) => e.samples.map((x) => x.pointId)));
+  for (const s of rec.sections) for (const x of unplacedSamples(s, onEntries)) out.push({ kind: "sample_not_placed", where: `${s.title}, sample ${x.pointId}`, text: `No step names this sample (${x.test}): add the step where it is taken`, blockId: x.blockId, rowId: x.rowId });
   for (const q of trdRequirementsWithoutStep(rec, trdOf(project, rec), library)) out.push({ kind: "no_step", where: `${q.stepLabel}, ${q.label}`, text: "TRD requirement without an MBR step" });
   for (const x of brokenReferences(rec)) {
     const s = rec.sections.find((sec) => sec.id === x.sectionId)!;

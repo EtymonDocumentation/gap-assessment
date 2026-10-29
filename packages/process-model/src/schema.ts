@@ -525,6 +525,14 @@ const MIGRATIONS: { from: string; to: string; migrate: Migrate }[] = [
     to: "1.24.0",
     migrate: (raw) => ({ ...raw, schemaVersion: "1.24.0" }),
   },
+  // 1.24.0 -> 1.25.0: MBR format 1.2.0 (an optional "split" of a batch record into two parts at a hold, with a document number per part,
+  // and an optional marker on a step the site placed for a sample moment). Both are optional and absent in every older record, so no data
+  // changes; only the version moves and an older project opens unchanged.
+  {
+    from: "1.24.0",
+    to: "1.25.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.25.0" }),
+  },
 ];
 
 /**

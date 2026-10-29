@@ -65,7 +65,7 @@ describe("a project stored by a 1.9.0 build", () => {
     const put = await c.put(`/api/projects/${PROJECT_ID}`, { project: oldStoredFile().project, baseRevision: 1 });
     expect(put.status).toBe(200);
     const saved = (await c.get(`/api/projects/${PROJECT_ID}`)).json.project;
-    expect(saved.schemaVersion).toBe("1.24.0");
+    expect(saved.schemaVersion).toBe("1.25.0");
     expect(saved.stepScope).toEqual({ excluded: [] });
     expect(saved.document.revisions).toBeUndefined();
     expect(saved.document.comments).toBeUndefined();
@@ -79,7 +79,7 @@ describe("a project stored by a 1.9.0 build", () => {
     const made = await c.post("/api/projects", { project: oldStoredFile().project });
     expect(made.status).toBe(201);
     const saved = (await c.get(`/api/projects/${made.json.id}`)).json.project;
-    expect(saved.schemaVersion).toBe("1.24.0");
+    expect(saved.schemaVersion).toBe("1.25.0");
     expect(saved.document.archivedReview.comments).toEqual([COMMENT]);
   });
 });

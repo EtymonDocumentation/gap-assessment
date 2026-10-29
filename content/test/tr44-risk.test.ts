@@ -164,7 +164,7 @@ describe("old files migrate with only a version change", () => {
     const old = structuredClone(base) as unknown as Record<string, unknown>;
     old.schemaVersion = "1.23.0";
     const p = parseProject(old);
-    expect(p.schemaVersion).toBe("1.24.0");
+    expect(p.schemaVersion).toBe("1.25.0");
     expect(p.risk.assessments).toEqual(base.risk.assessments);
   });
 });
