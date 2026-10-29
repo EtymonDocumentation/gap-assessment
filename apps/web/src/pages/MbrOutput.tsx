@@ -22,9 +22,13 @@ export function MbrOutput({ rec }: { rec: MbrRecord }) {
   const [showPreview, setShowPreview] = useState(false);
 
   const choice = useWordChoice();
-  const doc = useMemo(() => buildMbrDocument(project, rec, { generatedAt, appVersion: APP_VERSION, catalogVersion: content.versions.catalog }), [project, rec, content, generatedAt]);
+  // A split record can be exported whole or one part at a time (each part has its own document number). "whole" is the default so an
+  // unsplit record, and a split one nobody chose a part for, come out exactly as before.
+  const [partChoice, setPartChoice] = useState<"whole" | "1" | "2">("whole");
+  const part = rec.split && partChoice !== "whole" ? (Number(partChoice) as 1 | 2) : undefined;
+  const doc = useMemo(() => buildMbrDocument(project, rec, { generatedAt, appVersion: APP_VERSION, catalogVersion: content.versions.catalog, part }), [project, rec, content, generatedAt, part]);
   const body = useMemo(() => (showPreview ? renderHtmlBody(doc) : ""), [doc, showPreview]);
-  const stamp = `${project.meta.id}-${rec.id}-${today()}`;
+  const stamp = `${project.meta.id}-${rec.id}${part ? `-part${part}` : ""}-${today()}`;
   const tbd = doc.tbdCount ?? 0;
 
   const [pending, setPending] = useState<(() => void) | null>(null);
@@ -60,6 +64,19 @@ export function MbrOutput({ rec }: { rec: MbrRecord }) {
         <p>
           {mbrBasisText(project.meta.id, rec)} The document has one section per unit operation in process order, with automatic step numbers, parameter tables that show the TRD value and its source beside the MBR value, a time-limit table, sample tables from the sampling plan, and a "To be completed by the CMO" place for everything only the CMO can state. It states no filing category: the only wording is "Requires regulatory affairs assessment".
         </p>
+        {rec.split && (
+          <fieldset className="field" data-testid="mbr-part-choice">
+            <legend>Which document</legend>
+            <div className="row wrap">
+              {([["whole", "Whole record (both parts)"], ["1", `Part 1${rec.split.part1DocRef?.trim() ? ` (${rec.split.part1DocRef.trim()})` : ""}`], ["2", `Part 2${rec.split.part2DocRef?.trim() ? ` (${rec.split.part2DocRef.trim()})` : ""}`]] as const).map(([v, label]) => (
+                <label key={v} className="row">
+                  <input type="radio" name="mbr-part" value={v} checked={partChoice === v} onChange={() => setPartChoice(v)} data-testid={`mbr-part-${v}`} />
+                  <span>{label}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
         <div className="row wrap">
           <button
             type="button"

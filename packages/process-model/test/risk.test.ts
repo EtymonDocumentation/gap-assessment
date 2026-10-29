@@ -86,7 +86,7 @@ describe("project schema 1.14.0 (risk), read by 1.15.0", () => {
     old.schemaVersion = "1.13.0";
     delete old.risk;
     const p = parseProject(old);
-    expect(p.schemaVersion).toBe("1.24.0");
+    expect(p.schemaVersion).toBe("1.25.0");
     expect(p.risk).toEqual({ assessments: [] });
     expect(p.meta.title).toBe("Risk schema test (fictional)");
   });

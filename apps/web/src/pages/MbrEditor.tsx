@@ -5,20 +5,26 @@ import {
   addSection,
   blocksForUnitOp,
   deleteMbr,
+  holdEntryInfo,
+  mbrHoldSuggestions,
   mbrOpenItems,
+  mergeMbr,
   moveSection,
   numberSteps,
   removeBlock,
   removeSection,
   sampleNotices,
+  splitIndex,
+  splitMbr,
   trdNotices,
   trdRequirementsWithoutStep,
   updateMbr,
   updateSection,
+  updateSplit,
   type TrdRequirement,
 } from "@gap/engine";
-import type { MbrRecord, MbrSection } from "@gap/process-model";
-import { useMemo, useRef, useState } from "react";
+import type { MbrRecord, MbrSection, SamplingPlan } from "@gap/process-model";
+import { Fragment, useMemo, useRef, useState } from "react";
 import { PageBanner } from "../art";
 import { Modal } from "../components";
 import { dateTime } from "../lib";
@@ -51,6 +57,9 @@ export function MbrEditor({ rec }: { rec: MbrRecord }) {
   const plan = project.sampling.plans.find((p) => p.id === rec.planId);
   const open = useMemo(() => mbrOpenItems(project, rec, library), [project, rec, library]);
   const requirements = useMemo(() => trdRequirementsWithoutStep(rec, trd, library), [rec, trd, library]);
+  const cut = splitIndex(rec);
+  // Only a pointer: the author decides whether to split there. Nothing is split or preselected from this.
+  const suggestions = useMemo(() => mbrHoldSuggestions(plan, rec), [plan, rec]);
 
   const toggle = (id: string) =>
     setOpenBlocks((s) => {
@@ -121,12 +130,13 @@ export function MbrEditor({ rec }: { rec: MbrRecord }) {
         </div>
         {rec.sections.length === 0 && <p className="muted">No sections yet. Add one below.</p>}
         {rec.sections.map((s, si) => (
+          <Fragment key={s.id}>
           <SectionView
-            key={s.id}
             rec={rec}
             section={s}
             index={si}
             count={rec.sections.length}
+            part={cut < 0 ? undefined : si <= cut ? 1 : 2}
             env={{ rec, section: s, numbers, library, trdNotices: trdN, sampleNotices: sampleN, run }}
             openBlocks={openBlocks}
             toggle={toggle}
@@ -141,6 +151,8 @@ export function MbrEditor({ rec }: { rec: MbrRecord }) {
               setConfirm({ kind: "block", blockId, title });
             }}
           />
+          {si < rec.sections.length - 1 && <SplitGap rec={rec} section={s} plan={plan} suggestions={suggestions.filter((x) => x.afterSectionId === s.id)} run={run} />}
+          </Fragment>
         ))}
         <AddSection rec={rec} run={run} />
       </section>
@@ -378,6 +390,7 @@ function SectionView({
   section,
   index,
   count,
+  part,
   env,
   openBlocks,
   toggle,
@@ -390,6 +403,8 @@ function SectionView({
   section: MbrSection;
   index: number;
   count: number;
+  /** Which part of a split record the section is in. Absent for a record that is not split. */
+  part: 1 | 2 | undefined;
   env: BlockEnv;
   openBlocks: Set<string>;
   toggle: (id: string) => void;
@@ -410,6 +425,11 @@ function SectionView({
         {!renaming ? (
           <h3 id={`mbr-sec-${section.id}`}>
             {index + 1}. {section.title}
+            {part && (
+              <span className="guide-badge split-part" data-testid={`mbr-part-label-${section.id}`}>
+                Part {part}
+              </span>
+            )}
           </h3>
         ) : (
           <label className="field grow">
@@ -520,5 +540,131 @@ function AddSection({ rec, run }: { rec: MbrRecord; run: Run }) {
         Add section
       </button>
     </div>
+  );
+}
+
+/**
+ * The gap after a section. An unsplit record offers "Split here" (and, when the sampling plan has a hold at this gap, says so: the hint is
+ * only a pointer, the author chooses). The gap where the record is split shows the two hold entries and the settings of the split.
+ */
+function SplitGap({ rec, section, plan, suggestions, run }: { rec: MbrRecord; section: MbrSection; plan: SamplingPlan | undefined; suggestions: ReturnType<typeof mbrHoldSuggestions>; run: Run }) {
+  const project = useStore((s) => s.project)!;
+  const split = rec.split;
+  if (split) return split.afterSectionId === section.id ? <SplitPanel rec={rec} plan={plan} run={run} info={holdEntryInfo(project, rec)} /> : null;
+  return (
+    <div className="split-gap no-print" data-testid={`mbr-gap-${section.id}`}>
+      {suggestions.map((x) => (
+        <p key={x.hold.id} className="notice small" data-testid={`mbr-split-hint-${section.id}`}>
+          The sampling plan has a hold here: {x.hold.label}
+        </p>
+      ))}
+      <div className="row wrap">
+        <button
+          type="button"
+          className="btn small"
+          data-testid={`mbr-split-${section.id}`}
+          aria-label={`Split here, after section ${section.title}`}
+          onClick={() => run((p, a) => splitMbr(p, rec.id, { afterSectionId: section.id }, a), "Record split into two parts")}
+        >
+          Split here
+        </button>
+        {suggestions.map((x) => (
+          <button
+            key={x.hold.id}
+            type="button"
+            className="btn small"
+            data-testid={`mbr-split-with-${x.hold.id}`}
+            onClick={() => run((p, a) => splitMbr(p, rec.id, { afterSectionId: section.id, planHoldId: x.hold.id }, a), "Record split into two parts")}
+          >
+            Split here and use the hold {x.hold.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SplitPanel({ rec, plan, run, info }: { rec: MbrRecord; plan: SamplingPlan | undefined; run: Run; info: ReturnType<typeof holdEntryInfo> }) {
+  const split = rec.split!;
+  const [ref1, setRef1] = useState(split.part1DocRef ?? "");
+  const [ref2, setRef2] = useState(split.part2DocRef ?? "");
+  const limits = rec.sections.flatMap((s) => s.blocks.flatMap((b) => b.timeLimits));
+  const patch = (p: Parameters<typeof updateSplit>[2], status: string) => run((pr, a) => updateSplit(pr, rec.id, p, a), status);
+  return (
+    <section className="card stack split-panel" aria-labelledby="mbr-split-h" data-testid="mbr-split-panel">
+      <div className="row wrap between">
+        <h3 id="mbr-split-h">Split of the record: Part 1 ends here, Part 2 starts after the hold</h3>
+        <button type="button" className="btn small" data-testid="mbr-merge" onClick={() => run((p, a) => mergeMbr(p, rec.id, a), "Parts merged back into one record")}>
+          Merge the parts
+        </button>
+      </div>
+      <p className="small muted">
+        Both parts are one record: they share the TRD links, notices and time limits, and the section and step numbers run on from Part 1 into Part 2. Each part has its own document number and its own Word export.
+      </p>
+      <div className="row wrap end-align">
+        <label className="field grow">
+          <span>Part 1 document number</span>
+          <input value={ref1} onChange={(e) => setRef1(e.target.value)} data-testid="mbr-split-ref1" />
+        </label>
+        <label className="field grow">
+          <span>Part 2 document number</span>
+          <input value={ref2} onChange={(e) => setRef2(e.target.value)} data-testid="mbr-split-ref2" />
+        </label>
+        <button type="button" className="btn small" data-testid="mbr-split-refs-save" onClick={() => patch({ part1DocRef: ref1, part2DocRef: ref2 }, "Document numbers saved")}>
+          Save document numbers
+        </button>
+      </div>
+      <div className="row wrap end-align">
+        <label className="field grow">
+          <span>Hold of the sampling plan at this gap</span>
+          <select value={split.planHoldId ?? ""} onChange={(e) => patch({ planHoldId: e.target.value || null }, "Hold changed")} data-testid="mbr-split-hold">
+            <option value="">No hold chosen</option>
+            {(plan?.holds ?? []).map((h) => (
+              <option key={h.id} value={h.id}>
+                {h.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field grow">
+          <span>Hold time limit the elapsed time is compared with</span>
+          <select value={split.holdLimitId ?? ""} onChange={(e) => patch({ holdLimitId: e.target.value || null }, "Hold time limit changed")} data-testid="mbr-split-limit">
+            <option value="">No limit stated</option>
+            {limits.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.label}
+                {t.value ? `: ${t.value}${t.unit ? ` ${t.unit}` : ""}` : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      {info.holdMissing && <p className="notice small">The hold named earlier is no longer in the sampling plan. Choose another or none.</p>}
+      <div className="table-scroll" role="region" aria-label="Hold entries where the parts meet" tabIndex={0}>
+        <table data-testid="mbr-split-entries">
+          <caption>Hold entries where the parts meet</caption>
+          <thead>
+            <tr>
+              <th scope="col">Entry</th>
+              <th scope="col">Part</th>
+              <th scope="col">Samples from the sampling plan</th>
+            </tr>
+          </thead>
+          <tbody>
+            {info.entries.map((e) => (
+              <tr key={e.edge} data-testid={`mbr-split-entry-${e.edge}`}>
+                <th scope="row">{e.edge === "start" ? "Hold start (end of Part 1)" : "Hold end (start of Part 2)"}</th>
+                <td>Part {e.part}</td>
+                <td>{e.samples.length ? e.samples.map((x) => `${x.pointId} ${x.test}`).join(", ") : info.hold ? "none in the plan" : "no hold chosen"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="small muted">
+        Each entry has write-in lines for date and time, done by, checked by, vessel or bag ID, storage temperature and room. The hold-end entry also has the elapsed hold time, written by the operator next to{" "}
+        {info.limit ? `the limit "${info.limit.label}"` : 'the words "No limit stated"'}.
+      </p>
+    </section>
   );
 }

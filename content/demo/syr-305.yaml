@@ -1341,6 +1341,30 @@ mbr:
       block: storage_and_shipment
       step: 1
       text: "Record the location and the conditions of storage and the monitoring device. The storage temperature range is 2 to 8 °C. The shipping temperature range is not in the TRD and is entered before the record is issued: {shipping temperature range}, {location}, {conditions}, {monitor ID}."
+  # One record, two parts (the product owner chose the split point): Part 1 is the compounding and bioburden-reduction side and ends with the
+  # hold-start entry; Part 2 opens with the hold-end entry and holds the sterile filtration and filling side. The hold is the post-BBR bulk
+  # hold in the holding bag of the sampling plan; the elapsed hold time is compared with the record's own limit for that hold (the maximum hold
+  # of the bioburden-reduced bulk in cold storage), not with the longer PPQ target. The two steps that said where the end of the hold is
+  # recorded now point to the hold-end entry (the hold ends in Part 2). The sampling steps of the hold (samples 7 and 9) leave the sections
+  # and are listed on the hold entries.
+  split:
+    after: bbr_filtration
+    hold: Post-BBR bulk hold in the holding bag
+    part1DocRef: DEMO-MBR-305-01-P1
+    part2DocRef: DEMO-MBR-305-01-P2
+    limit: { uo: bbr_filtration, limit: cold_hold }
+    rewrite:
+      - uo: bbr_filtration
+        block: bbr_filtration_run
+        find: "Keep the holding bag in cold storage"
+        replace:
+          - { from: ", where the end of the hold and the hold time are recorded.", to: ". This part ends with the hold-start entry; the end of the hold and the hold time are written on the hold-end entry that opens Part 2." }
+      - uo: aseptic_filling
+        block: sterile_filtration_inline_start
+        find: "Take the holding bag out of cold storage only now"
+        replace:
+          - { from: "Record the time it leaves cold storage (the end of the hold) and the hold time.", to: "Write the time it leaves cold storage (the end of the hold) and the hold time on the hold-end entry that opens this part." }
+          - { from: "{cold storage end}, {hold time}, {temperature at removal}", to: "{temperature at removal}" }
   limits:
     # The total time out of refrigeration is the critical limit; each stage has its own target under it. The stage values are the TRD's
     # budgets for the stage (filling, inspection, bulk packing, labelling) and add up to the critical limit. The out and return times of a stage

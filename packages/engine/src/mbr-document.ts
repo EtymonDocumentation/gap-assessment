@@ -3,7 +3,7 @@ import {
 import type { Block, DocModel, DocSection } from "./document";
 import { effectiveField } from "./trd";
 import { TRD_BANNER } from "./trd-outline";
-import { mbrOpenItems, numberSteps, renderStepText, stepNumberText, type MbrOpenItem } from "./mbr";
+import { holdEntryInfo, mbrOpenItems, numberSteps, renderStepText, splitIndex, stepNumberText, type HoldEntryInfo, type MbrOpenItem, type MbrPart } from "./mbr";
 import { NOT_HELD, NOTE_OUTSIDE, NOTE_TIGHTER, paramNote, targetSum, trdRefText } from "./mbr-values";
 
 /**
@@ -20,6 +20,8 @@ import { NOT_HELD, NOTE_OUTSIDE, NOTE_TIGHTER, paramNote, targetSum, trdRefText 
  */
 
 export const MBR_DOCUMENT_TITLE = "Master batch record (draft)";
+/** A visible write-in line: the operator fills it in while the batch is made. The site never fills a batch execution value. */
+export const WRITE_IN = "______________________";
 export const CMO_PLACEHOLDER = "[To be completed by the CMO]";
 
 export interface MbrDocumentOptions {
@@ -27,6 +29,11 @@ export interface MbrDocumentOptions {
   generatorName?: string;
   appVersion?: string;
   catalogVersion?: string;
+  /**
+   * For a split record: 1 or 2 builds the document of that part (its own document number, its sections and its hold entry). Absent builds
+   * the whole record, with both hold entries at the split. Ignored for a record that is not split.
+   */
+  part?: MbrPart;
 }
 
 const NOT_ESTABLISHED = "Not established";
@@ -102,6 +109,65 @@ function paramRow(r: MbrParamRow, src: SourceNumbers): string[] {
   return [r.label, value, mbrChoiceText(r), notes];
 }
 
+/** Words for the time limit the elapsed hold time is compared with: the limit row, its value and where the value comes from. */
+function holdLimitWords(info: HoldEntryInfo, src: SourceNumbers): string {
+  const t = info.limit;
+  const value = t ? withUnit(t.value, t.unit) : "";
+  if (!t || !value) return "No limit stated" + (t ? ` (the time limit "${t.label}" has no value)` : "");
+  return `${t.label}: ${value} (${trdWords(t.trd, src)})`;
+}
+
+/**
+ * The hold-start entry that closes Part 1, or the hold-end entry that opens Part 2. The operators write every value while the batch is
+ * made, so the fields are write-in lines. The elapsed hold time is written by the operator and sits next to the limit the record already
+ * holds; the document does not say whether a time is acceptable.
+ */
+function holdEntrySection(project: Project, rec: MbrRecord, info: HoldEntryInfo, edge: "start" | "end", src: SourceNumbers): DocSection {
+  const sp = rec.split!;
+  const start = edge === "start";
+  const hold = info.hold;
+  const entry = info.entries.find((e) => e.edge === edge)!;
+  const blocks: Block[] = [];
+  const partRef = (n: 1 | 2) => sp[n === 1 ? "part1DocRef" : "part2DocRef"]?.trim() || "document number not given";
+  blocks.push({
+    type: "note",
+    text: start
+      ? `This entry closes Part 1 (${partRef(1)}). The product is held after the last step of Part 1. Part 2 (${partRef(2)}) opens with the hold-end entry.`
+      : `This entry opens Part 2 (${partRef(2)}). Fill it in when the product leaves the hold: it closes the hold that began at the hold-start entry at the end of Part 1 (${partRef(1)}).`,
+  });
+  const planHold = hold ? `${hold.label}${hold.condition?.trim() ? ` (${hold.condition.trim()})` : ""}` : info.holdMissing ? "The hold named earlier is no longer in the sampling plan" : "No hold of the sampling plan was named for this gap";
+  const rows: string[][] = [
+    ["Hold in the sampling plan", planHold],
+    [start ? "Date and time the hold started" : "Date and time the hold ended", WRITE_IN],
+    ["Done by (signature and date)", WRITE_IN],
+    ["Checked by (signature and date)", WRITE_IN],
+    ["Vessel or bag ID", WRITE_IN],
+    ["Storage temperature", WRITE_IN],
+    ["Room or location", WRITE_IN],
+  ];
+  if (!start) {
+    rows.push(["Elapsed hold time (written by the operator from the hold-start entry)", WRITE_IN]);
+    rows.push(["Hold time limit of this record", holdLimitWords(info, src)]);
+    rows.push(["Elapsed hold time compared with the limit (operator)", WRITE_IN]);
+  }
+  blocks.push({ type: "table", columns: ["Entry", "Record"], rows, caption: start ? "Hold start" : "Hold end", weights: [45, 55] });
+  if (start) blocks.push({ type: "paragraph", text: `Hold time limit of this record: ${holdLimitWords(info, src)}` });
+  if (entry.samples.length) {
+    const plan = rec.planId ? project.sampling.plans.find((p) => p.id === rec.planId) : undefined;
+    blocks.push({
+      type: "table",
+      columns: ["Sample", "Test", "Quantity", "Container", "Storage", "Moment in the process", "Result"],
+      rows: entry.samples.map((x) => [x.pointId, x.test, x.quantity ?? "", x.container ?? "", x.storage ?? "", x.hour ?? "", CMO_PLACEHOLDER]),
+      caption: `Samples at the ${start ? "start" : "end"} of the hold (from the sampling plan${plan ? ` ${plan.id}` : ""})`,
+    });
+  } else if (hold) {
+    blocks.push({ type: "paragraph", text: `The sampling plan has no sample at the ${start ? "start" : "end"} of this hold.` });
+  } else {
+    blocks.push({ type: "paragraph", text: "No sampling plan hold was named for this gap, so no samples are listed here." });
+  }
+  return { id: start ? "hold-start" : "hold-end", number: start ? "H1" : "H2", title: start ? "Hold start (end of Part 1)" : "Hold end (start of Part 2)", blocks };
+}
+
 export function mbrDocumentOpenItems(project: Project, rec: MbrRecord): MbrOpenItem[] {
   return mbrOpenItems(project, rec);
 }
@@ -120,8 +186,16 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
   const sections: DocSection[] = [];
   const appendix = (id: string, title: string, blocks: Block[]) => sections.push({ id, number: String.fromCharCode(65 + sections.filter((s) => s.appendix).length), appendix: true, title, blocks });
 
+  // A split record: Part 1 ends with the hold-start entry and Part 2 opens with the hold-end entry. The section numbers run on across the
+  // parts (Part 2 starts at the section after the split), so a step number means the same step in either document.
+  const cut = splitIndex(rec);
+  const part = cut >= 0 ? opts.part : undefined;
+  const holdInfo = cut >= 0 ? holdEntryInfo(project, rec) : undefined;
+
   // The process sections, numbered exactly like the record so that "Step 9.14" is in section 9.
   rec.sections.forEach((s, si) => {
+    if ((part === 1 && si > cut) || (part === 2 && si <= cut)) return;
+    if (holdInfo && si === cut + 1 && part !== 1) sections.push(holdEntrySection(project, rec, holdInfo, "end", src));
     const blocks: Block[] = [];
     if (s.blocks.length === 0) blocks.push({ type: "paragraph", text: "No block has been added to this section yet." });
     for (const b of s.blocks) {
@@ -173,10 +247,12 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
       }
     }
     sections.push({ id: `section-${s.id}`, number: String(si + 1), title: s.title, blocks });
+    if (holdInfo && si === cut && part !== 2) sections.push(holdEntrySection(project, rec, holdInfo, "start", src));
   });
 
   appendix("basis", "Basis and how to read this draft", [
     { type: "note", text: mbrBasisText(project.meta.id, rec) },
+    ...(part ? ([{ type: "paragraph", text: `This is Part ${part} of 2 of one batch record. The other part is a separate document (${rec.split![part === 1 ? "part2DocRef" : "part1DocRef"]?.trim() || "document number not given"}). Section and step numbers run on across the two parts, and the TRD values, time limits and open items below belong to the whole record.` }] as Block[]) : []),
     rec.purpose?.trim() ? { type: "paragraph", text: rec.purpose.trim() } : { type: "paragraph", text: "No purpose has been entered. This is left to the team; the tool does not supply wording." },
     { type: "list", items: [
       "TRD value: the value in the technical requirements document at the time it was copied. MBR value: the value this batch record states.",
@@ -205,7 +281,7 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
       columns: ["Item", "Value"],
       rows: [
         ["Generator", `${opts.generatorName ?? "Gap Assessment Generator (proof of concept)"} ${opts.appVersion ?? "unversioned"}`],
-        ["Batch record", `${rec.id}${rec.version ? `, version ${rec.version}` : ""}, last changed ${rec.updatedAt.replace("T", " ").slice(0, 16)} UTC`],
+        ["Batch record", `${rec.id}${rec.version ? `, version ${rec.version}` : ""}${part ? `, part ${part} of 2` : ""}, last changed ${rec.updatedAt.replace("T", " ").slice(0, 16)} UTC`],
         ["MBR format", MBR_FORMAT_VERSION],
         ["Process model", PROCESS_MODEL_VERSION],
         ["Catalog", opts.catalogVersion ?? "Not recorded"],
@@ -215,15 +291,37 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
     { type: "note", text: "Regulatory impact of any change to the process: Requires regulatory affairs assessment." },
   ]);
 
+  const splitMeta = (): [string, string][] => {
+    if (!rec.split) return [];
+    const ref = (n: 1 | 2) => rec.split![n === 1 ? "part1DocRef" : "part2DocRef"]?.trim() || "Not given";
+    const range = (n: MbrPart) => {
+      const from = n === 1 ? 1 : cut + 2;
+      const to = n === 1 ? cut + 1 : rec.sections.length;
+      return from === to ? `section ${from}` : `sections ${from} to ${to}`;
+    };
+    return part
+      ? [
+          ["Part", `Part ${part} of 2 (${range(part)})`],
+          [`Other part (Part ${part === 1 ? 2 : 1})`, ref(part === 1 ? 2 : 1)],
+          ["Whole record reference", rec.docRef?.trim() || "Not given"],
+        ]
+      : [
+          ["Part 1 document reference", `${ref(1)} (${range(1)})`],
+          ["Part 2 document reference", `${ref(2)} (${range(2)})`],
+        ];
+  };
+  const docRef = (part ? rec.split![part === 1 ? "part1DocRef" : "part2DocRef"]?.trim() : undefined) || (part ? undefined : rec.docRef?.trim()) || "Not given";
+
   return {
-    title: MBR_DOCUMENT_TITLE,
+    title: part ? `Master batch record, Part ${part} of 2 (draft)` : MBR_DOCUMENT_TITLE,
     banner: TRD_BANNER,
     // The record is written for the sending side's idea of the process and has to be adapted by the unit that will run it.
     status: "DRAFT FOR RECEIVING-UNIT ADAPTATION",
     meta: [
       ["Project", project.meta.title],
       ["Batch record", `${rec.id}: ${rec.title}`],
-      ["Document reference", rec.docRef?.trim() || "Not given"],
+      ["Document reference", docRef],
+      ...splitMeta(),
       ...(rec.version?.trim() ? ([["Version", rec.version.trim()]] as [string, string][]) : []),
       ["Based on", [rec.trdId ? `TRD ${rec.trdId}` : "", rec.planId ? `Sampling plan ${rec.planId}` : ""].filter(Boolean).join("; ") || "Neither (blank start)"],
       ["Generated", generatedAt.replace("T", " ").slice(0, 16) + " UTC"],
