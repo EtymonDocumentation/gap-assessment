@@ -341,7 +341,7 @@ describe("SYR-305 batch record after the operator walk-through", () => {
     expect(order(sp19, outOfCold)).toBeLessThan(0); // sampled first, then the containers come out
     const sp20 = stepWith(/^Take sample SP-020/, "compounding");
     const bufferEnd = stepWith(/^Record the time the buffer is taken for use/, "compounding");
-    const addBuffer = stepWith(/^Add the buffer/, "compounding");
+    const addBuffer = stepWith(/^Add the calculated volume of buffer/, "compounding");
     expect(order(sp20, bufferEnd)).toBeLessThan(0);
     expect(order(bufferEnd, addBuffer)).toBeLessThan(0);
     const sp21 = stepWith(/^Take sample SP-021/, "bbr_filtration");
@@ -460,5 +460,64 @@ describe("SYR-305 batch record after the fluid walk-through", () => {
       expect(x.container).toContain("100 mL");
       expect(x.storage).toContain("bioburden bottle 2 to 8 °C");
     }
+  });
+});
+
+describe("SYR-305 batch record after the product owner's answers on the buffer, ports, filtration time and order of work", () => {
+  const texts = rec.sections.flatMap((s) => s.blocks.flatMap((b) => b.steps.map((x) => x.text)));
+  const stepWith = (re: RegExp) => texts.find((x) => re.test(x))!;
+
+  it("calculates the buffer from the drug substance pooled, adds that volume and says what happens to the surplus", () => {
+    const calc = stepWith(/^Calculate the volume of buffer to add/);
+    expect(calc).toContain("The drug substance is the limiting reagent");
+    expect(calc).toContain("0.6 L of buffer per litre of pooled drug substance");
+    expect(calc).toContain("{pool volume}");
+    const add = stepWith(/^Add the calculated volume of buffer/);
+    expect(add).toContain("do not add buffer to reach a set batch size");
+    expect(add).toContain("resulting volume and weight of the bulk");
+    expect(add).toContain("If the result is outside the range, do not start mixing");
+    // The surplus is discarded and accounted for; making more buffer than needed is stated as normal, not as a finding.
+    expect(add).toContain("is surplus");
+    expect(add).toContain("{volume of buffer discarded}");
+    expect(add).toContain("{discard date and time}");
+    expect(stepWith(/^Buffer batch size\./)).toContain("making more is normal");
+    expect(stepWith(/^Record the protein concentration of the pooled drug substance/)).toContain("final volume (the pool plus the buffer added)");
+  });
+
+  it("names how SP-018, SP-019 and SP-020 and the buffer in-process samples are drawn, with the volumes", () => {
+    expect(stepWith(/^Take sample SP-018/)).toContain("grade A laminar-flow hood");
+    expect(stepWith(/^Take sample SP-018/)).toContain("there is no purge");
+    expect(stepWith(/^Take sample SP-019/)).toContain("no purge");
+    const sp20 = stepWith(/^Take sample SP-020/);
+    expect(sp20).toContain("sterile sampling port");
+    expect(sp20).toContain("a port added for PPQ is listed in the PPQ protocol");
+    expect(sp20).toContain("Discard the first 5 mL of buffer");
+    expect(stepWith(/^Take the in-process samples listed in the table below from the buffer/)).toContain("take 120 mL in all");
+    // The purges and samples come from the surplus buffer, so the bulk samples of the volume balance stay at 0.50 L.
+    expect(stepWith(/^Volume balance/)).toContain("Bulk samples are 0.50 L in every batch");
+  });
+
+  it("restarts the line so that the last litre is filtered inside the 8 h and counts it", () => {
+    const hold = stepWith(/^PPQ batches only \(study point of this record\): when about 1 L/);
+    expect(hold).toContain("until 7 h 50 min have passed since the start of the sterile filtration");
+    expect(hold).toContain("end at or before 8 h after the start of the sterile filtration");
+    expect(hold).not.toContain("not counted against");
+    const end = stepWith(/^When filling has ended, stop the sterile filtration/);
+    expect(end).toContain("including the last litre filled after the restart");
+    expect(end).not.toContain("is not counted");
+  });
+
+  it("says at the top of sections 2 and 3 that they can run in parallel, that the thaw is passive and that in PPQ the buffer is made first", () => {
+    for (const re of [/^Order of work: this section \(the thaw\)/, /^Order of work: this section \(buffer preparation\)/]) {
+      const t = stepWith(re);
+      expect(t, String(re)).toContain("can run in parallel");
+      expect(t).toContain("The thaw is passive");
+      expect(t).toContain("the buffer is made first");
+      expect(t).toContain("at least 57 h");
+    }
+    // The first step of each section is that line (the original first step follows in the same step).
+    const first = (uo: string) => rec.sections.find((s) => s.unitOp === uo)!.blocks[0]!.steps[0]!.text;
+    expect(first("ds_receipt_thaw")).toMatch(/^Order of work/);
+    expect(first("buffer_prep")).toMatch(/^Order of work/);
   });
 });
