@@ -408,3 +408,57 @@ describe("SYR-305 batch record after the operator walk-through", () => {
     expect(mbrLibrary.find((b) => b.id === "filter_records")!.version).toBe(2);
   });
 });
+
+// Review of the demo record by walking the fluid through it (volumes, waits, temperatures, sample tables). These tests keep the fixes in place.
+describe("SYR-305 batch record after the fluid walk-through", () => {
+  const nums = numberSteps(rec);
+  const texts = rec.sections.flatMap((s) => s.blocks.flatMap((b) => b.steps.map((x) => x.text)));
+  const stepWith = (re: RegExp) => texts.find((x) => re.test(x))!;
+
+  it("records the vessel, temperature, start and end of the bulk and the filtrate that wait during the filter pause", () => {
+    const pause = stepWith(/^PPQ batches only \(study point: the filter contact time/);
+    expect(pause).toContain("at 2 to 8 °C from the stop time to the restart time");
+    expect(pause).toContain("{unfiltered bulk temperature}");
+    expect(pause).toContain("{first filtrate time}");
+    // The filter contact time is defined once, the same way as the samples (start and end of the filtration).
+    expect(pause).toContain("from the start of the filtration (the time of sample SP-021");
+    expect(stepWith(/^Take sample SP-021/)).toContain("counted from the start of the filtration to its end");
+  });
+
+  it("states a temperature range for the filling-room waits and the line stops", () => {
+    for (const re of [/^Take the holding bag out of cold storage/, /^In every PPQ batch \(the 60-minute line stop/, /^PPQ batches only \(study point of this record\): when about 1 L/]) {
+      expect(stepWith(re), String(re)).toContain("15 to 25 °C");
+    }
+  });
+
+  it("subtracts only the samples taken after the filtrate was weighed and compares with the downstream hold-up, with a limit", () => {
+    const r = stepWith(/^Reconcile the volume of the batch/);
+    expect(r).toContain("minus only the bulk samples taken after the holding bag was weighed");
+    expect(r).toContain("holding bag 0.4 L + sterile filter and tubing 0.5 L + surge bag 0.3 L = 1.2 L");
+    expect(r).toContain("0.20 L either side");
+    expect(r).not.toContain("{reconciliation limit}");
+  });
+
+  it("says where the 12.90 L of PPQ 2 go and uses a unit-count trigger for the surge bag hold", () => {
+    const balance = stepWith(/^Volume balance \(fictional\)/);
+    expect(balance).toContain("PPQ 2 is the one batch that is not filled to the end of the bulk");
+    expect(83.6 + 0.5 + 3.0 + 12.9).toBeCloseTo(100, 6);
+    expect(stepWith(/^PPQ batches only \(study point of this record\): when about 1 L/)).toContain("when the planned units less about 900 syringes have been filled (PPQ 2");
+  });
+
+  it("keeps the formulated bulk in the compounding vessel and takes the challenge syringes from one named portion", () => {
+    expect(stepWith(/^Record the time the formulated bulk is placed in hold/)).toContain("The bulk stays in the compounding vessel for the whole hold");
+    expect(stepWith(/^Take sample SP-013/)).toContain("from the challenge portion, which is the last portion filled");
+    expect(stepWith(/^PPQ batches only \(study point of this record\): keep the stability/)).toContain("counted from the start of filling of the challenge portion");
+    expect(nums.size).toBeGreaterThan(0);
+  });
+
+  it("lists the 100 mL bioburden bottle in the sample tables of SP-021 and SP-009", () => {
+    const rows = rec.sections.flatMap((s) => s.blocks.flatMap((b) => b.samples)).filter((x) => x.pointId === "SP-021" || x.pointId === "SP-009");
+    expect(rows).toHaveLength(2);
+    for (const x of rows) {
+      expect(x.container).toContain("100 mL");
+      expect(x.storage).toContain("bioburden bottle 2 to 8 °C");
+    }
+  });
+});
