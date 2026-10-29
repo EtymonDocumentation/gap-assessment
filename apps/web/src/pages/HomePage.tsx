@@ -175,14 +175,24 @@ export function HomePage({ notice }: { notice?: string }) {
               Hide
             </button>
           </div>
+          <p className="muted small">The steps in order. Each one ticks itself when your project gets there; there is nothing to tick by hand.</p>
           <ol className="checklist">
-            {checklist.map((c) => (
+            {checklist.map((c, i) => (
               <li key={c.key} className={c.ticked ? "is-done" : undefined}>
+                {/* A numbered circle, not an empty box: an empty square reads as a checkbox people try to tap, but these marks only follow the project data. */}
                 <span className="check-mark" aria-hidden="true">
-                  {c.ticked ? "✓" : ""}
+                  {c.ticked ? "✓" : i + 1}
                 </span>
                 <div>
-                  {c.path && project ? <a href={href(c.path)}>{c.label}</a> : <strong>{c.label}</strong>}
+                  {c.path && project ? (
+                    <a href={href(c.path)}>{c.label}</a>
+                  ) : c.key === "create" && !project ? (
+                    <button className="link-btn" onClick={() => confirmReplace() && setCreating(true)}>
+                      {c.label}
+                    </button>
+                  ) : (
+                    <strong>{c.label}</strong>
+                  )}
                   {c.ticked && <span className="visually-hidden"> (done)</span>}
                   <p className="muted small">{c.hint}</p>
                 </div>

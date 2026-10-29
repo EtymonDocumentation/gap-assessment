@@ -3285,12 +3285,14 @@ table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
   width: 1.5rem;
   height: 1.5rem;
   border: 2px solid var(--border);
-  border-radius: 4px;
-  color: var(--ok);
+  border-radius: 50%;
+  color: var(--muted);
+  font-size: 0.85rem;
   font-weight: 700;
 }
 .checklist li.is-done .check-mark {
   border-color: var(--ok);
+  color: var(--ok);
 }
 
 @media (max-width: 700px) {
