@@ -96,11 +96,14 @@ describe("SYR-305 batch record buffer calculation", () => {
     }
   });
 
-  it("the diluent volume follows the TRD ratio for 9, 50 and 100 L", () => {
+  it("the diluent volume follows the TRD ratio, applied to the drug substance pooled, for 9, 50 and 100 L", () => {
     const text = rec.sections.find((s) => s.unitOp === "compounding")!.blocks.find((b) => b.libraryId === "dilution_and_mixing")!.steps[0]!.text;
     const ratio = 18.75 / 50;
     expect(ratio).toBe(0.375);
-    for (const [l, v] of [[9, "3.375"], [50, "18.75"], [100, "37.5"]] as const) expect(text).toContain(`${l} L x 0.375 = ${v} L`);
+    // The drug substance is the limiting reagent: the buffer is 0.6 L per litre of pooled drug substance (= 0.375 L per litre of batch).
+    expect(0.375 / (1 - 0.375)).toBeCloseTo(0.6, 10);
+    expect(text).toContain("0.375 L per litre of batch = 0.6 L of buffer per litre of pooled drug substance");
+    for (const [ds, v] of [["5.625", "3.375"], ["31.25", "18.75"], ["62.5", "37.5"]] as const) expect(text).toContain(`${ds} L x 0.6 = ${v} L`);
     expect(100 * ratio).toBeLessThan(50);
   });
 });
