@@ -23,7 +23,7 @@ export function isCurrentPath(itemPath: string, routePath: string): boolean {
   if (itemPath === "/templates") return /^\/templates\/[^/]+\/mapping$/.test(routePath);
   if (itemPath === "/sampling") return routePath === "/sampling/tables" || routePath === "/sampling/subsections";
   if (itemPath === "/risk") return routePath === "/risk/methods";
-  if (itemPath === "/mbr") return routePath === "/mbr/library";
+  if (itemPath === "/mbr") return routePath === "/mbr/library" || routePath === "/mbr/view";
   if (itemPath === "/trd") return routePath === "/trd/writeups";
   return false;
 }
