@@ -4,12 +4,22 @@ import { href } from "./router";
 export interface NavItem {
   path: string;
   label: string;
+  /** One line under the entry saying what the page is for. Read out as the link's description, so the link's name stays short. */
+  desc?: string;
+  /** Position in the document chain (1 = gap assessment). Shown as a number; the link's name does not include it. */
+  num?: number;
+  /** Extra routes this entry stands for (the gap assessment covers its six step pages). */
+  covers?: string[];
+  /** Smaller entries listed under this one (the gap assessment's steps). */
+  children?: NavItem[];
+  /** A title only, not a link: the gap assessment entry sits beside the "Gap assessment" top link, so it lists its steps instead of repeating the link. */
+  plain?: boolean;
 }
 
 export interface NavGroup {
   label: string;
   items: NavItem[];
-  /** A second, smaller list under its own sub-heading (the module libraries). */
+  /** A second, smaller list under its own sub-heading ("Alongside" the document chain). */
   sub?: { heading: string; items: NavItem[] };
 }
 
@@ -28,7 +38,12 @@ export function isCurrentPath(itemPath: string, routePath: string): boolean {
   return false;
 }
 
-const groupCurrent = (g: NavGroup, routePath: string) => [...g.items, ...(g.sub?.items ?? [])].some((i) => isCurrentPath(i.path, routePath));
+/** An entry is current when its own page, one of the pages it covers, or one of its sub-entries is on screen. */
+function itemCurrent(i: NavItem, routePath: string): boolean {
+  return (!i.plain && isCurrentPath(i.path, routePath)) || !!i.covers?.includes(routePath) || !!i.children?.some((c) => itemCurrent(c, routePath));
+}
+
+const groupCurrent = (g: NavGroup, routePath: string) => [...g.items, ...(g.sub?.items ?? [])].some((i) => itemCurrent(i, routePath));
 
 /** True while the viewport is at most the given width; the menu collapses into one "Menu" button there. */
 function useNarrow(maxWidth: number): boolean {
@@ -44,15 +59,49 @@ function useNarrow(maxWidth: number): boolean {
   return narrow;
 }
 
+function NavEntry({ item, routePath, onPick }: { item: NavItem; routePath: string; onPick: () => void }) {
+  const descId = useId();
+  const label = (
+    <>
+      {item.num !== undefined && (
+        <span className="nav-num" aria-hidden="true">
+          {item.num}
+        </span>
+      )}
+      {item.label}
+    </>
+  );
+  return (
+    <li className="nav-entry">
+      {item.plain ? (
+        <span className={`nav-item-title${itemCurrent(item, routePath) ? " is-current" : ""}`} aria-describedby={item.desc ? descId : undefined}>
+          {label}
+          {itemCurrent(item, routePath) && <span className="visually-hidden"> (current section)</span>}
+        </span>
+      ) : (
+        <a href={href(item.path)} aria-current={isCurrentPath(item.path, routePath) ? "page" : undefined} aria-describedby={item.desc ? descId : undefined} onClick={onPick}>
+          {label}
+        </a>
+      )}
+      {item.desc && (
+        <span id={descId} className="nav-desc">
+          {item.desc}
+        </span>
+      )}
+      {item.children && item.children.length > 0 && (
+        <ul className="nav-panel-list nav-sub-list" aria-label={`${item.label} steps`}>
+          <ItemLinks items={item.children} routePath={routePath} onPick={onPick} />
+        </ul>
+      )}
+    </li>
+  );
+}
+
 function ItemLinks({ items, routePath, onPick }: { items: NavItem[]; routePath: string; onPick: () => void }) {
   return (
     <>
       {items.map((i) => (
-        <li key={i.path}>
-          <a href={href(i.path)} aria-current={isCurrentPath(i.path, routePath) ? "page" : undefined} onClick={onPick}>
-            {i.label}
-          </a>
-        </li>
+        <NavEntry key={i.path + i.label} item={i} routePath={routePath} onPick={onPick} />
       ))}
     </>
   );

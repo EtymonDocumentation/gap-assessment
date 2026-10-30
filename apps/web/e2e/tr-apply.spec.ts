@@ -14,7 +14,7 @@ test.beforeEach(async ({ page }) => {
 async function openDemo(page: Page, link: string) {
   await page.goto("./");
   await page.getByRole("button", { name: "Open syringe example" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
+  await expect(page.getByTestId("home-chain")).toBeVisible();
   await goTo(page, link);
 }
 

@@ -252,11 +252,11 @@ function Details({ rec, run, trdTitle, planTitle }: { rec: MbrRecord; run: Run; 
             </div>
             <div>
               <dt>TRD record:</dt>
-              <dd>{trdTitle ?? "none"}</dd>
+              <dd>{trdTitle && rec.trdId ? <a href={href("/trd", { trd: rec.trdId })}>{trdTitle}</a> : "none"}</dd>
             </div>
             <div>
               <dt>Sampling plan:</dt>
-              <dd>{planTitle ?? "none"}</dd>
+              <dd>{planTitle && rec.planId ? <a href={href("/sampling", { plan: rec.planId })}>{planTitle}</a> : "none"}</dd>
             </div>
             <div>
               <dt>Last changed:</dt>

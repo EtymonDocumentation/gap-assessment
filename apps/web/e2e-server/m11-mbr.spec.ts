@@ -52,7 +52,7 @@ test("server build: the syringe example opens with its batch record, and the ser
   await signUp(page, newAccount("mbrsyr"), makeSamplingInvite());
   await go(page, "#/");
   await page.getByRole("button", { name: "Open syringe example" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
+  await expect(page.getByTestId("home-chain")).toBeVisible();
   await go(page, "#/mbr");
   await expect(page.getByTestId("mbr-list-table")).toContainText("SYR-305 master batch record");
   await expect.poll(() => serverRevision(page, "SYR-305 technology transfer: Example Biologics to Example Fill Site (fictional demo)")).toBeGreaterThan(0);

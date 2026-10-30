@@ -14,7 +14,7 @@ test("the syringe demo opens from the start page with a complete TRD", async ({ 
   await page.goto("./");
   await expect(page.getByRole("button", { name: "Load demo" })).toHaveCount(1);
   await page.getByRole("button", { name: "Open syringe example" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
+  await expect(page.getByTestId("home-chain")).toBeVisible();
   await goTo(page, "TRD");
   await expect(page.getByTestId("trd-list-table")).toContainText("SYR-305 technical requirements document (fictional)");
   await page.getByTestId("trd-list-table").getByRole("link").first().click();
@@ -28,7 +28,7 @@ test("the syringe demo opens from the start page with a complete TRD", async ({ 
 async function openSyringeRecord(page: Page) {
   await page.goto("./");
   await page.getByRole("button", { name: "Open syringe example" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
+  await expect(page.getByTestId("home-chain")).toBeVisible();
   await goTo(page, "Batch record");
   await expect(page.getByTestId("mbr-list-table")).toContainText("SYR-305 master batch record");
   await page.getByTestId("mbr-list-table").getByRole("link").first().click();

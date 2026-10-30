@@ -211,6 +211,14 @@ h3 {
   font-weight: 400;
   color: var(--muted);
 }
+/* The project title stays on one line at every width (ellipsis; the full title is the tooltip), so a long title cannot push the menu
+   and the theme picker onto a second header row. */
+.brand > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .brand-mark {
   width: 20px;
   height: 20px;
@@ -545,6 +553,13 @@ input.num {
   margin: 0;
   font-size: 1.2rem;
   font-weight: 600;
+  /* A grid item will not shrink below its content unless told to: one long unbroken value (a responder or site name typed without
+     spaces) used to widen the whole page on a phone. */
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.stats > div {
+  min-width: 0;
 }
 .start-grid {
   display: grid;
@@ -1084,12 +1099,8 @@ table.data tr.inactive {
      sideways by about 80 px at 1280 px. Wrapping costs an extra header row only when the entries do not fit; nothing is
      clipped or hidden. */
   .brand {
-    flex: 1 1 auto;
-  }
-  .brand > span:last-child {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    flex: 0 1 auto;
+    max-width: 24rem;
   }
   .nav {
     flex: 0 1 auto;
@@ -3381,3 +3392,168 @@ table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
 .pv-find.note { border-left-style: dotted; }
 .pv-find h3 { font-size: 1rem; margin: 0 0 0.25rem; }
 .pv-describe { margin: 0; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-2); }
+
+/* ---------------------------------------------------------------- document chain, menu descriptions, module library buttons */
+.doc-chain {
+  margin: 0 0 12px;
+}
+.doc-chain-head {
+  margin: 0 0 6px;
+}
+.doc-chain-list {
+  display: flex;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0 0 4px;
+  /* Scrolls inside the strip on a narrow screen; the links inside are focusable, so the strip is reachable by keyboard. */
+  overflow-x: auto;
+}
+.doc-chain-list li {
+  flex: 1 1 0;
+  min-width: 9.5rem;
+  position: relative;
+}
+/* An arrow between stages: decorative, so it is a pseudo-element and not read out. */
+.doc-chain-list li + li::before {
+  content: "\2192" / "";
+  position: absolute;
+  left: -0.7rem;
+  top: 0.75rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.doc-chain-list a {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  height: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+}
+.doc-chain-list a:hover {
+  background: var(--surface-2);
+}
+.doc-chain-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+.doc-chain-num {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+}
+.doc-chain-status {
+  font-size: 0.85rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+/* The stage on screen: tint, a thicker border and an underline bar, so it never relies on colour alone. */
+.doc-chain-list a[aria-current="step"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  border-width: 2px;
+  padding: 5px 9px;
+  box-shadow: inset 0 -3px 0 var(--accent);
+}
+.doc-chain-list a[aria-current="step"] .doc-chain-num {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+.doc-chain-list a[aria-current="step"] .doc-chain-status {
+  color: var(--text);
+}
+.doc-chain-bar {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.doc-chain-bar-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.doc-chain-hint {
+  margin: 6px 0 0;
+  text-align: right;
+}
+.module-library {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin: 0 0 10px;
+}
+.nav-num {
+  display: inline-grid;
+  place-items: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  margin-right: 6px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  font-size: 0.75rem;
+}
+.nav-item-title {
+  display: block;
+  padding: 6px 10px 0;
+  font-weight: 600;
+}
+.nav-item-title.is-current {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.nav-desc {
+  display: block;
+  padding: 0 10px 4px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.nav-entry {
+  list-style: none;
+}
+.nav-sub-list {
+  margin: 0 0 4px 22px;
+}
+.nav-sub-list a {
+  padding: 3px 10px;
+}
+.nav-panel {
+  min-width: 18rem;
+}
+.pv-about > summary {
+  cursor: pointer;
+}
+.pv-about > summary h2 {
+  display: inline;
+  margin: 0;
+}
+.pv-about[open] > summary {
+  margin-bottom: 8px;
+}
+.chain-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+@media (max-width: 700px) {
+  .doc-chain-list li {
+    flex: 0 0 9.5rem;
+  }
+  .doc-chain-hint {
+    text-align: left;
+  }
+}
