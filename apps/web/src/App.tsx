@@ -19,6 +19,7 @@ import { SamplingTablesPage } from "./pages/SamplingTablesPage";
 import { MbrLibraryPage } from "./pages/MbrLibraryPage";
 import { TrdLibraryPage } from "./pages/TrdLibraryPage";
 import { MbrPage } from "./pages/MbrPage";
+import { MbrProcessViewPage } from "./pages/MbrProcessView";
 import { TrdPage } from "./pages/TrdPage";
 import { TrdSeedPage } from "./pages/TrdSeedPage";
 import { MappingPage } from "./pages/MappingPage";
@@ -193,6 +194,7 @@ function AppShell() {
   else if (route.path === "/trd/writeups") page = trdAllowed ? <TrdLibraryPage /> : <TrdNotIncluded />;
   else if (route.path === "/trd") page = trdAllowed ? <TrdPage params={route.params} /> : <TrdNotIncluded />;
   else if (route.path === "/mbr/library") page = mbrAllowed ? <MbrLibraryPage /> : <MbrNotIncluded />;
+  else if (route.path === "/mbr/view") page = mbrAllowed ? <MbrProcessViewPage params={route.params} /> : <MbrNotIncluded />;
   else if (route.path === "/mbr") page = mbrAllowed ? <MbrPage params={route.params} /> : <MbrNotIncluded />;
   else if (route.path === "/builder" || route.path === "/model") page = <BuilderPage />;
   else if (route.path === "/sources") page = <SourcesPage />;

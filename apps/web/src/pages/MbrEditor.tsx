@@ -87,6 +87,10 @@ export function MbrEditor({ rec }: { rec: MbrRecord }) {
       </PageBanner>
       <p className="no-print">
         <a href={href("/mbr")}>All batch records</a>
+        {" | "}
+        <a className="btn small" href={href("/mbr/view", { mbr: rec.id })} data-testid="mbr-process-view-link">
+          Process view
+        </a>
       </p>
       <p className="muted" data-testid="mbr-scope-text">
         {mbrScopeText}

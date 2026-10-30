@@ -48,3 +48,4 @@ export * from "./trd-writeup-library";
 export * from "./trd-writeup-document";
 export * from "./mbr";
 export * from "./mbr-document";
+export * from "./mbr-process-view";

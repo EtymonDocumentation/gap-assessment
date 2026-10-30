@@ -3336,3 +3336,48 @@ table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
 .split-panel {
   border-left: 4px solid var(--accent);
 }
+
+/* ---- Process view of a batch record (pv-). Colours come only from the site tokens, so light and dark both work; every state
+   is also told by text and by line style (solid, dashed, dotted), never by colour alone. ---- */
+.pv-ctl { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: end; }
+.pv-slider { display: grid; gap: 0.25rem; flex: 1 1 14rem; min-width: 0; }
+.pv-slider input[type="range"] { width: 100%; min-height: 2rem; accent-color: var(--accent); }
+.pv-jump { flex: 1 1 14rem; min-width: 0; }
+.pv-jump select { max-width: 100%; }
+.pv-title { margin: 0; }
+.pv-panels { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); }
+.pv-panels > .card { min-width: 0; }
+.pv-legend { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; list-style: none; padding: 0; margin: 0; font-size: 0.875rem; }
+.pv-legend li { display: flex; align-items: center; gap: 0.4rem; }
+.pv-diagram { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); max-width: 100%; }
+.pv-svg { display: block; max-width: none; }
+.pv-svg text { fill: var(--text); font-size: 12px; font-family: inherit; }
+.pv-eqs, .pv-marktx { font-size: 11px; }
+.pv-shape { fill: var(--surface); stroke: var(--text); stroke-width: 2; }
+.pv-shape.now { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 4; }
+.pv-shape.done { stroke-dasharray: none; stroke-width: 2; }
+.pv-shape.todo { stroke-dasharray: 5 4; stroke: var(--muted); }
+.pv-line { fill: none; stroke: var(--text); stroke-width: 2; }
+.pv-pipe { fill: none; stroke: var(--muted); stroke-width: 3; }
+.pv-arrowhead { fill: var(--muted); }
+.pv-mark { fill: var(--surface); stroke: var(--text); stroke-width: 2; }
+.pv-mark.now { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 4; }
+.pv-mark.todo { stroke-dasharray: 2 3; stroke: var(--muted); }
+.pv-mark text { stroke: none; }
+.pv-clock { border-top: 1px solid var(--border); padding-top: 0.5rem; }
+.pv-clock-h { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: space-between; }
+.pv-tag { border: 1px solid var(--border); border-radius: 999px; padding: 0 0.5rem; font-size: 0.8125rem; }
+.pv-tag.run { border-width: 2px; border-color: var(--accent); font-weight: 600; }
+.pv-bar { position: relative; height: 0.75rem; margin: 0.5rem 0; background: var(--surface-2); border: 1px solid var(--border); border-radius: 4px; }
+.pv-bar i { position: absolute; inset: 0 auto 0 0; background: var(--accent-soft); border-right: 3px solid var(--accent); }
+.pv-bar i.over { border-right-style: dashed; border-right-color: var(--danger); }
+.pv-bar b.lim { position: absolute; top: -4px; bottom: -4px; width: 0; border-left: 3px solid var(--text); }
+.pv-sev { display: inline-flex; align-items: center; gap: 0.3rem; font-weight: 600; font-size: 0.875rem; }
+.pv-sev.major { color: var(--danger); }
+.pv-count { margin-right: 1.25rem; white-space: nowrap; }
+.pv-find { border-left: 4px solid var(--border); padding-left: 0.75rem; }
+.pv-find.major { border-left-color: var(--danger); border-left-style: solid; }
+.pv-find.minor { border-left-style: dashed; }
+.pv-find.note { border-left-style: dotted; }
+.pv-find h3 { font-size: 1rem; margin: 0 0 0.25rem; }
+.pv-describe { margin: 0; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-2); }
