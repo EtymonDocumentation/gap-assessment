@@ -22,10 +22,10 @@ async function loadDemo(page: Page) {
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
 
-/** Through the navigation, so the "Risk" link is part of what is tested. On a phone it sits behind the menu button. */
+/** Through the navigation, so the "Risk assessment" link is part of what is tested. On a phone it sits behind the menu button. */
 async function openRisk(page: Page) {
   await loadDemo(page);
-  await goTo(page, "Risk");
+  await goTo(page, "Risk assessment");
   await expect(page.getByTestId("risk-scope-text")).toBeVisible();
 }
 

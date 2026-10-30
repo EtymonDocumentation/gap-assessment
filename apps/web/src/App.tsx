@@ -27,14 +27,16 @@ import { TemplatesPage } from "./pages/TemplatesPage";
 import { ValidationPage } from "./pages/ValidationPage";
 import { PocBanner, PocFooter } from "./components";
 import { MainNav, type NavGroup } from "./nav";
-import { GAP_STEPS, nextStep } from "./next-step";
+import { GAP_STEPS } from "./next-step";
+import { DocChainBar, DocChainStrip, ModuleLibraryLinks } from "./DocChain";
+import { chainStageOf } from "./chain";
 import { GapStepBar, GapStepFooter, gapStepIndex } from "./steps";
 import { useRoute } from "./router";
 import { AccountBar, ConflictDialog, ServerGate, useIsRemote } from "./server/ServerUi";
 import { SERVER_MODE } from "./server/mode";
 import { useSession } from "./server/session-store";
 import { useMbrAllowed, useRiskAllowed, useTrdAllowed } from "./risk-module";
-import { useAssessment, useStore } from "./store";
+import { useStore } from "./store";
 
 /** Shown instead of the sampling pages on an account without the sampling module. */
 function SamplingNotIncluded() {
@@ -125,7 +127,6 @@ function AppShell() {
   const trdAllowed = useTrdAllowed();
   const mbrAllowed = useMbrAllowed();
   const [theme, setTheme] = useTheme();
-  const assessment = useAssessment();
 
   useEffect(() => {
     void init();
@@ -143,16 +144,33 @@ function AppShell() {
   // which is reference material and has nothing to do with the open project.
   const needsProject = route.path !== "/" && route.path !== "/templates" && route.path !== "/guidance" && route.path !== "/sampling/tables" && route.path !== "/sampling/subsections" && route.path !== "/risk/methods" && route.path !== "/mbr/library" && route.path !== "/trd/writeups" && route.path !== "/myfiles";
   const mappingId = /^\/templates\/([^/]+)\/mapping$/.exec(route.path)?.[1];
+  // Documents run in chain order (gap assessment, TRD, sampling plan, batch record), each with a line saying what it is for. They are all
+  // optional: the order is a suggestion about which document feeds the next, never a rule. Risk and the TBD list sit alongside the chain.
+  // The module libraries are not here: they have a "Library" button on their own module's pages (see ModuleLibraryLinks).
   const groups: NavGroup[] = [
     {
       label: "Documents",
       items: [
-        { path: "/trd-seed", label: "TRD seed" },
-        ...(trdAllowed ? [{ path: "/trd", label: "TRD" }] : []),
-        ...(mbrAllowed ? [{ path: "/mbr", label: "Batch record" }] : []),
-        ...(samplingAllowed ? [{ path: "/sampling", label: "Sampling plan" }] : []),
-        ...(riskAllowed ? [{ path: "/risk", label: "Risk" }] : []),
+        {
+          path: "/scope",
+          label: "Gap assessment",
+          num: 1,
+          plain: true,
+          desc: "Compare the sending and receiving unit and list the gaps.",
+          covers: GAP_STEPS.map((s) => s.path),
+          children: GAP_STEPS.map((s) => ({ path: s.path, label: s.label })),
+        },
+        ...(trdAllowed ? [{ path: "/trd", label: "TRD", num: 2, desc: "Technical requirements. Start from this project or blank." }] : []),
+        ...(samplingAllowed ? [{ path: "/sampling", label: "Sampling plan", num: 3, desc: "Where and when to sample in the PPQ batches." }] : []),
+        ...(mbrAllowed ? [{ path: "/mbr", label: "Batch record", num: 4, desc: "The manufacturing batch record. Also opens the Process view." }] : []),
       ],
+      sub: {
+        heading: "Alongside",
+        items: [
+          ...(riskAllowed ? [{ path: "/risk", label: "Risk assessment", desc: "Rate risks with a method you choose." }] : []),
+          { path: "/tbd", label: "Open items (TBD)", desc: "Every value still to be decided, with owner and due date." },
+        ],
+      },
     },
     {
       label: "Library",
@@ -163,16 +181,6 @@ function AppShell() {
         { path: "/builder", label: "Builder" },
         { path: "/changes", label: "Change log" },
       ],
-      // Libraries that used to be reachable only from inside their module; each follows its module's gating.
-      sub: {
-        heading: "Module libraries",
-        items: [
-          ...(samplingAllowed ? [{ path: "/sampling/tables", label: "Sampling tables" }, { path: "/sampling/subsections", label: "Plan subsections" }] : []),
-          ...(riskAllowed ? [{ path: "/risk/methods", label: "Risk methods" }] : []),
-          ...(mbrAllowed ? [{ path: "/mbr/library", label: "Step blocks library" }] : []),
-          ...(trdAllowed ? [{ path: "/trd/writeups", label: "Process description library" }] : []),
-        ],
-      },
     },
   ];
   let page: React.ReactNode;
@@ -214,7 +222,8 @@ function AppShell() {
       <header className="app-header">
         <div className="brand">
           <span className="brand-mark" aria-hidden="true" />
-          <span>
+          {/* One line with an ellipsis, so a long project title never pushes the menu and the theme picker onto more rows; the full title is the tooltip. */}
+          <span title={project ? `Gap Assessment Generator · ${project.meta.title}` : undefined}>
             Gap Assessment Generator
             {project && <span className="brand-project"> · {project.meta.title}</span>}
           </span>
@@ -222,8 +231,9 @@ function AppShell() {
         <MainNav
           routePath={route.path}
           home={{ path: "/", label: "Home" }}
-          // "Gap assessment" goes to wherever the open project needs attention next; with no project it goes Home, where the project is started.
-          gap={{ path: project && assessment ? nextStep(project, assessment).path : "/", label: "Gap assessment", covers: GAP_STEPS.map((s) => s.path) }}
+          // "Gap assessment" always opens the Scope step, so the link goes to the same place every time; with no project it goes Home, where the
+          // project is started. What to do next is Home's job ("Next step"), not this link's.
+          gap={{ path: project ? "/scope" : "/", label: "Gap assessment", covers: GAP_STEPS.map((s) => s.path) }}
           groups={groups}
           extra={SERVER_MODE ? [{ path: "/myfiles", label: "My files" }] : []}
         />
@@ -246,9 +256,12 @@ function AppShell() {
         </div>
       )}
       <main id="main" tabIndex={-1}>
+        {ready && project && chainStageOf(route.path) && <DocChainStrip route={route} />}
         {ready && project && gapStepIndex(route.path) >= 0 && <GapStepBar path={route.path} />}
+        {ready && project && <ModuleLibraryLinks path={route.path} />}
         {page}
         {ready && project && gapStepIndex(route.path) >= 0 && <GapStepFooter path={route.path} />}
+        {ready && project && chainStageOf(route.path) && <DocChainBar route={route} />}
       </main>
       <div className="visually-hidden" aria-live="polite">
         {status}

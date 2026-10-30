@@ -69,7 +69,7 @@ test("home with the demo open leads with the next step; demo cards say what they
   await expect(next).toContainText("Next step");
   await expect(next.getByRole("link", { name: "Review the gap register" })).toHaveAttribute("href", "#/register");
   await expect(page.getByTestId("about-poc")).not.toHaveAttribute("open", "");
-  if (!isPhone(test.info())) await expect(mainNav(page).getByRole("link", { name: "Gap assessment" })).toHaveAttribute("href", "#/register");
+  if (!isPhone(test.info())) await expect(mainNav(page).getByRole("link", { name: "Gap assessment" })).toHaveAttribute("href", "#/scope");
   await expectNoSidewaysScroll(page, "home with demo");
   await expectAccessible(page, "home with demo");
 });
@@ -97,7 +97,18 @@ test("the Documents and Library drop-downs open on click, move with the arrow ke
   await expect(documents).toHaveAttribute("aria-expanded", "false");
   await documents.click();
   await expect(documents).toHaveAttribute("aria-expanded", "true");
-  for (const name of ["TRD seed", "TRD", "Batch record", "Sampling plan", "Risk"]) await expect(nav.getByRole("link", { name, exact: true })).toBeVisible();
+  // Chain order, each entry with a line saying what it is for; the gap assessment lists its six steps; risk and the TBD list sit alongside.
+  for (const name of ["Scope", "Interview", "Side by side", "Gap register", "Validation", "Document", "TRD", "Sampling plan", "Batch record", "Risk assessment", "Open items (TBD)"]) {
+    await expect(nav.getByRole("link", { name, exact: true })).toBeVisible();
+  }
+  await expect(nav.getByRole("link", { name: "TRD seed" })).toHaveCount(0);
+  await expect(nav.getByText("Alongside")).toBeVisible();
+  await expect(nav.getByRole("link", { name: "TRD", exact: true })).toHaveAccessibleDescription(/Technical requirements/);
+  const order = await nav.locator(".nav-panel a").allInnerTexts();
+  const at = (t: string) => order.findIndex((x) => x.includes(t));
+  expect(at("Scope")).toBeLessThan(at("TRD"));
+  expect(at("TRD")).toBeLessThan(at("Sampling plan"));
+  expect(at("Sampling plan")).toBeLessThan(at("Batch record"));
   // Escape closes and returns focus to the button.
   await page.keyboard.press("Escape");
   await expect(documents).toHaveAttribute("aria-expanded", "false");
@@ -106,11 +117,11 @@ test("the Documents and Library drop-downs open on click, move with the arrow ke
   await page.keyboard.press("Enter");
   await expect(documents).toHaveAttribute("aria-expanded", "true");
   await page.keyboard.press("ArrowDown");
-  await expect(nav.getByRole("link", { name: "TRD seed" })).toBeFocused();
+  await expect(nav.getByRole("link", { name: "Scope", exact: true })).toBeFocused();
   await page.keyboard.press("ArrowDown");
-  await expect(nav.getByRole("link", { name: "TRD", exact: true })).toBeFocused();
+  await expect(nav.getByRole("link", { name: "Interview", exact: true })).toBeFocused();
   await page.keyboard.press("ArrowUp");
-  await expect(nav.getByRole("link", { name: "TRD seed" })).toBeFocused();
+  await expect(nav.getByRole("link", { name: "Scope", exact: true })).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(documents).toBeFocused();
   // A click outside closes it.
@@ -131,14 +142,17 @@ test("the Documents and Library drop-downs open on click, move with the arrow ke
   const library = nav.getByRole("button", { name: /^Library/ });
   await library.click();
   for (const name of ["Templates", "Guidance", "Sources", "Builder", "Change log"]) await expect(nav.getByRole("link", { name, exact: true })).toBeVisible();
-  await expect(nav.getByText("Module libraries")).toBeVisible();
-  for (const name of ["Sampling tables", "Plan subsections", "Risk methods", "Step blocks library", "Process description library"]) await expect(nav.getByRole("link", { name, exact: true })).toBeVisible();
-  await nav.getByRole("link", { name: "Risk methods", exact: true }).click();
+  // The module libraries moved next to their modules: the Library menu keeps only the cross-cutting entries.
+  await expect(nav.getByText("Module libraries")).toHaveCount(0);
+  for (const name of ["Sampling tables", "Plan subsections", "Risk methods", "Step blocks library", "Process description library"]) await expect(nav.getByRole("link", { name, exact: true })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await documents.click();
+  await nav.getByRole("link", { name: "Risk assessment", exact: true }).click();
+  await page.getByTestId("module-library").getByRole("link", { name: "Risk methods" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Risk methods" })).toBeVisible();
-  await expect(library).toHaveClass(/is-current/);
   // The module sub-page also keeps lighting its module's entry in Documents, as the flat menu did.
   await documents.click();
-  await expect(nav.getByRole("link", { name: "Risk", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(nav.getByRole("link", { name: "Risk assessment", exact: true })).toHaveAttribute("aria-current", "page");
 });
 
 test("the phone folds the menu into one Menu button with no sideways scroll", async ({ page }, testInfo) => {
@@ -152,7 +166,7 @@ test("the phone folds the menu into one Menu button with no sideways scroll", as
   await expectNoSidewaysScroll(page, "phone, menu closed");
   await menu.click();
   await expect(menu).toHaveAttribute("aria-expanded", "true");
-  for (const name of ["Home", "Gap assessment", "TRD seed", "Sampling plan", "Templates", "Sampling tables"]) await expect(nav.getByRole("link", { name, exact: true })).toBeVisible();
+  for (const name of ["Home", "Gap assessment", "Scope", "TRD", "Sampling plan", "Batch record", "Open items (TBD)", "Templates"]) await expect(nav.getByRole("link", { name, exact: true })).toBeVisible();
   await expectNoSidewaysScroll(page, "phone, menu open");
   await expectAccessible(page, "phone menu open");
   await page.keyboard.press("Escape");

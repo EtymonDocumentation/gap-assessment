@@ -34,6 +34,24 @@ function wrap(text: string, max = 22): string[] {
 }
 
 /** The route page: picks the record by `?mbr=` and says so plainly when it is missing. */
+/** True on a phone-width screen (checked once when the page opens). */
+function isPhone(): boolean {
+  return typeof window !== "undefined" && window.matchMedia("(max-width: 700px)").matches;
+}
+
+/** The "What this shows" card. Its own open state, so re-rendering (every move of the slider) never closes or reopens it. */
+function PvAbout({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(() => !isPhone());
+  return (
+    <details className="card stack pv-about" open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
+      <summary>
+        <h2 id="pv-about">What this shows</h2>
+      </summary>
+      {children}
+    </details>
+  );
+}
+
 export function MbrProcessViewPage({ params }: { params: URLSearchParams }) {
   const project = useStore((s) => s.project)!;
   const id = params.get("mbr");
@@ -76,8 +94,9 @@ export function MbrProcessView({ rec }: { rec: MbrRecord }) {
           Back to the batch record
         </a>
       </p>
-      <section className="card stack" aria-labelledby="pv-about">
-        <h2 id="pv-about">What this shows</h2>
+      {/* Open on a wide screen, closed on a phone: there the controls ("Where is the product?") would otherwise sit below two long
+          paragraphs and the legend. The explanation is one tap away. */}
+      <PvAbout>
         <p>
           The batch record drawn as an equipment train. Move through its steps with the slider to see where the product is, which clocks are running against their limits, and which samples are taken at that moment. A small fluid
           tracker (no AI: the same record always gives the same answer) checks the record and lists review prompts.
@@ -87,7 +106,7 @@ export function MbrProcessView({ rec }: { rec: MbrRecord }) {
           in the record&quot; and does not guess. Findings are prompts for a person to review. They do not approve anything and do not decide a filing category.
         </p>
         <Legend />
-      </section>
+      </PvAbout>
 
       <section className="card stack" aria-labelledby="pv-moments">
         <h2 id="pv-moments">Where is the product?</h2>

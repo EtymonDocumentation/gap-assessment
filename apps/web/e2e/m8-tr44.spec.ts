@@ -17,7 +17,7 @@ async function createBlank(page: Page, title: string) {
   await page.goto("./");
   await page.getByRole("button", { name: "Load demo" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
-  await goTo(page, "Risk");
+  await goTo(page, "Risk assessment");
   await page.getByTestId("risk-title-input").fill(title);
   await page.getByTestId("risk-create").click();
   await expect(page.getByTestId("risk-tabs")).toBeVisible();

@@ -30,8 +30,9 @@ async function loadDemo(page: Page) {
 
 async function openTrdPage(page: Page) {
   await loadDemo(page);
-  // Through the navigation, so the "TRD seed" link is part of what is tested. On a phone the navigation sits behind a menu button.
-  await goTo(page, "TRD seed");
+  // The TRD seed is no longer a menu entry: it is reached from the TRD page, whose "See the TRD seed" link is part of what is tested.
+  await goTo(page, "TRD");
+  await page.getByRole("link", { name: "See the TRD seed" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "TRD seed" })).toBeVisible();
 }
 

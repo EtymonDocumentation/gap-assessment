@@ -99,6 +99,32 @@ function List({ missing, preselect }: { missing?: string | undefined; preselect:
         </p>
       )}
 
+      <section className="card stack" aria-labelledby="trd-from-project" data-testid="trd-from-project">
+        <h2 id="trd-from-project">Start from this project</h2>
+        <p className="small">
+          Takes the receiving unit's values from the gap assessment, so you do not retype them. The TRD seed shows exactly what would be carried over, and you can update the TRD from the project later.
+        </p>
+        <div className="row wrap">
+          <button
+            type="button"
+            className="btn primary"
+            onClick={() => {
+              // Only fills in the "how does it start" choice and moves to the form; the title is still yours to write, and nothing is created.
+              setKind("project");
+              const title = document.querySelector<HTMLInputElement>('[data-testid="trd-title-input"]');
+              title?.scrollIntoView({ block: "center" });
+              title?.focus();
+            }}
+            data-testid="trd-from-project-btn"
+          >
+            Start from this project
+          </button>
+          <a className="btn" href={href("/trd-seed")}>
+            See the TRD seed
+          </a>
+        </div>
+      </section>
+
       <section className="card stack" aria-labelledby="trd-list">
         <h2 id="trd-list">TRDs in this project</h2>
         {list.length === 0 ? (

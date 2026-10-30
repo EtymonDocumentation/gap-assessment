@@ -1,10 +1,11 @@
 import { isAnswered, localDate, tbdItems, tbdSummary, tbdSummaryText } from "@gap/engine";
 import { useMemo, useRef, useState } from "react";
 import { PageBanner } from "../art";
+import { thenStep } from "../chain";
+import { DocChainStrip, useChainAllowed } from "../DocChain";
 import { Modal, ResponderForm } from "../components";
 import { download, slug, today } from "../lib";
 import { nextStep, stepDone } from "../next-step";
-import { useTrdAllowed } from "../risk-module";
 import { href, navigate } from "../router";
 import { CloseProjectButton, ProjectListCard, useIsRemote } from "../server/ServerUi";
 import { SERVER_MODE } from "../server/mode";
@@ -33,7 +34,7 @@ export function HomePage({ notice }: { notice?: string }) {
   const { project, loadDemo, newProject, importJson, setProject } = useStore();
   const a = useAssessment();
   const wording = useStageWording();
-  const trdAllowed = useTrdAllowed();
+  const allowed = useChainAllowed();
   const [creating, setCreating] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [importError, setImportError] = useState("");
@@ -49,6 +50,9 @@ export function HomePage({ notice }: { notice?: string }) {
   const differences = a?.gaps.filter((g) => g.category !== "equivalent").length ?? 0;
   const next = project && a ? nextStep(project, a) : null;
   const done = project && a ? stepDone(project, a) : {};
+  // What follows the gap assessment, offered once the interview is complete. Shown beside the gap step, not instead of it: the project cannot show that the register was read.
+  const then = project && next?.path === "/register" ? thenStep(project, allowed) : null;
+  const firstRecord = project?.mbr.records[0];
 
   const setHide = (h: boolean) => {
     setHidden(h);
@@ -56,14 +60,34 @@ export function HomePage({ notice }: { notice?: string }) {
   };
 
   // Each item ticks only where the project data proves it; the rest are plain links (no tick never means "not done").
-  const checklist: { key: string; label: string; hint: string; path?: string; ticked: boolean }[] = [
+  const checklist: { key: string; label: string; hint: string; path?: string; params?: Record<string, string>; ticked: boolean }[] = [
     { key: "create", label: "Create a project", hint: "Give it a name and say who is answering.", ticked: !!project },
     { key: "scope", label: "Choose the scope", hint: "Untick the process steps and document sections that do not apply.", path: "/scope", ticked: !!done.scope },
     { key: "interview", label: "Answer the interview", hint: "One question at a time, for the sending and receiving side. Choose TBD for anything not known yet.", path: "/interview", ticked: !!done.interview },
     { key: "register", label: "Review the gap register", hint: "Check every difference the tool found and decide what to do about each.", path: "/register", ticked: false },
     { key: "document", label: "Write the gap assessment document", hint: "Add your own text, then download the finished document.", path: "/document", ticked: false },
-    ...(trdAllowed
-      ? [{ key: "trd", label: "Start the TRD (optional)", hint: "The technical requirements document that follows the gap assessment.", path: "/trd-seed", ticked: !!project && project.trd.documents.length > 0 }]
+    // The rest of the chain. Every item is optional and can be done in any order, or not at all; a TRD can start blank.
+    ...(allowed.trd
+      ? [{ key: "trd", label: "Start the TRD (optional)", hint: "The technical requirements document that follows the gap assessment. It can start from this project or blank.", path: "/trd", ticked: !!project && project.trd.documents.length > 0 }]
+      : []),
+    ...(allowed.sampling
+      ? [{ key: "sampling", label: "Make a sampling plan (optional)", hint: "Where and when samples are taken in the PPQ batches.", path: "/sampling", ticked: !!project && project.sampling.plans.length > 0 }]
+      : []),
+    ...(allowed.mbr
+      ? [
+          { key: "mbr", label: "Write the batch record (optional)", hint: "The manufacturing batch record. It can use a TRD and a sampling plan, or start blank.", path: "/mbr", ticked: !!firstRecord },
+          {
+            key: "view",
+            label: "See the Process view (optional)",
+            hint: "A batch record drawn as an equipment train, with its clocks and samples. It opens from a batch record.",
+            path: firstRecord ? "/mbr/view" : "/mbr",
+            ...(firstRecord ? { params: { mbr: firstRecord.id } } : {}),
+            ticked: false,
+          },
+        ]
+      : []),
+    ...(allowed.risk
+      ? [{ key: "risk", label: "Assess risk (optional)", hint: "Rate risks with a method you choose. It sits beside the document chain.", path: "/risk", ticked: !!project && project.risk.assessments.length > 0 }]
       : []),
   ];
 
@@ -82,7 +106,7 @@ export function HomePage({ notice }: { notice?: string }) {
         <h2 id="what-h">What this tool does</h2>
         <p className="lede">
           You compare how a product is made at the <strong>sending unit</strong> (SU) with how the <strong>receiving unit</strong> (RU) site plans to make it. The tool asks guided
-          questions, lists every difference (gap), and drafts the gap assessment and the follow-on documents: TRD, batch record, sampling plan and risk assessment.
+          questions, lists every difference (gap), and drafts the gap assessment and the follow-on documents. They run in a chain, and every stage is optional: gap assessment, TRD, sampling plan, batch record, then the Process view of the batch record. A risk assessment sits beside the chain.
         </p>
         <p className="muted">Anything not yet known stays visible as an open item (TBD). The tool never fills in values for you.</p>
         <div className="row wrap">
@@ -107,6 +131,11 @@ export function HomePage({ notice }: { notice?: string }) {
               </a>
               <a href={href("/document")}>Go to the document</a>
             </div>
+            {then && (
+              <p className="small" data-testid="then-step">
+                After that (optional): <a href={href(then.path, then.params)}>{then.label}</a>
+              </p>
+            )}
           </div>
           <dl className="stats stats-quiet">
             <div>
@@ -159,6 +188,24 @@ export function HomePage({ notice }: { notice?: string }) {
         </section>
       ) : null}
 
+      {project && (
+        <section className="card stack" aria-labelledby="chain-h" data-testid="home-chain">
+          <h2 id="chain-h">Your documents</h2>
+          <DocChainStrip heading={false} />
+          <p className="muted small">
+            Each document can use the one before it, but none is required: a TRD can start blank, and you can skip the gap assessment. Anything not yet known stays visible as an open item.
+          </p>
+          {allowed.trd && (
+            <div className="chain-card-actions">
+              <a className="btn" href={href("/trd")} data-testid="home-start-trd">
+                Start from a TRD
+              </a>
+              <span className="muted small">Opens the TRD page, where you choose how it starts: from this project, from a seed file, or blank.</span>
+            </div>
+          )}
+        </section>
+      )}
+
       {remote && <ProjectListCard />}
 
       {hidden ? (
@@ -185,7 +232,7 @@ export function HomePage({ notice }: { notice?: string }) {
                 </span>
                 <div>
                   {c.path && project ? (
-                    <a href={href(c.path)}>{c.label}</a>
+                    <a href={href(c.path, c.params)}>{c.label}</a>
                   ) : c.key === "create" && !project ? (
                     <button className="link-btn" onClick={() => confirmReplace() && setCreating(true)}>
                       {c.label}
@@ -249,7 +296,8 @@ export function HomePage({ notice }: { notice?: string }) {
               onClick={() => {
                 if (!confirmReplace()) return;
                 loadDemo("syr-305");
-                navigate("/register");
+                // Lands on Home, where the document chain is in view; this demo is about the whole chain, not the gap register alone.
+                navigate("/");
               }}
             >
               Open syringe example

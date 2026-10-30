@@ -13,7 +13,7 @@ test.beforeEach(async ({ page }) => {
 async function openSyringeRecord(page: Page) {
   await page.goto("./");
   await page.getByRole("button", { name: "Open syringe example" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
+  await expect(page.getByTestId("home-chain")).toBeVisible();
   await goTo(page, "Batch record");
   await page.getByTestId("mbr-list-table").getByRole("link").first().click();
   await expect(page.getByRole("heading", { level: 1, name: /MBR-001/ })).toBeVisible();
