@@ -115,3 +115,65 @@ test("a blank record says not enough data and does not guess", async ({ page }) 
   await expectNoPageScroll(page);
   await expectAccessible(page, "process view blank");
 });
+
+// The buffer preparation is a parallel preparation that feeds the compounding step: a side branch with an arrow into the product line, and
+// its hold clock (a hold of the buffer, not of the product step) runs from the end of the preparation to the addition. Screenshots go to %TEMP%.
+test("the buffer preparation is a side branch and its hold clock starts when the buffer is made", async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await openDemoView(page);
+  const branch = page.locator('[data-branch="true"]');
+  await expect(branch).toHaveCount(1);
+  await expect(branch).toContainText("Side branch, feeds step 4");
+  await expect(page.locator('[data-testid^="pv-feed-"]')).toHaveCount(1);
+  const status = page.locator('[data-testid^="pv-branch-status-"]');
+  const caption = page.getByTestId("pv-describe");
+
+  // Moment 2: the buffer is not made, so its hold clock is not running (it used to show here).
+  await page.getByTestId("pv-slider").focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByTestId("pv-moment-num")).toHaveText("2");
+  await expect(status).toHaveText("Not yet");
+  await expect(caption).not.toContainText("Dilution buffer hold");
+  await page.screenshot({ path: join(SHOTS, "pv-branch-desktop-m02.png") });
+
+  // Being made, then held with the clock running while the product is at the compounding step; the caption says it is the buffer's hold.
+  await goToMoment(page, /Buffer preparation: /);
+  await expect(status).toHaveText("Being made");
+  // The product is at the compounding step (first block) while the buffer is held: the caption says it is the buffer's hold.
+  await goToMoment(page, /Pooling, compounding and dilution: /);
+  await expect(status).toHaveText("Held (clock running)");
+  await expect(caption).toContainText("Dilution buffer hold (buffer branch), limit 72 h");
+  await expect(page.locator('[data-testid^="pv-clock-icon-"]')).toHaveAttribute("data-running", "true");
+  await expect(page.getByTestId("pv-panel-clocks")).toContainText("Dilution buffer hold (buffer branch)");
+  await page.getByTestId("pv-diagram").scrollIntoViewIfNeeded();
+  await page.screenshot({ path: join(SHOTS, "pv-branch-desktop-m09.png") });
+  // Next moment (10): the buffer is added into the step; the clock stops here.
+  await page.getByTestId("pv-next").click();
+  await expect(page.getByTestId("pv-moment-num")).toHaveText("10");
+  await expect(status).toHaveText("Added to step 4");
+  await expect(caption).toContainText("Dilution buffer hold (buffer branch), limit 72 h");
+  await page.screenshot({ path: join(SHOTS, "pv-branch-desktop-m10.png") });
+  await expectAccessible(page, "process view branch held");
+
+  // After the addition the clock has stopped and the branch says where the buffer went.
+  for (let i = 0; i < 6 && (await caption.innerText()).includes("Dilution buffer hold"); i++) await page.getByTestId("pv-next").click();
+  await expect(status).toHaveText("Added to step 4");
+  await expect(caption).not.toContainText("Dilution buffer hold");
+  await page.screenshot({ path: join(SHOTS, "pv-branch-desktop-after-add.png") });
+
+  // Thaw: bottles on a rack, drawn with the same line style as the other shapes.
+  await expect(page.getByTestId("pv-eq-EQ-SC-02").locator("rect")).toHaveCount(10);
+
+  // Light and dark of one moment, and the phone width (the diagram scrolls inside its own region, the page does not).
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.screenshot({ path: join(SHOTS, "pv-branch-light.png") });
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.screenshot({ path: join(SHOTS, "pv-branch-dark.png") });
+  await expectAccessible(page, "process view branch dark");
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expectNoPageScroll(page);
+  await page.getByTestId("pv-diagram").scrollIntoViewIfNeeded();
+  await page.screenshot({ path: join(SHOTS, "pv-branch-phone.png") });
+});
