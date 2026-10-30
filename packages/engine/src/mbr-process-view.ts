@@ -31,6 +31,20 @@ export interface ViewEquipment {
   /** False when the unit operation is unknown or custom: the section is drawn as a generic vessel with its title. */
   known: boolean;
   part: 1 | 2;
+  /**
+   * Set on a buffer / solution preparation: it is not a step of the product line but a parallel preparation that is ADDED INTO the
+   * compounding step that uses it. This is the id of that section. Absent: the section is a step of the main line (also when no
+   * compounding section follows, so a record without a clear consumer keeps its in-line drawing).
+   */
+  feedsInto?: string;
+  /** Section number of the section it feeds ("feeds step 4"). */
+  feedsIntoNumber?: number;
+  /** First moment of the preparation. */
+  firstMoment?: number;
+  /** The moment the preparation is finished and the buffer exists: the last moment of its section. A hold of the buffer starts here. */
+  madeMoment?: number;
+  /** The moment the buffer is added into the section it feeds. A hold of the buffer stops here. */
+  addedMoment?: number;
 }
 
 export type MomentKind = "start" | "block" | "hold_start" | "hold_end" | "end";
@@ -75,6 +89,8 @@ export interface ViewClock {
   /** True when the planned time is a row the record marks as a study point. */
   studyPoint?: boolean;
   storage?: string;
+  /** True when the clock belongs to a buffer preparation drawn as a side branch: it is a hold of the buffer, not of the product step. */
+  onBranch?: boolean;
   /** Sub-limits (targets) with their own step ranges. */
   parts?: { label: string; hours?: number; text?: string; startMoment?: number; endMoment?: number }[];
 }
@@ -201,6 +217,19 @@ export function shapeForUnitOp(unitOp: string | undefined): { shape: ViewShape; 
   return { shape: "generic", known: false };
 }
 
+/**
+ * A buffer / solution preparation (made in parallel and added into the product). Compounding, dilution, pooling, filling and
+ * filtration are excluded: "dilution buffer" must not turn a compounding step into a side branch.
+ */
+export function isSolutionPrepUnitOp(unitOp: string | undefined): boolean {
+  const k = (unitOp ?? "").toLowerCase();
+  return /buffer|solution/.test(k) && !/compound|dilut|pool|fill|filtr|filter/.test(k);
+}
+/** The product step a prepared buffer is added into. */
+export function isCompoundingUnitOp(unitOp: string | undefined): boolean {
+  return /compound|dilut|pool/.test((unitOp ?? "").toLowerCase());
+}
+
 const HOURS_PER: Record<string, number> = { h: 1, hr: 1, hrs: 1, hour: 1, hours: 1, min: 1 / 60, mins: 1 / 60, minute: 1 / 60, minutes: 1 / 60, d: 24, day: 24, days: 24 };
 
 /** Hours from a value and unit as the record writes them ("24" + "h", "up to 4" + "h", or "30 min" in the value). Undefined when not stated. */
@@ -280,7 +309,10 @@ export function buildProcessView(project: Project, rec: MbrRecord): ProcessView 
   const equipment: ViewEquipment[] = [];
   rec.sections.forEach((s, si) => {
     const sh = shapeForUnitOp(s.unitOp);
-    equipment.push({ id: `EQ-${s.id}`, sectionId: s.id, number: si + 1, title: s.title, ...(s.unitOp ? { unitOp: s.unitOp } : {}), shape: sh.shape, known: sh.known, part: partOf(si) });
+    // A buffer preparation feeds the NEXT compounding / dilution section. With none after it, it stays in the line as before.
+    const targetIndex = isSolutionPrepUnitOp(s.unitOp) ? rec.sections.findIndex((t, ti) => ti > si && isCompoundingUnitOp(t.unitOp)) : -1;
+    const feeds = targetIndex >= 0 ? { feedsInto: rec.sections[targetIndex]!.id, feedsIntoNumber: targetIndex + 1 } : {};
+    equipment.push({ id: `EQ-${s.id}`, sectionId: s.id, number: si + 1, title: s.title, ...(s.unitOp ? { unitOp: s.unitOp } : {}), shape: sh.shape, known: sh.known, part: partOf(si), ...feeds });
     if (si === cut) equipment.push({ id: "EQ-HOLD", number: si + 1, title: "Hold between the parts", shape: "hold", known: true, part: 1 });
   });
   const eqOfSection = (sectionId: string) => `EQ-${sectionId}`;
@@ -707,6 +739,36 @@ export function buildProcessView(project: Project, rec: MbrRecord): ProcessView 
     return { status: found.length ? "finding" : ok > 0 ? "ok" : "no_data", summary: ok + over.length > 0 ? `${ok + over.length} of ${volumeBatches.length} batches compared.${holdUp ? "" : " No row states a hold-up allowance, so the part of the batch that is not filled cannot be explained."}` : "No batch could be compared.", missing, found };
   });
 
+  // ---- buffer branches. This runs AFTER the checks on purpose: where no step marks the start or the end of a buffer hold, the checks still
+  // report that (C4), while the drawing needs a place for the clock. The buffer is a parallel preparation that feeds the product: its hold
+  // starts when the buffer is made (the end of its preparation) and stops when it is added into the compounding step. Before this, a
+  // buffer hold with no start step counted as running from the first moment, so the 72 h clock showed at moment 2.
+  const stepTextById = new Map(allSteps.map((x) => [x.step.id, x.step.text]));
+  for (const e of equipment) {
+    if (!e.feedsInto || !e.sectionId) continue;
+    const mine = moments.filter((m) => m.sectionId === e.sectionId);
+    const theirs = moments.filter((m) => m.sectionId === e.feedsInto);
+    if (mine.length === 0 || theirs.length === 0) continue;
+    const made = mine[mine.length - 1]!.index;
+    // The buffer is added at the moment its hold ends in the consuming section; else at the first moment there whose steps name the buffer.
+    const endHere = clocks.filter((c) => c.kind === "hold" && c.sectionNumber === e.number).map((c) => c.endMoment).find((m) => m !== undefined && theirs.some((t) => t.index === m));
+    const named = theirs.find((m) => m.stepIds.some((id) => /\bbuffer\b/i.test(stepTextById.get(id) ?? "")));
+    e.firstMoment = mine[0]!.index;
+    e.madeMoment = made;
+    e.addedMoment = endHere ?? named?.index ?? theirs[0]!.index;
+    for (const c of clocks.filter((x) => x.sectionNumber === e.number)) {
+      c.onBranch = true;
+      if (c.kind !== "hold") continue;
+      const startInferred = c.startMoment === undefined;
+      const endInferred = c.endMoment === undefined;
+      if (startInferred) c.startMoment = made;
+      if (endInferred) c.endMoment = e.addedMoment;
+      if (startInferred || endInferred) {
+        c.spanText = `from ${startInferred ? "the end of the buffer preparation (no step marks the start)" : momentWords(moments[c.startMoment!]!)} to ${endInferred ? `the addition to step ${e.feedsIntoNumber} (no step marks the end)` : momentWords(moments[c.endMoment!]!)}`;
+      }
+    }
+  }
+
   const missingData = [...new Set(checks.filter((c) => c.status === "no_data").flatMap((c) => c.missing))];
   const assumptions = [
     "The tracker follows the record's steps in their written order. The record carries no clock times, so no timeline is drawn: a clock is shown as running, not started or finished at a moment, next to the limit and the planned time the record states.",
@@ -754,6 +816,23 @@ export const CLOCK_STATUS_TEXT: Record<ClockStatus, string> = {
   started_end_not_marked: "Started, no step marks the end",
 };
 
+/** A clock's name; a hold of a buffer branch says so, so it never reads as a hold of the product step it is drawn beside. */
+export function clockLabel(c: ViewClock): string {
+  return c.onBranch ? `${c.label} (buffer branch)` : c.label;
+}
+
+/**
+ * What a buffer branch shows at a moment: not yet made, being made, made (held while its hold clock runs) or added into the step that
+ * uses it. Read from the moments of the preparation and of the addition, never from a time.
+ */
+export function branchStatusAt(e: ViewEquipment, index: number, hasHoldClock: boolean): string {
+  if (e.firstMoment === undefined || e.madeMoment === undefined || e.addedMoment === undefined) return "";
+  if (index >= e.addedMoment) return `Added to step ${e.feedsIntoNumber}`;
+  if (index >= e.madeMoment) return hasHoldClock ? "Held (clock running)" : "Made, waiting to be added";
+  if (index >= e.firstMoment) return "Being made";
+  return "Not yet";
+}
+
 /** The current moment in words, for a screen reader and for the text under the slider. */
 export function describeMoment(view: ProcessView, index: number): string {
   const m = view.moments[index];
@@ -762,7 +841,7 @@ export function describeMoment(view: ProcessView, index: number): string {
   if (view.split) parts.push(`Part ${m.part}.`);
   if (m.stepRange) parts.push(`Steps ${m.stepRange}.`);
   const running = view.clocks.filter((c) => ["running", "applies_here", "started_end_not_marked"].includes(clockStatusAt(c, index)));
-  parts.push(running.length ? `Clocks: ${running.map((c) => `${c.label}${c.limitText ? `, limit ${c.limitText}` : ", no limit stated"}`).join("; ")}.` : "No clock is running.");
+  parts.push(running.length ? `Clocks: ${running.map((c) => `${clockLabel(c)}${c.limitText ? `, limit ${c.limitText}` : ", no limit stated"}`).join("; ")}.` : "No clock is running.");
   const ss = view.samples.filter((s) => s.momentIndex === index);
   parts.push(ss.length ? `Samples taken: ${ss.map((s) => s.pointId).join(", ")}.` : "No sample is taken here.");
   return parts.join(" ");

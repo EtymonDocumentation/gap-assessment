@@ -2,7 +2,7 @@
 // where the record does not state one, the check says what is missing. All data are fictional.
 import { describe, expect, it, vi } from "vitest";
 import { mbrRecordSchema, type MbrRecord } from "@gap/process-model";
-import { buildDemoProject, buildProcessView, clockStatusAt, describeMoment, mergeMbr, parseHours, parseQuantity, shapeForUnitOp } from "@gap/engine";
+import { branchStatusAt, buildDemoProject, buildProcessView, clockStatusAt, describeMoment, mergeMbr, parseHours, parseQuantity, shapeForUnitOp } from "@gap/engine";
 import { ACTOR } from "./helpers";
 import { content, demos, designLoadouts, failureModes, mbrLibrary, riskLoadouts, samplingSuggestions, trdWriteups } from "../../../content/index";
 
@@ -237,5 +237,75 @@ describe("the SYR-305 demo record, split at its hold", () => {
   });
   it("is deterministic", () => {
     expect(JSON.stringify(buildProcessView(demo, rec0))).toBe(JSON.stringify(v));
+  });
+});
+
+describe("a buffer preparation is a side branch that feeds the compounding step", () => {
+  const sections = (withBuffer: boolean, bufferFirst = true) => [
+    { id: "SC-01", unitOp: "ds_receipt_thaw", title: "Receipt and thaw", blocks: [block("BL-001", "Thaw", { steps: [step(1, "Thaw the bottles.")] })] },
+    ...(withBuffer
+      ? [{ id: "SC-02", unitOp: "buffer_prep", title: "Buffer preparation", blocks: [block("BL-002", "Make", { steps: [step(2, "Weigh the salts."), ], timeLimits: [{ id: "R-0001", label: "Buffer hold", value: "72", unit: "h", targets: [] }] }), block("BL-003", "Finish", { steps: [step(3, "Hold the buffer.")] })] }]
+      : []),
+    { id: "SC-03", unitOp: "compounding", title: "Compounding and dilution", blocks: [block("BL-004", "Dilution", { steps: [step(4, "Connect the thawed drug substance."), step(5, "Add the buffer to the vessel.")] })] },
+    { id: "SC-04", unitOp: "bbr_filtration", title: "BBR filtration", blocks: [block("BL-005", "Filter", { steps: [step(6, "Filter.")] })] },
+  ];
+  const v = viewOf(rec(sections(true)));
+  const buffer = v.equipment.find((e) => e.unitOp === "buffer_prep")!;
+
+  it("marks the buffer section as feeding the next compounding section and no other section", () => {
+    expect(buffer.feedsInto).toBe("SC-03");
+    expect(buffer.feedsIntoNumber).toBe(3);
+    expect(v.equipment.filter((e) => e.feedsInto).map((e) => e.id)).toEqual(["EQ-SC-02"]);
+    // The numbers stay the record's section numbers, so they match the step numbers (3.1, 4.1 ...).
+    expect(v.equipment.map((e) => e.number)).toEqual([1, 2, 3, 4]);
+  });
+  it("makes the buffer at the end of its preparation and adds it at the step that names it", () => {
+    const lastOfBuffer = Math.max(...v.moments.filter((m) => m.sectionId === "SC-02").map((m) => m.index));
+    expect(buffer.madeMoment).toBe(lastOfBuffer);
+    expect(buffer.firstMoment).toBeLessThan(buffer.madeMoment!);
+    expect(buffer.addedMoment).toBe(v.moments.find((m) => m.sectionId === "SC-03")!.index);
+    expect([0, buffer.firstMoment!, buffer.madeMoment!, buffer.addedMoment!].map((i) => branchStatusAt(buffer, i, true))).toEqual(["Not yet", "Being made", "Held (clock running)", "Added to step 3"]);
+    expect(branchStatusAt(buffer, buffer.madeMoment!, false)).toBe("Made, waiting to be added");
+  });
+  it("names a clock of the buffer section as a buffer clock in the moment caption", () => {
+    const c = v.clocks.find((x) => x.id === "R-0001")!;
+    expect(c.onBranch).toBe(true);
+    expect(describeMoment(v, c.startMoment!)).toContain("Buffer hold (buffer branch), limit 72 h");
+  });
+  it("leaves a record with no buffer section unchanged", () => {
+    const plain = viewOf(rec(sections(false)));
+    expect(plain.equipment.some((e) => e.feedsInto)).toBe(false);
+    expect(plain.clocks.some((c) => c.onBranch)).toBe(false);
+  });
+  it("keeps a buffer section in the line when no compounding section follows it", () => {
+    const r = rec([{ id: "SC-01", unitOp: "compounding", title: "Compounding", blocks: [block("BL-001", "A", { steps: [step(1, "Mix.")] })] }, { id: "SC-02", unitOp: "buffer_prep", title: "Buffer preparation", blocks: [block("BL-002", "B", { steps: [step(2, "Weigh.")] })] }]);
+    expect(viewOf(r).equipment.some((e) => e.feedsInto)).toBe(false);
+  });
+  it("does not turn a dilution buffer compounding step into a branch", () => {
+    const r = rec([{ id: "SC-01", unitOp: "buffer_dilution_compounding", title: "Dilution", blocks: [block("BL-001", "A", { steps: [step(1, "Mix.")] })] }, { id: "SC-02", unitOp: "compounding", title: "Compounding", blocks: [block("BL-002", "B", { steps: [step(2, "Mix.")] })] }]);
+    expect(viewOf(r).equipment.some((e) => e.feedsInto)).toBe(false);
+  });
+});
+
+describe("the dilution buffer hold of the syringe demo is a hold of the buffer branch", () => {
+  const dv = buildProcessView(demo, demo.mbr.records[0]!);
+  const buf = dv.equipment.find((e) => e.unitOp === "buffer_prep")!;
+  const hold = dv.clocks.find((c) => c.label === "Dilution buffer hold")!;
+  it("starts when the buffer is made and stops when it is added into the compounding step, not at moment 2", () => {
+    expect(buf.feedsInto).toBe(dv.equipment.find((e) => e.unitOp === "compounding")!.sectionId);
+    expect(hold.onBranch).toBe(true);
+    expect(hold.startMoment).toBe(buf.madeMoment);
+    expect(hold.endMoment).toBe(buf.addedMoment);
+    expect(clockStatusAt(hold, 1)).toBe("not_started");
+    expect(clockStatusAt(hold, buf.firstMoment!)).toBe("not_started");
+    expect(clockStatusAt(hold, buf.madeMoment!)).toBe("running");
+    expect(clockStatusAt(hold, buf.addedMoment! + 1)).toBe("finished");
+  });
+  it("attributes the clock to the buffer branch in the caption while the product is at the compounding step", () => {
+    expect(describeMoment(dv, 1)).not.toContain("Dilution buffer hold");
+    expect(describeMoment(dv, buf.addedMoment!)).toContain("Dilution buffer hold (buffer branch), limit 72 h");
+  });
+  it("still reports that no step marks the start of the hold (the check is not hidden by the drawing)", () => {
+    expect(dv.findings.some((f) => f.checkId === "C4" && /Dilution buffer hold/.test(f.title))).toBe(true);
   });
 });

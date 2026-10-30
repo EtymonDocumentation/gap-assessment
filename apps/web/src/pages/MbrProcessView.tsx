@@ -1,4 +1,4 @@
-import { buildProcessView, CLOCK_STATUS_TEXT, clockStatusAt, describeMoment, type ProcessView, type Severity, type ViewClock, type ViewEquipment, type ViewSample } from "@gap/engine";
+import { branchStatusAt, buildProcessView, CLOCK_STATUS_TEXT, clockLabel, clockStatusAt, describeMoment, type ProcessView, type Severity, type ViewClock, type ViewEquipment, type ViewSample } from "@gap/engine";
 import type { MbrRecord } from "@gap/process-model";
 import { useMemo, useState } from "react";
 import { PageBanner } from "../art";
@@ -272,10 +272,29 @@ const CELL_H = 270;
 const PER_ROW = 6;
 
 /** Cell position: rows run left to right, then right to left, so the pipe between rows is a straight drop. */
-function cellAt(i: number) {
+function cellAt(i: number, top = 0) {
   const row = Math.floor(i / PER_ROW);
   const col = i % PER_ROW;
-  return { x: 20 + (row % 2 === 0 ? col : PER_ROW - 1 - col) * CELL_W, y: 10 + row * CELL_H, row };
+  return { x: 20 + (row % 2 === 0 ? col : PER_ROW - 1 - col) * CELL_W, y: 10 + top + row * CELL_H, row };
+}
+
+/**
+ * Which equipment is drawn as a side branch. A buffer preparation is a parallel preparation that is added INTO a compounding step, so it
+ * hangs above the main train with an arrow into the pipe that carries the product into that step. That needs a main-line step before the
+ * target in the first row of the train (the arrow joins the pipe between the two); where it does not fit, the preparation stays in the
+ * line as before, which is the engine's fallback too (no compounding step after it).
+ */
+function splitBranches(equipment: ViewEquipment[]): { main: ViewEquipment[]; branches: { eq: ViewEquipment; target: number }[] } {
+  let candidates = equipment.filter((e) => e.feedsInto);
+  for (;;) {
+    const main = equipment.filter((e) => !candidates.includes(e));
+    const fit = candidates.filter((e) => {
+      const t = main.findIndex((m) => m.sectionId === e.feedsInto);
+      return t >= 1 && t < PER_ROW;
+    });
+    if (fit.length === candidates.length) return { main, branches: candidates.map((eq) => ({ eq, target: main.findIndex((m) => m.sectionId === eq.feedsInto) })) };
+    candidates = fit;
+  }
 }
 
 function Train({ view, at }: { view: ProcessView; at: number }) {
@@ -284,20 +303,27 @@ function Train({ view, at }: { view: ProcessView; at: number }) {
   const firstUse = new Map<string, number>();
   for (const m of view.moments) if (m.equipmentId && !firstUse.has(m.equipmentId)) firstUse.set(m.equipmentId, m.index);
   const stateOf = (e: ViewEquipment): "now" | "done" | "todo" => (moment.equipmentId === e.id ? "now" : (firstUse.get(e.id) ?? Infinity) < at ? "done" : "todo");
-  const rows = Math.ceil(view.equipment.length / PER_ROW);
-  const width = 20 + Math.min(PER_ROW, view.equipment.length) * CELL_W;
-  const height = rows * CELL_H + 20;
+  const { main, branches } = splitBranches(view.equipment);
+  // A sample of a buffer section is drawn under the branch, even when the step that takes it is in the compounding step.
+  const ownerOf = (s: ViewSample) => branches.find((b) => b.eq.number === s.sectionNumber)?.eq.id ?? view.moments[s.momentIndex]?.equipmentId;
+  const marksOf = (e: ViewEquipment) => view.samples.filter((s) => s.momentIndex >= 0 && ownerOf(s) === e.id);
+  // The band above the main train holds the branches: shape and title, status and clock lines, and their sample markers.
+  const bandH = branches.length ? 232 + Math.ceil(Math.max(0, ...branches.map((b) => Math.min(12, marksOf(b.eq).length))) / 3) * 24 : 0;
+  const rows = Math.ceil(main.length / PER_ROW);
+  const width = 20 + Math.min(PER_ROW, main.length) * CELL_W;
+  const height = bandH + rows * CELL_H + 20;
   const where = moment.equipmentId ? view.equipment.find((e) => e.id === moment.equipmentId)?.title : undefined;
+  const branchNote = branches.length ? ` ${branches.length === 1 ? "One side preparation feeds" : `${branches.length} side preparations feed`} the main line.` : "";
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} role="img" aria-label={`Equipment train of ${view.equipment.length} items. ${where ? `The product is in ${where}.` : "The product is not in any equipment at this moment."}`} className="pv-svg">
+    <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} role="img" aria-label={`Equipment train of ${main.length} items.${branchNote} ${where ? `The product is in ${where}.` : "The product is not in any equipment at this moment."}`} className="pv-svg">
       <defs>
         <pattern id="pv-hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
           <line x1="0" y1="0" x2="0" y2="8" className="pv-hatch" />
         </pattern>
       </defs>
-      {view.equipment.slice(1).map((e, k) => {
-        const a = cellAt(k);
-        const b = cellAt(k + 1);
+      {main.slice(1).map((e, k) => {
+        const a = cellAt(k, bandH);
+        const b = cellAt(k + 1, bandH);
         // Same row: a line between the two shapes. Next row: the pipe runs down the outer edge of the train (right edge after a
         // left-to-right row, left edge after a right-to-left one), so it never crosses the sample markers or the next title.
         const horiz = a.row === b.row;
@@ -312,10 +338,10 @@ function Train({ view, at }: { view: ProcessView; at: number }) {
           <path d="M1 1 L9 5 L1 9 Z" className="pv-arrowhead" />
         </marker>
       </defs>
-      {view.equipment.map((e, i) => {
-        const p = cellAt(i);
+      {main.map((e, i) => {
+        const p = cellAt(i, bandH);
         const state = stateOf(e);
-        const marks = view.samples.filter((s) => s.momentIndex >= 0 && view.moments[s.momentIndex]?.equipmentId === e.id);
+        const marks = marksOf(e);
         return (
           <g key={e.id} transform={`translate(${p.x} ${p.y})`} data-testid={`pv-eq-${e.id}`} data-state={state}>
             <text x="95" y="14" textAnchor="middle" className="pv-eqn">
@@ -347,6 +373,59 @@ function Train({ view, at }: { view: ProcessView; at: number }) {
                 and {marks.length - 12} more samples
               </text>
             )}
+          </g>
+        );
+      })}
+      {branches.map(({ eq: e, target }, k) => {
+        // The arrow joins the pipe that carries the product into the step the buffer is added to (the middle of the gap before it), so it
+        // reads as "added into step N", not as a step of the line. Further branches of the same step sit one cell further left.
+        const into = cellAt(target, bandH);
+        const joinX = into.x;
+        const bx = Math.max(20, joinX - CELL_W * (k + 1));
+        const by = 10;
+        const state = stateOf(e);
+        const marks = marksOf(e);
+        const clock = view.clocks.find((c) => c.onBranch && c.kind === "hold" && c.sectionNumber === e.number);
+        const running = clock !== undefined && clockStatusAt(clock, at) === "running";
+        const clockLines = clock ? wrap(`${clock.label}${clock.limitText ? `, limit ${clock.limitText}` : ", no limit stated"}`, 34).slice(0, 2) : [];
+        return (
+          <g key={e.id}>
+            <path d={`M${bx + 157} ${by + 62} H${joinX} V${into.y + 60}`} className="pv-pipe" markerEnd="url(#pv-arrow)" data-testid={`pv-feed-${e.id}`} />
+            <g transform={`translate(${bx} ${by})`} data-testid={`pv-eq-${e.id}`} data-state={state} data-branch="true">
+              <text x="95" y="14" textAnchor="middle" className="pv-eqn">
+                {e.number}. {wrap(e.title)[0]}
+              </text>
+              {[...wrap(e.title).slice(1), `Side branch, feeds step ${e.feedsIntoNumber}`].map((l, j) => (
+                <text key={j} x="95" y={28 + j * 13} textAnchor="middle" className="pv-eqn">
+                  {l}
+                </text>
+              ))}
+              <g transform="translate(35 38)">
+                <ShapeDrawing shape={e.shape} state={state} />
+                {clock && (
+                  <g data-testid={`pv-clock-icon-${e.id}`} data-running={running ? "true" : "false"}>
+                    <circle cx="104" cy="22" r="11" className={`pv-shape ${running ? "now" : "todo"}`} />
+                    <path d="M104 22 V14 M104 22 L110 26" className="pv-line" />
+                  </g>
+                )}
+              </g>
+              <text x="95" y="146" textAnchor="middle" className="pv-eqs" data-testid={`pv-branch-status-${e.id}`}>
+                {branchStatusAt(e, at, clock !== undefined)}
+              </text>
+              {clockLines.map((l, j) => (
+                <text key={j} x="95" y={159 + j * 13} textAnchor="middle" className="pv-eqs">
+                  {l}
+                </text>
+              ))}
+              {marks.slice(0, 12).map((s, j) => (
+                <Marker key={s.rowId} sample={s} x={4 + (j % 3) * 62} y={194 + Math.floor(j / 3) * 24} at={at} />
+              ))}
+              {marks.length > 12 && (
+                <text x="95" y="290" textAnchor="middle" className="pv-eqs">
+                  and {marks.length - 12} more samples
+                </text>
+              )}
+            </g>
           </g>
         );
       })}
@@ -390,10 +469,20 @@ function ShapeDrawing({ shape, state }: { shape: ViewEquipment["shape"]; state: 
         </g>
       );
     case "thaw":
+      // Frozen drug substance bottles standing on a rack, a frost mark on each and a drop falling from the rack: thawing, not a vessel.
       return (
         <g>
-          <rect x="10" y="12" width="100" height="70" rx="6" className={cls} />
-          <path d="M28 40 q8 -10 16 0 t16 0 t16 0 M28 58 q8 -10 16 0 t16 0 t16 0" className="pv-line" />
+          {[20, 52, 84].map((x) => (
+            <g key={x}>
+              <rect x={x + 5} y="16" width="14" height="7" className={cls} />
+              <rect x={x + 7} y="23" width="10" height="10" className={cls} />
+              <rect x={x} y="33" width="24" height="37" rx="5" className={cls} />
+              <path d={`M${x + 12} 42 V56 M${x + 5} 49 H${x + 19} M${x + 7} 44 L${x + 17} 54 M${x + 7} 54 L${x + 17} 44`} className="pv-line" />
+            </g>
+          ))}
+          <rect x="8" y="70" width="104" height="8" className={cls} />
+          <path d="M14 78 V88 M106 78 V88" className="pv-line" />
+          <path d="M36 80 q-3 4 0 6 q3 -2 0 -6 M68 80 q-3 4 0 6 q3 -2 0 -6 M100 80 q-3 4 0 6 q3 -2 0 -6" className="pv-line" />
         </g>
       );
     case "inspection":
@@ -464,7 +553,7 @@ function ClockBar({ clock: c, status }: { clock: ViewClock; status: string }) {
   return (
     <div className="pv-clock" data-testid={`pv-clock-${c.id}`}>
       <div className="pv-clock-h">
-        <strong>{c.label}</strong>
+        <strong>{clockLabel(c)}</strong>
         <span className={`pv-tag ${status.startsWith("Running") ? "run" : ""}`}>{status}</span>
       </div>
       {c.limitHours !== undefined || c.plannedHours !== undefined ? (
@@ -603,7 +692,7 @@ function Tables({ view, go }: { view: ProcessView; go: (i: number) => void }) {
             {view.clocks.map((c) => (
               <tr key={c.id}>
                 <th scope="row">
-                  {c.label} <span className="muted small">({c.id})</span>
+                  {clockLabel(c)} <span className="muted small">({c.id})</span>
                 </th>
                 <td>{c.limitText ? `${c.limitText} (${c.limitSource})` : "No limit stated"}</td>
                 <td>{c.plannedText ? `${c.plannedText} (${c.plannedSource})${c.studyPoint ? ", study point" : ""}` : "Not stated"}</td>
