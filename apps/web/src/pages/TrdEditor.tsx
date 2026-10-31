@@ -3,6 +3,8 @@ import type { TrdDocument } from "@gap/process-model";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PageBanner } from "../art";
 import { Modal } from "../components";
+import { Tabs, type TabDef } from "../Tabs";
+import { WhatThisIs } from "../WhatThisIs";
 import { dateTime } from "../lib";
 import { href, navigate } from "../router";
 import { useStore } from "../store";
@@ -16,6 +18,39 @@ import { TrdWriteups } from "./TrdWriteups";
 export type TrdTab = "details" | "process" | "writeups" | "open" | "output";
 const TAB_LABEL: Record<TrdTab, string> = { details: "1. Details", process: "2. Process", writeups: "3. Descriptions", open: "4. Open items", output: "5. Output" };
 export const TRD_TABS = Object.keys(TAB_LABEL) as TrdTab[];
+/** The five existing steps become tabs unchanged (same order and test ids); each gets a one-line purpose and a longer "?" help. */
+const TAB_INFO: Omit<TabDef<TrdTab>, "label">[] = [
+  {
+    id: "details",
+    testId: "trd-tab-details",
+    purpose: "Name the TRD and say what it is for and what it covers.",
+    help: "The title, reference, version, purpose and scope of this TRD. Fill it first so everyone reading the document knows what it is about.",
+  },
+  {
+    id: "process",
+    testId: "trd-tab-process",
+    purpose: "The process steps and their parameters, with the project value beside yours.",
+    help: "Each step holds parameter rows. A value comes from the project or a seed file and can be overridden; the original stays beside yours. Set point, NOR and PAR are entered by you with a source.",
+  },
+  {
+    id: "writeups",
+    testId: "trd-tab-writeups",
+    purpose: "Process descriptions for each step, chosen from the library or written here.",
+    help: "Prose that describes what happens in each step. Pick a write-up from the process description library or write your own; the library entry stays unchanged.",
+  },
+  {
+    id: "open",
+    testId: "trd-tab-open",
+    purpose: "Everything still missing, provisional or in need of a check.",
+    help: "A to-do list built from the TRD: values not established, TBD entries and limits that failed a check. The count in the tab name goes down as you fill them in.",
+  },
+  {
+    id: "output",
+    testId: "trd-tab-output",
+    purpose: "Preview and download the TRD as Word or HTML.",
+    help: "Makes the draft document from what is entered. Open items stay visible in the draft. Each download is written to the export history.",
+  },
+];
 
 /** What the page and the document both carry: what the tool does and what it leaves to people. */
 export const TRD_SCOPE_TEXT =
@@ -33,6 +68,8 @@ const KIND_TEXT: Record<TrdOpenItem["kind"], string> = {
 export function TrdEditor({ d, initialTab }: { d: TrdDocument; initialTab: TrdTab }) {
   const update = useStore((s) => s.update);
   const [tab, setTab] = useState<TrdTab>(initialTab);
+  // A link to another tab of the TRD that is already open (same page, new address) switches the tab.
+  useEffect(() => setTab(initialTab), [initialTab]);
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const opener = useRef<HTMLElement | null>(null);
@@ -42,6 +79,13 @@ export function TrdEditor({ d, initialTab }: { d: TrdDocument; initialTab: TrdTa
     return !err;
   };
   const open = useMemo(() => trdOpenItems(d), [d]);
+  // Keep the address in step with the tab so a reload or a copied link opens the same tab. replaceState fires no hashchange, so the
+  // page is not re-rendered or reset by it.
+  const select = (t: TrdTab) => {
+    setTab(t);
+    window.history.replaceState(null, "", href("/trd", { trd: d.id, tab: t }));
+  };
+  const tabDefs = TAB_INFO.map((t) => ({ ...t, label: `${TAB_LABEL[t.id]}${t.id === "open" ? ` (${open.length})` : ""}` }));
 
   return (
     <div className="stack-lg">
@@ -53,6 +97,12 @@ export function TrdEditor({ d, initialTab }: { d: TrdDocument; initialTab: TrdTa
       <p className="no-print">
         <a href={href("/trd")}>All TRDs</a>
       </p>
+      <WhatThisIs id="trd">
+        <p>
+          The TRD (technical requirements document) is the written statement of the process: its steps, parameters, set points, normal and proven acceptable ranges, each with a source. It starts from the project, a seed file or blank.
+        </p>
+        <p>Next in the chain: the sampling plan, then the batch record, which can take its parameter values from this TRD. The tool checks your values and reports; it does not decide a filing category.</p>
+      </WhatThisIs>
       <p className="muted" data-testid="trd-scope-text">
         {TRD_SCOPE_TEXT}
       </p>
@@ -64,20 +114,13 @@ export function TrdEditor({ d, initialTab }: { d: TrdDocument; initialTab: TrdTa
 
       <TrdUpdate d={d} run={run} />
 
-      <div role="group" aria-label="TRD steps" className="row wrap seg no-print" data-testid="trd-tabs">
-        {TRD_TABS.map((t) => (
-          <button key={t} type="button" className={tab === t ? "btn primary" : "btn"} aria-pressed={tab === t} onClick={() => setTab(t)} data-testid={`trd-tab-${t}`}>
-            {TAB_LABEL[t]}
-            {t === "open" ? ` (${open.length})` : ""}
-          </button>
-        ))}
-      </div>
-
-      {tab === "details" && <Details d={d} run={run} />}
-      {tab === "process" && <TrdSteps d={d} run={run} />}
-      {tab === "writeups" && <TrdWriteups d={d} run={run} />}
-      {tab === "open" && <OpenItems d={d} open={open} />}
-      {tab === "output" && <TrdOutput d={d} run={run} />}
+      <Tabs label="TRD steps" tabs={tabDefs} selected={tab} onSelect={select} testId="trd-tabs">
+        {tab === "details" && <Details d={d} run={run} />}
+        {tab === "process" && <TrdSteps d={d} run={run} />}
+        {tab === "writeups" && <TrdWriteups d={d} run={run} />}
+        {tab === "open" && <OpenItems d={d} open={open} />}
+        {tab === "output" && <TrdOutput d={d} run={run} />}
+      </Tabs>
 
       <section className="card stack no-print" aria-labelledby="trd-delete">
         <h2 id="trd-delete">Delete this TRD</h2>

@@ -3,6 +3,7 @@ import { parseTrdSeed, type TrdDocument, type TrdSeed } from "@gap/process-model
 import { useMemo, useRef, useState } from "react";
 import { APP_VERSION } from "../lib";
 import { useContent, useStore } from "../store";
+import { HelpTip } from "../HelpTip";
 import type { Run } from "./SamplingFlow";
 
 const KIND_TEXT: Record<TrdDiffRow["kind"], string> = {
@@ -68,7 +69,10 @@ export function TrdUpdate({ d, run }: { d: TrdDocument; run: Run }) {
 
   return (
     <section className="card stack no-print" aria-labelledby="trd-upd-h" data-testid="trd-update">
-      <h2 id="trd-upd-h">{fromProject ? "Update from the project" : "Update from a newer seed file"}</h2>
+      <div className="row wrap">
+        <h2 id="trd-upd-h">{fromProject ? "Update from the project" : "Update from a newer seed file"}</h2>
+        <HelpTip label="project updates" text="Shows where the project's values have changed since this TRD took them. You choose per row to take the new project value or keep your own; nothing is rewritten for you." />
+      </div>
       {fromProject && project.problem && (
         <p className="notice" role="alert">
           The project could not be turned into a TRD seed: {project.problem}

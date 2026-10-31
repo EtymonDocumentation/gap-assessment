@@ -182,6 +182,7 @@ test.describe("batch record: the demo record", () => {
 
   test("the HTML download carries the banner and the CMO placeholder", async ({ page }) => {
     await openDemoRecord(page);
+    await page.getByTestId("mbr-tab-word").click();
     const [dl] = await Promise.all([page.waitForEvent("download"), page.getByTestId("mbr-download-html").click().then(async () => {
       const anyway = page.getByRole("button", { name: "Download anyway" });
       if (await anyway.isVisible().catch(() => false)) await anyway.click();

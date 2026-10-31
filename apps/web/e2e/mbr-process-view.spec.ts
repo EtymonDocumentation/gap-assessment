@@ -19,7 +19,7 @@ async function openDemoView(page: Page) {
   await goTo(page, "Batch record");
   await page.getByTestId("mbr-list-table").getByRole("link").first().click();
   await expect(page.getByRole("heading", { level: 1, name: /MBR-001/ })).toBeVisible();
-  await page.getByTestId("mbr-process-view-link").click();
+  await page.getByTestId("mbr-tab-view").click();
   await expect(page.getByTestId("pv-page")).toBeVisible();
 }
 
@@ -105,7 +105,7 @@ test("a blank record says not enough data and does not guess", async ({ page }) 
   await expect(page.getByRole("heading", { level: 1, name: /MBR-002/ })).toBeVisible();
   await page.getByTestId("mbr-section-new").fill("Mystery step");
   await page.getByTestId("mbr-section-add").click();
-  await page.getByTestId("mbr-process-view-link").click();
+  await page.getByTestId("mbr-tab-view").click();
   await expect(page.getByTestId("pv-page")).toBeVisible();
   await expect(page.getByTestId("pv-page")).toContainText("Not enough data in the record");
   await expect(page.getByTestId("pv-missing")).toContainText("Not enough data in the record");

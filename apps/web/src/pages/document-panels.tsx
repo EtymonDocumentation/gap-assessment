@@ -7,6 +7,7 @@ import { Empty } from "../components";
 import { loadDocx, useDocx, type DocxModule } from "../docx-loader";
 import { browserRasteriser } from "../figureRasteriser";
 import { dateTime, download, FORMAT_LABEL, MODE_HELP, MODE_LABEL, shortHash } from "../lib";
+import { HelpTip } from "../HelpTip";
 import { href } from "../router";
 import { recordOf, useTemplates, type StoredTemplate } from "../templates-store";
 
@@ -298,6 +299,7 @@ export function WordPanel({
         <button type="button" className="btn primary" disabled={blocked || busy} aria-describedby={checks?.blockers.length ? `${idPrefix}-blockers` : undefined} data-testid={testIdPrefix ? `${testIdPrefix}-download-word` : undefined} onClick={() => guard(() => void exportWord())}>
           {busy ? "Creating…" : "Download Word document"}
         </button>
+        <HelpTip label="the Word export" text="Creates a .docx in your browser from the document above, in the template style you chose. Check it in Word before you use it. Each download is recorded in the export history." />
       </div>
       {error && (
         <p className="error" role="alert">

@@ -1,9 +1,9 @@
 import { branchStatusAt, buildProcessView, CLOCK_STATUS_TEXT, clockLabel, clockStatusAt, describeMoment, type ProcessView, type Severity, type ViewClock, type ViewEquipment, type ViewSample } from "@gap/engine";
 import type { MbrRecord } from "@gap/process-model";
 import { useMemo, useState } from "react";
-import { PageBanner } from "../art";
 import { href } from "../router";
 import { useStore } from "../store";
+import { MbrFrame } from "./MbrFrame";
 
 /*
  * The Process view of one batch record: the equipment train, a moments slider, the clocks against their limits, the samples at their
@@ -83,17 +83,8 @@ export function MbrProcessView({ rec }: { rec: MbrRecord }) {
   const counts = (["major", "minor", "note"] as const).map((s) => [s, view.findings.filter((f) => f.severity === s).length] as const);
 
   return (
+    <MbrFrame rec={rec} tab="view">
     <div className="stack-lg" data-testid="pv-page">
-      <PageBanner art="page-document">
-        <h1>
-          Process view: {rec.id}: {rec.title}
-        </h1>
-      </PageBanner>
-      <p className="no-print">
-        <a href={href("/mbr", { mbr: rec.id })} data-testid="pv-back">
-          Back to the batch record
-        </a>
-      </p>
       {/* Open on a wide screen, closed on a phone: there the controls ("Where is the product?") would otherwise sit below two long
           paragraphs and the legend. The explanation is one tap away. */}
       <PvAbout>
@@ -237,6 +228,7 @@ export function MbrProcessView({ rec }: { rec: MbrRecord }) {
         </ol>
       </section>
     </div>
+    </MbrFrame>
   );
 }
 
