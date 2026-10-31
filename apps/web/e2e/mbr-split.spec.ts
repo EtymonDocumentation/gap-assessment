@@ -50,6 +50,7 @@ for (const [name, size] of [["desktop", { width: 1280, height: 900 }], ["phone",
     await expectAccessible(page, `split record ${name}`);
 
     // Output: pick one part; the preview carries that part's document number and its hold entry only.
+    await page.getByTestId("mbr-tab-word").click();
     await page.getByTestId("mbr-part-2").check();
     await page.getByTestId("mbr-preview-toggle").click();
     const preview = page.getByTestId("mbr-preview");
@@ -61,6 +62,7 @@ for (const [name, size] of [["desktop", { width: 1280, height: 900 }], ["phone",
     await expect(preview).toContainText("Hold start (end of Part 1)");
     await page.getByTestId("mbr-preview-toggle").click();
 
+    await page.getByTestId("mbr-tab-edit").click();
     // Merge: the record is one again, nothing of the split is left, and the plan's hold is only pointed out.
     await page.getByTestId("mbr-merge").click();
     await expect(page.getByTestId("mbr-split-panel")).toHaveCount(0);
@@ -85,6 +87,7 @@ for (const [name, size] of [["desktop", { width: 1280, height: 900 }], ["phone",
     const holdSelect = page.getByTestId("mbr-split-hold");
     await holdSelect.selectOption({ index: 1 });
     await expect(page.getByTestId("mbr-split-entries")).toBeVisible();
+    await page.getByTestId("mbr-tab-word").click();
     await page.getByTestId("mbr-part-2").check();
     await page.getByTestId("mbr-preview-toggle").click();
     await expect(page.getByTestId("mbr-preview")).toContainText("DEMO-MBR-305-01-B");

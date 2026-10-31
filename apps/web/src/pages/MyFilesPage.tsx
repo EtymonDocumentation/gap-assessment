@@ -4,6 +4,7 @@ import { dateTime } from "../lib";
 import { href } from "../router";
 import * as api from "../server/api";
 import type { MyFile, MyFolder, MyListing, MyUpload } from "../server/api";
+import { HelpTip } from "../HelpTip";
 import { formatBytes } from "../server/files";
 import { useIsRemote } from "../server/ServerUi";
 
@@ -302,6 +303,10 @@ function MyFilesView({ folder }: { folder: string }) {
         </p>
         <p className="small muted" role="status" aria-live="polite">
           {notice}
+        </p>
+        <p className="small muted">
+          How do I move a file?
+          <HelpTip label="moving files between computers" text="Upload a file here, sign in on your other computer and download it from the same list. Files are stored on the server for your account only, exactly as you uploaded them. Use it for drafts and downloads you need on another machine." />
         </p>
       </div>
 

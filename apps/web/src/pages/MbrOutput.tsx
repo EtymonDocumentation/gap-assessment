@@ -3,6 +3,7 @@ import { MBR_FORMAT_VERSION, PROCESS_MODEL_VERSION, type DocumentExport, type Mb
 import { DOCUMENT_CSS, renderHtml, renderHtmlBody } from "@gap/renderers";
 import { useMemo, useRef, useState } from "react";
 import { Modal } from "../components";
+import { HelpTip } from "../HelpTip";
 import { APP_VERSION, download, today } from "../lib";
 import { useContent, useStore } from "../store";
 import { BUILTIN_RECORD, ExportHistory, GENERIC_MODES, useWordChoice, WordPanel } from "./document-panels";
@@ -93,9 +94,11 @@ export function MbrOutput({ rec }: { rec: MbrRecord }) {
           >
             Download HTML
           </button>
+          <HelpTip label="the HTML export" text="Saves the draft as a web page you can open in any browser or print. Use it for a quick read; use the Word panel below for a document your reviewers can mark up." />
           <button type="button" className="btn" aria-expanded={showPreview} onClick={() => setShowPreview((v) => !v)} data-testid="mbr-preview-toggle">
             {showPreview ? "Hide preview" : "Show preview"}
           </button>
+          <HelpTip label="the preview" text="Shows the draft on this page exactly as it will be written, so you can check it before downloading anything." />
         </div>
         <p className="small muted" data-testid="mbr-open-count">
           {tbd === 0 ? "No open items." : `${tbd} open ${tbd === 1 ? "item" : "items"} will be listed in the document.`} The banner "Proof of concept. Not validated. Not for GMP use." is in every output.

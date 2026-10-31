@@ -8,6 +8,7 @@ import { fetchSample, SAMPLE_TEMPLATES } from "../sample-templates";
 import { href } from "../router";
 import { BrowserLibraryPanel, useIsRemote } from "../server/ServerUi";
 import { SERVER_MODE } from "../server/mode";
+import { HelpTip } from "../HelpTip";
 import { useStore } from "../store";
 import { newTemplateId, nameFromFile, parseTemplateFile, sha256Hex, templateFileJson, useTemplates, type StoredTemplate } from "../templates-store";
 
@@ -165,7 +166,10 @@ export function TemplatesPage() {
       {remote && <BrowserLibraryPanel />}
 
       <section className="card stack" aria-labelledby="add-title">
-        <h2 id="add-title">Add a template</h2>
+        <div className="row wrap">
+          <h2 id="add-title">Add a template</h2>
+          <HelpTip label="adding templates" text="Upload a Word or PDF file whose look you want your documents to follow. It is stored as it is and used only when you choose it in a Word download. Use it when your company already has a document style." />
+        </div>
         <label className="field">
           <span>Template file (.docx, .dotx, .docm or .pdf)</span>
           <input
@@ -229,7 +233,10 @@ export function TemplatesPage() {
       </section>
 
       <section className="stack" aria-labelledby="library-title">
-        <h2 id="library-title">Library ({items.length})</h2>
+        <div className="row wrap">
+          <h2 id="library-title">Library ({items.length})</h2>
+          <HelpTip label="Template library" text="The templates you have added. Each card lets you see its placeholder tags and, for the gap assessment, map its headings to the document's sections. Nothing here changes a document until you pick the template at download time." />
+        </div>
         {!ready ? (
           <p className="muted">Loading…</p>
         ) : items.length === 0 ? (

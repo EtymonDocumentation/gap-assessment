@@ -4,6 +4,8 @@ import { describeMethod } from "@gap/risk";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PageBanner } from "../art";
 import { Empty, Modal } from "../components";
+import { Tabs, type TabDef } from "../Tabs";
+import { WhatThisIs } from "../WhatThisIs";
 import { dateTime } from "../lib";
 import { href, navigate } from "../router";
 import { useContent, useStore } from "../store";
@@ -17,6 +19,37 @@ import type { Run } from "./SamplingFlow";
 type Tab = "method" | "items" | "actions" | "output";
 const TAB_LABEL: Record<Tab, string> = { method: "1. Method", items: "2. Items", actions: "3. Actions", output: "4. Output" };
 const TABS = Object.keys(TAB_LABEL) as Tab[];
+/** The four steps of the assessment, in the order the work goes: how to score, what to score, what to do about it, the document. */
+const TAB_DEFS: TabDef<Tab>[] = [
+  {
+    id: "method",
+    label: TAB_LABEL.method,
+    testId: "risk-tab-method",
+    purpose: "Choose how risks are scored: the method, its scales and its bands.",
+    help: "Start here. The method decides how a score is worked out and what the bands are called. You choose it; the tool never picks a method or says a risk is acceptable. A starter is only a shape you then edit.",
+  },
+  {
+    id: "items",
+    label: TAB_LABEL.items,
+    testId: "risk-tab-items",
+    purpose: "List what could go wrong and score each item with your method.",
+    help: "Each item is one failure mode with its effect and cause. Add items from gaps, from the catalog or free-form, then enter the scores. A missing score reads as \"not scored\", never as a guess.",
+  },
+  {
+    id: "actions",
+    label: TAB_LABEL.actions,
+    testId: "risk-tab-actions",
+    purpose: "Record the actions that follow from the items, with an owner and a due date.",
+    help: "Use this once items are scored. An action says what will be done about an item, by whom and by when. Residual risk after the action is optional.",
+  },
+  {
+    id: "output",
+    label: TAB_LABEL.output,
+    testId: "risk-tab-output",
+    purpose: "Preview and download the risk assessment as Word or HTML.",
+    help: "Makes the draft document from what is entered. Open items stay visible in the draft. Each download is written to the export history.",
+  },
+];
 
 /** The sentence the page and the document both carry: what the tool does and what it leaves to people. */
 export const RISK_SCOPE_TEXT =
@@ -144,6 +177,14 @@ function Editor({ a, initialTab }: { a: RiskAssessment; initialTab: Tab }) {
   const project = useStore((s) => s.project)!;
   const update = useStore((s) => s.update);
   const [tab, setTab] = useState<Tab>(initialTab);
+  // A link to another tab of the assessment that is already open (same page, new address) switches the tab.
+  useEffect(() => setTab(initialTab), [initialTab]);
+  // Keep the address in step with the tab so a reload or a copied link opens the same tab. replaceState fires no hashchange, so the
+  // page is not re-rendered or reset by it.
+  const select = (t: Tab) => {
+    setTab(t);
+    window.history.replaceState(null, "", href("/risk", { ra: a.id, tab: t }));
+  };
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const opener = useRef<HTMLElement | null>(null);
@@ -166,6 +207,12 @@ function Editor({ a, initialTab }: { a: RiskAssessment; initialTab: Tab }) {
       <p className="no-print">
         <a href={href("/risk")}>All risk assessments</a>
       </p>
+      <WhatThisIs id="risk">
+        <p>
+          A risk assessment (ICH Q9(R1)) lists what could go wrong in the process, scores each item with a method your team chooses, and records the actions that follow. It can draw on the gaps found earlier and on sampling points from the sampling plan, but needs neither.
+        </p>
+        <p>Next: download the draft from the Output tab for review. The tool reports the band you defined; it never calls a risk acceptable.</p>
+      </WhatThisIs>
       <p className="muted" data-testid="risk-scope-text">
         {RISK_SCOPE_TEXT}
       </p>
@@ -190,23 +237,17 @@ function Editor({ a, initialTab }: { a: RiskAssessment; initialTab: Tab }) {
         )}
       </section>
 
-      <div role="group" aria-label="Assessment steps" className="row wrap seg no-print" data-testid="risk-tabs">
-        {TABS.map((t) => (
-          <button key={t} type="button" className={tab === t ? "btn primary" : "btn"} aria-pressed={tab === t} onClick={() => setTab(t)} data-testid={`risk-tab-${t}`}>
-            {TAB_LABEL[t]}
-          </button>
-        ))}
-      </div>
-
-      {tab === "method" && (
-        <>
-          <RiskMethod a={a} run={run} />
-          <RiskReview a={a} run={run} />
-        </>
-      )}
-      {tab === "items" && <RiskItems a={a} run={run} />}
-      {tab === "actions" && <RiskActions a={a} run={run} />}
-      {tab === "output" && <RiskOutput a={a} run={run} />}
+      <Tabs label="Assessment steps" tabs={TAB_DEFS} selected={tab} onSelect={select} testId="risk-tabs">
+        {tab === "method" && (
+          <>
+            <RiskMethod a={a} run={run} />
+            <RiskReview a={a} run={run} />
+          </>
+        )}
+        {tab === "items" && <RiskItems a={a} run={run} />}
+        {tab === "actions" && <RiskActions a={a} run={run} />}
+        {tab === "output" && <RiskOutput a={a} run={run} />}
+      </Tabs>
 
       <section className="card stack no-print" aria-labelledby="ra-delete">
         <h2 id="ra-delete">Delete this assessment</h2>

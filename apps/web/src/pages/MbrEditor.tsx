@@ -25,7 +25,7 @@ import {
 } from "@gap/engine";
 import type { MbrRecord, MbrSection, SamplingPlan } from "@gap/process-model";
 import { Fragment, useMemo, useRef, useState } from "react";
-import { PageBanner } from "../art";
+import { HelpTip } from "../HelpTip";
 import { Modal } from "../components";
 import { dateTime } from "../lib";
 import { mbrScopeText } from "./mbr-text";
@@ -33,11 +33,12 @@ import { href, navigate } from "../router";
 import { useStore } from "../store";
 import { useMbrLibrary } from "../mbr-blocks-store";
 import { BlockCard, type BlockEnv } from "./MbrBlocks";
+import { MbrFrame } from "./MbrFrame";
 import { MbrOutput } from "./MbrOutput";
 import type { Run } from "./SamplingFlow";
 
 /** One batch record: details, sections with their blocks, what is still open, and the output. */
-export function MbrEditor({ rec }: { rec: MbrRecord }) {
+export function MbrEditor({ rec, tab = "edit" }: { rec: MbrRecord; tab?: "edit" | "word" }) {
   const project = useStore((s) => s.project)!;
   const update = useStore((s) => s.update);
   const library = useMbrLibrary();
@@ -79,19 +80,11 @@ export function MbrEditor({ rec }: { rec: MbrRecord }) {
   };
 
   return (
-    <div className="stack-lg">
-      <PageBanner art="page-document">
-        <h1>
-          {rec.id}: {rec.title}
-        </h1>
-      </PageBanner>
-      <p className="no-print">
-        <a href={href("/mbr")}>All batch records</a>
-        {" | "}
-        <a className="btn small" href={href("/mbr/view", { mbr: rec.id })} data-testid="mbr-process-view-link">
-          Process view
-        </a>
-      </p>
+    <MbrFrame rec={rec} tab={tab}>
+      {tab === "word" ? (
+        <MbrOutput rec={rec} />
+      ) : (
+        <>
       <p className="muted" data-testid="mbr-scope-text">
         {mbrScopeText}
       </p>
@@ -131,6 +124,7 @@ export function MbrEditor({ rec }: { rec: MbrRecord }) {
           >
             Open or close all blocks
           </button>
+          <HelpTip label="the block list" text="Each section holds blocks of rows (values, samples, checks). Blocks start closed to keep the page short; this opens every block at once so you can read them, or closes them again." />
         </div>
         {rec.sections.length === 0 && <p className="muted">No sections yet. Add one below.</p>}
         {rec.sections.map((s, si) => (
@@ -161,8 +155,6 @@ export function MbrEditor({ rec }: { rec: MbrRecord }) {
         <AddSection rec={rec} run={run} />
       </section>
 
-      <MbrOutput rec={rec} />
-
       <section className="card stack no-print" aria-labelledby="mbr-delete-h">
         <h2 id="mbr-delete-h">Delete this batch record</h2>
         <p className="muted small">The record leaves the project. The change log keeps what it said.</p>
@@ -180,6 +172,8 @@ export function MbrEditor({ rec }: { rec: MbrRecord }) {
           </button>
         </div>
       </section>
+        </>
+      )}
 
       {confirm && (
         <Modal
@@ -211,7 +205,7 @@ export function MbrEditor({ rec }: { rec: MbrRecord }) {
           </div>
         </Modal>
       )}
-    </div>
+    </MbrFrame>
   );
 }
 

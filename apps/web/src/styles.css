@@ -2051,6 +2051,9 @@ details.report h4 {
 }
 .tailor-link {
   margin-left: auto;
+  /* WCAG 2.2 minimum target size; the step help line above can sit close to it on desktop. */
+  min-height: 24px;
+  min-width: 24px;
 }
 
 /* ---------------------------------------------------------------- M5.7: Scope step and the scope panel of the Document page */
@@ -3556,4 +3559,106 @@ table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
   .doc-chain-hint {
     text-align: left;
   }
+}
+
+/* ---------------------------------------------------------------- tabs, "?" help tips, "What this is" cards (layout job 2) */
+/* The tab row wraps instead of scrolling, so it never widens the page at 390 px. The selected tab has a thick underline and bold
+   text as well as a tint, so it never relies on colour alone. */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  border-bottom: 2px solid var(--border);
+}
+.tab {
+  font: inherit;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: var(--radius) var(--radius) 0 0;
+  padding: 0.5rem 0.9rem;
+  min-height: 2.5rem;
+  cursor: pointer;
+  margin-bottom: -2px;
+}
+.tab:hover {
+  background: var(--surface-2);
+}
+.tab[aria-selected="true"] {
+  font-weight: 700;
+  background: var(--accent-soft);
+  border-color: var(--border);
+  box-shadow: inset 0 -4px 0 var(--accent);
+}
+.tab-purpose {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--muted);
+}
+.help-tip {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+.help-tip-btn {
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1;
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: var(--surface);
+  color: var(--accent);
+  cursor: pointer;
+}
+.help-tip-btn[aria-expanded="true"] {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+/* Fixed and clamped to the viewport by the component, so it cannot create sideways scroll. */
+.help-tip-pop {
+  position: fixed;
+  z-index: 120;
+  box-sizing: border-box;
+  padding: 0.6rem 0.75rem;
+  background: var(--surface);
+  color: var(--text);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  font-size: 0.9rem;
+  font-weight: 400;
+  line-height: 1.4;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.contents-list {
+  margin: 0;
+  padding-left: 1.2rem;
+  columns: 2 16rem;
+}
+@media print {
+  .help-tip {
+    display: none;
+  }
+}
+/* Touch/click targets of at least 24 px with room between them (WCAG 2.2 target size). */
+.contents-list li {
+  break-inside: avoid;
+}
+.contents-list .link-btn {
+  min-height: 1.75rem;
+  padding: 2px 4px;
+  text-align: left;
+}
+.contents-groups {
+  display: grid;
+  gap: 0.75rem;
 }

@@ -34,6 +34,9 @@ import { DesignCard } from "./SamplingDesign";
 import { NumField } from "./SamplingPointDialog";
 import { AgencyCard, Interview, PartiesCard, PointCard, type ViewBy } from "./SamplingInterview";
 import { SubsectionsEditor } from "./SamplingSubsections";
+import { SamplingContents } from "./SamplingContents";
+import { HelpTip } from "../HelpTip";
+import { WhatThisIs } from "../WhatThisIs";
 
 type Tab = "overview" | "interview" | "subsections";
 const TAB_LABEL: Record<Tab, string> = { overview: "Overview", interview: "Interview", subsections: "Plan subsections" };
@@ -233,9 +236,16 @@ function PlanEditor({ plan }: { plan: SamplingPlan }) {
       <p className="no-print">
         <a href={href("/sampling")}>All sampling plans</a>
       </p>
+      <WhatThisIs id="sampling">
+        <p>
+          A PPQ sampling plan says which samples are taken from which process steps during the PPQ batches, how many, and by what method. Its steps and suggestions come from this project's receiving unit data, so it is easiest after the gap assessment and the TRD, but nothing has to come first.
+        </p>
+        <p>Next in the chain: the batch record can take its sample rows from this plan. Nothing is filled in for you; a decision you have not made stays a visible open item.</p>
+      </WhatThisIs>
       <p className="muted" data-testid="sampling-scope-text">
         {SAMPLING_SCOPE_TEXT}
       </p>
+      <SamplingContents tab={tab} onTab={setTab} />
       {error && (
         <p className="notice" role="alert" data-testid="sampling-error">
           {error}
@@ -254,6 +264,7 @@ function PlanEditor({ plan }: { plan: SamplingPlan }) {
             {TAB_LABEL[t]}
           </button>
         ))}
+        <HelpTip label="Plan sections" text="Overview shows the open items, the flow diagram, the sampling points and the document. Interview asks about each step or study type. Plan subsections holds reusable text for the document. Switching tabs never loses anything you entered." />
       </div>
 
       {tab === "interview" && (

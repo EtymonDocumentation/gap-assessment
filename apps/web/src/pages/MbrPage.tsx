@@ -14,7 +14,7 @@ export function MbrPage({ params }: { params: URLSearchParams }) {
   const project = useStore((s) => s.project)!;
   const id = params.get("mbr");
   const rec = id ? project.mbr.records.find((x) => x.id === id) : undefined;
-  return rec ? <MbrEditor rec={rec} /> : <List missing={id ?? undefined} />;
+  return rec ? <MbrEditor rec={rec} tab={params.get("tab") === "word" ? "word" : "edit"} /> : <List missing={id ?? undefined} />;
 }
 
 interface UnitOpOffer {
