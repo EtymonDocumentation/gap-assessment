@@ -3662,3 +3662,36 @@ table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
   display: grid;
   gap: 0.75rem;
 }
+
+/* ---------------------------------------------------------------- saved answers */
+/* The review list when a saved set is applied: one row per answer, a checkbox, the saved answer, and (when it replaces something) a plain-text warning. */
+.sa-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.sa-row {
+  border-top: 1px solid var(--border);
+  padding: 10px 0;
+}
+.sa-row p {
+  margin: 4px 0 0;
+}
+.sa-row .check {
+  min-height: 24px;
+}
+.sa-line {
+  overflow-wrap: anywhere;
+  padding-left: 28px;
+}
+.sa-warn {
+  margin-left: 28px;
+  overflow-wrap: anywhere;
+}
+/* "From saved answers" note on a question: small, with a left rule so it reads as a note and not as part of the answer. */
+.saved-note {
+  margin: 0;
+  padding: 2px 10px;
+  border-left: 4px solid var(--muted);
+  color: var(--muted);
+}

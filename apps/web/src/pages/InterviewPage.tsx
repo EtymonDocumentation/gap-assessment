@@ -14,6 +14,8 @@ import {
   instanceRefs,
   nextInstance,
   progress,
+  savedDay,
+  savedSetOf,
   sourceShort,
   questionLabel,
   setEntrySequence,
@@ -33,6 +35,8 @@ import { href, navigate } from "../router";
 import { useAssessment, useContent, useStageWording, useStore } from "../store";
 import { AnsweringBar, type CiteNotice } from "./AnsweringBar";
 import { TailorButton } from "./TailorDialog";
+import { HelpTip } from "../HelpTip";
+import { ApplyAnswersDialog, SaveAnswersDialog } from "./SavedAnswersDialogs";
 import { QuestionInput, formTouched, initialForm, initialTbd, sameForm, toAnswer, toTbdAnswer, type FormState, type TbdMeta } from "./question-inputs";
 
 /** One answer to record: the instance, what was entered, and any cited documents. */
@@ -176,6 +180,7 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
   const tbdInstances = useMemo(() => allInstances.filter((i) => isTbdInstance(project, i)), [allInstances, project]);
   const instances = onlyTbd ? tbdInstances : allInstances;
   const [notice, setNotice] = useState<CiteNotice | null>(null);
+  const [savedDialog, setSavedDialog] = useState<"save" | "apply" | null>(null);
 
   const summaryId = params.get("summary");
   const requested = params.get("q");
@@ -311,6 +316,29 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
             </>
           )}
         </div>
+        <div className="card tight" data-testid="saved-answers-card">
+          <p className="small">
+            <strong>Saved answers</strong> <HelpTip label="saved answers" text="Keep this project's answers as a named set, or offer a set you saved earlier to this project. You review every answer and untick what you do not want; nothing is applied on its own." />
+          </p>
+          <div className="row wrap">
+            {(["save", "apply"] as const).map((k) => (
+              <button
+                key={k}
+                type="button"
+                className="btn small"
+                data-testid={`saved-${k}`}
+                onClick={() => {
+                  setSavedDialog(k);
+                }}
+              >
+                {k === "save" ? "Save answers…" : "Apply saved answers…"}
+              </button>
+            ))}
+          </div>
+          <p className="small">
+            <a href={href("/saved-answers")}>Manage saved answers</a>
+          </p>
+        </div>
         <ProgressMap prog={prog} instances={allInstances} project={project} currentSection={summaryId ?? current?.section.id} />
         {a.inactive.length > 0 && (
           <p className="notice small">
@@ -352,6 +380,9 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
           <SectionSummary sectionId="all" instances={allInstances} thenKey={null} />
         )}
       </div>
+
+      {savedDialog === "save" && <SaveAnswersDialog onClose={() => setSavedDialog(null)} />}
+      {savedDialog === "apply" && <ApplyAnswersDialog onClose={() => setSavedDialog(null)} />}
 
       <Modal
         open={needsResponder || editingResponder}
@@ -819,6 +850,8 @@ function SidePanel({
   // Where in a ticked document this side's entries cite it (recorded by the Answering from bar or Link values).
   const citedPlace = (sourceId: string): string =>
     [...new Set(instanceRefs(inst).map((r) => locationText(getEntry(project, r)?.sourceLocations?.[sourceId])).filter(Boolean))].join("; ");
+  // Shown while the recorded answer is the one applied from a saved set. Saving a different answer by hand ends it (see savedSetOf).
+  const fromSet = savedSetOf(project, inst);
   const paramQuestion = q.input.type === "parameter" && side !== "shared";
   const secondPassNote = combined && mode === "sequential" && side === "target" && !answered;
 
@@ -833,6 +866,11 @@ function SidePanel({
         <p className="recorded">
           <span className="small muted">Recorded {who}: </span>
           <span>{formatQuestionSide(content, project, q, side)}</span>
+        </p>
+      )}
+      {fromSet && (
+        <p className="small saved-note" data-testid={`saved-note-${inst.key}`}>
+          From saved answers: {fromSet.name}, {savedDay(fromSet.savedAt)}
         </p>
       )}
       {showSu && (

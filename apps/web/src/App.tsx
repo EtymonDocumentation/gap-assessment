@@ -17,6 +17,7 @@ import { SamplingPage } from "./pages/SamplingPage";
 import { SamplingSubsectionsPage } from "./pages/SamplingSubsectionsPage";
 import { SamplingTablesPage } from "./pages/SamplingTablesPage";
 import { MbrLibraryPage } from "./pages/MbrLibraryPage";
+import { SavedAnswersPage } from "./pages/SavedAnswersPage";
 import { TrdLibraryPage } from "./pages/TrdLibraryPage";
 import { MbrPage } from "./pages/MbrPage";
 import { MbrProcessViewPage } from "./pages/MbrProcessView";
@@ -142,7 +143,7 @@ function AppShell() {
 
   // The template library belongs to the browser, not to a project, so it opens without one. So does the guidance library,
   // which is reference material and has nothing to do with the open project.
-  const needsProject = route.path !== "/" && route.path !== "/templates" && route.path !== "/guidance" && route.path !== "/sampling/tables" && route.path !== "/sampling/subsections" && route.path !== "/risk/methods" && route.path !== "/mbr/library" && route.path !== "/trd/writeups" && route.path !== "/myfiles";
+  const needsProject = route.path !== "/" && route.path !== "/templates" && route.path !== "/guidance" && route.path !== "/saved-answers" && route.path !== "/sampling/tables" && route.path !== "/sampling/subsections" && route.path !== "/risk/methods" && route.path !== "/mbr/library" && route.path !== "/trd/writeups" && route.path !== "/myfiles";
   const mappingId = /^\/templates\/([^/]+)\/mapping$/.exec(route.path)?.[1];
   // Documents run in chain order (gap assessment, TRD, sampling plan, batch record), each with a line saying what it is for. They are all
   // optional: the order is a suggestion about which document feeds the next, never a rule. Risk and the TBD list sit alongside the chain.
@@ -177,6 +178,7 @@ function AppShell() {
       items: [
         { path: "/templates", label: "Templates" },
         { path: "/guidance", label: "Guidance" },
+        { path: "/saved-answers", label: "Saved answers" },
         { path: "/sources", label: "Sources" },
         { path: "/builder", label: "Builder" },
         { path: "/changes", label: "Change log" },
@@ -210,6 +212,7 @@ function AppShell() {
   else if (route.path === "/changes") page = <ChangesPage />;
   else if (route.path === "/templates") page = <TemplatesPage />;
   else if (route.path === "/guidance") page = <GuidancePage />;
+  else if (route.path === "/saved-answers") page = <SavedAnswersPage />;
   else if (mappingId) page = <MappingPage id={decodeURIComponent(mappingId)} />;
   else page = <HomePage />;
 

@@ -80,6 +80,15 @@ M1 covers these unit operations (the list has grown since M1, see the later mile
 - **Downloading with TBD values.** Any download (Markdown, HTML, Word or print) while TBD values are open first shows a warning that names the count. You can go back or download anyway; the export history records the count (`tbdCount`).
 - **Migration.** Files from 1.6.0 and older load unchanged: all new fields are optional, no old answer is rewritten.
 
+### Saved answers (schema 1.26.0)
+
+Answers that stay the same from project to project (a site's own set-up, for example) can be kept once and offered to another project. This is an optional load-out you choose to apply, never a default.
+
+- **Save.** On the Interview page ("Save answers…") or on the Saved answers page (Library menu), name the set and choose the sending unit (SU), the receiving unit (RU) or both. Only answers that state something are saved: TBD, "same as SU", open questions and the scoping answers that decide which questions a project asks are left out, and the dialog counts what was left out.
+- **Apply.** In another project choose a set. A review list shows every answer in the set, each ticked; untick what you do not want, then press Apply. If the project already has a different answer, the row shows both values. Questions the project does not ask are listed as "not asked in this project" and skipped. Nothing is applied before you press Apply.
+- **Where it came from.** An applied answer shows "From saved answers: name, date" on its question and in the change log (and in the source label). It stays fully editable; saving a different answer by hand removes the note (the change log keeps the history).
+- **Where sets are kept.** On GitHub Pages in this browser; in server mode on your account. Either way, Export set downloads a file and Import set reads one back (a file that is not a saved set is refused with a plain message).
+
 ### One not-known answer: TBD (schema 1.9.0)
 
 - **Why.** "Unknown (to be confirmed)" and "TBD" meant the same thing to a reader: a value that is still to be found out. A TBD with no details already behaved exactly like Unknown (an open information item, no gap invented, cannot be verified), so keeping both only gave two lists for one state. TBD is the single not-known answer, and nothing is lost: the note field covers why a value is not known.

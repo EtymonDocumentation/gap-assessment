@@ -15,8 +15,16 @@ Last updated: 2026-10-26. Update this file (no machine-specific details) wheneve
   the risk method library edits scales and bands itself, an assessment is told when the library has a newer
   version of its method, and the risk Word output uses the Templates library. Before M8: M7 and its
   sub-milestones M7.1 and M7.2 (section 4) and a sampling polish pass.
-- Current versions: project schema 1.17.0, process model 1.7.0, sampling plan format 1.4.0, TRD format 1.0.0, risk format 1.0.0, content catalog 1.0.0 (failure
+- Current versions: project schema 1.26.0, process model 1.7.0, sampling plan format 1.4.0, TRD format 1.0.0, risk format 1.0.0, content catalog 1.0.0 (failure
   modes and method load-outs 1.0.0), all other packages 0.1.0.
+- Saved answers (schema 1.26.0, version-only migration; the answer record gains an optional `fromSavedSet` {name, savedAt}): an
+  author keeps a project's SU and/or RU answers as a named set and offers it to another project through a review list (every
+  answer ticked, a different existing answer shown beside the saved one, questions the project does not ask skipped). Not saved:
+  TBD, "same as SU", open questions and shared scoping answers. Applying goes through `applyAnswer`; the provenance shows on the
+  question (note ends when the answer is retyped), in the source label and in the change log. Storage like the other libraries
+  (static = IndexedDB `gap-saved-answers`, server = `/api/saved-answers`, module `gap`) plus Export set / Import set files.
+  Code: process model `saved-answers.ts`, engine `saved-answers.ts`, web `SavedAnswersPage.tsx`, `SavedAnswersDialogs.tsx`,
+  `saved-answers-store.ts`, server `routes/saved-answers.ts`; Library menu entry "Saved answers" and a card on the Interview page.
 - **Memo template fixes (sampling plan and CMO instructions).** A plan party has an optional department and an optional memo
   line (From, To or Cc); schema 1.16.0 (version-only migration), process model 1.6.0, sampling plan format 1.3.0. New template
   tags: `{#parties}`, `{#fromParties}`, `{#toParties}`, `{#ccParties}` (name, role, department, memoLine), `{fromText}`,

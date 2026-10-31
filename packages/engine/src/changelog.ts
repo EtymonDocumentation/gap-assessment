@@ -29,6 +29,7 @@ export const ACTION_LABELS: Record<string, string> = {
   gap_update: "Gap updated",
   confirm_section: "Section confirmed",
   set_responder: "Responder changed",
+  apply_saved_answers: "Saved answers applied",
   set_entry_sequence: "Entry order changed",
   custom_uo_add: "Custom unit operation added",
   custom_uo_rename: "Custom unit operation renamed",

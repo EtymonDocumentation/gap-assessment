@@ -88,7 +88,7 @@ export function normalizeValue(content: ContentBundle, q: Question, v: unknown):
   throw new AnswerError(`Parameter questions take a composite answer`);
 }
 
-function normalizeParamField(content: ContentBundle, q: Question, field: ParameterField, v: unknown): EntryValue {
+export function normalizeParamField(content: ContentBundle, q: Question, field: ParameterField, v: unknown): EntryValue {
   const set = PARAM_OPTION_SETS[field];
   if (set) {
     const opts = content.catalog.optionSets[set] ?? [];
