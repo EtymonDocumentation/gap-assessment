@@ -229,7 +229,7 @@ test("a refused answer is reported on its own panel and in a summary alert", asy
   await expect(page.locator("fieldset.side-panel")).toHaveCount(2);
   const ruValue = panel(page, "target").getByRole("textbox", { name: "RU answer value" });
   await ruValue.fill("abc");
-  await page.getByRole("button", { name: /^Save/ }).first().click();
+  await page.getByRole("button", { name: /^Save (SU|RU)/ }).first().click();
   const alert = page.getByRole("alert");
   await expect(alert).toHaveCount(1);
   await expect(alert).toContainText("Nothing was saved");

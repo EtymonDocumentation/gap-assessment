@@ -187,6 +187,19 @@ export interface AnswerRecord {
   sourceId: string;
   by: string;
   at: string;
+  /**
+   * Set (schema 1.26.0) when the answer was applied from a saved answer set instead of typed in. A later hand-typed answer
+   * for the same question is a new record without this field, so the note on the question goes away by itself while the
+   * older record (and the change log) keep the history.
+   */
+  fromSavedSet?: SavedSetRef;
+}
+
+/** Where an applied answer came from: the saved answer set's name and the day it was saved. Names are free text and not unique. */
+export interface SavedSetRef {
+  name: string;
+  /** ISO timestamp the set was saved. */
+  savedAt: string;
 }
 
 export type GapStatus = "open" | "in_progress" | "closed" | "accepted_no_action";

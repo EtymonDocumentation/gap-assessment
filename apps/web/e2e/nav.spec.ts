@@ -141,7 +141,7 @@ test("the Documents and Library drop-downs open on click, move with the arrow ke
 
   const library = nav.getByRole("button", { name: /^Library/ });
   await library.click();
-  for (const name of ["Templates", "Guidance", "Sources", "Builder", "Change log"]) await expect(nav.getByRole("link", { name, exact: true })).toBeVisible();
+  for (const name of ["Templates", "Guidance", "Saved answers", "Sources", "Builder", "Change log"]) await expect(nav.getByRole("link", { name, exact: true })).toBeVisible();
   // The module libraries moved next to their modules: the Library menu keeps only the cross-cutting entries.
   await expect(nav.getByText("Module libraries")).toHaveCount(0);
   for (const name of ["Sampling tables", "Plan subsections", "Risk methods", "Step blocks library", "Process description library"]) await expect(nav.getByRole("link", { name, exact: true })).toHaveCount(0);

@@ -10,7 +10,8 @@ import type { Project } from "./types";
 const quantity = z.object({ value: z.number().finite(), unit: z.string().min(1) });
 // Strict, so a malformed quantity (e.g. missing unit) is rejected instead of being silently read as an empty range.
 const range = z.object({ min: quantity.optional(), max: quantity.optional() }).strict();
-const entryValue = z.union([z.string(), z.number(), z.boolean(), z.array(z.string()), quantity, range]);
+export const entryValueSchema = z.union([z.string(), z.number(), z.boolean(), z.array(z.string()), quantity, range]);
+const entryValue = entryValueSchema;
 
 const tbdSchema = z.object({
   bestGuess: entryValue.optional(),
@@ -275,6 +276,7 @@ export const projectSchema = z.object({
       sourceId: z.string(),
       by: z.string(),
       at: z.string(),
+      fromSavedSet: z.object({ name: z.string(), savedAt: z.string() }).optional(),
     }),
   ),
   gapOverlays: z.array(
@@ -532,6 +534,13 @@ const MIGRATIONS: { from: string; to: string; migrate: Migrate }[] = [
     from: "1.24.0",
     to: "1.25.0",
     migrate: (raw) => ({ ...raw, schemaVersion: "1.25.0" }),
+  },
+  // 1.25.0 -> 1.26.0: an answer record may say it was applied from a saved answer set (name and date saved). Optional and absent in every
+  // older record, so no data changes; only the version moves.
+  {
+    from: "1.25.0",
+    to: "1.26.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.26.0" }),
   },
 ];
 

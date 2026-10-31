@@ -223,6 +223,12 @@ export const createRiskMethod = (method: unknown) => json<{ id: string }>("POST"
 export const putRiskMethod = (id: string, method: unknown) => json<{ method: unknown }>("PUT", `/api/risk-methods/${enc(id)}`, { json: { method } });
 export const deleteRiskMethod = (id: string) => call("DELETE", `/api/risk-methods/${enc(id)}`).then(() => undefined);
 
+// ------------------------------------------------------------------ Saved answer sets (every account)
+export const listSavedAnswers = () => json<{ sets: unknown[] }>("GET", "/api/saved-answers").then((r) => r.sets);
+export const createSavedAnswers = (set: unknown) => json<{ id: string }>("POST", "/api/saved-answers", { json: { set } });
+export const putSavedAnswers = (id: string, set: unknown) => json<{ set: unknown }>("PUT", `/api/saved-answers/${enc(id)}`, { json: { set } });
+export const deleteSavedAnswers = (id: string) => call("DELETE", `/api/saved-answers/${enc(id)}`).then(() => undefined);
+
 // ------------------------------------------------------------------ My files (private file transfer between the person's computers)
 export interface MyFile {
   id: string;

@@ -13,7 +13,7 @@ describe("migration to 1.19.0: batch records", () => {
     old.schemaVersion = "1.17.0";
     const before = old.changeLog.length;
     const p = parseProject(old);
-    expect(p.schemaVersion).toBe("1.25.0");
+    expect(p.schemaVersion).toBe("1.26.0");
     expect(p.mbr).toEqual({ records: [] });
     expect(p.meta.title).toBe("Old project (fictional)");
     expect(p.changeLog.length).toBe(before);
@@ -52,7 +52,7 @@ describe("migration to 1.25.0: a batch record split in two parts (MBR format 1.2
     old.schemaVersion = "1.24.0";
     old.mbr = { records: [rec()] };
     const p = parseProject(old);
-    expect(p.schemaVersion).toBe("1.25.0");
+    expect(p.schemaVersion).toBe("1.26.0");
     expect(p.mbr.records[0]).toEqual(rec());
     expect(p.mbr.records[0]!.split).toBeUndefined();
   });
