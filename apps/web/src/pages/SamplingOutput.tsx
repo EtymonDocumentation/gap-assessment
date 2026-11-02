@@ -120,7 +120,7 @@ function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "
           </button>
         </div>
         <p className="small muted" data-testid={`${p}-open-count`}>
-          {tbd === 0 ? "No open items." : `${tbd} open ${tbd === 1 ? "item" : "items"} will be listed in the document.`} The banner "Proof of concept. Not validated. Not for GMP use." is in every output.
+          {tbd === 0 ? "No open items." : `${tbd} open ${tbd === 1 ? "item" : "items"} will be listed in the document.`} The drafting-aid notice is in every output.
         </p>
         <div role="status" aria-live="polite">
           {done && <p data-testid={`${p}-done`}>{done}</p>}

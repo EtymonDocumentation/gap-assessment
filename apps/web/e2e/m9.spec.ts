@@ -8,9 +8,8 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
-import { goTo } from "./nav-helper";
+import { goTo, NOTICE_DOCUMENT } from "./nav-helper";
 
-const BANNER = "Proof of concept. Not validated. Not for GMP use.";
 const SHOTS = tmpdir();
 
 test.beforeEach(async ({ page }) => {
@@ -432,14 +431,14 @@ test("Word and HTML downloads carry the banner, the sections, the overrides and 
   const word = await download(page, () => page.getByRole("button", { name: /Download Word|Word document/i }).first().click());
   expect(word.file).toMatch(/\.docx$/);
   const text = wordText(word.bytes);
-  expect(text).toContain(BANNER);
+  expect(text).toContain(NOTICE_DOCUMENT);
   expect(text).toMatch(/requires regulatory affairs assessment/i);
   expect(text).not.toMatch(/filing category/i);
 
   const html = await downloadId(page, "trd-download-html");
   expect(html.file).toMatch(/^trd-.*\.html$/);
   const h = html.bytes.toString("utf8");
-  expect(h).toContain(BANNER);
+  expect(h).toContain(NOTICE_DOCUMENT);
   // The override wording with the project value beside it is evidence, so it is in the evidence record, not in the short document.
   const ev = (await downloadId(page, "trd-evidence-download-html")).bytes.toString("utf8");
   expect(ev).toContain("overridden; project:");
@@ -462,7 +461,7 @@ test("the standard TRD is short and the evidence record is its own download with
   const evidence = await downloadId(page, "trd-evidence-download-html");
   expect(evidence.file).toMatch(/^trd-evidence-.*.html$/);
   const e = evidence.bytes.toString("utf8");
-  expect(e).toContain(BANNER);
+  expect(e).toContain(NOTICE_DOCUMENT);
   for (const kept of ["PAR and NOR check", "Basis", "Sources", "evidence record"]) expect(e, kept).toContain(kept);
   const history = page.getByRole("region", { name: "Export history table" });
   await expect(history).toContainText("TRD evidence record (HTML)");

@@ -191,7 +191,7 @@ export function WordPanel({
       <h2 id={`${idPrefix}-title`}>{title}</h2>
       <p className="small muted">
         Creates a .docx file in this browser with the same content as the document below. Word may lay it out slightly differently from this preview, so check it in Word before you use it. The
-        banner "Proof of concept. Not validated. Not for GMP use." is always included.
+        drafting-aid notice is always included.
       </p>
       <fieldset className="stack">
         <legend>Kind of Word document</legend>

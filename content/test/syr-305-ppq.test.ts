@@ -1,6 +1,6 @@
 // The SYR-305 demo PPQ sampling plan (three batches at 50 L, 100 L and 9 L), the TRD figures that changed with it, and the
 // batch record rows that point at the plan. All data are fictional. The plan's rationale text must not contradict the TRD numbers.
-import { buildDemoProject, buildSamplingPlanDocument, sampleDiff, sampleFieldsOf, samplingOpenItems } from "@gap/engine";
+import { NOTICE_DOCUMENT, buildDemoProject, buildSamplingPlanDocument, sampleDiff, sampleFieldsOf, samplingOpenItems } from "@gap/engine";
 import { planTotals, unitsPerBatch } from "@gap/sampling";
 import { describe, expect, it } from "vitest";
 import { content, demos, designLoadouts, failureModes, mbrLibrary, riskLoadouts, samplingSuggestions, trdWriteups } from "../index";
@@ -85,7 +85,7 @@ describe("SYR-305 PPQ sampling plan", () => {
   it("renders to a document that carries the banner and the filing wording only as the assessment request", () => {
     const d = buildSamplingPlanDocument(content, project, plan, samplingSuggestions, { generatedAt: "2026-10-26T00:00:00.000Z" });
     const text = JSON.stringify(d);
-    expect(text).toContain("Proof of concept. Not validated. Not for GMP use.");
+    expect(text).toContain(NOTICE_DOCUMENT);
     expect(text).not.toMatch(/filing category/i);
   });
 });

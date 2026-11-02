@@ -2,7 +2,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { assess, buildDemoProject, buildDocument, citeEntries, type DocModel } from "@gap/engine";
+import { NOTICE_DOCUMENT, assess, buildDemoProject, buildDocument, citeEntries, type DocModel } from "@gap/engine";
 import type { Project } from "@gap/process-model";
 import { content, demos } from "../../../content/index";
 import { buildTagData, type TagData } from "../src/tags";
@@ -10,7 +10,7 @@ import type { TemplateAnalysis } from "../src/types";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
-export const BANNER = "Proof of concept. Not validated. Not for GMP use.";
+export const BANNER = NOTICE_DOCUMENT;
 export const GENERATED_AT = "2026-10-02T00:00:00.000Z";
 
 export function fixture(name: string): Uint8Array {

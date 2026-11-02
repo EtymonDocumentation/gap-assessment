@@ -10,6 +10,7 @@ import { scopeExclusions } from "./tailoring";
 import { stepExclusions } from "./scope";
 import { instanceRefs, type QuestionInstance } from "./sequencer";
 import { citationNames, entryLabel, locationText, sourceLabel } from "./labels";
+import { NOTICE_DOCUMENT } from "./product";
 import { cellVerification, verificationSummary } from "./verification";
 import { sourceRegisterRows } from "./source-register";
 import { changeLogActionCounts } from "./changelog";
@@ -576,7 +577,8 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
 
   const doc: DocModel = {
     title: fill(t.title, vars),
-    banner: t.banner,
+    // The notice is not a template field: every document of the tool carries the one shared wording (product.ts).
+    banner: NOTICE_DOCUMENT,
     status: "DRAFT",
     meta: [
       ["Project", project.meta.title],

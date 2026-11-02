@@ -8,7 +8,7 @@ export const ACCENT = "1F4E79";
 export const ON_ACCENT = "FFFFFF";
 /** Table body text is "automatic" colour, which Word draws black on light shading. */
 export const BODY_TEXT = "000000";
-/** Colour of the proof-of-concept banner (dark red, as in the HTML document). */
+/** Colour of the drafting-aid notice (dark red, as in the HTML document). */
 export const BANNER_COLOR = "8A1C1C";
 /** Pale red fill of the cover-page banner box. */
 export const BANNER_FILL = "FDF0F0";

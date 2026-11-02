@@ -1,9 +1,10 @@
-import { PROVISIONAL_LABEL, type Category, type Gap } from "@gap/engine";
+import { NOTICE_FOOTER, NOTICE_STRIP, NOTICE_STRIP_PHONE, PROVISIONAL_LABEL, type Category, type Gap } from "@gap/engine";
 import type { Severity } from "@gap/process-model";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useState, type ReactNode } from "react";
 import { categoryShort, SEVERITY_TEXT } from "./lib";
 import { useStageWording } from "./store";
+import { useNarrow } from "./viewport";
 
 /** Category marker. Colour is never the only cue: the label is always shown. */
 export function CategoryChip({ category, compact }: { category: Category; compact?: boolean }) {
@@ -40,18 +41,34 @@ export function ProvisionalFlag({ item }: { item: { provisional?: boolean | unde
   return <span className="tag tag-provisional">{PROVISIONAL_LABEL}</span>;
 }
 
-/** The permanent banner at the top of every screen, the sign-in page included. */
-export function PocBanner({ sub }: { sub: string }) {
+/**
+ * The permanent notice strip at the top of every screen, the sign-in page included. The words come from one shared module (the same
+ * wording is printed in every Markdown, HTML and Word document). On a phone the strip is the short form; where the data lives is then
+ * said in the menu instead. Only one form is in the page at a time (see useNarrow).
+ */
+export function NoticeStrip({ storage }: { storage?: string }) {
+  const phone = useNarrow();
   return (
-    <div className="poc-banner" role="note">
-      <strong>Proof of concept. Not validated. Not for GMP use.</strong>
-      <span className="poc-sub"> {sub}</span>
+    <div className="notice-strip" role="note" data-testid="notice-strip">
+      {phone ? (
+        NOTICE_STRIP_PHONE
+      ) : (
+        <>
+          {NOTICE_STRIP}
+          {storage && <span className="notice-storage"> · {storage}</span>}
+        </>
+      )}
     </div>
   );
 }
 
-export function PocFooter() {
-  return <footer className="app-footer">Proof of concept. Not validated. Not for GMP use. The tool never determines regulatory filing categories.</footer>;
+/** The foot of every screen: the strip wording in full (a phone only shows the short form at the top) and the filing-category statement. */
+export function NoticeFooter() {
+  return (
+    <footer className="app-footer" data-testid="notice-footer">
+      {NOTICE_FOOTER}
+    </footer>
+  );
 }
 
 export function Empty({ children }: { children: ReactNode }) {
@@ -148,7 +165,7 @@ export function ResponderForm({
         <input value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. MSAT engineer" />
       </label>
       <p className="muted small">
-        Recorded as free text on every answer. This proof of concept has no login, so answers are not attributable in a GMP sense.
+        Recorded as free text on every answer. This tool has no electronic signature, so answers are not attributable in a GMP sense.
       </p>
       {err && (
         <p className="error" role="alert">
@@ -223,7 +240,7 @@ export function VerifierFields({
         </div>
       )}
       <p className="muted small">
-        Recorded as free text. This proof of concept has no login, so the verifier is not attributable in a GMP sense.
+        Recorded as free text. This tool has no electronic signature, so the verifier is not attributable in a GMP sense.
       </p>
     </>
   );

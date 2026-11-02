@@ -2,7 +2,7 @@
   "name": "gap-assessment",
   "private": true,
   "version": "0.1.0",
-  "description": "Gap Assessment Generator (proof of concept) - biologics fill/finish technology transfer",
+  "description": "Cascade: GMP transfer documentation. A drafting aid for biologics fill/finish technology transfer (not validated; fictional data only)",
   "type": "module",
   "workspaces": [
     "packages/*",

@@ -2,7 +2,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { buildCmoInstructionsDocument, buildDemoProject, buildSamplingPlanDocument } from "@gap/engine";
+import { NOTICE_DOCUMENT, buildCmoInstructionsDocument, buildDemoProject, buildSamplingPlanDocument } from "@gap/engine";
 import { describe, expect, it, vi } from "vitest";
 import { content, demos, designLoadouts, samplingSuggestions } from "../../../content/index";
 import { renderDocx } from "../src/index";
@@ -24,7 +24,7 @@ describe("Word sampling plan and CMO instructions (M7.1)", () => {
   it("renders the plan with study-type sections and reporting-instructions blocks, and writes a sample", async () => {
     const out = await renderDocx({ doc: buildSamplingPlanDocument(content, project, plan, samplingSuggestions, opts), mode: "builtin", generatedAt: GENERATED_AT });
     const text = plainText(strictDocx(out.bytes));
-    expect(text).toContain("Proof of concept. Not validated. Not for GMP use.");
+    expect(text).toContain(NOTICE_DOCUMENT);
     expect(text).toContain("Reporting instructions RI-SP-001");
     expect(text).not.toMatch(/filing category/i);
     const dir = join(tmpdir(), "gap-docx-samples", "m71");
@@ -36,7 +36,7 @@ describe("Word sampling plan and CMO instructions (M7.1)", () => {
     const out = await renderDocx({ doc: buildCmoInstructionsDocument(content, project, plan, samplingSuggestions, opts), mode: "builtin", generatedAt: GENERATED_AT });
     const text = plainText(strictDocx(out.bytes));
     for (const h of ["About these instructions", "Reporting instructions per sampling point"]) expect(text).toContain(h);
-    expect(text).toContain("Proof of concept. Not validated. Not for GMP use.");
+    expect(text).toContain(NOTICE_DOCUMENT);
     const dir = join(tmpdir(), "gap-docx-samples", "m71");
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "cmo-instructions.docx"), out.bytes);

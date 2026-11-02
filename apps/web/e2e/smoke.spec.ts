@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Download, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
+import { expectNotice, NOTICE_DOCUMENT, setTheme } from "./nav-helper";
 
 const CATEGORIES = [
   "Equivalent",
@@ -20,7 +21,7 @@ test.beforeEach(async ({ page }) => {
 
 async function loadDemo(page: Page) {
   await page.goto("./");
-  await expect(page.getByText("Proof of concept. Not validated. Not for GMP use.").first()).toBeVisible();
+  await expectNotice(page);
   await page.getByRole("button", { name: "Load demo" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
@@ -242,20 +243,20 @@ test("document preview and downloads", async ({ page }) => {
   const md = await downloadText(page, () => page.getByRole("button", { name: "Download Markdown" }).click());
   expect(md.name).toMatch(/\.md$/);
   expect(md.text).toContain("# Gap assessment: ARX-217");
-  expect(md.text).toContain("Proof of concept. Not validated. Not for GMP use.");
+  expect(md.text).toContain(NOTICE_DOCUMENT);
   expect(md.text).not.toMatch(/undefined|NaN/);
 
   const html = await downloadText(page, () => page.getByRole("button", { name: "Download HTML" }).click());
   expect(html.name).toMatch(/\.html$/);
   expect(html.text).toContain("<!doctype html>");
-  expect(html.text).toContain("Not for GMP use");
+  expect(html.text).toContain(NOTICE_DOCUMENT);
 });
 
 for (const theme of ["light", "dark"] as const) {
   test(`accessibility and layout, ${theme} theme`, async ({ page }) => {
     test.setTimeout(240_000); // the demo has many rows to check on each page
     await loadDemo(page);
-    await page.getByLabel("Colour theme").selectOption(theme);
+    await setTheme(page, theme === "dark" ? "Dark" : "Light");
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
     const routes = ["#/", "#/interview?q=fill.pump%40target", "#/interview?summary=uo.aseptic_filling", "#/compare", "#/register", "#/validation", "#/document", "#/builder", "#/sources", "#/changes"];
     for (const r of routes) {

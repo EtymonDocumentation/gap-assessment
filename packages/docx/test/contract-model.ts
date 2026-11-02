@@ -1,11 +1,11 @@
-import type { Block, DocModel, DocSection } from "@gap/engine";
+import { NOTICE_DOCUMENT, type Block, type DocModel, type DocSection } from "@gap/engine";
 
 /**
  * A hand-built document in the M5.2 shape (SU / RU wording, the lean gap table, the "Gap details" appendix, optional sections left out).
- * Fictional data only. It does not depend on the engine, so the layout tests check the contract itself.
+ * Fictional data only. It does not build anything with the engine (only the notice wording is shared), so the layout tests check the contract itself.
  */
 
-export const BANNER_TEXT = "Proof of concept. Not validated. Not for GMP use.";
+export const BANNER_TEXT = NOTICE_DOCUMENT;
 export const REGULATORY = "Requires regulatory affairs assessment";
 
 export const GAP_COLUMNS = ["ID", "Attribute", "SU", "RU", "Gap", "Severity", "Actions", "Notes"];

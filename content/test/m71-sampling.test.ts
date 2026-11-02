@@ -1,6 +1,7 @@
 // Milestone 7.1: study types, reporting instructions, agency requests, plan subsections, the optional mixing design with
 // load-outs, the CMO export, and the demo that exercises all of it. All data are fictional.
 import {
+  NOTICE_DOCUMENT,
   addAgencyRequest,
   addPoint,
   addSubsection,
@@ -183,7 +184,7 @@ describe("the CMO reporting instructions export", () => {
   });
 
   it("has the banner, a stable fingerprint, and changes when an instruction changes", () => {
-    expect(doc.banner).toContain("Proof of concept. Not validated. Not for GMP use.");
+    expect(doc.banner).toContain(NOTICE_DOCUMENT);
     expect(documentFingerprint(cmoDoc())).toBe(documentFingerprint(doc));
     const p2 = updatePoint(demo, plan.id, "SP-001", { reporting: { what: ["mean"] } }, LATER);
     expect(documentFingerprint(cmoDoc(p2))).not.toBe(documentFingerprint(doc));

@@ -4,6 +4,7 @@ import type { Block, DocModel, DocSection } from "./document";
 import { methodDocumentLines } from "@gap/sampling";
 import { effectiveField } from "./trd";
 import { TRD_BANNER } from "./trd-outline";
+import { PRODUCT_NAME } from "./product";
 import { holdEntryInfo, mbrOpenItems, numberSteps, renderStepText, sampleIdsTakenAt, splitIndex, stepNumberText, type HoldEntryInfo, type MbrOpenItem, type MbrPart } from "./mbr";
 import { NOT_HELD, NOTE_OUTSIDE, NOTE_TIGHTER, paramNote, targetSum, trdRefText } from "./mbr-values";
 
@@ -308,7 +309,7 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
       type: "table",
       columns: ["Item", "Value"],
       rows: [
-        ["Generator", `${opts.generatorName ?? "Gap Assessment Generator (proof of concept)"} ${opts.appVersion ?? "unversioned"}`],
+        ["Generator", `${opts.generatorName ?? PRODUCT_NAME} ${opts.appVersion ?? "unversioned"}`],
         ["Batch record", `${rec.id}${rec.version ? `, version ${rec.version}` : ""}${part ? `, part ${part} of 2` : ""}, last changed ${rec.updatedAt.replace("T", " ").slice(0, 16)} UTC`],
         ["MBR format", MBR_FORMAT_VERSION],
         ["Process model", PROCESS_MODEL_VERSION],

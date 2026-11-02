@@ -7,8 +7,8 @@ import { readFile } from "node:fs/promises";
 import { mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { expectNotice, setTheme } from "./nav-helper";
 
-const BANNER = "Proof of concept. Not validated. Not for GMP use.";
 const SHOTS = tmpdir();
 
 test.beforeEach(async ({ page }) => {
@@ -33,14 +33,14 @@ async function expectNoHorizontalScroll(page: Page, label: string) {
 
 async function loadDemo(page: Page) {
   await page.goto("./");
-  await expect(page.getByText(BANNER).first()).toBeVisible();
+  await expectNotice(page);
   await page.getByRole("button", { name: "Load demo" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
 
 async function newProject(page: Page) {
   await page.goto("./");
-  await expect(page.getByText(BANNER).first()).toBeVisible();
+  await expectNotice(page);
   await page.getByRole("button", { name: "Start a new project" }).click();
   const dialog = page.getByRole("dialog", { name: "New project" });
   await dialog.getByLabel("Project title").fill("Scope test (fictional)");
@@ -320,7 +320,7 @@ for (const theme of ["light", "dark"] as const) {
   test(`scope pages: accessible, no sideways scroll, ${theme} theme`, async ({ page }) => {
     test.setTimeout(90_000);
     await loadDemo(page);
-    await page.getByLabel("Colour theme").selectOption(theme);
+    await setTheme(page, theme === "dark" ? "Dark" : "Light");
     await go(page, "#/scope");
     await page.getByRole("button", { name: "Expand all groups" }).click();
     await page.locator("#scope-step-capping").click();

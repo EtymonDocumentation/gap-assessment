@@ -64,7 +64,7 @@ function nullPaths(value: unknown, path = "$", out: string[] = []): string[] {
 
 describe("shipped content builds", () => {
   it("builds without error and reports its versions", () => {
-    expect(content.versions).toEqual({ catalog: "1.9.0", questions: "1.9.0", rules: "1.7.0", templates: "1.5.0" });
+    expect(content.versions).toEqual({ catalog: "1.9.0", questions: "1.9.0", rules: "1.7.0", templates: "1.6.0" });
     for (const v of Object.values(content.versions)) expect(v).toMatch(/^\d+\.\d+\.\d+$/);
   });
 
@@ -157,7 +157,8 @@ describe("shipped content builds", () => {
     }
     expect(doc.approvalRoles.length).toBeGreaterThan(0);
     expect(doc.regulatoryStatement).toContain("regulatory");
-    expect(doc.banner).toMatch(/not (validated|for GMP)/i);
+    // The notice is not a template field any more: it comes from the one shared module (product.ts), tested in product.test.ts.
+    expect(Object.keys(doc)).not.toContain("banner");
   });
 });
 
@@ -582,10 +583,10 @@ describe("buildContent reports specific problems", () => {
 
   it("rejects an incomplete document template", () => {
     const problems = problemsOf((raw) => {
-      delete raw.templates.document.banner;
+      delete raw.templates.document.purpose;
     });
     expect(problems).toHaveLength(1);
-    expect(problems[0]).toMatch(/^templates: document\.banner: /);
+    expect(problems[0]).toMatch(/^templates: document\.purpose: /);
   });
 
   it("rejects an unknown condition operator in a showWhen", () => {

@@ -1,5 +1,5 @@
 // Milestone 8: the risk assessment document. Fictional data only.
-import { addItem, buildDemoProject, buildRiskAssessmentDocument, createAssessment, projectScopeSteps, RISK_OPTIONAL_SECTIONS, setMethod, updateItem } from "@gap/engine";
+import { NOTICE_DOCUMENT, addItem, buildDemoProject, buildRiskAssessmentDocument, createAssessment, projectScopeSteps, RISK_OPTIONAL_SECTIONS, setMethod, updateItem } from "@gap/engine";
 import type { Actor, RiskConfig } from "@gap/process-model";
 import { describe, expect, it } from "vitest";
 import { content, demos, designLoadouts, failureModes, riskLoadouts, samplingSuggestions } from "../index";
@@ -17,7 +17,7 @@ describe("risk assessment document", () => {
   const doc = buildRiskAssessmentDocument(content, demo, asm, failureModes, opts);
 
   it("carries the banner, the draft status and the sections of the contract in order", () => {
-    expect(doc.banner).toBe("Proof of concept. Not validated. Not for GMP use.");
+    expect(doc.banner).toBe(NOTICE_DOCUMENT);
     expect(doc.status).toBe("DRAFT");
     expect(doc.sections.map((s) => s.id)).toEqual(["purpose-scope", "method", "register", "actions", "open-items", "traceability", "versions"]);
   });

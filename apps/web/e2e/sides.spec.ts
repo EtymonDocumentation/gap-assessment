@@ -2,8 +2,8 @@
 // question shows a banner. Runs on the desktop, tablet and phone projects.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expectNotice, setTheme } from "./nav-helper";
 
-const BANNER = "Proof of concept. Not validated. Not for GMP use.";
 const SU_LEGEND = "Sending unit (SU) — Site North (fictional), Line 2 · validated state";
 const RU_LEGEND = "Receiving unit (RU) — Site South (fictional), Line 4 · planned state";
 
@@ -17,14 +17,14 @@ async function go(page: Page, hash: string) {
 
 async function loadDemo(page: Page) {
   await page.goto("./");
-  await expect(page.getByText(BANNER).first()).toBeVisible();
+  await expectNotice(page);
   await page.getByRole("button", { name: "Load demo" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
 
 async function newProject(page: Page) {
   await page.goto("./");
-  await expect(page.getByText(BANNER).first()).toBeVisible();
+  await expectNotice(page);
   await page.getByRole("button", { name: "Start a new project" }).click();
   const dialog = page.getByRole("dialog", { name: "New project" });
   await dialog.getByLabel("Project title").fill("Sides test (fictional)");
@@ -275,7 +275,7 @@ test("the paired card is accessible and fits the screen; panels sit side by side
 for (const theme of ["light", "dark"] as const) {
   test(`banner and panels are accessible in the ${theme} theme`, async ({ page }) => {
     await loadDemo(page);
-    await page.getByLabel("Colour theme").selectOption(theme);
+    await setTheme(page, theme === "dark" ? "Dark" : "Light");
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
     for (const hash of ["#/interview?q=fill.pump%40target", "#/interview?q=comp.mixing_coverage%40source", "#/interview?q=fill.accuracy%40target"]) {
       await go(page, hash);

@@ -1,6 +1,6 @@
 # @gap/sampling
 
-Sampling plans for PPQ (process performance qualification) protocols. Proof of concept: not validated, not for GMP use.
+Sampling plans for PPQ (process performance qualification) protocols. A drafting aid: not validated; review and approve every plan in your own document control. Fictional data only.
 
 - `src/stats/` the statistics: five pure methods that each return a `SampleSizeResult` (sample size, `working` steps for the document,
   `citation`, and `problems`). A missing or invalid input gives `ok: false` and plain-language problems; nothing is defaulted or guessed.

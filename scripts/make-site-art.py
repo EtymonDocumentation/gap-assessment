@@ -4,7 +4,7 @@ Usage: python scripts/make-site-art.py <folder with <key>.webp files>
 
 Two widths per picture (1600 and 800, quality 75) for srcset. Saving through a fresh image without exif/icc/xmp keeps every
 metadata chunk out of the files; the check at the end fails if any marker is still found (provenance data such as C2PA
-must not ship with a GMP-adjacent proof of concept, and the pictures are fictional AI output).
+must not ship with a GMP-adjacent drafting aid, and the pictures are fictional AI output).
 """
 import os, sys
 from PIL import Image

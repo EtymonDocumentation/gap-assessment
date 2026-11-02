@@ -3,7 +3,7 @@
 import { readFile } from "node:fs/promises";
 import { parseTrdSeed } from "@gap/process-model";
 import type { Download } from "@playwright/test";
-import { expect, go, loadDemo, newAccount, signUp, test } from "./helpers";
+import { expect, expectSaved, go, loadDemo, newAccount, signUp, test } from "./helpers";
 
 test("server build: the TRD seed downloads and appears in the export history after a reload", async ({ page }) => {
   test.setTimeout(120_000); // sign-up, demo load, two downloads and a reload on a slow phone profile
@@ -35,7 +35,7 @@ test("server build: the TRD seed downloads and appears in the export history aft
 
   // The history is part of the saved project: it is still there after a reload.
   // After a reload the app opens on the project start page with the same project still open.
-  await expect(page.getByRole("status").filter({ hasText: "Saved to server" })).toBeVisible();
+  await expectSaved(page);
   await page.reload();
   await go(page, "#/");
   await expect(page.getByRole("heading", { level: 2, name: "Open project" })).toBeVisible();

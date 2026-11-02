@@ -2,7 +2,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { buildDemoProject, buildTrdOutline, buildTrdSeed } from "@gap/engine";
+import { NOTICE_DOCUMENT, buildDemoProject, buildTrdOutline, buildTrdSeed } from "@gap/engine";
 import { parseTrdSeed } from "@gap/process-model";
 import { describe, expect, it, vi } from "vitest";
 import { content, demos } from "../../../content/index";
@@ -20,7 +20,7 @@ describe("Word draft TRD outline", () => {
     const out = await renderDocx({ doc: buildTrdOutline(seed), mode: "builtin", generatedAt: GENERATED_AT });
     const res = strictDocx(out.bytes);
     const text = plainText(res);
-    expect(text).toContain("Proof of concept. Not validated. Not for GMP use.");
+    expect(text).toContain(NOTICE_DOCUMENT);
     expect(text).toContain("Technical requirements document — draft outline");
     expect(text).toContain("Not an approved TRD");
     for (const h of ["Purpose and scope", "Product and presentation", "Receiving site and line", "Process overview", "Open items", "Source register", "Traceability to the gap assessment", "Versions"]) {

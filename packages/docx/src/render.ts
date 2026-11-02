@@ -64,7 +64,7 @@ function allSections(ctx: WriterCtx, firstOnNewPage = false): string {
 
 /** The banner must be in the body of every output. A last check on what is about to be written. */
 function assertBanner(documentXml: string, banner: string): void {
-  if (!textOfXml(documentXml).includes(banner)) throw new Error("Internal error: the proof-of-concept banner is missing from the generated document.");
+  if (!textOfXml(documentXml).includes(banner)) throw new Error("Internal error: the drafting-aid notice is missing from the generated document.");
 }
 
 interface OpenedTemplate {
@@ -314,7 +314,7 @@ function renderTags(input: RenderDocxInput, record: TemplateRecord, warnings: st
   let post = "";
   if (!textOfXml(dp.mainXml()).includes(doc.banner)) {
     pre = bannerPara(doc.banner);
-    warnings.push("The template has no {banner} tag, so the proof-of-concept banner was inserted at the top of the document.");
+    warnings.push("The template has no {banner} tag, so the drafting-aid notice was inserted at the top of the document.");
   }
   if (pre || post) {
     const split = splitDocument(dp.mainXml());
@@ -367,7 +367,7 @@ async function drawFigures(input: RenderDocxInput, warnings: string[]): Promise<
   return pics;
 }
 
-/** Creates the Word document. The proof-of-concept banner is in every result; the tool never decides a filing category. */
+/** Creates the Word document. The drafting-aid notice is in every result; the tool never decides a filing category. */
 export async function renderDocx(input: RenderDocxInput): Promise<RenderDocxResult> {
   const record = recordFor(input);
   const warnings: string[] = [];

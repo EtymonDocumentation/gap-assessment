@@ -1,4 +1,4 @@
-import { DOCUMENT_SECTION_IDS, activityLabel, categoryLabel, formatResolved, partyTags, stageWording, stagedFor, type Assessment, type ContentBundle, type DocModel, type PartyTag, type PartyTags } from "@gap/engine";
+import { DOCUMENT_SECTION_IDS, NOTICE_DOCUMENT, activityLabel, categoryLabel, formatResolved, partyTags, stageWording, stagedFor, type Assessment, type ContentBundle, type DocModel, type PartyTag, type PartyTags } from "@gap/engine";
 import { resolveEntry, type Project, type SamplingPlan } from "@gap/process-model";
 
 // ------------------------------------------------------------------ the data a template can use
@@ -298,7 +298,7 @@ export interface TagReferenceEntry {
 const f = (name: string, description: string) => ({ name, description });
 
 const TEXT_TAGS: [string, string, boolean?][] = [
-  ["banner", "The proof-of-concept banner: \"Proof of concept. Not validated. Not for GMP use.\" The banner is always added to the document, even when the template has no banner tag.", true],
+  ["banner", `The drafting-aid notice: "${NOTICE_DOCUMENT}" The notice is always added to the document, even when the template has no banner tag.`, true],
   ["title", "Document title.", true],
   ["status", "Document status (DRAFT)."],
   ["program", "Program name from the scoping answers.", true],
@@ -459,7 +459,7 @@ export function tagReferenceMarkdown(): string {
   const out: string[] = [
     "# Placeholder tags for Word templates",
     "",
-    "> Proof of concept. Not validated. Not for GMP use.",
+    `> ${NOTICE_DOCUMENT}`,
     "",
     "Write a tag in your Word template where the value should appear, for example `{title}`. Type each tag in one go (do not change the formatting in the middle of a tag).",
     "",
@@ -467,7 +467,7 @@ export function tagReferenceMarkdown(): string {
     "- **Loop**: `{#gaps}` ... `{/gaps}` repeats what is between the two tags once per item. To repeat a table row, put `{#gaps}` in the first cell and `{/gaps}` in the last cell of that row. Inside the loop use the item's fields, for example `{id}` and `{attribute}`.",
     "- **Raw tag**: `{@body}` or `{@section_gap_table}` inserts whole sections in the tool's look, using your heading, table and list styles. Put it alone in its own paragraph.",
     "",
-    "The proof-of-concept banner is always added to the document. If the template has no `{banner}` tag, the banner is inserted at the top.",
+    "The drafting-aid notice is always added to the document. If the template has no `{banner}` tag, the notice is inserted at the top.",
     "No expressions or calculations are evaluated: a tag is only ever looked up by name.",
     "",
     "## Text tags",

@@ -7,9 +7,8 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
-import { goTo } from "./nav-helper";
+import { expectNotice, goTo, NOTICE_DOCUMENT } from "./nav-helper";
 
-const BANNER = "Proof of concept. Not validated. Not for GMP use.";
 const SHOTS = tmpdir();
 
 test.beforeEach(async ({ page }) => {
@@ -76,7 +75,7 @@ test("the page says what the tool does; a new assessment has no method, and the 
   await openRisk(page);
   await expect(page.getByTestId("risk-scope-text")).toContainText("does not judge whether a risk is acceptable");
   await expect(page.getByTestId("risk-list")).toContainText("ARX-217");
-  await expect(page.getByText(BANNER).first()).toBeVisible();
+  await expectNotice(page);
 
   await page.getByTestId("risk-title-input").fill("Blank assessment (fictional)");
   await page.getByTestId("risk-create").click();
@@ -240,14 +239,14 @@ test("Word and HTML downloads carry the banner, the method, the register, the op
   const word = await download(page, "risk-download-word");
   expect(word.file).toMatch(/^risk-assessment-.*\.docx$/);
   const text = wordText(word.bytes);
-  expect(text).toContain(BANNER);
+  expect(text).toContain(NOTICE_DOCUMENT);
   for (const h of ["Purpose and scope", "Risk method", "Risk register", "Action list", "Open items", "Traceability"]) expect(text).toContain(h);
   expect(text).toMatch(/does not judge whether any risk is acceptable/);
 
   const html = await download(page, "risk-download-html");
   expect(html.file).toMatch(/^risk-assessment-.*\.html$/);
   const htmlText = html.bytes.toString("utf8");
-  expect(htmlText).toContain(BANNER);
+  expect(htmlText).toContain(NOTICE_DOCUMENT);
   expect(htmlText).toMatch(/<h2[^>]*>[^<]*Risk register/);
 
   const history = page.getByRole("region", { name: "Export history table" });

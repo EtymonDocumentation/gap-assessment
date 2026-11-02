@@ -1,4 +1,38 @@
-/* Design tokens. Light is the default; dark follows the system unless a theme is chosen. */
+/* IBM Plex Sans, served from this site (never from a font CDN: privacy, and the tool must work offline). Latin only; weights 400, 500, 600
+   and 700. The files come from the @fontsource/ibm-plex-sans package (SIL Open Font License 1.1; the licence text is published beside the
+   build in fonts/IBM-Plex-Sans-OFL-1.1.txt). While a file loads, or if it cannot, the system font below is used. */
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-400-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-500-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-600-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-700-normal.woff2") format("woff2");
+}
+
+/* Design tokens. Light is the default; dark follows the system unless a theme is chosen. Every text pair and every border or icon that
+   carries meaning is checked against WCAG 2.2 AA (4.5:1 text, 3:1 borders and icons) by apps/web/test/tokens.test.ts, which also keeps the
+   two dark blocks identical. */
 :root {
   color-scheme: light;
   --bg: #f6f7f9;
@@ -7,14 +41,31 @@
   --text: #16202b;
   --muted: #55606d;
   --border: #c9d0d8;
+  /* The hairline between table rows and list items: lighter than --border, never the only thing that marks a control. */
+  --divider: #e3e7ec;
+  /* The edge of a text field, which has to be seen to be found: 3:1 against the page and the card. */
+  --field-border: #7d8895;
   --accent: #1f5f8b;
+  --accent-hover: #16476a;
   --accent-text: #ffffff;
   --accent-soft: #e2eef7;
   --focus: #b35c00;
   --danger: #a3241f;
   --ok: #1d6b3a;
+  /* Open items and anything still to be decided: text, background and border always travel together. */
+  --warn: #8a4600;
+  --warn-bg: #fff7ee;
+  --warn-border: #b35c00;
   --banner-bg: #7a1717;
   --banner-text: #ffffff;
+  /* The dark bar at the top of every page. The same colours serve both themes; only the shade of the bar differs. */
+  --header-bg: #16202b;
+  --header-text: #ffffff;
+  --header-link: #a3afbc;
+  --header-hover: #212b37;
+  --header-line: #374452;
+  --header-accent: #7cb8e4;
+  --header-focus: #ffb35c;
   --row-diff: #fff8ec;
   /* Space-separated RGB of the scrim laid over the page art, so the banner title keeps AA contrast (see .art-banner). */
   --scrim-rgb: 255 255 255;
@@ -41,7 +92,10 @@
   --cell-y: 5px;
   --cell-x: 8px;
   --shadow: 0 1px 2px rgb(0 0 0 / 6%), 0 2px 8px rgb(0 0 0 / 4%);
-  --font: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  /* Heights the sticky notice strip and the header have, so the bars that stick under them know where to start. */
+  --notice-h: 26px;
+  --header-h: 56px;
+  --font: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -53,13 +107,21 @@
     --text: #e6ebf0;
     --muted: #a3afbc;
     --border: #374452;
+    --divider: #2a3441;
+    --field-border: #6f7e8f;
     --accent: #7cb8e4;
+    --accent-hover: #a3cfee;
     --accent-text: #0b1520;
     --accent-soft: #1d3346;
     --focus: #ffb35c;
     --danger: #ff8a80;
     --ok: #7fd49b;
+    --warn: #f0a860;
+    --warn-bg: #2a2417;
+    --warn-border: #c9822f;
     --banner-bg: #5c1010;
+    --header-bg: #0a0f14;
+    --header-hover: #18202a;
     --row-diff: #2a2417;
     --scrim-rgb: 24 32 42;
     --c-equivalent: #8fbf9c;
@@ -70,7 +132,7 @@
     --c-new: #8ab8ff;
     --c-removed: #f09ac0;
     --c-info: #e6c84d;
-  --provisional: #f0d46a;
+    --provisional: #f0d46a;
     --blank-bg: #1d3a63;
     --blank-text: #cfe3ff;
     --blank-fill-bg: #1f3a28;
@@ -85,13 +147,21 @@
   --text: #e6ebf0;
   --muted: #a3afbc;
   --border: #374452;
+  --divider: #2a3441;
+  --field-border: #6f7e8f;
   --accent: #7cb8e4;
+  --accent-hover: #a3cfee;
   --accent-text: #0b1520;
   --accent-soft: #1d3346;
   --focus: #ffb35c;
   --danger: #ff8a80;
   --ok: #7fd49b;
+  --warn: #f0a860;
+  --warn-bg: #2a2417;
+  --warn-border: #c9822f;
   --banner-bg: #5c1010;
+  --header-bg: #0a0f14;
+  --header-hover: #18202a;
   --row-diff: #2a2417;
   --scrim-rgb: 24 32 42;
   --c-equivalent: #8fbf9c;
@@ -177,58 +247,63 @@ h3 {
 
 /* ---------------------------------------------------------------- shell */
 
-.poc-banner {
+/* The notice strip: on every page, sticky, small and dark red, so it is read once and then stays out of the way. It holds no control, so
+   clicks (and the accessibility checker's hit test) pass through it: a button scrolled half under it is not counted as partly covered
+   (WCAG 2.2 target size). The words stay on screen. Print hides it; the document carries its own notice. */
+.notice-strip {
   position: sticky;
-  /* The banner holds no control. Letting clicks (and the accessibility checker's hit test) pass through it means a button scrolled
-     half under the sticky banner is not counted as partly covered (WCAG 2.2 target size); the words stay on screen. */
-  pointer-events: none;
   top: 0;
   z-index: 50;
+  pointer-events: none;
   background: var(--banner-bg);
   color: var(--banner-text);
   text-align: center;
-  padding: 6px 16px;
-  font-size: 0.9rem;
-}
-.poc-sub {
-  opacity: 0.9;
+  padding: 4px 12px;
+  font-size: 12px;
+  line-height: 18px;
 }
 
+/* The dark bar at the top of every page. It is "relative" so the phone Menu panel is placed against the whole bar. */
 .app-header {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 20px;
-  padding: 10px 16px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  gap: 0 20px;
+  min-height: var(--header-h);
+  padding: 0 16px;
+  background: var(--header-bg);
+  color: var(--header-text);
+  border-bottom: 1px solid var(--header-line);
+}
+/* The page's focus ring is a dark orange that the dark bar would swallow; inside the bar it is the light orange, drawn inside the box so
+   the full-height links do not paint over their neighbours. */
+.app-header :focus-visible {
+  outline-color: var(--header-focus);
+  outline-offset: -3px;
 }
 .brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  flex: none;
+  font-size: 1.0625rem;
   font-weight: 600;
-  min-width: 0;
+  letter-spacing: -0.01em;
+  color: var(--header-text);
 }
-.brand-project {
-  font-weight: 400;
+.cascade-mark {
+  flex: none;
+  color: var(--header-accent);
+}
+.eyebrow {
+  margin: 0 0 4px;
+  font-size: 0.8125rem;
+  font-weight: 500;
   color: var(--muted);
 }
-/* The project title stays on one line at every width (ellipsis; the full title is the tooltip), so a long title cannot push the menu
-   and the theme picker onto a second header row. */
-.brand > span:last-child {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.brand-mark {
-  width: 20px;
-  height: 20px;
-  border-radius: 5px;
-  background: linear-gradient(90deg, var(--accent) 45%, transparent 45% 55%, var(--accent) 55%);
-  flex: none;
-}
+
+/* The menus. A link or group button is as tall as the bar, so the 3 px bar under the current one sits on the bar's lower edge. */
 .nav {
   display: flex;
   flex-wrap: wrap;
@@ -237,24 +312,191 @@ h3 {
   margin: 0;
   padding: 0;
 }
-.nav a {
-  display: block;
-  padding: 6px 10px;
-  border-radius: 6px;
-  text-decoration: none;
-  color: var(--text);
+.nav > li {
+  position: relative;
 }
-.nav a:hover {
+.nav > li > a,
+.nav-group-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: var(--header-h);
+  padding: 0 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--header-link);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+}
+.nav > li > a:hover,
+.nav-group-btn:hover,
+.nav-group-btn[aria-expanded="true"] {
+  background: var(--header-hover);
+  color: var(--header-text);
+}
+/* The current page or section: white text, a heavier weight and the bar, so colour is never the only cue. */
+.nav > li > a[aria-current="page"],
+.nav-group-btn.is-current {
+  color: var(--header-text);
+  font-weight: 600;
+  box-shadow: inset 0 -3px 0 var(--header-accent);
+}
+
+/* Right side of the bar: the open project, the colour theme and (on the server) the account. */
+.header-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  min-width: 0;
+}
+.header-project {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 14rem;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--header-line);
+  border-radius: 6px;
+  color: var(--header-text);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+.header-project:hover {
+  background: var(--header-hover);
+}
+.header-project svg {
+  flex: none;
+  color: var(--header-link);
+}
+/* One line with an ellipsis, so a long project title never pushes the menus onto more rows; the full title is the tooltip. */
+.header-project-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--header-line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--header-link);
+  cursor: pointer;
+}
+.icon-btn:hover,
+.icon-btn[aria-expanded="true"] {
+  background: var(--header-hover);
+  color: var(--header-text);
+}
+/* The initials circle. The light ring keeps the circle's edge visible against the dark bar (3:1) in both themes. */
+.avatar-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--header-accent);
+  border-radius: 50%;
+  background: #1f5f8b;
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+.avatar-btn:hover,
+.avatar-btn[aria-expanded="true"] {
+  background: #16476a;
+}
+.header-menu {
+  position: relative;
+}
+.header-popover {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 14rem;
+  padding: 10px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 20%);
+}
+.header-popover[hidden] {
+  display: none;
+}
+.header-popover-wide {
+  width: min(22rem, calc(100vw - 24px));
+}
+.theme-options {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.theme-options legend {
+  padding: 0;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.theme-options p {
+  margin: 6px 0 0;
+}
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  padding: 0 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.theme-option:hover {
   background: var(--surface-2);
 }
-.nav a[aria-current="page"] {
+.theme-option:has(input:checked) {
   background: var(--accent-soft);
-  color: var(--text);
   font-weight: 600;
-  box-shadow: inset 0 -2px 0 var(--accent);
 }
-.theme-select {
-  margin-left: auto;
+.theme-option input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--accent);
+}
+.theme-option svg {
+  flex: none;
+  color: var(--muted);
+}
+.account-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.account-who,
+.account-note {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.account-actions {
+  margin-top: 2px;
 }
 
 main {
@@ -318,7 +560,6 @@ main:focus {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: var(--space-card);
-  box-shadow: var(--shadow);
 }
 .card.tight {
   padding: 10px;
@@ -356,7 +597,8 @@ main:focus {
 .tag {
   display: inline-block;
   font-size: 0.75rem;
-  padding: 1px 8px;
+  font-weight: 500;
+  padding: 1px 10px;
   margin-left: 8px;
   border-radius: 999px;
   border: 1px solid var(--border);
@@ -380,6 +622,7 @@ main:focus {
   background: var(--surface);
   color: var(--text);
   font: inherit;
+  font-weight: 500;
   text-decoration: none;
   cursor: pointer;
 }
@@ -390,10 +633,10 @@ main:focus {
   background: var(--accent);
   color: var(--accent-text);
   border-color: var(--accent);
-  font-weight: 600;
 }
 .btn.primary:hover {
-  filter: brightness(1.08);
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 .btn.danger {
   color: var(--danger);
@@ -437,7 +680,7 @@ textarea {
   font: inherit;
   color: var(--text);
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--field-border);
   border-radius: 6px;
   padding: 7px 10px;
   min-height: 38px;
@@ -965,11 +1208,17 @@ table.data td {
   text-align: left;
   vertical-align: top;
   padding: var(--cell-y) var(--cell-x);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--divider);
 }
+/* Column headings: small, upper case and muted, with a stronger line under them than the hairlines between rows. */
 table.data thead th {
-  background: var(--surface-2);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.75rem;
   font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  border-bottom-color: var(--border);
   position: sticky;
   top: 0;
 }
@@ -1096,21 +1345,18 @@ table.data tr.inactive {
 
 /* ---------------------------------------------------------------- responsive */
 
-@media (min-width: 901px) {
-  /* The header must stay allowed to wrap on wide screens too. With 13 menu entries the single-row menu is about 1200 px wide in
-     wider fonts (Linux CI, Verdana), so a no-wrap menu pushed the theme picker off the right edge and the page scrolled
-     sideways by about 80 px at 1280 px. Wrapping costs an extra header row only when the entries do not fit; nothing is
-     clipped or hidden. */
-  .brand {
-    flex: 0 1 auto;
-    max-width: 24rem;
+/* Between a phone and a wide screen the bar holds the menus and the tools, so it tightens before it wraps. A wrap costs one more row of
+   the bar only when the entries still do not fit; nothing is clipped or hidden. */
+@media (max-width: 1100px) {
+  .app-header {
+    gap: 0 8px;
   }
-  .nav {
-    flex: 0 1 auto;
-    min-width: 0;
+  .nav > li > a,
+  .nav-group-btn {
+    padding: 0 9px;
   }
-  .theme-select {
-    flex: none;
+  .header-project {
+    max-width: 9rem;
   }
 }
 
@@ -1126,26 +1372,17 @@ table.data tr.inactive {
   .gap-detail {
     grid-template-columns: 1fr;
   }
-  .theme-select {
-    margin-left: 0;
-  }
 }
 
 @media (max-width: 560px) {
   body {
     font-size: 0.875rem;
   }
-  .poc-sub {
-    display: none;
-  }
   main {
     padding: 14px 12px 32px;
   }
   .q-actions .btn {
     flex: 1 1 100%;
-  }
-  .nav a {
-    padding: 6px 8px;
   }
 }
 
@@ -1159,7 +1396,7 @@ table.data tr.inactive {
 /* ---------------------------------------------------------------- print: document only */
 
 @media print {
-  .poc-banner,
+  .notice-strip,
   .app-header,
   .app-footer,
   .skip-link,
@@ -1221,7 +1458,9 @@ table.data tr.inactive {
 .tag.status-not_established,
 .tag.status-partial {
   border-style: dashed;
-  border-color: var(--c-info);
+  border-color: var(--warn-border);
+  background: var(--warn-bg);
+  color: var(--warn);
 }
 .tag.status-not_applicable {
   border-style: dotted;
@@ -1654,32 +1893,32 @@ details.report h4 {
 .field > .small {
   font-weight: 400;
 }
-.account-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 16px;
-  padding: 6px 16px;
-  background: var(--surface-2);
-  border-bottom: 1px solid var(--border);
-  font-size: 0.9rem;
-}
-.account-bar p {
-  margin: 0;
-}
-.account-who {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-.account-actions {
-  margin-left: auto;
-}
 .save-status {
   min-height: 1.4em;
 }
 .save-status .error {
   font-weight: 600;
+}
+/* Nothing to say: the live region stays in the page (it has to exist before its text changes) but takes no room. */
+.save-status.is-empty {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+/* In the dark bar: the status is small light text; a problem is light red (the page's red would not be readable on the bar).
+   Direct child only: on a phone the status sits in the Menu panel, which is inside .header-tools but has a light surface. */
+.header-tools > .save-status {
+  min-height: 0;
+  color: var(--header-link);
+  font-size: 0.75rem;
+}
+.header-tools > .save-status .error {
+  color: #ff8a80;
 }
 .project-list,
 .file-list {
@@ -1781,16 +2020,16 @@ details.report h4 {
    banner and answering bar, hidden from the user (WCAG 2.2 focus not obscured) and counted as a covered target. The padding keeps it
    below both bars. */
 html {
-  scroll-padding-top: 48px;
+  scroll-padding-top: calc(var(--notice-h) + 12px);
 }
 html:has(.answering-bar) {
-  scroll-padding-top: 110px;
+  scroll-padding-top: calc(var(--notice-h) + 74px);
 }
 
 /* The bar stays in view while the card scrolls. top matches the sticky banner above it. */
 .answering-bar {
   position: sticky;
-  top: 36px;
+  top: var(--notice-h);
   z-index: 20;
   margin-bottom: 12px;
   padding: 8px 12px;
@@ -1857,7 +2096,7 @@ html:has(.answering-bar) {
 }
 .tag.status-tbd {
   border-style: dashed;
-  border-color: var(--provisional);
+  border-color: var(--warn-border);
 }
 .param-field.is-tbd .param-label span:first-child::after {
   content: " (TBD)";
@@ -2767,9 +3006,11 @@ details > summary {
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
 }
 .crumbs li + li::before {
-  content: "/";
+  content: "\203A" / "";
   margin-right: 0.25rem;
   color: var(--muted);
 }
@@ -3100,30 +3341,10 @@ table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
 
 /* ---------------------------------------------------------------- short top menu, step bar, guided home page */
 
-.nav > li {
-  position: relative;
-}
-.nav-group-btn {
-  font: inherit;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text);
-  cursor: pointer;
-}
-.nav-group-btn:hover,
-.nav-group-btn[aria-expanded="true"] {
-  background: var(--surface-2);
-}
-/* The current section is marked by weight and an underline as well as the tint, so colour is never the only cue. */
-.nav-group-btn.is-current {
-  background: var(--accent-soft);
-  font-weight: 600;
-  box-shadow: inset 0 -2px 0 var(--accent);
+/* The drop-down panels hang under the dark bar. They are ordinary panels (white in the light theme, card colour in the dark one), not part
+   of the bar, so their text uses the page colours. */
+.nav-caret {
+  font-size: 0.7rem;
 }
 .nav-panel {
   position: absolute;
@@ -3133,9 +3354,10 @@ table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
   min-width: 14rem;
   padding: 6px;
   background: var(--surface);
+  color: var(--text);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  border-radius: 0 0 var(--radius) var(--radius);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 20%);
 }
 .nav-panel[hidden] {
   display: none;
@@ -3172,26 +3394,65 @@ table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
   border-top: 1px solid var(--border);
   padding-top: 6px;
 }
+/* The phone's Menu panel spans the header (not the button it hangs from), so it never runs off the right edge. */
 .nav-narrow {
-  position: relative;
+  position: static;
 }
 .nav-menu-panel {
   position: absolute;
   z-index: 30;
-  left: 0;
+  left: 12px;
+  right: 12px;
   top: 100%;
-  width: min(20rem, calc(100vw - 24px));
   max-height: 75vh;
   overflow-y: auto;
-  margin-top: 4px;
   padding: 6px;
   background: var(--surface);
+  color: var(--text);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 20%);
 }
 .nav-menu-panel[hidden] {
   display: none;
+}
+/* The Menu button: an icon 44 px square (WCAG 2.2 target size on a phone); "Menu" is its accessible name. */
+.nav-menu-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--header-line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--header-link);
+  cursor: pointer;
+}
+.nav-menu-btn:hover,
+.nav-menu-btn[aria-expanded="true"] {
+  background: var(--header-hover);
+  color: var(--header-text);
+}
+/* What the header adds to the phone Menu panel: the open project (its title may wrap) and where the data is kept. */
+.nav-project {
+  overflow-wrap: anywhere;
+}
+.nav-storage {
+  margin: 8px 10px 4px;
+}
+/* A failed or conflicting save on a phone, where the save status would otherwise wait behind a closed Menu. */
+.save-problem {
+  padding: 8px 12px;
+  background: var(--warn-bg);
+  color: var(--warn);
+  border-bottom: 1px solid var(--warn-border);
+}
+.save-problem .save-status {
+  margin: 0;
+}
+.save-problem .error {
+  color: var(--danger);
 }
 
 .gap-step-bar {
@@ -3331,6 +3592,9 @@ table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
   color: var(--ok);
 }
 
+/* ---------------------------------------------------------------- phone
+   One 52 px bar: mark and name on the left, the theme and Menu buttons (44 px each) on the right. Everything a finger has to hit is 44 px
+   tall (WCAG 2.2 target size, with room to spare). */
 @media (max-width: 700px) {
   .gap-step-list {
     display: none;
@@ -3338,24 +3602,61 @@ table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
   .gap-step-compact {
     display: block;
   }
+  .app-header {
+    flex-wrap: nowrap;
+    min-height: 52px;
+    padding: 4px 12px;
+    gap: 0 8px;
+  }
+  .brand {
+    min-width: 0;
+    font-size: 1rem;
+  }
+  .header-tools {
+    gap: 4px;
+  }
   .app-header .nav-narrow {
     flex: none;
   }
-}
-
-/* The phone's menu panel spans the header (not the button it hangs from), so it never runs off the right edge. */
-.app-header {
-  position: relative;
-}
-.nav-narrow {
-  position: static;
-}
-.nav-menu-panel {
-  left: 12px;
-  right: 12px;
-  width: auto;
-  top: 100%;
-  margin-top: 0;
+  .icon-btn {
+    width: 44px;
+    height: 44px;
+  }
+  .btn,
+  .btn.small,
+  .tab {
+    min-height: 44px;
+  }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    min-height: 44px;
+  }
+  .theme-option {
+    min-height: 44px;
+  }
+  .nav-menu-panel a {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  .doc-chain-list {
+    flex-direction: column;
+  }
+  .doc-chain-list li {
+    border-right: 0;
+    border-bottom: 1px solid var(--divider);
+  }
+  .doc-chain-list li:last-child {
+    border-bottom: 0;
+  }
+  .doc-chain-list a {
+    min-height: 44px;
+    padding: 8px 12px;
+  }
+  .doc-chain-hint {
+    text-align: left;
+  }
 }
 
 /* ---------------------------------------------------------------- split batch record */
@@ -3430,81 +3731,93 @@ table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
 }
 .doc-chain-head {
   margin: 0 0 6px;
+  font-size: 0.8125rem;
 }
+/* One segmented bar: a segment per stage, "N · name" (12 px, muted) over a status line. The segments share the width, so the bar never
+   scrolls; a long status wraps inside its segment. */
 .doc-chain-list {
   display: flex;
-  gap: 6px;
   list-style: none;
   margin: 0;
-  padding: 0 0 4px;
-  /* Scrolls inside the strip on a narrow screen; the links inside are focusable, so the strip is reachable by keyboard. */
-  overflow-x: auto;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  /* Rounds the tint of the first and last segment to the bar's corners. */
+  overflow: hidden;
 }
 .doc-chain-list li {
   flex: 1 1 0;
-  min-width: 9.5rem;
-  position: relative;
+  min-width: 0;
+  border-right: 1px solid var(--divider);
 }
-/* An arrow between stages: decorative, so it is a pseudo-element and not read out. */
-.doc-chain-list li + li::before {
-  content: "\2192" / "";
-  position: absolute;
-  left: -0.7rem;
-  top: 0.75rem;
-  color: var(--muted);
-  font-size: 0.9rem;
+.doc-chain-list li:last-child {
+  border-right: 0;
 }
 .doc-chain-list a {
   display: flex;
   flex-direction: column;
   gap: 2px;
   height: 100%;
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
+  padding: 10px 14px;
   color: var(--text);
   text-decoration: none;
 }
 .doc-chain-list a:hover {
   background: var(--surface-2);
 }
-.doc-chain-name {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 600;
+/* The ring is drawn inside the segment, because the bar clips what is outside it. */
+.doc-chain-list a:focus-visible {
+  outline-offset: -3px;
 }
-.doc-chain-num {
-  display: inline-grid;
-  place-items: center;
-  flex: none;
-  width: 1.4rem;
-  height: 1.4rem;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  font-size: 0.8rem;
+.doc-chain-name {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted);
 }
 .doc-chain-status {
-  font-size: 0.85rem;
-  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
   overflow-wrap: anywhere;
 }
-/* The stage on screen: tint, a thicker border and an underline bar, so it never relies on colour alone. */
+/* The stage on screen: tinted, a 3 px bar under it and "(you are here)" in its name, so it never relies on colour alone. */
 .doc-chain-list a[aria-current="step"] {
   background: var(--accent-soft);
-  border-color: var(--accent);
-  border-width: 2px;
-  padding: 5px 9px;
   box-shadow: inset 0 -3px 0 var(--accent);
 }
-.doc-chain-list a[aria-current="step"] .doc-chain-num {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-text);
+.doc-chain-list a[aria-current="step"] .doc-chain-name {
+  color: var(--accent);
+  font-weight: 600;
 }
-.doc-chain-list a[aria-current="step"] .doc-chain-status {
-  color: var(--text);
+/* On a phone a document page shows one line: where you are in the chain and a link to the next stage. */
+.doc-chain-compact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 12px;
+  min-height: 44px;
+  padding: 0 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.doc-chain-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.doc-chain-next {
+  display: inline-flex;
+  align-items: center;
+  /* Flex items drop the space before the arrow, so the gap puts it back. */
+  gap: 4px;
+  min-height: 44px;
+  font-weight: 500;
+  text-decoration: none;
+}
+.doc-chain-next:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
 }
 .doc-chain-bar {
   margin-top: 20px;
@@ -3580,14 +3893,6 @@ table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
   align-items: center;
   gap: 8px 12px;
 }
-@media (max-width: 700px) {
-  .doc-chain-list li {
-    flex: 0 0 9.5rem;
-  }
-  .doc-chain-hint {
-    text-align: left;
-  }
-}
 
 /* ---------------------------------------------------------------- tabs, "?" help tips, "What this is" cards (layout job 2) */
 /* The tab row wraps instead of scrolling, so it never widens the page at 390 px. The selected tab has a thick underline and bold
@@ -3596,28 +3901,28 @@ table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  border-bottom: 2px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 .tab {
   font: inherit;
   color: var(--text);
+  font-weight: 500;
   background: transparent;
-  border: 1px solid transparent;
-  border-bottom: 0;
-  border-radius: var(--radius) var(--radius) 0 0;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  border-radius: 6px 6px 0 0;
   padding: 0.5rem 0.9rem;
   min-height: 2.5rem;
   cursor: pointer;
-  margin-bottom: -2px;
+  margin-bottom: -1px;
 }
 .tab:hover {
   background: var(--surface-2);
 }
+/* Underline tabs: the chosen one is heavier and has a 3 px bar under it, so it never relies on colour alone. */
 .tab[aria-selected="true"] {
-  font-weight: 700;
-  background: var(--accent-soft);
-  border-color: var(--border);
-  box-shadow: inset 0 -4px 0 var(--accent);
+  font-weight: 600;
+  border-bottom-color: var(--accent);
 }
 .tab-purpose {
   margin: 0;
@@ -3765,41 +4070,12 @@ table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
 }
 
 /* ---------------------------------------------------------------- phone first screen (fix job 4)
-   On a phone the banner, the header, the chain strip and the step line used to fill the first screen before the page title. The banner
-   text stays whole. The header is two short rows (name, then Menu and theme side by side), the strip drops its explanatory sentence
-   (the same words are on Home) and the banners are shorter, so the title and the first action show without scrolling. */
+   On a phone the notice, the header, the chain line and the step line used to fill the first screen before the page title. The notice is
+   one short line, the header is one 52 px bar, the chain strip is one line and the banners are shorter, so the title and the first
+   action show without scrolling. */
 @media (max-width: 560px) {
-  .poc-banner {
-    padding: 3px 10px;
-    font-size: 0.8rem;
-    line-height: 1.25;
-  }
-  .app-header {
-    padding: 4px 12px;
-    gap: 4px 8px;
-  }
-  .brand {
-    flex: 1 1 100%;
-    font-size: 0.9rem;
-  }
-  .app-header .nav-narrow button,
-  .theme-select select {
-    min-height: 32px;
-    padding-top: 3px;
-    padding-bottom: 3px;
-    font-size: 0.85rem;
-  }
-  .theme-select {
-    margin-left: 0;
-  }
   .doc-chain {
     margin-bottom: 6px;
-  }
-  .doc-chain-head .muted {
-    display: none;
-  }
-  .doc-chain-head {
-    margin-bottom: 2px;
   }
   .art-banner,
   .art-banner.art-hero,

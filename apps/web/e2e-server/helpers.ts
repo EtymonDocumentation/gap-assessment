@@ -1,9 +1,11 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test as base, type Browser, type Page, type TestInfo } from "@playwright/test";
+import { expect, test as base, type Browser, type Locator, type Page, type TestInfo } from "@playwright/test";
 import { randomInt } from "node:crypto";
+import { expectNotice, isPhone, NOTICE_DOCUMENT } from "../e2e/nav-helper";
 import { INVITES_PER_WORKER, SAMPLING_INVITES_PER_WORKER } from "./global-setup";
 
-export const BANNER = "Proof of concept. Not validated. Not for GMP use.";
+// The notice wording and its check are shared with the static suite (e2e/nav-helper.ts), which reads them from the app's own source module.
+export { expectNotice, isPhone, NOTICE_DOCUMENT };
 export const PASSWORD = "correct horse battery staple";
 export const SERVER_URL = "http://localhost:8788/";
 export const CLIENT_URL = "http://localhost:8789/";
@@ -115,6 +117,57 @@ export function newAccount(label: string): Account {
   return { username: `${label}-${suffix}`, displayName: `Tester ${label} ${suffix} (fictional)`, password: PASSWORD };
 }
 
+/**
+ * The account block: who is signed in, Change password and Sign out. On a wide screen it is the pop-over of the initials circle at the
+ * right of the header; on a phone it is inside the Menu panel. Opens it when it is closed and returns it.
+ */
+export async function openAccountMenu(page: Page): Promise<Locator> {
+  const toggle = isPhone(page) ? page.getByRole("navigation", { name: "Main" }).getByRole("button", { name: "Menu" }) : page.getByRole("button", { name: /, account: / });
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+  const block = page.locator(".account-details");
+  await expect(block).toBeVisible();
+  return block;
+}
+
+/** Closes the account block again (Escape), so nothing is left covering the page. */
+export async function closeAccountMenu(page: Page): Promise<void> {
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".account-details")).toHaveCount(0);
+}
+
+/**
+ * The account name is shown as the one signed in: the initials circle is named after it (its name starts with the initials it shows:
+ * "AE, account: Alex Example"), and the account block says "Signed in as ...".
+ */
+export async function expectSignedInAs(page: Page, displayName: string): Promise<void> {
+  if (!isPhone(page)) await expect(page.getByRole("button", { name: `, account: ${displayName}` })).toBeVisible();
+  const block = await openAccountMenu(page);
+  await expect(block).toContainText(`Signed in as ${displayName}`);
+  await closeAccountMenu(page);
+}
+
+export async function signOut(page: Page): Promise<void> {
+  const block = await openAccountMenu(page);
+  await block.getByRole("button", { name: "Sign out" }).click();
+}
+
+/**
+ * "Saved to server" is shown for the open project: in the header on a wide screen, inside the Menu panel on a phone (a failed save also
+ * shows on its own line under the header, so it never waits behind a closed menu).
+ */
+export async function expectSaved(page: Page): Promise<void> {
+  const saved = page.getByRole("status").filter({ hasText: "Saved to server" });
+  if (!isPhone(page)) {
+    await expect(saved).toBeVisible();
+    return;
+  }
+  const toggle = page.getByRole("navigation", { name: "Main" }).getByRole("button", { name: "Menu" });
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+  await expect(saved).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(saved).toHaveCount(0);
+}
+
 export async function signUp(page: Page, account: Account, invite = makeInvite()): Promise<void> {
   await page.goto("./");
   const form = page.getByRole("form", { name: "Have an invite code? Create account" });
@@ -124,7 +177,7 @@ export async function signUp(page: Page, account: Account, invite = makeInvite()
   await form.getByLabel("Choose a password", { exact: true }).fill(account.password);
   await form.getByLabel("Confirm password", { exact: true }).fill(account.password);
   await form.getByRole("button", { name: "Create account" }).click();
-  await expect(page.getByText(`Signed in as ${account.displayName}`)).toBeVisible();
+  await expectSignedInAs(page, account.displayName);
 }
 
 export async function signIn(page: Page, account: Account, password = account.password): Promise<void> {
@@ -138,7 +191,7 @@ export async function signInFresh(page: Page, account: Account): Promise<void> {
   await page.goto("./");
   await expect(page.getByRole("heading", { level: 1, name: "Sign in" })).toBeVisible();
   await signIn(page, account);
-  await expect(page.getByText(`Signed in as ${account.displayName}`)).toBeVisible();
+  await expectSignedInAs(page, account.displayName);
 }
 
 // ------------------------------------------------------------------ the app

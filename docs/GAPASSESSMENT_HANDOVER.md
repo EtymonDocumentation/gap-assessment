@@ -1,4 +1,4 @@
-# Gap Assessment Generator: handover (repo copy)
+# Cascade (the gap-assessment repository): handover (repo copy)
 
 This is the public, cleaned-up handover for any machine or new session. It holds status, decisions and next
 steps only. Machine-specific notes (local paths, server addresses, accounts, invite details) are kept in a
@@ -77,7 +77,9 @@ Last updated: 2026-10-26. Update this file (no machine-specific details) wheneve
 - **Identity:** never put a personal name or email in the repo (files, commits, issues, PRs). Git identity is
   EtymonDocumentation (noreply address). Check `git log --format='%an <%ae>' -1` before every push.
 - **Fictional data only** in the repo and demo (DEMO-... IDs, "Vendor X (fictional)"). Never commit real customer files.
-- Permanent banner: "Proof of concept. Not validated. Not for GMP use."
+- Permanent drafting-aid notice: a strip on every screen and a line in every Markdown, HTML and Word document, written once in
+  `packages/engine/src/product.ts` ("Drafting aid · Not validated · Review and approve every document in your own document control ·
+  Fictional data only"). It never says the tool is validated or approved for GMP use.
 - **No default values.** Catalogs supply options, never answers; unknowns stay visible.
 - Every value has a source. Removing a source cascades: entries left without one revert to Not established,
   the old value is kept only in the change log. Changing a value withdraws its verification.

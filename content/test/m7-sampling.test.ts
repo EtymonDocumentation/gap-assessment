@@ -1,6 +1,7 @@
 // Milestone 7: the PPQ sampling plan. Suggestions (options only), the editing functions and their change log, the demo plan,
 // the document, and the export history. All data are fictional.
 import {
+  NOTICE_DOCUMENT,
   acceptSuggestion,
   addBatch,
   addPoint,
@@ -251,7 +252,7 @@ describe("the sampling plan document", () => {
 
   it("has the title, the banner and the not-approved line", () => {
     expect(doc.title).toBe("PPQ sampling plan — draft");
-    expect(doc.banner).toContain("Proof of concept. Not validated. Not for GMP use.");
+    expect(doc.banner).toContain(NOTICE_DOCUMENT);
     expect(md).toContain(samplingBasisText(demo.meta.id));
     expect(samplingBasisText("P-1")).toBe("Draft sampling plan generated from project P-1. Not approved.");
   });

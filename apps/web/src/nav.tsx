@@ -1,5 +1,6 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { href } from "./router";
+import { PHONE_WIDTH, useNarrow } from "./viewport";
 
 export interface NavItem {
   path: string;
@@ -44,20 +45,6 @@ function itemCurrent(i: NavItem, routePath: string): boolean {
 }
 
 const groupCurrent = (g: NavGroup, routePath: string) => [...g.items, ...(g.sub?.items ?? [])].some((i) => itemCurrent(i, routePath));
-
-/** True while the viewport is at most the given width; the menu collapses into one "Menu" button there. */
-function useNarrow(maxWidth: number): boolean {
-  const query = `(max-width: ${maxWidth}px)`;
-  const [narrow, setNarrow] = useState(() => typeof window !== "undefined" && window.matchMedia(query).matches);
-  useEffect(() => {
-    const mq = window.matchMedia(query);
-    const on = () => setNarrow(mq.matches);
-    on();
-    mq.addEventListener("change", on);
-    return () => mq.removeEventListener("change", on);
-  }, [query]);
-  return narrow;
-}
 
 function NavEntry({ item, routePath, onPick }: { item: NavItem; routePath: string; onPick: () => void }) {
   const descId = useId();
@@ -207,10 +194,26 @@ function Dropdown({ group, routePath }: { group: NavGroup; routePath: string }) 
 
 /**
  * The short top menu: Home, Gap assessment, two drop-downs and (on the server) My files. On a phone it folds into one "Menu" button
- * whose panel lists every group, so the page never scrolls sideways.
+ * whose panel lists every group, so the page never scrolls sideways. `phoneExtra` is what the header adds to the phone panel only
+ * (the open project, the account, where the data is kept): on a wide screen those sit in the header bar instead. It is given the
+ * function that closes the panel, so a link or button in it can close the panel the way a menu entry does.
  */
-export function MainNav({ routePath, home, gap, groups, extra }: { routePath: string; home: NavItem; gap: NavItem & { covers: string[] }; groups: NavGroup[]; extra: NavItem[] }) {
-  const narrow = useNarrow(700);
+export function MainNav({
+  routePath,
+  home,
+  gap,
+  groups,
+  extra,
+  phoneExtra,
+}: {
+  routePath: string;
+  home: NavItem;
+  gap: NavItem & { covers: string[] };
+  groups: NavGroup[];
+  extra: NavItem[];
+  phoneExtra?: (close: () => void) => ReactNode;
+}) {
+  const narrow = useNarrow(PHONE_WIDTH);
   const [menuOpen, setMenuOpen] = useState(false);
   const panelId = useId();
   const menuRef = useRef<HTMLElement>(null);
@@ -253,8 +256,11 @@ export function MainNav({ routePath, home, gap, groups, extra }: { routePath: st
           menuRef.current?.querySelector<HTMLElement>("button")?.focus();
         }}
       >
-        <button type="button" className="btn nav-menu-btn" aria-expanded={menuOpen} aria-controls={panelId} onClick={() => setMenuOpen((o) => !o)}>
-          Menu <span aria-hidden="true">{menuOpen ? "▴" : "▾"}</span>
+        {/* An icon button 44 px square (WCAG 2.2 target size on a phone); the word is its accessible name. */}
+        <button type="button" className="nav-menu-btn" aria-label="Menu" aria-expanded={menuOpen} aria-controls={panelId} onClick={() => setMenuOpen((o) => !o)}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" focusable="false">
+            <path d={menuOpen ? "M6 6l12 12M18 6L6 18" : "M4 7h16M4 12h16M4 17h16"} />
+          </svg>
         </button>
         <div id={panelId} className="nav-menu-panel" hidden={!menuOpen}>
           {menuOpen && (
@@ -280,6 +286,7 @@ export function MainNav({ routePath, home, gap, groups, extra }: { routePath: st
                   )}
                 </section>
               ))}
+              {phoneExtra?.(close)}
             </>
           )}
         </div>

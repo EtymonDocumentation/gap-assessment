@@ -2,6 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Download, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import { expectNotice, setTheme } from "./nav-helper";
 
 const FIXTURES = new URL("../../../packages/docx/fixtures/", import.meta.url);
 const fixture = (name: string) => fileURLToPath(new URL(name, FIXTURES));
@@ -12,7 +13,7 @@ test.beforeEach(async ({ page }) => {
 
 async function loadDemo(page: Page) {
   await page.goto("./");
-  await expect(page.getByText("Proof of concept. Not validated. Not for GMP use.").first()).toBeVisible();
+  await expectNotice(page);
   await page.getByRole("button", { name: "Load demo" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
@@ -343,7 +344,7 @@ for (const theme of ["light", "dark"] as const) {
   test(`M5 pages: accessibility and layout, ${theme} theme`, async ({ page }) => {
     test.setTimeout(240_000);
     await loadDemo(page);
-    await page.getByLabel("Colour theme").selectOption(theme);
+    await setTheme(page, theme === "dark" ? "Dark" : "Light");
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
     await addSamples(page);
 

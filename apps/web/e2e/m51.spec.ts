@@ -1,8 +1,8 @@
 // Milestone 5.1: program stage per side and the stage-aware wording. Runs on the desktop, tablet and phone projects.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { expectNotice } from "./nav-helper";
 
-const BANNER = "Proof of concept. Not validated. Not for GMP use.";
 
 test.beforeEach(async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
@@ -26,7 +26,7 @@ async function expectNoHorizontalScroll(page: Page, label: string) {
 
 async function newProject(page: Page) {
   await page.goto("./");
-  await expect(page.getByText(BANNER).first()).toBeVisible();
+  await expectNotice(page);
   await page.getByRole("button", { name: "Start a new project" }).click();
   const dialog = page.getByRole("dialog", { name: "New project" });
   await dialog.getByLabel("Project title").fill("Stage test (fictional)");
@@ -100,7 +100,7 @@ test("a clinical source: stage-aware labels on Compare, Register and the Documen
   await expect(page.getByRole("heading", { level: 1, name: "Document" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Sending unit program summary (current state)" }).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: /\(validated state\)/ })).toHaveCount(0);
-  await expect(page.getByText(BANNER).first()).toBeVisible();
+  await expectNotice(page);
   await expectAccessible(page, "document, clinical source");
   await expectNoHorizontalScroll(page, "document, clinical source");
 
@@ -127,7 +127,7 @@ test("both stages answered in a new project show on Home and Compare, and the ba
   const card = page.locator("section.card", { hasText: "Open project" });
   await expect(card).toContainText("Sending unit (SU): Development / engineering runs");
   await expect(card).toContainText("Receiving unit (RU): Clinical (GMP, not process validated)");
-  await expect(page.getByText(BANNER).first()).toBeVisible();
+  await expectNotice(page);
   await expectAccessible(page, "home with stages");
   await expectNoHorizontalScroll(page, "home with stages");
 });

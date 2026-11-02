@@ -860,7 +860,7 @@ sampling:
   role: MSAT engineer
   plans:
     - title: SYR-305 PPQ sampling plan (fictional)
-      notes: Fictional demonstration plan. Proof of concept, not validated, not for GMP use.
+      notes: Fictional demonstration plan. Drafting aid output, not validated.
       batchRationale: "Three PPQ batches bracket the widest range the 100 L single-use mixing bag allows: 9 L (the smallest volume that fully covers the impeller), 50 L (the middle, the TRD target) and 100 L (the bag maximum). The PPQ sets the proven acceptable range, so the values proven here become the TRD limits (fictional). Three batches follow from the risk to the patient (a sterile injectable with a moderate process complexity) and from prior knowledge: two development batches and an engineering batch at the receiving unit showed the same behaviour, so three PPQ batches are enough to show the process repeats, and none is chosen as a fixed rule (fictional)."
       design:
         bracketing: "Only the batch size is bracketed (9 L, 50 L and 100 L). Every hold and every time limit is run in every one of the three batches, at the same target in each, because a shorter hold in one batch would leave that hold unproven for the others (fictional)."

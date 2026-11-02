@@ -30,7 +30,7 @@ questions:
     section: scoping
     prompt: Program or product code
     label: Program
-    why: Identifies the program in the assessment title and references. Use a fictional code in this proof of concept.
+    why: Identifies the program in the assessment title and references. Use a fictional code, because this tool holds fictional data only.
     sides: shared
     binds: scope.program
     input: { type: text, placeholder: e.g. ARX-217 }
@@ -111,7 +111,7 @@ questions:
   - id: site.name
     section: site
     prompt: Site name
-    why: Identifies the SU and RU sites in the assessment. Use fictional names in this proof of concept.
+    why: Identifies the SU and RU sites in the assessment. Use fictional names, because this tool holds fictional data only.
     sides: paired
     sameAsSource: false
     binds: site.name

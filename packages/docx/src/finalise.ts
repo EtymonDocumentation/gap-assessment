@@ -1,5 +1,5 @@
 import type { DocModel } from "@gap/engine";
-import { documentFingerprint } from "@gap/engine";
+import { documentFingerprint, PRODUCT_NAME } from "@gap/engine";
 import type { DocPackage } from "./docpkg";
 import { CT, REL, resolveTarget } from "./package";
 import type { TemplateMode } from "./types";
@@ -7,7 +7,8 @@ import { W_NS, XML_DECL, attrByLocal, childElements, esc, localName, parseXml, t
 import { restoreFirstPageHeader } from "./inspect";
 import type { WriterCtx } from "./writer";
 
-export const CREATOR = "Gap Assessment Generator (proof of concept)";
+/** The "Created by" text of the document properties: the product name (the wording lives in the engine, product.ts). */
+export const CREATOR = PRODUCT_NAME;
 const FALLBACK_DATE = "2000-01-01T00:00:00Z";
 
 export interface FinaliseInput {

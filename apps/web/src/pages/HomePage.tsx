@@ -1,6 +1,7 @@
-import { isAnswered, localDate, tbdItems, tbdSummary, tbdSummaryText } from "@gap/engine";
+import { isAnswered, localDate, PRODUCT_NAME, tbdItems, tbdSummary, tbdSummaryText } from "@gap/engine";
 import { useMemo, useRef, useState } from "react";
 import { PageBanner } from "../art";
+import { ProductEyebrow } from "../brand";
 import { thenStep } from "../chain";
 import { DocChainStrip, useChainAllowed } from "../DocChain";
 import { Modal, ResponderForm } from "../components";
@@ -94,6 +95,7 @@ export function HomePage({ notice }: { notice?: string }) {
   return (
     <div className="stack-lg">
       <PageBanner art="page-home-hero" size="hero">
+        <ProductEyebrow />
         <h1>Gap assessment for technology transfer</h1>
       </PageBanner>
       {notice && (
@@ -347,7 +349,7 @@ export function HomePage({ notice }: { notice?: string }) {
 
       <details className="card about" data-testid="about-poc">
         <summary>
-          <h2 id="about-h">About this proof of concept</h2>
+          <h2 id="about-h">About {PRODUCT_NAME}</h2>
         </summary>
         <ul className="plain-list">
           {remote ? (

@@ -2,7 +2,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { buildDemoProject, buildRiskAssessmentDocument, setMethod, updateItem } from "@gap/engine";
+import { NOTICE_DOCUMENT, buildDemoProject, buildRiskAssessmentDocument, setMethod, updateItem } from "@gap/engine";
 import { renderHtml } from "@gap/renderers";
 import { describe, expect, it, vi } from "vitest";
 import { content, demos, designLoadouts, failureModes, riskLoadouts, samplingSuggestions } from "../../../content/index";
@@ -24,7 +24,7 @@ describe("Word and HTML risk assessment (M8)", () => {
     const doc = buildRiskAssessmentDocument(content, project, a, failureModes, opts);
     const out = await renderDocx({ doc, mode: "builtin", generatedAt: GENERATED_AT });
     const text = plainText(strictDocx(out.bytes));
-    expect(text).toContain("Proof of concept. Not validated. Not for GMP use.");
+    expect(text).toContain(NOTICE_DOCUMENT);
     for (const h of ["Purpose and scope", "Risk method", "Risk register", "Action list", "Open items", "Traceability"]) expect(text).toContain(h);
     expect(text).toContain("No bands defined by the user");
     expect(text).not.toMatch(/filing category/i);

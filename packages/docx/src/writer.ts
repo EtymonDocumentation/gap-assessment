@@ -215,7 +215,7 @@ export function headingPara(ctx: WriterCtx, level: number, text: string, o: Head
   });
 }
 
-/** The proof-of-concept banner as a bordered, bold, dark-red paragraph. */
+/** The drafting-aid notice (the document banner) as a bordered, bold, dark-red paragraph. */
 export function bannerPara(text: string): string {
   const side = (n: string) => `<w:${n} w:val="single" w:sz="12" w:space="4" w:color="${BANNER_COLOR}"/>`;
   return para(textRuns(text, { b: true, color: BANNER_COLOR, sz: 22 }), {

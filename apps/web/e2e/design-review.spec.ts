@@ -4,7 +4,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { goTo } from "./nav-helper";
+import { goTo, isPhone } from "./nav-helper";
 
 const SHOTS = tmpdir();
 
@@ -37,7 +37,9 @@ test("the Overview line counts the questions and opens the tab; the chain strip 
   await openReview(page);
   const line = page.getByTestId("review-line");
   await expect(line).toContainText(/\d+ design review questions? not answered yet/);
-  await expect(page.getByTestId("doc-chain")).toContainText(/design review questions? not answered yet/);
+  // The wide strip carries each stage's status; a phone shows one line ("Chain 3 of 5 · Sampling plan") and the Overview line above has the count.
+  if (isPhone(page)) await expect(page.getByTestId("doc-chain")).toContainText("Chain 3 of 5 · Sampling plan");
+  else await expect(page.getByTestId("doc-chain")).toContainText(/design review questions? not answered yet/);
   await page.screenshot({ path: join(SHOTS, `m11-j1-overview-line-${test.info().project.name}.png`) });
   await page.getByTestId("review-line-open").click();
   await expect(page.getByTestId("design-review")).toBeVisible();

@@ -3,6 +3,7 @@ import type { Block, DocModel, DocSection, Run } from "./document";
 import { effectiveField, trdLimitChecks, trdOpenItems, trdOverrides, type TrdOpenItem } from "./trd";
 import { rangeText, setPointText } from "./trd-check";
 import { TRD_BANNER } from "./trd-outline";
+import { PRODUCT_NAME } from "./product";
 import type { ContentBundle } from "./content";
 import { activeParts } from "./trd-writeup";
 import { addWriteupSections } from "./trd-writeup-document";
@@ -408,7 +409,7 @@ export function buildTrdDocument(project: Project, d: TrdDocument, opts: TrdDocu
         type: "table",
         columns: ["Item", "Value"],
         rows: [
-          ["Generator", `${opts.generatorName ?? "Gap Assessment Generator (proof of concept)"} ${opts.appVersion ?? "unversioned"}`],
+          ["Generator", `${opts.generatorName ?? PRODUCT_NAME} ${opts.appVersion ?? "unversioned"}`],
           ["TRD document", `${d.id}${d.version ? `, version ${d.version}` : ""}, last changed ${d.updatedAt.replace("T", " ").slice(0, 16)} UTC`],
           ["TRD format", TRD_FORMAT_VERSION],
           ["Started from", d.origin.kind === "project" ? "The project" : d.origin.kind === "seed-import" ? "An imported TRD seed" : "Blank (entered by hand)"],

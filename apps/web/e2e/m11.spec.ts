@@ -7,9 +7,8 @@ import { expect, test, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { goTo } from "./nav-helper";
+import { expectNotice, goTo, NOTICE_DOCUMENT } from "./nav-helper";
 
-const BANNER = "Proof of concept. Not validated. Not for GMP use.";
 const SHOTS = tmpdir();
 
 test.beforeEach(async ({ page }) => {
@@ -57,7 +56,7 @@ const rowWith = (page: Page, state: string) => page.locator("li.mbr-row", { has:
 test.describe("batch record: the demo record", () => {
   test("is reached from the navigation, lists the demo record and keeps the banner", async ({ page }) => {
     await openMbr(page);
-    await expect(page.getByText(BANNER).first()).toBeVisible();
+    await expectNotice(page);
     await expect(page.getByTestId("mbr-list-table")).toContainText("MBR-001");
     await page.screenshot({ path: join(SHOTS, "m11-list.png") });
   });
@@ -188,7 +187,7 @@ test.describe("batch record: the demo record", () => {
       if (await anyway.isVisible().catch(() => false)) await anyway.click();
     })]);
     const text = (await readFile(await dl.path())).toString("utf8");
-    expect(text).toContain(BANNER);
+    expect(text).toContain(NOTICE_DOCUMENT);
     expect(text).toContain("To be completed by the CMO");
     expect(text).not.toMatch(/\b(violation|non-compliant)\b/i);
   });

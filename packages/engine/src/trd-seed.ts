@@ -24,6 +24,7 @@ import {
   type TrdSeed,
 } from "@gap/process-model";
 import { assess, type Assessment } from "./compare";
+import { PRODUCT_NAME } from "./product";
 import { fieldLabel, type ContentBundle } from "./content";
 import type { Question } from "./content-schema";
 import { effectiveContent } from "./custom";
@@ -221,7 +222,7 @@ export function buildTrdSeed(rawContent: ContentBundle, project: Project, opts: 
     format: TRD_SEED_FORMAT,
     formatVersion: TRD_SEED_VERSION,
     exportedAt,
-    generator: { name: opts.generatorName ?? "Gap Assessment Generator (proof of concept)", version: opts.appVersion ?? "unversioned" },
+    generator: { name: opts.generatorName ?? PRODUCT_NAME, version: opts.appVersion ?? "unversioned" },
     processModelVersion: PROCESS_MODEL_VERSION,
     contentVersions: { ...content.versions, overlay: content.overlayVersion },
     projectSchemaVersion: project.schemaVersion ?? SCHEMA_VERSION,

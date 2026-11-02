@@ -2,7 +2,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { buildCmoInstructionsDocument, buildDemoProject, buildMbrDocument, buildSamplingPlanDocument } from "@gap/engine";
+import { NOTICE_DOCUMENT, buildCmoInstructionsDocument, buildDemoProject, buildMbrDocument, buildSamplingPlanDocument } from "@gap/engine";
 import { renderHtml } from "@gap/renderers";
 import { describe, expect, it, vi } from "vitest";
 import { content, demos, designLoadouts, mbrLibrary, samplingSuggestions } from "../../../content/index";
@@ -28,7 +28,7 @@ describe("Word documents carry how each sample is taken", () => {
     const text = plainText(strictDocx(out.bytes));
     expect(text).toContain("How the sample is taken");
     expect(text).toContain("Sampling method reminders");
-    expect(text).toContain("Proof of concept. Not validated. Not for GMP use.");
+    expect(text).toContain(NOTICE_DOCUMENT);
     writeFileSync(join(dir, "sampling-plan.docx"), out.bytes);
   });
 

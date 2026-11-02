@@ -7,9 +7,8 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
-import { goTo } from "./nav-helper";
+import { expectNotice, goTo, NOTICE_DOCUMENT } from "./nav-helper";
 
-const BANNER = "Proof of concept. Not validated. Not for GMP use.";
 const TITLE = "PPQ sampling plan — draft";
 const SHOTS = tmpdir();
 
@@ -86,7 +85,7 @@ test("the page says what the tool does and does not do, and the demo plan is lis
     "The tool works out sample sizes from the method you choose. It does not judge whether that choice is adequate for your process; that decision belongs to QA / statistics.",
   );
   await expect(page.getByTestId("plan-list")).toContainText("ARX-217 PPQ sampling plan");
-  await expect(page.getByText(BANNER).first()).toBeVisible();
+  await expectNotice(page);
 });
 
 test("a new plan starts with no batches and no points, and the open items say so", async ({ page }) => {
@@ -211,14 +210,14 @@ test("Word and HTML downloads carry the banner, the headings, the working and th
     expect(headings).toContain(h);
   }
   const text = wordText(word.bytes);
-  expect(text).toContain(BANNER);
+  expect(text).toContain(NOTICE_DOCUMENT);
   expect(text).toMatch(/Report only/);
   expect(text).not.toMatch(/coming later/i);
 
   const html = await download(page, "sampling-download-html");
   expect(html.file).toMatch(/^sampling-plan-.*\.html$/);
   const htmlText = html.bytes.toString("utf8");
-  expect(htmlText).toContain(BANNER);
+  expect(htmlText).toContain(NOTICE_DOCUMENT);
   expect(htmlText).toContain(TITLE);
   expect(htmlText).toMatch(/<h2[^>]*>[^<]*Statistical bases used/);
   expect(htmlText).toMatch(/Reporting instructions RI-SP-001/);

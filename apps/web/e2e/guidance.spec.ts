@@ -2,6 +2,7 @@
 // phone layout. Runs on the desktop, tablet and phone projects.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { expectNotice } from "./nav-helper";
 
 async function open(page: Page) {
   await page.goto("./#/guidance");
@@ -32,7 +33,7 @@ async function expectNoHorizontalScroll(page: Page, label: string) {
 
 test("opens without a project, with the note, the last-checked date and every item", async ({ page }) => {
   await open(page);
-  await expect(page.getByText("Proof of concept. Not validated. Not for GMP use.").first()).toBeVisible();
+  await expectNotice(page);
   await expect(page.getByText("Links open the official agency site. Always confirm you are reading the current version there.")).toBeVisible();
   await expect(page.getByText(/Last checked: \d{4}-\d{2}-\d{2}/)).toBeVisible();
   await expect(page.getByRole("status").filter({ hasText: "shown" })).toHaveText("162 of 162 shown");

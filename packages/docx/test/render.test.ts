@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import { documentFingerprint } from "@gap/engine";
+import { documentFingerprint, PRODUCT_NAME } from "@gap/engine";
 import { describe, expect, it, vi } from "vitest";
 import { importTemplateFile, mappingReport, renderDocx, suggestMapping, TemplateError, toolBlocks, type ImportedTemplate, type RenderDocxInput, type RenderDocxResult, type TemplateMapping } from "../src/index";
 import { BANNER, GENERATED_AT, buildModel, fixture, type Model } from "./fixtures";
@@ -75,7 +75,7 @@ describe("built-in look", () => {
     const doc = res.text("word/document.xml");
     expect(doc).toMatch(/<w:pgSz[^>]*w:w="16838"[^>]*w:h="11906"/);
     expect(doc).toMatch(/w:orient="landscape"/);
-    expect(res.text("docProps/core.xml")).toContain("Gap Assessment Generator (proof of concept)");
+    expect(res.text("docProps/core.xml")).toContain(`<dc:creator>${PRODUCT_NAME}</dc:creator>`);
   });
 
   it("numbers every section heading, in order, with Heading styles", async () => {
@@ -111,7 +111,7 @@ describe("built-in look", () => {
     expect(p.templateName).toBe("Built-in default");
     expect(p.templateVersion).toMatch(/^\d+\.\d+\.\d+$/);
     expect(p.documentFingerprint).toBe(documentFingerprint(model.doc));
-    expect(res.text("docProps/app.xml")).toContain("Gap Assessment Generator (proof of concept)");
+    expect(res.text("docProps/app.xml")).toContain(`<Application>${PRODUCT_NAME}</Application>`);
     expect(res.text("docProps/core.xml")).not.toMatch(/@/);
   });
 

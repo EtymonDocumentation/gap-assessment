@@ -3,8 +3,8 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Download, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
+import { expectNotice } from "./nav-helper";
 
-const BANNER = "Proof of concept. Not validated. Not for GMP use.";
 
 test.beforeEach(async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
@@ -16,14 +16,14 @@ async function go(page: Page, hash: string) {
 
 async function loadDemo(page: Page) {
   await page.goto("./");
-  await expect(page.getByText(BANNER).first()).toBeVisible();
+  await expectNotice(page);
   await page.getByRole("button", { name: "Load demo" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
 
 async function newProject(page: Page) {
   await page.goto("./");
-  await expect(page.getByText(BANNER).first()).toBeVisible();
+  await expectNotice(page);
   await page.getByRole("button", { name: "Start a new project" }).click();
   const dialog = page.getByRole("dialog", { name: "New project" });
   await dialog.getByLabel("Project title").fill("Cite test (fictional)");

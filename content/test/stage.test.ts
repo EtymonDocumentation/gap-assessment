@@ -1,5 +1,6 @@
 // Milestone 5.1: program stage per side (site.programStage) and the stage-aware wording.
 import {
+  NOTICE_DOCUMENT,
   assess,
   buildDemoProject,
   buildDocument,
@@ -52,7 +53,7 @@ const meta = (doc: ReturnType<typeof build>["doc"], label: string) => doc.meta.f
 
 /** Statements that are allowed to contain "validated" in a document for a source that is not commercial. */
 const ALLOWED = [
-  /Proof of concept\. Not validated\. Not for GMP use\./g, // the permanent banner
+  new RegExp(NOTICE_DOCUMENT.replaceAll(".", "[.]"), "g"), // the permanent notice
   /Commercial \(process validated\)/g, // a stage label (a commercial target)
   /Clinical \(GMP, not process validated\)/g, // a stage label
   /not process validated/gi, // the same wording in running text

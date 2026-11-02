@@ -1,9 +1,9 @@
-# Gap Assessment Generator
+# Cascade: GMP transfer documentation
 
-> **Proof of concept. Not validated. Not for GMP use.**
+> **Drafting aid. Not validated. Review and approve every document in your own document control. Fictional data only.**
 > All names, sites, part numbers and document IDs in this repository are fictional.
 
-The Gap Assessment Generator is the first module of a technology-transfer document suite for biologics sterile fill/finish. It compares a process at the **sending unit (SU)** with the same process at the **receiving unit (RU)**: a site or line. (In stored data and in the file format the two sides keep the names `source` and `target`; only the words people read changed.) Each side has a program stage (commercial, clinical or development), which sets the wording and the validation expectations. A guided, adaptive interview collects the information. The tool then classifies every difference into one of eight categories, builds a gap register and drafts a gap assessment document.
+Cascade is a technology-transfer document suite for biologics sterile fill/finish. Its first module, **Gap assessment**, compares a process at the **sending unit (SU)** with the same process at the **receiving unit (RU)**: a site or line. (In stored data and in the file format the two sides keep the names `source` and `target`; only the words people read changed.) Each side has a program stage (commercial, clinical or development), which sets the wording and the validation expectations. A guided, adaptive interview collects the information. The tool then classifies every difference into one of eight categories, builds a gap register and drafts a gap assessment document.
 
 Live site: `https://<your-github-user>.github.io/gap-assessment/` (after the deployment steps below).
 
@@ -275,7 +275,7 @@ The **TRD** page (module `trd`, after TRD seed in the menu) turns the seed into 
 - **Set point, NOR and PAR** are entered by the team for parameters and in-process controls, each with sources chosen from the source register (a document can be added on the spot), section and page, and a free-text basis. They are not taken from the sampling plan. The check only reports: NOR outside PAR, set point outside a range, minimum above maximum, "cannot compare: units differ (x vs y)", a missing citation as an open item, provisional values labelled. It never blocks saving and never decides anything.
 - **One source picker, folded steps, clear wording.** Every place that cites sources (set point, NOR, PAR) uses one picker: cited sources are a list with Remove and section/page; "Add a source from the register" opens a search box over the register with documents first and interview records in a closed group, and a new document can be added on the spot. Each process step is a folded disclosure with a count line (parameters, overridden, PAR/NOR problems, not established, TBD); a filter opens the steps with matches, an edited step stays open, and the open state is kept for the session. A parameter card shows "From the project" values apart from "TRD limits (set point / NOR / PAR with sources)", with an optional "Copy project value" button; the change notice appears only when a row actually differs.
 - **Process sections only**, in process order, with a description written by the team. Source document types (PPQ summary report, Process development report, Characterization study report, Internal technical report) and basis wordings are suggestions, not lists to choose from.
-- **Output.** Word and HTML through the same pipeline and Templates library as the other documents; downloads are recorded in the export history (`trd-docx`, `trd-html`) with the versions behind them, and a download with open items asks first. The banner is in every output and the only regulatory wording is "Requires regulatory affairs assessment".
+- **Output.** Word and HTML through the same pipeline and Templates library as the other documents; downloads are recorded in the export history (`trd-docx`, `trd-html`) with the versions behind them, and a download with open items asks first. The drafting-aid notice is in every output and the only regulatory wording is "Requires regulatory affairs assessment".
 - Versions: project schema 1.17.0, process model 1.7.0, TRD format 1.0.0. The demo project carries a fictional TRD.
 
 ## Suite foundation: the process model and the TRD seed
@@ -298,7 +298,7 @@ All domain content lives in `content/` as YAML. Each file carries a semantic ver
 | `content/catalog/gap-overlay.yaml` | Validation activities and comparison category labels and descriptions (only the gap assessment needs them) |
 | `content/questions/*.yaml` | Sections, then questions per section (`00` scoping and site, `15` buffer preparation, `20` compounding, `25` BBR filtration, `30` sterile filtration including the PUPSIT block, `40` aseptic filling including the plunger stopper position questions, `60` capping) |
 | `content/rules/rules.yaml` | Comparison rules, evaluated in order; the first rule whose pattern matches a path wins (`*` matches one path segment) |
-| `content/templates/gap-assessment.yaml` | Document title pattern, banner, fixed text and approval roles |
+| `content/templates/gap-assessment.yaml` | Document title pattern, fixed text and approval roles (the notice at the top of every document comes from `packages/engine/src/product.ts`) |
 | `content/demo/arx-217.yaml` | The demo, written as interview answers and replayed through the engine |
 
 ### Question fields
@@ -455,7 +455,7 @@ The Document page can make a Word file in four ways. Pick the one that fits:
 | **Map to their headings** | The content placed under the headings of a company template (Word or PDF), following a mapping you set up on the Templates page. | A Word or PDF template, plus a saved mapping |
 | **Placeholder tags** | A template that contains tags such as `{program}`. The tool fills them in. | A Word template with tags |
 
-**Built-in layout details.** The cover page carries the "Proof of concept. Not validated. Not for GMP use." banner, the title and the facts of the transfer (program, product, sites, program stages, date). The table of contents is a real Word field. Word asks "This document contains fields that may refer to other files. Do you want to update the fields in this document?" when you open the file. Choose **Yes** to fill in the contents and page numbers. The document-control page has blank placeholders for author, reviewer and approver. The tool does not capture approvals or electronic signatures.
+**Built-in layout details.** The cover page carries the drafting-aid notice ("Drafting aid output, not validated. Review and approve this document in your own document control system. Fictional data only."), the title and the facts of the transfer (program, product, sites, program stages, date). The table of contents is a real Word field. Word asks "This document contains fields that may refer to other files. Do you want to update the fields in this document?" when you open the file. Choose **Yes** to fill in the contents and page numbers. The document-control page has blank placeholders for author, reviewer and approver. The tool does not capture approvals or electronic signatures.
 
 **Add a template.** Open **Templates**, choose a file (`.docx`, `.dotx`, `.docm` or `.pdf`), then give it a name and a version. The version is recorded with every export. The tool recognises `.doc`, `.rtf` and `.odt` files, but does not read them: it tells you how to save them as `.docx` first. Each template shows a report of what the tool found (headings, styles, tags, layout), what it removed, and which of the four options it can be used for.
 
@@ -485,6 +485,8 @@ The value of the page is keeping it current. To do that:
 ## Pictures and credits
 
 The page banners and unit-operation pictures are **AI-generated, fictional illustrations**: no real site, product, person or brand is shown, and no picture contains text. They are decoration only (empty alt text), carry no information the page does not also say in words, and have all metadata removed. They are kept in `apps/web/public/art/` (two widths each, 1600 and 800 px webp) and are loaded on demand, not bundled into the JavaScript. `scripts/make-site-art.py` rebuilds the files from the review copies and fails if any EXIF, XMP, ICC or C2PA data is left. Banners are hidden when printing, in forced-colours mode and for browsers that ask to save data.
+
+**Name, notice and typeface.** The product name (Cascade), its subtitle, the drafting-aid notice (the strip on every screen and the line in every Markdown, HTML and Word document) and the two storage phrases are written once, in `packages/engine/src/product.ts`; the app, the exports and the tests all read them from there. The "Gap assessment" module, the repository, the `@gap/*` package names, the addresses and the stored data keep their own names. The typeface is IBM Plex Sans (weights 400, 500, 600 and 700, Latin only), installed from the `@fontsource/ibm-plex-sans` package and served by the site itself, never from another host. It is licensed under the SIL Open Font License 1.1, and the licence text is published with the site as `fonts/IBM-Plex-Sans-OFL-1.1.txt`. The logo mark and the browser-tab icon (`apps/web/public/favicon.svg`) are one drawing of three bars that step down and to the right.
 
 ## Running on your own machine (server mode)
 
@@ -595,4 +597,4 @@ Funnel must be allowed for your tailnet (an admin switch in the Tailscale admin 
 
 ---
 
-*Proof of concept. Not validated. Not for GMP use. Fictional data only.*
+*Drafting aid. Not validated. Review and approve every document in your own document control. Fictional data only.*

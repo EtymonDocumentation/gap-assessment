@@ -6,22 +6,27 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  BANNER,
-  CLIENT_URL,
+  answeredCount,
   answerFirst,
   answerTbd,
-  answeredCount,
+  CLIENT_URL,
+  closeAccountMenu,
   expect,
   expectAccessible,
   expectNoHorizontalScroll,
+  expectNotice,
+  expectSaved,
+  expectSignedInAs,
   go,
   loadDemo,
   makeInvite,
   newAccount,
+  openAccountMenu,
   otherComputer,
   serverRevision,
   signIn,
   signInFresh,
+  signOut,
   signUp,
   startProject,
   test,
@@ -36,7 +41,7 @@ test("sign-up with an invite, sign out, a wrong password, sign in again", async 
   await page.goto("./");
   // The sign-in page carries the banner and the rules.
   await expect(page.getByRole("heading", { level: 1, name: "Sign in" })).toBeVisible();
-  await expect(page.getByText(BANNER).first()).toBeVisible();
+  await expectNotice(page);
   await expect(page.getByText("Use at least 7 characters.")).toBeVisible();
 
   const account = newAccount("signup");
@@ -63,9 +68,12 @@ test("sign-up with an invite, sign out, a wrong password, sign in again", async 
 
   await form.getByLabel("Invite code").fill(invite);
   await form.getByRole("button", { name: "Create account" }).click();
-  await expect(page.getByText(`Signed in as ${account.displayName}`)).toBeVisible();
-  await expect(page.getByText("Plan: Trial (free) · Modules: Gap assessment")).toBeVisible();
-  await expect(page.getByText(BANNER).first()).toBeVisible();
+  // Who is signed in, and the plan, are in the account block (the initials circle's pop-over, or the phone Menu panel).
+  const block = await openAccountMenu(page);
+  await expect(block).toContainText(`Signed in as ${account.displayName}`);
+  await expect(block).toContainText("Plan: Trial (free) · Modules: Gap assessment");
+  await closeAccountMenu(page);
+  await expectNotice(page);
   await expect(page.getByRole("heading", { level: 2, name: "My projects" })).toBeVisible();
   await expect(page.getByText("You have no saved projects yet.")).toBeVisible();
 
@@ -83,20 +91,20 @@ test("sign-up with an invite, sign out, a wrong password, sign in again", async 
   await second.context().close();
 
   // Sign out, then a wrong password, then the right one.
-  await page.getByRole("button", { name: "Sign out" }).click();
+  await signOut(page);
   await expect(page.getByRole("heading", { level: 1, name: "Sign in" })).toBeVisible();
   await expect(page.getByText("You have signed out.")).toBeVisible();
-  await expect(page.getByText(BANNER).first()).toBeVisible();
+  await expectNotice(page);
   await signIn(page, account, "this is not the password");
   const signin = page.getByRole("form", { name: "Sign in" });
   await expect(signin.getByRole("alert")).toBeVisible();
   await expect(page.getByText("Signed in as")).toHaveCount(0);
   await signIn(page, account);
-  await expect(page.getByText(`Signed in as ${account.displayName}`)).toBeVisible();
+  await expectSignedInAs(page, account.displayName);
 
   // The session survives a reload.
   await page.reload();
-  await expect(page.getByText(`Signed in as ${account.displayName}`)).toBeVisible();
+  await expectSignedInAs(page, account.displayName);
 });
 
 test("change password signs the other computer out", async ({ page, browser, problems }, info) => {
@@ -105,7 +113,7 @@ test("change password signs the other computer out", async ({ page, browser, pro
   const other = await otherComputer(browser, info, problems);
   await signInFresh(other, account);
 
-  await page.getByRole("button", { name: "Change password" }).click();
+  await (await openAccountMenu(page)).getByRole("button", { name: "Change password" }).click();
   const dialog = page.getByRole("dialog", { name: "Change password" });
   await dialog.getByLabel("Current password").fill(account.password);
   await dialog.getByLabel("New password", { exact: true }).fill("a brand new long passphrase");
@@ -122,7 +130,7 @@ test("change password signs the other computer out", async ({ page, browser, pro
   await other.reload();
   await expect(other.getByRole("heading", { level: 1, name: "Sign in" })).toBeVisible();
   await signIn(other, account, "a brand new long passphrase");
-  await expect(other.getByText(`Signed in as ${account.displayName}`)).toBeVisible();
+  await expectSignedInAs(other, account.displayName);
   await other.context().close();
 });
 
@@ -134,12 +142,12 @@ test("a project saves as you work, and a fresh browser shows it after signing in
   await startProject(page, title);
   // A new project is saved straight away.
   await expect.poll(() => serverRevision(page, title)).toBeGreaterThanOrEqual(1);
-  await expect(page.getByRole("status").filter({ hasText: "Saved to server" })).toBeVisible();
+  await expectSaved(page);
 
   const before = await serverRevision(page, title);
   await answerFirst(page, "SAVE-1");
   await expect.poll(() => serverRevision(page, title)).toBeGreaterThan(before);
-  await expect(page.getByRole("status").filter({ hasText: "Saved to server" })).toBeVisible();
+  await expectSaved(page);
 
   // Another computer, signing in for the first time, finds and opens it.
   const other = await otherComputer(browser, info, problems);
@@ -202,7 +210,7 @@ test("two computers editing the same project: the conflict dialog offers both wa
   for (let i = 0; i < 3; i++) await answerTbd(page);
   const latest = await serverRevision(page, title);
   await expect.poll(() => serverRevision(page, title)).toBeGreaterThanOrEqual(latest);
-  await expect(page.getByRole("status").filter({ hasText: "Saved to server" })).toBeVisible();
+  await expectSaved(page);
   const mine = await answeredCount(page);
 
   // The second computer answers from the old version: its save is refused and it must choose.
@@ -218,21 +226,21 @@ test("two computers editing the same project: the conflict dialog offers both wa
   const saved = JSON.parse(await readFile((await download.path())!, "utf8"));
   expect(saved.meta.title).toBe(title);
   await expect(dialog).toBeHidden();
-  await expect(other.getByRole("status").filter({ hasText: "Saved to server" })).toBeVisible();
+  await expectSaved(other);
   expect(await answeredCount(other)).toBe(mine);
 
   // Again: the first computer moves on twice, the second answers once and chooses Keep mine.
   await go(page, "#/interview");
   await answerTbd(page);
   await answerTbd(page);
-  await expect(page.getByRole("status").filter({ hasText: "Saved to server" })).toBeVisible();
+  await expectSaved(page);
   const afterA = await serverRevision(page, title);
   await go(other, "#/interview");
   await answerTbd(other);
   await expect(dialog).toBeVisible();
   await dialog.getByRole("button", { name: "Keep mine (overwrite)" }).click();
   await expect(dialog).toBeHidden();
-  await expect(other.getByRole("status").filter({ hasText: "Saved to server" })).toBeVisible();
+  await expectSaved(other);
   expect(await serverRevision(other, title)).toBeGreaterThan(afterA);
   // The server now holds the second computer's version: one answer more than before, not two.
   await page.reload();
@@ -247,7 +255,7 @@ test("when the session ends, the app returns to sign-in and the unsaved change i
   await startProject(page, title);
   await answerFirst(page, "EXPIRE-1");
   await expect.poll(() => serverRevision(page, title)).toBeGreaterThan(1);
-  await expect(page.getByRole("status").filter({ hasText: "Saved to server" })).toBeVisible();
+  await expectSaved(page);
 
   // The password is changed from another computer, which signs this one out; the next save finds out.
   const other = await otherComputer(browser, info, problems);
@@ -262,12 +270,12 @@ test("when the session ends, the app returns to sign-in and the unsaved change i
   await answerTbd(page);
   await expect(page.getByRole("heading", { level: 1, name: "Sign in" })).toBeVisible();
   await expect(page.getByRole("status").filter({ hasText: /signed out|session/i })).toBeVisible();
-  await expect(page.getByText(BANNER).first()).toBeVisible();
+  await expectNotice(page);
 
   // Signing in again brings the project back with the change that had not been saved.
   await signIn(page, account);
-  await expect(page.getByText(`Signed in as ${account.displayName}`)).toBeVisible();
-  await expect(page.getByRole("status").filter({ hasText: "Saved to server" })).toBeVisible();
+  await expectSignedInAs(page, account.displayName);
+  await expectSaved(page);
   expect(await answeredCount(page)).toBe(2);
 });
 
@@ -491,13 +499,15 @@ test.describe("storage mode client", () => {
 
     await page.goto("./");
     await expect(page.getByText("Your projects and documents stay in this browser; the server holds only your account.").first()).toBeVisible();
-    await expect(page.getByText(BANNER).first()).toBeVisible();
+    await expectNotice(page);
     await expectAccessible(page, "sign-in page, client storage");
 
     const account = newAccount("client");
     await signUp(page, account, makeInvite("client"));
-    await expect(page.getByText("Plan: Trial (free)")).toBeVisible();
-    await expect(page.locator(".account-bar")).toContainText("Your projects and documents stay in this browser; the server holds only your account.");
+    const block = await openAccountMenu(page);
+    await expect(block).toContainText("Plan: Trial (free)");
+    await expect(block).toContainText("Your projects and documents stay in this browser; the server holds only your account.");
+    await closeAccountMenu(page);
     // No "My projects" list and no save status: it behaves like the static app.
     await expect(page.getByRole("heading", { name: "My projects" })).toHaveCount(0);
     await expect(page.getByText("Saved to server")).toHaveCount(0);
@@ -513,7 +523,7 @@ test.describe("storage mode client", () => {
 
     // Reloading keeps the project and the templates (they are in this browser).
     await page.reload();
-    await expect(page.getByText(`Signed in as ${account.displayName}`)).toBeVisible();
+    await expectSignedInAs(page, account.displayName);
     await go(page, "#/templates");
     await expect(page.getByRole("heading", { level: 2, name: "Library (4)" })).toBeVisible();
     await go(page, "#/register");
@@ -525,7 +535,7 @@ test.describe("storage mode client", () => {
     expect(refused.status()).toBe(403);
     expect(await refused.json()).toMatchObject({ error: "client-storage" });
 
-    await page.getByRole("button", { name: "Sign out" }).click();
+    await signOut(page);
     await expect(page.getByRole("heading", { level: 1, name: "Sign in" })).toBeVisible();
   });
 });

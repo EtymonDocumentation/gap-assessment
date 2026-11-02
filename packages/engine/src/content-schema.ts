@@ -189,7 +189,6 @@ export const templateSchema = z.object({
   templates: z.object({ id: z.string(), version: versionString }),
   document: z.object({
     title: z.string(),
-    banner: z.string(),
     purpose: z.string(),
     scope: z.string(),
     sourceSummaryIntro: z.string(),

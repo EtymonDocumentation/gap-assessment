@@ -6,9 +6,8 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
-import { goTo } from "./nav-helper";
+import { goTo, NOTICE_DOCUMENT } from "./nav-helper";
 
-const BANNER = "Proof of concept. Not validated. Not for GMP use.";
 const SHOTS = tmpdir();
 
 test.beforeEach(async ({ page }) => {
@@ -127,7 +126,7 @@ test("the sampling plan and the CMO instructions can use a library template; the
   const plan = await download(page, "sampling-download-word");
   expect(plan.file).toMatch(/^sampling-plan-.*\.docx$/);
   const text = wordText(plan.bytes);
-  expect(text).toContain(BANNER);
+  expect(text).toContain(NOTICE_DOCUMENT);
   expect(text).toContain("From: Alex Example (fictional), Technology transfer lead, Process Validation (fictional); Sam Sample (fictional), Validation engineer, Process Validation (fictional)");
   expect(text).toContain("To: Site South manufacturing (fictional), Takes the samples and writes the PPQ summary report, Manufacturing Sciences (fictional)");
   expect(text).toContain("Cc: Example Test Laboratory (fictional), Tests the samples");
@@ -151,7 +150,7 @@ test("the sampling plan and the CMO instructions can use a library template; the
   await planPanel.getByRole("radio", { name: /^Built-in default/ }).check();
   const builtin = await download(page, "sampling-download-word");
   expect(zipText(builtin.bytes, "docProps/custom.xml")).toContain("builtin");
-  expect(wordText(builtin.bytes)).toContain(BANNER);
+  expect(wordText(builtin.bytes)).toContain(NOTICE_DOCUMENT);
 });
 
 test("a template that has no tags is refused as a tag template; the picker says so in plain words", async ({ page }) => {

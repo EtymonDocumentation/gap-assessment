@@ -1,4 +1,4 @@
-import { assess, buildDemoProject, buildDocument, CATEGORIES, DOCUMENT_SECTION_IDS, gapsToCsv, tbdItems, tbdSummary, verificationSummary } from "@gap/engine";
+import { NOTICE_DOCUMENT, assess, buildDemoProject, buildDocument, CATEGORIES, DOCUMENT_SECTION_IDS, gapsToCsv, tbdItems, tbdSummary, verificationSummary } from "@gap/engine";
 import { getEntry, removeSource, sourceUsage, verificationState } from "@gap/process-model";
 import { renderHtml, renderMarkdown } from "@gap/renderers";
 import { describe, expect, it } from "vitest";
@@ -93,7 +93,7 @@ describe("ARX-217 demo (golden)", () => {
     expect(doc.title).toBe("Gap assessment: ARX-217 — Site North (fictional), Line 2 to Site South (fictional), Line 4");
     expect(doc.sections.map((s) => s.id)).toHaveLength(16);
     const md = renderMarkdown(doc);
-    expect(md).toContain("Proof of concept. Not validated. Not for GMP use.");
+    expect(md).toContain(NOTICE_DOCUMENT);
     expect(md).toContain("DEMO-PPQ-217-01");
     expect(md).not.toMatch(/undefined|NaN|\[object Object\]/);
     const html = renderHtml(doc);

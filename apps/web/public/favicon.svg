@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <title>Cascade</title>
+  <style>
+    rect { fill: #1f5f8b; }
+    @media (prefers-color-scheme: dark) { rect { fill: #7cb8e4; } }
+  </style>
+  <rect x="3" y="4" width="12" height="6" rx="2"/>
+  <rect x="10" y="13" width="12" height="6" rx="2" opacity="0.75"/>
+  <rect x="17" y="22" width="12" height="6" rx="2" opacity="0.5"/>
+</svg>

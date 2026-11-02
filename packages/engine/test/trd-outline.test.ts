@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseTrdSeed, type Project } from "@gap/process-model";
-import { buildDemoProject, buildTrdOutline, buildTrdSeed, seedStatusText, seedValueText, trdSeedCounts, TRD_OUTLINE_TITLE, type DocModel } from "@gap/engine";
+import { NOTICE_DOCUMENT, buildDemoProject, buildTrdOutline, buildTrdSeed, seedStatusText, seedValueText, trdSeedCounts, TRD_OUTLINE_TITLE, type DocModel } from "@gap/engine";
 import { renderHtml, renderMarkdown } from "../../renderers/src/index";
 import { content, kit } from "./helpers";
 import { demos } from "../../../content/index";
@@ -17,7 +17,7 @@ describe("buildTrdOutline", () => {
     const d = buildTrdOutline(seed(demo()));
     expect(d.title).toBe(TRD_OUTLINE_TITLE);
     expect(d.title).toBe("Technical requirements document — draft outline");
-    expect(d.banner).toBe("Proof of concept. Not validated. Not for GMP use.");
+    expect(d.banner).toBe(NOTICE_DOCUMENT);
     expect(d.status).toBe("DRAFT");
     const basis = d.sections[0]!.blocks.find((b) => b.type === "note");
     expect(basis).toEqual({ type: "note", text: expect.stringMatching(/^Draft outline seeded from gap assessment .+ \(no issued revision\)\. Not an approved TRD\.$/) });
@@ -98,7 +98,7 @@ describe("buildTrdOutline", () => {
 
   it("renders to HTML and Markdown with the banner and the heading", () => {
     const d = buildTrdOutline(seed(demo()));
-    expect(renderHtml(d)).toContain("Proof of concept. Not validated. Not for GMP use.");
+    expect(renderHtml(d)).toContain(NOTICE_DOCUMENT);
     expect(renderHtml(d)).toContain("Technical requirements document");
     expect(renderMarkdown(d)).toContain("Process overview");
   });

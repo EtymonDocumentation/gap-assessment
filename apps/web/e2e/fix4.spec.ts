@@ -5,7 +5,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { goTo } from "./nav-helper";
+import { goTo, isPhone } from "./nav-helper";
 
 test.beforeEach(async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
@@ -49,7 +49,9 @@ test("the chain strip lists the risk assessment after the gap assessment, and th
   await expect(page.getByTestId("home-start-trd")).not.toContainText("Start from a TRD");
   // The strip on a document page carries the risk entry too and still passes axe.
   await goTo(page, "TRD");
-  await expect(page.getByTestId("doc-chain").getByTestId("chain-risk")).toBeVisible();
+  // (A phone shows one line, "Chain 2 of 5 · TRD", which leaves the unnumbered Risk assessment out; Home lists it on a phone too.)
+  if (isPhone(page)) await expect(page.getByTestId("doc-chain")).toContainText("Chain 2 of 5 · TRD");
+  else await expect(page.getByTestId("doc-chain").getByTestId("chain-risk")).toBeVisible();
   await page.screenshot({ path: join(tmpdir(), "fix4-chain-strip.png") });
 });
 

@@ -17,6 +17,7 @@ import {
   type SamplingType,
   type CustomSubsection,
 } from "@gap/process-model";
+import { NOTICE_DOCUMENT, PRODUCT_NAME } from "./product";
 import {
   acceptanceStatement,
   buildFigures,
@@ -79,7 +80,8 @@ import { buildTrdSeed } from "./trd-seed";
  */
 
 export const SAMPLING_PLAN_TITLE = "PPQ sampling plan — draft";
-export const SAMPLING_BANNER = "Proof of concept. Not validated. Not for GMP use.";
+/** The notice at the top and in the footer of the document: the one shared wording (product.ts), the same in every document. */
+export const SAMPLING_BANNER = NOTICE_DOCUMENT;
 const NOT_ESTABLISHED = "Not established";
 const REPORT_ONLY_TEXT = "Report only (no acceptance criterion)";
 
@@ -742,7 +744,7 @@ export function buildSamplingPlanDocument(
       type: "table",
       columns: ["Item", "Value"],
       rows: [
-        ["Generator", `${opts.generatorName ?? "Gap Assessment Generator (proof of concept)"} ${opts.appVersion ?? "unversioned"}`],
+        ["Generator", `${opts.generatorName ?? PRODUCT_NAME} ${opts.appVersion ?? "unversioned"}`],
         ["Sampling plan format", SAMPLING_PLAN_FORMAT_VERSION],
         ["Process model", PROCESS_MODEL_VERSION],
         ["Sampling statistics", SAMPLING_STATS_VERSION],

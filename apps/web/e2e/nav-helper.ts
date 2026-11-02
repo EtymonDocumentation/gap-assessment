@@ -1,4 +1,43 @@
 import { expect, type Page } from "@playwright/test";
+// The product module has no imports of its own, so the specs read the very words the app and the documents are built from.
+import {
+  NOTICE_DOCUMENT,
+  NOTICE_FOOTER,
+  NOTICE_STRIP,
+  NOTICE_STRIP_PHONE,
+  PRODUCT_NAME,
+  PRODUCT_SUBTITLE,
+  STORAGE_PHRASE_BROWSER,
+  STORAGE_PHRASE_SERVER,
+} from "../../../packages/engine/src/product";
+
+export { NOTICE_DOCUMENT, NOTICE_FOOTER, NOTICE_STRIP, NOTICE_STRIP_PHONE, PRODUCT_NAME, PRODUCT_SUBTITLE, STORAGE_PHRASE_BROWSER, STORAGE_PHRASE_SERVER };
+
+/** The width (px) up to which the app uses its phone layout: PHONE_WIDTH in src/viewport.ts. */
+export const PHONE_MAX_WIDTH = 700;
+
+/** True when the page is at a phone width: the menu is one button, the notice strip is the short one, the chain strip is one line. */
+export function isPhone(page: Page): boolean {
+  return (page.viewportSize()?.width ?? Number.POSITIVE_INFINITY) <= PHONE_MAX_WIDTH;
+}
+
+/**
+ * The notice strip is on screen with the wording for this width (the long form with a storage phrase on a wide screen, the three-fact
+ * short form on a phone). `storage` is the phrase that follows on a wide screen ("Data stays in this browser.").
+ */
+export async function expectNotice(page: Page, storage?: string): Promise<void> {
+  const strip = page.getByTestId("notice-strip");
+  await expect(strip).toBeVisible();
+  await expect(strip).toContainText(isPhone(page) ? NOTICE_STRIP_PHONE : NOTICE_STRIP);
+  if (storage && !isPhone(page)) await expect(strip).toContainText(storage);
+}
+
+/** Chooses a colour theme in the header's theme menu, then closes the menu (Escape sends focus back to the theme button). */
+export async function setTheme(page: Page, theme: "System" | "Light" | "Dark"): Promise<void> {
+  await page.getByRole("button", { name: /^Colour theme/ }).click();
+  await page.getByRole("radio", { name: theme, exact: true }).check();
+  await page.keyboard.press("Escape");
+}
 
 /** The six gap assessment pages. They live in the step bar (and its Back / Next buttons), not in the top menu. */
 const STEP_PATHS: Record<string, string> = {

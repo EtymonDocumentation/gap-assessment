@@ -12,7 +12,9 @@ export const SERVER_PORT = 8788;
 export const CLIENT_PORT = 8789;
 /** How many invite codes are made up front. Each test worker takes its own block of INVITES_PER_WORKER. */
 export const INVITES_PER_WORKER = 24;
-export const SAMPLING_INVITES_PER_WORKER = 4;
+// Six tests per project sign up with the sampling module and a worker takes them as it becomes free, so a worker can end up with more
+// than its even share when other tests run long; four codes were enough only while the timing happened to be even.
+export const SAMPLING_INVITES_PER_WORKER = 8;
 const INVITES_SERVER =INVITES_PER_WORKER * 12;
 const INVITES_CLIENT = INVITES_PER_WORKER * 12;
 

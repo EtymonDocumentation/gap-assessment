@@ -9,11 +9,12 @@
 # stage, uses the second. Quote a value that holds a marker if it would otherwise start with a brace.
 templates:
   id: gap-assessment-document
-  version: 1.5.0
+  version: 1.6.0
 
+# The notice at the top and in the footer of every document is not a template field: it is one shared wording in the engine (product.ts),
+# the same in the app, the Markdown / HTML output and the Word output.
 document:
   title: "Gap assessment: {program} — {sourceSite} to {targetSite}"
-  banner: Proof of concept. Not validated. Not for GMP use.
   purpose: >-
     This document compares the {{validated|current}} manufacturing process for {program} at
     {sourceSite} (sending unit, SU) with the planned process at {targetSite} (receiving unit, RU). It
@@ -77,9 +78,9 @@ document:
     content (catalog, question bank, comparison rules, templates) used to generate
     this draft. All document identifiers in the demonstration project are fictional.
   approvalIntro: >-
-    Approval placeholders. This proof-of-concept tool does not capture electronic
+    Approval placeholders. This tool does not capture electronic
     signatures and responder names are free text; the document is not attributable
-    in a GMP sense.
+    in a GMP sense. Review and approve it in your own document control system.
   approvalRoles:
     - Author (MSAT)
     - Process owner, RU site

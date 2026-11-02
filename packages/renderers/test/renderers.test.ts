@@ -1,5 +1,5 @@
 import type { Project } from "@gap/process-model";
-import { adaptText, assess, buildDemoProject, buildDocument, CSV_COLUMNS, excludeStep, gapsToCsv, type DocModel, type Gap } from "@gap/engine";
+import { NOTICE_DOCUMENT, adaptText, assess, buildDemoProject, buildDocument, CSV_COLUMNS, excludeStep, gapsToCsv, type DocModel, type Gap } from "@gap/engine";
 import { describe, expect, it } from "vitest";
 import { content, demos } from "../../../content/index";
 import { DOCUMENT_CSS, escapeHtml, renderHtml, renderHtmlBody, renderMarkdown } from "../src/index";
@@ -7,7 +7,7 @@ import { DOCUMENT_CSS, escapeHtml, renderHtml, renderHtmlBody, renderMarkdown } 
 const project = buildDemoProject(content, demos["arx-217"]);
 const assessment = assess(content, project);
 const doc = buildDocument(content, project, assessment, "2026-10-02T00:00:00.000Z");
-const BANNER = "Proof of concept. Not validated. Not for GMP use.";
+const BANNER = NOTICE_DOCUMENT;
 const EMPTY_COVER: DocModel["cover"] = { program: "", product: "", sourceSite: "", targetSite: "", sourceStage: "", targetStage: "" };
 
 /** A small document with hostile content, built by hand so the test controls every string. */

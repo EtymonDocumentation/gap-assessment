@@ -7,8 +7,8 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
+import { NOTICE_DOCUMENT } from "./nav-helper";
 
-const BANNER = "Proof of concept. Not validated. Not for GMP use.";
 const SHOTS = tmpdir();
 
 test.beforeEach(async ({ page }) => {
@@ -252,7 +252,7 @@ test("the risk Output tab offers the Templates library; their look and placehold
   const look = await download(page, "risk-download-word");
   expect(look.file).toMatch(/^risk-assessment-.*\.docx$/);
   const lookText = wordText(look.bytes);
-  expect(lookText).toContain(BANNER);
+  expect(lookText).toContain(NOTICE_DOCUMENT);
   expect(lookText).toContain("Risk register");
   expect(new PizZip(look.bytes).file("docProps/custom.xml")!.asText()).toContain("their_look");
 
@@ -263,7 +263,7 @@ test("the risk Output tab offers the Templates library; their look and placehold
   await page.getByRole("radio", { name: /^Placeholder tags/ }).check();
   await expect(page.getByTestId("risk-download-word")).toBeEnabled();
   const tags = await download(page, "risk-download-word");
-  expect(wordText(tags.bytes)).toContain(BANNER);
+  expect(wordText(tags.bytes)).toContain(NOTICE_DOCUMENT);
   expect(new PizZip(tags.bytes).file("docProps/custom.xml")!.asText()).toContain("tags");
 });
 

@@ -1,3 +1,4 @@
+export * from "./product";
 export * from "./content-schema";
 export * from "./content";
 export * from "./values";

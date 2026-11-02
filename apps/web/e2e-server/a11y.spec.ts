@@ -2,14 +2,18 @@
 // Runs at the desktop (1366 px) and phone (390 px) widths, in the light and the dark colour scheme.
 import { fileURLToPath } from "node:url";
 import {
-  BANNER,
   answerFirst,
+  closeAccountMenu,
   expect,
   expectAccessible,
   expectNoHorizontalScroll,
+  expectNotice,
+  expectSaved,
   go,
+  isPhone,
   loadDemo,
   newAccount,
+  openAccountMenu,
   otherComputer,
   signInFresh,
   signUp,
@@ -35,7 +39,7 @@ async function checkBoth(page: Page, label: string): Promise<void> {
 test("sign-in page", async ({ page }) => {
   await page.goto("./");
   await expect(page.getByRole("heading", { level: 1, name: "Sign in" })).toBeVisible();
-  await expect(page.getByText(BANNER).first()).toBeVisible();
+  await expectNotice(page);
   await checkBoth(page, "sign-in page");
 
   // The error message is announced and still accessible.
@@ -44,7 +48,7 @@ test("sign-in page", async ({ page }) => {
   await checkBoth(page, "sign-in page with an error");
 });
 
-test("project page, account bar and the password and delete dialogs", async ({ page }) => {
+test("project page, account menu and the password and delete dialogs", async ({ page }) => {
   await signUp(page, newAccount("a11y-home"));
   await expect(page.getByText("You have no saved projects yet.")).toBeVisible();
   await checkBoth(page, "project page, empty list");
@@ -54,12 +58,19 @@ test("project page, account bar and the password and delete dialogs", async ({ p
   await expect(page.getByRole("list", { name: "My projects" })).toBeVisible();
   await checkBoth(page, "project page, with a project");
 
-  await page.getByRole("button", { name: "Change password" }).click();
+  // The account menu open (the initials circle's pop-over, or the phone Menu panel).
+  await openAccountMenu(page);
+  await checkBoth(page, "account menu open");
+  await closeAccountMenu(page);
+
+  await (await openAccountMenu(page)).getByRole("button", { name: "Change password" }).click();
   await expect(page.getByRole("dialog", { name: "Change password" })).toBeVisible();
   await checkBoth(page, "change password dialog");
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toBeHidden();
-  await expect(page.getByRole("button", { name: "Change password" })).toBeFocused();
+  // Focus goes back to what opened the account menu: the initials circle on a wide screen, the Menu button on a phone.
+  const opener = isPhone(page) ? page.getByRole("navigation", { name: "Main" }).getByRole("button", { name: "Menu" }) : page.getByRole("button", { name: /, account: / });
+  await expect(opener).toBeFocused();
 
   await page.getByRole("button", { name: /^Delete / }).first().click();
   await expect(page.getByRole("dialog")).toBeVisible();
@@ -134,7 +145,7 @@ test("the save-conflict dialog", async ({ page, browser, problems }, info) => {
   await signUp(page, account);
   await startProject(page, title);
   await answerFirst(page, "A11Y-1");
-  await expect(page.getByRole("status").filter({ hasText: "Saved to server" })).toBeVisible();
+  await expectSaved(page);
 
   const other = await otherComputer(browser, info, problems);
   await signInFresh(other, account);
@@ -143,7 +154,7 @@ test("the save-conflict dialog", async ({ page, browser, problems }, info) => {
   await go(other, "#/interview");
 
   await page.getByRole("button", { name: "TBD (to be decided)" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Saved to server" })).toBeVisible();
+  await expectSaved(page);
   await expect(page.locator("#q-prompt")).not.toHaveText("What is the product modality?");
   await other.getByRole("button", { name: "TBD (to be decided)" }).click();
   const dialog = other.getByRole("dialog", { name: "This project was changed on another computer" });

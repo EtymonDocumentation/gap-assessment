@@ -249,7 +249,7 @@ export function TrdSeedPage() {
               </button>
             </div>
             <p className="small muted">
-              Files are named with the project id and today's date. The banner "Proof of concept. Not validated. Not for GMP use." is in every output. Seed format {TRD_SEED_VERSION}, process model {PROCESS_MODEL_VERSION}.
+              Files are named with the project id and today's date. The drafting-aid notice is in every output. Seed format {TRD_SEED_VERSION}, process model {PROCESS_MODEL_VERSION}.
             </p>
             <div role="status" aria-live="polite">
               {done && <p data-testid="trd-done">{done}</p>}

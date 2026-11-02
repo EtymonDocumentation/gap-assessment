@@ -1,4 +1,5 @@
 import {
+  NOTICE_DOCUMENT,
   addTrdItem,
   addTrdStep,
   applyTrdUpdate,
@@ -461,7 +462,7 @@ describe("the TRD document", () => {
     expect(ids.slice(-6)).toEqual(["par-nor", "open-items", "overrides", "source-register", "traceability", "versions"]);
     expect(out.title).toBe("Technical requirements document: evidence record");
     expect(out.meta).toContainEqual(["Document reference", "DEMO-TRD-217-01"]);
-    expect(out.banner).toBe("Proof of concept. Not validated. Not for GMP use.");
+    expect(out.banner).toBe(NOTICE_DOCUMENT);
   });
 
   it("uses the parameter table columns of the spec", () => {

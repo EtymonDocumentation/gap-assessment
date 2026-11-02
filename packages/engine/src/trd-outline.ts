@@ -1,5 +1,6 @@
 import { COLLECTION_LABELS, SEED_COLLECTIONS, type SeedAnswer, type SeedField, type SeedItem, type SeedUnitOperation, type TrdSeed } from "@gap/process-model";
 import type { Block, DocModel, DocSection } from "./document";
+import { NOTICE_DOCUMENT } from "./product";
 
 /**
  * The draft TRD outline: a Word / HTML document built from a TRD seed ALONE (never from the live project), so the file a person
@@ -12,7 +13,8 @@ import type { Block, DocModel, DocSection } from "./document";
  */
 
 export const TRD_OUTLINE_TITLE = "Technical requirements document — draft outline";
-export const TRD_BANNER = "Proof of concept. Not validated. Not for GMP use.";
+/** The notice at the top and in the footer of the document: the one shared wording (product.ts), the same in every document. */
+export const TRD_BANNER = NOTICE_DOCUMENT;
 const NOT_ESTABLISHED = "Not established";
 
 export interface TrdOutlineOptions {

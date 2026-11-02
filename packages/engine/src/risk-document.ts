@@ -6,6 +6,7 @@ import type { Block, DocModel, DocSection } from "./document";
 import { documentSourceRefs } from "./document";
 import { evaluateItem, hasResidual, linkedConfidence, riskOpenItems, thresholdReading, type RiskOpenItem } from "./risk";
 import { buildTrdSeed } from "./trd-seed";
+import { NOTICE_DOCUMENT, PRODUCT_NAME } from "./product";
 
 /**
  * The risk assessment as a document (the same DocModel the other outputs use, so the shared renderers and the built-in Word style draw it).
@@ -19,7 +20,8 @@ import { buildTrdSeed } from "./trd-seed";
  */
 
 export const RISK_ASSESSMENT_TITLE = "Risk assessment — draft";
-export const RISK_BANNER = "Proof of concept. Not validated. Not for GMP use.";
+/** The notice at the top and in the footer of the document: the one shared wording (product.ts), the same in every document. */
+export const RISK_BANNER = NOTICE_DOCUMENT;
 const NOT_ESTABLISHED = "Not established";
 
 /** Sections the person can leave out of one export. Everything else is always there, so an export cannot hide the method or the open items. */
@@ -283,7 +285,7 @@ export function buildRiskAssessmentDocument(
       type: "table",
       columns: ["Item", "Value"],
       rows: [
-        ["Generator", `${opts.generatorName ?? "Gap Assessment Generator (proof of concept)"} ${opts.appVersion ?? "unversioned"}`],
+        ["Generator", `${opts.generatorName ?? PRODUCT_NAME} ${opts.appVersion ?? "unversioned"}`],
         ["Risk assessment format", RISK_FORMAT_VERSION],
         ["Process model", PROCESS_MODEL_VERSION],
         ["Risk scoring", RISK_SCORING_VERSION],

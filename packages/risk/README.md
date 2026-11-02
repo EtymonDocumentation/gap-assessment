@@ -1,6 +1,6 @@
 # @gap/risk
 
-Risk assessment scoring for the quality risk management module (ICH Q9(R1)). Proof of concept: not validated, not for GMP use.
+Risk assessment scoring for the quality risk management module (ICH Q9(R1)). A drafting aid: not validated; review and approve every assessment in your own document control. Fictional data only.
 
 Every function is pure and returns a result with `working` (the arithmetic, in words, for the document) and `problems` (plain-language
 reasons the result cannot be trusted). A missing or invalid input gives `scored: false` and a problem; nothing is defaulted or guessed.

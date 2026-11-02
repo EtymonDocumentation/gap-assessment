@@ -1,4 +1,5 @@
 import {
+  NOTICE_DOCUMENT,
   addPart,
   addWriteupFromLibrary,
   buildDemoProject,
@@ -307,7 +308,7 @@ describe("the export", () => {
 
   it("carries the banner and marks open blanks in HTML (with a spoken cue) and markdown", () => {
     const html = renderHtml(out);
-    expect(html).toContain("Proof of concept. Not validated. Not for GMP use.");
+    expect(html).toContain(NOTICE_DOCUMENT);
     expect(html).toContain('class="blank-open"');
     expect(html).toContain("Open blank: ");
     expect(html).toContain('<ol type="a" class="lettered">');

@@ -101,7 +101,7 @@ export function MbrOutput({ rec }: { rec: MbrRecord }) {
           <HelpTip label="the preview" text="Shows the draft on this page exactly as it will be written, so you can check it before downloading anything." />
         </div>
         <p className="small muted" data-testid="mbr-open-count">
-          {tbd === 0 ? "No open items." : `${tbd} open ${tbd === 1 ? "item" : "items"} will be listed in the document.`} The banner "Proof of concept. Not validated. Not for GMP use." is in every output.
+          {tbd === 0 ? "No open items." : `${tbd} open ${tbd === 1 ? "item" : "items"} will be listed in the document.`} The drafting-aid notice is in every output.
         </p>
         <div role="status" aria-live="polite">
           {done && <p data-testid="mbr-done">{done}</p>}

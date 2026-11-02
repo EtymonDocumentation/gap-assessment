@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { STORAGE_PHRASE_BROWSER, STORAGE_PHRASE_SERVER } from "@gap/engine";
+import { useEffect } from "react";
 import { ScopePage } from "./pages/ScopePage";
 import { ComparePage } from "./pages/ComparePage";
 import { DocumentPage } from "./pages/DocumentPage";
@@ -26,14 +27,15 @@ import { TrdSeedPage } from "./pages/TrdSeedPage";
 import { MappingPage } from "./pages/MappingPage";
 import { TemplatesPage } from "./pages/TemplatesPage";
 import { ValidationPage } from "./pages/ValidationPage";
-import { PocBanner, PocFooter } from "./components";
-import { MainNav, type NavGroup } from "./nav";
+import { NoticeFooter, NoticeStrip } from "./components";
+import { AppHeader } from "./header";
+import type { NavGroup } from "./nav";
 import { GAP_STEPS } from "./next-step";
 import { DocChainBar, DocChainStrip, ModuleLibraryLinks } from "./DocChain";
 import { chainStageOf } from "./chain";
 import { GapStepBar, GapStepFooter, gapStepIndex } from "./steps";
 import { useRoute } from "./router";
-import { AccountBar, ConflictDialog, ServerGate, useIsRemote } from "./server/ServerUi";
+import { ConflictDialog, ServerGate, useIsRemote } from "./server/ServerUi";
 import { SERVER_MODE } from "./server/mode";
 import { useSession } from "./server/session-store";
 import { useMbrAllowed, useRiskAllowed, useTrdAllowed } from "./risk-module";
@@ -79,31 +81,6 @@ function RiskNotIncluded() {
   );
 }
 
-type Theme = "system" | "light" | "dark";
-
-function useTheme(): [Theme, (t: Theme) => void] {
-  const [theme, setTheme] = useState<Theme>(() => {
-    try {
-      const t = localStorage.getItem("gap-theme");
-      return t === "light" || t === "dark" ? t : "system";
-    } catch {
-      return "system";
-    }
-  });
-  useEffect(() => {
-    const el = document.documentElement;
-    if (theme === "system") delete el.dataset.theme;
-    else el.dataset.theme = theme;
-    try {
-      if (theme === "system") localStorage.removeItem("gap-theme");
-      else localStorage.setItem("gap-theme", theme);
-    } catch {
-      /* storage unavailable: theme still applies for this session */
-    }
-  }, [theme]);
-  return [theme, setTheme];
-}
-
 /** In server mode the app opens behind the sign-in page; the static build (GitHub Pages) has no sign-in and no network calls. */
 export function App() {
   if (SERVER_MODE) {
@@ -127,7 +104,6 @@ function AppShell() {
   const riskAllowed = useRiskAllowed();
   const trdAllowed = useTrdAllowed();
   const mbrAllowed = useMbrAllowed();
-  const [theme, setTheme] = useTheme();
 
   useEffect(() => {
     void init();
@@ -221,35 +197,8 @@ function AppShell() {
       <a className="skip-link" href="#main">
         Skip to content
       </a>
-      <PocBanner sub={remote ? "Fictional data only. Your data is kept on the server." : "Fictional data only. Data stays in this browser."} />
-      <header className="app-header">
-        <div className="brand">
-          <span className="brand-mark" aria-hidden="true" />
-          {/* One line with an ellipsis, so a long project title never pushes the menu and the theme picker onto more rows; the full title is the tooltip. */}
-          <span title={project ? `Gap Assessment Generator · ${project.meta.title}` : undefined}>
-            Gap Assessment Generator
-            {project && <span className="brand-project"> · {project.meta.title}</span>}
-          </span>
-        </div>
-        <MainNav
-          routePath={route.path}
-          home={{ path: "/", label: "Home" }}
-          // "Gap assessment" always opens the Scope step, so the link goes to the same place every time; with no project it goes Home, where the
-          // project is started. What to do next is Home's job ("Next step"), not this link's.
-          gap={{ path: project ? "/scope" : "/", label: "Gap assessment", covers: GAP_STEPS.map((s) => s.path) }}
-          groups={groups}
-          extra={SERVER_MODE ? [{ path: "/myfiles", label: "My files" }] : []}
-        />
-        <label className="theme-select">
-          <span className="visually-hidden">Colour theme</span>
-          <select value={theme} onChange={(e) => setTheme(e.target.value as Theme)}>
-            <option value="system">Theme: system</option>
-            <option value="light">Theme: light</option>
-            <option value="dark">Theme: dark</option>
-          </select>
-        </label>
-      </header>
-      {SERVER_MODE && <AccountBar />}
+      <NoticeStrip storage={remote ? STORAGE_PHRASE_SERVER : STORAGE_PHRASE_BROWSER} />
+      <AppHeader routePath={route.path} groups={groups} />
       {error && (
         <div className="alert" role="alert">
           <span>{error}</span>
@@ -269,7 +218,7 @@ function AppShell() {
       <div className="visually-hidden" aria-live="polite">
         {status}
       </div>
-      <PocFooter />
+      <NoticeFooter />
       {SERVER_MODE && remote && <ConflictDialog />}
     </>
   );

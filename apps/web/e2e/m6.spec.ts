@@ -8,9 +8,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
 import { parseTrdSeed } from "@gap/process-model";
-import { goTo } from "./nav-helper";
+import { expectNotice, goTo, NOTICE_DOCUMENT } from "./nav-helper";
 
-const BANNER = "Proof of concept. Not validated. Not for GMP use.";
 const TITLE = "Technical requirements document — draft outline";
 const SHOTS = tmpdir();
 
@@ -68,7 +67,7 @@ const wordText = (bytes: Buffer) => new PizZip(bytes).file("word/document.xml")!
 
 test("the TRD seed page explains itself, counts the values and offers the three downloads", async ({ page }) => {
   await openTrdPage(page);
-  await expect(page.getByText(BANNER).first()).toBeVisible();
+  await expectNotice(page);
   await expect(page.getByRole("heading", { level: 2, name: "What this is" })).toBeVisible();
   await expect(page.getByText(/Customer templates are not applied to it yet/)).toBeVisible();
   await expect(page.getByTestId("trd-scope-summary")).toContainText("process steps in scope");
@@ -109,14 +108,14 @@ test("downloads: the JSON parses with the schema, the Word file has the outline 
   expect(headings.some((x) => x.includes("Aseptic filling"))).toBe(true);
   const text = wordText(word.bytes);
   expect(text).toContain(TITLE);
-  expect(text).toContain(BANNER);
+  expect(text).toContain(NOTICE_DOCUMENT);
   expect(text).toContain("Not an approved TRD");
   expect(text).toContain("TBD best guess");
 
   const html = await download(page, "Download draft outline (HTML)");
   expect(html.file).toMatch(/^trd-outline-prj-[a-z0-9]+-\d{4}-\d{2}-\d{2}\.html$/);
   expect(html.bytes.toString("utf8")).toContain(TITLE);
-  expect(html.bytes.toString("utf8")).toContain(BANNER);
+  expect(html.bytes.toString("utf8")).toContain(NOTICE_DOCUMENT);
 
   const history = page.getByRole("region", { name: "Export history table" });
   await expect(history.getByRole("cell", { name: "TRD seed (JSON)" })).toBeVisible();

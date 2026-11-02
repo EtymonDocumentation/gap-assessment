@@ -5,9 +5,8 @@ import { expect, test, type Page } from "@playwright/test";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { goTo } from "./nav-helper";
+import { expectNotice, goTo } from "./nav-helper";
 
-const BANNER = "Proof of concept. Not validated. Not for GMP use.";
 const SET_NAME = "Site North answers (fictional)";
 
 test.beforeEach(async ({ page }) => {
@@ -36,7 +35,7 @@ async function go(page: Page, hash: string) {
 
 async function openDemo(page: Page, which: "Load demo" | "Open syringe example") {
   await page.goto("./");
-  await expect(page.getByText(BANNER).first()).toBeVisible();
+  await expectNotice(page);
   const details = page.getByTestId("before-you-start");
   if (!(await details.evaluate((el) => (el as HTMLDetailsElement).open))) await details.locator("summary").click();
   await page.getByRole("button", { name: which }).click();

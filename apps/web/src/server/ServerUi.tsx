@@ -1,7 +1,9 @@
-import { sourceLabel } from "@gap/engine";
+import { PRODUCT_NAME, sourceLabel } from "@gap/engine";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { PageBanner } from "../art";
-import { Modal, PocBanner, PocFooter } from "../components";
+import { CascadeMark, ProductEyebrow } from "../brand";
+import { Modal, NoticeFooter, NoticeStrip } from "../components";
+import { useDisclosure } from "../disclosure";
 import { dateTime, shortHash, slug, today, download } from "../lib";
 import { useStore } from "../store";
 import { readBrowserLibrary, removeFromBrowserLibrary, useTemplates, type StoredTemplate } from "../templates-store";
@@ -33,17 +35,17 @@ export function ServerGate({ children }: { children: ReactNode }) {
       <a className="skip-link" href="#main">
         Skip to content
       </a>
-      <PocBanner sub="Fictional data only." />
+      <NoticeStrip />
       <header className="app-header">
         <div className="brand">
-          <span className="brand-mark" aria-hidden="true" />
-          <span>Gap Assessment Generator</span>
+          <CascadeMark />
+          <span className="brand-name">{PRODUCT_NAME}</span>
         </div>
       </header>
       <main id="main" tabIndex={-1}>
         {phase === "loading" ? <p className="muted">Loading…</p> : phase === "unreachable" ? <Unreachable /> : <SignInPage />}
       </main>
-      <PocFooter />
+      <NoticeFooter />
     </>
   );
 }
@@ -82,13 +84,14 @@ function SignInPage() {
   return (
     <div className="stack-lg">
       <PageBanner art="page-signin" size="hero">
+        <ProductEyebrow />
         <h1 ref={headingRef} tabIndex={-1}>
           Sign in
         </h1>
       </PageBanner>
       <div>
         <p className="muted">
-          This copy of the Gap Assessment Generator needs an account. Accounts are by invitation only.{" "}
+          This copy of {PRODUCT_NAME} needs an account. Accounts are by invitation only.{" "}
           {storage === "client"
             ? "Your projects and documents stay in this browser; the server holds only your account."
             : "Your projects, templates and files are kept on the server, so they follow you to any computer."}
@@ -224,37 +227,103 @@ function CreateAccountForm() {
   );
 }
 
-// ------------------------------------------------------------------ signed-in bar
+// ------------------------------------------------------------------ signed-in account
 
-/** Who is signed in, the plan, sign out and change password, and (with server storage) whether the project is saved. */
-export function AccountBar() {
+/** Two capital letters for the avatar: the first letters of the first two words that start with a letter ("Alex Example (fictional)" gives "AE"). */
+export function initialsOf(name: string): string {
+  const letters = name
+    .split(/\s+/)
+    .map((w) => w.match(/^\p{L}/u)?.[0])
+    .filter((c): c is string => !!c)
+    .slice(0, 2);
+  return letters.length > 0 ? letters.join("").toUpperCase() : "?";
+}
+
+/**
+ * Who is signed in, the plan, and the two account actions (Change password, Sign out). The avatar menu on a wide screen and the Menu
+ * panel on a phone both show this one block.
+ */
+function AccountDetails({ onChangePassword }: { onChangePassword: () => void }) {
   const user = useSession((s) => s.user);
   const storage = useSession((s) => s.storage);
-  const [changing, setChanging] = useState(false);
-  const changeRef = useRef<HTMLButtonElement>(null);
   if (!user) return null;
   return (
-    <section className="account-bar" aria-label="Account">
+    <div className="account-details">
       <p className="account-who">
         Signed in as <strong>{user.displayName}</strong>
         <span className="muted"> · {planLine(user)}</span>
       </p>
-      {storage === "server" ? <SaveStatus /> : <p className="small muted account-note">Your projects and documents stay in this browser; the server holds only your account.</p>}
+      {storage !== "server" && <p className="small muted account-note">Your projects and documents stay in this browser; the server holds only your account.</p>}
       <div className="row wrap account-actions">
-        <button type="button" ref={changeRef} className="btn small" onClick={() => setChanging(true)}>
+        <button type="button" className="btn small" onClick={onChangePassword}>
           Change password
         </button>
         <button type="button" className="btn small" onClick={() => void useSession.getState().signOut()}>
           Sign out
         </button>
       </div>
-      {changing && <ChangePasswordDialog onClose={() => setChanging(false)} restoreFocus={() => changeRef.current} />}
+    </div>
+  );
+}
+
+/**
+ * The initials circle at the right of the header bar (wide screens). It opens the account details. "Change password" asks the header
+ * to open its dialog, which lives outside this menu so it stays open after the menu closes.
+ */
+export function AccountMenu({ onChangePassword }: { onChangePassword: () => void }) {
+  const user = useSession((s) => s.user);
+  const d = useDisclosure();
+  if (!user) return null;
+  const initials = initialsOf(user.displayName);
+  return (
+    <div className="header-menu" ref={d.wrap} onKeyDown={d.onKeyDown} onBlur={d.onBlur}>
+      {/* WCAG 2.5.3 (label in name): the name starts with the initials the circle shows, so a person who says what they see can use it. */}
+      <button ref={d.button} type="button" className="avatar-btn account-btn" aria-expanded={d.open} aria-controls={d.id} aria-label={`${initials}, account: ${user.displayName}`} onClick={() => d.setOpen((o) => !o)}>
+        <span aria-hidden="true">{initials}</span>
+      </button>
+      <div id={d.id} className="header-popover header-popover-wide" hidden={!d.open}>
+        {d.open && (
+          <AccountDetails
+            onChangePassword={() => {
+              d.setOpen(false);
+              onChangePassword();
+            }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** The account block and the save status inside the phone Menu panel. */
+export function PhoneAccount({ onChangePassword }: { onChangePassword: () => void }) {
+  const storage = useSession((s) => s.storage);
+  return (
+    <section>
+      <p className="nav-panel-head">Account</p>
+      <AccountDetails onChangePassword={onChangePassword} />
+      {storage === "server" && <SaveStatus />}
     </section>
   );
 }
 
+/**
+ * On a phone the save status is in the Menu panel, so a failed save or a save conflict also gets its own line under the header: it
+ * must not wait behind a closed menu.
+ */
+export function SaveProblem() {
+  const phase = useSync((s) => s.phase);
+  const hasProject = useStore((s) => !!s.project);
+  if (!hasProject || (phase !== "error" && phase !== "conflict")) return null;
+  return (
+    <div className="save-problem">
+      <SaveStatus />
+    </div>
+  );
+}
+
 /** "Saved to server", "Saving…" or the problem, for the open project. */
-function SaveStatus() {
+export function SaveStatus() {
   const phase = useSync((s) => s.phase);
   const error = useSync((s) => s.error);
   const hasProject = useStore((s) => !!s.project);
@@ -264,8 +333,10 @@ function SaveStatus() {
     else if (phase === "saving" || phase === "dirty") text = "Saving…";
     else if (phase === "conflict") text = "Not saved: this project was changed on another computer";
   }
+  // With nothing to say the block is kept (a live region has to exist before its text changes, or the change is not announced) but takes no room.
+  const quiet = !text && !(hasProject && phase === "error" && error);
   return (
-    <div className="save-status small">
+    <div className={`save-status small${quiet ? " is-empty" : ""}`}>
       <span role="status" aria-live="polite">
         {text}
       </span>
@@ -283,7 +354,7 @@ function SaveStatus() {
   );
 }
 
-function ChangePasswordDialog({ onClose, restoreFocus }: { onClose: () => void; restoreFocus: () => HTMLElement | null }) {
+export function ChangePasswordDialog({ onClose, restoreFocus }: { onClose: () => void; restoreFocus: () => HTMLElement | null }) {
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");

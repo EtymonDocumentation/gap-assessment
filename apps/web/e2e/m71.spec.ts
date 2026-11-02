@@ -7,9 +7,8 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
-import { goTo } from "./nav-helper";
+import { goTo, NOTICE_DOCUMENT } from "./nav-helper";
 
-const BANNER = "Proof of concept. Not validated. Not for GMP use.";
 const SHOTS = tmpdir();
 const TYPES = ["ipc", "release", "ppq_enhanced", "mixing_homogeneity", "hold_time", "filter_study", "stability", "retain_reserve", "characterization", "supporting_study", "regulatory_commitment", "other"];
 
@@ -200,7 +199,7 @@ test("the plan and the CMO instructions download as Word and HTML; the CMO expor
   const planHeadings = wordHeadings(plan.bytes).join(" | ");
   expect(planHeadings).toContain("Agency requests and commitments");
   expect(planHeadings).toMatch(/Reporting instructions RI-SP-001/);
-  expect(wordText(plan.bytes)).toContain(BANNER);
+  expect(wordText(plan.bytes)).toContain(NOTICE_DOCUMENT);
 
   const cmo = await download(page, "cmo-download-word");
   expect(cmo.file).toMatch(/^cmo-instructions-.*\.docx$/);
@@ -209,12 +208,12 @@ test("the plan and the CMO instructions download as Word and HTML; the CMO expor
   expect(headings).toContain("Reporting instructions per sampling point");
   expect(headings).toContain("Additional instructions");
   const text = wordText(cmo.bytes);
-  expect(text).toContain(BANNER);
+  expect(text).toContain(NOTICE_DOCUMENT);
   expect(text).not.toMatch(/filing category/i);
 
   const html = await download(page, "cmo-download-html");
   expect(html.file).toMatch(/^cmo-instructions-.*\.html$/);
-  expect(html.bytes.toString("utf8")).toContain(BANNER);
+  expect(html.bytes.toString("utf8")).toContain(NOTICE_DOCUMENT);
 
   await expect(page.getByRole("region", { name: "CMO instructions export history table" }).getByRole("cell", { name: "CMO reporting instructions (Word)" })).toBeVisible();
   await expect(page.getByRole("region", { name: "CMO instructions export history table" }).getByRole("cell", { name: "CMO reporting instructions (HTML)" })).toBeVisible();

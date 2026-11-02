@@ -8,9 +8,8 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
-import { goTo } from "./nav-helper";
+import { goTo, NOTICE_DOCUMENT } from "./nav-helper";
 
-const BANNER = "Proof of concept. Not validated. Not for GMP use.";
 const SHOTS = tmpdir();
 
 test.beforeEach(async ({ page }) => {
@@ -194,7 +193,7 @@ test("Word and HTML carry the Manufacturing process overview with numbered steps
   await expect(page.getByTestId("trd-preview").locator(".blank-open").first()).toBeVisible();
 
   const html = (await download(page, () => page.getByTestId("trd-download-html").click())).bytes.toString("utf8");
-  expect(html).toContain(BANNER);
+  expect(html).toContain(NOTICE_DOCUMENT);
   expect(html).toContain("Manufacturing process overview");
   expect(html).toMatch(/<h3>\d+\.1 /);
   expect(html).toContain('<ol type="a" class="lettered">');
@@ -203,7 +202,7 @@ test("Word and HTML carry the Manufacturing process overview with numbered steps
   const word = await download(page, () => page.getByRole("button", { name: /Download Word|Word document/i }).first().click());
   const xml = new PizZip(word.bytes).file("word/document.xml")!.asText();
   const text = xml.replace(/<[^>]+>/g, " ");
-  expect(text).toContain(BANNER);
+  expect(text).toContain(NOTICE_DOCUMENT);
   expect(text).toContain("Manufacturing process overview");
   expect(xml).toContain('<w:highlight w:val="yellow"/>');
   expect(text).not.toMatch(/filing category/i);
