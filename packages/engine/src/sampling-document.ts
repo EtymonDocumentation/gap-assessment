@@ -57,12 +57,14 @@ import {
   type TokenContext,
   methodDocumentLines,
   planMethodReminders,
+  designReviewLine,
 } from "@gap/sampling";
 import type { ContentBundle } from "./content";
 import { effectiveContent } from "./custom";
 import type { Block, DocModel, DocSection } from "./document";
 import { documentSourceRefs } from "./document";
 import type { SamplingSuggestions } from "./sampling-seed";
+import { planDesignReview } from "./sampling-review";
 import { buildTrdSeed } from "./trd-seed";
 
 /**
@@ -163,6 +165,10 @@ export function buildSamplingPlanDocument(
   const stepText = (uo: string) => (uo === UNIT_OP_FINISHED_PRODUCT || uo === UNIT_OP_NONE || live.has(uo) ? labelOf(uo) : `${labelOf(uo)} (now left out of the assessment)`);
   const basis = samplingBasisText(project.meta.id);
   const open = samplingOpenItems(content, project, plan);
+  // Unanswered design review questions are still open work, but they are the team's answers, not entries missing from the plan: counted on
+  // their own line so they are visible without changing the plan's open-item number.
+  const review = planDesignReview(content, project, plan, library);
+  const reviewOpen = review.unanswered + review.lookAgain > 0;
   const totals = planTotals(plan);
   const checks = new Map(plan.points.map((p) => [p.id, checkPoint(plan, p)]));
   const refOf = documentSourceRefs(content, project);
@@ -673,6 +679,7 @@ export function buildSamplingPlanDocument(
           },
         ] as Block[])
       : []),
+    ...(reviewOpen ? ([{ type: "paragraph", text: `${designReviewLine(review)}. These are not counted in the open items above.` }] as Block[]) : []),
     ...subsAfter("open-items"),
   ]);
 
@@ -755,6 +762,7 @@ export function buildSamplingPlanDocument(
       ["Basis", basis],
       ["Generated", generatedAt.replace("T", " ").slice(0, 16) + " UTC"],
       ["Open items", String(open.length)],
+      ...(reviewOpen ? ([["Design review", designReviewLine(review).replace(/^Design review: /, "")]] as [string, string][]) : []),
     ],
     cover: {
       program,

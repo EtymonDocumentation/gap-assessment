@@ -147,11 +147,33 @@ describe("design review: group B, where the samples sit", () => {
     const p = planOf([on("SP-001", "ST-02", "before")], steps);
     expect(raised(p, "B5", ctx([])).map((f) => f.key)).toEqual(["B5:ST-02"]);
     expect(raised(p, "B5", ctx(["SP-001"]))).toEqual([]);
+    // The risk assessment spells a link "SPL-001.SP-001" (plan id and point id); that is the same sample. A link into another plan is not.
+    expect(raised(p, "B5", ctx(["SPL-001.SP-001"]))).toEqual([]);
+    expect(raised(p, "B5", ctx(["SPL-002.SP-001"])).map((f) => f.key)).toEqual(["B5:ST-02"]);
     expect(raised(p, "B5")).toEqual([]);
   });
 });
 
 describe("design review: group D, what the plan left out", () => {
+  it("D2 counts a bioburden sample right before the filter as the expected bioburden study, and asks about integrity tests as batch-record steps", () => {
+    const exp = [
+      { key: "bbr_prefiltration_bioburden", uo: "bbr_filtration", type: "ipc" as const, attribute: "Pre-filtration bioburden (bioburden-reduction filter inlet)" },
+      { key: "bbr_filter_integrity", uo: "bbr_filtration", type: "filter_study" as const, attribute: "Filter integrity test (before and after use)" },
+    ];
+    const steps = [step(1, "compounding"), step(2, "bbr_filtration")];
+    // The team's own sample, named differently from the catalog's, at the end of the step ahead of the filter.
+    const own = planOf([point("SP-001", { unitOp: "compounding", type: "hold_time", attribute: "Formulated bulk: pH, bioburden before the filter (100 mL, 10 CFU/100 mL)", flow: { stepId: "ST-01", at: "after" } })], steps);
+    const f = raised(own, "D2", { expected: exp });
+    expect(f.map((x) => x.key)).toEqual(["D2:bbr_filter_integrity"]);
+    expect(f[0]!.states).toContain("not a sample");
+    expect(f[0]!.question).toContain("batch record");
+    // No bioburden sample: the study is missing and says so as a sample.
+    expect(raised(planOf([], steps), "D2", { expected: exp }).map((x) => x.states.includes("no sample of the plan covers it"))).toEqual([true, false]);
+    // A bioburden sample with no place on the diagram: nothing is guessed.
+    const loose = planOf([point("SP-001", { attribute: "Bioburden (fictional)" })], steps);
+    expect(raised(loose, "D2", { expected: exp }).map((x) => x.key)).toEqual(["D2:bbr_filter_integrity"]);
+  });
+
   const expected = [
     { key: "blend_uniformity", uo: "compounding", type: "mixing_homogeneity" as const, attribute: "Blend uniformity" },
     { key: "sf_filter_integrity", uo: "sterile_filtration", type: "filter_study" as const, attribute: "Filter integrity test" },
@@ -194,7 +216,7 @@ describe("design review: answers, fingerprints, switching off", () => {
     const view = designReviewView(withAnswer(planOf([flushless("Reason two")]), fp));
     expect(a1(withAnswer(planOf([flushless("Reason two")]), fp)).state).toBe("look_again");
     expect(view.lookAgain).toBe(1);
-    expect(designReviewLine(view)).toMatch(/^Design review: \d+ questions?, \d+ unanswered, 1 to look at again$/);
+    expect(designReviewLine(view)).toMatch(/^\d+ design review questions? not answered yet, 1 to look at again$/);
     expect(view.questions).toBe(view.unanswered + view.lookAgain + view.items.filter((i) => i.state === "answered").length);
   });
 

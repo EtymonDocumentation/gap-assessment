@@ -393,21 +393,34 @@ function afterSterileFilter(plan: SamplingPlan): ReviewFinding[] {
  * filter step before the step, or on the step just ahead of it (not before that step). When a bioburden sample exists but its place is not
  * set, the check stays silent (B4 says so): it does not guess.
  */
+/** True when a bioburden sample's step or position is not set: placement checks cannot tell where it sits, so they stay silent (B4 says so). */
+const hasUnplacedBioburden = (plan: SamplingPlan, bio: SamplingPoint[]) => bio.some((p) => !stepOf(plan, p) || (p.flow?.at === undefined && !p.flow?.holdId));
+
+/**
+ * The bioburden samples "right before" the step at index i: one on the step itself at its start ("before"), or on the step just ahead of it at
+ * any position but its start (a sample at the end of, or a hold after, the previous step is what reaches this step). Shared by B2 and D2 so
+ * both say the same thing about the same plan.
+ */
+function bioburdenBefore(plan: SamplingPlan, i: number, bio: SamplingPoint[]): SamplingPoint[] {
+  const step = plan.steps[i];
+  const prev = plan.steps[i - 1];
+  if (!step) return [];
+  return bio.filter((p) => {
+    const at = p.flow;
+    if (!at) return false;
+    if (at.stepId === step.id) return at.at === "before";
+    return prev !== undefined && at.stepId === prev.id && at.at !== "before";
+  });
+}
+
 function filterBioburden(plan: SamplingPlan): ReviewFinding[] {
   const out: ReviewFinding[] = [];
   const bio = plan.points.filter(isBioburdenPoint);
-  const unplacedBio = bio.some((p) => !stepOf(plan, p) || (p.flow?.at === undefined && !p.flow?.holdId));
-  if (unplacedBio) return out;
+  if (hasUnplacedBioburden(plan, bio)) return out;
   plan.steps.forEach((step, i) => {
     if (step.unitOp !== BBR && step.unitOp !== SF) return;
     const prev = plan.steps[i - 1];
-    const covered = bio.some((p) => {
-      const at = p.flow;
-      if (!at) return false;
-      if (at.stepId === step.id) return at.at === "before";
-      return prev !== undefined && at.stepId === prev.id && at.at !== "before";
-    });
-    if (covered) return;
+    if (bioburdenBefore(plan, i, bio).length > 0) return;
     out.push(
       finding({
         key: `B2:${step.id}`,
@@ -463,7 +476,10 @@ function notPlaced(plan: SamplingPlan): ReviewFinding[] {
 function riskWithoutSample(plan: SamplingPlan, ctx: ReviewContext | undefined): ReviewFinding[] {
   const items = ctx?.riskItems ?? [];
   if (items.length === 0) return [];
-  const known = new Set(plan.points.map((p) => p.id));
+  // The risk assessment stores a link as "SPL-001.SP-009" (point ids are only unique inside a plan), a plan's own points are "SP-009". Both
+  // spellings count, and a link to another plan's point does not: otherwise a covered failure mode is reported as bare, and a review that
+  // raises false alarms stops being trusted. The link lives only on the risk side (a sample does not list risks), so that is the side read.
+  const known = new Set(plan.points.flatMap((p) => [p.id, `${plan.id}.${p.id}`]));
   const out: ReviewFinding[] = [];
   for (const step of plan.steps) {
     const here = items.filter((it) => (step.unitOp && it.unitOp === step.unitOp) || (!step.unitOp && !it.unitOp && it.label.trim().toLowerCase() === step.label.trim().toLowerCase()));
@@ -523,28 +539,49 @@ function stepNotInPlan(plan: SamplingPlan, ctx: ReviewContext | undefined): Revi
 }
 
 /**
- * D2: catalog entries marked `expected` for a unit operation of the plan (or of D1's process) with no plan point covering them. A point
- * covers an entry when it records that suggestion key as its origin, else when it sits on that unit operation with the same study type.
- * The marked subset is a starting list (the catalog's `expected: true`); the fingerprint holds the marks, so changing them says "look again".
+ * A catalog entry for a test done on the FILTER and written in the batch record (integrity before and after use). Nothing is drawn, so it is
+ * not a sample: "no sample covers it" would be a false alarm on every plan. D2 asks whether the batch record has the step instead (the
+ * simpler of the two honest options: the project holds no structured integrity-test step to match against).
+ */
+const isRecordedTest = (e: ReviewExpectedStudy) => e.type === "filter_study" && /integrity/i.test(e.attribute);
+
+/**
+ * D2: catalog entries marked `expected` for a unit operation of the plan (or of D1's process) that nothing in the plan covers. The marked
+ * subset is a starting list (the catalog's `expected: true`); the fingerprint holds the marks, so changing them says "look again".
+ *
+ * A plan point covers an entry when
+ *  1. it records that catalog key as its origin (a suggestion that was added), or
+ *  2. it sits on that unit operation with the same study type, or
+ *  3. the entry is a bioburden test (named so in its key or attribute) and a bioburden sample sits right before that step. This is the same
+ *     "right before" rule as B2. A team that wrote its own sample ("bioburden before the BBR filter", 100 mL, 10 CFU/100 mL) did cover the
+ *     study, and a name or step that differs from the catalog's must not read as missing.
+ * A bioburden sample whose place is not set makes the bioburden entries stay silent: the tool does not guess where it sits.
  */
 function expectedMissing(plan: SamplingPlan, ctx: ReviewContext | undefined): ReviewFinding[] {
   const expected = ctx?.expected ?? [];
   if (expected.length === 0) return [];
   const ops = new Set<string>([...plan.steps.flatMap((s) => (s.unitOp ? [s.unitOp] : [])), ...(reviewProcess(ctx)?.steps.flatMap((s) => (s.unitOp ? [s.unitOp] : [])) ?? [])]);
+  const bio = plan.points.filter(isBioburdenPoint);
+  const bioUnplaced = hasUnplacedBioburden(plan, bio);
   const out: ReviewFinding[] = [];
   for (const e of expected) {
     if (!ops.has(e.uo)) continue;
     const covered = plan.points.some((p) => (p.origin.kind === "seeded" && (p.origin.suggestionKey === e.key || p.origin.suggestionKey === `cat:${e.key}`)) || (p.unitOp === e.uo && p.type === e.type));
     if (covered) continue;
+    const stepIdx = plan.steps.findIndex((s) => s.unitOp === e.uo);
+    if (BIOBURDEN.test(`${e.key} ${e.attribute}`) && (bioUnplaced || (stepIdx >= 0 && bioburdenBefore(plan, stepIdx, bio).length > 0))) continue;
     const stepLabel = plan.steps.find((s) => s.unitOp === e.uo)?.label ?? reviewProcess(ctx)?.steps.find((s) => s.unitOp === e.uo)?.label ?? e.uo;
+    const recorded = isRecordedTest(e);
     out.push(
       finding({
         key: `D2:${e.key}`,
         checkId: "D2",
         subjects: [e.uo],
-        states: `The list of expected studies has "${e.attribute}" for ${stepLabel}, and no sample of the plan covers it.`,
-        why: "A typical fill/finish PPQ covers this, and a plan written without a procedure can omit it without anyone noticing.",
-        question: `Should "${e.attribute}" be added to the plan, or is there a reason it is not needed?`,
+        states: recorded
+          ? `The list of expected studies has "${e.attribute}" for ${stepLabel}. It is a test written in the batch record, not a sample.`
+          : `The list of expected studies has "${e.attribute}" for ${stepLabel}, and no sample of the plan covers it.`,
+        why: recorded ? "A filter is only shown to have worked if its integrity was tested around the use, and that test is a step of the batch record." : "A typical fill/finish PPQ covers this, and a plan written without a procedure can omit it without anyone noticing.",
+        question: recorded ? `Is "${e.attribute}" a step of the batch record for ${stepLabel}?` : `Should "${e.attribute}" be added to the plan, or is there a reason it is not needed?`,
         facts: [e.key, e.uo, e.type, e.attribute, true],
       }),
     );
@@ -615,8 +652,14 @@ export function designReviewView(plan: SamplingPlan, ctx?: ReviewContext): Desig
   return { items, groups, off, questions: items.length, unanswered: items.filter((i) => i.state === "unanswered").length, lookAgain: items.filter((i) => i.state === "look_again").length };
 }
 
-/** "Design review: 6 questions, 4 unanswered" (with ", 1 to look at again" when facts changed). One phrase for the Overview tab. */
+/**
+ * One phrase for the Overview tab and the plan export, worded like an open item: "15 design review questions not answered yet" (with
+ * ", 1 to look at again" when facts changed). It is kept apart from the plan's own open items on purpose: those are entries missing from the
+ * plan, these are the team's answers to questions, and unanswered ones are still open work that must not be invisible.
+ */
 export function designReviewLine(v: DesignReviewView): string {
-  const q = `${v.questions} ${v.questions === 1 ? "question" : "questions"}`;
-  return `Design review: ${q}, ${v.unanswered} unanswered${v.lookAgain ? `, ${v.lookAgain} to look at again` : ""}`;
+  if (v.questions === 0) return "Design review: no questions";
+  const again = v.lookAgain ? `${v.lookAgain} to look at again` : "";
+  if (v.unanswered === 0) return again ? `Design review: ${again}` : `Design review: all ${v.questions} ${v.questions === 1 ? "question" : "questions"} answered`;
+  return `${v.unanswered} design review ${v.unanswered === 1 ? "question" : "questions"} not answered yet${again ? `, ${again}` : ""}`;
 }

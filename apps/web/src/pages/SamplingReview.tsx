@@ -226,22 +226,26 @@ function StudyEquipmentCard({ plan, run }: { plan: SamplingPlan; run: Run }) {
       <h4>A5: Equipment used only for the study</h4>
       <fieldset className="fs stack">
         <legend>Is any equipment used only to take these samples, and not in the commercial process?</legend>
+        {/* Only Yes and No are answers. Nothing starts ticked: a ticked "Not stated" would be a preselected answer (no defaults). The answer
+            can still be taken back with the button, which returns the question to unanswered. */}
         <div className="check-grid">
-          {([["", "Not stated"], ["yes", "Yes"], ["no", "No"]] as const).map(([v, label]) => (
+          {([["yes", "Yes"], ["no", "No"]] as const).map(([v, label]) => (
             <label key={v} className="check">
               <input
                 type="radio"
                 name={name}
                 checked={tri(eq?.used) === v}
-                onChange={() => {
-                  const used = unTri(v);
-                  save(used === undefined && items.length === 0 ? undefined : { ...(used === undefined ? {} : { used }), items }, "Study equipment saved");
-                }}
-                data-testid={`review-eq-used-${v || "unset"}`}
+                onChange={() => save({ used: unTri(v)!, items }, "Study equipment saved")}
+                data-testid={`review-eq-used-${v}`}
               />
               <span>{label}</span>
             </label>
           ))}
+          {eq?.used !== undefined && (
+            <button type="button" className="link-btn" onClick={() => save(items.length === 0 ? undefined : { items }, "Study equipment answer cleared")} data-testid="review-eq-used-unset">
+              Clear answer
+            </button>
+          )}
         </div>
       </fieldset>
       {eq?.used === true && (

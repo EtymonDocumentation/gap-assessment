@@ -3,6 +3,8 @@
 import {
   answerReview,
   buildDemoProject,
+  buildSamplingPlanDocument,
+  samplingOpenItems,
   clearReviewAnswer,
   nextStudyEquipmentId,
   planDesignReview,
@@ -75,6 +77,34 @@ describe("the demos raise questions and store no answers", () => {
   it("syr-305 raises a question in group D from the TRD or the expected list", () => {
     const view = planDesignReview(content, SYR, planOf(SYR), samplingSuggestions);
     expect(view.items.some((i) => i.finding.group === "D")).toBe(true);
+  });
+});
+
+describe("SYR-305: the review raises no false alarm for what the plan already covers", () => {
+  const view = planDesignReview(content, SYR, planOf(SYR), samplingSuggestions);
+  it("B5 lists only the failure modes with no linked sample (RA-005, -007, -008, -009)", () => {
+    // The risk assessment links samples as "SPL-001.SP-018"; reading only the bare "SP-018" form once listed all ten failure modes.
+    const ids = view.items.filter((i) => i.finding.checkId === "B5").flatMap((i) => [...i.finding.states.matchAll(/RAS-001\/(RA-\d+)/g)].map((m) => m[1]));
+    expect(ids).toEqual(["RA-005", "RA-007", "RA-008", "RA-009"]);
+  });
+
+  it("D2 no longer lists the bioburden studies the plan has (SP-021, SP-009) and words integrity tests as batch-record steps", () => {
+    const d2 = view.items.filter((i) => i.finding.checkId === "D2").map((i) => i.finding);
+    expect(d2.map((f) => f.key)).toEqual(["D2:bbr_filter_integrity", "D2:sf_filter_integrity", "D2:fill_weight"]);
+    expect(d2.filter((f) => f.question.includes("batch record")).map((f) => f.key)).toEqual(["D2:bbr_filter_integrity", "D2:sf_filter_integrity"]);
+    expect(d2[2]!.states).toContain("no sample of the plan covers it");
+  });
+});
+
+describe("unanswered review questions are visible where the plan lists its open items", () => {
+  it("the plan export has its own line and meta row, and the plan's open-item number is unchanged", () => {
+    const plan = planOf(SYR);
+    const n = planDesignReview(content, SYR, plan, samplingSuggestions).unanswered;
+    const doc = buildSamplingPlanDocument(content, SYR, plan, samplingSuggestions, { generatedAt: T0 });
+    const text = JSON.stringify(doc.sections.find((s) => s.id === "open-items"));
+    expect(text).toContain(`${n} design review questions not answered yet. These are not counted in the open items above.`);
+    expect(doc.meta).toContainEqual(["Design review", `${n} design review questions not answered yet`]);
+    expect(doc.meta).toContainEqual(["Open items", String(samplingOpenItems(content, SYR, plan).length)]);
   });
 });
 

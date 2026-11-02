@@ -36,7 +36,7 @@ test("the Overview line counts the questions and opens the tab; the chain strip 
   test.setTimeout(90000);
   await openReview(page);
   const line = page.getByTestId("review-line");
-  await expect(line).toContainText(/Design review: \d+ questions?, \d+ unanswered/);
+  await expect(line).toContainText(/\d+ design review questions? not answered yet/);
   await expect(page.getByTestId("doc-chain")).toContainText(/review questions? open/);
   await page.screenshot({ path: join(SHOTS, `m11-j1-overview-line-${test.info().project.name}.png`) });
   await page.getByTestId("review-line-open").click();
@@ -123,6 +123,24 @@ test("changing the plan after an answer marks the card 'look again'", async ({ p
   // Answering again clears the notice.
   await card.getByTestId(`review-confirmed-${key}`).click();
   await expect(card).toHaveAttribute("data-state", "answered");
+});
+
+test("nothing in the Design review starts selected, and an answer can be taken back", async ({ page }) => {
+  test.setTimeout(120000);
+  await openReview(page);
+  await page.getByTestId("tab-review").click();
+  const review = page.getByTestId("design-review");
+  await expect(review).toBeVisible();
+  // No preselected answer anywhere: no ticked radio or checkbox, no pressed answer button, and no "Not stated" radio at all.
+  await expect(review.locator("input:checked")).toHaveCount(0);
+  await expect(review.locator("button[aria-pressed=true]")).toHaveCount(0);
+  await expect(review.locator("input[type=radio]")).toHaveCount(2);
+  await expect(review.getByTestId("review-eq-used-unset")).toHaveCount(0);
+  await page.screenshot({ path: join(SHOTS, `fix2-design-review-${test.info().project.name}.png`), fullPage: true });
+  await review.getByTestId("review-eq-used-no").check();
+  await expect(review.getByTestId("review-eq-used-no")).toBeChecked();
+  await review.getByTestId("review-eq-used-unset").click();
+  await expect(review.locator("input:checked")).toHaveCount(0);
 });
 
 test("the A5 card records equipment used only for the study", async ({ page }) => {
