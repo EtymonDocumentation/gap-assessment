@@ -10,10 +10,13 @@
 # `uo` is a unit-operation key of the process-model catalog, or "finished_product" (the filled and finished units) or "none"
 # (work that rides on the PPQ batches but belongs to no single step). Suggestions of an excluded unit operation, or of a topic
 # that was left out of the scope, are not offered.
+# `expected: true` marks an entry a typical fill/finish PPQ is expected to cover. The sampling Design review (check D2) asks about a
+# marked entry the plan has no sample for. The marks are a starting list the team can change (a later library page); they never add a
+# point and never say a plan is adequate.
 # Editable without code changes. Bump catalog.version on any change.
 catalog:
   id: ppq-suggestions
-  version: 1.1.0
+  version: 1.2.0
 
 candidates:
   - { uo: ds_receipt_thaw, key: post_thaw_homogeneity, attribute: Post-thaw homogeneity (concentration at defined positions), type: mixing_homogeneity, materialType: Thawed drug substance, why: "Frozen drug substance can form a concentration gradient during freeze and thaw; PPQ commonly shows it is homogeneous before use." }
@@ -21,19 +24,19 @@ candidates:
 
   - { uo: buffer_prep, key: buffer_bioburden, attribute: Buffer bioburden before filtration, type: ipc, materialType: Buffer, why: "Microbial load of the buffer before its bioburden-reduction or sterilizing filter." }
 
-  - { uo: compounding, key: blend_uniformity, attribute: "Blend uniformity (concentration at top, middle and bottom)", type: mixing_homogeneity, materialType: Bulk solution, why: "Shows the mixing gives a uniform bulk at the receiving unit's batch size and mixing set-up." }
+  - { uo: compounding, key: blend_uniformity, expected: true, attribute: "Blend uniformity (concentration at top, middle and bottom)", type: mixing_homogeneity, materialType: Bulk solution, why: "Shows the mixing gives a uniform bulk at the receiving unit's batch size and mixing set-up." }
   - { uo: compounding, key: bulk_concentration, attribute: Concentration of the bulk solution, type: ipc, materialType: Bulk solution, why: "In-process check of the bulk against its target before filtration." }
   - { uo: compounding, key: compounding_ph_osmolality, attribute: pH and osmolality of the bulk, type: ipc, materialType: Bulk solution, why: "Routine in-process properties of the formulated bulk." }
   - { uo: compounding, key: compounding_bioburden, attribute: Bioburden of the bulk solution, type: ipc, materialType: Bulk solution, why: "Microbial load of the bulk before filtration." }
 
-  - { uo: bbr_filtration, key: bbr_prefiltration_bioburden, attribute: Pre-filtration bioburden (bioburden-reduction filter inlet), type: ipc, materialType: Bulk solution, why: "Microbial load entering the bioburden-reduction filter." }
-  - { uo: bbr_filtration, key: bbr_filter_integrity, attribute: Filter integrity test (before and after use), type: filter_study, materialType: Filter assembly, why: "Confirms the bioburden-reduction filter was intact." }
+  - { uo: bbr_filtration, key: bbr_prefiltration_bioburden, expected: true, attribute: Pre-filtration bioburden (bioburden-reduction filter inlet), type: ipc, materialType: Bulk solution, why: "Microbial load entering the bioburden-reduction filter." }
+  - { uo: bbr_filtration, key: bbr_filter_integrity, expected: true, attribute: Filter integrity test (before and after use), type: filter_study, materialType: Filter assembly, why: "Confirms the bioburden-reduction filter was intact." }
 
-  - { uo: sterile_filtration, key: sf_prefiltration_bioburden, attribute: Bioburden before the sterilizing filter, type: ipc, materialType: Bulk solution, why: "Microbial load entering the sterilizing filter; it must stay within what the filter was challenged with." }
-  - { uo: sterile_filtration, key: sf_filter_integrity, attribute: Filter integrity test (pre-use and post-use), type: filter_study, materialType: Filter assembly, why: "Confirms the sterilizing filter was intact before and after the filtration." }
+  - { uo: sterile_filtration, key: sf_prefiltration_bioburden, expected: true, attribute: Bioburden before the sterilizing filter, type: ipc, materialType: Bulk solution, why: "Microbial load entering the sterilizing filter; it must stay within what the filter was challenged with." }
+  - { uo: sterile_filtration, key: sf_filter_integrity, expected: true, attribute: Filter integrity test (pre-use and post-use), type: filter_study, materialType: Filter assembly, why: "Confirms the sterilizing filter was intact before and after the filtration." }
   - { uo: sterile_filtration, key: sf_filtrate_samples, attribute: Filtrate concentration and pH after filtration, type: ppq_enhanced, materialType: Filtrate, why: "Shows the filter does not change the product (for example by adsorption)." }
 
-  - { uo: aseptic_filling, key: fill_weight, attribute: Fill weight or fill volume, type: ipc, materialType: Filled containers, why: "Routine check that each needle fills to target." }
+  - { uo: aseptic_filling, key: fill_weight, expected: true, attribute: Fill weight or fill volume, type: ipc, materialType: Filled containers, why: "Routine check that each needle fills to target." }
   - { uo: aseptic_filling, key: fill_particulates, attribute: Subvisible and visible particulates, type: ppq_enhanced, materialType: Filled containers, why: "Pumps and filling lines can add particles; PPQ commonly samples across the run." }
   - { uo: aseptic_filling, key: fill_concentration_start_end, attribute: Product concentration across the filling run, type: ppq_enhanced, materialType: Filled containers, why: "Shows the product stays consistent from the start to the end of filling." }
   - { uo: aseptic_filling, key: bioburden_pre_fill, attribute: Bioburden of the bulk before filling, type: ipc, materialType: Bulk solution in the filling tank, why: "Microbial load of the product held before filling." }

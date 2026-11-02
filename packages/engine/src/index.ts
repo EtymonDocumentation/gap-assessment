@@ -30,6 +30,7 @@ export * from "./trd-seed";
 export * from "./trd-outline";
 export * from "./sampling-seed";
 export * from "./sampling";
+export * from "./sampling-review";
 export * from "./sampling-figure-seed";
 export * from "./sampling-document";
 export * from "./sampling-cmo";

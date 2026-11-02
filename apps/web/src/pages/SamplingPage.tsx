@@ -36,11 +36,12 @@ import { NumField } from "./SamplingPointDialog";
 import { AgencyCard, Interview, PartiesCard, PointCard, type ViewBy } from "./SamplingInterview";
 import { SubsectionsEditor } from "./SamplingSubsections";
 import { SamplingContents } from "./SamplingContents";
+import { DesignReviewLine, SamplingReview } from "./SamplingReview";
 import { HelpTip } from "../HelpTip";
 import { WhatThisIs } from "../WhatThisIs";
 
-type Tab = "overview" | "interview" | "subsections";
-const TAB_LABEL: Record<Tab, string> = { overview: "Overview", interview: "Interview", subsections: "Plan subsections" };
+type Tab = "overview" | "interview" | "review" | "subsections";
+const TAB_LABEL: Record<Tab, string> = { overview: "Overview", interview: "Interview", review: "Design review", subsections: "Plan subsections" };
 
 /** The sentence the page and the document both carry: what the tool does and what it leaves to people. */
 export const SAMPLING_SCOPE_TEXT =
@@ -266,7 +267,7 @@ function PlanEditor({ plan }: { plan: SamplingPlan }) {
             {TAB_LABEL[t]}
           </button>
         ))}
-        <HelpTip label="Plan sections" text="Overview shows the open items, the flow diagram, the sampling points and the document. Interview asks about each step or study type. Plan subsections holds reusable text for the document. Switching tabs never loses anything you entered." />
+        <HelpTip label="Plan sections" text="Overview shows the open items, the flow diagram, the sampling points and the document. Interview asks about each step or study type. Design review asks questions about how the samples are taken and where they sit. Plan subsections holds reusable text for the document. Switching tabs never loses anything you entered." />
       </div>
 
       {tab === "interview" && (
@@ -275,6 +276,18 @@ function PlanEditor({ plan }: { plan: SamplingPlan }) {
           <Interview plan={plan} suggestions={suggestions} expanded={interviewExpanded} onToggle={(id) => select(interviewExpanded === id ? null : id)} openAdd={openAdd} view={view} onView={setView} run={run} labelOf={labelOf} />
           <AgencyCard plan={plan} run={run} />
         </>
+      )}
+
+      {tab === "review" && (
+        <SamplingReview
+          plan={plan}
+          run={run}
+          onOpenPoint={(id) => {
+            // The full editor of a sample is in the interview, as with the table's Open.
+            select(id);
+            setTab("interview");
+          }}
+        />
       )}
 
       {tab === "subsections" && <SubsectionsEditor plan={plan} run={run} />}
@@ -294,6 +307,7 @@ function PlanEditor({ plan }: { plan: SamplingPlan }) {
             ))}
           </ul>
         )}
+        <DesignReviewLine plan={plan} onOpen={() => setTab("review")} />
       </section>
 
       <SuggestionsCard

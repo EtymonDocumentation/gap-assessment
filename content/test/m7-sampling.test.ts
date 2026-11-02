@@ -43,7 +43,7 @@ const base = (): { project: Project; planId: string } => createPlan(buildDemoPro
 
 describe("the suggestions catalog is options only", () => {
   it("loads and every unit operation exists", () => {
-    expect(samplingSuggestions.catalog).toEqual({ id: "ppq-suggestions", version: "1.1.0" });
+    expect(samplingSuggestions.catalog).toEqual({ id: "ppq-suggestions", version: "1.2.0" });
     expect(samplingSuggestions.candidates.length).toBeGreaterThan(30);
   });
 

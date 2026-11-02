@@ -5,10 +5,10 @@ const T0 = "2026-10-01T09:00:00.000Z";
 const ACTOR: Actor = { name: "Alex Example (fictional)", role: "MSAT engineer", at: T0 };
 const refs = { catalog: "1.0.0", questions: "1.0.0", rules: "1.0.0", templates: "1.0.0" };
 
-describe("sampling method: schema 1.27.0, plan format 1.6.0", () => {
+describe("sampling method (current versions: schema 1.28.0, plan format 1.7.0)", () => {
   it("has the new versions", () => {
-    expect(SCHEMA_VERSION).toBe("1.27.0");
-    expect(SAMPLING_PLAN_FORMAT_VERSION).toBe("1.6.0");
+    expect(SCHEMA_VERSION).toBe("1.28.0");
+    expect(SAMPLING_PLAN_FORMAT_VERSION).toBe("1.7.0");
   });
 
   it("accepts an empty method and every answer, and rejects a non-positive flush volume or an unknown access", () => {
@@ -23,7 +23,7 @@ describe("sampling method: schema 1.27.0, plan format 1.6.0", () => {
     old.schemaVersion = "1.26.0";
     const before = JSON.stringify(old.sampling);
     const p = parseProject(old);
-    expect(p.schemaVersion).toBe("1.27.0");
+    expect(p.schemaVersion).toBe("1.28.0");
     expect(JSON.stringify(p.sampling)).toBe(before);
   });
 });

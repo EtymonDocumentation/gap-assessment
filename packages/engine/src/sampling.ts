@@ -1,6 +1,8 @@
 import {
   samplingPlanSchema,
   PPQ_READINESS_ITEMS,
+  REVIEW_RESPONSES,
+  REVIEW_RESPONSE_LABEL,
   type Actor,
   type AgencyRequest,
   type ChangeEvent,
@@ -15,15 +17,18 @@ import {
   type PlanTimeZero,
   type PointFlow,
   type ReadinessEntry,
+  type ReviewAnswer,
+  type ReviewResponse,
   type Project,
   type SamplingBatch,
   type SamplingPlan,
   type SamplingPoint,
   type SamplingType,
+  type StudyEquipment,
   type SubsectionBlock,
   type SubsectionOrigin,
 } from "@gap/process-model";
-import { applyLoadout, cleanText, isPlacement, snapshotResult, unitOpForStep, type LoadoutMode } from "@gap/sampling";
+import { applyLoadout, cleanText, isPlacement, reviewCheck, snapshotResult, unitOpForStep, type LoadoutMode } from "@gap/sampling";
 import type { ContentBundle } from "./content";
 import { stepGroups } from "./scope";
 import type { PointSuggestion } from "./sampling-seed";
@@ -240,6 +245,116 @@ export function setReadiness(project: Project, planId: string, key: string, patc
   plan.updatedAt = actor.at;
   log(next, actor, { action: "sampling_plan_update", path: `sampling.${planId}.readiness.${key}`, detail: `Readiness item "${label}" of ${planId} edited`, before: { readiness: cur?.status ?? "" }, after: { readiness: entry.status ?? "" } });
   return next;
+}
+
+// ------------------------------------------------------------------ design review (plan format 1.7.0)
+
+/** Drops the empty parts of the design review so a plan nobody reviewed looks like an old plan (and its file does not change). */
+function tidyReview(plan: SamplingPlan): void {
+  const r = plan.designReview;
+  if (!r) return;
+  if (r.answers && !Object.keys(r.answers).length) delete r.answers;
+  if (r.off && !Object.keys(r.off).length) delete r.off;
+  if (r.studyEquipment && r.studyEquipment.used === undefined && !r.studyEquipment.items.length) delete r.studyEquipment;
+  if (!Object.keys(r).length) delete plan.designReview;
+}
+
+/**
+ * The team's answer to one design-review question. The answer keeps the reason (optional), who answered, when, and the fingerprint of the
+ * facts the question was based on, so a later change of those facts reads "look again" instead of silently keeping an old answer.
+ */
+export function answerReview(project: Project, planId: string, key: string, input: { response: ReviewResponse; reason?: string; factsFingerprint: string }, actor: Actor): Project {
+  if (!key.trim()) throw new SamplingError("A review answer needs the question it answers");
+  if (!REVIEW_RESPONSES.includes(input.response)) throw new SamplingError(`Unknown review answer ${input.response}`);
+  if (!input.factsFingerprint) throw new SamplingError("A review answer needs the facts it was based on");
+  const next = structuredClone(project);
+  const plan = planOf(next, planId);
+  const reason = input.reason?.trim();
+  const answer: ReviewAnswer = { response: input.response, ...(reason ? { reason } : {}), by: actor.name, at: actor.at, factsFingerprint: input.factsFingerprint };
+  const cur = plan.designReview?.answers?.[key];
+  if (cur && cur.response === answer.response && (cur.reason ?? "") === (reason ?? "") && cur.factsFingerprint === answer.factsFingerprint) return project;
+  plan.designReview = { ...plan.designReview, answers: { ...plan.designReview?.answers, [key]: answer } };
+  plan.updatedAt = actor.at;
+  log(next, actor, { action: "sampling_plan_update", path: `sampling.${planId}.designReview.${key}`, detail: `Design review question ${key} of ${planId} answered: ${REVIEW_RESPONSE_LABEL[answer.response]}`, ...(cur ? { before: { answer: cur } } : {}), after: { answer } });
+  return next;
+}
+
+/** Takes an answer back, so the question reads unanswered again. The old answer stays in the change log. */
+export function clearReviewAnswer(project: Project, planId: string, key: string, actor: Actor): Project {
+  const next = structuredClone(project);
+  const plan = planOf(next, planId);
+  const cur = plan.designReview?.answers?.[key];
+  if (!cur) return project;
+  delete plan.designReview!.answers![key];
+  tidyReview(plan);
+  plan.updatedAt = actor.at;
+  log(next, actor, { action: "sampling_plan_update", path: `sampling.${planId}.designReview.${key}`, detail: `Design review answer ${key} of ${planId} cleared`, before: { answer: cur }, after: {} });
+  return next;
+}
+
+/** Switches one check off (or on again) for this plan. The optional reason is kept; "possibilities, not rules": the check can come back any time. */
+export function setReviewCheckOff(project: Project, planId: string, checkId: string, off: boolean, reason: string | undefined, actor: Actor): Project {
+  if (!reviewCheck(checkId)) throw new SamplingError(`Unknown design review check ${checkId}`);
+  const next = structuredClone(project);
+  const plan = planOf(next, planId);
+  const cur = plan.designReview?.off?.[checkId];
+  const why = reason?.trim() ?? "";
+  if (off ? cur === why : cur === undefined) return project;
+  const nextOff = { ...plan.designReview?.off };
+  if (off) nextOff[checkId] = why;
+  else delete nextOff[checkId];
+  plan.designReview = { ...plan.designReview, off: nextOff };
+  tidyReview(plan);
+  plan.updatedAt = actor.at;
+  log(next, actor, {
+    action: "sampling_plan_update",
+    path: `sampling.${planId}.designReview.off.${checkId}`,
+    detail: `Design review check ${checkId} of ${planId} switched ${off ? "off" : "on"}${off && why ? `: ${why}` : ""}`,
+    before: { off: cur !== undefined ? { reason: cur } : false },
+    after: { off: off ? { reason: why } : false },
+  });
+  return next;
+}
+
+/**
+ * "Is any equipment used only to take PPQ samples?" and the list of that equipment (check A5). Replaces the whole value; text is trimmed and
+ * an item may name a step and samples only of this plan. Unanswered stays unanswered (`used` absent).
+ */
+export function setStudyEquipment(project: Project, planId: string, value: StudyEquipment | undefined, actor: Actor): Project {
+  const next = structuredClone(project);
+  const plan = planOf(next, planId);
+  const cur = plan.designReview?.studyEquipment;
+  let cleaned: StudyEquipment | undefined;
+  if (value) {
+    const ids = new Set<string>();
+    const stepIds = new Set(plan.steps.map((s) => s.id));
+    const pointIds = new Set(plan.points.map((p) => p.id));
+    const items = value.items.map((it) => {
+      if (ids.has(it.id)) throw new SamplingError(`Equipment item ${it.id} appears twice`);
+      ids.add(it.id);
+      if (it.stepId && !stepIds.has(it.stepId)) throw new SamplingError(`${it.id} names a step (${it.stepId}) that is not in the plan`);
+      for (const id of it.pointIds ?? []) if (!pointIds.has(id)) throw new SamplingError(`${it.id} names a sample (${id}) that is not in the plan`);
+      const what = it.what.trim();
+      return clean({ id: it.id, what, stepId: it.stepId || undefined, pointIds: it.pointIds?.length ? [...it.pointIds] : undefined, inCommercialProcess: it.inCommercialProcess, qualified: it.qualified, removedAfter: it.removedAfter });
+    });
+    cleaned = clean({ used: value.used, items });
+    if (cleaned.used === undefined && !items.length) cleaned = undefined;
+  }
+  if (JSON.stringify(cur ?? null) === JSON.stringify(cleaned ?? null)) return project;
+  plan.designReview = { ...plan.designReview };
+  if (cleaned) plan.designReview.studyEquipment = cleaned;
+  else delete plan.designReview.studyEquipment;
+  tidyReview(plan);
+  assertValid(plan);
+  plan.updatedAt = actor.at;
+  log(next, actor, { action: "sampling_plan_update", path: `sampling.${planId}.designReview.studyEquipment`, detail: `Equipment used only for sampling in ${planId} edited`, before: { studyEquipment: cur ?? null }, after: { studyEquipment: cleaned ?? null } });
+  return next;
+}
+
+/** The next free equipment id (EQ-01 ...) given the items now listed. */
+export function nextStudyEquipmentId(items: readonly { id: string }[]): string {
+  const max = items.reduce((m, it) => Math.max(m, Number(/^EQ-(\d+)$/.exec(it.id)?.[1] ?? 0)), 0);
+  return `EQ-${String(max + 1).padStart(2, "0")}`;
 }
 
 export function deletePlan(project: Project, planId: string, actor: Actor): Project {

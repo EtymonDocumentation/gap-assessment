@@ -142,7 +142,7 @@ export function MethodSection({ plan, d, set }: { plan: SamplingPlan; d: Samplin
         <Choice legend="How is the sample taken?" value={m.access} options={SAMPLE_ACCESS.map((v) => ({ value: v, label: SAMPLE_ACCESS_LABEL[v] }))} onChange={(v) => patch({ access: v })} testId="method-access" />
         {m.access === "other" && <Text label="Describe the other way" value={m.accessOther} onChange={(v) => patch({ accessOther: v })} testId="method-access-other" />}
 
-        {(m.access === "dedicated_port" || m.access === "shared_port" || m.access === "added_y_connector") && (
+        {(m.access === "dedicated_port" || m.access === "shared_port" || m.access === "added_y_connector" || m.access === "bag_sample_manifold" || m.access === "aseptic_connector") && (
           <YesNo legend="Was the port or connector added only for development or PPQ sampling?" value={m.added?.forStudyOnly} onChange={(v) => sub("added", { forStudyOnly: v })} testId="method-added" />
         )}
         {added && (

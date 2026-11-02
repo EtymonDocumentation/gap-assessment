@@ -1,4 +1,5 @@
-import { isAnswered, trdOpenItems, type Assessment } from "@gap/engine";
+import { content, samplingSuggestions } from "@gap/content";
+import { isAnswered, planDesignReview, trdOpenItems, type Assessment } from "@gap/engine";
 import type { Project } from "@gap/process-model";
 import { scopeRecorded } from "./next-step";
 
@@ -86,6 +87,19 @@ function countStatus(ids: string[], many: string): string {
   return ids.length === 1 ? ids[0]! : `${ids.length} ${many}`;
 }
 
+/**
+ * The sampling stage: the plan ids, plus how many design review questions are still open (unanswered or to look at again), so the
+ * strip says when the team has questions to answer. A project with several plans shows the total.
+ */
+function samplingStatus(project: Project): string {
+  const base = countStatus(project.sampling.plans.map((p) => p.id), "plans");
+  const open = project.sampling.plans.reduce((n, plan) => {
+    const v = planDesignReview(content, project, plan, samplingSuggestions);
+    return n + v.unanswered + v.lookAgain;
+  }, 0);
+  return open === 0 ? base : `${base}, ${plural(open, "review question open", "review questions open")}`;
+}
+
 /** The stages shown for this account and project, in chain order, with the route's stage marked current. */
 export function chainStages(project: Project, a: Assessment | null, allowed: ChainAllowed, route?: ChainRoute): ChainStage[] {
   const here = route ? chainStageOf(route.path) : undefined;
@@ -97,7 +111,7 @@ export function chainStages(project: Project, a: Assessment | null, allowed: Cha
     { id: "gap", name: NAMES.gap, label: NAMES.gap, path: "/scope", status: gapStatus(project, a) },
     ...(allowed.trd ? [{ id: "trd" as const, name: NAMES.trd, label: NAMES.trd, path: "/trd", status: trdStatus(project) }] : []),
     ...(allowed.sampling
-      ? [{ id: "sampling" as const, name: NAMES.sampling, label: NAMES.sampling, path: "/sampling", status: countStatus(project.sampling.plans.map((p) => p.id), "plans") }]
+      ? [{ id: "sampling" as const, name: NAMES.sampling, label: NAMES.sampling, path: "/sampling", status: samplingStatus(project) }]
       : []),
     ...(allowed.mbr
       ? [

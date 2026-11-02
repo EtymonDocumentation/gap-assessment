@@ -50,6 +50,8 @@ export function methodAsked(plan: SamplingPlan, p: SamplingPoint): boolean {
 }
 
 const PORT_LIKE = new Set(["dedicated_port", "shared_port", "added_y_connector", "bag_sample_manifold", "aseptic_connector"]);
+/** The access draws liquid through a port, connector or manifold (so a flush practice applies). Shared with the design review. */
+export const isPortLikeAccess = (a: SampleAccess | undefined): boolean => a !== undefined && PORT_LIKE.has(a);
 
 /** The sample comes out of a bag or hold vessel: the person says so, the access is a bag manifold, or the point sits on a hold. */
 export function isBagSample(p: SamplingPoint): boolean {
@@ -71,7 +73,8 @@ export function samplingMethodReminders(p: SamplingPoint, plan: SamplingPlan): M
   if (!m.access) open("how the sample is taken", "State how this sample is taken (dedicated port, shared port, added connector, bag manifold, aseptic connector, grab).");
   if (m.access === "other" && !filled(m.accessOther)) detail("how the sample is taken", "Describe the other way the sample is taken.");
 
-  if (m.access === "dedicated_port" || m.access === "shared_port" || m.access === "added_y_connector") {
+  // A bag manifold or an aseptic connector can be put on only for the study just like a port (design review A5 asks the same about them).
+  if (m.access === "dedicated_port" || m.access === "shared_port" || m.access === "added_y_connector" || m.access === "bag_sample_manifold" || m.access === "aseptic_connector") {
     if (m.added?.forStudyOnly === undefined) open("port or connector added for the study", "State whether the port or connector was added only for development or PPQ sampling.");
   }
   if (addedPart(m)) {

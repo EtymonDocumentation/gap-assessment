@@ -550,6 +550,13 @@ const MIGRATIONS: { from: string; to: string; migrate: Migrate }[] = [
     to: "1.27.0",
     migrate: (raw) => ({ ...raw, schemaVersion: "1.27.0" }),
   },
+  // 1.27.0 -> 1.28.0: sampling plan format 1.7.0. A plan may carry the design review's stored answers, switched-off checks and study-only
+  // equipment (`designReview`). Optional and absent in every older plan, so no data changes; only the version moves.
+  {
+    from: "1.27.0",
+    to: "1.28.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.28.0" }),
+  },
 ];
 
 /**

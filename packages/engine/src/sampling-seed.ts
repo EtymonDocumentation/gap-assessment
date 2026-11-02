@@ -24,6 +24,8 @@ const candidate = z.strictObject({
   type: z.enum(SAMPLING_TYPES),
   materialType: z.string().optional(),
   why: z.string().min(1),
+  /** A typical fill/finish PPQ is expected to cover this (design review check D2). A mark on the entry, not a default or an answer. */
+  expected: z.boolean().optional(),
 });
 
 export const samplingSuggestionsSchema = z.strictObject({

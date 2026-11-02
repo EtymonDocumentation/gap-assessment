@@ -3701,3 +3701,43 @@ table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
   border-left: 4px solid var(--muted);
   color: var(--muted);
 }
+
+/* Design review (sampling plan): one card per question. The state is always written in the tag; the border style is only a second cue. */
+.review-card {
+  border: 1px solid var(--border);
+  border-left-width: 6px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  padding: var(--space-card);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-stack);
+  min-width: 0;
+}
+.review-card h4 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.review-card.review-unanswered {
+  border-left-style: dashed;
+  border-left-color: var(--focus);
+}
+.review-card.review-answered {
+  border-left-style: solid;
+  border-left-color: var(--ok);
+}
+.review-card.review-look_again {
+  border-left-style: double;
+  border-left-color: var(--danger);
+}
+/* .field grows along a row (flex: 1 1 220px); the card is a column, so that basis would become a 220 px tall gap. */
+.review-card .field {
+  flex: 0 0 auto;
+}
+.review-card .field input,
+.review-card .field select {
+  max-width: 100%;
+}
+.review-eq-item {
+  min-width: 0;
+}

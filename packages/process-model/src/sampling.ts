@@ -24,7 +24,7 @@ import { z } from "zod";
  */
 
 /** Format version of the plan data (semver). A new optional field is a minor change; a removed or re-meant field is major. */
-export const SAMPLING_PLAN_FORMAT_VERSION = "1.6.0";
+export const SAMPLING_PLAN_FORMAT_VERSION = "1.7.0";
 
 /** Run types. Only PPQ is built; the field exists so clinical GMP and engineering runs can be added without a schema break. */
 export const SAMPLING_RUN_TYPES = ["ppq"] as const;
@@ -782,6 +782,63 @@ export const readinessEntrySchema = z.object({
 });
 export type ReadinessEntry = z.infer<typeof readinessEntrySchema>;
 
+// ------------------------------------------------------------------ design review (plan format 1.7.0)
+
+/**
+ * Plan format 1.7.0. The team's answers to the DESIGN REVIEW questions (see reviewPlan in @gap/sampling). A question is a finding the
+ * checks raise from facts already in the plan; the team answers it, and the answer plus the reason is the record. The tool never
+ * decides that a design is adequate. Everything is optional, nothing is preselected, nothing blocks saving or export.
+ */
+export const REVIEW_RESPONSES = ["confirmed", "changed", "not_applicable"] as const;
+export type ReviewResponse = (typeof REVIEW_RESPONSES)[number];
+export const REVIEW_RESPONSE_LABEL: Record<ReviewResponse, string> = { confirmed: "Confirmed as designed", changed: "Plan changed", not_applicable: "Not applicable" };
+
+export const reviewAnswerSchema = z.object({
+  response: z.enum(REVIEW_RESPONSES),
+  /** Optional. Absent reads "No reason recorded". */
+  reason: z.string().optional(),
+  /** The account name when known. */
+  by: z.string().optional(),
+  at: z.string(),
+  /** Hash of the facts the question was based on when it was answered; a different hash later reads "look again". */
+  factsFingerprint: z.string(),
+});
+export type ReviewAnswer = z.infer<typeof reviewAnswerSchema>;
+
+/** One item of equipment used only to take PPQ samples (extra bags, manifolds, tubing sets, pumps, sampling devices, connectors). */
+export const studyEquipmentItemSchema = z.object({
+  /** EQ-01, EQ-02 ... never reused inside a plan. */
+  id: z.string().regex(/^EQ-\d{2,}$/),
+  what: z.string(),
+  /** The plan step it is used at. */
+  stepId: z.string().optional(),
+  /** The samples it is used for. */
+  pointIds: z.array(z.string()).optional(),
+  /** Unanswered stays unknown; the review asks. */
+  inCommercialProcess: z.boolean().optional(),
+  qualified: z.boolean().optional(),
+  removedAfter: z.boolean().optional(),
+});
+export type StudyEquipmentItem = z.infer<typeof studyEquipmentItemSchema>;
+
+export const studyEquipmentSchema = z.object({
+  /** "Is any equipment used only to take PPQ samples?" Absent = not answered. */
+  used: z.boolean().optional(),
+  items: z.array(studyEquipmentItemSchema),
+});
+export type StudyEquipment = z.infer<typeof studyEquipmentSchema>;
+
+export const planDesignReviewSchema = z.object({
+  /** Keyed by the finding key (check id + subject ids). */
+  answers: z.record(z.string(), reviewAnswerSchema).optional(),
+  /** Checks switched off for this plan: check id -> the optional reason ("" = none given). */
+  off: z.record(z.string(), z.string()).optional(),
+  /** Used by the volume check of a later job: "flag when sampling takes more than this percent of the batch". Blank = no threshold. */
+  volumeFlagPercent: z.number().gt(0).optional(),
+  studyEquipment: studyEquipmentSchema.optional(),
+});
+export type PlanDesignReview = z.infer<typeof planDesignReviewSchema>;
+
 export const samplingPlanSchema = z
   .object({
     /** SPL-001, SPL-002 ... */
@@ -806,6 +863,8 @@ export const samplingPlanSchema = z
     readiness: z.array(readinessEntrySchema).optional(),
     /** Plan format 1.6.0: the optional practice "ask how each sample is taken". Off (absent) unless the person switches it on. */
     askSampleMethod: z.boolean().optional(),
+    /** Plan format 1.7.0: the design review's answers, switched-off checks and study-only equipment. Absent on older plans. */
+    designReview: planDesignReviewSchema.optional(),
     /** Who is responsible for sampling, testing and reporting (plan level). */
     parties: z.array(planPartySchema),
     /** The register of agency requests that refer to PPQ samples or studies. */

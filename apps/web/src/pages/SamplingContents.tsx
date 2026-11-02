@@ -3,7 +3,7 @@
  * would change the route; these are buttons that scroll to the section and move focus to its heading. A section that lives on
  * another tab of the page first switches to that tab.
  */
-export type ContentsTab = "overview" | "interview" | "subsections";
+export type ContentsTab = "overview" | "interview" | "review" | "subsections";
 
 interface Item {
   id: string;
@@ -34,6 +34,7 @@ const BY_TAB: Record<ContentsTab, Item[]> = {
     { id: "sp-interview", label: "Sampling interview", tab: "interview" },
     { id: "sp-agency", label: "Agency requests", tab: "interview" },
   ],
+  review: [{ id: "sp-review", label: "Design review", tab: "review" }],
   subsections: [],
 };
 
@@ -53,6 +54,7 @@ export function SamplingContents({ tab, onTab }: { tab: ContentsTab; onTab: (t: 
     { title: "Plan set-up", items: ALWAYS },
     { title: "Overview tab", items: BY_TAB.overview, tab: "overview" },
     { title: "Interview tab", items: BY_TAB.interview, tab: "interview" },
+    { title: "Design review tab", items: BY_TAB.review, tab: "review" },
   ];
   return (
     <nav className="card stack no-print" aria-labelledby="sp-contents" data-testid="plan-contents">
