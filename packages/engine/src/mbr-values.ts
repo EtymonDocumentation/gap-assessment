@@ -77,7 +77,7 @@ export function resolveTrdValue(doc: TrdDocument, unitOp: string, collection: Co
   const sourceIds = f.override ? [] : [...(f.pulled?.sourceIds ?? [])];
   const locations = f.override ? undefined : f.pulled?.locations;
   if (ev.status === "tbd" || ev.status === "not_applicable") {
-    // A TBD or not-applicable answer is shown as the TRD words it ("To be determined (TBD)"); it is not a value to copy.
+    // A TBD or not-applicable answer is shown as the TRD words it ("To be decided (TBD)"); it is not a value to copy.
     return { ...base, status: ev.status, text: ev.text, ...(ev.provisional ? { provisional: true as const } : {}), sourceIds, ...(locations ? { locations: structuredClone(locations) } : {}) };
   }
   return { ...base, status: "established", text: stripUnit(ev.text, unit), ...(unit ? { unit } : {}), sourceIds, ...(locations ? { locations: structuredClone(locations) } : {}) };

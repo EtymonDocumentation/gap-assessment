@@ -7,7 +7,7 @@ import type { Run } from "./SamplingFlow";
 /** Words for a status, used in tags, so the state never rests on colour or a border style alone. */
 export const STATUS_TEXT: Record<SeedStatus, string> = {
   established: "Established",
-  tbd: "To be determined (TBD)",
+  tbd: "To be decided (TBD)",
   not_established: "Not established",
   not_applicable: "Not applicable",
 };

@@ -248,6 +248,6 @@ describe("old change-log history keeps saying Unknown", () => {
     expect(rows.find((r) => r.action === "answer" && r.after === "Unknown")).toBeDefined();
     const conv = rows.find((r) => r.action === "migrate_status")!;
     expect(conv).toMatchObject({ by: SYSTEM_ACTOR, before: "Unknown" });
-    expect(conv.after).toMatch(/^To be determined \(TBD\)/);
+    expect(conv.after).toMatch(/^To be decided \(TBD\)/);
   });
 });

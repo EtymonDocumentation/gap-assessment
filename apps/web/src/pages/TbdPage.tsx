@@ -5,8 +5,8 @@ import { href } from "../router";
 import { useAssessment, useContent, useStore } from "../store";
 
 /**
- * Every value recorded as TBD (to be determined), with its best guess, owner, due date and note. A TBD is a commitment to find
- * a value out, not a value: the list is how the team keeps track of what is still to be determined.
+ * Every value recorded as TBD (to be decided), with its best guess, owner, due date and note. A TBD is a commitment to find
+ * a value out, not a value: the list is how the team keeps track of what is still to be decided.
  */
 export function TbdPage() {
   const project = useStore((s) => s.project)!;
@@ -20,7 +20,7 @@ export function TbdPage() {
   return (
     <div className="stack-lg">
       <div>
-        <h1>TBD (to be determined)</h1>
+        <h1>TBD (to be decided)</h1>
         <p className="muted">
           A TBD is a value that is not decided yet. A best guess, when given, is compared as if it were established and every result that depends on it is labelled
           “Provisional — based on a TBD value”. A TBD cannot be verified.

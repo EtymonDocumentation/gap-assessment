@@ -3,13 +3,13 @@ import { describe, expect, it } from "vitest";
 import { content, demos, guidance, rawContent } from "../index";
 
 /**
- * M5.6: TBD (to be determined) is the one not-known answer. No question may offer a not-known choice of its own, and
+ * M5.6: TBD (to be decided) is the one not-known answer. No question may offer a not-known choice of its own, and
  * no text may call the not-known answer "Unknown" or "to be confirmed". Two answers for the same state would split one
  * open information item into two lists and let a reviewer read "unknown" and "TBD" as different commitments.
  */
 
 /** Wording that makes an option (or any content text) a second way of saying "not known". */
-const NOT_KNOWN = /\bunknown\b|\bnot (yet )?(known|decided|sure)\b|\bto be (confirmed|decided|advised)\b|\bundecided\b|\bunsure\b|\bdon'?t know\b|\bTBC\b|\bnot_decided\b|\bnot_known\b/i;
+const NOT_KNOWN = /\bunknown\b|\bnot (yet )?(known|decided|sure)\b|\bto be (confirmed|advised)\b|\bundecided\b|\bunsure\b|\bdon'?t know\b|\bTBC\b|\bnot_decided\b|\bnot_known\b/i;
 
 /** Every string in a parsed YAML tree with the path it sits at. */
 function strings(value: unknown, path: string, out: [string, string][] = []): [string, string][] {
@@ -64,6 +64,6 @@ describe("no question offers a not-known choice", () => {
     for (const s of ["Unknown", "unknown", "Not yet known", "not known", "Not decided", "not_decided", "To be confirmed", "TBC", "Don't know", "Unsure"]) {
       expect(NOT_KNOWN.test(s), s).toBe(true);
     }
-    for (const s of ["TBD (to be determined)", "Known", "Confirmed", "Single-use bag", "Not applicable"]) expect(NOT_KNOWN.test(s), s).toBe(false);
+    for (const s of ["TBD (to be decided)", "Known", "Confirmed", "Single-use bag", "Not applicable"]) expect(NOT_KNOWN.test(s), s).toBe(false);
   });
 });

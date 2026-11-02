@@ -1,6 +1,6 @@
 # Question bank: header, sections, scoping and site questions.
 # Paths: scope.<key> (shared), site.<field>, uo.<uo>.<field>, uo.<uo>.<collection>.<item>.<field>
-# "To be determined (TBD)" is added to every question by the engine: it is the one not-known answer, so no question
+# "To be decided (TBD)" is added to every question by the engine: it is the one not-known answer, so no question
 # offers an option such as "unknown" or "not yet known" of its own.
 bank:
   id: gap-core

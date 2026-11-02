@@ -179,6 +179,9 @@ h3 {
 
 .poc-banner {
   position: sticky;
+  /* The banner holds no control. Letting clicks (and the accessibility checker's hit test) pass through it means a button scrolled
+     half under the sticky banner is not counted as partly covered (WCAG 2.2 target size); the words stay on screen. */
+  pointer-events: none;
   top: 0;
   z-index: 50;
   background: var(--banner-bg);
@@ -1774,6 +1777,16 @@ details.report h4 {
 
 /* ---------------------------------------------------------------- drafting: answering-from bar, TBD, link values */
 
+/* When the keyboard moves focus (or a link jumps) the browser scrolls the target into view; without this it can land under the sticky
+   banner and answering bar, hidden from the user (WCAG 2.2 focus not obscured) and counted as a covered target. The padding keeps it
+   below both bars. */
+html {
+  scroll-padding-top: 48px;
+}
+html:has(.answering-bar) {
+  scroll-padding-top: 110px;
+}
+
 /* The bar stays in view while the card scrolls. top matches the sticky banner above it. */
 .answering-bar {
   position: sticky;
@@ -2049,11 +2062,20 @@ details.report h4 {
 .tailor-reason {
   margin: 0;
 }
-.tailor-link {
+.btn.tailor-link {
   margin-left: auto;
-  /* WCAG 2.2 minimum target size; the step help line above can sit close to it on desktop. */
-  min-height: 24px;
-  min-width: 24px;
+  /* WCAG 2.2 target size (2.5.8): the box is at least 24 by 24 CSS px at any font, never squeezed by its flex neighbours, and keeps
+     a margin around it so the nearest other control (the step help line above, the "Why is this asked?" line below) is more than 24 px
+     from its edge. Fonts differ by system (the Linux CI machine wraps text differently), so the size is set here, not left to the text. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  box-sizing: border-box;
+  min-height: 32px;
+  min-width: 44px;
+  margin-block: 4px;
+  white-space: normal;
 }
 
 /* ---------------------------------------------------------------- M5.7: Scope step and the scope panel of the Document page */
@@ -3740,4 +3762,54 @@ table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
 }
 .review-eq-item {
   min-width: 0;
+}
+
+/* ---------------------------------------------------------------- phone first screen (fix job 4)
+   On a phone the banner, the header, the chain strip and the step line used to fill the first screen before the page title. The banner
+   text stays whole. The header is two short rows (name, then Menu and theme side by side), the strip drops its explanatory sentence
+   (the same words are on Home) and the banners are shorter, so the title and the first action show without scrolling. */
+@media (max-width: 560px) {
+  .poc-banner {
+    padding: 3px 10px;
+    font-size: 0.8rem;
+    line-height: 1.25;
+  }
+  .app-header {
+    padding: 4px 12px;
+    gap: 4px 8px;
+  }
+  .brand {
+    flex: 1 1 100%;
+    font-size: 0.9rem;
+  }
+  .app-header .nav-narrow button,
+  .theme-select select {
+    min-height: 32px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    font-size: 0.85rem;
+  }
+  .theme-select {
+    margin-left: 0;
+  }
+  .doc-chain {
+    margin-bottom: 6px;
+  }
+  .doc-chain-head .muted {
+    display: none;
+  }
+  .doc-chain-head {
+    margin-bottom: 2px;
+  }
+  .art-banner,
+  .art-banner.art-hero,
+  .art-banner.art-slim {
+    min-height: 48px;
+  }
+  .art-banner-body {
+    padding: 6px 12px;
+  }
+  main {
+    padding-top: 8px;
+  }
 }

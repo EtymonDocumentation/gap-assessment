@@ -1,4 +1,4 @@
-import { isAnswered, omittedSectionIds, type Assessment } from "@gap/engine";
+import { isAnswered, isTbdAnswer, omittedSectionIds, type Assessment, type QuestionInstance } from "@gap/engine";
 import type { Project } from "@gap/process-model";
 
 /** The six gap assessment steps, in the order a new user works through them. */
@@ -48,13 +48,50 @@ export function nextStep(project: Project, a: Assessment): NextStep {
   return { path: "/register", label: "Review the gap register", step: "register" };
 }
 
+export interface InterviewCounts {
+  total: number;
+  /** Questions with a real answer (not "to be decided"). */
+  known: number;
+  /** Questions answered "to be decided" / "Don't know yet": a response, but the value is still unknown. */
+  tbd: number;
+  /** Questions with no answer yet plus the "to be decided" ones: everything that is still open. */
+  open: number;
+}
+
 /**
- * Which steps can honestly be shown as done. Only what the project data proves is true or false; a step with no way to tell is
- * absent (never a guess): reading the register, the validation view or the document leaves no trace in the project.
+ * The one count every page uses for the interview. "Don't know yet" is a response but not an answer: it counts as open, so an
+ * interview of nothing but unknowns never reads as complete (a GMP document must not look finished while its values are unknown).
+ */
+export function interviewCounts(project: Project, instances: QuestionInstance[]): InterviewCounts {
+  const total = instances.length;
+  const tbd = instances.filter((i) => isAnswered(project, i) && isTbdAnswer(project, i)).length;
+  const answered = instances.filter((i) => isAnswered(project, i)).length;
+  const known = answered - tbd;
+  return { total, known, tbd, open: total - known };
+}
+
+/** "5 of 43 answered, 38 still open (3 to be decided)": the same words in the interview, on Home and in the chain strip. */
+export function interviewCountsText(c: InterviewCounts): string {
+  return `${c.known} of ${c.total} answered${c.open > 0 ? `, ${c.open} still open` : ""}${c.tbd > 0 ? ` (${c.tbd} to be decided)` : ""}`;
+}
+
+/**
+ * Which steps can honestly be shown as done, worked out from the project data (no stored flag). A step with no way to tell stays
+ * absent (never a guess): reading the validation view leaves no trace in the project.
+ * - Scope: a scope choice is recorded, or interview answers exist (see scopePassed).
+ * - Interview: every question has a real answer; "to be decided" counts as still open.
+ * - Gap register: the interview is done and either there are no differences or at least one gap has an owner, status or note recorded.
+ * - Document: a download of the document is recorded.
  */
 export function stepDone(project: Project, a: Assessment): Partial<Record<GapStepId, boolean>> {
   const done: Partial<Record<GapStepId, boolean>> = {};
-  if (scopeRecorded(project)) done.scope = true;
-  if (a.instances.length > 0 && unansweredCount(project, a) === 0) done.interview = true;
+  if (scopePassed(project, a)) done.scope = true;
+  const counts = interviewCounts(project, a.instances);
+  if (counts.total > 0 && counts.open === 0) {
+    done.interview = true;
+    const differences = a.gaps.filter((g) => g.category !== "equivalent").length;
+    if (differences === 0 || project.gapOverlays.length > 0) done.register = true;
+  }
+  if (project.document.exports.length > 0) done.document = true;
   return done;
 }

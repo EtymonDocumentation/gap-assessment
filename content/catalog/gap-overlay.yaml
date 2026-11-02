@@ -60,4 +60,4 @@ categories:
   - { key: scale_change, label: Scale change, description: Batch size or equipment capacity differs. }
   - { key: new_requirement, label: New requirement, description: "Present at RU, absent from SU." }
   - { key: removed_element, label: Removed element, description: "Present at SU, absent from RU." }
-  - { key: information_required, label: Information required, description: The SU or RU value is TBD (to be determined) or not established. }
+  - { key: information_required, label: Information required, description: The SU or RU value is TBD (to be decided) or not established. }

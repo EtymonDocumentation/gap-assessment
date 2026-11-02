@@ -208,7 +208,7 @@ function TriSelect({ label, value, onChange, testId }: { label: string; value: b
     <label className="field">
       <span>{label}</span>
       <select value={tri(value)} onChange={(e) => onChange(unTri(e.target.value))} data-testid={testId}>
-        <option value="">Not stated</option>
+        <option value="">Choose…</option>
         <option value="yes">Yes</option>
         <option value="no">No</option>
       </select>
@@ -282,7 +282,7 @@ function EquipmentItem({ plan, item, onChange, onRemove }: { plan: SamplingPlan;
       <label className="field">
         <span>Process step</span>
         <select value={item.stepId ?? ""} onChange={(e) => onChange(build({ stepId: e.target.value || undefined }))} data-testid={`review-eq-step-${item.id}`}>
-          <option value="">Not stated</option>
+          <option value="">Choose…</option>
           {plan.steps.map((s) => (
             <option key={s.id} value={s.id}>
               {s.id}: {s.label}

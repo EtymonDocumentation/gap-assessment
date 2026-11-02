@@ -137,7 +137,7 @@ class SourceNumbers {
 const fieldOf = (it: TrdItem, key: string) => it.fields.find((f) => f.key === key);
 
 function openLines(open: readonly TrdOpenItem[]): string[][] {
-  return open.map((o) => [o.where, stop(o.kind === "tbd" ? "To be determined (TBD)" : o.kind === "provisional" ? `${o.text}` : o.text)]);
+  return open.map((o) => [o.where, stop(o.kind === "tbd" ? "To be decided (TBD)" : o.kind === "provisional" ? `${o.text}` : o.text)]);
 }
 
 export function trdDocumentOpenItems(d: TrdDocument): TrdOpenItem[] {
@@ -188,7 +188,7 @@ export function buildTrdDocument(project: Project, d: TrdDocument, opts: TrdDocu
     add("purpose-scope", "Purpose and scope", [
       ...(evidence ? ([{ type: "note", text: TRD_EVIDENCE_NOTE }] as Block[]) : []),
       { type: "note", text: trdBasisText(project.meta.id, d) },
-      ...(open.length ? ([{ type: "note", text: `This draft lists ${open.length} open item${open.length === 1 ? "" : "s"}: values not established or still to be determined, provisional values, and findings of the PAR/NOR check. It is not complete while they remain.` }] as Block[]) : []),
+      ...(open.length ? ([{ type: "note", text: `This draft lists ${open.length} open item${open.length === 1 ? "" : "s"}: values not established or still to be decided, provisional values, and findings of the PAR/NOR check. It is not complete while they remain.` }] as Block[]) : []),
       d.purpose?.trim() ? { type: "paragraph", text: d.purpose.trim() } : { type: "paragraph", text: "No purpose has been entered. This is left to the team; the tool does not supply wording." },
       ...(d.scopeNote?.trim() ? ([{ type: "heading", text: "Scope" }, { type: "paragraph", text: d.scopeNote.trim() }] as Block[]) : []),
       { type: "paragraph", text: trdCoverageText(d) },
@@ -326,7 +326,7 @@ export function buildTrdDocument(project: Project, d: TrdDocument, opts: TrdDocu
 
   // Open items (always in the document)
   add("open-items", "Open items", [
-    { type: "paragraph", text: open.length ? "Entries still missing, to be determined, or provisional, and the findings of the PAR/NOR check. Nothing has been filled in on behalf of the team. The document cannot be approved while these remain." : "No open items. This does not mean the TRD is complete or correct; that is for the team and quality assurance to judge." },
+    { type: "paragraph", text: open.length ? "Entries still missing, to be decided, or provisional, and the findings of the PAR/NOR check. Nothing has been filled in on behalf of the team. The document cannot be approved while these remain." : "No open items. This does not mean the TRD is complete or correct; that is for the team and quality assurance to judge." },
     ...(open.length ? ([{ type: "table", columns: ["Where", "Open item"], rows: openLines(open) }] as Block[]) : []),
     // A sentence, not a note: it is a statement of how changes are handled. The tool names no filing category; the only wording is this one.
     ...(evidence ? [] : ([{ type: "paragraph", text: "Any change to the process requires regulatory affairs assessment before it is made." }] as Block[])),
@@ -473,7 +473,7 @@ const KNOWN_ACRONYMS: Record<string, string> = {
   PES: "Polyethersulfone (PES)",
   PFS: "Prefilled syringe (PFS)",
   PQ: "Performance qualification (PQ)",
-  TBD: "To be determined (TBD)",
+  TBD: "To be decided (TBD)",
 };
 
 function blockText(b: Block): string {

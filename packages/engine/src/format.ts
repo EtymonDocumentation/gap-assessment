@@ -6,7 +6,7 @@ import { isQuantity, isRange } from "./values";
 
 export const STATUS_TEXT = {
   not_established: "Not established",
-  tbd: "To be determined (TBD)",
+  tbd: "To be decided (TBD)",
   not_applicable: "Not applicable",
 } as const;
 

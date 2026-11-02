@@ -341,7 +341,7 @@ export function buildSamplingPlanDocument(
     { type: "heading", text: "Points not on the diagram" },
     tray.length
       ? { type: "table", columns: ["Point", "Test", "Study type"], rows: tray.map((p) => [p.id, p.attribute.trim() || "Not given", typeText(p)]) }
-      : { type: "paragraph", text: "Every sampling point is placed on a process step." },
+      : { type: "paragraph", text: plan.points.length === 0 ? "No sample points yet." : "Every sampling point is placed on a process step." },
     ...subsAfter("process-flow"),
   ]);
 

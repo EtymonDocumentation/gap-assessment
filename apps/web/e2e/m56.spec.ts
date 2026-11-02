@@ -1,4 +1,4 @@
-// Milestone 5.6: one not-known answer. TBD (to be determined) replaces "Unknown (to be confirmed)": one click saves it,
+// Milestone 5.6: one not-known answer. TBD (to be decided) replaces "Unknown (to be confirmed)": one click saves it,
 // details sit behind "Add details", an old project converts on load with change-log records, and no question offers a
 // second way of saying "not known". Runs on the desktop, tablet and phone projects.
 import AxeBuilder from "@axe-core/playwright";
@@ -6,7 +6,7 @@ import { expect, test, type Download, type Locator, type Page } from "@playwrigh
 import { readFile } from "node:fs/promises";
 
 const BANNER = "Proof of concept. Not validated. Not for GMP use.";
-const TBD_BUTTON = "TBD (to be determined)";
+const TBD_BUTTON = "TBD (to be decided)";
 /** Wording that would be a second not-known answer. */
 const NOT_KNOWN_WORDING = /\bunknown\b|to be confirmed|not yet known|not known|not decided/i;
 
@@ -154,7 +154,7 @@ test("an old project (schema 1.8.0, with Unknown answers) converts on import and
 
   await page.goto("./");
   await page.getByLabel("Project JSON file to import").setInputFiles({ name: "old-1.8.0.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(project)) });
-  await expect(page.getByRole("heading", { level: 1, name: "Interview complete" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Interview summary" })).toBeVisible();
 
   await go(page, "#/changes");
   const rows = page.locator("table.change-table tbody tr", { hasText: "System (file update)" });
@@ -162,7 +162,7 @@ test("an old project (schema 1.8.0, with Unknown answers) converts on import and
   await expect(rows.first()).toContainText("Status converted (file update)");
   await expect(rows.first()).toContainText("Unknown converted to TBD (schema 1.9.0, no change in meaning)");
   await expect(rows.first()).toContainText("Unknown"); // before: the old status, as recorded
-  await expect(rows.first()).toContainText("To be determined (TBD)");
+  await expect(rows.first()).toContainText("To be decided (TBD)");
   await expectAccessible(page, "change log with conversion records");
   await expectNoHorizontalScroll(page, "change log with conversion records");
 

@@ -37,7 +37,7 @@ test("the Overview line counts the questions and opens the tab; the chain strip 
   await openReview(page);
   const line = page.getByTestId("review-line");
   await expect(line).toContainText(/\d+ design review questions? not answered yet/);
-  await expect(page.getByTestId("doc-chain")).toContainText(/review questions? open/);
+  await expect(page.getByTestId("doc-chain")).toContainText(/design review questions? not answered yet/);
   await page.screenshot({ path: join(SHOTS, `m11-j1-overview-line-${test.info().project.name}.png`) });
   await page.getByTestId("review-line-open").click();
   await expect(page.getByTestId("design-review")).toBeVisible();

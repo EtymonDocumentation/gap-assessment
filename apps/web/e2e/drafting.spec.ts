@@ -1,4 +1,4 @@
-// Milestone 5.4: the "Answering from" bar, Link values, citation locations, and TBD (to be determined) values.
+// Milestone 5.4: the "Answering from" bar, Link values, citation locations, and TBD (to be decided) values.
 // Runs on the desktop, tablet and phone projects.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
@@ -173,7 +173,7 @@ test("the interview records a TBD with a best guess, owner and due date; the Hom
   const card = page.getByRole("link", { name: "1 TBD (1 overdue)" });
   await expect(card).toBeVisible();
   await card.click();
-  await expect(page.getByRole("heading", { level: 1, name: "TBD (to be determined)" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "TBD (to be decided)" })).toBeVisible();
   const row = page.locator("tbody tr").first();
   await expect(row).toContainText("TST-3 (fictional)");
   await expect(row).toContainText("Process lead (fictional)");

@@ -170,7 +170,7 @@ test("new project: responder, scoping answers, TBD and not-applicable handling",
   await page.getByRole("button", { name: "Save and continue" }).click();
 
   await expect(prompt).toHaveText("What is the dosage form?");
-  await page.getByRole("button", { name: "TBD (to be determined)" }).click();
+  await page.getByRole("button", { name: "TBD (to be decided)" }).click();
   await expect(prompt).toHaveText("What is the primary container presentation?");
 
   // Not applicable needs a justification.
@@ -179,12 +179,12 @@ test("new project: responder, scoping answers, TBD and not-applicable handling",
   await expect(page.getByRole("alert")).toBeVisible();
   await expect(prompt).toHaveText("What is the primary container presentation?");
 
-  await expect(page.locator(".interview-aside")).toContainText("3 of");
+  await expect(page.locator(".interview-aside")).toContainText(/2 of \d+ answered, \d+ still open \(1 to be decided\)/);
 
   await go(page, "#/builder");
   await expect(page.getByRole("heading", { level: 1, name: "Builder" })).toBeVisible();
   await expect(page.locator("main")).toContainText("SMOKE-1");
-  await expect(page.locator("main")).toContainText("To be determined (TBD)");
+  await expect(page.locator("main")).toContainText("To be decided (TBD)");
 });
 
 test("side by side markers link to the register row", async ({ page }) => {

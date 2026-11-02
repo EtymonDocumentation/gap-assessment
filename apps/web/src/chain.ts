@@ -1,7 +1,8 @@
 import { content, samplingSuggestions } from "@gap/content";
 import { isAnswered, planDesignReview, trdOpenItems, type Assessment } from "@gap/engine";
+import { designReviewLine, type DesignReviewView } from "@gap/sampling";
 import type { Project } from "@gap/process-model";
-import { scopeRecorded } from "./next-step";
+import { interviewCounts, scopeRecorded } from "./next-step";
 
 /**
  * The document chain: gap assessment, TRD, sampling plan, batch record, Process view. It is a map of how the documents lead to each
@@ -9,7 +10,7 @@ import { scopeRecorded } from "./next-step";
  * required, and a stage that is not started says so in plain words. All status text is derived from the project, so it reads the
  * same in the browser-only build and in server mode.
  */
-export type ChainId = "gap" | "trd" | "sampling" | "mbr" | "view";
+export type ChainId = "gap" | "risk" | "trd" | "sampling" | "mbr" | "view";
 
 /** Which modules the account may use. The gap assessment and the chain itself are always there. */
 export interface ChainAllowed {
@@ -49,7 +50,7 @@ export interface ChainRoute {
   params: URLSearchParams;
 }
 
-const NAMES: Record<ChainId, string> = { gap: "Gap assessment", trd: "TRD", sampling: "Sampling plan", mbr: "Batch record", view: "Process view" };
+const NAMES: Record<ChainId, string> = { gap: "Gap assessment", risk: "Risk assessment", trd: "TRD", sampling: "Sampling plan", mbr: "Batch record", view: "Process view" };
 const GAP_PATHS = ["/scope", "/interview", "/compare", "/register", "/validation", "/document"];
 
 /** Which stage a route belongs to, or undefined when the route is not part of the chain (libraries, risk, templates...). */
@@ -69,7 +70,9 @@ function gapStatus(project: Project, a: Assessment | null): string {
   const total = a.instances.length;
   const answered = a.instances.filter((i) => isAnswered(project, i)).length;
   if (answered === 0 && !scopeRecorded(project)) return "Not started";
-  if (total > 0 && answered < total) return `${answered} of ${total} questions answered`;
+  // "To be decided" answers count as still open here as everywhere else (see interviewCounts).
+  const counts = interviewCounts(project, a.instances);
+  if (total > 0 && counts.open > 0) return `${counts.known} of ${total} questions answered, ${counts.open} still open`;
   const differences = a.gaps.filter((g) => g.category !== "equivalent").length;
   return plural(differences, "difference", "differences");
 }
@@ -93,11 +96,15 @@ function countStatus(ids: string[], many: string): string {
  */
 function samplingStatus(project: Project): string {
   const base = countStatus(project.sampling.plans.map((p) => p.id), "plans");
-  const open = project.sampling.plans.reduce((n, plan) => {
+  const total = { questions: 0, unanswered: 0, lookAgain: 0 };
+  for (const plan of project.sampling.plans) {
     const v = planDesignReview(content, project, plan, samplingSuggestions);
-    return n + v.unanswered + v.lookAgain;
-  }, 0);
-  return open === 0 ? base : `${base}, ${plural(open, "review question open", "review questions open")}`;
+    total.questions += v.questions;
+    total.unanswered += v.unanswered;
+    total.lookAgain += v.lookAgain;
+  }
+  // The same words as the plan's Overview tab ("15 design review questions not answered yet, 1 to look at again").
+  return total.unanswered + total.lookAgain === 0 ? base : `${base}, ${designReviewLine(total as DesignReviewView).replace(/^Design review: /, "")}`;
 }
 
 /** The stages shown for this account and project, in chain order, with the route's stage marked current. */
@@ -109,6 +116,10 @@ export function chainStages(project: Project, a: Assessment | null, allowed: Cha
   const viewRec = records.find((r) => r.id === mbrParam) ?? records[0];
   const all: Omit<ChainStage, "current">[] = [
     { id: "gap", name: NAMES.gap, label: NAMES.gap, path: "/scope", status: gapStatus(project, a) },
+    // The risk assessment follows the gap assessment in the process but is not a link of the chain: Back / Next skip it (see chainBar).
+    ...(allowed.risk
+      ? [{ id: "risk" as const, name: NAMES.risk, label: NAMES.risk, path: "/risk", status: countStatus(project.risk.assessments.map((r) => r.id), "assessments") }]
+      : []),
     ...(allowed.trd ? [{ id: "trd" as const, name: NAMES.trd, label: NAMES.trd, path: "/trd", status: trdStatus(project) }] : []),
     ...(allowed.sampling
       ? [{ id: "sampling" as const, name: NAMES.sampling, label: NAMES.sampling, path: "/sampling", status: samplingStatus(project) }]
@@ -136,7 +147,8 @@ export function chainStages(project: Project, a: Assessment | null, allowed: Cha
  * from a plan), otherwise to that module's list or start.
  */
 export function chainBar(project: Project, a: Assessment | null, allowed: ChainAllowed, route: ChainRoute): ChainBar {
-  const stages = chainStages(project, a, allowed, route);
+  // The risk assessment sits beside the chain: it is shown in the strip but is never the Back or Next document.
+  const stages = chainStages(project, a, allowed, route).filter((s) => s.id !== "risk");
   const at = stages.findIndex((s) => s.current);
   if (at < 0) return {};
   const here = stages[at]!;

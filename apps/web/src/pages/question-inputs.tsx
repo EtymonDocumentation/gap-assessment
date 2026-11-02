@@ -193,7 +193,7 @@ export function toAnswer(q: Question, form: FormState, tbd: TbdMeta = emptyTbdMe
     return { input: { kind: "composite", fields } };
   }
   const r = scalarValue(q.input.type, form.simple, "Answer");
-  if ("error" in r) return { error: `${r.error.replace(/^Answer: /, "")}. Or choose “TBD (to be determined)”.` };
+  if ("error" in r) return { error: `${r.error.replace(/^Answer: /, "")}. Or choose “TBD (to be decided)”.` };
   return { input: { kind: "value", value: r.value } };
 }
 

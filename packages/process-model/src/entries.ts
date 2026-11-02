@@ -202,7 +202,7 @@ export function verificationProblem(project: Project, ref: string): string | und
   if (!e) return `No entry at ${ref}`;
   const r = resolveEntry(project, ref);
   // Checked before the status: a TBD with a best guess resolves as "established" for the comparison, but a guess is not a fact.
-  if (r.tbd) return "An entry marked TBD (to be determined) cannot be verified";
+  if (r.tbd) return "An entry marked TBD (to be decided) cannot be verified";
   if (r.status === "not_established") return "An entry that is not established cannot be verified";
   return undefined;
 }

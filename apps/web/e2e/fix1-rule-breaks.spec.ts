@@ -68,9 +68,9 @@ test("a batch record with no purpose and no steps lists what it leaves open", as
 test("an interview answered with 'to be decided' is not called complete", async ({ page }) => {
   await newProject(page);
   await page.goto("./#/interview");
-  await page.getByRole("button", { name: "TBD (to be determined)" }).first().click();
+  await page.getByRole("button", { name: "TBD (to be decided)" }).first().click();
   const text = (await page.locator(".interview-aside").innerText()).replace(/\s+/g, " ");
   expect(text).not.toMatch(/\d+ of \d+ answered, complete/);
-  expect(text).toMatch(/\d+ of \d+ answered · \d+ to be decided/);
+  expect(text).toMatch(/\d+ of \d+ answered, \d+ still open \(\d+ to be decided\)/);
   await page.screenshot({ path: join(tmpdir(), "fix1-interview-tbd-after.png"), fullPage: true });
 });

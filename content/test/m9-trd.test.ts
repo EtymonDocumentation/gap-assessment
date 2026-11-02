@@ -367,7 +367,7 @@ describe("update from the project or a newer seed", () => {
     next.scope.included.push({ key: "stoppering", label: "Stoppering (stand-alone)", sequence: 8.5, custom: false });
     const rows = diffTrdAgainstSeed(doc(project, id), next);
     const byKind = (k: string) => rows.filter((r) => r.kind === k);
-    expect(byKind("field_changed")[0]).toMatchObject({ statusChanged: true, projectNow: expect.stringContaining("To be determined") });
+    expect(byKind("field_changed")[0]).toMatchObject({ statusChanged: true, projectNow: expect.stringContaining("To be decided") });
     expect(byKind("item_removed")).toMatchObject([{ where: expect.stringContaining("Mixing speed"), protectedRow: true }]);
     expect(byKind("step_removed")).toMatchObject([{ where: "Bioburden reduction (BBR) filtration", protectedRow: true }]);
     expect(byKind("item_added")).toMatchObject([{ where: expect.stringContaining("New parameter (fictional)"), protectedRow: false }]);

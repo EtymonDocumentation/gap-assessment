@@ -307,7 +307,7 @@ describe("validation plan: study status and readiness", () => {
     const unknown = unk(scenario(), "f.ppq", "target");
     const r = row(unknown, "act_ppq");
     expect(r.readiness).toBe("information_required");
-    expect(r.studies[0]!.target).toEqual({ display: "To be determined (TBD)", entry: "tbd" });
+    expect(r.studies[0]!.target).toEqual({ display: "To be decided (TBD)", entry: "tbd" });
     expect(r.openItems).toBe(1);
 
     let blank = present();
@@ -491,7 +491,7 @@ describe("equipment qualification", () => {
     let p = present();
     p = unk(p, "f.qual", "source");
     const filler = eq(p)[0]!;
-    expect(filler.source).toEqual({ display: "To be determined (TBD)", entry: "tbd" });
+    expect(filler.source).toEqual({ display: "To be decided (TBD)", entry: "tbd" });
     expect(filler.target).toEqual({ display: "Not established", entry: "not_established" });
     expect(filler.ranges[0]!.qualified).toEqual({ display: "Not established", entry: "not_established" });
     expect(filler.ranges[0]!.required).toMatchObject({ display: "Not established", entry: "not_established" });

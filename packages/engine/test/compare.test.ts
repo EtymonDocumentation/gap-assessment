@@ -148,7 +148,7 @@ describe("range comparator (process parameter, R-PARAM-RANGE)", () => {
   it("information_required when the RU set point and NOR are both unknown", () => {
     const g = gap(run(speed(kit, {}, { sp: "tbd", nor: "tbd" })), MS);
     expect(g).toMatchObject({ category: "information_required", activities: ["information_gathering"], status: "open" });
-    expect(g.detail).toBe("RU set point TBD (to be determined); RU NOR TBD (to be determined).");
+    expect(g.detail).toBe("RU set point TBD (to be decided); RU NOR TBD (to be decided).");
     expect(g.regulatoryNote).toBeUndefined();
     expect(g.rationale).toBe("The comparison cannot be completed until the missing information is established. No value is assumed.");
   });
@@ -156,7 +156,7 @@ describe("range comparator (process parameter, R-PARAM-RANGE)", () => {
   it("information_required when the SU PAR is unknown", () => {
     const noPar = gap(run(speed(kit, { par: "tbd" }, { nor: rr(130, 170) })), MS);
     expect(noPar).toMatchObject({ category: "information_required" });
-    expect(noPar.detail).toBe("SU PAR TBD (to be determined).");
+    expect(noPar.detail).toBe("SU PAR TBD (to be decided).");
   });
 
   it("a matching set point is not enough for 'equivalent' when the RU NOR is unknown but the SU NOR is known", () => {
@@ -281,7 +281,7 @@ describe("scale comparator", () => {
     it("information_required when the RU set point is unknown and the NOR is outside the PAR", () => {
       const g = gap(run(batch(kit, { sp: L(100) }, { sp: "tbd", nor: rng(200, 300, "L") })), BATCH);
       expect(g.category).toBe("information_required");
-      expect(g.detail).toBe("RU nominal value TBD (to be determined).");
+      expect(g.detail).toBe("RU nominal value TBD (to be decided).");
     });
 
     it("information_required when both RU values are unknown", () => {
@@ -318,7 +318,7 @@ describe("scale comparator", () => {
       const p = v(unk(base(), "comp.vessel_capacity", "source"), "comp.vessel_capacity", "target", q(100, "L"));
       const g = gap(run(p), CAPACITY);
       expect(g).toMatchObject({ category: "information_required", severity: "low" });
-      expect(g.detail).toBe("SU value TBD (to be determined).");
+      expect(g.detail).toBe("SU value TBD (to be decided).");
     });
   });
 });
@@ -439,10 +439,10 @@ describe("enum comparator", () => {
 
   it("information_required when a side is unknown, with the missing side named", () => {
     const g = gap(run(v(unk(base(), "fill.pump", "source"), "fill.pump", "target", "peristaltic")), PUMP);
-    expect(g).toMatchObject({ category: "information_required", detail: "SU value TBD (to be determined).", activities: ["information_gathering"] });
+    expect(g).toMatchObject({ category: "information_required", detail: "SU value TBD (to be decided).", activities: ["information_gathering"] });
     expect(g.regulatoryNote).toBeUndefined();
     const both = gap(run(unk(unk(base(), "fill.pump", "source"), "fill.pump", "target")), PUMP);
-    expect(both.detail).toBe("SU value TBD (to be determined); RU value TBD (to be determined).");
+    expect(both.detail).toBe("SU value TBD (to be decided); RU value TBD (to be decided).");
   });
 
   it("information_required when a side was never answered", () => {
@@ -631,7 +631,7 @@ describe("coverage comparator", () => {
     it("information_required when the coverage is unknown, naming the missing item", () => {
       const g = gap(run(unk(grown(), "comp.mixing_coverage", "source")), MIX_COV);
       expect(g.category).toBe("information_required");
-      expect(g.detail).toContain("Covered range (SU) TBD (to be determined)");
+      expect(g.detail).toContain("Covered range (SU) TBD (to be decided)");
     });
 
   });
@@ -664,7 +664,7 @@ describe("coverage comparator", () => {
       const p = v(unk(grown(), "fill.duration", "target"), "fill.aps", "target", q(48, "h"));
       const g = gap(run(v(p, "fill.duration", "source", q(24, "h"))), APS);
       expect(g.category).toBe("information_required");
-      expect(g.detail).toBe("Compared value (RU) TBD (to be determined).");
+      expect(g.detail).toBe("Compared value (RU) TBD (to be decided).");
     });
 
     it("is an RU-only row: the SU column is a dash", () => {
@@ -723,7 +723,7 @@ describe("evidence comparator (RU-side answer mapped to a category)", () => {
   });
 
   it("information_required when the answer is unknown or missing", () => {
-    expect(gap(run(unk(pumpChanged(), "fill.accuracy", "target")), ACCURACY)).toMatchObject({ category: "information_required", detail: "Evidence status TBD (to be determined)." });
+    expect(gap(run(unk(pumpChanged(), "fill.accuracy", "target")), ACCURACY)).toMatchObject({ category: "information_required", detail: "Evidence status TBD (to be decided)." });
     expect(gap(run(pumpChanged()), ACCURACY)).toMatchObject({ category: "information_required", detail: "Evidence status not established." });
   });
 

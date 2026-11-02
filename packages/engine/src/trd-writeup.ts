@@ -616,7 +616,7 @@ export interface ResolvedBlank {
   /** Documents behind a TRD value (ids of the project's source register) and where in each. */
   sourceIds?: string[];
   locations?: Record<string, { section?: string; page?: string }>;
-  /** Why an unfilled blank is open when something was found ("To be determined (TBD)"). */
+  /** Why an unfilled blank is open when something was found ("To be decided (TBD)"). */
   note?: string;
   /**
    * True when the value is the label of a catalog choice ("Received as ready-to-use liquid"). Only such a value is lowered inside a
@@ -696,7 +696,7 @@ export function lookupBlank(ctx: BlankContext, key: string, label: string): Reso
       const v = effectiveField(f);
       if (v.status === "established") return { key, label, filled: true, value: v.text, origin: "details", where: `TRD, ${f.label}`, ...(CHOICE_DETAILS.has(detailKey) && !v.overridden ? { choice: true as const } : {}) };
       if (v.status === "not_applicable") return { key, label, filled: true, value: v.text, origin: "details", where: `TRD, ${f.label}` };
-      if (v.status === "tbd") return open("To be determined (TBD)");
+      if (v.status === "tbd") return open("To be decided (TBD)");
     }
   }
   const m = UO_KEY.exec(key);
@@ -719,7 +719,7 @@ export function lookupBlank(ctx: BlankContext, key: string, label: string): Reso
       };
     }
     if (t.status === "not_applicable") return { key, label, filled: true, value: t.text ?? "Not applicable", origin: "trd", where: `TRD, ${t.section || "process step"}` };
-    return open(t.status === "tbd" ? "To be determined (TBD)" : undefined);
+    return open(t.status === "tbd" ? "To be decided (TBD)" : undefined);
   }
   const sourcePath = SOURCE_SIDE_KEYS[key];
   if (sourcePath) {

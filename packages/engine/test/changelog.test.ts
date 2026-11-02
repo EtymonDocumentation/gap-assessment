@@ -300,7 +300,7 @@ describe("change log: the retired Unknown answer (schema 1.9.0)", () => {
     const row = view(withHistory()).find((r) => r.action === "migrate_status")!;
     expect(row.by).toBe("System (file update)");
     expect(row.before).toBe("Unknown");
-    expect(row.after).toMatch(/^To be determined \(TBD\)/);
+    expect(row.after).toMatch(/^To be decided \(TBD\)/);
     expect(row.actionLabel).toBe("Status converted (file update)");
     expect(row.detail).toMatch(/no change in meaning/);
   });

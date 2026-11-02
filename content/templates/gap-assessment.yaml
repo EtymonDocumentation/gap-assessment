@@ -1,7 +1,7 @@
 # Fixed wording for the generated gap assessment document.
 # Placeholders: {program} {modality} {dosageForm} {presentation} {transferType}
 # {markets} {sourceSite} {targetSite} {sourceStage} {targetStage} {date}. Values that are not known appear as written
-# by the engine (for example "To be determined (TBD)", or "[not established]" for a program stage);
+# by the engine (for example "To be decided (TBD)", or "[not established]" for a program stage);
 # nothing is invented.
 #
 # Stage-aware wording: {{validated wording|other wording}}. The first variant is used only when the source
@@ -29,7 +29,7 @@ document:
     not assessed in this version.
   sourceSummaryIntro: >-
     The SU process {{as validated|as it currently stands}}, as recorded in the interview. Each value shows
-    its source and verification state. Values marked "To be determined (TBD)" or
+    its source and verification state. Values marked "To be decided (TBD)" or
     "Not established" are open information items.
   targetSummaryIntro: >-
     The planned RU process, as recorded in the interview. Values marked "same as
@@ -66,7 +66,7 @@ document:
     TBD or missing values are shown as such; none is assumed. Related gaps are
     the differences recorded for the same equipment.
   openItemsIntro: >-
-    Information that is TBD (to be determined) or not established. Each item must be resolved before
+    Information that is TBD (to be decided) or not established. Each item must be resolved before
     the related comparison can be completed. Until then the comparison is classified
     as "Information required".
   riskIntro: >-

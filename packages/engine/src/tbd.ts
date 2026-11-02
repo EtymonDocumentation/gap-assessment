@@ -6,7 +6,7 @@ import { entryLabel } from "./labels";
 import type { Project } from "@gap/process-model";
 
 /*
- * TBD (to be determined) views.
+ * TBD (to be decided) views.
  *
  * A TBD is a recorded commitment to find a value out: someone may be named as owner, with a due date, and may have written
  * down a best guess. It is NOT a value. The views here are derived from the project every time and never stored, so they

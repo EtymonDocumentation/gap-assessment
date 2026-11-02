@@ -101,7 +101,7 @@ export interface ModelView {
 
 const STATUS_TEXT: Record<AggregateStatus, string> = {
   established: "Established",
-  tbd: "TBD (to be determined)",
+  tbd: "TBD (to be decided)",
   not_applicable: "Not applicable",
   not_established: "Not established",
   partial: "Partly recorded",

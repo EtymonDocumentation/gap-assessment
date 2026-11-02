@@ -168,7 +168,7 @@ export async function answerFirst(page: Page, text: string): Promise<void> {
 
 export async function answerTbd(page: Page): Promise<void> {
   const before = await page.locator("#q-prompt").textContent();
-  await page.getByRole("button", { name: "TBD (to be determined)" }).click();
+  await page.getByRole("button", { name: "TBD (to be decided)" }).click();
   await expect(page.locator("#q-prompt")).not.toHaveText(before ?? "");
 }
 
@@ -190,7 +190,9 @@ export async function answeredCount(page: Page): Promise<number> {
   await go(page, "#/");
   const dd = page.locator("dt", { hasText: "Questions answered" }).locator("+ dd");
   await expect(dd).toBeVisible();
-  return Number(/^(\d+) of/.exec((await dd.textContent()) ?? "")?.[1]);
+  // "5 of 43 answered, 38 still open (3 to be decided)": a "to be decided" answer is a response, so it counts here, though it stays open.
+  const text = (await dd.textContent()) ?? "";
+  return Number(/^(\d+) of/.exec(text)?.[1]) + Number(/\((\d+) to be decided\)/.exec(text)?.[1] ?? 0);
 }
 
 // ------------------------------------------------------------------ quality checks

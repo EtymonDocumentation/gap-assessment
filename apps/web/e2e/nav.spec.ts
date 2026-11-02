@@ -98,7 +98,7 @@ test("the Documents and Library drop-downs open on click, move with the arrow ke
   await documents.click();
   await expect(documents).toHaveAttribute("aria-expanded", "true");
   // Chain order, each entry with a line saying what it is for; the gap assessment lists its six steps; risk and the TBD list sit alongside.
-  for (const name of ["Scope", "Interview", "Side by side", "Gap register", "Validation", "Document", "TRD", "Sampling plan", "Batch record", "Risk assessment", "Open items (TBD)"]) {
+  for (const name of ["Scope", "Interview", "Side by side", "Gap register", "Validation", "Document", "TRD", "Sampling plan", "Batch record", "Risk assessment", "Open items"]) {
     await expect(nav.getByRole("link", { name, exact: true })).toBeVisible();
   }
   await expect(nav.getByRole("link", { name: "TRD seed" })).toHaveCount(0);
@@ -166,7 +166,7 @@ test("the phone folds the menu into one Menu button with no sideways scroll", as
   await expectNoSidewaysScroll(page, "phone, menu closed");
   await menu.click();
   await expect(menu).toHaveAttribute("aria-expanded", "true");
-  for (const name of ["Home", "Gap assessment", "Scope", "TRD", "Sampling plan", "Batch record", "Open items (TBD)", "Templates"]) await expect(nav.getByRole("link", { name, exact: true })).toBeVisible();
+  for (const name of ["Home", "Gap assessment", "Scope", "TRD", "Sampling plan", "Batch record", "Open items", "Templates"]) await expect(nav.getByRole("link", { name, exact: true })).toBeVisible();
   await expectNoSidewaysScroll(page, "phone, menu open");
   await expectAccessible(page, "phone menu open");
   await page.keyboard.press("Escape");
@@ -190,8 +190,9 @@ test("the step bar marks the current step, ticks only what is proven, and Back /
   } else {
     await expect(bar.getByRole("link", { name: /Interview/ })).toHaveAttribute("aria-current", "step");
     await expect(bar.getByRole("link")).toHaveCount(6);
-    // The demo is fully answered, so the interview is provably done; the register and the document leave no trace, so they get no tick.
-    await expect(bar.getByRole("link", { name: /Interview/ })).toContainText("(done)");
+    // The demo has three "to be decided" answers, which count as open: the interview and so the register are not ticked. The document
+    // leaves no trace in the demo, so it gets no tick either.
+    await expect(bar.getByRole("link", { name: /Interview/ })).not.toContainText("(done)");
     await expect(bar.getByRole("link", { name: /Gap register/ })).not.toContainText("(done)");
     await expect(bar.getByRole("link", { name: /Document/ })).not.toContainText("(done)");
   }

@@ -5,7 +5,7 @@ import { thenStep } from "../chain";
 import { DocChainStrip, useChainAllowed } from "../DocChain";
 import { Modal, ResponderForm } from "../components";
 import { download, slug, today } from "../lib";
-import { nextStep, stepDone } from "../next-step";
+import { interviewCounts, interviewCountsText, nextStep, stepDone } from "../next-step";
 import { href, navigate } from "../router";
 import { CloseProjectButton, ProjectListCard, useIsRemote } from "../server/ServerUi";
 import { SERVER_MODE } from "../server/mode";
@@ -64,8 +64,8 @@ export function HomePage({ notice }: { notice?: string }) {
     { key: "create", label: "Create a project", hint: "Give it a name and say who is answering.", ticked: !!project },
     { key: "scope", label: "Choose the scope", hint: "Untick the process steps and document sections that do not apply.", path: "/scope", ticked: !!done.scope },
     { key: "interview", label: "Answer the interview", hint: "One question at a time, for the sending and receiving side. Choose TBD for anything not known yet.", path: "/interview", ticked: !!done.interview },
-    { key: "register", label: "Review the gap register", hint: "Check every difference the tool found and decide what to do about each.", path: "/register", ticked: false },
-    { key: "document", label: "Write the gap assessment document", hint: "Add your own text, then download the finished document.", path: "/document", ticked: false },
+    { key: "register", label: "Review the gap register", hint: "Check every difference the tool found and decide what to do about each.", path: "/register", ticked: !!done.register },
+    { key: "document", label: "Write the gap assessment document", hint: "Add your own text, then download the finished document.", path: "/document", ticked: !!done.document },
     // The rest of the chain. Every item is optional and can be done in any order, or not at all; a TRD can start blank.
     ...(allowed.trd
       ? [{ key: "trd", label: "Start the TRD (optional)", hint: "The technical requirements document that follows the gap assessment. It can start from this project or blank.", path: "/trd", ticked: !!project && project.trd.documents.length > 0 }]
@@ -140,9 +140,7 @@ export function HomePage({ notice }: { notice?: string }) {
           <dl className="stats stats-quiet">
             <div>
               <dt>Questions answered</dt>
-              <dd>
-                {a.instances.filter((i) => isAnswered(project, i)).length} of {a.instances.length}
-              </dd>
+              <dd>{interviewCountsText(interviewCounts(project, a.instances))}</dd>
             </div>
             <div>
               <dt>Differences</dt>
@@ -197,10 +195,22 @@ export function HomePage({ notice }: { notice?: string }) {
           </p>
           {allowed.trd && (
             <div className="chain-card-actions">
-              <a className="btn" href={href("/trd")} data-testid="home-start-trd">
-                Start from a TRD
-              </a>
-              <span className="muted small">Opens the TRD page, where you choose how it starts: from this project, from a seed file, or blank.</span>
+              {project.trd.documents.length > 0 ? (
+                <>
+                  {/* The project already has a TRD, so offering to start one would hide the way back to it. */}
+                  <a className="btn" href={project.trd.documents.length === 1 ? href("/trd", { trd: project.trd.documents[0]!.id }) : href("/trd")} data-testid="home-start-trd">
+                    {project.trd.documents.length === 1 ? "Open the TRD" : "Open the TRDs"}
+                  </a>
+                  <span className="muted small">Opens {project.trd.documents.length === 1 ? "the TRD" : "the list of TRDs"} of this project.</span>
+                </>
+              ) : (
+                <>
+                  <a className="btn" href={href("/trd")} data-testid="home-start-trd">
+                    Start from a TRD
+                  </a>
+                  <span className="muted small">Opens the TRD page, where you choose how it starts: from this project, from a seed file, or blank.</span>
+                </>
+              )}
             </div>
           )}
         </section>

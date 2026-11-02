@@ -31,9 +31,10 @@ test("the syringe example opens on Home with the whole chain in view, each stage
   await openSyringe(page);
   await expect(page.getByRole("heading", { level: 1, name: "Gap assessment for technology transfer" })).toBeVisible();
   const chain = page.getByRole("navigation", { name: "Document chain" });
-  await expect(chain.getByRole("link")).toHaveCount(5);
+  await expect(chain.getByRole("link")).toHaveCount(6);
   for (const [id, name, status] of [
     ["gap", "Gap assessment", /difference/],
+    ["risk", "Risk assessment", /./],
     ["trd", "TRD", /TRD-001/],
     ["sampling", "Sampling plan", /SPL-001/],
     ["mbr", "Batch record", /MBR-001/],

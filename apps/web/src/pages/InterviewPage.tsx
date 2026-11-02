@@ -34,6 +34,7 @@ import { CategoryChip, Modal, ProvisionalFlag, ResponderForm, SeverityBadge } fr
 import { SIDE_SHORT, sideDescription, type UnitSide } from "../lib";
 import { href, navigate } from "../router";
 import { useAssessment, useContent, useStageWording, useStore } from "../store";
+import { interviewCounts, interviewCountsText } from "../next-step";
 import { AnsweringBar, type CiteNotice } from "./AnsweringBar";
 import { TailorButton } from "./TailorDialog";
 import { HelpTip } from "../HelpTip";
@@ -191,7 +192,6 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
   const group = current ? groupOf(allInstances, current) : [];
   const needsResponder = !project.interview.responder;
   const answeredCount = allInstances.filter((i) => isAnswered(project, i)).length;
-  const tbdCount = allInstances.filter((i) => isAnswered(project, i) && isTbdAnswer(project, i)).length;
 
   /** Records one or more answers in a single store update, then moves on (or stays, see SaveResult). */
   function save(group: QuestionInstance[], items: SaveItem[], opts: { quick: boolean; otherPending: boolean }): SaveResult {
@@ -269,7 +269,7 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
       <aside className="interview-aside" aria-label="Interview progress">
         <div className="card tight">
           <p className="small muted">
-            {answeredCount} of {allInstances.length} answered{tbdCount ? ` · ${tbdCount} to be decided` : ""}
+            {interviewCountsText(interviewCounts(project, allInstances))}
           </p>
           <div className="progress" aria-hidden="true">
             <span style={{ width: `${allInstances.length ? (100 * answeredCount) / allInstances.length : 0}%` }} />
@@ -434,7 +434,7 @@ function ProgressMap({
                 <span className={`pm-state ${done ? "done" : s.answered ? "partial" : ""}`} aria-hidden="true" />
                 <span className="pm-title">{s.section.title}</span>
                 <span className="pm-count">
-                  {s.answered} of {s.total} answered{s.tbd ? ` · ${s.tbd} to be decided` : done ? ", complete" : ""}
+                  {s.answered - s.tbd} of {s.total} answered{s.total - (s.answered - s.tbd) > 0 ? `, ${s.total - (s.answered - s.tbd)} still open` : ", complete"}{s.tbd ? ` (${s.tbd} to be decided)` : ""}
                 </span>
               </a>
               {s.section.kind !== "scoping" && s.total > 0 && (
@@ -944,7 +944,7 @@ function SidePanel({
         {primary}
         {/* One click records a TBD with no details, as fast as the retired "Unknown" answer was. Details are optional (see below). */}
         <button type="button" className="btn" onClick={() => onQuick({ kind: "tbd" })}>
-          TBD (to be determined)
+          TBD (to be decided)
         </button>
         {sameAllowed && (
           <button type="button" className="btn" onClick={() => onQuick({ kind: "same_as_source" })}>
@@ -1056,6 +1056,8 @@ function SectionSummary({ sectionId, instances, thenKey }: { sectionId: string; 
   const mine = all ? instances : instances.filter((i) => i.section.id === sectionId);
   const questions = [...new Map(mine.map((i) => [i.question.id, i.question])).values()];
   const unanswered = mine.filter((i) => !isAnswered(project, i));
+  // A "to be decided" answer is a response but not an answer: it stays open, so a summary full of them is not "complete".
+  const counts = interviewCounts(project, mine);
   // A section whose questions are all shared (Scoping) answers once for the whole project: a single answer column.
   const allShared = mine.length > 0 && mine.every((i) => i.side === "shared");
   const confirmed = project.interview.confirmations.find((c) => c.sectionId === sectionId);
@@ -1069,7 +1071,7 @@ function SectionSummary({ sectionId, instances, thenKey }: { sectionId: string; 
     <article className="card" aria-labelledby="sum-h">
       <div className={!all && sectionArt(sectionId) ? "art-head" : undefined}>
         <h1 id="sum-h" ref={headingRef} tabIndex={-1}>
-          {all ? (unanswered.length ? "Interview summary" : "Interview complete") : `Section summary: ${section?.title ?? sectionId}`}
+          {all ? (counts.open > 0 ? "Interview summary" : "Interview complete") : `Section summary: ${section?.title ?? sectionId}`}
         </h1>
         {!all && sectionArt(sectionId) && <ArtFigure art={sectionArt(sectionId)!} className="art-closeup" sizes="(min-width: 761px) 200px, 0px" />}
       </div>
@@ -1077,6 +1079,10 @@ function SectionSummary({ sectionId, instances, thenKey }: { sectionId: string; 
         <p className="notice">
           {unanswered.length} question{unanswered.length === 1 ? "" : "s"} still unanswered.{" "}
           <a href={href("/interview", { q: unanswered[0]!.key })}>Go to the first one</a>
+        </p>
+      ) : counts.tbd > 0 ? (
+        <p className="notice">
+          Every question here has a response, but {counts.tbd} {counts.tbd === 1 ? "is" : "are"} still to be decided, so {counts.tbd === 1 ? "it stays" : "they stay"} open. Check the answers below; select a row to change it.
         </p>
       ) : (
         <p className="muted">All questions here are answered. Check the answers below; select a row to change it.</p>

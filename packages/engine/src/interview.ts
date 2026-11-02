@@ -26,7 +26,7 @@ export type FieldAnswer =
   | { kind: "same_as_source" }
   | { kind: "not_applicable"; justification: string }
   /**
-   * To be determined. Every detail is optional and none is ever filled in for the user. The best guess has the same shape
+   * To be decided. Every detail is optional and none is ever filled in for the user. The best guess has the same shape
    * as the question's value; it is checked like a value but is stored under `tbd`, never as the entry's value.
    */
   | { kind: "tbd"; bestGuess?: EntryValue; owner?: string; due?: string; note?: string };

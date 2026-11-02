@@ -52,7 +52,9 @@ export function SamplingPage({ params }: { params: URLSearchParams }) {
   const project = useStore((s) => s.project)!;
   const planId = params.get("plan");
   const plan = planId ? planById(project, planId) : undefined;
-  return plan ? <PlanEditor plan={plan} /> : <PlanList missing={planId ?? undefined} />;
+  const tabParam = params.get("tab") ?? "";
+  const initialTab: Tab = tabParam in TAB_LABEL ? (tabParam as Tab) : "overview";
+  return plan ? <PlanEditor plan={plan} initialTab={initialTab} /> : <PlanList missing={planId ?? undefined} />;
 }
 
 function PlanList({ missing }: { missing?: string | undefined }) {
@@ -173,13 +175,21 @@ function PlanRow({ plan }: { plan: SamplingPlan }) {
 
 // ------------------------------------------------------------------ the editor
 
-function PlanEditor({ plan }: { plan: SamplingPlan }) {
+function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab }) {
   const project = useStore((s) => s.project)!;
   const content = useContent();
   const update = useStore((s) => s.update);
   const [error, setError] = useState("");
   // The open point and the view are kept here so they survive switching tab or view.
-  const [tab, setTab] = useState<Tab>("overview");
+  const [tab, setTabState] = useState<Tab>(initialTab);
+  // A link to another tab of the plan that is already open (same page, new address) switches the tab.
+  useEffect(() => setTabState(initialTab), [initialTab]);
+  // Keep the address in step with the tab so a reload or a copied link opens the same plan and tab. replaceState fires no hashchange,
+  // so the page is not re-rendered or reset by it.
+  const setTab = (t: Tab) => {
+    setTabState(t);
+    window.history.replaceState(null, "", href("/sampling", { plan: plan.id, ...(t === "overview" ? {} : { tab: t }) }));
+  };
   const [selected, setSelected] = useState<string | null>(null);
   // The sample under the pointer or focus in the figure or the table, so each highlights the other.
   const [hl, setHl] = useState<string | null>(null);

@@ -72,7 +72,7 @@ test("a paired question shows SU and RU together, each in its own labelled group
   await expect(panel(page, "source").getByRole("button", { name: "Same as SU" })).toHaveCount(0);
   await expect(panel(page, "target").getByRole("button", { name: "Same as SU" })).toBeVisible();
   for (const side of ["source", "target"] as const) {
-    await expect(panel(page, side).getByRole("button", { name: "TBD (to be determined)" })).toBeVisible();
+    await expect(panel(page, side).getByRole("button", { name: "TBD (to be decided)" })).toBeVisible();
     await expect(panel(page, side).getByRole("button", { name: "Not applicable…" })).toBeVisible();
     await expect(panel(page, side).locator("details.cite")).toHaveCount(1);
   }
@@ -197,13 +197,13 @@ test("saving one side with TBD stays on the card for the other side; site names 
   await expect(page.getByRole("group", { name: "Receiving unit (RU) — Site South (fictional) · planned state" })).toBeVisible();
 
   // TBD for SU keeps the card open and moves focus to RU, which still needs an answer.
-  await panel(page, "source").getByRole("button", { name: "TBD (to be determined)" }).click();
+  await panel(page, "source").getByRole("button", { name: "TBD (to be decided)" }).click();
   await expect(status(page)).toHaveText("Saved SU. RU still needs an answer.");
   await expect(prompt).toHaveText("Filling line");
   await expect(panel(page, "source")).toContainText("Recorded SU:");
   await expect(panel(page, "target").locator(":focus")).toHaveCount(1);
   // TBD for RU completes the question, and the interview moves on.
-  await panel(page, "target").getByRole("button", { name: "TBD (to be determined)" }).click();
+  await panel(page, "target").getByRole("button", { name: "TBD (to be decided)" }).click();
   await expect(status(page)).toHaveText(/^Saved RU\. Next: .+\.$/);
   await expect(prompt).not.toHaveText("Filling line");
 });

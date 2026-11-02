@@ -169,7 +169,7 @@ function AppShell() {
         heading: "Alongside",
         items: [
           ...(riskAllowed ? [{ path: "/risk", label: "Risk assessment", desc: "Rate risks with a method you choose." }] : []),
-          { path: "/tbd", label: "Open items (TBD)", desc: "Every value still to be decided, with owner and due date." },
+          { path: "/tbd", label: "Open items", desc: "Every value still to be decided, with owner and due date." },
         ],
       },
     },

@@ -77,7 +77,7 @@ describe("TBD comparison", () => {
   it("a TBD cannot be verified, with or without a best guess", () => {
     for (const input of [{ kind: "tbd" as const }, { kind: "tbd" as const, bestGuess: "peristaltic" }]) {
       const p = ask(v(base(), "fill.pump", "source", "rotary_piston"), "fill.pump", "target", input);
-      expect(verificationProblem(p, PUMP_RU)).toMatch(/TBD|to be determined/i);
+      expect(verificationProblem(p, PUMP_RU)).toMatch(/TBD|to be decided/i);
     }
   });
 

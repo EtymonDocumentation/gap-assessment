@@ -22,7 +22,7 @@ export interface TrdOutlineOptions {
 
 /** The status of a field in words. */
 export function seedStatusText(f: Pick<SeedAnswer, "status" | "provisional"> & { sameAsSu?: true }): string {
-  if (f.status === "tbd") return f.provisional ? "TBD best guess (provisional)" : "TBD (to be determined)";
+  if (f.status === "tbd") return f.provisional ? "TBD best guess (provisional)" : "TBD (to be decided)";
   if (f.status === "established") return f.sameAsSu ? "Established (same as SU)" : "Established";
   if (f.status === "not_applicable") return "Not applicable";
   return NOT_ESTABLISHED;
@@ -35,7 +35,7 @@ export function seedValueText(f: SeedAnswer): string {
   if (f.status === "tbd") {
     const owner = f.tbd?.owner ? `; owner ${f.tbd.owner}` : "";
     const due = f.tbd?.due ? `; due ${f.tbd.due}` : "";
-    return f.provisional && shown ? `${shown} (TBD best guess, provisional${owner}${due})` : `To be determined (TBD)${owner}${due}`;
+    return f.provisional && shown ? `${shown} (TBD best guess, provisional${owner}${due})` : `To be decided (TBD)${owner}${due}`;
   }
   if (f.status === "not_applicable") return f.justification ? `Not applicable: ${f.justification}` : "Not applicable";
   return NOT_ESTABLISHED;
@@ -124,7 +124,7 @@ export function buildTrdOutline(seed: TrdSeed, opts: TrdOutlineOptions = {}): Do
     { type: "note", text: basis },
     {
       type: "paragraph",
-      text: `This outline lists what the gap assessment recorded about the planned process at the receiving unit (RU) for ${program}. It is meant as a starting point for the technical requirements document (TRD): each value shows whether it is established, still to be determined (TBD) or not established. Nothing has been filled in on behalf of the project, and unit operations or topics left out are not listed below.`,
+      text: `This outline lists what the gap assessment recorded about the planned process at the receiving unit (RU) for ${program}. It is meant as a starting point for the technical requirements document (TRD): each value shows whether it is established, still to be decided (TBD) or not established. Nothing has been filled in on behalf of the project, and unit operations or topics left out are not listed below.`,
     },
     { type: "table", columns: ["Unit operation or topic", "Scope", "Note"], rows: scopeRows, caption: "Scope of the outline" },
   ]);
@@ -207,7 +207,7 @@ export function buildTrdOutline(seed: TrdSeed, opts: TrdOutlineOptions = {}): Do
     {
       type: "paragraph",
       text: openRows.length
-        ? "Values that are still to be determined (TBD) or not established. They must be resolved or accepted before the TRD can rely on them."
+        ? "Values that are still to be decided (TBD) or not established. They must be resolved or accepted before the TRD can rely on them."
         : "The gap assessment holds no TBD or not established values for the units listed in this outline.",
     },
     ...(openRows.length ? ([{ type: "table", columns: ["Where", "Attribute", "Status", "Owner", "Due", "Note"], rows: openRows }] as Block[]) : []),

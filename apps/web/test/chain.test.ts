@@ -13,10 +13,10 @@ const syr = () =>
 const route = (path: string, q = "") => ({ path, params: new URLSearchParams(q) });
 
 describe("the document chain", { timeout: 60_000 }, () => {
-  it("lists five stages, all 'Not started' on an empty project, and none is marked required", () => {
+  it("lists six stages, all 'Not started' on an empty project, and none is marked required", () => {
     const p = blank();
     const stages = chainStages(p, assess(content, p), all);
-    expect(stages.map((s) => s.id)).toEqual(["gap", "trd", "sampling", "mbr", "view"]);
+    expect(stages.map((s) => s.id)).toEqual(["gap", "risk", "trd", "sampling", "mbr", "view"]);
     expect(stages.filter((s) => ["trd", "sampling", "mbr"].includes(s.id)).map((s) => s.status)).toEqual(["Not started", "Not started", "Not started"]);
     expect(stages.find((s) => s.id === "view")!.path).toBe("/mbr");
   });
@@ -24,7 +24,7 @@ describe("the document chain", { timeout: 60_000 }, () => {
   it("leaves out the stages of modules the account does not have", () => {
     const p = blank();
     const ids = chainStages(p, assess(content, p), { ...all, trd: false, mbr: false }).map((s) => s.id);
-    expect(ids).toEqual(["gap", "sampling"]);
+    expect(ids).toEqual(["gap", "risk", "sampling"]);
   });
 
   it("marks the stage a route belongs to", () => {
@@ -58,5 +58,22 @@ describe("the document chain", { timeout: 60_000 }, () => {
     expect(thenStep(p, all)).toMatchObject({ label: "Start a TRD", path: "/trd" });
     expect(thenStep(p, { ...all, trd: false })).toMatchObject({ path: "/sampling" });
     expect(thenStep(syr(), all)).toMatchObject({ label: "Open the Process view" });
+  });
+});
+
+describe("the risk assessment in the chain strip", () => {
+  it("sits right after the gap assessment, and Back / Next skip it", () => {
+    const p = blank();
+    const stages = chainStages(p, assess(content, p), all);
+    expect(stages.map((s) => s.id).slice(0, 3)).toEqual(["gap", "risk", "trd"]);
+    expect(stages.find((s) => s.id === "risk")!.status).toBe("Not started");
+    const bar = chainBar(p, assess(content, p), all, route("/trd"));
+    expect(bar.back?.path).toBe("/document");
+    expect(bar.next?.path).toBe("/sampling");
+  });
+
+  it("is left out when the account has no risk module", () => {
+    const p = blank();
+    expect(chainStages(p, assess(content, p), { ...all, risk: false }).map((s) => s.id)).not.toContain("risk");
   });
 });

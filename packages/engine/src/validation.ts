@@ -80,7 +80,7 @@ export type SideEntryState = "established" | "tbd" | "not_established" | "not_ap
 export const PROVISIONAL_LABEL = "Provisional — based on a TBD value";
 
 export interface SideValue {
-  /** Text for the cell: the answer, "To be determined (TBD)", "Not established", or "—" when the side is not asked. */
+  /** Text for the cell: the answer, "To be decided (TBD)", "Not established", or "—" when the side is not asked. */
   display: string;
   entry: SideEntryState;
   /** True when the shown value is a TBD best guess (the display says so as well). */
@@ -299,7 +299,7 @@ export function validationPlanToCsv(plan: PlanRow[]): string {
 export interface QualifiedRange {
   /** Attribute the range applies to, e.g. "Fill volume". */
   attribute: string;
-  /** Target qualified range as recorded, or "Not established" / "To be determined (TBD)" / "—". */
+  /** Target qualified range as recorded, or "Not established" / "To be decided (TBD)" / "—". */
   qualified: SideValue;
   /** Reference of the entry holding the qualified range. */
   ref: string;

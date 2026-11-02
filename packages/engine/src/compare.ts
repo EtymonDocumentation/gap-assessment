@@ -127,8 +127,8 @@ function trackProvisional(ctx: Ctx, r: Resolved): Resolved {
 const est = (r: Resolved) => r.status === "established" && r.value !== undefined;
 
 function statusText(r: Resolved): string {
-  // Read inside a sentence ("RU set point TBD (to be determined)"), so the TBD wording keeps its capitals.
-  return r.status === "established" ? "established" : r.status === "tbd" ? "TBD (to be determined)" : STATUS_TEXT[r.status].toLowerCase();
+  // Read inside a sentence ("RU set point TBD (to be decided)"), so the TBD wording keeps its capitals.
+  return r.status === "established" ? "established" : r.status === "tbd" ? "TBD (to be decided)" : STATUS_TEXT[r.status].toLowerCase();
 }
 
 function info(...parts: [string, Resolved][]): ComparatorResult {

@@ -18,7 +18,7 @@ export type EntryStatus =
   /** A value exists and is supported by at least one live source. */
   | "established"
   /**
-   * To be determined (schema 1.7.0): the one "not known yet" answer. Becomes an open information item. Every detail is
+   * To be decided (schema 1.7.0): the one "not known yet" answer. Becomes an open information item. Every detail is
    * optional: with none it is exactly what the retired "Unknown" answer was (schema 1.9.0 converts those); someone may also
    * name an owner and a due date, and record a best guess. The best guess is NOT a value (see Entry.tbd); it only drives a
    * provisional comparison.

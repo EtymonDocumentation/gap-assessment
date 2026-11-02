@@ -1,4 +1,4 @@
-import { deleteTrd, trdOpenItems, trdOverrides, updateTrd, type TrdOpenItem } from "@gap/engine";
+import { deleteTrd, openBlankCount, trdOpenItems, trdOverrides, updateTrd, writeupsInOrder, type BlankContext, type TrdOpenItem } from "@gap/engine";
 import type { TrdDocument } from "@gap/process-model";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PageBanner } from "../art";
@@ -7,7 +7,7 @@ import { Tabs, type TabDef } from "../Tabs";
 import { WhatThisIs } from "../WhatThisIs";
 import { dateTime } from "../lib";
 import { href, navigate } from "../router";
-import { useStore } from "../store";
+import { useContent, useStore } from "../store";
 import type { Run } from "./SamplingFlow";
 import { FieldRow } from "./TrdFieldRow";
 import { TrdOutput } from "./TrdOutput";
@@ -310,10 +310,23 @@ function Details({ d, run }: { d: TrdDocument; run: Run }) {
 
 function OpenItems({ d, open }: { d: TrdDocument; open: TrdOpenItem[] }) {
   const overrides = trdOverrides(d);
+  const project = useStore((s) => s.project)!;
+  const content = useContent();
+  // Two different counts, named so a first-time reader sees why they differ: open items are entries of this list; blank fields are the
+  // square-bracket gaps inside the process descriptions (same wording as the exported document).
+  const blanks = useMemo(() => {
+    const ctx: BlankContext = { project, doc: d, content };
+    return writeupsInOrder(d).reduce((n, w) => n + openBlankCount(ctx, w), 0);
+  }, [project, d, content]);
   return (
     <>
       <section className="card stack" aria-labelledby="trd-open-h" data-testid="trd-open-items">
         <h2 id="trd-open-h">Open items ({open.length})</h2>
+        {blanks > 0 && (
+          <p className="notice" data-testid="trd-blank-count">
+            {open.length} open {open.length === 1 ? "item" : "items"}, and {blanks} blank {blanks === 1 ? "field" : "fields"} in the text of the process descriptions. Blank fields are counted apart; they are listed on the Descriptions tab.
+          </p>
+        )}
         {open.length === 0 ? (
           <p>No open items. This says the entries are all there, not that the numbers are right; that decision belongs to your team and your quality system.</p>
         ) : (

@@ -142,7 +142,7 @@ export function effectiveField(f: TrdField): EffectiveValue {
   return { status: "not_established", text: seedValueText({ status: "not_established" }), provisional: false, overridden: false };
 }
 
-/** A field counts as open while it is unknown or still to be determined. "Not applicable" is an answer. */
+/** A field counts as open while it is unknown or still to be decided. "Not applicable" is an answer. */
 export const isOpenStatus = (s: SeedStatus) => s === "not_established" || s === "tbd";
 
 /** Source ids behind a field: those that came in with it. An override has no source of its own (the reason says why). */
@@ -654,7 +654,7 @@ export function trdOpenItems(d: TrdDocument): TrdOpenItem[] {
     const v = effectiveField(f);
     const base = { where: `${where}, ${f.label}`, ...(stepId ? { stepId } : {}), ...(ref ? { itemRef: ref } : {}) };
     if (v.status === "not_established") out.push({ ...base, kind: "not_established", text: "Not established" });
-    else if (v.status === "tbd") out.push({ ...base, kind: v.provisional ? "provisional" : "tbd", text: v.provisional ? `${v.text}` : "To be determined (TBD)" });
+    else if (v.status === "tbd") out.push({ ...base, kind: v.provisional ? "provisional" : "tbd", text: v.provisional ? `${v.text}` : "To be decided (TBD)" });
   };
   for (const f of d.details) field(f, "Details");
   for (const s of d.steps) {

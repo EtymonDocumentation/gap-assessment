@@ -27,3 +27,13 @@ describe("sampling plan export: design review line", () => {
     writeFileSync(join(dir, "sampling-plan.html"), html);
   });
 });
+
+describe("sampling plan export: a plan without points", () => {
+  it("says there are no sample points yet, not that every point is placed", () => {
+    const project = buildDemoProject(content, demos["syr-305"], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes }, { library: mbrLibrary });
+    const plan = { ...project.sampling.plans[0]!, points: [] };
+    const html = renderHtml(buildSamplingPlanDocument(content, project, plan, samplingSuggestions, { generatedAt: GENERATED_AT, appVersion: "0.0.0-test" }));
+    expect(html).toContain("No sample points yet.");
+    expect(html).not.toContain("Every sampling point is placed");
+  });
+});

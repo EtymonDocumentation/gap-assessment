@@ -97,7 +97,7 @@ describe("the TRD header names both counts (row 6)", () => {
     const { doc } = newProjectTrd();
     const row = doc.meta.find((m) => m[0] === "Open items")!;
     expect(row[1]).toMatch(/^\d+, and \d+ blank fields in the text$/);
-    expect(renderMarkdown(doc)).toMatch(/\d+ blank fields have no value yet/);
+    expect(renderMarkdown(doc)).toMatch(/\d+ blank fields in the process descriptions have no value yet/);
   });
 });
 
