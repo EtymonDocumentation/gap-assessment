@@ -1,4 +1,5 @@
-import type { MbrRecord, MbrSampleRow, MbrStep, MbrTimeLimit, Project, SamplingPlan } from "@gap/process-model";
+import type { MbrRecord, MbrSampleRow, MbrStep, MbrTimeLimit, Project, SampleAccess, SampleFlushPractice, SamplingPlan, SamplingPoint } from "@gap/process-model";
+import { samplingMethodReminders } from "@gap/sampling";
 import { holdEntryInfo, numberSteps, sampleMomentKey, splitIndex } from "./mbr";
 
 /*
@@ -95,6 +96,36 @@ export interface ViewClock {
   parts?: { label: string; hours?: number; text?: string; startMoment?: number; endMoment?: number }[];
 }
 
+/**
+ * How the linked sampling plan says the sample is physically taken (plan format 1.6.0), as the Process view draws and prints it. Every
+ * field is present only when the plan states it; the view adds no default. The step's own port name (ViewSample.port) is the PLACE, the
+ * access here is the KIND of connection, so both are kept when both exist.
+ */
+export interface ViewSampleMethod {
+  access?: SampleAccess;
+  /** Short words for the access ("shared port", "Y-connector", ...). For "other" the person's own description, or "other" when none. */
+  accessText?: string;
+  /** A port or connector added only for the study (a Y-connector counts as an addition unless the plan says it is not). */
+  addedForStudy?: boolean;
+  /** "PPQ only" for a PPQ point, else "study only": the tag drawn next to an added part. */
+  studyTag?: "PPQ only" | "study only";
+  inCommercialAssembly?: boolean;
+  removedAfter?: boolean;
+  flush?: {
+    practice: SampleFlushPractice;
+    /** Counted as liquid lost to waste only when the plan states it in mL or L (kept here in mL). */
+    volumeMl?: number;
+    /** The volume as the plan wrote it, for words. */
+    volumeText?: string;
+    discardTo?: string;
+  };
+  sharedWith?: string[];
+  flushBetween?: boolean;
+  closedSystem?: "closed" | "open";
+  /** The same facts in one phrase, for an accessible name and the sample lists ("shared port, flush 30 mL to waste"). */
+  text: string;
+}
+
 export interface ViewSample {
   /** Row id (R-nnnn) of the sample row in the record. */
   rowId: string;
@@ -115,6 +146,10 @@ export interface ViewSample {
   port?: string;
   container?: string;
   storage?: string;
+  /** The plan point's answers to "how is the sample taken". Absent when the point has none. */
+  method?: ViewSampleMethod;
+  /** Liquid flushed or discarded to waste before this sample, in mL: only a stated volume in mL or L. Never part of the sample volume. */
+  flushMl?: number;
 }
 
 export interface MomentVolume {
@@ -124,6 +159,8 @@ export interface MomentVolume {
   statedLabel?: string;
   /** Taken as samples in this section up to and including this moment, L. */
   withdrawnL: number;
+  /** Flushed or discarded to waste before those samples, L (its own line: lost liquid, not sample volume). */
+  flushedL: number;
   remainingL?: number;
   /** Why no balance is shown. */
   missing?: string;
@@ -138,6 +175,8 @@ export interface VolumeSectionRow {
   statedRowId?: string;
   sampleMl: number;
   sampleCount: number;
+  /** Flushed to waste before the samples of this section, mL. */
+  flushMl: number;
   percent?: number;
   status: "ok" | "over" | "no_data";
   missing?: string;
@@ -297,6 +336,67 @@ const POINT = /\bSP-\d{3,}\b/g;
 const TAKE = /\b(take|draw|collect|withdraw)\b/i;
 const PORT = /(?:(?:upper|lower|bottom|top|sterile|sampling|sample|manifold)[ -])*(?:port|valve|manifold|tap)\b/i;
 
+const ACCESS_WORDS: Record<SampleAccess, string> = {
+  dedicated_port: "dedicated port",
+  shared_port: "shared port",
+  added_y_connector: "Y-connector",
+  bag_sample_manifold: "bag sample manifold",
+  aseptic_connector: "aseptic connector",
+  grab_open: "open grab",
+  other: "other",
+};
+
+/** A flush volume the tracker may count: mL or L only. Any other unit is shown in words but never turned into a number. */
+function flushVolumeMl(v: { value: number; unit: string } | undefined): number | undefined {
+  if (!v) return undefined;
+  const u = v.unit.trim().toLowerCase();
+  if (u === "ml") return v.value;
+  if (u === "l") return v.value * 1000;
+  return undefined;
+}
+
+/** The method answers of one plan point, only what is stated. Undefined when the point has no answer the view can use. */
+export function sampleMethodOf(point: SamplingPoint | undefined): ViewSampleMethod | undefined {
+  const m = point?.method;
+  if (!point || !m) return undefined;
+  const out: ViewSampleMethod = { text: "" };
+  if (m.access) {
+    out.access = m.access;
+    out.accessText = m.access === "other" ? (m.accessOther ?? "").trim() || "other" : ACCESS_WORDS[m.access];
+  }
+  // A Y-connector is an addition to the assembly by nature, so it is drawn as one unless the plan says it was not added for the study.
+  if (m.added?.forStudyOnly === true || (m.access === "added_y_connector" && m.added?.forStudyOnly !== false)) {
+    out.addedForStudy = true;
+    out.studyTag = point.type?.startsWith("ppq") ? "PPQ only" : "study only";
+  }
+  if (m.added?.inCommercialAssembly !== undefined) out.inCommercialAssembly = m.added.inCommercialAssembly;
+  if (m.added?.removedAfter !== undefined) out.removedAfter = m.added.removedAfter;
+  const f = m.flush;
+  if (f?.practice && f.practice !== "none_stated_reason") {
+    const ml = flushVolumeMl(f.volume);
+    out.flush = { practice: f.practice, ...(ml !== undefined ? { volumeMl: ml } : {}), ...(f.volume ? { volumeText: `${f.volume.value} ${f.volume.unit}` } : {}), ...(f.discardTo?.trim() ? { discardTo: f.discardTo.trim() } : {}) };
+  }
+  if (m.shared?.pointIds?.length) out.sharedWith = [...m.shared.pointIds];
+  if (m.shared?.flushBetween !== undefined) out.flushBetween = m.shared.flushBetween;
+  if (m.closedSystem) out.closedSystem = m.closedSystem;
+  const has = out.access || out.addedForStudy || out.flush || out.sharedWith || out.flushBetween !== undefined || out.closedSystem || out.inCommercialAssembly !== undefined || out.removedAfter !== undefined;
+  if (!has) return undefined;
+  const bits: string[] = [];
+  if (out.accessText) bits.push(out.accessText);
+  if (out.addedForStudy) bits.push(`added for ${out.studyTag === "PPQ only" ? "PPQ" : "the study"} only`);
+  if (out.inCommercialAssembly !== undefined) bits.push(out.inCommercialAssembly ? "in the commercial assembly" : "not in the commercial assembly");
+  if (out.removedAfter !== undefined) bits.push(out.removedAfter ? "removed afterwards" : "not removed afterwards");
+  if (out.sharedWith) bits.push(`shared with ${out.sharedWith.join(", ")}`);
+  if (out.flushBetween !== undefined) bits.push(out.flushBetween ? "flushed between samples" : "not flushed between samples");
+  if (out.flush) {
+    const what = out.flush.practice === "flush_volume" ? "flush" : "first draw discarded";
+    bits.push(`${what}${out.flush.volumeText ? ` ${out.flush.volumeText}` : " (volume not stated)"}${out.flush.discardTo ? ` to ${out.flush.discardTo}` : ""}`);
+  }
+  if (out.closedSystem) bits.push(out.closedSystem);
+  out.text = bits.join(", ");
+  return out;
+}
+
 // ------------------------------------------------------------------ the view
 
 export function buildProcessView(project: Project, rec: MbrRecord): ProcessView {
@@ -374,6 +474,7 @@ export function buildProcessView(project: Project, rec: MbrRecord): ProcessView 
     else momentIndex = lastMomentOfSection(moments, rec.sections[si]!.id);
     const port = taker ? PORT.exec(taker.step.text)?.[0] : undefined;
     const kind: ViewSample["kind"] = q ? q.kind : "unknown";
+    const method = sampleMethodOf(plan?.points.find((p) => p.id === row.pointId));
     samples.push({
       rowId: row.id,
       pointId: row.pointId,
@@ -389,6 +490,10 @@ export function buildProcessView(project: Project, rec: MbrRecord): ProcessView 
       ...(port ? { port } : {}),
       ...(row.container ? { container: row.container } : {}),
       ...(row.storage ? { storage: row.storage } : {}),
+      ...(method ? { method } : {}),
+      // Counted once per sample that states a flush. On a shared port the plan says per point whether the port is flushed between samples,
+      // so each point that states a volume brings its own flush; none is invented for a point that states none.
+      ...(method?.flush?.volumeMl !== undefined ? { flushMl: method.flush.volumeMl } : {}),
     });
     moments[momentIndex]!.sampleIds.push(row.id);
   }
@@ -512,13 +617,17 @@ export function buildProcessView(project: Project, rec: MbrRecord): ProcessView 
     return litres !== undefined ? [{ label: b.label, sizeL: litres }] : [];
   });
   const momentVolumes: MomentVolume[] = moments.map((m) => {
-    if (m.sectionNumber === undefined) return { withdrawnL: 0 };
+    if (m.sectionNumber === undefined) return { withdrawnL: 0, flushedL: 0 };
     const si = m.sectionNumber - 1;
     const withdrawn = samples.filter((x) => x.sectionNumber === m.sectionNumber && x.momentIndex <= m.index && x.volumeMl !== undefined).reduce((a, x) => a + x.volumeMl! / 1000, 0);
+    // Flushed or discarded liquid is lost to waste. It is its own number (flushedL) so the sample total stays the samples; the balance
+    // subtracts both because both left the batch. Only a stated volume in mL or L counts (see flushVolumeMl).
+    const flushed = samples.filter((x) => x.sectionNumber === m.sectionNumber && x.momentIndex <= m.index && x.flushMl !== undefined).reduce((a, x) => a + x.flushMl! / 1000, 0);
     const b = batchVolumeOf(si);
-    if (b.ok) return { statedL: b.ok.litres, statedRowId: b.ok.p.id, statedLabel: b.ok.p.label, withdrawnL: withdrawn, remainingL: b.ok.litres - withdrawn };
+    if (b.ok) return { statedL: b.ok.litres, statedRowId: b.ok.p.id, statedLabel: b.ok.p.label, withdrawnL: withdrawn, flushedL: flushed, remainingL: b.ok.litres - withdrawn - flushed };
     return {
       withdrawnL: withdrawn,
+      flushedL: flushed,
       missing: b.ambiguous ? `${b.ambiguous.join(", ")} could each be the batch volume of section ${m.sectionNumber}` : `no row of section ${m.sectionNumber} states a batch volume`,
       ...(planBatches.length ? { planBatches } : {}),
     };
@@ -526,12 +635,13 @@ export function buildProcessView(project: Project, rec: MbrRecord): ProcessView 
   const volumeSections: VolumeSectionRow[] = rec.sections.map((s, si) => {
     const mine = samples.filter((x) => x.sectionNumber === si + 1 && x.volumeMl !== undefined);
     const ml = mine.reduce((a, x) => a + x.volumeMl!, 0);
+    const flushMl = samples.filter((x) => x.sectionNumber === si + 1 && x.flushMl !== undefined).reduce((a, x) => a + x.flushMl!, 0);
     const b = batchVolumeOf(si);
     if (b.ok) {
       const pct = (ml / 1000 / b.ok.litres) * 100;
-      return { sectionNumber: si + 1, sectionTitle: s.title, statedL: b.ok.litres, statedRowId: b.ok.p.id, sampleMl: ml, sampleCount: mine.length, percent: pct, status: ml / 1000 > b.ok.litres ? "over" : "ok" };
+      return { sectionNumber: si + 1, sectionTitle: s.title, statedL: b.ok.litres, statedRowId: b.ok.p.id, sampleMl: ml, sampleCount: mine.length, flushMl, percent: pct, status: ml / 1000 > b.ok.litres ? "over" : "ok" };
     }
-    return { sectionNumber: si + 1, sectionTitle: s.title, sampleMl: ml, sampleCount: mine.length, status: "no_data", missing: b.ambiguous ? `several rows could be the batch volume (${b.ambiguous.join(", ")})` : "no row states a batch volume" };
+    return { sectionNumber: si + 1, sectionTitle: s.title, sampleMl: ml, sampleCount: mine.length, flushMl, status: "no_data", missing: b.ambiguous ? `several rows could be the batch volume (${b.ambiguous.join(", ")})` : "no row states a batch volume" };
   });
   const fillRows = volRows.filter((v) => (v.p.key === "fill_volume" || /^fill volume$/i.test(v.p.label)) && (v.p.mbrUnit ?? "").trim().toLowerCase() === "ml");
   const fillMl = fillRows.length === 1 ? fillRows[0]!.litres * 1000 : undefined;
@@ -716,6 +826,19 @@ export function buildProcessView(project: Project, rec: MbrRecord): ProcessView 
     if (late.length === 0) return { status: "ok", summary: "No volume sample is taken in a section after the sterile filtration." };
     const f = addFinding("S5", "note", `${late.length} volume ${late.length === 1 ? "sample is" : "samples are"} taken after the sterile filtration`, `${late.map((x) => x.pointId).join(", ")}. A volume drawn from the sterile side is an aseptic withdrawal and leaves the filled product; check the step for how it is drawn.`, momentStepNos(late.map((x) => x.momentIndex)), late.map((x) => x.rowId), late.map((x) => x.momentIndex));
     return { status: "finding", summary: `${late.length} volume samples after the sterile filtration.`, found: [f] };
+  });
+
+  // S6: the plan's reminders about how each sample is taken. The text comes from samplingMethodReminders (@gap/sampling) so the plan, the
+  // batch record and this view never word it two ways. A note only: the practice is optional and never blocks anything.
+  check("S6", "Samples", "How each sample is taken is stated where the plan asks", "The linked sampling plan's answers to \"How the sample is taken\" for the points of the samples", () => {
+    const asked = plan ? samples.flatMap((x) => { const pt = plan.points.find((p) => p.id === x.pointId); return pt ? [{ x, rem: samplingMethodReminders(pt, plan) }] : []; }) : [];
+    if (!plan || asked.every((a) => a.rem.length === 0 && !a.x.method)) return { status: "na", summary: plan ? "The sampling plan does not ask how these samples are taken." : "No sampling plan is linked." };
+    const gaps = asked.filter((a) => a.rem.length > 0);
+    if (gaps.length === 0) return { status: "ok", summary: "Where the plan asks how a sample is taken, every answer is complete." };
+    // One compact line per sample, named by the fields the function reports; the full sentences stay in the sampling plan.
+    const lines = gaps.map((a) => `${a.x.pointId}: ${[...new Set(a.rem.map((r) => r.field))].join("; ")}`);
+    const f = addFinding("S6", "note", `${gaps.length} ${gaps.length === 1 ? "sample has" : "samples have"} sampling-method details not stated`, `Not stated in the sampling plan: ${lines.join(". ")}. A reminder only; it does not block anything.`, gaps.flatMap((a) => (a.x.stepNumber ? [a.x.stepNumber] : [])), gaps.map((a) => a.x.rowId), gaps.map((a) => a.x.momentIndex));
+    return { status: "finding", summary: `${gaps.length} of ${asked.length} samples have method details not stated.`, found: [f] };
   });
 
   // V1 and V2

@@ -1,5 +1,5 @@
 import { branchStatusAt, buildProcessView, CLOCK_STATUS_TEXT, clockLabel, clockStatusAt, describeMoment, type ProcessView, type Severity, type ViewClock, type ViewEquipment, type ViewSample } from "@gap/engine";
-import type { MbrRecord } from "@gap/process-model";
+import { SAMPLE_ACCESS, type MbrRecord, type SampleAccess } from "@gap/process-model";
 import { useMemo, useState } from "react";
 import { href } from "../router";
 import { useStore } from "../store";
@@ -96,7 +96,7 @@ export function MbrProcessView({ rec }: { rec: MbrRecord }) {
           The record has no clock times, so the picture does not run a timeline. Every number comes from the record or its linked TRD and sampling plan; where a check needs a number the record does not state, it says &quot;Not enough data
           in the record&quot; and does not guess. Findings are prompts for a person to review. They do not approve anything and do not decide a filing category.
         </p>
-        <Legend />
+        <Legend view={view} />
       </PvAbout>
 
       <section className="card stack" aria-labelledby="pv-moments">
@@ -160,12 +160,16 @@ export function MbrProcessView({ rec }: { rec: MbrRecord }) {
                 Batch volume the section states: {num(volume.statedL)} L (row {volume.statedRowId}).
               </li>
               <li>Taken as samples in this section up to this moment: {num(volume.withdrawnL)} L.</li>
-              <li>Left after those samples: {num(volume.remainingL ?? 0)} L. Losses in lines and filters are not stated and are not subtracted.</li>
+              {volume.flushedL > 0 && <li data-testid="pv-flushed">Flushed to waste before those samples (stated volumes only): {num(volume.flushedL)} L.</li>}
+              <li>
+                Left after those samples{volume.flushedL > 0 ? " and flushes" : ""}: {num(volume.remainingL ?? 0)} L. Other losses in lines and filters are not stated and are not subtracted.
+              </li>
             </ul>
           ) : moment.sectionNumber !== undefined ? (
             <div className="small" data-testid="pv-volume">
               <p>Not enough data in the record: {volume.missing}.</p>
               <p>Taken as samples in this section up to this moment: {num(volume.withdrawnL)} L.</p>
+              {volume.flushedL > 0 && <p data-testid="pv-flushed">Flushed to waste before those samples (stated volumes only): {num(volume.flushedL)} L.</p>}
               {volume.planBatches && <p>Batch sizes of the linked sampling plan: {volume.planBatches.map((b) => `${b.label} ${num(b.sizeL)} L`).join("; ")}. The record is not tied to one batch.</p>}
             </div>
           ) : (
@@ -209,6 +213,7 @@ export function MbrProcessView({ rec }: { rec: MbrRecord }) {
                 <li key={s.rowId}>
                   <strong>{s.pointId}</strong>: {s.test}. Quantity: {s.quantityText ?? "not stated"}. {s.stepNumber ? `Step ${s.stepNumber}. ` : "On the hold entry. "}
                   {s.port ? `Taken at: ${s.port}.` : "No port named in the step."}
+                  {s.method && <span data-testid={`pv-method-${s.pointId}`}> How it is taken: {s.method.text}.</span>}
                 </li>
               ))}
             </ul>
@@ -234,7 +239,8 @@ export function MbrProcessView({ rec }: { rec: MbrRecord }) {
 
 // ------------------------------------------------------------------ pieces
 
-function Legend() {
+function Legend({ view }: { view: ProcessView }) {
+  const kinds = SAMPLE_ACCESS.filter((a) => view.samples.some((s) => s.method?.access === a));
   return (
     <ul className="pv-legend" aria-label="Legend">
       <li>
@@ -274,19 +280,112 @@ function Legend() {
         Sample with no readable quantity
       </li>
       <li>Marker outline: bold = taken now, solid = taken earlier, dotted = taken later</li>
+      {kinds.map((a) => (
+        <li key={a} data-testid={`pv-legend-${a}`}>
+          <svg width="34" height="18" viewBox="-2 -1 34 18" aria-hidden="true">
+            <AccessGlyph access={a} added={false} />
+          </svg>
+          {ACCESS_LEGEND[a]}
+        </li>
+      ))}
+      {view.samples.some((s) => s.method?.addedForStudy) && (
+        <li data-testid="pv-legend-added">
+          <svg width="34" height="18" viewBox="-2 -1 34 18" aria-hidden="true">
+            <AccessGlyph access="added_y_connector" added />
+          </svg>
+          Dashed part: added only for the study (the tag says PPQ only or study only)
+        </li>
+      )}
+      {view.samples.some((s) => s.method?.flush?.volumeText) && (
+        <li data-testid="pv-legend-flush">
+          <svg width="44" height="18" viewBox="0 -1 44 18" aria-hidden="true">
+            <FlushDrawing />
+          </svg>
+          Flushed or discarded to waste before the sample (volume as written in the plan)
+        </li>
+      )}
     </ul>
   );
+}
+
+const ACCESS_LEGEND: Record<SampleAccess, string> = {
+  dedicated_port: "Dedicated sampling port",
+  shared_port: "Shared port (a thin line joins the samples drawn from it)",
+  added_y_connector: "Y-connector",
+  bag_sample_manifold: "Bag sample manifold",
+  aseptic_connector: "Aseptic connector",
+  grab_open: "Open grab sample",
+  other: "Other way of taking the sample (see the sample list)",
+};
+
+/**
+ * How the sample leaves the closed system, drawn in a 30 x 16 box: decoration next to text (the sample list and the tables say the same
+ * in words). A dashed line means the part was added only for the study. Only the line style differs, so the cue is not colour.
+ */
+function AccessGlyph({ access, added }: { access: SampleAccess; added: boolean }) {
+  const cls = `pv-glyph${added ? " added" : ""}`;
+  switch (access) {
+    case "dedicated_port": // pipe with one stub and a cap
+      return <path d="M0 14 H30 M15 14 V4 M11 4 H19" className={cls} />;
+    case "shared_port": // the same stub with a ring: more than one sample leaves here
+      return (
+        <g>
+          <path d="M0 14 H30 M15 14 V7"className={cls} />
+          <circle cx="15" cy="4" r="3" className={cls} />
+        </g>
+      );
+    case "added_y_connector": // trunk with two arms
+      return <path d="M0 8 H11 M11 8 L24 1 M11 8 L24 15" className={cls} />;
+    case "bag_sample_manifold": // a comb: spine with teeth
+      return <path d="M0 14 H30 M5 14 V3 M12 14 V3 M19 14 V3 M26 14 V3" className={cls} />;
+    case "aseptic_connector": // two halves with a gap
+      return <path d="M0 8 H10 M10 2 V14 M10 2 H14 M10 14 H14 M20 2 V14 M20 2 H16 M20 14 H16 M20 8 H30" className={cls} />;
+    case "grab_open": // an open cup, always dashed: nothing closed about it
+      return <path d="M5 2 L8 14 H22 L25 2" className="pv-glyph added" />;
+    default: // another way, described in words
+      return <circle cx="15" cy="8" r="5" className={cls} />;
+  }
+}
+
+/** The flush: an arrow to a waste mark (an open container). */
+function FlushDrawing() {
+  return <path d="M0 8 H15 M11 4 L16 8 L11 12 M20 2 V14 H34 V2" className="pv-waste" />;
 }
 
 const CELL_W = 190;
 const CELL_H = 270;
 const PER_ROW = 6;
+const MARK_ROW = 24;
+const MARK_MAX = 12;
+
+interface MarkPos {
+  s: ViewSample;
+  x: number;
+  y: number;
+}
+
+/**
+ * Where the sample markers of one piece of equipment sit. A marker with no method answer keeps its small place (three to a row). A marker
+ * with a method gets a row of its own, because the glyph, the study tag and the flush to waste need the width of the cell; the flush
+ * adds a second line. Nothing is drawn for a point that says nothing about how it is taken.
+ */
+function layoutMarks(marks: ViewSample[]): { items: MarkPos[]; height: number } {
+  const shown = marks.slice(0, MARK_MAX);
+  const plain = shown.filter((s) => !s.method);
+  const items: MarkPos[] = plain.map((s, k) => ({ s, x: 4 + (k % 3) * 62, y: Math.floor(k / 3) * MARK_ROW }));
+  let y = Math.ceil(plain.length / 3) * MARK_ROW;
+  for (const s of shown.filter((x) => x.method)) {
+    items.push({ s, x: 4, y });
+    y += s.method!.flush?.volumeText ? MARK_ROW + 22 : MARK_ROW + 2;
+  }
+  return { items, height: y };
+}
 
 /** Cell position: rows run left to right, then right to left, so the pipe between rows is a straight drop. */
-function cellAt(i: number, top = 0) {
+function cellAt(i: number, top = 0, cellH = CELL_H) {
   const row = Math.floor(i / PER_ROW);
   const col = i % PER_ROW;
-  return { x: 20 + (row % 2 === 0 ? col : PER_ROW - 1 - col) * CELL_W, y: 10 + top + row * CELL_H, row };
+  return { x: 20 + (row % 2 === 0 ? col : PER_ROW - 1 - col) * CELL_W, y: 10 + top + row * cellH, row };
 }
 
 /**
@@ -319,22 +418,44 @@ function Train({ view, at }: { view: ProcessView; at: number }) {
   const ownerOf = (s: ViewSample) => branches.find((b) => b.eq.number === s.sectionNumber)?.eq.id ?? view.moments[s.momentIndex]?.equipmentId;
   const marksOf = (e: ViewEquipment) => view.samples.filter((s) => s.momentIndex >= 0 && ownerOf(s) === e.id);
   // The band above the main train holds the branches: shape and title, status and clock lines, and their sample markers.
-  const bandH = branches.length ? 232 + Math.ceil(Math.max(0, ...branches.map((b) => Math.min(12, marksOf(b.eq).length))) / 3) * 24 : 0;
+  const bandH = branches.length ? 232 + Math.max(0, ...branches.map((b) => layoutMarks(marksOf(b.eq)).height)) : 0;
+  // A cell grows when its markers need more than the usual four rows (a method row is taller than a plain marker).
+  const cellH = Math.max(CELL_H, ...main.map((e) => 168 + layoutMarks(marksOf(e)).height + (marksOf(e).length > MARK_MAX ? 16 : 6)));
   const rows = Math.ceil(main.length / PER_ROW);
   const width = 20 + Math.min(PER_ROW, main.length) * CELL_W;
-  const height = bandH + rows * CELL_H + 20;
+  const height = bandH + rows * cellH + 20;
+  // Where each marker with a method sits in the whole drawing, so the thin line of a shared port can join the samples that use it.
+  const anchors = new Map<string, { x: number; y: number }>();
+  main.forEach((e, i) => {
+    const p = cellAt(i, bandH, cellH);
+    for (const m of layoutMarks(marksOf(e)).items) if (m.s.method) anchors.set(m.s.pointId, { x: p.x + m.x + 81, y: p.y + 168 + m.y + 8 });
+  });
+  branches.forEach(({ eq: e, target }, k) => {
+    const bx = Math.max(20, cellAt(target, bandH, cellH).x - CELL_W * (k + 1));
+    for (const m of layoutMarks(marksOf(e)).items) if (m.s.method) anchors.set(m.s.pointId, { x: bx + m.x + 81, y: 10 + 194 + m.y + 8 });
+  });
+  const sharedLines = new Map<string, [{ x: number; y: number }, { x: number; y: number }]>();
+  for (const s of view.samples) {
+    const a = anchors.get(s.pointId);
+    for (const other of s.method?.sharedWith ?? []) {
+      const b = anchors.get(other);
+      if (a && b) sharedLines.set([s.pointId, other].sort().join("+"), [a, b]);
+    }
+  }
   const where = moment.equipmentId ? view.equipment.find((e) => e.id === moment.equipmentId)?.title : undefined;
+  const nMethod = view.samples.filter((s) => s.method).length;
+  const methodNote = nMethod ? ` ${nMethod} ${nMethod === 1 ? "sample shows" : "samples show"} how it is taken; the sample list below says it in words.` : "";
   const branchNote = branches.length ? ` ${branches.length === 1 ? "One side preparation feeds" : `${branches.length} side preparations feed`} the main line.` : "";
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} role="img" aria-label={`Equipment train of ${main.length} items.${branchNote} ${where ? `The product is in ${where}.` : "The product is not in any equipment at this moment."}`} className="pv-svg">
+    <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} role="img" aria-label={`Equipment train of ${main.length} items.${branchNote} ${where ? `The product is in ${where}.` : "The product is not in any equipment at this moment."}${methodNote}`} className="pv-svg">
       <defs>
         <pattern id="pv-hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
           <line x1="0" y1="0" x2="0" y2="8" className="pv-hatch" />
         </pattern>
       </defs>
       {main.slice(1).map((e, k) => {
-        const a = cellAt(k, bandH);
-        const b = cellAt(k + 1, bandH);
+        const a = cellAt(k, bandH, cellH);
+        const b = cellAt(k + 1, bandH, cellH);
         // Same row: a line between the two shapes. Next row: the pipe runs down the outer edge of the train (right edge after a
         // left-to-right row, left edge after a right-to-left one), so it never crosses the sample markers or the next title.
         const horiz = a.row === b.row;
@@ -349,8 +470,13 @@ function Train({ view, at }: { view: ProcessView; at: number }) {
           <path d="M1 1 L9 5 L1 9 Z" className="pv-arrowhead" />
         </marker>
       </defs>
+      {/* The thin line of a shared port: drawn under the markers, from one sample that uses the port to the next. */}
+      {[...sharedLines].map(([key, [a, b]]) => (
+        // In one cell the line runs as a bracket to the right of the glyphs, so it never crosses the "to waste" text between two samples.
+        <path key={key} d={Math.abs(a.x - b.x) < 5 ? `M${a.x + 15} ${a.y} H${a.x + 27} V${b.y} H${b.x + 15}` : `M${a.x} ${a.y} L${b.x} ${b.y}`} className="pv-share" data-testid={`pv-share-${key}`} />
+      ))}
       {main.map((e, i) => {
-        const p = cellAt(i, bandH);
+        const p = cellAt(i, bandH, cellH);
         const state = stateOf(e);
         const marks = marksOf(e);
         return (
@@ -376,12 +502,12 @@ function Train({ view, at }: { view: ProcessView; at: number }) {
                 generic shape
               </text>
             )}
-            {marks.slice(0, 12).map((s, k) => (
-              <Marker key={s.rowId} sample={s} x={4 + (k % 3) * 62} y={168 + Math.floor(k / 3) * 24} at={at} />
+            {layoutMarks(marks).items.map((m) => (
+              <Marker key={m.s.rowId} sample={m.s} x={m.x} y={168 + m.y} at={at} />
             ))}
-            {marks.length > 12 && (
-              <text x="95" y="262" textAnchor="middle" className="pv-eqs">
-                and {marks.length - 12} more samples
+            {marks.length > MARK_MAX && (
+              <text x="95" y={168 + layoutMarks(marks).height + 8} textAnchor="middle" className="pv-eqs">
+                and {marks.length - MARK_MAX} more samples
               </text>
             )}
           </g>
@@ -390,7 +516,7 @@ function Train({ view, at }: { view: ProcessView; at: number }) {
       {branches.map(({ eq: e, target }, k) => {
         // The arrow joins the pipe that carries the product into the step the buffer is added to (the middle of the gap before it), so it
         // reads as "added into step N", not as a step of the line. Further branches of the same step sit one cell further left.
-        const into = cellAt(target, bandH);
+        const into = cellAt(target, bandH, cellH);
         const joinX = into.x;
         const bx = Math.max(20, joinX - CELL_W * (k + 1));
         const by = 10;
@@ -428,12 +554,12 @@ function Train({ view, at }: { view: ProcessView; at: number }) {
                   {l}
                 </text>
               ))}
-              {marks.slice(0, 12).map((s, j) => (
-                <Marker key={s.rowId} sample={s} x={4 + (j % 3) * 62} y={194 + Math.floor(j / 3) * 24} at={at} />
+              {layoutMarks(marks).items.map((m) => (
+                <Marker key={m.s.rowId} sample={m.s} x={m.x} y={194 + m.y} at={at} />
               ))}
-              {marks.length > 12 && (
-                <text x="95" y="290" textAnchor="middle" className="pv-eqs">
-                  and {marks.length - 12} more samples
+              {marks.length > MARK_MAX && (
+                <text x="95" y={194 + layoutMarks(marks).height + 8} textAnchor="middle" className="pv-eqs">
+                  and {marks.length - MARK_MAX} more samples
                 </text>
               )}
             </g>
@@ -447,12 +573,35 @@ function Train({ view, at }: { view: ProcessView; at: number }) {
 function Marker({ sample, x, y, at }: { sample: ViewSample; x: number; y: number; at: number }) {
   const state = sample.momentIndex === at ? "now" : sample.momentIndex < at ? "done" : "todo";
   const shape = sample.kind === "volume" ? <path d="M8 1 L15 8 L8 15 L1 8 Z" /> : sample.kind === "units" ? <rect x="2" y="2" width="12" height="12" /> : <circle cx="8" cy="8" r="6" />;
+  const method = sample.method;
   return (
-    <g transform={`translate(${x} ${y})`} className={`pv-mark ${state}`} data-testid={`pv-mark-${sample.pointId}`} data-state={state}>
-      {shape}
-      <text x="19" y="12" className="pv-marktx">
-        {sample.pointId}
-      </text>
+    <g transform={`translate(${x} ${y})`}>
+      <g className={`pv-mark ${state}`} data-testid={`pv-mark-${sample.pointId}`} data-state={state}>
+        {shape}
+        <text x="19" y="12" className="pv-marktx">
+          {sample.pointId}
+        </text>
+        {method && <title>{`${sample.pointId}, ${method.text}`}</title>}
+      </g>
+      {/* The glyph, tag and flush are decoration next to the words of the sample list; nothing is drawn for a point with no method. */}
+      {method?.access && (
+        <g transform="translate(66 0)" data-testid={`pv-glyph-${sample.pointId}`} data-access={method.access} data-added={method.addedForStudy ? "true" : "false"}>
+          <AccessGlyph access={method.access} added={method.addedForStudy === true} />
+        </g>
+      )}
+      {method?.addedForStudy && (
+        <text x="100" y="12" className="pv-marktx pv-studytag" data-testid={`pv-tag-${sample.pointId}`}>
+          {method.studyTag}
+        </text>
+      )}
+      {method?.flush?.volumeText && (
+        <g transform="translate(4 24)" data-testid={`pv-waste-${sample.pointId}`}>
+          <FlushDrawing />
+          <text x="40" y="12" className="pv-marktx">
+            {method.flush.volumeText} to waste
+          </text>
+        </g>
+      )}
     </g>
   );
 }
@@ -723,6 +872,7 @@ function Tables({ view, go }: { view: ProcessView; go: (i: number) => void }) {
               <th scope="col">Quantity</th>
               <th scope="col">Taken at</th>
               <th scope="col">Port named</th>
+              <th scope="col">How it is taken (sampling plan)</th>
             </tr>
           </thead>
           <tbody>
@@ -738,6 +888,7 @@ function Tables({ view, go }: { view: ProcessView; go: (i: number) => void }) {
                   {s.tiedToStep ? (s.stepNumber ? `step ${s.stepNumber}` : "hold entry") : "no step takes it"}
                 </td>
                 <td>{s.port ?? "None named"}</td>
+                <td>{s.method?.text ?? "Not stated"}</td>
               </tr>
             ))}
           </tbody>
@@ -765,6 +916,7 @@ function Tables({ view, go }: { view: ProcessView; go: (i: number) => void }) {
                   <td>{v.statedL !== undefined ? `${num(v.statedL)} L (row ${v.statedRowId})` : `Not enough data: ${v.missing}`}</td>
                   <td>
                     {num(v.sampleMl / 1000)} L in {v.sampleCount} samples
+                    {v.flushMl > 0 ? `; plus ${num(v.flushMl / 1000)} L flushed to waste (not sample volume)` : ""}
                   </td>
                   <td>{v.percent !== undefined ? `${num(v.percent, 2)} %` : "Not enough data"}</td>
                 </tr>
