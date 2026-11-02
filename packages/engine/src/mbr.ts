@@ -22,7 +22,7 @@ import {
   type TrdDocument,
   type TrdItem,
 } from "@gap/process-model";
-import { effectiveField } from "./trd";
+import { effectiveField, trdOpenItems } from "./trd";
 import { resolveTrdValue, trdValueDiffers } from "./mbr-values";
 import { blockVersion } from "./mbr-library";
 
@@ -1430,17 +1430,29 @@ export function addBlockForRequirement(
 }
 
 export interface MbrOpenItem {
-  kind: "not_decided" | "no_step" | "broken_reference" | "no_trd_value" | "sample_not_placed";
+  kind: "not_decided" | "no_step" | "broken_reference" | "no_trd_value" | "sample_not_placed" | "no_purpose" | "no_sections" | "trd_open" | "before_issue";
   where: string;
   text: string;
   blockId?: string;
   rowId?: string;
 }
 
+const BEFORE_ISSUE = /(entered|completed|filled in)[^.]*before (the record is |the batch record is )?issu(e|ed)/i;
+
 /** Everything the record still leaves open, in document order. Information only. */
 export function mbrOpenItems(project: Project, rec: MbrRecord, library: readonly MbrLibraryBlock[] = []): MbrOpenItem[] {
   const out: MbrOpenItem[] = [];
+  // A record with no purpose or no steps is not "complete"; counting zero open items for it would read as "nothing left to do". An unknown
+  // must stay visible, so the gaps that make a record empty are open items too.
+  if (!rec.purpose?.trim()) out.push({ kind: "no_purpose", where: "Batch record", text: "No purpose entered" });
+  if (!rec.sections.length) out.push({ kind: "no_sections", where: "Batch record", text: "No steps yet" });
+  // The record takes values from its TRD. While the TRD has open items, those values may still change, so the record says so (one line).
+  const trd = trdOf(project, rec);
+  const trdOpen = trd ? trdOpenItems(trd).length : 0;
+  if (trd && trdOpen) out.push({ kind: "trd_open", where: `${trd.id}`, text: `The TRD still has ${trdOpen} open item${trdOpen === 1 ? "" : "s"}` });
   for (const s of rec.sections) for (const b of s.blocks) {
+    // A step that says its value is "entered before issue" is a placeholder: the value is missing until someone enters it.
+    for (const st of b.steps) if (BEFORE_ISSUE.test(st.text)) out.push({ kind: "before_issue", where: `${s.title}, ${b.title}`, text: "To be entered before issue", blockId: b.id });
     for (const r of b.params) {
       const where = `${s.title}, ${b.title}, ${r.label}`;
       if (r.studyPoint) continue;

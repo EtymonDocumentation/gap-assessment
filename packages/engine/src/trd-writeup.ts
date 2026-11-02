@@ -21,6 +21,7 @@ import {
   type TrdStep,
   type TrdWriteup,
 } from "@gap/process-model";
+import { evaluate } from "./conditions";
 import type { ContentBundle } from "./content";
 import { formatResolved } from "./format";
 import { resolveTrdValue } from "./mbr-values";
@@ -127,11 +128,14 @@ export function writeupFromLibrary(lib: TrdLibraryWriteup, id: string, stepId?: 
  */
 export function seedWriteups(project: Project, d: TrdDocument, library: readonly TrdLibraryWriteup[]): TrdWriteup[] {
   const out: TrdWriteup[] = [];
+  // A write-up tied to an answer (dosage form, presentation, dilution) is copied only when that answer is established: the library never
+  // assumes one. An unknown answer leaves it out; it stays in the "Add from library" picker.
+  const fits = (lib: TrdLibraryWriteup) => !lib.onlyWhen || evaluate(lib.onlyWhen, { project, side: "shared" });
   const take = (lib: TrdLibraryWriteup, stepId?: string) => out.push(writeupFromLibrary(lib, nextWriteupId(project, d, out.map((w) => w.id)), stepId));
-  for (const lib of library) if (lib.kind === "section" && lib.autoAdd !== false) take(lib);
+  for (const lib of library) if (lib.kind === "section" && lib.autoAdd !== false && fits(lib)) take(lib);
   for (const s of d.steps) {
     if (!s.key) continue;
-    for (const lib of library) if (lib.kind === "unitOp" && lib.key === s.key && lib.autoAdd !== false) take(lib, s.id);
+    for (const lib of library) if (lib.kind === "unitOp" && lib.key === s.key && lib.autoAdd !== false && fits(lib)) take(lib, s.id);
   }
   return out;
 }

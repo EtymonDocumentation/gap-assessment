@@ -181,6 +181,15 @@ export function isAnswered(project: Project, inst: QuestionInstance): boolean {
 }
 
 /**
+ * True when a question was answered "to be decided" (TBD). It counts as answered (the person did respond) but it is still an open item,
+ * so progress shows it apart: a section where every answer is TBD must not read "complete" (a GMP document must not look finished
+ * while its values are still unknown).
+ */
+export function isTbdAnswer(project: Project, inst: QuestionInstance): boolean {
+  return instanceRefs(inst).some((ref) => getEntry(project, ref)?.status === "tbd");
+}
+
+/**
  * Next question to ask: the first unanswered instance at or after the given
  * position; otherwise the first unanswered instance anywhere (e.g., a source
  * follow-up triggered by a target answer in sequential mode).
@@ -200,6 +209,8 @@ export interface SectionProgress {
   section: Section;
   total: number;
   answered: number;
+  /** Of the answered, how many are "to be decided" (still open). */
+  tbd: number;
   bySide: Record<InstanceSide, { total: number; answered: number }>;
   confirmed: boolean;
 }
@@ -216,8 +227,10 @@ export function progress(content: ContentBundle, project: Project, instances: Qu
         target: { total: 0, answered: 0 },
       };
       let answered = 0;
+      let tbd = 0;
       for (const i of mine) {
         const a = isAnswered(project, i);
+        if (a && isTbdAnswer(project, i)) tbd++;
         bySide[i.side].total++;
         if (a) {
           bySide[i.side].answered++;
@@ -228,6 +241,7 @@ export function progress(content: ContentBundle, project: Project, instances: Qu
         section,
         total: mine.length,
         answered,
+        tbd,
         bySide,
         confirmed: project.interview.confirmations.some((c) => c.sectionId === section.id),
       };

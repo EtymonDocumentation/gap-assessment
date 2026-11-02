@@ -1082,11 +1082,20 @@ trd:
       par: { min: 250, max: 350, unit: units/min, basis: Proposed from process development, source: DEMO-PD-217-01, section: "8.1", page: "37" }
   # Process descriptions: the shipped write-up library seeds them; these entries are what the fictional team then typed or switched.
   writeups:
+    # A vial program has no stopper position section of its own; the team adds it from the library for the stopper figure below.
+    add:
+      - sec_stopper_position
+    move:
+      - { writeup: sec_stopper_position, by: -1 }
     values:
+      - { writeup: sec_formulation_precautions, key: trd.formulationPrecautions.lightProtection, value: The material must be protected from light during storage. }
+      - { writeup: sec_open_manipulations, key: trd.openManipulations.airQuality, value: HEPA-filtered air of Grade C or better }
+      - { writeup: sec_process_parameters, key: trd.processParameters.filterFlushMedium, value: water for injection }
       - { writeup: wu_aseptic_filling, key: trd.aseptic_filling.productViscosity, value: 8 mPa·s (fictional) }
       - { writeup: wu_aseptic_filling, key: trd.aseptic_filling.oxygenSensitive, value: is not }
       - { writeup: wu_sterile_filtration, key: trd.sterile_filtration.productTemperature, value: 2 to 8 °C (fictional) }
     optional:
+      - { writeup: sec_process_parameters, part: fn_qc_hold }
       - { writeup: wu_sterile_filtration, part: pupsit_required }
       - { writeup: wu_compounding, part: dilution }
     # Rows typed into the pre-dilution table, and a figure with a generated placeholder picture (fictional).
@@ -1103,6 +1112,7 @@ trd:
         alt: Placeholder panel standing in for a schematic of the stopper position measurement.
         picture: { width: 240, height: 135 }
     edits:
+      - { writeup: sec_stopper_position, part: p1, text: "Vacuum-assisted stoppering is required for this drug product program because of the stopper coating used ({{uo.aseptic_filling.mat.stopper.partNumber|Stopper description or part number}}). The stopper position, measured from the top of the barrel flange down to the back of the stopper, is {{uo.aseptic_filling.param.stopper_position.setPoint|Stopper position}} with a tolerance of {{trd.stopper_position.tolerance|Tolerance, with the unit (mm)}}." }
       - { writeup: wu_aseptic_filling, part: p1, text: "Filling is performed with {{uo.aseptic_filling.equip.filler.operatingPrinciple|Filling technology}}. Vials are filled and stoppered in line under Grade A conditions (fictional text edited by the team)." }
 
 mbr:
@@ -1111,6 +1121,7 @@ mbr:
   role: MSAT engineer
   title: ARX-217 master batch record, Site South Line 4 (fictional)
   docRef: DEMO-MBR-217-01
+  purpose: This record gives the steps to fill the ARX-217 vial at the receiving unit (fictional).
   sections:
     - { uo: ds_shipping_inbound, blocks: [inbound_shipment_check] }
     - { uo: ds_receipt_thaw, blocks: [receipt_and_thaw] }

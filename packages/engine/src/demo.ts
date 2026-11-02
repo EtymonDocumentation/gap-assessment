@@ -227,6 +227,8 @@ const mbrDemoSchema = z.object({
   role: z.string().optional(),
   title: z.string(),
   docRef: z.string().optional(),
+  /** The purpose line of the record. A record with no purpose counts it as an open item, so a finished demo writes one. */
+  purpose: z.string().optional(),
   sections: z.array(z.object({ uo: z.string().optional(), title: z.string().optional(), blocks: z.array(z.string()) })),
   undecided: z.array(z.string()).default([]),
   rows: z
@@ -562,6 +564,8 @@ function applyMbrDemo(project: Project, content: ContentBundle, m: z.infer<typeo
   project = created.project;
   const recordId = created.recordId;
   const rec = () => project.mbr.records.find((r) => r.id === recordId)!;
+  // Part of the demo's starting data, like its title: set directly so the demo has no extra history line for it.
+  if (m.purpose) rec().purpose = m.purpose;
   const sectionFor = (uo: string) => {
     const s = rec().sections.find((x) => x.unitOp === uo);
     if (!s) throw new Error(`Demo MBR: no section for ${uo}`);

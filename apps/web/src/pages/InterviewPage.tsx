@@ -11,6 +11,7 @@ import {
   undoCitations,
   type CitedRef,
   isAnswered,
+  isTbdAnswer,
   instanceRefs,
   nextInstance,
   progress,
@@ -190,6 +191,7 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
   const group = current ? groupOf(allInstances, current) : [];
   const needsResponder = !project.interview.responder;
   const answeredCount = allInstances.filter((i) => isAnswered(project, i)).length;
+  const tbdCount = allInstances.filter((i) => isAnswered(project, i) && isTbdAnswer(project, i)).length;
 
   /** Records one or more answers in a single store update, then moves on (or stays, see SaveResult). */
   function save(group: QuestionInstance[], items: SaveItem[], opts: { quick: boolean; otherPending: boolean }): SaveResult {
@@ -267,7 +269,7 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
       <aside className="interview-aside" aria-label="Interview progress">
         <div className="card tight">
           <p className="small muted">
-            {answeredCount} of {allInstances.length} answered
+            {answeredCount} of {allInstances.length} answered{tbdCount ? ` · ${tbdCount} to be decided` : ""}
           </p>
           <div className="progress" aria-hidden="true">
             <span style={{ width: `${allInstances.length ? (100 * answeredCount) / allInstances.length : 0}%` }} />
@@ -424,14 +426,15 @@ function ProgressMap({
         {prog.map((s) => {
           const mine = instances.filter((i) => i.section.id === s.section.id);
           const target = mine.find((i) => !isAnswered(project, i)) ?? mine[0];
-          const done = s.total > 0 && s.answered === s.total;
+          // Every answer given AND none left "to be decided": a section of TBD answers is answered but not done.
+          const done = s.total > 0 && s.answered === s.total && s.tbd === 0;
           return (
             <li key={s.section.id} className={s.section.id === currentSection ? "current" : undefined}>
               <a href={target ? href("/interview", { q: target.key }) : href("/interview", { summary: s.section.id })} aria-current={s.section.id === currentSection ? "step" : undefined}>
                 <span className={`pm-state ${done ? "done" : s.answered ? "partial" : ""}`} aria-hidden="true" />
                 <span className="pm-title">{s.section.title}</span>
                 <span className="pm-count">
-                  {s.answered} of {s.total} answered{done ? ", complete" : ""}
+                  {s.answered} of {s.total} answered{s.tbd ? ` · ${s.tbd} to be decided` : done ? ", complete" : ""}
                 </span>
               </a>
               {s.section.kind !== "scoping" && s.total > 0 && (

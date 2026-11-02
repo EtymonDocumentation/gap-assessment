@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { conditionSchema } from "./condition";
 
 /*
  * TRD write-ups (project schema 1.22.0, TRD format 1.2.0, write-up library format 1.1.0). Module "trd".
@@ -127,6 +128,13 @@ export const trdLibraryWriteupSchema = z
     placement: trdPlacementSchema.optional(),
     /** False: not copied into a new TRD by itself; the author adds it from the library when needed. */
     autoAdd: z.boolean().optional(),
+    /**
+     * Written in the same condition language as the catalog: the write-up is copied into a new TRD only when the project has ESTABLISHED
+     * the answer that makes it fit (a syringe-only section needs the presentation to be a syringe). An unknown answer never counts as a
+     * match, so a program that has not said what its container is gets neither the vial text nor the syringe text. The author can still
+     * add it from the library once the answer is known.
+     */
+    onlyWhen: conditionSchema.optional(),
     custom: z.boolean().optional(),
     at: z.string().optional(),
     by: z.string().optional(),

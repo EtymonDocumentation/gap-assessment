@@ -432,7 +432,10 @@ export function buildTrdDocument(project: Project, d: TrdDocument, opts: TrdDocu
       ["Document reference", d.docRef?.trim() || "Not given"],
       ...(d.version?.trim() ? ([["Version", d.version.trim()]] as [string, string][]) : []),
       ["Generated", generatedAt.replace("T", " ").slice(0, 16) + " UTC"],
-      ["Open items", String(open.length)],
+      // Two different counts, so both are named: open items are the entries of the "Open items" section (values not established, TBD,
+      // provisional, PAR/NOR findings); blank fields are the square-bracket gaps inside the process descriptions. A reader who sees only
+      // "14" would think the document is nearly complete while the text still has many gaps (an unknown must stay visible).
+      ["Open items", wu.open.length ? `${open.length}, and ${wu.open.length} blank field${wu.open.length === 1 ? "" : "s"} in the text` : String(open.length)],
     ],
     // Document control prints the TRD's own reference, version and named roles instead of "[to be assigned]" and three empty rows.
     control: {

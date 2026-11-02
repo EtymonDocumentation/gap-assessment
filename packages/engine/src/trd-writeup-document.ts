@@ -255,6 +255,6 @@ export function openBlanksNote(open: number, openFigures = 0, variant: "standard
   if (variant === "standard" && !open && !openFigures) return "";
   const where = variant === "evidence" ? 'the appendix "Process description values"' : "the evidence record";
   return open
-    ? `${open} blank${open === 1 ? " has" : "s have"} no value yet. Each is shown in square brackets and highlighted, and is listed in ${where}.${figs}`
+    ? `${open} blank field${open === 1 ? " has" : "s have"} no value yet. Each is shown in square brackets and highlighted, and is listed in ${where}.${figs}`
     : `Every blank in the process descriptions has a value. ${where[0]!.toUpperCase()}${where.slice(1)} shows where each came from.${figs}`;
 }

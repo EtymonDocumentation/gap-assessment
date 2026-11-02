@@ -36,7 +36,7 @@ async function openSyringeRecord(page: Page) {
 }
 
 for (const [name, size] of [["desktop", { width: 1280, height: 900 }], ["phone", { width: 390, height: 844 }]] as const) {
-  test(`the syringe batch record shows the 12 h time out of refrigeration with its stage targets and one tightened row; the demo has no open items and no uncovered TRD requirement: ${name}`, async ({ page }) => {
+  test(`the syringe batch record shows the 12 h time out of refrigeration with its stage targets and one tightened row; the demo has one value to enter before issue and no uncovered TRD requirement: ${name}`, async ({ page }) => {
     test.setTimeout(120_000);
     await page.setViewportSize(size);
     await openSyringeRecord(page);
@@ -59,8 +59,10 @@ for (const [name, size] of [["desktop", { width: 1280, height: 900 }], ["phone",
     await expect(page.getByRole("main")).not.toContainText(/\bvials?\b/i);
 
     const open = page.getByTestId("mbr-open-items");
-    await expect(open).toContainText("Open items (0)");
-    await expect(open).toContainText("Nothing open");
+    // One value is left to be entered before issue (the shipping temperature range is not in the TRD); the record counts it, so it is not "Nothing open".
+    await expect(open).toContainText("Open items (1)");
+    await expect(open).toContainText("To be entered before issue");
+    await expect(open).not.toContainText("Nothing open");
     await expect(open).not.toContainText("Not decided");
     // Every TRD requirement now has a step in the record, so the "TRD requirement without an MBR step" list is not shown at all.
     await expect(page.getByTestId("mbr-requirements")).toHaveCount(0);

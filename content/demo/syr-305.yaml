@@ -705,6 +705,9 @@ trd:
       - { writeup: wu_aseptic_filling, part: interventions }
       - { writeup: wu_aseptic_filling, part: headspace }
       - { writeup: wu_aseptic_filling, part: vacuum }
+      - { writeup: wu_ds_receipt_thaw, part: s1 }
+      - { writeup: wu_ds_receipt_thaw, part: s2 }
+      - { writeup: sec_process_parameters, part: fn_qc_hold }
       - { writeup: wu_aseptic_filling, part: placement_controls }
       - { writeup: wu_aseptic_filling, part: direct_fill }
       - { writeup: wu_visual_inspection, part: rate }
@@ -720,6 +723,10 @@ trd:
       - { writeup: wu_buffer_prep, part: n2 }
     # Values the project and the TRD record cannot supply: typed once by the team (key trd.*), or for items the process model has no field for.
     values:
+      - { writeup: sec_formulation_precautions, key: trd.formulationPrecautions.lightProtection, value: The material must be protected from light during storage. }
+      - { writeup: sec_open_manipulations, key: trd.openManipulations.airQuality, value: HEPA-filtered air of Grade C or better }
+      - { writeup: sec_process_parameters, key: trd.processParameters.filterFlushMedium, value: water for injection }
+      - { writeup: wu_aseptic_filling, key: trd.aseptic_filling.fillStopperSequence, value: Syringes are filled and stoppered in line. }
       - { writeup: sec_introduction, key: trd.sendingSiteLocation, value: "Example Town A, Exampleland (fictional)" }
       - { writeup: sec_introduction, key: trd.receivingSiteLocation, value: "Example Town B, Exampleland (fictional)" }
       - { writeup: sec_scope, key: trd.scope.withdrawableVolume, value: 1.0 mL }
@@ -825,6 +832,10 @@ trd:
           - [Bulk container batch label, Label Vendor G (fictional), LBL-BULK-DEMO]
     # Starting text the team changed because it did not fit this program, or because it was an instruction to the author.
     edits:
+      - { writeup: sec_stopper_position, part: p1, text: "Vacuum-assisted stoppering is required for this drug product program because of the stopper coating used ({{uo.aseptic_filling.mat.stopper.partNumber|Stopper description or part number}}). The stopper position, measured from the top of the barrel flange down to the back of the stopper, is {{uo.aseptic_filling.param.stopper_position.setPoint|Stopper position}} with a tolerance of {{trd.stopper_position.tolerance|Tolerance, with the unit (mm)}}." }
+      - { writeup: wu_aseptic_filling, part: stopper_insertion, text: "The filled syringes are stoppered in line with filling, using {{uo.aseptic_filling.equip.stopper_placement_unit.operatingPrinciple|Stopper placement method}}. Placement sets the headspace or air bubble, the dose accuracy and the position of the stopper relative to the plunger rod. The stopper position is measured from the top of the barrel flange down to the back of the stopper; its value and tolerance are stated in the stopper position section. In-process checks of the stopper position ({{uo.aseptic_filling.ipc.stopper_position_check.tests|Stopper position checks}}) are required throughout manufacturing." }
+      - { writeup: wu_bbr_filtration, part: n3, text: "While in storage, the filtered bioburden-reduced product is protected from light, as described in the formulation and manufacturing precautions section." }
+      - { writeup: wu_storage_shipping, part: p1, text: "The product is stored under {{uo.storage_shipping.mat.drug_product.storageCondition|Storage condition}} conditions in {{uo.storage_shipping.equip.storage_unit.operatingPrinciple|Storage equipment ~a}}. The product is always kept at this temperature, apart from the time needed for inspection and packaging. Filled units are protected from light when stored in refrigerated storage, as described in the formulation and manufacturing precautions section. Storage temperature monitoring consists of {{uo.storage_shipping.ipc.storage_monitoring.tests|Storage monitoring}}." }
       - { writeup: sec_batch_size, part: dilution, text: "For a program with dilution, the batch size stated above is the size after dilution. {{trd.batchSize.drugSubstanceLotMixingStatement|State how drug substance lots may be combined or not combined}}. The batch is mixed in a 100 L single-use mixing bag. The impeller of the bag is covered from a volume of 9 L, which is the lower end of the proven acceptable range, so the smallest batch can still be mixed (fictional)." }
       - { writeup: sec_process_parameters, part: fn_inline_filtration_tor, text: "The inline sterile filtration time counts towards the time out of refrigeration of the filling process. The time out of refrigeration is tracked for each portion of the batch separately. The total for a portion must not exceed {{uo.storage_shipping.param.max_total_time_out_of_refrigeration.max|Total time out of refrigeration}}, counted from the start of filling of that portion until its drug product is back in refrigerated storage. The time at ambient temperature after thaw has its own limit and is not part of this total." }
       - { writeup: sec_process_parameters, part: fn_tor_budget, text: "The time out of refrigeration of a portion is budgeted by step: filling up to {{uo.aseptic_filling.param.max_fill_duration.setPoint|Filling time out of refrigeration}}, visual inspection up to {{uo.visual_inspection.param.max_time_out_of_refrigeration.max|Inspection time out of refrigeration}}, bulk packing up to {{uo.bulk_packaging.param.max_time_out_of_refrigeration.max|Bulk packing time out of refrigeration}}, and labelling and packaging up to {{uo.labeling_packaging.param.max_time_out_of_refrigeration.max|Labelling time out of refrigeration}}. Together they stay within the total of {{uo.storage_shipping.param.max_total_time_out_of_refrigeration.max|Total time out of refrigeration}}. The filling time limit rests on the media fill, which covered the longest filling run. A portion is 70 tubs of 100 syringes, so 7,000 syringes (fictional). The out and return times of a portion include the handling before and after the work of the step, and the total is the sum of the recorded times." }
@@ -979,6 +990,7 @@ mbr:
   role: MSAT engineer
   title: SYR-305 master batch record, Example Fill Site PFS Line 3 (fictional)
   docRef: DEMO-MBR-305-01
+  purpose: This record gives the steps to fill the SYR-305 prefilled syringe at the receiving unit (fictional).
   sections:
     - { uo: ds_shipping_inbound, blocks: [batch_identification, inbound_shipment_check, shipment_monitoring_custody] }
     - { uo: ds_receipt_thaw, blocks: [receipt_and_thaw, sample_table] }

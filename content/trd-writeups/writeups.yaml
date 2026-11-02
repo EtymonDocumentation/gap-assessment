@@ -6,9 +6,12 @@
 #  - A part with "optional" is a load-out the author switches on; it starts off. Nothing here is a rule.
 #  - Cross-references use the section title, not a number (numbers come from the generated document).
 #  - The tool never states a filing category; where a change needs one, the only wording is "Requires regulatory affairs assessment".
+#  - A sentence that states a fact about the product or process (light protection, vacuum stoppering, air grade, how filling and stoppering follow each other)
+#    is never fixed text: it is a blank the team fills, or an optional part. A write-up tied to a dosage form or container carries `onlyWhen`
+#    (same condition language as the catalog) and is copied into a new TRD only when that answer is established.
 #  - Fictional / generic wording only: no client, product, supplier or person names.
-formatVersion: 1.0.0
-libraryVersion: 1.1.0
+formatVersion: 1.1.0
+libraryVersion: 1.2.0
 writeups:
   - id: sec_acronyms
     version: 1
@@ -172,7 +175,7 @@ writeups:
           The general attributes of the formulated drug substance and the bulk placebo are given in
           {{trd.generalAttributes.sourceDocument|Document that states the general attributes}}.
   - id: sec_formulation_precautions
-    version: 2
+    version: 3
     kind: section
     key: formulation_precautions
     title: Formulation and manufacturing precautions
@@ -180,8 +183,8 @@ writeups:
       - id: p1
         kind: paragraph
         text: >-
-          The material must be protected from light during storage. Where a risk of light exposure in storage is identified by a
-          technical assessment or by light mapping, the sending unit and the receiving unit agree the measures that reduce it.
+          {{trd.formulationPrecautions.lightProtection|Whether the material must be protected from light during storage}} Where a risk of
+          light exposure in storage is identified by a technical assessment or by light mapping, the sending unit and the receiving unit agree the measures that reduce it.
           Measures to protect from light may include, but are not limited to, the following.
       - id: b1
         kind: bullet
@@ -223,6 +226,7 @@ writeups:
     version: 3
     kind: section
     key: dilution_buffer
+    onlyWhen: { isTrue: scope.dilution }
     title: Dilution buffer
     appliesWhen: >-
       include only when dilution is performed at the receiving unit (otherwise mark not applicable and state where dilution is
@@ -384,7 +388,7 @@ writeups:
             performed)
           text: 'Not applicable: dilution is performed at {{trd.dilutionBuffer.dilutionSite|Site where dilution is performed}}.'
   - id: sec_process_parameters
-    version: 5
+    version: 6
     kind: section
     key: process_parameters
     title: Overall process parameters
@@ -431,6 +435,8 @@ writeups:
       - id: fn_qc_hold
         kind: note
         text: 'Process hold steps: the quality control results are required before dilution starts.'
+        optional:
+          condition: include if the quality control results are required before dilution starts
       - id: fn_endotoxin_hold
         kind: note
         text: >-
@@ -469,8 +475,8 @@ writeups:
       - id: fn_filter_flush
         kind: note
         text: >-
-          Before filter integrity testing, both pre-use and post-use, the filters are flushed with water for injection in the
-          amount stated in the site procedures.
+          Before filter integrity testing, both pre-use and post-use, the filters are flushed with
+          {{trd.processParameters.filterFlushMedium|Flush medium}} in the amount stated in the site procedures.
   - id: sec_contact_surfaces
     version: 1
     kind: section
@@ -560,16 +566,17 @@ writeups:
         kind: note
         text: 'Product density: {{trd.fillWeights.density|Product density, with the unit (g/mL)}}.'
   - id: sec_stopper_position
-    version: 3
+    version: 4
     kind: section
     key: stopper_position
+    onlyWhen: { in: [scope.presentation, [prefilled_syringe, cartridge]] }
     title: Stopper position
     parts:
       - id: p1
         kind: paragraph
         text: >-
-          Vacuum-assisted stoppering is required for this drug product program because of the stopper coating used
-          ({{uo.aseptic_filling.mat.stopper.partNumber|Stopper description or part number}}). The stopper position, measured from
+          Stopper description or part number: {{uo.aseptic_filling.mat.stopper.partNumber|Stopper description or part number}}.
+          {{trd.stopper_position.vacuumStatement|Whether vacuum-assisted stoppering is required, and the reason}} The stopper position, measured from
           the top of the barrel flange down to the back of the stopper, is
           {{uo.aseptic_filling.param.stopper_position.setPoint|Stopper position}} with a tolerance of
           {{trd.stopper_position.tolerance|Tolerance, with the unit (mm)}}.
@@ -625,7 +632,7 @@ writeups:
         text: >-
           Where this section says drug substance, the same applies to bulk placebo. The general process is described step by step below, in process order. The text can be changed to match the program.
   - id: sec_open_manipulations
-    version: 1
+    version: 2
     kind: section
     key: open_manipulations
     title: Open bottle manipulations
@@ -636,16 +643,17 @@ writeups:
       - id: p1
         kind: paragraph
         text: >-
-          All open bottle manipulations (for example opening bottles and pooling) are performed under HEPA-filtered air of Grade C
-          or better. {{trd.openManipulations.higherGradeNote|Optional further requirement, for example a higher grade for certain
+          All open bottle manipulations (for example opening bottles and pooling) are performed under
+          {{trd.openManipulations.airQuality|Air quality and grade for open manipulations}}. {{trd.openManipulations.higherGradeNote|Optional further requirement, for example a higher grade for certain
           steps}}
       - id: n1
         kind: note
         text: The identification label removed from each bottle is attached to the production batch record.
   - id: sec_rtu_components
-    version: 1
+    version: 2
     kind: section
     key: rtu_components
+    onlyWhen: { in: [scope.presentation, [prefilled_syringe, cartridge]] }
     title: Ready-to-fill syringe and stopper production process
     placement:
       where: before
@@ -781,7 +789,7 @@ writeups:
         optional:
           condition: include if the drug substance is shipped as a refrigerated liquid
   - id: wu_ds_receipt_thaw
-    version: 4
+    version: 5
     kind: unitOp
     key: ds_receipt_thaw
     title: Receipt and storage, and thawing
@@ -801,11 +809,15 @@ writeups:
         text: >-
           Open the shipment container. Take care, because the shipping box may contain dry ice pellets. Suitable personal
           protective equipment is required.
+        optional:
+          condition: include if the drug substance is shipped frozen on dry ice
       - id: s2
         kind: step
         text: >-
           Take the protective inner bags holding the frozen bottles out of the shipping container, then take the bottles out of
           the bags.
+        optional:
+          condition: include if the drug substance is shipped frozen
       - id: s3
         kind: step
         text: >-
@@ -866,8 +878,8 @@ writeups:
           bottle is stored at
           {{trd.ds_receipt_thaw.holdTemperature|Storage temperature after thaw}}. The longest time the thawed material can be held
           at that temperature before pooling is {{uo.ds_receipt_thaw.param.max_cold_hold.max|Maximum cold hold before pooling}}.
-          If the thawed material is kept in refrigerated storage it is protected from light as described in the formulation and
-          manufacturing precautions section.
+          Where the formulation and manufacturing precautions section requires protection from light, the thawed material kept in
+          refrigerated storage is protected from light, as described there.
         optional:
           condition: include if the thawed material can be held before pooling
   - id: wu_buffer_prep
@@ -1004,7 +1016,7 @@ writeups:
         optional:
           condition: include to list in-process controls
   - id: wu_bbr_filtration
-    version: 4
+    version: 5
     kind: unitOp
     key: bbr_filtration
     title: Bioburden reduction filtration (pre-filtration)
@@ -1039,8 +1051,8 @@ writeups:
       - id: n3
         kind: note
         text: >-
-          While in storage, the filtered bioburden-reduced product is protected from light, as described in the formulation and
-          manufacturing precautions section.
+          Where the formulation and manufacturing precautions section requires protection from light, the filtered bioburden-reduced
+          product is protected from light while in storage, as described there.
       - id: flush
         kind: note
         text: >-
@@ -1188,7 +1200,7 @@ writeups:
         optional:
           condition: include if more than one filter is used in series
   - id: wu_aseptic_filling
-    version: 4
+    version: 5
     kind: unitOp
     key: aseptic_filling
     title: Filling, stoppering and stopper insertion
@@ -1196,8 +1208,8 @@ writeups:
       - id: p1
         kind: paragraph
         text: >-
-          Filling is performed with {{uo.aseptic_filling.equip.filler.operatingPrinciple|Filling technology ~a}}. Syringes are
-          filled and stoppered in line. Fill weight in-process checks are performed during filling and stoppering:
+          Filling is performed with {{uo.aseptic_filling.equip.filler.operatingPrinciple|Filling technology ~a}}. {{trd.aseptic_filling.fillStopperSequence|How filling and
+          stoppering follow each other}} Fill weight in-process checks are performed during filling and stoppering:
           {{uo.aseptic_filling.ipc.fill_check.frequency|Fill weight check approach}}.
       - id: fill_check_options
         kind: paragraph
@@ -1244,13 +1256,18 @@ writeups:
       - id: stopper_insertion
         kind: paragraph
         text: >-
-          The filled syringes are stoppered in line with filling, using
-          {{uo.aseptic_filling.equip.stopper_placement_unit.operatingPrinciple|Stopper placement method}}. Placement sets the
-          headspace or air bubble, the dose accuracy and the position of the stopper relative to the plunger rod. The stopper
-          position is measured from the top of the barrel flange down to the back of the stopper; its value and tolerance are
-          stated in the stopper position section. In-process checks of the stopper position
+          The filled containers are stoppered using
+          {{uo.aseptic_filling.equip.stopper_placement_unit.operatingPrinciple|Stopper placement method}}. In-process checks of the stopper position
           ({{uo.aseptic_filling.ipc.stopper_position_check.tests|Stopper position checks}}) are required throughout
           manufacturing.
+      - id: stopper_barrel
+        kind: paragraph
+        text: >-
+          Placement sets the headspace or air bubble, the dose accuracy and the position of the stopper relative to the plunger rod.
+          The stopper position is measured from the top of the barrel flange down to the back of the stopper; its value and tolerance
+          are stated in the stopper position section.
+        optional:
+          condition: include for a prefilled syringe or a cartridge
       - id: vacuum
         kind: paragraph
         text: >-
@@ -1270,7 +1287,7 @@ writeups:
         kind: note
         text: >-
           The longest time allowed from the start of filling until the product is back in refrigerated storage is given in the overall process
-          parameters section. The filled units are protected from light while in refrigerated storage, as described in the formulation and manufacturing precautions section.
+          parameters section. Where the formulation and manufacturing precautions section requires protection from light, the filled units are protected from light while in refrigerated storage, as described there.
       - id: filtered_hold
         kind: paragraph
         text: >-
@@ -1329,9 +1346,10 @@ writeups:
         optional:
           condition: include for generic placement controls
   - id: wu_stoppering
-    version: 1
+    version: 2
     kind: unitOp
     key: stoppering
+    onlyWhen: { eq: [scope.dosage_form, lyophilized] }
     title: Stoppering (stand-alone)
     appliesWhen: scope.dosage_form is lyophilized
     parts:
@@ -1352,9 +1370,10 @@ writeups:
         kind: note
         text: Partially stoppered vials remain in the Grade A zone until they are fully closed.
   - id: wu_lyophilization
-    version: 1
+    version: 2
     kind: unitOp
     key: lyophilization
+    onlyWhen: { eq: [scope.dosage_form, lyophilized] }
     title: Lyophilization
     appliesWhen: scope.dosage_form is lyophilized
     parts:
@@ -1389,10 +1408,11 @@ writeups:
         kind: note
         text: Any deviation from the validated cycle is investigated before the product is released for the next step.
   - id: wu_capping
-    version: 1
+    version: 2
     kind: unitOp
     key: capping
     title: Capping and crimping
+    onlyWhen: { eq: [scope.presentation, vial] }
     appliesWhen: scope.presentation is vial
     parts:
       - id: p1
@@ -1525,7 +1545,7 @@ writeups:
         optional:
           condition: include if labelling is done at another site
   - id: wu_storage_shipping
-    version: 2
+    version: 3
     kind: unitOp
     key: storage_shipping
     title: Storage and shipping from the fill site
@@ -1535,8 +1555,8 @@ writeups:
         text: >-
           The product is stored under {{uo.storage_shipping.mat.drug_product.storageCondition|Storage condition}} conditions in
           {{uo.storage_shipping.equip.storage_unit.operatingPrinciple|Storage equipment ~a}}. The product is always kept at this
-          temperature, apart from the time needed for inspection and packaging. Filled units are protected from light when stored
-          in refrigerated storage, as described in the formulation and manufacturing precautions section. Storage temperature
+          temperature, apart from the time needed for inspection and packaging. Where the formulation and manufacturing precautions
+          section requires protection from light, filled units are protected from light when stored in refrigerated storage, as described there. Storage temperature
           monitoring consists of {{uo.storage_shipping.ipc.storage_monitoring.tests|Storage monitoring}}.
       - id: p2
         kind: paragraph
