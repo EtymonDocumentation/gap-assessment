@@ -770,6 +770,11 @@ sampling:
           flow: { step: sterile, at: before }
           originFrom: ipc:uo.sterile_filtration.ipc.bioburden
           docs: [DEMO-FV-217-05]
+          method:
+            access: added_y_connector
+            added: { forStudyOnly: true, inCommercialAssembly: false, validatedAssembly: true, removedAfter: true, note: "Y-connector added to the filter inlet line for PPQ only; the commercial assembly has no sample port here (fictional)." }
+            flush: { practice: flush_volume, volume: { value: 50, unit: mL }, discardTo: the waste container at the filter skid }
+            closedSystem: closed
           patch:
             timing: { options: [beginning, end] }
             locationsCount: 1
@@ -821,6 +826,12 @@ sampling:
             detail: { enhanced: { interventions: Samples taken after each planned intervention on the filling line (fictional). } }
             reporting: { what: [individual, mean, sd_rsd], deviationRef: SOP-DEV-001 (fictional) }
         - suggestion: cat:extended_characterization
+          method:
+            access: shared_port
+            added: { forStudyOnly: false }
+            flush: { practice: flush_volume, volume: { value: 30, unit: mL }, discardTo: the waste bag on the compounding vessel }
+            shared: { pointIds: [SP-007], order: "Blend uniformity (SP-007) first, then extended characterization (SP-006).", flushBetween: true }
+            closedSystem: closed
           patch:
             timing: { options: [end] }
             locationsCount: 1
@@ -840,11 +851,20 @@ sampling:
             - { batchSize: { value: 21, unit: L, tag: max }, speed: { value: 60, unit: rpm, tag: min }, mixTime: { value: 20, unit: min, tag: target }, attributes: "Concentration and pH at top, middle and bottom (fictional)." }
             - { batchSize: { value: 12, unit: L, tag: min }, speed: { value: 140, unit: rpm, tag: max }, mixTime: { value: 20, unit: min, tag: target }, attributes: "Concentration, pH and subvisible particles (fictional)." }
           rangeText: ["Batch size 12 to 21 L (fictional values)."]
+          method:
+            access: shared_port
+            added: { forStudyOnly: false }
+            flush: { practice: flush_volume, volume: { value: 30, unit: mL }, discardTo: the waste bag on the compounding vessel }
+            shared: { pointIds: [SP-006], order: "Blend uniformity (SP-007) first, then extended characterization (SP-006).", flushBetween: true }
+            closedSystem: closed
           patch: {}
         - suggestion: cat:release_sterility
           hour: 100
           flow: { step: release, at: during }
           docs: [DEMO-PPQ-217-01]
+          method:
+            access: dedicated_port
+            added: { forStudyOnly: false }
           patch:
             timing: { options: [end] }
             locationsCount: 1
@@ -858,6 +878,11 @@ sampling:
           hour: 20
           flow: { step: hold, at: during }
           docs: [DEMO-HT-217-02]
+          method:
+            access: bag_sample_manifold
+            flush: { practice: first_draw_discard, volume: { value: 20, unit: mL }, discardTo: the waste bag on the sample manifold }
+            bag: { fromBag: true, mixedFirst: true, mixingTime: 10 minutes at the validated mixing speed, drawFrom: the sample manifold at the bottom of the bag }
+            closedSystem: closed
           patch:
             timing: { options: [beginning, end] }
             locationsCount: 2

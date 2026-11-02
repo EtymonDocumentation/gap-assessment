@@ -9,6 +9,7 @@ export * from "./totals.js";
 export * from "./schedule.js";
 export * from "./tables.js";
 export * from "./mixing.js";
+export * from "./method.js";
 export * from "./reporting.js";
 export * from "./subsections.js";
 export * from "./flow.js";

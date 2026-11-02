@@ -542,6 +542,14 @@ const MIGRATIONS: { from: string; to: string; migrate: Migrate }[] = [
     to: "1.26.0",
     migrate: (raw) => ({ ...raw, schemaVersion: "1.26.0" }),
   },
+  // 1.26.0 -> 1.27.0: sampling plan format 1.6.0. A sampling point may say how the sample is physically taken (`method`) and a plan may switch
+  // on the optional "ask how each sample is taken" practice. Both are optional and absent in every older plan, so no data changes; only the
+  // version moves.
+  {
+    from: "1.26.0",
+    to: "1.27.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.27.0" }),
+  },
 ];
 
 /**

@@ -15,8 +15,14 @@ Last updated: 2026-10-26. Update this file (no machine-specific details) wheneve
   the risk method library edits scales and bands itself, an assessment is told when the library has a newer
   version of its method, and the risk Word output uses the Templates library. Before M8: M7 and its
   sub-milestones M7.1 and M7.2 (section 4) and a sampling polish pass.
-- Current versions: project schema 1.26.0, process model 1.7.0, sampling plan format 1.4.0, TRD format 1.0.0, risk format 1.0.0, content catalog 1.0.0 (failure
+- Current versions: project schema 1.27.0, process model 1.7.0, sampling plan format 1.6.0, TRD format 1.0.0, risk format 1.0.0, content catalog 1.0.0 (failure
   modes and method load-outs 1.0.0), all other packages 0.1.0.
+- How each sample is taken (schema 1.27.0, plan format 1.6.0, version-only migration): a sampling point may carry an optional `method` (access: dedicated /
+  shared port, added Y-connector, bag manifold, aseptic connector, grab; added-for-study follow-ups; flush; shared-port order; bag mixing; closed or open) and a plan
+  may switch on the practice `askSampleMethod`. Nothing is preselected. Reminders (`samplingMethodReminders` in @gap/sampling) appear for a point once any method
+  answer exists, or for every point when the plan switch is on; they are listed apart from the open items, never counted in them and never block. The sampling plan,
+  the CMO instructions and the MBR (sample table and placed sample steps, read live from the plan) print the answers as instruction lines and unanswered items as
+  write-in blanks. Drawing the port in the Process view is a later job.
 - Saved answers (schema 1.26.0, version-only migration; the answer record gains an optional `fromSavedSet` {name, savedAt}): an
   author keeps a project's SU and/or RU answers as a named set and offers it to another project through a review list (every
   answer ticked, a different existing answer shown beside the saved one, questions the project does not ask skipped). Not saved:

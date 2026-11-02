@@ -1,6 +1,7 @@
 import {
   POINT_AFTER_PPQ_LABEL, docRefLabel, mbrChoiceText, MBR_FORMAT_VERSION, printableUnit, PROCESS_MODEL_VERSION, SCHEMA_VERSION, type MbrParamRow, type MbrRecord, type MbrTrdRef, type Project, type TrdDocument } from "@gap/process-model";
 import type { Block, DocModel, DocSection } from "./document";
+import { methodDocumentLines } from "@gap/sampling";
 import { effectiveField } from "./trd";
 import { TRD_BANNER } from "./trd-outline";
 import { holdEntryInfo, mbrOpenItems, numberSteps, renderStepText, splitIndex, stepNumberText, type HoldEntryInfo, type MbrOpenItem, type MbrPart } from "./mbr";
@@ -160,6 +161,8 @@ function holdEntrySection(project: Project, rec: MbrRecord, info: HoldEntryInfo,
       rows: entry.samples.map((x) => [x.pointId, x.test, x.quantity ?? "", x.container ?? "", x.storage ?? "", x.hour ?? "", CMO_PLACEHOLDER]),
       caption: `Samples at the ${start ? "start" : "end"} of the hold (from the sampling plan${plan ? ` ${plan.id}` : ""})`,
     });
+    const hrows = plan ? entry.samples.flatMap((x) => { const pt = plan.points.find((p) => p.id === x.pointId); return pt ? methodDocumentLines(pt, plan).map((l) => [x.pointId, l.text]) : []; }) : [];
+    if (hrows.length) blocks.push({ type: "table", columns: ["Sample", "How the sample is taken"], rows: hrows, caption: "How each sample is taken (from the sampling plan)" });
   } else if (hold) {
     blocks.push({ type: "paragraph", text: `The sampling plan has no sample at the ${start ? "start" : "end"} of this hold.` });
   } else {
@@ -202,7 +205,28 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
       blocks.push({ type: "heading", text: b.title });
       if (b.note?.trim()) blocks.push({ type: "note", text: b.note.trim() });
       if (b.steps.length) {
-        blocks.push({ type: "table", columns: ["Step", "Instruction"], rows: b.steps.map((st) => [numbers.get(st.id) ?? "", renderStepText(st.text, numbers)]) });
+        // A sampling step carries how the sample is taken (flush, mixing, shared port ...) read live from the plan, so the sampler is told at
+        // the step and the plan stays the record of truth. An unanswered question prints as a write-in blank, in the open style of this record.
+        const mplan = rec.planId ? project.sampling.plans.find((p) => p.id === rec.planId) : undefined;
+        const methodOf = (ids: readonly string[] | undefined): string => {
+          if (!mplan || !ids?.length) return "";
+          return ids
+            .map((id) => {
+              const pt = mplan.points.find((p) => p.id === id);
+              const lines = pt ? methodDocumentLines(pt, mplan).map((l) => l.text) : [];
+              return lines.length ? `${id}: ${lines.join(" ")}` : "";
+            })
+            .filter(Boolean)
+            .join(" ");
+        };
+        blocks.push({
+          type: "table",
+          columns: ["Step", "Instruction"],
+          rows: b.steps.map((st) => {
+            const how = methodOf(st.placedFor?.points);
+            return [numbers.get(st.id) ?? "", `${renderStepText(st.text, numbers)}${how ? ` ${how}` : ""}`];
+          }),
+        });
       }
       if (b.params.length) {
         blocks.push({ type: "table", columns: ["Parameter", "MBR value (TRD value, source)", "Choice", "Reason and notes"], rows: b.params.map((r) => paramRow(r, src)), caption: "Parameters", weights: MBR_PARAM_WEIGHTS });
@@ -241,6 +265,10 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
           rows: b.samples.map((x) => [x.pointId, x.test, x.step ?? "", x.quantity ?? "", x.container ?? "", x.storage ?? "", x.hour ?? "", x.hold ?? "", flag(x.pointId), CMO_PLACEHOLDER]),
           caption: "Samples (from the sampling plan)",
         });
+        // How each sample is taken, for samples that no placed step names (a placed step already carries it).
+        const placedIds = new Set(b.steps.flatMap((st) => st.placedFor?.points ?? []));
+        const mrows = plan ? b.samples.filter((x) => !placedIds.has(x.pointId)).flatMap((x) => { const pt = plan.points.find((p) => p.id === x.pointId); return pt ? methodDocumentLines(pt, plan).map((l) => [x.pointId, l.text]) : []; }) : [];
+        if (mrows.length) blocks.push({ type: "table", columns: ["Sample", "How the sample is taken"], rows: mrows, caption: "How each sample is taken (from the sampling plan)" });
       }
       if (b.cmoFields.length) {
         blocks.push({ type: "table", columns: ["To be completed by the CMO", "Entry"], rows: b.cmoFields.map((f) => [f, CMO_PLACEHOLDER]) });

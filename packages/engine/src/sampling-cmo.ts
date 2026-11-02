@@ -1,5 +1,5 @@
 import { UNIT_OP_FINISHED_PRODUCT, UNIT_OP_NONE, type Project, type SamplingPlan } from "@gap/process-model";
-import { agencyCoverage, CMO_INTRO, placementText, renderSubsection, reportingInstructions, requestLine, stepOf, tokenContext, typeText } from "@gap/sampling";
+import { agencyCoverage, methodDocumentLines, CMO_INTRO, placementText, renderSubsection, reportingInstructions, requestLine, stepOf, tokenContext, typeText } from "@gap/sampling";
 import type { ContentBundle } from "./content";
 import { effectiveContent } from "./custom";
 import type { Block, DocModel, DocSection } from "./document";
@@ -53,6 +53,11 @@ export function buildCmoInstructionsDocument(content: ContentBundle, project: Pr
     const ri = reportingInstructions(plan, p, { unitOpLabel });
     blocks.push({ type: "heading", text: `${ri.heading}: ${p.attribute.trim() || "(no test)"} (${typeText(p)}${stepOf(plan, p) ? `; ${placementText(plan, p)}` : ""})` });
     for (const text of ri.paragraphs) blocks.push({ type: "paragraph", text });
+    const how = methodDocumentLines(p, plan);
+    if (how.length) {
+      blocks.push({ type: "paragraph", text: "How the sample is taken:" });
+      blocks.push({ type: "list", items: how.map((l) => l.text) });
+    }
     if (ri.missing.length) blocks.push({ type: "note", text: `${p.id} is incomplete in the plan. Still missing in this block: ${ri.missing.join(", ")}.` });
   }
   add("cmo-blocks", "Reporting instructions per sampling point", blocks);

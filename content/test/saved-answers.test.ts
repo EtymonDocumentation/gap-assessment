@@ -1,4 +1,4 @@
-// Saved answer sets: save from a project, review against another, apply with provenance (schema 1.26.0).
+// Saved answer sets: save from a project, review against another, apply with provenance (schema 1.27.0).
 import {
   applyAnswer,
   applySavedSet,
@@ -30,9 +30,9 @@ function answeredInst(p: Project, side: "source" | "target"): QuestionInstance {
 }
 
 describe("saved answer sets", { timeout: 60_000 }, () => {
-  it("is schema 1.26.0", () => {
-    expect(SCHEMA_VERSION).toBe("1.26.0");
-    expect(demo().schemaVersion).toBe("1.26.0");
+  it("is schema 1.27.0", () => {
+    expect(SCHEMA_VERSION).toBe("1.27.0");
+    expect(demo().schemaVersion).toBe("1.27.0");
   });
 
   it("saves only the chosen unit, and only real statements (no TBD, no 'same as SU', no open questions)", () => {

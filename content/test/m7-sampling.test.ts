@@ -277,6 +277,7 @@ describe("the sampling plan document", () => {
       "Other",
       "Sample totals per batch",
       "Open items",
+      "Sampling method reminders",
       "Agency requests and commitments",
       "Traceability",
       "Source register",

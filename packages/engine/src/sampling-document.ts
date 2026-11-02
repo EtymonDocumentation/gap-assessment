@@ -55,6 +55,8 @@ import {
   AGENCY_STATUS_LABEL,
   type OpenItem,
   type TokenContext,
+  methodDocumentLines,
+  planMethodReminders,
 } from "@gap/sampling";
 import type { ContentBundle } from "./content";
 import { effectiveContent } from "./custom";
@@ -435,6 +437,7 @@ export function buildSamplingPlanDocument(
       ["Responsible", p.responsible ? `${RESPONSIBLE_LABEL[p.responsible.party]}${p.responsible.name?.trim() ? `, ${p.responsible.name.trim()}` : ""}` : NOT_GIVEN],
       ["Applies to", p.appliesTo === "all" ? "All batches" : p.appliesTo.map(batchLabel).join(", ")],
       ["Container", p.container],
+      ["How the sample is taken", methodDocumentLines(p, plan).map((l) => l.text).join(" ") || undefined],
       ["Closure", p.closure],
       ["Quantity per sample", p.quantity ? `${p.quantity.value} ${p.quantity.unit}` : undefined],
       ["Containers per sample", p.containerUnitsPerSample !== undefined ? String(p.containerUnitsPerSample) : undefined],
@@ -672,6 +675,19 @@ export function buildSamplingPlanDocument(
       : []),
     ...subsAfter("open-items"),
   ]);
+
+  // Sampling method reminders: an OPTIONAL practice, listed apart from the open items and not counted in them (they never block).
+  const methodReminders = planMethodReminders(plan);
+  if (methodReminders.length) {
+    add("sampling-method-reminders", "Sampling method reminders", [
+      { type: "paragraph", text: "How each sample is physically taken. These are reminders for the team, not open items of the plan: the answers are the team's, and the tool does not judge any method." },
+      {
+        type: "table",
+        columns: ["Point", "Reminder"],
+        rows: methodReminders.flatMap((x) => x.reminders.map((r) => [x.pointId, `${r.severity === "open" ? "Not stated" : "Detail missing"}: ${r.text}`])),
+      },
+    ]);
+  }
 
   addAgency();
 

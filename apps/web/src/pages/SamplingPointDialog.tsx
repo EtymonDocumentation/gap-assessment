@@ -73,6 +73,7 @@ import {
 import { designLoadouts } from "@gap/content";
 import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import { Modal } from "../components";
+import { MethodSection } from "./SamplingMethod";
 import { snapshotOf, tableProblems, useSamplingTables } from "../sampling-tables-store";
 import { useContent, useStore } from "../store";
 
@@ -1333,6 +1334,8 @@ export function PointForm({
           </section>
         </div>
       </Group>
+
+      <MethodSection plan={plan} d={d} set={set} />
 
       <Group id="sources" title="Sources and agency requests" summary={groupSummary(d, "sources")} count={check.byGroup.sources.length} open={isOpen("sources")} onToggle={() => toggleGroup("sources")}>
         {plan.agencyRequests.length === 0 && sources.length === 0 && <p className="muted small">No sources in the register and no agency requests yet. Add sources on the Sources page; agency requests are recorded in the Agency requests section of the interview.</p>}

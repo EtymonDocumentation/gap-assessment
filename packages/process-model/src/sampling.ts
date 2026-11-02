@@ -24,7 +24,7 @@ import { z } from "zod";
  */
 
 /** Format version of the plan data (semver). A new optional field is a minor change; a removed or re-meant field is major. */
-export const SAMPLING_PLAN_FORMAT_VERSION = "1.5.0";
+export const SAMPLING_PLAN_FORMAT_VERSION = "1.6.0";
 
 /** Run types. Only PPQ is built; the field exists so clinical GMP and engineering runs can be added without a schema break. */
 export const SAMPLING_RUN_TYPES = ["ppq"] as const;
@@ -479,6 +479,84 @@ export const pointStatisticalBasisSchema = z.object({
 });
 export type PointStatisticalBasis = z.infer<typeof pointStatisticalBasisSchema>;
 
+/**
+ * Plan format 1.6.0. How a sample is physically taken. CMOs often add a sampling port or a Y-connector to a single-use assembly just
+ * to pull development or PPQ samples, then forget to flush it, re-use one port for several samples in the wrong order, or draw from an
+ * unmixed bag. The tool therefore ASKS; it never answers. Everything here is optional and nothing is preselected: an absent field reads
+ * "not stated" and may become a reminder (see samplingMethodReminders in @gap/sampling). The container and the person who takes the
+ * sample are NOT repeated here: they are already on the point (`container`, `responsible`).
+ */
+export const SAMPLE_ACCESS = ["dedicated_port", "shared_port", "added_y_connector", "bag_sample_manifold", "aseptic_connector", "grab_open", "other"] as const;
+export type SampleAccess = (typeof SAMPLE_ACCESS)[number];
+export const SAMPLE_ACCESS_LABEL: Record<SampleAccess, string> = {
+  dedicated_port: "Dedicated sampling port (this sample only)",
+  shared_port: "Port shared with other samples",
+  added_y_connector: "Y-connector added to the assembly",
+  bag_sample_manifold: "Bag sample manifold",
+  aseptic_connector: "Aseptic connector",
+  grab_open: "Grab sample (open)",
+  other: "Other",
+};
+export const SAMPLE_FLUSH_PRACTICES = ["flush_volume", "first_draw_discard", "none_stated_reason"] as const;
+export type SampleFlushPractice = (typeof SAMPLE_FLUSH_PRACTICES)[number];
+export const SAMPLE_FLUSH_LABEL: Record<SampleFlushPractice, string> = {
+  flush_volume: "Flush the port with a stated volume",
+  first_draw_discard: "Discard the first draw",
+  none_stated_reason: "No flush (the reason is written down)",
+};
+export const SAMPLE_CLOSED_SYSTEM = ["closed", "open"] as const;
+export type SampleClosedSystem = (typeof SAMPLE_CLOSED_SYSTEM)[number];
+
+export const sampleMethodSchema = z.object({
+  access: z.enum(SAMPLE_ACCESS).optional(),
+  accessOther: z.string().optional(),
+  /** A port or connector put on only for development or PPQ sampling. Only meaningful when `added.forStudyOnly` is true. */
+  added: z
+    .object({
+      forStudyOnly: z.boolean().optional(),
+      /** The added part is also in the commercial (routine) assembly. */
+      inCommercialAssembly: z.boolean().optional(),
+      /** The modified assembly is covered by the single-use qualification / extractables assessment. */
+      validatedAssembly: z.boolean().optional(),
+      removedAfter: z.boolean().optional(),
+      note: z.string().optional(),
+    })
+    .optional(),
+  flush: z
+    .object({
+      practice: z.enum(SAMPLE_FLUSH_PRACTICES).optional(),
+      volume: z.object({ value: z.number().positive(), unit: z.string().min(1) }).optional(),
+      /** Where the flushed or discarded liquid goes. */
+      discardTo: z.string().optional(),
+      /** Why no flush is done (for "none_stated_reason"). */
+      reason: z.string().optional(),
+    })
+    .optional(),
+  /** Other points of the same plan drawn from the same port. */
+  shared: z
+    .object({
+      pointIds: z.array(z.string()).optional(),
+      /** The order the samples are drawn in on that port, in the person's words. */
+      order: z.string().optional(),
+      flushBetween: z.boolean().optional(),
+    })
+    .optional(),
+  /** Questions that only apply to a sample drawn from a bag or hold vessel. */
+  bag: z
+    .object({
+      fromBag: z.boolean().optional(),
+      mixedFirst: z.boolean().optional(),
+      mixingTime: z.string().optional(),
+      drawFrom: z.string().optional(),
+    })
+    .optional(),
+  closedSystem: z.enum(SAMPLE_CLOSED_SYSTEM).optional(),
+  /** For an open sample: the room or hood class it is drawn under, typed by the person. */
+  openClass: z.string().optional(),
+  note: z.string().optional(),
+});
+export type SampleMethod = z.infer<typeof sampleMethodSchema>;
+
 export const samplingPointSchema = z
   .object({
     /** SP-001, SP-002 ... never reused inside a plan. */
@@ -523,6 +601,8 @@ export const samplingPointSchema = z
     /** Plan format 1.5.0: PPQ only, or continues into routine / CPV. Absent = not stated. */
     afterPpq: z.enum(POINT_AFTER_PPQ).optional(),
     statisticalBasis: pointStatisticalBasisSchema.optional(),
+    /** Plan format 1.6.0: how the sample is physically taken. Absent = not stated. */
+    method: sampleMethodSchema.optional(),
     /** Purpose and rationale: why this point is sampled. */
     rationale: z.string(),
     /** "all" batches, or the ids of the batches the point applies to. */
@@ -724,6 +804,8 @@ export const samplingPlanSchema = z
     /** Plan format 1.5.0: PPQ design decisions and the readiness checklist. Absent on older plans. */
     design: planDesignSchema.optional(),
     readiness: z.array(readinessEntrySchema).optional(),
+    /** Plan format 1.6.0: the optional practice "ask how each sample is taken". Off (absent) unless the person switches it on. */
+    askSampleMethod: z.boolean().optional(),
     /** Who is responsible for sampling, testing and reporting (plan level). */
     parties: z.array(planPartySchema),
     /** The register of agency requests that refer to PPQ samples or studies. */
@@ -780,6 +862,9 @@ export const samplingPlanSchema = z
         for (const id of p.appliesTo) {
           if (!batchIds.has(id)) ctx.addIssue({ code: "custom", message: `Point ${p.id} applies to a batch (${id}) that is not in plan ${plan.id}` });
         }
+      }
+      for (const id of p.method?.shared?.pointIds ?? []) {
+        if (!pointIds.has(id) || id === p.id) ctx.addIssue({ code: "custom", message: `Point ${p.id} says it shares a port with a point (${id}) that is not another point of plan ${plan.id}` });
       }
       for (const id of p.agencyRequestIds ?? []) {
         if (!requestIds.has(id)) ctx.addIssue({ code: "custom", message: `Point ${p.id} links an agency request (${id}) that is not in plan ${plan.id}` });

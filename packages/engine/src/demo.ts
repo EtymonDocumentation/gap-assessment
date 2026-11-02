@@ -106,6 +106,8 @@ const samplingDemoSchema = z.object({
           /** Labels of the plan's batches the point applies to (a point left out of this list applies to all batches). The plan assigns the B-### ids. */
           appliesTo: z.array(z.string()).optional(),
           patch: z.record(z.string(), z.unknown()).default({}),
+          /** How the sample is taken (plan format 1.6.0). Applied after every point exists, so a shared port can name a later point. */
+          method: z.record(z.string(), z.unknown()).optional(),
         }),
       ),
     }),
@@ -453,6 +455,7 @@ function applySamplingDemo(project: Project, content: ContentBundle, s: z.infer<
       requestIds.set(ref, added.requestId);
     }
     const pointIds: string[] = [];
+    const methods: { id: string; method: Record<string, unknown> }[] = [];
     for (const pt of pl.points) {
       const all = suggestPoints(content, project, suggestions);
       const offered0 = pt.suggestion ? all.find((x) => x.id === pt.suggestion) : undefined;
@@ -466,6 +469,7 @@ function applySamplingDemo(project: Project, content: ContentBundle, s: z.infer<
         : addPoint(project, created.planId, { unitOp: pt.unitOp ?? "", ...(pt.type ? { type: pt.type as never } : {}), ...(pt.attribute ? { attribute: pt.attribute } : {}) }, who);
       project = r.project;
       pointIds.push(r.pointId);
+      if (pt.method) methods.push({ id: r.pointId, method: pt.method });
       const patch = { ...pt.patch } as Record<string, unknown>;
       if (pt.agency.length) {
         patch.agencyRequestIds = pt.agency.map((ref) => {
@@ -516,6 +520,7 @@ function applySamplingDemo(project: Project, content: ContentBundle, s: z.infer<
         }
       }
     }
+    for (const m of methods) project = updatePoint(project, created.planId, m.id, { method: m.method as PointPatch["method"] }, who);
     for (const sub of pl.subsections) {
       const lib = sub.library ? s.subsectionLibrary.find((x) => x.id === sub.library) : undefined;
       if (sub.library && !lib) throw new Error(`Demo sampling: unknown library subsection ${sub.library}`);

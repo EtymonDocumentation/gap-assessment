@@ -53,7 +53,7 @@ export interface PointDraft {
 
 /** Fields of a point a person can change (the id, the origin and the time stamps cannot). */
 export type PointPatch = Partial<Omit<SamplingPoint, "id" | "origin" | "createdAt" | "updatedAt">>;
-export type PlanPatch = Partial<Pick<SamplingPlan, "title" | "notes" | "batchRationale" | "noAgencyRequests">>;
+export type PlanPatch = Partial<Pick<SamplingPlan, "title" | "notes" | "batchRationale" | "noAgencyRequests" | "askSampleMethod">>;
 export type AgencyRequestInput = Omit<AgencyRequest, "id" | "createdAt" | "updatedAt">;
 export type AgencyRequestPatch = Partial<AgencyRequestInput>;
 export interface SubsectionInput {
@@ -165,6 +165,16 @@ export function updatePlan(project: Project, planId: string, patch: PlanPatch, a
       after.noAgencyRequests = v ?? false;
       if (v) plan.noAgencyRequests = true;
       else delete plan.noAgencyRequests;
+    }
+  }
+  if ("askSampleMethod" in patch) {
+    // The optional practice "ask how each sample is taken": stored only when on, so an old plan and an unset switch look the same.
+    const v = patch.askSampleMethod ? true : undefined;
+    if (plan.askSampleMethod !== v) {
+      before.askSampleMethod = plan.askSampleMethod ?? false;
+      after.askSampleMethod = v ?? false;
+      if (v) plan.askSampleMethod = true;
+      else delete plan.askSampleMethod;
     }
   }
   for (const k of ["title", "notes", "batchRationale"] as const) {
@@ -410,6 +420,14 @@ export function removePoint(project: Project, planId: string, pointId: string, a
   const inside = plan.subsections.filter((s) => s.placement === `in_point:${pointId}`);
   if (inside.length) throw new SamplingError(`Subsection ${inside.map((s) => s.id).join(", ")} is placed inside point ${pointId}. Move it before removing the point.`);
   plan.points = plan.points.filter((p) => p.id !== pointId);
+  // A point that shared a port with the removed one no longer does: the plan would otherwise name a point that is gone.
+  for (const q of plan.points) {
+    const sh = q.method?.shared;
+    if (sh?.pointIds?.includes(pointId)) {
+      sh.pointIds = sh.pointIds.filter((x) => x !== pointId);
+      if (!sh.pointIds.length) delete sh.pointIds;
+    }
+  }
   plan.updatedAt = actor.at;
   log(next, actor, { action: "sampling_point_remove", path: `sampling.${planId}.${pointId}`, detail: `Point ${pointId} removed from ${planId}${point.attribute ? `: ${point.attribute}` : ""}`, before: point });
   return next;
