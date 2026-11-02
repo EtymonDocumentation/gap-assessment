@@ -59,11 +59,16 @@ export function unitsPerBatch(plan: SamplingPlan, point: SamplingPoint): BatchUn
   });
 }
 
+/** A quantity in a volume or a mass means the sample is a container of liquid; a count (syringes, vials) is a product unit. */
+const LIQUID_QUANTITY = /^\s*(?:[mµu]?l|litres?|liters?|[mµnk]?g|grams?)\s*$/i;
+
 export interface BatchTotal {
   batchId: string;
   batchLabel: string;
   /** Process-sample units consumed by the points that could be worked out. */
   units: number;
+  /** Of `units`, the containers of liquid (bulk, buffer or in-process samples: the quantity is a volume or a mass). The rest are product units such as syringes. */
+  liquidUnits: number;
   /** Stability units (pulls x units per pull). Kept in their own column: they are put on the stability programme, not tested in the run. */
   stabilityUnits: number;
   /** Retain and reserve units. */
@@ -77,6 +82,8 @@ export interface BatchTotal {
 export interface PlanTotals {
   perBatch: BatchTotal[];
   units: number;
+  /** Of `units`, the containers of liquid samples (see BatchTotal.liquidUnits). */
+  liquidUnits: number;
   stabilityUnits: number;
   retainUnits: number;
   /** Process + stability + retain. */
@@ -88,7 +95,7 @@ export interface PlanTotals {
 }
 
 export function planTotals(plan: SamplingPlan): PlanTotals {
-  const perBatch: BatchTotal[] = plan.batches.map((b) => ({ batchId: b.id, batchLabel: b.label, units: 0, stabilityUnits: 0, retainUnits: 0, notWorkedOut: [], hundredPercent: [] }));
+  const perBatch: BatchTotal[] = plan.batches.map((b) => ({ batchId: b.id, batchLabel: b.label, units: 0, liquidUnits: 0, stabilityUnits: 0, retainUnits: 0, notWorkedOut: [], hundredPercent: [] }));
   for (const point of plan.points) {
     for (const u of unitsPerBatch(plan, point)) {
       if (!u.applies) continue;
@@ -97,7 +104,10 @@ export function planTotals(plan: SamplingPlan): PlanTotals {
       else if (u.units === undefined) total.notWorkedOut.push(point.id);
       else if (u.kind === "stability") total.stabilityUnits += u.units;
       else if (u.kind === "retain") total.retainUnits += u.units;
-      else total.units += u.units;
+      else {
+        total.units += u.units;
+        if (LIQUID_QUANTITY.test(point.quantity?.unit ?? "")) total.liquidUnits += u.units;
+      }
     }
   }
   const union = (pick: (t: BatchTotal) => string[]) => [...new Set(perBatch.flatMap(pick))];
@@ -108,7 +118,8 @@ export function planTotals(plan: SamplingPlan): PlanTotals {
   if (notWorkedOut.length) notes.push(`${notWorkedOut.join(", ")}: not worked out yet, so the totals are a lower bound. See the open items.`);
   const sum = (pick: (t: BatchTotal) => number) => perBatch.reduce((s, t) => s + pick(t), 0);
   const units = sum((t) => t.units);
+  const liquidUnits = sum((t) => t.liquidUnits);
   const stabilityUnits = sum((t) => t.stabilityUnits);
   const retainUnits = sum((t) => t.retainUnits);
-  return { perBatch, units, stabilityUnits, retainUnits, allUnits: units + stabilityUnits + retainUnits, notWorkedOut, hundredPercent, notes };
+  return { perBatch, units, liquidUnits, stabilityUnits, retainUnits, allUnits: units + stabilityUnits + retainUnits, notWorkedOut, hundredPercent, notes };
 }

@@ -58,9 +58,9 @@ for (const [name, size] of [["desktop", { width: 1280, height: 900 }], ["phone",
     await expect(page.getByTestId("pv-share-SP-001+SP-002")).toHaveCount(1);
     await expect(page.getByTestId("pv-waste-SP-001")).toContainText("50 mL to waste");
 
-    // A dedicated port with no flush stated: a glyph but no waste mark. A manifold with a first-draw discard.
+    // A dedicated port with its small stated flush (the buffer bag's own port). A manifold with a first-draw discard.
     await expect(page.getByTestId("pv-glyph-SP-020")).toHaveAttribute("data-access", "dedicated_port");
-    await expect(page.getByTestId("pv-waste-SP-020")).toHaveCount(0);
+    await expect(page.getByTestId("pv-waste-SP-020")).toContainText("5 mL to waste");
     await expect(page.getByTestId("pv-glyph-SP-009")).toHaveAttribute("data-access", "bag_sample_manifold");
     await expect(page.getByTestId("pv-waste-SP-009")).toContainText("10 mL to waste");
 

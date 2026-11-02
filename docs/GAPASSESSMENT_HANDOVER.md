@@ -215,7 +215,7 @@ Last updated: 2026-10-26. Update this file (no machine-specific details) wheneve
   TRD, reachable like the vial demo's ("Open syringe example", then Batch record), in static and server modes.
 - Content: 11 unit-operation sections in process order plus a review section. Mostly "same as TRD"; one row tightened by
   the CMO with a reason (stopper position range); one time limit with targets (12 h out of refrigeration = filling 6 +
-  inspection 3 + bulk packing 1 + labelling 2); one study point beyond a limit (inspection rate range); one TRD
+  inspection 3 + bulk packing 1 + labelling 2); one study point beyond a limit (inspection rate range, 340 units/min inside its PAR of 250 to 350); one TRD
   requirement without a step (compounding in-process controls); several "not decided". No filtered-hold block (the TRD
   has none) and no needle-clog block (the TRD says clogging is not likely).
 - Library `content/mbr/blocks.yaml` format 1.1.0: six blocks went to version 2 (receipt and thaw, buffer preparation,
@@ -240,9 +240,9 @@ Last updated: 2026-10-26. Update this file (no machine-specific details) wheneve
   9 L). Mixing homogeneity T0/T1/T2 top and bottom (1-6), post-filtration hold in the holding bag (7-9; sample 9 applies
   to PPQ 2 and 3 only, demo point field `appliesTo` = batch labels, resolved to batch ids in `applySamplingDemo`),
   enhanced filling samples (10-14, 14 after a 60-minute line stop), surge bag hold (15), stability after the time-out
-  challenge (16: 600 syringes = 2 conditions x 5 time points x 60) and the T0 total-time sample (17). Everything is
+  challenge (16: 300 syringes = 2 conditions x 5 time points x 30; the 25 C condition is tested to 6 months only, the later units are kept as reserve) and the T0 total-time sample (17). Everything is
   complete except the plan-level "not yet stated whether agency requests exist" item, which the demo schema cannot
-  clear. PPQ-only extended holds (36 h) are challenges in the plan, never MBR limits.
+  clear. PPQ-only extended holds (30 h) are challenges in the plan, never MBR limits.
 - Batch record sample rows: the compounding (1-6), BBR filtration (7-9) and aseptic filling (10-17) sections carry a
   `sample_table` block linked to the plan through the M11 mechanism (`planId`, `pointId`). `sampleFieldsOf` shows a set
   of containers as "2 x 10 mL" (`containerUnitsPerSample`).
@@ -256,6 +256,24 @@ Last updated: 2026-10-26. Update this file (no machine-specific details) wheneve
 - Tests: `content/test/syr-305-ppq.test.ts`, `packages/docx/test/syr305-ppq.test.ts` (plan and CMO exports).
 - Tests: `content/test/syr-305-mbr.test.ts`, `packages/docx/test/syr305-mbr.test.ts`, `apps/web/e2e/syr-demo.spec.ts`,
   `apps/web/e2e-server/m11-mbr.spec.ts`.
+
+- Demo consistency pass (2026-11-02, tester C rows 8-22), all in `content/demo/syr-305.yaml` unless stated:
+  - Holds: every hold is challenged in every PPQ lot; the unproven PARs of the holds (ambient 6 h, thawed 30 h, compounding 30 h,
+    BBR hold 30 h, bulk hold 36 h) were removed so the TRD shows them as proposed, not proven. The buffer hold PAR (96 h, engineering
+    run) stays. Ambient time after thaw is one clock: the total time outside 2 to 8 C from the end of thaw until pooling starts
+    (PPQ target 5 h = 4.0 h before the cold hold + 1.0 h after). Time out of refrigeration: per portion from the start of filling,
+    12 h; the holding bag stands in a 2 to 8 C holder at the filling line; the storage/shipping excursion allowance is a separate
+    2 h on top, so the 14 h PPQ challenge = 12 h + 2 h. Post-filling hold ends 7 h 50 min after the start of the sterile
+    filtration (CS-008, SP-015, MBR 7.24). Two named limits: sterile filtration time limit 8 h and the filling duration.
+  - Filters are 0.2 um everywhere; mixing after thaw is one instruction (rock 10 min); SP-020 bioburden bottle is 2 to 8 C, never frozen;
+    MBR 8.5 sampling check is ISO 2859-1 level II, 7 000 units per portion = code L, n = 200; SP-011 is the T0 of the time out of refrigeration.
+  - Sample method (row 12): `sampleIdsTakenAt` (engine `mbr.ts`) finds the sample numbers a hand-written step takes; the MBR document
+    prints the plan's method lines (flush volume, discard, where it goes) at that step. SP-003..008, SP-018/019 now carry a method;
+    SP-021 is the Y-connector with a 100 mL flush. Bulk samples and flushes = 0.84 L (samples 18/19 are out of the pool at the thaw
+    step and are not counted again). PPQ 1 41 500 units (spare 0.51 L), PPQ 2 76 000 (12.56 L unfilled), PPQ 3 4 650 (spare 0.045 L).
+  - Demo point field `gapIds` traces a hand-added plan point to gap register rows (Appendix A reads "Traced to the gap register");
+    the sample totals table now splits containers of liquid samples from product units (syringes).
+  - Tests: `content/test/syr-305-sample-volumes.test.ts` (method at the step, flush counted once, 18/19 not subtracted twice, spare >= 0).
 
 ## 6. Stack and checks
 - npm workspaces: `packages/process-model`, `packages/engine`, `packages/renderers`, `packages/docx`,

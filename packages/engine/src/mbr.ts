@@ -291,6 +291,30 @@ export function sampleMomentKey(p: SamplingPoint): MbrSampleMoment | undefined {
   return (MBR_SAMPLE_MOMENTS as readonly string[]).includes(o) ? (o as MbrSampleMoment) : undefined;
 }
 
+/**
+ * The sample numbers a step tells the person to take: those a generated sampling step is placed for, and, for a hand-written step, those its
+ * text names with a taking verb ("Take samples SP-005 and SP-006 ..."). A step that says a sample is "not taken here", or only checks one,
+ * does not take it. The sampling plan's method for each of these points (flush, first-draw discard, where the liquid goes) is printed at the step.
+ */
+export function sampleIdsTakenAt(step: { text: string; placedFor?: { points: readonly string[] } }): string[] {
+  if (step.placedFor?.points.length) return [...step.placedFor.points];
+  if (/not taken here/i.test(step.text)) return [];
+  const out: string[] = [];
+  // "Take sample SP-021 ...", "Take samples SP-005 (top) and SP-006 (bottom)", "Take the stability syringes SP-016 (...) and the end-of-challenge syringes SP-017".
+  // The taking verb must come right before the sample number, so a step that only mentions a number ("the end sample is SP-007") does not take it.
+  const lead = /\b(?:take|draw|collect)\s+(?:the\s+|a\s+)?(?:[\w-]+\s+){0,3}?(?:samples?|syringes)\s+(SP-\d{3,})/gi;
+  const more = /^(?:\s*\([^)]*\))?\s*(?:,|and|to)\s*(?:the\s+)?(?:[\w-]+\s+){0,3}?(?:(?:samples?|syringes)\s+)?(SP-\d{3,})/i;
+  for (let m = lead.exec(step.text); m; m = lead.exec(step.text)) {
+    out.push(m[1]!);
+    let rest = step.text.slice(m.index + m[0].length);
+    for (let n = more.exec(rest); n; n = more.exec(rest)) {
+      out.push(n[1]!);
+      rest = rest.slice(n[0].length);
+    }
+  }
+  return [...new Set(out)];
+}
+
 /** "sample SP-001" or "samples SP-001, SP-002": how a placed sampling step names its sample numbers. */
 const samplesWords = (points: readonly string[]) => `sample${points.length === 1 ? "" : "s"} ${points.join(", ")}`;
 

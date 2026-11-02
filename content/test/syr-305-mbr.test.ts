@@ -380,11 +380,11 @@ describe("SYR-305 batch record after the operator walk-through", () => {
 
   it("gives both buffer batch sizes in every component step and a volume balance that adds up for the three PPQ batches", () => {
     const balance = stepWith(/^Volume balance \(fictional\)/, "compounding").text;
-    for (const part of ["49.70 L of 50 L", "87.10 L of 100 L", "8.945 L of 9 L"]) expect(balance).toContain(part);
-    expect(46.2 + 0.5 + 3.0).toBeCloseTo(49.7, 6);
-    expect(83.6 + 0.5 + 3.0).toBeCloseTo(87.1, 6);
-    expect(4950 * 0.0011 + 0.5 + 3.0).toBeCloseTo(8.945, 6);
-    expect(8.945).toBeLessThanOrEqual(9);
+    for (const part of ["49.49 L of 50 L", "87.44 L of 100 L", "8.955 L of 9 L"]) expect(balance).toContain(part);
+    expect(41500 * 0.0011 + 0.84 + 3.0).toBeCloseTo(49.49, 6);
+    expect(83.6 + 0.84 + 3.0).toBeCloseTo(87.44, 6);
+    expect(4650 * 0.0011 + 0.84 + 3.0).toBeCloseTo(8.955, 6);
+    expect(8.955).toBeLessThanOrEqual(9);
   });
 
   it("checks the fill by hand at a set interval per head, takes SP-014 after a purge, and keeps the PPQ hold to the shorter limit", () => {
@@ -395,8 +395,8 @@ describe("SYR-305 batch record after the operator walk-through", () => {
     expect(stepWith(/^Set the stopper placement unit/).text).toContain("60 kPa below atmospheric pressure");
   });
 
-  it("states the limits that were missing: the sampling check of 315 of 7 000 units, the reconciliation window and the storage ranges", () => {
-    expect(stepWith(/^Apply the sampling check/).text).toMatch(/315 units.*7 000 units|7 000 units.*315 units/);
+  it("states the limits that were missing: the sampling check of 200 of 7 000 units (code letter L), the reconciliation window and the storage ranges", () => {
+    expect(stepWith(/^Apply the sampling check/).text).toMatch(/200 units.*code letter L|code letter L.*200 units/);
     expect(stepWith(/^Calculate the reconciliation/).text).toContain("99.5 % to 100.5 %");
     expect(stepWith(/^Record the location and the conditions of storage/).text).toContain("{shipping temperature range}");
     expect(stepWith(/^Calculate from the temperature record/, "storage_shipping").text).toContain("2 to 8 °C");
@@ -493,8 +493,8 @@ describe("SYR-305 batch record after the product owner's answers on the buffer, 
     expect(sp20).toContain("a port added for PPQ is listed in the PPQ protocol");
     expect(sp20).toContain("Discard the first 5 mL of buffer");
     expect(stepWith(/^Take the in-process samples listed in the table below from the buffer/)).toContain("take 120 mL in all");
-    // The purges and samples come from the surplus buffer, so the bulk samples of the volume balance stay at 0.50 L.
-    expect(stepWith(/^Volume balance/)).toContain("Bulk samples are 0.50 L in every batch");
+    // The purges and samples come from the surplus buffer, so the bulk samples and flushes of the volume balance stay at 0.84 L.
+    expect(stepWith(/^Volume balance/)).toContain("Bulk samples and flushes are 0.84 L in every batch");
   });
 
   it("restarts the line so that the last litre is filtered inside the 8 h and counts it", () => {

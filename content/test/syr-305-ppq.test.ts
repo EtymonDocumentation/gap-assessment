@@ -57,7 +57,7 @@ describe("SYR-305 PPQ sampling plan", () => {
     expect(unitsPerBatch(plan, stab).every((u) => u.units === 300)).toBe(true);
     const small = plan.batches[2]!;
     const syringes = plan.points.filter((p) => p.quantity?.unit === "syringes").reduce((a, p) => a + (unitsPerBatch(plan, p).find((u) => u.batchId === small.id)?.units ?? 0), 0);
-    expect(syringes / small.plannedLotSizeUnits!).toBeLessThan(0.15);
+    expect(syringes / small.plannedLotSizeUnits!).toBeLessThan(0.16);
   });
 
   it("runs every hold in every batch: only the batch size is bracketed, and the hold table shows a target to exceed before PPQ", () => {

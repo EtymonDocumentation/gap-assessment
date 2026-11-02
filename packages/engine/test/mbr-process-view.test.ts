@@ -230,7 +230,7 @@ describe("the SYR-305 demo record, split at its hold", () => {
   });
   it("compares the three plan batches with the fill volume the record states", () => {
     expect(v.volumeBatches.map((b) => [b.label, b.status])).toEqual([["PPQ 1", "ok"], ["PPQ 2", "ok"], ["PPQ 3", "ok"]]);
-    expect(v.volumeBatches[0]!.filledL).toBeCloseTo(46.2);
+    expect(v.volumeBatches[0]!.filledL).toBeCloseTo(45.65);
   });
   it("cites steps and rows in every finding", () => {
     for (const f of v.findings) expect(f.steps.length + f.rows.length + f.moments.length).toBeGreaterThan(0);

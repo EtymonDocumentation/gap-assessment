@@ -101,6 +101,8 @@ const samplingDemoSchema = z.object({
           table: z.string().optional(),
           /** Id of an RU-data suggestion (e.g. "ipc:uo.x.ipc.y") whose item path, gap ids and activity this point is traced to. */
           originFrom: z.string().optional(),
+          /** Gap register ids the point is traced to when it is not taken from an RU-data suggestion (shown in the plan's traceability appendix). */
+          gapIds: z.array(z.string()).optional(),
           /** Identifiers of demo documents the point cites as sources. */
           docs: z.array(z.string()).default([]),
           /** Labels of the plan's batches the point applies to (a point left out of this list applies to all batches). The plan assigns the B-### ids. */
@@ -468,7 +470,7 @@ function applySamplingDemo(project: Project, content: ContentBundle, s: z.infer<
       if (pt.suggestion && !offered) throw new Error(`Demo sampling: suggestion ${pt.suggestion} is not offered for this project`);
       const r = offered
         ? acceptSuggestion(project, created.planId, offered, who)
-        : addPoint(project, created.planId, { unitOp: pt.unitOp ?? "", ...(pt.type ? { type: pt.type as never } : {}), ...(pt.attribute ? { attribute: pt.attribute } : {}) }, who);
+        : addPoint(project, created.planId, { unitOp: pt.unitOp ?? "", ...(pt.type ? { type: pt.type as never } : {}), ...(pt.attribute ? { attribute: pt.attribute } : {}), ...(pt.gapIds?.length ? { origin: { kind: "seeded" as const, gapIds: [...pt.gapIds] } } : {}) }, who);
       project = r.project;
       pointIds.push(r.pointId);
       if (pt.method) methods.push({ id: r.pointId, method: pt.method });

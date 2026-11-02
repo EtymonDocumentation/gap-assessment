@@ -80,9 +80,10 @@ describe("the SYR-305 standard TRD reads as prose", () => {
 
   it("states maximum-only limits as up to, never as max in the set point cell", () => {
     expect(html).not.toMatch(/<td>max \d/);
-    expect(html).toMatch(/Formulated bulk hold time<\/td><td>24<\/td><td>up to 24<\/td><td>up to 30<\/td><td>h<\/td>/);
+    // The hold is proposed, not proven: no PAR until the PPQ lots have shown it.
+    expect(html).toMatch(/Formulated bulk hold time<\/td><td>24<\/td><td>up to 24<\/td><td><\/td><td>h<\/td>/);
     expect(html).toMatch(/BBR filtration duration<\/td><td>1<\/td><td>up to 4<\/td><td>up to 24<\/td><td>h<\/td>/);
-    // The sterilizing filtration runs in line with filling: its time limit covers the filling run (the 8 h filling limit).
+    // The sterilizing filtration runs in line with filling: its time limit covers the filling run (the 8 h sterile filtration time limit).
     expect(html).toMatch(/Filtration duration<\/td><td>6<\/td><td>up to 8<\/td><td>up to 8<\/td><td>h<\/td>/);
   });
 

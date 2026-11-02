@@ -638,6 +638,8 @@ export function buildSamplingPlanDocument(
           rows: [
             ...plan.points.map(pointRowCells),
             ["Total sample units (testing)", ...totals.perBatch.map((t) => String(t.units))],
+            ["   of which containers of liquid samples (bulk, buffer, in-process)", ...totals.perBatch.map((t) => String(t.liquidUnits))],
+            ["   of which product units (syringes and other filled units)", ...totals.perBatch.map((t) => String(t.units - t.liquidUnits))],
             ["Total stability units", ...totals.perBatch.map((t) => String(t.stabilityUnits))],
             ["Total retain and reserve units", ...totals.perBatch.map((t) => String(t.retainUnits))],
             ["Total units, all kinds", ...totals.perBatch.map((t) => String(t.units + t.stabilityUnits + t.retainUnits))],
@@ -646,7 +648,7 @@ export function buildSamplingPlanDocument(
         }
       : { type: "paragraph", text: "No batches, so no totals." },
     ...(plan.batches.length
-      ? ([{ type: "paragraph", text: `Total over all batches: ${totals.units} sample units, ${totals.stabilityUnits} stability units and ${totals.retainUnits} retain and reserve units; ${totals.allUnits} units in all.` }] as Block[])
+      ? ([{ type: "paragraph", text: `Total over all batches: ${totals.units} sample units (${totals.liquidUnits} containers of liquid samples and ${totals.units - totals.liquidUnits} product units), ${totals.stabilityUnits} stability units and ${totals.retainUnits} retain and reserve units; ${totals.allUnits} units in all.` }] as Block[])
       : []),
     ...(stabilityPoints.length
       ? ([
@@ -703,7 +705,7 @@ export function buildSamplingPlanDocument(
     const o = p.origin;
     return [
       p.id,
-      o.kind === "manual" ? "Added by hand" : o.suggestionKey ? `Suggestion: ${o.suggestionKey}` : "From a suggestion",
+      o.kind === "manual" ? "Added by hand" : o.suggestionKey ? `Suggestion: ${o.suggestionKey}` : o.gapIds.length ? "Traced to the gap register" : "From a suggestion",
       o.kind === "seeded" ? (o.itemPath ?? "") : "",
       o.kind === "seeded" ? o.gapIds.join(", ") : "",
       o.kind === "seeded" ? (o.validationActivity ?? "") : "",

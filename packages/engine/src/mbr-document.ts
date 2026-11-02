@@ -4,7 +4,7 @@ import type { Block, DocModel, DocSection } from "./document";
 import { methodDocumentLines } from "@gap/sampling";
 import { effectiveField } from "./trd";
 import { TRD_BANNER } from "./trd-outline";
-import { holdEntryInfo, mbrOpenItems, numberSteps, renderStepText, splitIndex, stepNumberText, type HoldEntryInfo, type MbrOpenItem, type MbrPart } from "./mbr";
+import { holdEntryInfo, mbrOpenItems, numberSteps, renderStepText, sampleIdsTakenAt, splitIndex, stepNumberText, type HoldEntryInfo, type MbrOpenItem, type MbrPart } from "./mbr";
 import { NOT_HELD, NOTE_OUTSIDE, NOTE_TIGHTER, paramNote, targetSum, trdRefText } from "./mbr-values";
 
 /**
@@ -223,7 +223,7 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
           type: "table",
           columns: ["Step", "Instruction"],
           rows: b.steps.map((st) => {
-            const how = methodOf(st.placedFor?.points);
+            const how = methodOf(sampleIdsTakenAt(st));
             return [numbers.get(st.id) ?? "", `${renderStepText(st.text, numbers)}${how ? ` ${how}` : ""}`];
           }),
         });
@@ -266,7 +266,7 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
           caption: "Samples (from the sampling plan)",
         });
         // How each sample is taken, for samples that no placed step names (a placed step already carries it).
-        const placedIds = new Set(b.steps.flatMap((st) => st.placedFor?.points ?? []));
+        const placedIds = new Set(rec.sections.flatMap((ss) => ss.blocks.flatMap((bb) => bb.steps.flatMap((st) => sampleIdsTakenAt(st)))));
         const mrows = plan ? b.samples.filter((x) => !placedIds.has(x.pointId)).flatMap((x) => { const pt = plan.points.find((p) => p.id === x.pointId); return pt ? methodDocumentLines(pt, plan).map((l) => [x.pointId, l.text]) : []; }) : [];
         if (mrows.length) blocks.push({ type: "table", columns: ["Sample", "How the sample is taken"], rows: mrows, caption: "How each sample is taken (from the sampling plan)" });
       }
