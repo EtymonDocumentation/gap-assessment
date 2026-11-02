@@ -1,4 +1,6 @@
+import type { SampleAccess } from "@gap/process-model";
 import { Canvas, COLORS, MIN_FONT_PT, nbUnit, textWidth, wrap, type Hook } from "./draw.js";
+import { drawAccessGlyph, drawFlushGlyph, FLUSH_ROW_H, flushLabel, GLYPH_ROW_H, GLYPH_W, hasFlushRow, hasGlyphRow } from "./method-glyphs.js";
 import { routineLine, type SampleView } from "./model.js";
 
 /**
@@ -170,8 +172,11 @@ export interface CardOpts {
 export function sampleCard(s: SampleView, o: CardOpts): Unit {
   const measure = (w: number) => {
     const head = wrap(s.head, 8.5, w - 2 * PAD - 22 - (s.holdStep ? 56 : 0), true);
-    const body = [`Test: ${s.test}`, ...(s.quantity ? [`Quantity: ${s.quantity}`] : []), `When: ${s.when}`].flatMap((l) => wrap(nbUnit(l), 8.5, w - 2 * PAD));
-    return { head, body, h: 5 + Math.max(head.length, 1) * 11 + body.length * LINE + 7 };
+    // The method words come from the plan point (nothing when it states none); the drawn row below repeats them as a picture.
+    const body = [`Test: ${s.test}`, ...(s.quantity ? [`Quantity: ${s.quantity}`] : []), `When: ${s.when}`, ...(s.method?.text ? [`How taken: ${s.method.text}`] : [])].flatMap((l) => wrap(nbUnit(l), 8.5, w - 2 * PAD));
+    const glyphH = hasGlyphRow(s.method) ? GLYPH_ROW_H : 0;
+    const flushH = hasFlushRow(s.method) ? FLUSH_ROW_H : 0;
+    return { head, body, glyphH, flushH, h: 5 + Math.max(head.length, 1) * 11 + body.length * LINE + 7 + glyphH + flushH };
   };
   const hook: Hook = { sp: s.id, label: `${s.id}: ${s.test}`, focusable: o.focusable };
   return {
@@ -196,10 +201,42 @@ export function sampleCard(s: SampleView, o: CardOpts): Unit {
         cv.text(x + PAD, ty, l, { size: 8.5 });
         ty += LINE;
       }
+      // The picture of how the sample is taken: the access glyph (dashed = added only for the study, with its tag), then the flush.
+      // A reviewer's concern is a connector left on the line or a port not flushed, so both are shown where the sample is described.
+      const me = s.method;
+      let ry = ty - LINE + 5;
+      if (me && m.glyphH) {
+        if (me.access) {
+          drawAccessGlyph(cv, me.access, me.addedForStudy === true, x + PAD, ry);
+          cv.used.add(`access:${me.access}`);
+          if (me.addedForStudy) cv.used.add("added");
+          cv.anchors.set(s.id, { x, y: ry + 8, w });
+        }
+        if (me.addedForStudy && me.studyTag) cv.text(x + PAD + (me.access ? GLYPH_W + 6 : 0), ry + 11.5, me.studyTag, { size: MIN_FONT_PT, bold: true });
+        ry += GLYPH_ROW_H;
+      }
+      if (me && m.flushH) {
+        drawFlushGlyph(cv, x + PAD, ry);
+        cv.used.add("flush");
+        cv.text(x + PAD + 40, ry + 12, flushLabel(me)!, { size: MIN_FONT_PT });
+      }
       cv.end();
       cv.box({ kind: "card", id: s.id, x, y, w, h: m.h });
     },
   };
+}
+
+/**
+ * The cards of a list of samples, in order. A card whose sample shares a port with the NEXT card is kept with it (the same column and
+ * page when they fit), so the thin line between them can be drawn and a reader sees the two samples of one port side by side.
+ */
+export function sampleCards(list: SampleView[], o: CardOpts): Unit[] {
+  return list.map((s, i) => {
+    const u = sampleCard(s, o);
+    const next = list[i + 1];
+    if (next && (s.method?.sharedWith?.includes(next.id) || next.method?.sharedWith?.includes(s.id))) u.keep = true;
+    return u;
+  });
 }
 
 /** Routine samples of a step as one short line. The full routine detail stays in the sample table. */
@@ -248,8 +285,12 @@ export function noteUnit(lines: { lead?: string; text: string }[], width: number
 // ------------------------------------------------------------------ legend and page chrome
 
 export interface LegendItem {
-  kind: "step" | "hold" | "target-line" | "target-ribbon" | "ppq" | "routine" | "narrow" | "holdstep";
+  kind: "step" | "hold" | "target-line" | "target-ribbon" | "ppq" | "routine" | "narrow" | "holdstep" | "access" | "added" | "flush" | "share";
   text: string;
+  /** Which glyph, for the kinds "access" (and "added", which shows a dashed Y-connector). */
+  access?: SampleAccess;
+  /** Method entries only: shown on a page only when that page draws the thing (the key is "access:<kind>", "added", "flush" or "share"). */
+  needs?: string;
 }
 
 /** The legend: one swatch and a few words per kind of mark that this figure uses. Drawn on every page. Returns its height. */
@@ -271,7 +312,7 @@ export function drawLegend(cv: Canvas, y: number, items: LegendItem[]): number {
   for (const row of rows) {
     let x = 12;
     for (const it of row) {
-      swatch(cv, it.kind, x, ry);
+      swatch(cv, it, x, ry);
       cv.text(x + 22, ry + 8, it.text, { size: MIN_FONT_PT });
       x += 26 + textWidth(it.text, 8) + 12;
     }
@@ -281,8 +322,8 @@ export function drawLegend(cv: Canvas, y: number, items: LegendItem[]): number {
   return ry - y;
 }
 
-function swatch(cv: Canvas, kind: LegendItem["kind"], x: number, y: number): void {
-  switch (kind) {
+function swatch(cv: Canvas, item: LegendItem, x: number, y: number): void {
+  switch (item.kind) {
     case "step":
       cv.rect(x, y, 18, 10, { fill: COLORS.step.fill, stroke: COLORS.step.stroke, sw: 1.2, rx: 1 });
       break;
@@ -307,6 +348,18 @@ function swatch(cv: Canvas, kind: LegendItem["kind"], x: number, y: number): voi
       break;
     case "routine":
       cv.rect(x + 3, y, 12, 10, { fill: COLORS.routine.fill, stroke: COLORS.routine.stroke, sw: 1.2, dash: "2 1.5" });
+      break;
+    case "access":
+      drawAccessGlyph(cv, item.access!, false, x, y, 0.6);
+      break;
+    case "added":
+      drawAccessGlyph(cv, "added_y_connector", true, x, y, 0.6);
+      break;
+    case "flush":
+      drawFlushGlyph(cv, x, y, 0.52);
+      break;
+    case "share":
+      cv.polyline([[x + 1, y + 1], [x - 3, y + 1], [x - 3, y + 9], [x + 1, y + 9]], COLORS.muted, 1);
       break;
   }
 }

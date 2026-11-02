@@ -1,6 +1,7 @@
-import type { SamplingPlan } from "@gap/process-model";
+import { SAMPLE_ACCESS, type SampleAccess, type SamplingPlan } from "@gap/process-model";
 import { Canvas, COLORS, hoursText, MIN_FONT_PT, nbUnit, type DrawnBox } from "./draw.js";
-import { drawLegend, headerUnit, legendHeight, noteUnit, paginate, routineUnit, sampleCard, type LegendItem, type PageFill, type Unit } from "./layout.js";
+import { drawLegend, headerUnit, legendHeight, noteUnit, paginate, routineUnit, sampleCards, type LegendItem, type PageFill, type Unit } from "./layout.js";
+import { drawShareLinks } from "./method-glyphs.js";
 import { buildScopes, cmpText, samplesNotOnFigure, type Scope } from "./model.js";
 import { drawStrip, stepCardUnits } from "./step-cards.js";
 import { drawTimeScale } from "./time-scale.js";
@@ -65,6 +66,8 @@ export interface Figure {
   hoursNotGiven: string[];
   /** Plain-text alternative: what the figure shows, for people who cannot see it. */
   alt: string;
+  /** The method of each sample that states one, in words ("How the sample is taken, as the plan states it: SP-001 shared port, ..."). Absent when none does. */
+  methodNote?: string;
   /** A sub-process figure says which step of which figure it feeds. */
   feeds?: { stepLabel: string; figureNumber: number };
 }
@@ -109,6 +112,25 @@ interface Ctx {
   notOn: string[];
 }
 
+const ACCESS_LEGEND: Record<SampleAccess, string> = {
+  dedicated_port: "Dedicated sampling port",
+  shared_port: "Shared port (ring)",
+  added_y_connector: "Y-connector",
+  bag_sample_manifold: "Bag sample manifold",
+  aseptic_connector: "Aseptic connector",
+  grab_open: "Open grab sample",
+  other: "Other way (see the card)",
+};
+
+/** Samples of the figure that name another sample of the same figure on their shared port. */
+function sharedPairs(scope: Scope): { id: string; with: string[] }[] {
+  const ids = new Set(scope.samples.map((s) => s.id));
+  return scope.samples.flatMap((s) => {
+    const others = (s.method?.sharedWith ?? []).filter((o) => ids.has(o) && o !== s.id);
+    return others.length ? [{ id: s.id, with: others }] : [];
+  });
+}
+
 function legendFor(scope: Scope, style: "time_scale" | "step_cards"): LegendItem[] {
   const items: LegendItem[] = [{ kind: "step", text: "Process step" }];
   if (scope.holds.length) items.push({ kind: "hold", text: "Hold (dashed, word HOLD)" });
@@ -117,6 +139,11 @@ function legendFor(scope: Scope, style: "time_scale" | "step_cards"): LegendItem
   if (scope.samples.some((s) => s.routine)) items.push({ kind: "routine", text: "Routine sample (dashed, square ID)" });
   if (scope.samples.some((s) => s.holdStep)) items.push({ kind: "holdstep", text: "HOLD STEP: sample taken during a hold" });
   if (style === "time_scale" && scope.hoursNotGiven.length) items.push({ kind: "narrow", text: "Narrow dotted block: hours not given" });
+  // How the samples are taken: one entry per glyph that is on this figure, and nothing at all when no sample states a method.
+  for (const a of SAMPLE_ACCESS) if (scope.samples.some((s) => s.method?.access === a)) items.push({ kind: "access", access: a, needs: `access:${a}`, text: ACCESS_LEGEND[a] });
+  if (scope.samples.some((s) => s.method?.addedForStudy)) items.push({ kind: "added", needs: "added", text: "Dashed part: added only for the study (tag PPQ only or study only)" });
+  if (scope.samples.some((s) => s.method?.flush?.volumeText)) items.push({ kind: "flush", needs: "flush", text: "Flushed or discarded to waste before the sample" });
+  if (sharedPairs(scope).length) items.push({ kind: "share", needs: "share", text: "Thin line: samples drawn from the same port" });
   return items;
 }
 
@@ -137,8 +164,16 @@ function noteLines(scope: Scope, style: "time_scale" | "step_cards", notOn: stri
   if (scope.noHourSamples.length && style === "time_scale") out.push({ lead: "Not pinned (hour not given): ", text: `${scope.noHourSamples.join(", ")}. They are in the key below.` });
   for (const n of scope.notDrawn) out.push({ lead: "Not drawn: ", text: n });
   if (notOn.length) out.push({ lead: "Not on the diagram: ", text: `${notOn.join(", ")} (see the sample table).` });
+  if (scope.samples.some((s) => s.method)) {
+    out.push({ lead: "How samples are taken: ", text: `the sample cards (${style === "time_scale" ? "in the sample key" : "below"}) show the connection each sample is drawn through, anything added only for the study (dashed, with a tag) and liquid flushed to waste, as the plan states them. Nothing is drawn for a sample whose method is not stated.` });
+  }
   out.push({ text: "Routine samples are one line per step here; their full detail is in the sample table." });
   return out;
+}
+
+function methodNoteOf(scope: Scope): string | undefined {
+  const taken = scope.samples.filter((s) => s.method?.text);
+  return taken.length ? `How the sample is taken, as the plan states it: ${taken.map((s) => `${s.id} ${s.method!.text}`).join("; ")}.` : undefined;
 }
 
 function altText(scope: Scope, style: "time_scale" | "step_cards", number: number): string {
@@ -146,7 +181,10 @@ function altText(scope: Scope, style: "time_scale" | "step_cards", number: numbe
   const tg = scope.targets.length ? `, ${scope.targets.length} time ${scope.targets.length === 1 ? "target" : "targets"}` : "";
   const how = style === "time_scale" ? "on a time scale in hours" : "as an overview strip and step cards";
   const list = scope.steps.map((s) => s.label).join(", ");
-  return `Figure ${number}: ${scope.label} flow ${how}: ${scope.steps.length} ${scope.steps.length === 1 ? "step" : "steps"}${hold}${tg}, ${scope.samples.length} ${scope.samples.length === 1 ? "sample" : "samples"}. Steps in order: ${list}.`;
+  // The sampling method of each sample, in words, only for samples whose plan point states one (nothing is added otherwise).
+  const note = methodNoteOf(scope);
+  const how2 = note ? ` ${note}` : "";
+  return `Figure ${number}: ${scope.label} flow ${how}: ${scope.steps.length} ${scope.steps.length === 1 ? "step" : "steps"}${hold}${tg}, ${scope.samples.length} ${scope.samples.length === 1 ? "sample" : "samples"}. Steps in order: ${list}.${how2}`;
 }
 
 function renderScope(plan: SamplingPlan, scope: Scope, style: "time_scale" | "step_cards", ctx: Ctx): Figure {
@@ -192,7 +230,7 @@ function renderScope(plan: SamplingPlan, scope: Scope, style: "time_scale" | "st
       for (const g of groups) {
         if (!g.list.length) continue;
         units.push(headerUnit(g.title));
-        for (const sm of g.list.filter((x) => !x.routine)) units.push(sampleCard(sm, { width: colW, focusable: false, interactive: ctx.interactive }));
+        units.push(...sampleCards(g.list.filter((x) => !x.routine), { width: colW, focusable: false, interactive: ctx.interactive }));
         const r = routineUnit(g.list, colW);
         if (r) units.push(r);
       }
@@ -234,6 +272,8 @@ function renderScope(plan: SamplingPlan, scope: Scope, style: "time_scale" | "st
     const cv = canvases[p]!;
     const fill = pageFills[p];
     for (const pl of fill?.placed ?? []) pl.unit.draw(cv, pl.x, pl.y, pl.w);
+    // After the cards, so their positions are known: a thin line joins the samples that share a port (same page, neighbouring cards).
+    drawShareLinks(cv, sharedPairs(scope), colGap);
     let bottom = p === 0 ? Math.max(first.height, fill?.bottom ?? 0) : (fill?.bottom ?? TOP_NEXT);
     if (p > 0) {
       cv.text(W / 2, 15, style === "time_scale" ? `Key to the pins, continued from page ${p}` : `Continued from page ${p}`, { size: 8.5, italic: true, anchor: "middle", fill: COLORS.muted });
@@ -247,8 +287,11 @@ function renderScope(plan: SamplingPlan, scope: Scope, style: "time_scale" | "st
       cv.text(W / 2, bottom + 14, `Continued on next page${nextStarts ? `, starting with ${nextStarts}` : ""}`, { size: 8.5, italic: true, anchor: "middle", fill: COLORS.muted });
       bottom += FOOTER_H;
     } else bottom += 4;
-    drawLegend(cv, bottom, legend);
-    cv.height = bottom + legendH;
+    // The legend of a page lists the method marks drawn on THAT page (the legend of the whole figure is the most it can hold).
+    const pageLegend = legend.filter((it) => !it.needs || cv.used.has(it.needs));
+    const pageLegendH = legendHeight(W, pageLegend);
+    drawLegend(cv, bottom, pageLegend);
+    cv.height = bottom + pageLegendH;
     cv.raw(`<rect x="0.5" y="0.5" width="${W - 1}" height="${Math.round((cv.height - 1) * 100) / 100}" fill="none" stroke="${COLORS.frame}" stroke-width="1"/>`);
     const label = `${figureCaption({ number: ctx.number, caption, pages: new Array(total) } as Figure, p)}`;
     pages.push({
@@ -269,6 +312,7 @@ function renderScope(plan: SamplingPlan, scope: Scope, style: "time_scale" | "st
     pages,
     hoursNotGiven: style === "time_scale" ? scope.hoursNotGiven : [],
     alt: altText(scope, style, ctx.number),
+    ...(methodNoteOf(scope) ? { methodNote: methodNoteOf(scope)! } : {}),
     ...(feeds ? { feeds } : {}),
   };
 }

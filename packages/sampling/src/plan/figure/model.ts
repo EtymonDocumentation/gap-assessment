@@ -1,6 +1,7 @@
 import type { PlanHold, PlanStep, PlanSubProcess, SamplingPlan, SamplingPoint, TimeEdge } from "@gap/process-model";
 import { SLOT_PHRASE } from "../flow.js";
 import { timingText, typeText } from "../labels.js";
+import { sampleMethodView, type SampleMethodView } from "../method.js";
 import { hoursText } from "./draw.js";
 
 /**
@@ -29,6 +30,8 @@ export interface SampleView {
   quantity?: string;
   when: string;
   holdStep: boolean;
+  /** What the plan says about how the sample is taken; absent when the point says nothing (then nothing is drawn or written). */
+  method?: SampleMethodView;
 }
 
 export interface StepTime {
@@ -98,6 +101,7 @@ function sampleView(plan: SamplingPlan, p: SamplingPoint): SampleView {
   const hour = p.takenAtHour;
   const where = hold ? `during ${hold.label}` : p.flow?.at ? SLOT_PHRASE[p.flow.at] : "";
   const timing = timingText(p);
+  const method = sampleMethodView(p);
   const when = [hour !== undefined ? `hour ${Math.round(hour * 100) / 100}` : "hour not given", where, timing].filter(Boolean).join("; ");
   return {
     id: p.id,
@@ -111,6 +115,7 @@ function sampleView(plan: SamplingPlan, p: SamplingPoint): SampleView {
     ...(qParts.length ? { quantity: qParts.join(", ") } : {}),
     when,
     holdStep: !!hold,
+    ...(method ? { method } : {}),
   };
 }
 

@@ -116,7 +116,7 @@ function htmlBlock(b: Block): string {
       // inside a focusable region instead of the page.
       return `<figure class="figure">${b.pages
         .map((p) => `<div class="table-wrap" role="region" aria-label="Figure ${b.number}${b.pages.length > 1 ? `, page ${b.pages.indexOf(p) + 1} of ${b.pages.length}` : ""}" tabindex="0">${p.svg}</div>`)
-        .join("")}<figcaption>Figure ${b.number}: ${escapeHtml(b.caption)}</figcaption>${b.hoursNotGiven.length ? `<p class="note">Hours not given: ${escapeHtml(b.hoursNotGiven.join(", "))}.</p>` : ""}</figure>`;
+        .join("")}<figcaption>Figure ${b.number}: ${escapeHtml(b.caption)}</figcaption>${b.hoursNotGiven.length ? `<p class="note">Hours not given: ${escapeHtml(b.hoursNotGiven.join(", "))}.</p>` : ""}${b.methodNote ? `<p class="note" data-testid="figure-method-note">${escapeHtml(b.methodNote)}</p>` : ""}</figure>`;
   }
 }
 

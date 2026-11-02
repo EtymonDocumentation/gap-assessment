@@ -58,6 +58,8 @@ export interface FigureBlock {
   alt: string;
   pages: { svg: string; width: number; height: number }[];
   hoursNotGiven: string[];
+  /** How each sample is taken, in words (only for samples whose plan point states it); listed under the picture. */
+  methodNote?: string;
 }
 
 /**

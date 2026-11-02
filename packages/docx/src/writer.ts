@@ -515,7 +515,7 @@ function figureXml(ctx: WriterCtx, b: Extract<Block, { type: "figure" }>): strin
     const last = i === b.pages.length - 1;
     out.push(para(drawingXml(relId, docPrId, `Figure ${b.number}${b.pages.length > 1 ? ` page ${i + 1}` : ""}`, `${captionOf(i)}. ${b.alt}`, wPt, hPt), { keepNext: true, jc: "center", spacing: { before: 0, after: 60 }, pageBreakBefore: !turn && i > 0 }));
     // The last paragraph of the page carries the section break, so no empty paragraph can spill onto an extra page.
-    const note = last && b.hoursNotGiven.length ? `Hours not given: ${b.hoursNotGiven.join(", ")}.` : "";
+    const note = last ? [b.hoursNotGiven.length ? `Hours not given: ${b.hoursNotGiven.join(", ")}.` : "", b.methodNote ?? ""].filter(Boolean).join(" ") : "";
     const sect = (isLast: boolean) => (turn && isLast ? { sectPr: ctx.sectPrs!.landscape } : {});
     out.push(para(textRuns(captionOf(i), { b: true }), { jc: "center", spacing: { before: 0, after: 80 }, ...sect(!note) }));
     if (note) out.push(para(textRuns(note, { i: true }), { jc: "center", spacing: { before: 0, after: 80 }, ...sect(true) }));

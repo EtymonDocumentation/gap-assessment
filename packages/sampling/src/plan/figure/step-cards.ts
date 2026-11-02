@@ -1,5 +1,5 @@
 import { Canvas, COLORS, hoursText, nbUnit, textWidth, wrap } from "./draw.js";
-import { holdBoxUnit, routineUnit, sampleCard, stepHeaderUnit, UNIT_GAP, type Unit } from "./layout.js";
+import { holdBoxUnit, routineUnit, sampleCards, stepHeaderUnit, UNIT_GAP, type Unit } from "./layout.js";
 import { cmpText, type Scope } from "./model.js";
 
 /**
@@ -168,7 +168,7 @@ export function stepCardUnits(scope: Scope, colW: number, interactive: boolean):
     const no = i + 1;
     const mine = scope.samples.filter((s) => s.stepId === step.id && !s.holdId);
     const lines = (step.figureText ?? []).map(nbUnit);
-    const cards = (list: typeof mine) => list.filter((s) => !s.routine).map((s) => sampleCard(s, { width: colW, focusable: interactive, interactive }));
+    const cards = (list: typeof mine) => sampleCards(list.filter((s) => !s.routine), { width: colW, focusable: interactive, interactive });
     if (!mine.length) units.push(compactStep(no, step.label, lines, colW));
     else {
       units.push(stepHeaderUnit(no, step.label, lines, colW));

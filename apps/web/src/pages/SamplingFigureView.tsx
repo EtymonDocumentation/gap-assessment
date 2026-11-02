@@ -89,6 +89,11 @@ export function FigureView({
             <figcaption className="small">
               Figure {f.number}: {f.caption}
             </figcaption>
+            {f.methodNote && (
+              <p className="small muted" data-testid={`figure-method-${f.number}`}>
+                {f.methodNote}
+              </p>
+            )}
             {f.hoursNotGiven.length > 0 && (
               <p className="small muted" data-testid={`figure-nohours-${f.number}`}>
                 Hours not given: {f.hoursNotGiven.join(", ")}.

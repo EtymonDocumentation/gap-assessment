@@ -110,6 +110,10 @@ export class Canvas {
   boxes: DrawnBox[] = [];
   minFont = Number.POSITIVE_INFINITY;
   samples = new Set<string>();
+  /** Where a sample's access glyph was drawn on this page (its card), so a thin line can join samples that share a port. */
+  /** Kinds of how-it-is-taken marks drawn on this page ("access:shared_port", "added", "flush", "share"), so the legend lists only those. */
+  used = new Set<string>();
+  anchors = new Map<string, { x: number; y: number; w: number }>();
   /** Halo colour used by `text` / `textLead` when the call gives none (the time-scale style sets it: dashed lines cross its labels). */
   haloDefault: string | undefined;
 
@@ -151,6 +155,14 @@ export class Canvas {
   }
   line(x1: number, y1: number, x2: number, y2: number, stroke: string = COLORS.ink, sw = 1, dash?: string): void {
     this.parts.push(`<line x1="${n(x1)}" y1="${n(y1)}" x2="${n(x2)}" y2="${n(y2)}" stroke="${stroke}" stroke-width="${sw}"${dash ? ` stroke-dasharray="${dash}"` : ""}/>`);
+  }
+  /** An open line through the points (the glyphs of how a sample is taken); `dash` makes it dashed. */
+  polyline(points: [number, number][], stroke: string = COLORS.ink, sw = 1.2, dash?: string): void {
+    this.parts.push(`<polyline points="${points.map(([x, y]) => `${n(x)},${n(y)}`).join(" ")}" fill="none" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round"${dash ? ` stroke-dasharray="${dash}"` : ""}/>`);
+  }
+  /** Ring or dot with an optional dash (see `circle`, which has no dash). */
+  ring(cx: number, cy: number, r: number, stroke: string, sw: number, dash?: string, fill = "none"): void {
+    this.parts.push(`<circle cx="${n(cx)}" cy="${n(cy)}" r="${n(r)}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"${dash ? ` stroke-dasharray="${dash}"` : ""}/>`);
   }
   poly(points: [number, number][], o: RectOpts = {}): void {
     this.parts.push(`<polygon points="${points.map(([x, y]) => `${n(x)},${n(y)}`).join(" ")}" fill="${o.fill ?? "none"}"${o.stroke ? ` stroke="${o.stroke}" stroke-width="${o.sw ?? 1}"` : ""}/>`);

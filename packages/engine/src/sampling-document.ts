@@ -311,7 +311,7 @@ export function buildSamplingPlanDocument(
           type: "paragraph",
           text: `${figures.length === 1 ? "Figure" : "Figures"} ${figures.map((f) => f.number).join(figures.length > 2 ? ", " : " and ")} draw${figures.length === 1 ? "s" : ""} the process flow with the holds, the time targets and the samples. Each sample carries the number of its sampling point (SP); the table after the figure${figures.length === 1 ? "" : "s"} lists every point.`,
         },
-        ...figures.map((f) => ({ type: "figure" as const, number: f.number, caption: f.caption, alt: f.alt, pages: f.pages.map((p) => ({ svg: p.svg, width: p.width, height: p.height })), hoursNotGiven: f.hoursNotGiven })),
+        ...figures.map((f) => ({ type: "figure" as const, number: f.number, caption: f.caption, alt: f.alt, pages: f.pages.map((p) => ({ svg: p.svg, width: p.width, height: p.height })), hoursNotGiven: f.hoursNotGiven, ...(f.methodNote ? { methodNote: f.methodNote } : {}) })),
       ]
     : [];
   add("process-flow", "Process flow", [

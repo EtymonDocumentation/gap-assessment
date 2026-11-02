@@ -1,5 +1,5 @@
-import type { MbrRecord, MbrSampleRow, MbrStep, MbrTimeLimit, Project, SampleAccess, SampleFlushPractice, SamplingPlan, SamplingPoint } from "@gap/process-model";
-import { samplingMethodReminders } from "@gap/sampling";
+import type { MbrRecord, MbrSampleRow, MbrStep, MbrTimeLimit, Project, SamplingPlan } from "@gap/process-model";
+import { sampleMethodView, samplingMethodReminders, type SampleMethodView } from "@gap/sampling";
 import { holdEntryInfo, numberSteps, sampleMomentKey, splitIndex } from "./mbr";
 
 /*
@@ -96,35 +96,8 @@ export interface ViewClock {
   parts?: { label: string; hours?: number; text?: string; startMoment?: number; endMoment?: number }[];
 }
 
-/**
- * How the linked sampling plan says the sample is physically taken (plan format 1.6.0), as the Process view draws and prints it. Every
- * field is present only when the plan states it; the view adds no default. The step's own port name (ViewSample.port) is the PLACE, the
- * access here is the KIND of connection, so both are kept when both exist.
- */
-export interface ViewSampleMethod {
-  access?: SampleAccess;
-  /** Short words for the access ("shared port", "Y-connector", ...). For "other" the person's own description, or "other" when none. */
-  accessText?: string;
-  /** A port or connector added only for the study (a Y-connector counts as an addition unless the plan says it is not). */
-  addedForStudy?: boolean;
-  /** "PPQ only" for a PPQ point, else "study only": the tag drawn next to an added part. */
-  studyTag?: "PPQ only" | "study only";
-  inCommercialAssembly?: boolean;
-  removedAfter?: boolean;
-  flush?: {
-    practice: SampleFlushPractice;
-    /** Counted as liquid lost to waste only when the plan states it in mL or L (kept here in mL). */
-    volumeMl?: number;
-    /** The volume as the plan wrote it, for words. */
-    volumeText?: string;
-    discardTo?: string;
-  };
-  sharedWith?: string[];
-  flushBetween?: boolean;
-  closedSystem?: "closed" | "open";
-  /** The same facts in one phrase, for an accessible name and the sample lists ("shared port, flush 30 mL to waste"). */
-  text: string;
-}
+/** How the linked sampling plan says the sample is physically taken. Worked out in @gap/sampling, which the PPQ flow figures also use, so both views say the same. */
+export type ViewSampleMethod = SampleMethodView;
 
 export interface ViewSample {
   /** Row id (R-nnnn) of the sample row in the record. */
@@ -336,66 +309,7 @@ const POINT = /\bSP-\d{3,}\b/g;
 const TAKE = /\b(take|draw|collect|withdraw)\b/i;
 const PORT = /(?:(?:upper|lower|bottom|top|sterile|sampling|sample|manifold)[ -])*(?:port|valve|manifold|tap)\b/i;
 
-const ACCESS_WORDS: Record<SampleAccess, string> = {
-  dedicated_port: "dedicated port",
-  shared_port: "shared port",
-  added_y_connector: "Y-connector",
-  bag_sample_manifold: "bag sample manifold",
-  aseptic_connector: "aseptic connector",
-  grab_open: "open grab",
-  other: "other",
-};
-
-/** A flush volume the tracker may count: mL or L only. Any other unit is shown in words but never turned into a number. */
-function flushVolumeMl(v: { value: number; unit: string } | undefined): number | undefined {
-  if (!v) return undefined;
-  const u = v.unit.trim().toLowerCase();
-  if (u === "ml") return v.value;
-  if (u === "l") return v.value * 1000;
-  return undefined;
-}
-
-/** The method answers of one plan point, only what is stated. Undefined when the point has no answer the view can use. */
-export function sampleMethodOf(point: SamplingPoint | undefined): ViewSampleMethod | undefined {
-  const m = point?.method;
-  if (!point || !m) return undefined;
-  const out: ViewSampleMethod = { text: "" };
-  if (m.access) {
-    out.access = m.access;
-    out.accessText = m.access === "other" ? (m.accessOther ?? "").trim() || "other" : ACCESS_WORDS[m.access];
-  }
-  // A Y-connector is an addition to the assembly by nature, so it is drawn as one unless the plan says it was not added for the study.
-  if (m.added?.forStudyOnly === true || (m.access === "added_y_connector" && m.added?.forStudyOnly !== false)) {
-    out.addedForStudy = true;
-    out.studyTag = point.type?.startsWith("ppq") ? "PPQ only" : "study only";
-  }
-  if (m.added?.inCommercialAssembly !== undefined) out.inCommercialAssembly = m.added.inCommercialAssembly;
-  if (m.added?.removedAfter !== undefined) out.removedAfter = m.added.removedAfter;
-  const f = m.flush;
-  if (f?.practice && f.practice !== "none_stated_reason") {
-    const ml = flushVolumeMl(f.volume);
-    out.flush = { practice: f.practice, ...(ml !== undefined ? { volumeMl: ml } : {}), ...(f.volume ? { volumeText: `${f.volume.value} ${f.volume.unit}` } : {}), ...(f.discardTo?.trim() ? { discardTo: f.discardTo.trim() } : {}) };
-  }
-  if (m.shared?.pointIds?.length) out.sharedWith = [...m.shared.pointIds];
-  if (m.shared?.flushBetween !== undefined) out.flushBetween = m.shared.flushBetween;
-  if (m.closedSystem) out.closedSystem = m.closedSystem;
-  const has = out.access || out.addedForStudy || out.flush || out.sharedWith || out.flushBetween !== undefined || out.closedSystem || out.inCommercialAssembly !== undefined || out.removedAfter !== undefined;
-  if (!has) return undefined;
-  const bits: string[] = [];
-  if (out.accessText) bits.push(out.accessText);
-  if (out.addedForStudy) bits.push(`added for ${out.studyTag === "PPQ only" ? "PPQ" : "the study"} only`);
-  if (out.inCommercialAssembly !== undefined) bits.push(out.inCommercialAssembly ? "in the commercial assembly" : "not in the commercial assembly");
-  if (out.removedAfter !== undefined) bits.push(out.removedAfter ? "removed afterwards" : "not removed afterwards");
-  if (out.sharedWith) bits.push(`shared with ${out.sharedWith.join(", ")}`);
-  if (out.flushBetween !== undefined) bits.push(out.flushBetween ? "flushed between samples" : "not flushed between samples");
-  if (out.flush) {
-    const what = out.flush.practice === "flush_volume" ? "flush" : "first draw discarded";
-    bits.push(`${what}${out.flush.volumeText ? ` ${out.flush.volumeText}` : " (volume not stated)"}${out.flush.discardTo ? ` to ${out.flush.discardTo}` : ""}`);
-  }
-  if (out.closedSystem) bits.push(out.closedSystem);
-  out.text = bits.join(", ");
-  return out;
-}
+export const sampleMethodOf = sampleMethodView;
 
 // ------------------------------------------------------------------ the view
 
