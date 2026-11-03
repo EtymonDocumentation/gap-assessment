@@ -183,7 +183,7 @@ export interface SampleMethodView {
   accessText?: string;
   /** A port or connector added only for the study (a Y-connector counts as an addition unless the plan says it is not). */
   addedForStudy?: boolean;
-  /** "PPQ only" for a PPQ point, else "study only": the tag drawn next to an added part. */
+  /** "PPQ only" at a PPQ project, else "study only" (the point's type decides when the project stage is not set): the tag drawn next to an added part. */
   studyTag?: "PPQ only" | "study only";
   inCommercialAssembly?: boolean;
   removedAfter?: boolean;
@@ -222,7 +222,16 @@ function flushVolumeMl(v: { value: number; unit: string } | undefined): number |
 }
 
 /** The method answers of one plan point, only what is stated. Undefined when the point has no answer the view can use. */
-export function sampleMethodView(point: SamplingPoint | undefined): SampleMethodView | undefined {
+/**
+ * The tag drawn next to a part added only for the study: "PPQ only" at a PPQ project, "study only" at every other project stage. When the
+ * project stage is not set the old rule stays (the point's own type decides), so nothing is guessed. `stage` is the project stage key.
+ */
+export function studyTagFor(stage: string | undefined, pointIsPpq: boolean): "PPQ only" | "study only" {
+  if (stage === undefined) return pointIsPpq ? "PPQ only" : "study only";
+  return stage === "ppq" ? "PPQ only" : "study only";
+}
+
+export function sampleMethodView(point: SamplingPoint | undefined, stage?: string): SampleMethodView | undefined {
   const m = point?.method;
   if (!point || !m) return undefined;
   const out: SampleMethodView = { text: "" };
@@ -233,7 +242,7 @@ export function sampleMethodView(point: SamplingPoint | undefined): SampleMethod
   // A Y-connector is an addition to the assembly by nature, so it is drawn as one unless the plan says it was not added for the study.
   if (m.added?.forStudyOnly === true || (m.access === "added_y_connector" && m.added?.forStudyOnly !== false)) {
     out.addedForStudy = true;
-    out.studyTag = point.type?.startsWith("ppq") ? "PPQ only" : "study only";
+    out.studyTag = studyTagFor(stage, Boolean(point.type?.startsWith("ppq")));
   }
   if (m.added?.inCommercialAssembly !== undefined) out.inCommercialAssembly = m.added.inCommercialAssembly;
   if (m.added?.removedAfter !== undefined) out.removedAfter = m.added.removedAfter;

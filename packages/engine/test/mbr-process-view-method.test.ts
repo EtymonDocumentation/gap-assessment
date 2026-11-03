@@ -12,8 +12,12 @@ const NOW = "2026-01-01T00:00:00Z";
 const [P1, P2, P3] = demo.sampling.plans[0]!.points.map((p) => p.id) as [string, string, string];
 
 /** A record with three sample rows at three steps, linked to the plan whose first three points carry the given methods. */
-function viewWith(methods: [SampleMethod | undefined, SampleMethod | undefined, SampleMethod | undefined], opts: { askAll?: boolean; type?: string } = {}) {
+function viewWith(methods: [SampleMethod | undefined, SampleMethod | undefined, SampleMethod | undefined], opts: { askAll?: boolean; type?: string; stage?: string | null } = {}) {
   const project = structuredClone(demo);
+  // The project stage decides the tag (job L2). null = stage not established; a string = that stage; absent = the demo's own stage.
+  const fields = project.processes.target.site.fields as Record<string, { value?: unknown }>;
+  if (opts.stage === null) delete fields.programStage;
+  else if (opts.stage) fields.programStage = { ...(fields.programStage ?? {}), value: opts.stage } as never;
   const plan = project.sampling.plans[0]!;
   [P1, P2, P3].forEach((id, i) => {
     const pt = plan.points.find((p) => p.id === id)!;
@@ -79,8 +83,12 @@ describe("the method summary of a sample", () => {
   });
   it("tags an added part of a PPQ point 'PPQ only' and any other 'study only'", () => {
     const added: SampleMethod = { access: "dedicated_port", added: { forStudyOnly: true } };
-    expect(viewWith([added, undefined, undefined], { type: "ppq_enhanced" }).samples[0]!.method!.studyTag).toBe("PPQ only");
-    expect(viewWith([added, undefined, undefined], { type: "ipc" }).samples[0]!.method!.studyTag).toBe("study only");
+    // Stage not established: the point's own type decides, as before life stage.
+    expect(viewWith([added, undefined, undefined], { type: "ppq_enhanced", stage: null }).samples[0]!.method!.studyTag).toBe("PPQ only");
+    expect(viewWith([added, undefined, undefined], { type: "ipc", stage: null }).samples[0]!.method!.studyTag).toBe("study only");
+    // Stage set (job L2): "PPQ only" at a PPQ project, "study only" at every other stage, whatever the point type.
+    expect(viewWith([added, undefined, undefined], { type: "ppq_enhanced", stage: "clinical" }).samples[0]!.method!.studyTag).toBe("study only");
+    expect(viewWith([added, undefined, undefined], { type: "ipc", stage: "ppq" }).samples[0]!.method!.studyTag).toBe("PPQ only");
   });
 });
 

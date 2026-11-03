@@ -5,7 +5,8 @@ import { rangeText, setPointText } from "./trd-check";
 import { TRD_BANNER } from "./trd-outline";
 import { NO_VALUE_YET, PRODUCT_NAME, TBD_MARKER } from "./product";
 import { projectLabel } from "./format";
-import { coverStage, projectStage, STAGE_LABEL, stageOpenItems } from "./stage";
+import { coverStage, projectStage, STAGE_LABEL, stageOpenItems, type ProgramStage } from "./stage";
+import { trdRangeIntro } from "./stage-chain";
 import type { ContentBundle } from "./content";
 import { activeParts } from "./trd-writeup";
 import { addWriteupSections } from "./trd-writeup-document";
@@ -304,7 +305,9 @@ export function buildTrdDocument(project: Project, d: TrdDocument, opts: TrdDocu
   // An empty note (no open blank to point at) is not printed.
   for (const s of sections) s.blocks = s.blocks.filter((b) => !(b.type === "note" && b.text === ""));
 
-  const paramIntro: Block = { type: "paragraph", text: "Each step with its parameters: set point, normal operating range (NOR) and proven acceptable range (PAR). The documents they rest on are listed under References." };
+  // The stage line says what the ranges MEAN at this stage (proposed, as run for clinical supply, targets for PPQ, validated). Not set: plain wording.
+  const rangeIntro = trdRangeIntro(projectStage(project));
+  const paramIntro: Block = { type: "paragraph", text: `Each step with its parameters: set point, normal operating range (NOR) and proven acceptable range (PAR). The documents they rest on are listed under References.${rangeIntro ? ` ${rangeIntro}` : ""}` };
   // The extra blocks go into the library's section "Overall process parameters" when the TRD has it; a TRD without it keeps a section of its own.
   const placed = wu.extrasPlaced.includes("process_parameters");
   if (evidence) for (const s of d.steps) add(`step-${s.id}`, s.label, stepBlocksOf(s));
@@ -324,7 +327,7 @@ export function buildTrdDocument(project: Project, d: TrdDocument, opts: TrdDocu
   if (evidence) {
     const findings = checks.flatMap((c) => c.findings.map((f) => [c.step.label, c.item.label, f.level === "problem" ? "Finding" : f.level === "open" ? "Open item" : "Note", stop(f.text)]));
     add("par-nor", "PAR and NOR check", [
-      { type: "paragraph", text: "The team entered each set point, normal operating range (NOR) and proven acceptable range (PAR) from the documents cited. The tool compared them as entered, without converting units, and reports what it found. It does not judge any value acceptable or unacceptable, and it does not decide anything." },
+      { type: "paragraph", text: "The team entered each set point, normal operating range (NOR) and proven acceptable range (PAR) from the documents cited. The tool compared them as entered, without converting units, and reports what it found. It does not judge any value acceptable or unacceptable, and it does not decide anything." + (rangeIntro ? ` ${rangeIntro}` : "") },
       findings.length ? { type: "table", columns: ["Step", "Parameter", "Kind", "Finding"], rows: findings } : { type: "paragraph", text: checks.length ? "No findings. This does not mean the ranges are acceptable; that is for the team and quality assurance to judge." : "No set point, NOR or PAR has been entered." },
       ...(checks.some((c) => c.working.length) ? ([{ type: "heading", text: "Comparisons made" }, { type: "list", items: checks.flatMap((c) => c.working.map((w) => `${c.step.label}, ${c.item.label}: ${w}`)) }] as Block[]) : []),
     ]);
@@ -363,7 +366,7 @@ export function buildTrdDocument(project: Project, d: TrdDocument, opts: TrdDocu
     add("references", "References", [refs.length ? { type: "list", items: refs } : { type: "paragraph", text: "No document is cited in this TRD." }]);
   }
 
-  if (!evidence) settleAcronyms(sections, d);
+  if (!evidence) settleAcronyms(sections, d, projectStage(project));
 
   // Appendix: overrides. An override is never hidden: the standard document shows it whenever a value differs from the project.
   // The standard document shows the appendix only when a value was overridden: an empty appendix is a page of "nothing" for the reader.
@@ -507,13 +510,13 @@ function blockText(b: Block): string {
  * team added or edited is theirs and stays); a known abbreviation the document does use is added. An abbreviation counts as used when it
  * stands alone as a word: "DP-305-0001" or "RU-PN-305-001" do not use "DP" or "RU". Entries stay in alphabetical order of the long form.
  */
-function settleAcronyms(sections: DocSection[], d: TrdDocument): void {
+function settleAcronyms(sections: DocSection[], d: TrdDocument, stage: ProgramStage | undefined): void {
   const sec = sections.find((s) => s.id === "writeup-acronyms");
   const w = (d.writeups ?? []).find((x) => x.key === "acronyms");
   const at = sec?.blocks.findIndex((b) => b.type === "rich-list") ?? -1;
   if (!sec || !w || at < 0) return;
   const list = sec.blocks[at] as Extract<Block, { type: "rich-list" }>;
-  const bullets = activeParts(w).filter((p) => p.kind === "bullet");
+  const bullets = activeParts(w, stage).filter((p) => p.kind === "bullet");
   if (bullets.length !== list.items.length) return;
   const corpus = sections
     .filter((s) => s !== sec && !s.appendix)

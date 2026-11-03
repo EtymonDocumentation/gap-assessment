@@ -92,7 +92,7 @@ export const targetText = (t: Pick<TargetView, "label" | "comparator" | "hours">
 /** The number of an SP id without leading zeros ("SP-007" -> "7"). */
 export const spNumber = (id: string): string => String(Number(id.replace(/^SP-/, "")) || id);
 
-function sampleView(plan: SamplingPlan, p: SamplingPoint): SampleView {
+function sampleView(plan: SamplingPlan, p: SamplingPoint, stage?: string): SampleView {
   const hold = p.flow?.holdId ? (plan.holds ?? []).find((h) => h.id === p.flow!.holdId) : undefined;
   const test = p.attribute.trim() || typeText(p);
   const qParts: string[] = [];
@@ -101,7 +101,7 @@ function sampleView(plan: SamplingPlan, p: SamplingPoint): SampleView {
   const hour = p.takenAtHour;
   const where = hold ? `during ${hold.label}` : p.flow?.at ? SLOT_PHRASE[p.flow.at] : "";
   const timing = timingText(p);
-  const method = sampleMethodView(p);
+  const method = sampleMethodView(p, stage);
   const when = [hour !== undefined ? `hour ${Math.round(hour * 100) / 100}` : "hour not given", where, timing].filter(Boolean).join("; ");
   return {
     id: p.id,
@@ -123,20 +123,20 @@ function sampleView(plan: SamplingPlan, p: SamplingPoint): SampleView {
  * Splits a plan into the figures it needs: one per sub-process (drawn first), then the main process. A plan with no steps has none.
  * A step that names a sub-process leaves the main figure; the sub-process figure shows it and says which step it feeds.
  */
-export function buildScopes(plan: SamplingPlan): Scope[] {
+export function buildScopes(plan: SamplingPlan, stage?: string): Scope[] {
   if (!plan.steps.length) return [];
   const subs = plan.subProcesses ?? [];
   const out: Scope[] = [];
   for (const sub of subs) {
     const steps = plan.steps.filter((s) => s.subProcess === sub.id);
-    if (steps.length) out.push(scopeOf(plan, sub.id, sub.label, true, steps, sub));
+    if (steps.length) out.push(scopeOf(plan, sub.id, sub.label, true, steps, sub, stage));
   }
   const main = plan.steps.filter((s) => !s.subProcess || !subs.some((b) => b.id === s.subProcess));
-  if (main.length) out.push(scopeOf(plan, "main", "Main process", false, main));
+  if (main.length) out.push(scopeOf(plan, "main", "Main process", false, main, undefined, stage));
   return out;
 }
 
-function scopeOf(plan: SamplingPlan, id: string, label: string, isSub: boolean, steps: PlanStep[], sub?: PlanSubProcess): Scope {
+function scopeOf(plan: SamplingPlan, id: string, label: string, isSub: boolean, steps: PlanStep[], sub?: PlanSubProcess, stage?: string): Scope {
   const stepIds = new Set(steps.map((s) => s.id));
   // Walk the steps in process order. A hold after a step comes before the next step; a missing duration adds no time.
   const raw = new Map<string, StepTime>();
@@ -213,7 +213,7 @@ function scopeOf(plan: SamplingPlan, id: string, label: string, isSub: boolean, 
   }
 
   const pts = plan.points.filter((p) => p.flow && stepIds.has(p.flow.stepId));
-  const samples = pts.map((p) => sampleView(plan, p));
+  const samples = pts.map((p) => sampleView(plan, p, stage));
   const hoursNotGiven: string[] = [];
   for (const s of steps) if (!stepsTime.get(s.id)!.given) hoursNotGiven.push(s.label);
   for (const h of holds) if (!h.given) hoursNotGiven.push(h.hold.label);

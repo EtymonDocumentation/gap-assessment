@@ -495,6 +495,28 @@ export function updateMbr(project: Project, id: string, patch: MbrPatch, actor: 
   });
 }
 
+/**
+ * Switch PPQ-only items back on ("Include anyway") or off again. Only the list of ids changes: the items themselves are never deleted, so
+ * a change of project stage never loses what the author wrote.
+ */
+export function setIncludeAnyway(project: Project, id: string, itemIds: string[], on: boolean, actor: Actor): Project {
+  return mutate(project, id, actor, (rec) => {
+    const known = new Set(rec.sections.flatMap((s) => s.blocks.flatMap((b) => [...b.steps.map((x) => x.id), ...b.params.map((x) => x.id), ...b.samples.map((x) => x.id)])));
+    const bad = itemIds.find((x) => !known.has(x));
+    if (bad) throw new MbrError(`${bad} is not an item of this batch record`);
+    const cur = new Set(rec.includeAnyway ?? []);
+    const before = [...cur];
+    for (const x of itemIds) {
+      if (on) cur.add(x);
+      else cur.delete(x);
+    }
+    if (cur.size === before.length && before.every((x) => cur.has(x))) return undefined;
+    if (cur.size) rec.includeAnyway = [...cur];
+    else delete rec.includeAnyway;
+    return { action: "mbr_update", path: `mbr.${rec.id}.includeAnyway`, detail: `${on ? "Included anyway" : "Left out again"}: ${itemIds.join(", ")}`, before: { includeAnyway: before.join(", ") }, after: { includeAnyway: [...cur].join(", ") } };
+  });
+}
+
 export function deleteMbr(project: Project, id: string, actor: Actor): Project {
   const next = structuredClone(project);
   const rec = recOf(next, id);

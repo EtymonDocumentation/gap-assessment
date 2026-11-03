@@ -95,7 +95,13 @@ export const trdLibraryPartSchema = z.object({
   /** A figure: a standard drawing shown while the author has attached no picture of their own. A generic drawing, never a product's. */
   drawing: z.enum(TRD_DRAWING_IDS).optional(),
   /** Present: the part is optional, off until switched on. The condition is plain words for the author. */
-  optional: z.object({ condition: z.string().min(1) }).optional(),
+  optional: z
+    .object({
+      condition: z.string().min(1),
+      /** Project stages at which the part is in unless the author switched it (job L2). Absent = never in by itself. The author's own switch wins. */
+      stages: z.array(z.enum(["development", "clinical", "ppq", "commercial"])).optional(),
+    })
+    .optional(),
 });
 export type TrdLibraryPart = z.infer<typeof trdLibraryPartSchema>;
 

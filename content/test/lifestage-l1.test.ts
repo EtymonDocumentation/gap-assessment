@@ -284,8 +284,12 @@ describe("{{@stage ...}} markers", () => {
     const lib = JSON.stringify(trdWriteups);
     const base = lib.match(BLANK_PATTERN) ?? [];
     expect(base.length).toBeGreaterThan(0);
-    expect(lib).not.toContain("{{@stage");
-    for (const s of stages) expect(resolveStageMarkers(lib, s)).toBe(lib);
+    // Since job L2 the library holds {{@stage}} markers (the TRD range wording). Resolving them must leave every blank as it was.
+    for (const s of stages) {
+      const out = resolveStageMarkers(lib, s);
+      expect(out).not.toContain("{{@stage");
+      expect(out.match(BLANK_PATTERN) ?? []).toEqual(base);
+    }
     for (const id of ["arx-217", "syr-305"] as const) {
       // The raw demo data is shared; staging the content must not write into it.
       const before = JSON.stringify(demos[id]);

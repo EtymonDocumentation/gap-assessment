@@ -1,7 +1,8 @@
-import { removePoint, updatePoint } from "@gap/engine";
+import { pointStageReminder, removePoint, updatePoint } from "@gap/engine";
 import { FLOW_POSITIONS, SAMPLING_TYPES, reportOnlyAllowed, type FlowPosition, type SamplingPlan, type SamplingPoint, type SamplingType } from "@gap/process-model";
 import { METHOD_LABEL, NOT_ON_DIAGRAM, POSITION_NOT_SET, STATUS_TEXT, SLOT_LABEL, TYPE_LABEL, checkPoint, methodInputsText, tableOrder, typeCode, unitsPerBatch, usesSampleSizeMethod, stepOf } from "@gap/sampling";
 import { useMemo } from "react";
+import { useProjectStage } from "../stage-ui";
 import { PointRiskLinks } from "./RiskLinks";
 import { movePoint, targetOf, type OpenAdd, type Run } from "./SamplingFlow";
 
@@ -81,6 +82,9 @@ export function PointsTable({
 function PointRow({ plan, point, selected, highlighted, onHighlight, onSelect, run, onEdit }: { plan: SamplingPlan; point: SamplingPoint; selected: boolean; highlighted?: boolean; onHighlight?: (id: string | null) => void; onSelect: (id: string | null) => void; run: Run; onEdit: () => void }) {
   const check = useMemo(() => checkPoint(plan, point), [plan, point]);
   const units = useMemo(() => unitsPerBatch(plan, point), [plan, point]);
+  const { stage } = useProjectStage();
+  // A reminder only: a point the stage would not normally need stays in the plan and in the table.
+  const reminder = pointStageReminder(stage, point);
   const step = stepOf(plan, point);
   const here = targetOf(plan, point);
   const slot = here.kind === "slot" ? here.slot : "unset";
@@ -91,6 +95,11 @@ function PointRow({ plan, point, selected, highlighted, onHighlight, onSelect, r
       <th scope="row">
         {point.id}
         {selected && <span className="small"> (selected)</span>}
+        {reminder && (
+          <div className="muted small" data-testid={`point-stage-reminder-${point.id}`}>
+            {reminder}
+          </div>
+        )}
         <div>
           <PointRiskLinks planId={plan.id} pointId={point.id} />
         </div>

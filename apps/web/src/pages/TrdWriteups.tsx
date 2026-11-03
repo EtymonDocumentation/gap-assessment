@@ -13,6 +13,9 @@ import {
   removeWriteup,
   resolveBlank,
   segmentsOf,
+  partIsIn,
+  projectStage,
+  stageText,
   setBlankValue,
   setNotApplicable,
   setPartImage,
@@ -45,7 +48,7 @@ import type { Run } from "./SamplingFlow";
 
 /** A text with its blanks drawn: a filled blank is its value, an open one is its label in brackets. */
 function Rich({ text, ctx, w }: { text: string; ctx: BlankContext; w: TrdWriteup }) {
-  const segs = useMemo(() => segmentsOf(text, (key, label) => resolveBlank(ctx, w, key, label)), [text, ctx, w]);
+  const segs = useMemo(() => segmentsOf(stageText(ctx, text), (key, label) => resolveBlank(ctx, w, key, label)), [text, ctx, w]);
   return (
     <>
       {segs.map((s, i) => {
@@ -87,7 +90,7 @@ export function TrdWriteups({ d, run }: { d: TrdDocument; run: Run }) {
   const [pick, setPick] = useState("");
   const addSelect = useRef<HTMLSelectElement>(null);
   const totalOpen = writeups.reduce((n, w) => n + openBlankCount(ctx, w), 0);
-  const totalFigures = writeups.reduce((n, w) => n + openFigures(w).length, 0);
+  const totalFigures = writeups.reduce((n, w) => n + openFigures(w, projectStage(project)).length, 0);
   const stepTitle = (w: TrdWriteup) => {
     const s = d.steps.find((x) => x.id === w.stepId);
     return s ? s.label || s.key || s.id : "";
@@ -202,7 +205,7 @@ function WriteupCard({
   const [addCaption, setAddCaption] = useState("");
   const [addAlt, setAddAlt] = useState("");
   const [moveNote, setMoveNote] = useState("");
-  const figuresOpen = openFigures(w).length;
+  const figuresOpen = openFigures(w, projectStage(ctx.project)).length;
   const doMove = (dir: -1 | 1) => {
     const plan = planMove(d, w.id, dir);
     if (plan.blocked) return setMoveNote(plan.blocked);
@@ -217,7 +220,7 @@ function WriteupCard({
   const letters = useMemo(() => {
     const m = new Map<string, string>();
     let n = 0;
-    for (const p of activeParts(w)) {
+    for (const p of activeParts(w, projectStage(ctx.project))) {
       if (p.kind === "step") m.set(p.id, String.fromCharCode(97 + (n++ % 26)));
       else n = 0;
     }
@@ -439,7 +442,7 @@ function PartRow({ d, w, p, ctx, letter, run }: { d: TrdDocument; w: TrdWriteup;
   const [rows, setRows] = useState<string[][]>([]);
   const editBtn = useRef<HTMLButtonElement>(null);
   const isHeading = p.kind === "subsection" || p.kind === "heading";
-  const off = Boolean(p.optional && !p.included);
+  const off = Boolean(p.optional && !partIsIn(p, projectStage(ctx.project)));
   const close = () => {
     setEditing(false);
     // Focus returns to the Edit button when the paragraph goes back to reading.
@@ -458,7 +461,7 @@ function PartRow({ d, w, p, ctx, letter, run }: { d: TrdDocument; w: TrdWriteup;
         <label className="check">
           <input
             type="checkbox"
-            checked={Boolean(p.included)}
+            checked={partIsIn(p, projectStage(ctx.project))}
             data-testid={`twu-optional-${w.id}-${p.id}`}
             onChange={(e) => run((pr, a) => setPartIncluded(pr, d.id, w.id, p.id, e.target.checked, a), e.target.checked ? "Optional paragraph included" : "Optional paragraph left out")}
           />

@@ -1,6 +1,7 @@
 import type { SamplingPlan } from "@gap/process-model";
 import { buildFigures, figureCaption, FIGURE_STYLE_LABEL, type FigureStyle } from "@gap/sampling";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useProjectStage } from "../stage-ui";
 
 /*
  * The PPQ flow figure on the sampling page: the same drawing the Word and HTML exports use (one pure function in @gap/sampling),
@@ -25,7 +26,8 @@ export function FigureView({
   onSelect: (id: string) => void;
 }) {
   const [style, setStyle] = useState<Exclude<FigureStyle, "none">>("time_scale");
-  const figures = useMemo(() => buildFigures(plan, { style, interactive: true }), [plan, style]);
+  const { stage } = useProjectStage();
+  const figures = useMemo(() => buildFigures(plan, { style, interactive: true, ...(stage ? { stage } : {}) }), [plan, style, stage]);
   const root = useRef<HTMLDivElement>(null);
 
   // Mirror the highlighted id onto the drawing (outside React, because the SVG is inserted as markup).

@@ -8,6 +8,7 @@ import { PRODUCT_NAME, TBD_MARKER } from "./product";
 import { projectLabel } from "./format";
 import { coverStage, projectStage, stageOpenItems } from "./stage";
 import { holdEntryInfo, mbrOpenItems, numberSteps, renderStepText, sampleIdsTakenAt, splitIndex, stepNumberText, type HoldEntryInfo, type MbrOpenItem, type MbrPart } from "./mbr";
+import { mbrStageView } from "./mbr-stage";
 import { NOT_HELD, NOTE_OUTSIDE, NOTE_TIGHTER, paramNote, targetSum, trdRefText } from "./mbr-values";
 
 /**
@@ -188,6 +189,9 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
   const open = mbrOpenItems(project, rec);
   const src = new SourceNumbers(project, trd);
   const numbers = numberSteps(rec);
+  // PPQ-only items the project stage leaves out. Step numbers still come from the whole record so a cross-reference stays right.
+  const stageView = mbrStageView(project, rec);
+  const out = new Set(stageView.leftOut.map((i) => i.id));
   const detail = (key: string) => {
     const f = trd?.details.find((x) => x.key === key);
     return f ? effectiveField(f).text : NOT_ESTABLISHED;
@@ -211,7 +215,10 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
     for (const b of s.blocks) {
       blocks.push({ type: "heading", text: b.title });
       if (b.note?.trim()) blocks.push({ type: "note", text: b.note.trim() });
-      if (b.steps.length) {
+      const steps = b.steps.filter((st) => !out.has(st.id));
+      const paramRows = b.params.filter((r) => !out.has(r.id));
+      const sampleRows = b.samples.filter((r) => !out.has(r.id));
+      if (steps.length) {
         // A sampling step carries how the sample is taken (flush, mixing, shared port ...) read live from the plan, so the sampler is told at
         // the step and the plan stays the record of truth. An unanswered question prints as a write-in blank, in the open style of this record.
         const mplan = rec.planId ? project.sampling.plans.find((p) => p.id === rec.planId) : undefined;
@@ -229,14 +236,14 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
         blocks.push({
           type: "table",
           columns: ["Step", "Instruction"],
-          rows: b.steps.map((st) => {
+          rows: steps.map((st) => {
             const how = methodOf(sampleIdsTakenAt(st));
             return [numbers.get(st.id) ?? "", `${renderStepText(st.text, numbers)}${how ? ` ${how}` : ""}`];
           }),
         });
       }
-      if (b.params.length) {
-        blocks.push({ type: "table", columns: ["Parameter", "Batch record value (TRD value, source)", "Choice", "Reason and notes"], rows: b.params.map((r) => paramRow(r, src)), caption: "Parameters", weights: MBR_PARAM_WEIGHTS });
+      if (paramRows.length) {
+        blocks.push({ type: "table", columns: ["Parameter", "Batch record value (TRD value, source)", "Choice", "Reason and notes"], rows: paramRows.map((r) => paramRow(r, src)), caption: "Parameters", weights: MBR_PARAM_WEIGHTS });
       }
       if (b.timeLimits.length) {
         const rows: string[][] = [];
@@ -258,7 +265,7 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
         blocks.push({ type: "table", columns: f.columns, rows: Array.from({ length: f.blankRows }, () => f.columns.map(() => "")), caption: f.title });
         if (f.note?.trim()) blocks.push({ type: "note", text: f.note.trim() });
       }
-      if (b.samples.length) {
+      if (sampleRows.length) {
         // The flag is read from the sampling plan point when the document is built (the plan stays the record of truth); a
         // point the plan does not flag reads "Not stated", never a guess.
         const plan = rec.planId ? project.sampling.plans.find((p) => p.id === rec.planId) : undefined;
@@ -269,12 +276,12 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
         blocks.push({
           type: "table",
           columns: ["Sample", "Test", "Step", "Quantity", "Container", "Storage", "Moment in the process", "Hold", "After PPQ", "Result"],
-          rows: b.samples.map((x) => [x.pointId, x.test, x.step ?? "", x.quantity ?? "", x.container ?? "", x.storage ?? "", x.hour ?? "", x.hold ?? "", flag(x.pointId), CMO_PLACEHOLDER]),
+          rows: sampleRows.map((x) => [x.pointId, x.test, x.step ?? "", x.quantity ?? "", x.container ?? "", x.storage ?? "", x.hour ?? "", x.hold ?? "", flag(x.pointId), CMO_PLACEHOLDER]),
           caption: "Samples (from the sampling plan)",
         });
         // How each sample is taken, for samples that no placed step names (a placed step already carries it).
         const placedIds = new Set(rec.sections.flatMap((ss) => ss.blocks.flatMap((bb) => bb.steps.flatMap((st) => sampleIdsTakenAt(st)))));
-        const mrows = plan ? b.samples.filter((x) => !placedIds.has(x.pointId)).flatMap((x) => { const pt = plan.points.find((p) => p.id === x.pointId); return pt ? methodDocumentLines(pt, plan).map((l) => [x.pointId, l.text]) : []; }) : [];
+        const mrows = plan ? sampleRows.filter((x) => !placedIds.has(x.pointId)).flatMap((x) => { const pt = plan.points.find((p) => p.id === x.pointId); return pt ? methodDocumentLines(pt, plan).map((l) => [x.pointId, l.text]) : []; }) : [];
         if (mrows.length) blocks.push({ type: "table", columns: ["Sample", "How the sample is taken"], rows: mrows, caption: "How each sample is taken (from the sampling plan)" });
       }
       if (b.cmoFields.length) {
@@ -297,6 +304,14 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
       `${CMO_PLACEHOLDER}: entries only the CMO can make (batch number, equipment IDs, calibration, BOM and ERP IDs, form and SOP numbers, alarm values, weights, densities, signatures and all results).`,
     ] },
   ]);
+
+  if (stageView.sentence || stageView.keptIn.length) {
+    appendix("left-out", "PPQ-only items left out at this stage", [
+      ...(stageView.sentence ? ([{ type: "paragraph", text: `${stageView.sentence} They stay in the saved record; use "Include anyway" in the app to put one back. Step numbers are the same at every stage, so a number is missing where a step is left out and cross-references stay right.` }] as Block[]) : []),
+      ...(stageView.leftOut.length ? ([{ type: "table", columns: ["Where", "Item"], rows: stageView.leftOut.map((i) => [i.where, `${i.id}: ${i.text}`]) }] as Block[]) : []),
+      ...(stageView.keptIn.length ? ([{ type: "paragraph", text: `Kept in although the project stage would leave them out (Include anyway): ${stageView.keptIn.map((i) => i.id).join(", ")}.` }] as Block[]) : []),
+    ]);
+  }
 
   appendix("open-items", "Open items", [
     ...stageOpenItems(project).map((text): Block => ({ type: "note", text: `Open item: ${text}` })),

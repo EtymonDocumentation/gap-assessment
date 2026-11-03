@@ -26,6 +26,7 @@ import type { ContentBundle } from "./content";
 import { formatResolved } from "./format";
 import { resolveTrdValue } from "./mbr-values";
 import { effectiveField } from "./trd";
+import { projectStage, resolveStageMarkers, type ProgramStage } from "./stage";
 import { planMove } from "./trd-writeup-order";
 
 /*
@@ -363,8 +364,11 @@ export function setPartIncluded(project: Project, trdId: string, writeupId: stri
   const w = writeupOf(d, writeupId);
   const p = partOf(w, partId);
   if (!p.optional) throw new TrdWriteupError("Only an optional part can be switched on or off");
-  if (Boolean(p.included) === included) return project;
+  // What counts is what the reader sees: an optional part that the project stage brings in is already "on" until the author leaves it out.
+  if (partIsIn(p, projectStage(project)) === included) return project;
   if (included) p.included = true;
+  // A part the stage would bring in needs an explicit "left out" so the author's switch wins over the stage; any other part just loses the flag.
+  else if (p.optional.stages?.length) p.included = false;
   else delete p.included;
   d.updatedAt = actor.at;
   log(next, actor, { action: "trd_writeup_toggle", path: `${wuPath(d, w)}.${p.id}`, detail: `${w.id} "${w.title}": optional part "${partLabel(p)}" switched ${included ? "on" : "off"} (${p.optional.condition})`, before: { included: !included }, after: { included } });
@@ -558,7 +562,7 @@ export function updateWriteupFromLibrary(project: Project, trdId: string, writeu
     const p = local.get(lp.id);
     if (p) {
       if (p.edited) merged.push(p);
-      else merged.push({ ...structuredClone(lp), ...(p.included ? { included: true } : {}) } as TrdPart);
+      else merged.push({ ...structuredClone(lp), ...(p.included !== undefined ? { included: p.included } : {}) } as TrdPart);
     } else if (!removed.has(lp.id)) merged.push(structuredClone(lp) as TrdPart);
   }
   // Parts the author wrote, and library parts they edited that the library dropped, stay after the part that preceded them.
@@ -904,8 +908,22 @@ export function plainOfSegments(segs: readonly TextSeg[]): string {
   return segs.map((s) => ("blank" in s ? (s.blank.filled ? s.blank.value! : `[${s.blank.label}]`) : s.text)).join("");
 }
 
-/** The parts that are in the document: not optional, or optional and switched on. */
-export const activeParts = (w: TrdWriteup): TrdPart[] => w.parts.filter((p) => !p.optional || p.included);
+/**
+ * Whether a part is in the document. A part that is not optional always is. An optional part follows the author's switch (on = true, left out
+ * = false). A part the author never switched follows the project stage: it is in when its `stages` list names the stage (for example the
+ * "after PPQ" parts at a commercial project). No stage set = no part is brought in by it.
+ */
+export function partIsIn(p: TrdPart, stage: ProgramStage | undefined): boolean {
+  if (!p.optional) return true;
+  if (p.included !== undefined) return p.included;
+  return stage !== undefined && (p.optional.stages ?? []).includes(stage);
+}
+
+/** The parts that are in the document at the project stage. */
+export const activeParts = (w: TrdWriteup, stage?: ProgramStage): TrdPart[] => w.parts.filter((p) => partIsIn(p, stage));
+
+/** Resolves {{@stage ...}} markers in a part's text for the project's stage. Done when the text is shown or printed, never stored. */
+export const stageText = (ctx: { project: Project }, src: string): string => resolveStageMarkers(src, projectStage(ctx.project));
 
 /** The blanks a part holds: in its text, and in the cells of a table (a cell resolves like a paragraph's blank). */
 function partBlankRefs(p: TrdPart) {
@@ -913,14 +931,14 @@ function partBlankRefs(p: TrdPart) {
 }
 
 /** Active figure parts that still have no picture: open items of the description, like an open blank. */
-export const openFigures = (w: TrdWriteup): TrdPart[] => (w.notApplicable?.on ? [] : activeParts(w).filter((p) => p.kind === "figure" && !p.image && !p.drawing));
+export const openFigures = (w: TrdWriteup, stage?: ProgramStage): TrdPart[] => (w.notApplicable?.on ? [] : activeParts(w, stage).filter((p) => p.kind === "figure" && !p.image && !p.drawing));
 
 /** Every blank of the write-up's active parts, resolved, each key once. */
 export function writeupBlanks(ctx: BlankContext, w: TrdWriteup): ResolvedBlank[] {
   if (w.notApplicable?.on) return blanksOf(w.notApplicable.text).map((b) => resolveBlank(ctx, w, b.key, b.label));
   const seen = new Set<string>();
   const out: ResolvedBlank[] = [];
-  for (const p of activeParts(w)) {
+  for (const p of activeParts(w, projectStage(ctx.project))) {
     for (const b of partBlankRefs(p)) {
       if (seen.has(b.key)) continue;
       seen.add(b.key);

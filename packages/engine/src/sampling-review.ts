@@ -1,6 +1,7 @@
 import type { Project, SamplingPlan } from "@gap/process-model";
 import { designReviewView, type DesignReviewView, type ReviewContext } from "@gap/sampling";
 import type { ContentBundle } from "./content";
+import { projectStage } from "./stage";
 import { projectScopeSteps } from "./sampling";
 import type { SamplingSuggestions } from "./sampling-seed";
 
@@ -24,6 +25,7 @@ export function reviewContext(content: ContentBundle, project: Project, suggesti
     ...(scope.length ? { scopeSteps: scope.map((s) => ({ ...(s.unitOp ? { unitOp: s.unitOp } : {}), label: s.label })) } : {}),
     ...(riskItems.length ? { riskItems } : {}),
     ...(expected.length ? { expected } : {}),
+    ...(projectStage(project) ? { stage: projectStage(project)! } : {}),
   };
 }
 

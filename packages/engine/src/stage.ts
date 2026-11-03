@@ -1,5 +1,6 @@
 import { resolveEntry, type Project, type Side, type StageCheck } from "@gap/process-model";
 import type { ContentBundle } from "./content";
+import { genericActivityStageNote } from "./stage-chain";
 
 /*
  * Program stage: where each side's process stands (commercial, clinical or development).
@@ -401,18 +402,29 @@ export function activityStageNote(activityKey: string, w: StageWording): string 
       if (w.source === "commercial") parts.push("The SU PPQ can be assessed for coverage of the RU condition.");
       else if (w.source) parts.push("The SU has no PPQ to assess for coverage; expect new RU work instead.");
       else parts.push("Whether SU PPQ exists to assess depends on the SU stage, which is TBD.");
+      if (w.target === "development" || w.target === "clinical") parts.push("The result informs the ranges; a PPQ at the RU is not part of this stage.");
       break;
     case "media_fill":
       if (w.source === "clinical") parts.push("Media fill history at the clinical GMP SU may exist and can be cited; the RU media fill is still assessed on its own.");
       else if (w.source === "development") parts.push("Development runs give no GMP media fill evidence to leverage.");
       else if (w.source === "ppq") parts.push("Media fill history at the PPQ SU may exist and can be cited; the RU media fill is still assessed on its own.");
       if (w.target === "development") parts.push("A GMP media fill is not expected for engineering runs.");
+      else if (w.target === "clinical") parts.push("Phase-appropriate: the aseptic process simulation covers the line before clinical batches are filled.");
+      else if (w.target === "ppq") parts.push("Expected to be complete, or planned with a date, before the PPQ batches are filled.");
+      else if (w.target === "commercial") parts.push("Expected to be in place, with its periodic repeat, before commercial supply.");
       break;
     case "engineering_run":
       if (w.target === "development") parts.push("For a development RU the engineering or demonstration runs are the main deliverable and are not for GMP supply.");
+      else if (w.target === "clinical") parts.push("A run before the first clinical batch can confirm equipment and process; it is not for GMP supply.");
+      else if (w.target === "ppq") parts.push("The engineering run before PPQ confirms equipment and process performance; what it shows may be frozen for PPQ.");
+      else if (w.target === "commercial") parts.push("A further engineering run is needed only for a changed condition; it is not for GMP supply.");
       break;
-    default:
+    default: {
+      // Every other activity: the generic note for its class (qualification, process study, paperwork), by project stage.
+      const generic = genericActivityStageNote(activityKey, w.target);
+      if (generic) parts.push(generic);
       break;
+    }
   }
   const text = parts.join(" ");
   return text ? `${text} Confirm with QA.` : undefined;

@@ -38,6 +38,8 @@ export interface FigureOptions {
   interactive?: boolean;
   /** Number of the first figure. Default 1. */
   startNumber?: number;
+  /** The project stage key. It decides the tag of a part added only for the study ("PPQ only" at PPQ, else "study only"). */
+  stage?: string;
 }
 
 export interface FigurePage {
@@ -84,7 +86,7 @@ const TOP_NEXT = 28;
 export function buildFigures(plan: SamplingPlan, opts: FigureOptions = {}): Figure[] {
   const style = opts.style ?? "time_scale";
   if (style === "none") return [];
-  const scopes = buildScopes(plan);
+  const scopes = buildScopes(plan, opts.stage);
   if (!scopes.length) return [];
   const start = opts.startNumber ?? 1;
   const mainIndex = scopes.findIndex((s) => !s.isSub);
@@ -99,6 +101,7 @@ export function buildFigures(plan: SamplingPlan, opts: FigureOptions = {}): Figu
       interactive: !!opts.interactive,
       mainNumber,
       notOn: scope.isSub ? [] : notOn,
+      ...(opts.stage ? { stage: opts.stage } : {}),
     });
   });
 }
@@ -110,6 +113,7 @@ interface Ctx {
   interactive: boolean;
   mainNumber: number;
   notOn: string[];
+  stage?: string;
 }
 
 const ACCESS_LEGEND: Record<SampleAccess, string> = {
@@ -131,11 +135,12 @@ function sharedPairs(scope: Scope): { id: string; with: string[] }[] {
   });
 }
 
-function legendFor(scope: Scope, style: "time_scale" | "step_cards"): LegendItem[] {
+function legendFor(scope: Scope, style: "time_scale" | "step_cards", stage?: string): LegendItem[] {
   const items: LegendItem[] = [{ kind: "step", text: "Process step" }];
   if (scope.holds.length) items.push({ kind: "hold", text: "Hold (dashed, word HOLD)" });
   if (scope.targets.length) items.push(style === "time_scale" ? { kind: "target-line", text: "Time target (dashed line or arrow)" } : { kind: "target-ribbon", text: "Time target (ribbon)" });
-  items.push({ kind: "ppq", text: "PPQ sample (solid, round ID)" });
+  // "PPQ sample" is the name of a study sample at a PPQ project (and when the stage is not set); at any other stage it is a study sample.
+  items.push({ kind: "ppq", text: `${stage === undefined || stage === "ppq" ? "PPQ" : "Study"} sample (solid, round ID)` });
   if (scope.samples.some((s) => s.routine)) items.push({ kind: "routine", text: "Routine sample (dashed, square ID)" });
   if (scope.samples.some((s) => s.holdStep)) items.push({ kind: "holdstep", text: "HOLD STEP: sample taken during a hold" });
   if (style === "time_scale" && scope.hoursNotGiven.length) items.push({ kind: "narrow", text: "Narrow dotted block: hours not given" });
@@ -190,7 +195,7 @@ function altText(scope: Scope, style: "time_scale" | "step_cards", number: numbe
 function renderScope(plan: SamplingPlan, scope: Scope, style: "time_scale" | "step_cards", ctx: Ctx): Figure {
   const W = ctx.width;
   const contentW = W - 2 * MARGIN;
-  const legend = legendFor(scope, style);
+  const legend = legendFor(scope, style, ctx.stage);
   const legendH = legendHeight(W, legend);
   const limit = ctx.maxH - legendH - FOOTER_H - 8;
   const feeds = scope.isSub && scope.feeds ? { stepLabel: scope.feeds.label, figureNumber: ctx.mainNumber } : undefined;

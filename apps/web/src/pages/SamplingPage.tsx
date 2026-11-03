@@ -5,9 +5,11 @@ import {
   deletePlan,
   planById,
   projectScopeSteps,
+  projectStage,
   removeBatch,
   removePoint,
   samplingOpenItems,
+  samplingStageWording,
   suggestPoints,
   SUGGESTION_SOURCE_LABEL,
   updateBatch,
@@ -244,8 +246,11 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
   }, [content]);
 
   // Facts the page already knows (the same counts the plan list shows).
+  // The batch wording follows the project stage (a clinical plan's batches are not PPQ batches); same source as the Word document.
+  const stageWording = samplingStageWording(projectStage(project));
+  const batchWord = stageWording.batchWord;
   const pills: PagePill[] = [
-    { label: `${plan.batches.length} PPQ ${plan.batches.length === 1 ? "batch" : "batches"}`, testId: "plan-pill-batches" },
+    { label: `${plan.batches.length} ${batchWord}${plan.batches.length === 1 ? "" : "es"}`, testId: "plan-pill-batches" },
     { label: `${plan.points.length} sampling ${plan.points.length === 1 ? "point" : "points"}`, testId: "plan-pill-points" },
     { label: `${open.length} open ${open.length === 1 ? "item" : "items"}`, warning: open.length > 0, testId: "plan-pill-open" },
   ];
@@ -261,7 +266,7 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
       <PageHeader
         title={`${plan.id}: ${plan.title}`}
         crumb={plan.id}
-        purpose="Which samples are taken from which process steps during the PPQ (process performance qualification) batches, how many, and by what method."
+        purpose={`Which samples are taken from which process steps during ${stageWording.during}, how many, and by what method.`}
         pills={pills}
         meta={`Last changed ${dateTime(plan.updatedAt)}`}
         about={{

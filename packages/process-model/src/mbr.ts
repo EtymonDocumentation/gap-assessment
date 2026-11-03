@@ -226,6 +226,11 @@ export const mbrRecordSchema = z
     sections: z.array(mbrSectionSchema),
     /** Absent = one unsplit record (as before MBR format 1.2.0). */
     split: mbrSplitSchema.optional(),
+    /**
+     * Ids (steps, parameter rows, sample rows) of PPQ-only items that the author keeps in the document although the project stage would
+     * leave them out ("Include anyway", job L2). Absent = the stage decides. Optional, so no schema or format bump is needed.
+     */
+    includeAnyway: z.array(z.string()).optional(),
     createdAt: z.string(),
     updatedAt: z.string(),
   })

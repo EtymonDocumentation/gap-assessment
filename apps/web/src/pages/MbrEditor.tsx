@@ -9,6 +9,8 @@ import {
   holdEntryInfo,
   mbrHoldSuggestions,
   mbrOpenItems,
+  mbrPpqOnlyItems,
+  mbrStageView,
   mergeMbr,
   moveSection,
   numberSteps,
@@ -16,6 +18,7 @@ import {
   removeSection,
   sampleHomeBlock,
   sampleNotices,
+  setIncludeAnyway,
   splitIndex,
   splitMbr,
   trdNotices,
@@ -115,6 +118,8 @@ export function MbrEditor({ rec, tab = "edit" }: { rec: MbrRecord; tab?: "edit" 
           {error}
         </p>
       )}
+
+      <StagePanel rec={rec} run={run} />
 
       <Details rec={rec} run={run} trdTitle={trd ? `${trd.id}: ${trd.title}` : undefined} planTitle={plan ? `${plan.id}: ${plan.title}` : undefined} />
 
@@ -337,6 +342,43 @@ function Details({ rec, run, trdTitle, planTitle }: { rec: MbrRecord; run: Run; 
           </div>
         </>
       )}
+    </section>
+  );
+}
+
+/**
+ * PPQ-only items of the record (hold and time challenges, PPQ samples). At a stage other than PPQ the Word document leaves them out;
+ * here they all stay visible and each can be switched back on with "Include anyway". Nothing is deleted by the stage.
+ */
+function StagePanel({ rec, run }: { rec: MbrRecord; run: Run }) {
+  const project = useStore((s) => s.project)!;
+  const view = useMemo(() => mbrStageView(project, rec), [project, rec]);
+  const items = useMemo(() => mbrPpqOnlyItems(project, rec), [project, rec]);
+  if (!view.stage || items.length === 0) return null;
+  const leftIds = new Set(view.leftOut.map((i) => i.id));
+  const kindWord = { step: "Step", parameter: "Parameter", sample: "Sample" } as const;
+  return (
+    <section className="card stack" aria-labelledby="mbr-stage-h" data-testid="mbr-stage-panel">
+      <h2 id="mbr-stage-h">PPQ-only items</h2>
+      {view.sentence ? <p data-testid="mbr-left-out-sentence">{view.sentence}</p> : <p>All PPQ-only items are included in the document.</p>}
+      <p className="muted small">They stay in this record. Press Include anyway to put one into the Word document.</p>
+      <ul className="plain-list stack">
+        {items.map((i) => {
+          const left = leftIds.has(i.id);
+          return (
+            <li key={i.id} className="row wrap">
+              <span>
+                <strong>{kindWord[i.kind]} {i.id}</strong>: {i.text} ({i.where}) <em>{left ? "Left out of the document" : view.stage !== "ppq" ? "Included anyway" : "Included"}</em>
+              </span>
+              {view.stage !== "ppq" && (
+                <button type="button" className="btn small" aria-label={`${left ? "Include anyway" : "Leave out again"}: ${i.id}`} onClick={() => run((p, a) => setIncludeAnyway(p, rec.id, [i.id], left, a), left ? "Included anyway" : "Left out again")}>
+                  {left ? "Include anyway" : "Leave out again"}
+                </button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
     </section>
   );
 }

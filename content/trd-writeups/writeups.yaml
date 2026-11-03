@@ -209,6 +209,7 @@ writeups:
           assessment reference}}).
         optional:
           condition: include in a TRD issued after process performance qualification
+          stages: [commercial]
       - id: additional
         kind: bullet
         text: '{{trd.formulationPrecautions.additional|Additional precautions}}'
@@ -402,11 +403,20 @@ writeups:
       - id: fn_par_after_ppq
         kind: note
         text: >-
-          Before process performance qualification (PPQ), a hold time or time limit is a target to exceed (for example more than
-          24 h), not a validated value, and every hold and time is run in every PPQ lot. After PPQ, the proven acceptable range (PAR)
-          of a hold time or time limit is set to the most conservative (lowest) value achieved across the PPQ lots, not to the full
-          range tested. A longer time reached in one lot is a buffer between the limit and the longest time with data; it is not a
-          range the receiving unit may use.
+          {{@stage development: Project stage: Engineering. The ranges are proposed from development or sending-site data. A
+          hold time or time limit is a target, written as "more than N h", not a validated limit. ;; clinical: Project stage:
+          Clinical. The ranges are those used to make clinical supply, which is not process-validated. They are not validated
+          ranges of the receiving site. A hold time or time limit is written as "more than N h" until PPQ shows it. ;; ppq:
+          Project stage: PPQ. The ranges are targets to be confirmed by PPQ. Until PPQ is complete, a hold time or time limit is
+          a target to exceed (for example more than 24 h), not a validated value, and every hold and time is run in every PPQ
+          lot. After PPQ, the proven acceptable range (PAR) of a hold time or time limit is set to the most conservative (lowest)
+          value achieved across the PPQ lots, not to the full range tested. ;; commercial: Project stage: Commercial. The ranges are validated
+          ranges. The proven acceptable range (PAR) of a hold time or time limit is the most conservative (lowest) value reached
+          across the PPQ lots, not the full range tested. ;; else: Before process performance qualification (PPQ), a hold time
+          or time limit is a target to exceed (for example more than 24 h), not a validated value, and every hold and time is
+          run in every PPQ lot. After PPQ, the proven acceptable range (PAR) of a hold time or time limit is set to the most
+          conservative (lowest) value achieved across the PPQ lots, not to the full range tested.}} A longer time reached in one
+          lot is a buffer between the limit and the longest time with data; it is not a range the receiving unit may use.
       - id: fn_bioburden
         kind: note
         text: >-

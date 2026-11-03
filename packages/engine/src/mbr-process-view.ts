@@ -1,5 +1,6 @@
 import type { MbrRecord, MbrSampleRow, MbrStep, MbrTimeLimit, Project, SamplingPlan } from "@gap/process-model";
 import { sampleMethodView, samplingMethodReminders, type SampleMethodView } from "@gap/sampling";
+import { projectStage } from "./stage";
 import { holdEntryInfo, numberSteps, planPointsNotInRecord, sampleMomentKey, sampleNotices, splitIndex } from "./mbr";
 
 /*
@@ -309,7 +310,7 @@ const POINT = /\bSP-\d{3,}\b/g;
 const TAKE = /\b(take|draw|collect|withdraw)\b/i;
 const PORT = /(?:(?:upper|lower|bottom|top|sterile|sampling|sample|manifold)[ -])*(?:port|valve|manifold|tap)\b/i;
 
-export const sampleMethodOf = sampleMethodView;
+export const sampleMethodOf = sampleMethodView; // (point, project stage): the stage decides the "PPQ only" / "study only" tag
 
 // ------------------------------------------------------------------ the view
 
@@ -388,7 +389,7 @@ export function buildProcessView(project: Project, rec: MbrRecord): ProcessView 
     else momentIndex = lastMomentOfSection(moments, rec.sections[si]!.id);
     const port = taker ? PORT.exec(taker.step.text)?.[0] : undefined;
     const kind: ViewSample["kind"] = q ? q.kind : "unknown";
-    const method = sampleMethodOf(plan?.points.find((p) => p.id === row.pointId));
+    const method = sampleMethodOf(plan?.points.find((p) => p.id === row.pointId), projectStage(project));
     samples.push({
       rowId: row.id,
       pointId: row.pointId,

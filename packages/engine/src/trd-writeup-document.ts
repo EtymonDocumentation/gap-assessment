@@ -1,7 +1,8 @@
 import type { TrdDocument, TrdPart, TrdWriteup } from "@gap/process-model";
 import type { Block, Run } from "./document";
 import { BUILTIN_DRAWINGS } from "./drawings";
-import { activeParts, plainOfSegments, resolveBlank, segmentsOf, type BlankContext, type ResolvedBlank, type TextSeg } from "./trd-writeup";
+import { projectStage } from "./stage";
+import { activeParts, stageText, plainOfSegments, resolveBlank, segmentsOf, type BlankContext, type ResolvedBlank, type TextSeg } from "./trd-writeup";
 import { OVERVIEW_SECTION_KEY, writeupOrder } from "./trd-writeup-order";
 
 /*
@@ -36,7 +37,7 @@ function runsOf(segs: readonly TextSeg[]): Run[] {
 
 /** Rich runs for a text of one write-up; every blank met is reported to `seen`. */
 export function writeupRuns(ctx: BlankContext, w: TrdWriteup, src: string, seen?: (b: ResolvedBlank) => void): Run[] {
-  const segs = segmentsOf(src, (key, label) => {
+  const segs = segmentsOf(stageText(ctx, src), (key, label) => {
     const b = resolveBlank(ctx, w, key, label);
     seen?.(b);
     return b;
@@ -78,7 +79,7 @@ export function writeupBlocks(ctx: BlankContext, w: TrdWriteup, prefix: string, 
     if (list) blocks.push({ type: "rich-list", style: list.style, items: list.items });
     list = undefined;
   };
-  for (const p of activeParts(w)) {
+  for (const p of activeParts(w, projectStage(ctx.project))) {
     const runs = () => writeupRuns(ctx, w, p.text, seen);
     if (p.kind === "bullet" || p.kind === "step") {
       const style = p.kind === "bullet" ? "bullet" : "letter";
@@ -90,7 +91,7 @@ export function writeupBlocks(ctx: BlankContext, w: TrdWriteup, prefix: string, 
     flush();
     const cell = (src: string) =>
       plainOfSegments(
-        segmentsOf(src, (key, label) => {
+        segmentsOf(stageText(ctx, src), (key, label) => {
           const b = resolveBlank(ctx, w, key, label);
           seen(b);
           return b;

@@ -104,7 +104,29 @@ export interface ReviewContext {
   scopeSteps?: ReviewProcessStep[];
   riskItems?: ReviewRiskItem[];
   expected?: ReviewExpectedStudy[];
+  /** The project stage key. Outside PPQ (and when it is not set, PPQ stays) the questions say "these batches" instead of PPQ. */
+  stage?: string;
 }
+
+/**
+ * The questions are written for PPQ. At any other project stage the same question is asked about "these batches" (the engineering runs,
+ * the clinical batches or routine production), so a clinical team is not asked about PPQ it is not running. Only the words change: the
+ * check, the key and the facts fingerprint stay the same, so a saved answer still belongs to its question.
+ */
+const NOT_PPQ_WORDS: [RegExp, string][] = [
+  [/Does PPQ still represent the commercial process/g, "Do these batches still represent the commercial process"],
+  [/so that PPQ represents the commercial process/g, "so that these batches represent the commercial process"],
+  [/the assembly PPQ runs on, so PPQ may not show what routine production does/g, "the assembly these batches run on, so they may not show what routine production does"],
+  [/only to take PPQ samples/g, "only to take study samples"],
+  [/used only for PPQ sampling/g, "used only for study sampling"],
+  [/and PPQ may not show what routine production does/g, "and these batches may not show what routine production does"],
+  [/a step PPQ shows nothing about/g, "a step these batches show nothing about"],
+  [/nothing in PPQ can detect is a risk PPQ does not show on the batches it covers/g, "nothing in these batches can detect is a risk they do not show"],
+  [/need sampling in PPQ/g, "need sampling in these batches"],
+  [/A typical fill[/]finish PPQ covers this/g, "A typical fill/finish study covers this"],
+];
+const stageWords = (s: string): string => NOT_PPQ_WORDS.reduce((t, [re, to]) => t.replace(re, to), s);
+const ppqStage = (stage: string | undefined): boolean => stage === undefined || stage === "ppq";
 
 // ------------------------------------------------------------------ small helpers
 
@@ -604,7 +626,7 @@ export function designReview(plan: SamplingPlan, ctx?: ReviewContext): ReviewFin
     .filter((f) => !(f.checkId in off))
     .map((f, i) => ({ f, i }))
     .sort((a, b) => (ORDER.get(a.f.checkId)! - ORDER.get(b.f.checkId)!) || a.i - b.i)
-    .map((x) => x.f);
+    .map((x) => (ppqStage(ctx?.stage) ? x.f : { ...x.f, states: stageWords(x.f.states), why: stageWords(x.f.why), question: stageWords(x.f.question) }));
 }
 
 export type ReviewState = "unanswered" | "answered" | "look_again";

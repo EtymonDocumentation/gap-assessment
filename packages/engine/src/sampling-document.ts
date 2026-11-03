@@ -19,7 +19,8 @@ import {
 } from "@gap/process-model";
 import { NOTICE_DOCUMENT, PRODUCT_NAME, TBD_MARKER } from "./product";
 import { projectLabel } from "./format";
-import { coverStage, projectStage, STAGE_LABEL, stageOpenItems } from "./stage";
+import { coverStage, projectStage, STAGE_LABEL, STAGE_SHORT, stageOpenItems } from "./stage";
+import { pointStageReminder, samplingStageWording } from "./stage-chain";
 import {
   acceptanceStatement,
   buildFigures,
@@ -81,6 +82,7 @@ import { buildTrdSeed } from "./trd-seed";
  *  - "Report only" is written in words. The document is a draft: it never states it is approved, and it states no filing category.
  */
 
+/** The title at a PPQ project. The title follows the project stage (samplingStageWording); this is the PPQ one, kept for readers of old exports. */
 export const SAMPLING_PLAN_TITLE = "PPQ sampling plan — draft";
 /** The notice at the top and in the footer of the document: the one shared wording (product.ts), the same in every document. */
 export const SAMPLING_BANNER = NOTICE_DOCUMENT;
@@ -180,6 +182,9 @@ export function buildSamplingPlanDocument(
   /** Ends a sentence with a full stop unless it already ends in one (basis texts typed by the team often do). */
   const stop = (s: string) => (/[.!?]$/.test(s.trimEnd()) ? s : `${s}.`);
   const program = seed.meta.product.program.display ?? NOT_ESTABLISHED;
+  // The plan is for the project stage's batches (no separate plan per stage): its title, purpose and batch section follow the stage.
+  const stage = projectStage(project);
+  const sw = samplingStageWording(stage);
   const batchLabel = (id: string) => plan.batches.find((b) => b.id === id)?.label ?? id;
   const tokenCtx: TokenContext = tokenContext(plan, {
     ...(seed.meta.product.program.display ? { productName: seed.meta.product.program.display } : {}),
@@ -206,11 +211,11 @@ export function buildSamplingPlanDocument(
     { type: "note", text: basis },
     {
       type: "paragraph",
-      text: `This draft plan sets out which samples are taken from which process steps during the process performance qualification (PPQ) of ${program} at the receiving unit (RU), how many, and why. It records the choices made by the team and the arithmetic that followed from them. It does not judge whether a choice is adequate for the process: that decision belongs to QA and statistics.`,
+      text: sw.purpose(program),
     },
     {
       type: "paragraph",
-      text: `Plan ${plan.id}: ${plan.title}. Run type: PPQ. ${plan.points.length} sampling point${plan.points.length === 1 ? "" : "s"} over ${plan.batches.length} batch${plan.batches.length === 1 ? "" : "es"}. ${open.length} open item${open.length === 1 ? "" : "s"}.`,
+      text: `Plan ${plan.id}: ${plan.title}. Project stage: ${stage ? STAGE_SHORT[stage] : "not set"}. ${plan.points.length} sampling point${plan.points.length === 1 ? "" : "s"} over ${plan.batches.length} batch${plan.batches.length === 1 ? "" : "es"}. ${open.length} open item${open.length === 1 ? "" : "s"}.`,
     },
     ...(plan.notes?.trim() ? ([{ type: "paragraph", text: plan.notes.trim() }] as Block[]) : []),
     ...subsAfter("purpose-scope"),
@@ -249,6 +254,8 @@ export function buildSamplingPlanDocument(
     const say = (v: string | undefined) => v?.trim() || "Not stated";
     const eb = dsg?.engineeringBatch;
     const out: Block[] = [
+      // Bracketing the batch size (smallest, middle, largest) is a PPQ design. At another stage the entries stay in the plan as written.
+      ...(sw.ppqDesign ? [] : ([{ type: "note", text: `These entries are the PPQ design decisions. They are kept as the team wrote them; they apply when PPQ is run and do not shape this plan at the ${stage ? STAGE_SHORT[stage] : ""} stage.` }] as Block[])),
       { type: "heading", text: "PPQ design decisions" },
       {
         type: "table",
@@ -284,12 +291,12 @@ export function buildSamplingPlanDocument(
   };
 
   // 3. PPQ batches and responsible parties
-  add("batches", "PPQ batches", [
+  add("batches", sw.batchesTitle, [
     {
       type: "paragraph",
       text: plan.batches.length
-        ? `The plan has ${plan.batches.length} PPQ batch${plan.batches.length === 1 ? "" : "es"}. The number of batches is the team's decision.`
-        : "No PPQ batches have been entered yet. The number of batches is the team's decision and the tool does not suggest one.",
+        ? `The plan has ${plan.batches.length} ${sw.batchWord}${plan.batches.length === 1 ? "" : "es"}. The number of batches is the team's decision.`
+        : `No ${sw.batchWord}es have been entered yet. The number of batches is the team's decision and the tool does not suggest one.`,
     },
     plan.batches.length
       ? {
@@ -314,7 +321,7 @@ export function buildSamplingPlanDocument(
   const tray = trayPoints(plan);
   // The figure is drawn from the plan's own flow data (hours, holds, time targets); what is not given is not invented. The long sample
   // table after it is unchanged and uses the same SP ids, so every number in a figure can be looked up.
-  const figures = buildFigures(plan, { style: opts.figureStyle ?? "time_scale" });
+  const figures = buildFigures(plan, { style: opts.figureStyle ?? "time_scale", ...(stage ? { stage } : {}) });
   const figureBlocks: Block[] = figures.length
     ? [
         {
@@ -703,6 +710,18 @@ export function buildSamplingPlanDocument(
     ]);
   }
 
+  // Reminders for points that do not fit the project stage. A point is never removed by one; they are not counted as open items.
+  const stageReminders = plan.points.flatMap((p) => {
+    const text = pointStageReminder(stage, p);
+    return text ? [[p.id, p.attribute.trim() || NOT_GIVEN, text]] : [];
+  });
+  if (stageReminders.length) {
+    add("sampling-stage-reminders", "Reminders for the project stage", [
+      { type: "paragraph", text: `Points whose purpose does not fit the ${stage ? STAGE_SHORT[stage] : ""} stage. They stay in the plan. The team decides what to do with them.` },
+      { type: "table", columns: ["Point", "Test", "Reminder"], rows: stageReminders },
+    ]);
+  }
+
   addAgency();
 
   // Appendix A: traceability
@@ -760,7 +779,7 @@ export function buildSamplingPlanDocument(
   ]);
 
   return {
-    title: SAMPLING_PLAN_TITLE,
+    title: sw.title,
     banner: SAMPLING_BANNER,
     status: "DRAFT",
     meta: [

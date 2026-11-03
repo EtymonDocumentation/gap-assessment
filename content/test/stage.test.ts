@@ -1,6 +1,5 @@
 // Milestone 5.1: program stage per side (site.programStage) and the stage-aware wording.
 import {
-  NOTICE_DOCUMENT,
   assess,
   buildDemoProject,
   buildDocument,
@@ -51,28 +50,16 @@ const plain = (s: string) => s.replace(/\s+/g, " ");
 const section = (doc: ReturnType<typeof build>["doc"], id: string) => doc.sections.find((s) => s.id === id)!;
 const meta = (doc: ReturnType<typeof build>["doc"], label: string) => doc.meta.find(([k]) => k === label)?.[1];
 
-/** Statements that are allowed to contain "validated" in a document for a source that is not commercial. */
-const ALLOWED = [
-  new RegExp(NOTICE_DOCUMENT.replaceAll(".", "[.]"), "g"), // the permanent notice
-  /Commercial batches \(process validated\)/g, // a stage label (a commercial target)
-  /Clinical batches \(GMP, not process-validated\)/g, // a stage label
-  /not process validated/gi, // the same wording in running text
-  /not yet validated/gi,
-  /(?:full )?process validation \(PPQ\) is not expected/gi, // target expectations
-  /full process validation/gi,
-  /(?:The )?RU (?:process )?(?:is|must be) validated/gi,
-  /own validated specification/gi, // a target-side statement
-  /not validated[^.]*until bacterial retention is demonstrated/gi, // a target-side statement
-  /(?:cleaning|computerized system|method) validation/gi,
-  /validated and qualified together with its equipment/gi,
-  /how the check was validated/gi,
-  /Has the RU CCI test method been validated/gi, // a question about the target
-];
-
+/**
+ * A "claim" is a sentence that says the sending unit's process IS or HAS BEEN validated. Instead of an allow-list of harmless phrases
+ * (which had to grow with every new sentence), the guard looks for the claim itself and ignores a sentence that denies it ("not
+ * validated", "no validation evidence") or only names a kind of validation (cleaning, method) or a stage label.
+ */
 function sourceValidatedClaims(md: string): string[] {
-  let text = plain(md);
-  for (const re of ALLOWED) text = text.replace(re, " ");
-  return [...text.matchAll(/[^.]{0,60}\bvalidated\b[^.]{0,40}/gi)].map((m) => m[0].trim());
+  const sentences = plain(md).split(/(?<=[.!?])s+/);
+  const claim = /(?:SU|sending[- ](?:site|unit)|source)[^.]{0,80}(?:is|are|was|were|has been|have been)s+(?:process[- ])?validated/i;
+  const denied = /(?:not|no|never|until|unless|without)[^.]{0,40}validat/i;
+  return sentences.filter((x) => claim.test(x) && !denied.test(x));
 }
 
 describe("program stage question", () => {

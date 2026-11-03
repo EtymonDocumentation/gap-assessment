@@ -135,7 +135,8 @@ describe("validation expectations", () => {
     for (const s of [...PROGRAM_STAGES, undefined]) for (const t of [...PROGRAM_STAGES, undefined]) expect(note(s, t)).toMatch(/Confirm with QA\.$/);
   });
 
-  it("has no note for an activity the stage does not affect", () => {
-    expect(activityStageNote("hold_time_study", stageWordingFor("clinical", "commercial"))).toBeUndefined();
+  it("gives a process study its generic stage note (job L2: every activity is covered), and none when the stage is not set", () => {
+    expect(activityStageNote("hold_time_study", stageWordingFor("clinical", "commercial"))).toMatch(/validated file/);
+    expect(activityStageNote("hold_time_study", stageWordingFor("clinical", undefined))).toBeUndefined();
   });
 });

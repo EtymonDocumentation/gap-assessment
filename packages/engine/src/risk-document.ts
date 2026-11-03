@@ -8,7 +8,8 @@ import { evaluateItem, hasResidual, linkedConfidence, riskOpenItems, thresholdRe
 import { buildTrdSeed } from "./trd-seed";
 import { NOTICE_DOCUMENT, PRODUCT_NAME, TBD_MARKER } from "./product";
 import { projectLabel } from "./format";
-import { coverStage, projectStage, stageOpenItems } from "./stage";
+import { coverStage, projectStage, STAGE_LABEL, stageOpenItems } from "./stage";
+import { riskStageLine } from "./stage-chain";
 
 /**
  * The risk assessment as a document (the same DocModel the other outputs use, so the shared renderers and the built-in Word style draw it).
@@ -82,6 +83,8 @@ export function buildRiskAssessmentDocument(
       text: `This draft records a quality risk assessment of the technology transfer of ${program} to the receiving unit, in the manner of ICH Q9(R1): the failure modes the team identified, how the team scored them with the method chosen below, the controls in place and the actions agreed. It records the team's own judgement. The tool calculates the scores from the team's entries and does not judge whether any risk is acceptable.`,
     },
     { type: "paragraph", text: `Assessment ${a.id}: ${a.title}. ${a.items.length} item${a.items.length === 1 ? "" : "s"}, ${a.actions.length} action${a.actions.length === 1 ? "" : "s"}, ${open.length} open item${open.length === 1 ? "" : "s"}.` },
+    // Severity and probability depend on what the batches are for, so the document says which stage the ratings were made at.
+    { type: "paragraph", text: riskStageLine(projectStage(project)) },
     ...(a.scopeNote?.trim() ? ([{ type: "heading", text: "Scope" }, { type: "paragraph", text: a.scopeNote.trim() }] as Block[]) : []),
     ...(a.context?.trim() ? ([{ type: "heading", text: "Context" }, { type: "paragraph", text: a.context.trim() }] as Block[]) : []),
     ...(a.steps.length ? ([{ type: "heading", text: "Process steps covered" }, { type: "list", items: a.steps.map((s) => s.label) }] as Block[]) : []),
@@ -309,6 +312,7 @@ export function buildRiskAssessmentDocument(
       ["Project", project.meta.title],
       ["Assessment", `${a.id}: ${a.title}`],
       ["Method", cfg ? describeMethod(cfg).title : "Not chosen"],
+      ["Project stage", projectStage(project) ? STAGE_LABEL[projectStage(project)!] : NOT_ESTABLISHED],
       ["Generated", generatedAt.replace("T", " ").slice(0, 16) + " UTC"],
       ["Open items", String(open.length)],
     ],
