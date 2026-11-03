@@ -310,7 +310,7 @@ test("document: Word export in all four modes, from the saved mapping, with the 
   await expect(rows.first()).toContainText("Word");
   await expect(rows.first()).toContainText("PDF outline");
   await expect(rows.nth(1)).toContainText("placeholder-tag");
-  await expect(rows.last()).toContainText("Built-in default 1.2.0");
+  await expect(rows.last()).toContainText("Built-in default 1.3.0");
   await expect(rows.last().locator("td").nth(3)).toHaveText("4 marked TBD"); // what was open when it was made
   await expect(rows.last().locator("td").nth(5)).toHaveText("No earlier download");
   // The codes sit in the Details cell with a plain explanation (Tester D row 26); the time says which clock it is.
@@ -325,7 +325,7 @@ test("document: Word export in all four modes, from the saved mapping, with the 
   await confirmTbd(page);
   await expect(rows).toHaveCount(6);
   await expect(rows.first()).toContainText("Markdown");
-  await expect(rows.first()).toContainText("Built-in default 1.2.0");
+  await expect(rows.first()).toContainText("Built-in default 1.3.0");
   await page.getByRole("button", { name: "Download gap assessment (HTML)" }).click();
   await confirmTbd(page);
   await expect(rows).toHaveCount(7);

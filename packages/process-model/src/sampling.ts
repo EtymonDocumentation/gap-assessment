@@ -24,11 +24,7 @@ import { z } from "zod";
  */
 
 /** Format version of the plan data (semver). A new optional field is a minor change; a removed or re-meant field is major. */
-export const SAMPLING_PLAN_FORMAT_VERSION = "1.7.0";
-
-/** Run types. Only PPQ is built; the field exists so clinical GMP and engineering runs can be added without a schema break. */
-export const SAMPLING_RUN_TYPES = ["ppq"] as const;
-export type SamplingRunType = (typeof SAMPLING_RUN_TYPES)[number];
+export const SAMPLING_PLAN_FORMAT_VERSION = "1.8.0";
 
 export const SAMPLING_METHODS = ["company-table", "fixed", "conf-rel", "aql-105e", "var-414"] as const;
 export type SamplingMethod = (typeof SAMPLING_METHODS)[number];
@@ -844,7 +840,6 @@ export const samplingPlanSchema = z
     /** SPL-001, SPL-002 ... */
     id: z.string().regex(/^SPL-\d{3,}$/),
     title: z.string().min(1),
-    runType: z.enum(SAMPLING_RUN_TYPES),
     status: z.literal("draft"),
     notes: z.string().optional(),
     /** The plan's own process steps, in process order (plan format 1.2.0). Separate from the gap assessment's Scope. */

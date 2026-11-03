@@ -6,6 +6,7 @@ import { effectiveField } from "./trd";
 import { TRD_BANNER } from "./trd-outline";
 import { PRODUCT_NAME, TBD_MARKER } from "./product";
 import { projectLabel } from "./format";
+import { coverStage, projectStage, stageOpenItems } from "./stage";
 import { holdEntryInfo, mbrOpenItems, numberSteps, renderStepText, sampleIdsTakenAt, splitIndex, stepNumberText, type HoldEntryInfo, type MbrOpenItem, type MbrPart } from "./mbr";
 import { NOT_HELD, NOTE_OUTSIDE, NOTE_TIGHTER, paramNote, targetSum, trdRefText } from "./mbr-values";
 
@@ -298,6 +299,7 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
   ]);
 
   appendix("open-items", "Open items", [
+    ...stageOpenItems(project).map((text): Block => ({ type: "note", text: `Open item: ${text}` })),
     { type: "paragraph", text: open.length ? "Choices not yet made, a missing purpose or steps, values still to be entered, and TRD requirements that have no step. Nothing has been decided on behalf of the team. The draft is not complete while these remain." : "No open items. This does not mean the batch record is complete or correct; that is for the CMO and quality assurance to judge." },
     ...(open.length ? ([{ type: "table", columns: ["Where", "Open item"], rows: open.map((o) => [o.where, o.text]) }] as Block[]) : []),
   ]);
@@ -367,7 +369,7 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
       sourceSite: "",
       targetSite: [detail("site"), detail("line")].filter((x) => x !== NOT_ESTABLISHED).join(", ") || NOT_ESTABLISHED,
       sourceStage: "",
-      targetStage: detail("programStage"),
+      ...coverStage(projectStage(project)),
     },
     sections,
     tbdCount: open.length,

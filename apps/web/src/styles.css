@@ -1346,6 +1346,11 @@ table.data tr.inactive {
   padding: 20px;
   box-shadow: 0 10px 40px rgb(0 0 0 / 30%);
 }
+/* A dialog that takes focus itself (Modal focusDialog) is a container, not a control: no ring around the whole box. Its title is
+   still announced, and Tab moves on to the first control, which shows its own ring. */
+.dialog:focus {
+  outline: none;
+}
 .dialog-title {
   font-size: 1.2rem;
   margin: 0 0 4px;
@@ -4581,4 +4586,102 @@ table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
   .about-panel {
     display: none !important;
   }
+}
+
+/* ---------------------------------------------------------------- project stage (chip, chooser, check) */
+
+/* The chip sits in the dark header bar beside the project button, so it uses the header tokens. The check is a dot AND the words
+   "needs a check" in its accessible name; the dot is a filled shape, not just a colour. */
+.stage-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  max-width: 16rem;
+  padding: 0 12px;
+  border: 1px solid var(--header-line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--header-text);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.stage-chip:hover {
+  background: var(--header-hover);
+}
+.stage-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--header-focus);
+  border: 2px solid var(--header-text);
+  box-sizing: border-box;
+}
+/* On a phone the chip gets its own thin row under the bar, because the Menu panel is not always open. */
+.stage-strip {
+  padding: 6px 12px;
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--header-line);
+}
+.stage-strip .stage-chip {
+  max-width: 100%;
+}
+fieldset.stage-options {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.stage-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.stage-option.checked {
+  border-color: var(--accent, currentColor);
+  border-width: 2px;
+  padding: 9px 11px;
+}
+.stage-option input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+}
+.stage-option:focus-within {
+  outline: 2px solid var(--focus, currentColor);
+  outline-offset: 2px;
+}
+.stage-meaning {
+  display: block;
+}
+.stage-check-notice {
+  padding: 12px 14px;
+  background: var(--warn-bg);
+  color: var(--warn);
+  border: 1px solid var(--warn-border);
+  border-left-width: 6px;
+  border-radius: var(--radius);
+}
+.stage-check-notice p {
+  margin: 0 0 8px;
+}
+.stage-row {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.trd-project-stage {
+  margin: 0;
 }

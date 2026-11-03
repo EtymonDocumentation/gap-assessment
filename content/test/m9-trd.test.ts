@@ -65,7 +65,7 @@ describe("starting a TRD", () => {
     expect(d.origin.seed?.fingerprint).toBe(trdSeedContentFingerprint(seed0));
     expect(d.steps.map((s) => s.key)).toEqual([...seed0.scope.included].sort((a, b) => a.sequence - b.sequence).map((u) => u.key));
     expect(d.steps.map((s) => s.id)).toEqual(d.steps.map((_, i) => `TS-${String(i + 1).padStart(2, "0")}`));
-    expect(d.details.map((f) => f.key)).toEqual(["program", "modality", "dosageForm", "presentation", "site", "line", "programStage"]);
+    expect(d.details.map((f) => f.key)).toEqual(["program", "modality", "dosageForm", "presentation", "site", "line"]);
     expect(effectiveField(d.details[0]!).text).toBe("ARX-217");
     // No override, no limit, no description until the user writes one.
     expect(trdOverrides(d)).toEqual([]);
@@ -92,7 +92,7 @@ describe("starting a TRD", () => {
     expect(d.origin).toEqual({ kind: "blank", importedAt: who.at });
     expect(d.details.every((f) => !f.pulled && effectiveField(f).text === "TBD")).toBe(true);
     expect(d.steps.map((s) => [s.label, s.custom, s.entered])).toEqual([["Sterile filtration", false, true], ["Special hold (fictional)", true, true]]);
-    expect(trdOpenItems(d).filter((o) => o.kind === "not_established")).toHaveLength(7);
+    expect(trdOpenItems(d).filter((o) => o.kind === "not_established")).toHaveLength(6);
   });
 
   it("refuses a blank title and refuses what is not a seed", () => {
@@ -534,7 +534,7 @@ describe("the TRD document", () => {
   it("a blank TRD says what is missing instead of filling it", () => {
     const r = createTrd(base, { title: "Blank (fictional)", start: { kind: "blank", steps: [{ label: "Hold (fictional)" }] } }, who);
     const o = buildTrdDocument(r.project, doc(r.project, r.trdId), { generatedAt: T1, variant: "evidence" });
-    expect(o.tbdCount).toBe(7);
+    expect(o.tbdCount).toBe(6);
     const text = flat(o);
     expect(text).toContain("No purpose has been entered");
     expect(text).toContain("No description has been entered for this step.");

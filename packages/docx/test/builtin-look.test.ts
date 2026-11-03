@@ -79,8 +79,8 @@ describe("built-in look: cover page", () => {
     expect(facts.get("Product")).toBe(c.product);
     expect(facts.get("Sending unit (SU) site")).toBe(c.sourceSite);
     expect(facts.get("Receiving unit (RU) site")).toBe(c.targetSite);
-    expect(facts.get("Sending unit (SU) program stage")).toBe("Commercial (process validated)");
-    expect(facts.get("Receiving unit (RU) program stage")).toBe("Clinical (GMP, not process validated)");
+    expect(facts.get("Sending-site stage")).toBe(c.sourceStage);
+    expect(facts.get("Project stage")).toBe(c.targetStage);
     // The sites are SU and RU everywhere in the front matter: no label calls them source or target.
     expect([...facts.keys()].some((k) => /(source|target)/i.test(k))).toBe(false);
     expect(facts.has("Revision")).toBe(false);
@@ -90,7 +90,7 @@ describe("built-in look: cover page", () => {
 
   it("escapes every cover value", async () => {
     const BAD = '<w:p>&amp; ]]> "q" \u0001 <script>x</script>';
-    const m: Model = { ...model, doc: { ...model.doc, cover: { program: BAD, product: BAD, sourceSite: BAD, targetSite: BAD, sourceStage: BAD, targetStage: BAD } } };
+    const m: Model = { ...model, doc: { ...model.doc, cover: { program: BAD, product: BAD, sourceSite: BAD, targetSite: BAD, sourceStage: BAD, targetStage: BAD, stageShort: BAD } } };
     const res = await renderBuiltin(m);
     const facts = factsOf(res, "Program");
     for (const k of ["Program", "Product", COVER_LABELS.suSite, COVER_LABELS.ruSite, COVER_LABELS.suStage, COVER_LABELS.ruStage]) expect(facts.get(k), k).toContain("<w:p>&amp; ]]>");
@@ -326,10 +326,10 @@ describe("built-in look: colours", () => {
 
 describe("built-in look: versioning and the other modes", () => {
   it("bumps the built-in template version", async () => {
-    expect(BUILTIN_TEMPLATE_VERSION).toBe("1.2.0");
+    expect(BUILTIN_TEMPLATE_VERSION).toBe("1.3.0");
     const out = await renderDocx({ doc: model.doc, tagData: model.tagData, mode: "builtin", generatedAt: GENERATED_AT });
-    expect(out.templateRecord).toEqual({ mode: "builtin", name: "Built-in default", version: "1.2.0" });
-    expect(customProps(strictDocx(out.bytes)).templateVersion).toBe("1.2.0");
+    expect(out.templateRecord).toEqual({ mode: "builtin", name: "Built-in default", version: "1.3.0" });
+    expect(customProps(strictDocx(out.bytes)).templateVersion).toBe("1.3.0");
   });
 
   async function other(mode: RenderDocxInput["mode"], file: string, mapped: boolean): Promise<StrictResult> {

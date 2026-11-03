@@ -21,7 +21,7 @@ const point = (id: string, method?: SampleMethod, extra: Partial<SamplingPoint> 
     ...extra,
   }) as SamplingPoint;
 const planOf = (points: SamplingPoint[], on = false): SamplingPlan =>
-  ({ id: "SPL-001", title: "Plan", runType: "ppq", status: "draft", steps: [], batches: [], batchRationale: "", parties: [], agencyRequests: [], points, subsections: [], createdAt: at, updatedAt: at, ...(on ? { askSampleMethod: true } : {}) }) as SamplingPlan;
+  ({ id: "SPL-001", title: "Plan", status: "draft", steps: [], batches: [], batchRationale: "", parties: [], agencyRequests: [], points, subsections: [], createdAt: at, updatedAt: at, ...(on ? { askSampleMethod: true } : {}) }) as SamplingPlan;
 
 describe("sampling method (plan format 1.6.0)", () => {
   it("is optional: a point and a plan without it are valid, and nothing is preselected", () => {

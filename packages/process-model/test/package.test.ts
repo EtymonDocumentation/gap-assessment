@@ -118,7 +118,6 @@ describe("public API", () => {
         "SAMPLING_CATEGORIES",
         "SAMPLING_METHODS",
         "SAMPLING_PLAN_FORMAT_VERSION",
-        "SAMPLING_RUN_TYPES",
         "SAMPLING_TYPES",
         "SAVED_SET_FORMAT",
         "SAVED_SET_FORMAT_VERSION",

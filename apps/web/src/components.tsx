@@ -90,6 +90,7 @@ export function Modal({
   children,
   restoreFocus,
   wide,
+  focusDialog,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -100,6 +101,11 @@ export function Modal({
   restoreFocus?: () => HTMLElement | null;
   /** A wider dialog for lists and tables. */
   wide?: boolean;
+  /**
+   * Focus the dialog itself on open instead of its first control. Used where the first control is one of several answers: a focus
+   * ring on it looks like a preselected answer, and the tool never preselects answers.
+   */
+  focusDialog?: boolean;
 }) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -108,6 +114,14 @@ export function Modal({
         <Dialog.Content
           className={wide ? "dialog wide" : "dialog"}
           aria-describedby={description ? "dialog-desc" : undefined}
+          onOpenAutoFocus={
+            focusDialog
+              ? (e) => {
+                  e.preventDefault();
+                  (e.currentTarget as HTMLElement | null)?.focus();
+                }
+              : undefined
+          }
           onCloseAutoFocus={(e) => {
             const el = restoreFocus?.();
             if (el) {

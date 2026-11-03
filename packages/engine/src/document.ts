@@ -16,7 +16,7 @@ import { sourceRegisterRows } from "./source-register";
 import { changeLogActionCounts } from "./changelog";
 import { effectiveStaged } from "./custom";
 import { omittedSectionIds, optionalSectionTitle } from "./review";
-import { STAGE_NOT_ESTABLISHED, stageBasis, stagedFor, stageWording } from "./stage";
+import { coverStage, STAGE_NOT_ESTABLISHED, stageBasis, stagedFor, stageOpenItems, stageWording } from "./stage";
 
 export type Block =
   | { type: "paragraph"; text: string }
@@ -112,9 +112,14 @@ export interface DocCover {
   /** Site name and line, as in the document header. */
   sourceSite: string;
   targetSite: string;
-  /** Program stage label per side, e.g. "Commercial (process validated)". */
+  /**
+   * Stage label per side. `targetStage` is the PROJECT stage (the receiving site's next batches), "[not established]" when empty; `sourceStage`
+   * is the sending-site stage and is empty for a document that does not describe the sending site.
+   */
   sourceStage: string;
   targetStage: string;
+  /** The project stage in its short form ("PPQ", or "not set"): the Word page header and the screen preview repeat it. */
+  stageShort: string;
 }
 
 export interface DocModel {
@@ -422,6 +427,8 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
           }),
         }
       : { type: "paragraph", text: "No open items." },
+    // The unanswered stage question is already a row above; only the stage check (a saved answer that may not mean what it now means) is added.
+    ...stageOpenItems(project, { withNotSet: false }).map((text): Block => ({ type: "note", text: `Open item: ${text}` })),
   ]);
 
   const ranked = riskRanked(a.gaps);
@@ -582,8 +589,8 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
     status: "DRAFT",
     meta: [
       ["Project", project.meta.title],
-      ["SU program stage", w.sourceLabel],
-      ["RU program stage", w.targetLabel],
+      ["Sending-site stage", w.sourceLabel],
+      ["Project stage", w.targetLabel],
       ["Generated", generatedAt.replace("T", " ").slice(0, 16) + " UTC"],
       ["Differences identified", String(diffs.length)],
       ["Open items", String(a.openItems.length)],
@@ -598,7 +605,7 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
       sourceSite: siteText(project, "source"),
       targetSite: siteText(project, "target"),
       sourceStage: w.sourceLabel,
-      targetStage: w.targetLabel,
+      ...coverStage(w.target),
     },
     sections,
     tbdCount: tbdList.length,

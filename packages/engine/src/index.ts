@@ -8,6 +8,7 @@ export * from "./interview";
 export * from "./custom";
 export * from "./builder";
 export * from "./stage";
+export * from "./project-stage";
 export * from "./format";
 export * from "./compare";
 export * from "./overlays";

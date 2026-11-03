@@ -46,7 +46,7 @@ answers:
   - { q: site.line, side: source, value: Line 2 }
   - { q: site.line, side: target, value: Line 4 }
   - { q: site.stage, side: source, value: commercial, docs: [DEMO-PPQ-217-01] }   # M5.1: process validated, PPQ report on file
-  - { q: site.stage, side: target, value: commercial, docs: [DEMO-APS-S4-26] }    # M5.1: planned commercial supply from Line 4
+  - { q: site.stage, side: target, value: ppq, docs: [DEMO-APS-S4-26] }           # project stage: the receiving site runs PPQ batches from Line 4
   - { q: site.barrier, side: source, value: isolator }
   - { q: site.barrier, side: target, same: true }                    # equivalent
   - { q: site.background_grade, side: source, value: D }

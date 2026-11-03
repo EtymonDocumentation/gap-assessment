@@ -19,12 +19,12 @@ document:
     This document compares the {{validated|current}} manufacturing process for {program} at
     {sourceSite} (sending unit, SU) with the planned process at {targetSite} (receiving unit, RU). It
     identifies differences, classifies each difference, lists the activities
-    {{implied before the RU process can be considered validated|implied by the differences for the RU program stage}}, and records
+    {{implied before the RU process can be considered validated|implied by the differences for the project stage}}, and records
     information that is still missing. It is a draft generated from structured
     interview answers and must be reviewed and approved before use.
   scope: >-
     Product: {program} ({modality}; {dosageForm}; {presentation}). Transfer type:
-    {transferType}. Program stage: sending unit {sourceStage}; receiving unit {targetStage}.
+    {transferType}. Sending-site stage: {sourceStage}. Project stage: {targetStage}.
     Intended markets: {markets}. The assessment covers the unit
     operations listed below for both sites. Unit operations outside this list are
     not assessed in this version.

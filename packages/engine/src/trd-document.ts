@@ -5,6 +5,7 @@ import { rangeText, setPointText } from "./trd-check";
 import { TRD_BANNER } from "./trd-outline";
 import { NO_VALUE_YET, PRODUCT_NAME, TBD_MARKER } from "./product";
 import { projectLabel } from "./format";
+import { coverStage, projectStage, STAGE_LABEL, stageOpenItems } from "./stage";
 import type { ContentBundle } from "./content";
 import { activeParts } from "./trd-writeup";
 import { addWriteupSections } from "./trd-writeup-document";
@@ -175,6 +176,9 @@ export function buildTrdDocument(project: Project, d: TrdDocument, opts: TrdDocu
     return f ? [f.label, valueWords(f)] : [key, NOT_ESTABLISHED];
   };
   const detailColumns = evidence ? ["Item", "Value", "Status"] : ["Item", "Value"];
+  // The stage is the project's one value (not a TRD detail): the record says where it comes from.
+  const stage = projectStage(project);
+  const projectStageRow = evidence ? ["Project stage", stage ? STAGE_LABEL[stage] : NOT_ESTABLISHED, stage ? "From the project" : NO_VALUE_YET] : ["Project stage", stage ? STAGE_LABEL[stage] : NOT_ESTABLISHED];
 
   const sections: DocSection[] = [];
   const add = (id: string, title: string, blocks: Block[]) => sections.push({ id, number: String(sections.filter((s) => !s.appendix).length + 1), title, blocks });
@@ -201,7 +205,7 @@ export function buildTrdDocument(project: Project, d: TrdDocument, opts: TrdDocu
   if (evidence) {
     add("product", "Product and presentation", [{ type: "table", columns: detailColumns, rows: ["program", "modality", "dosageForm", "presentation"].map(detailRow) }]);
     add("site", "Receiving site and line", [
-      { type: "table", columns: detailColumns, rows: ["site", "line", "programStage"].map(detailRow) },
+      { type: "table", columns: detailColumns, rows: [...["site", "line"].map(detailRow), projectStageRow] },
       { type: "note", text: "The values are those of the receiving unit. The sending unit's values are not shown here (see the traceability appendix when it is included)." },
     ]);
   } else {
@@ -328,6 +332,7 @@ export function buildTrdDocument(project: Project, d: TrdDocument, opts: TrdDocu
 
   // Open items (always in the document)
   add("open-items", "Open items", [
+    ...stageOpenItems(project).map((text): Block => ({ type: "note", text: `Open item: ${text}` })),
     { type: "paragraph", text: open.length ? "Entries still missing, to be decided, or provisional, and the findings of the PAR/NOR check. Nothing has been filled in on behalf of the team. The document cannot be approved while these remain." : "No open items. This does not mean the TRD is complete or correct; that is for the team and quality assurance to judge." },
     ...(open.length ? ([{ type: "table", columns: ["Where", "Open item"], rows: openLines(open) }] as Block[]) : []),
     // A sentence, not a note: it is a statement of how changes are handled. The tool names no filing category; the only wording is this one.
@@ -451,7 +456,7 @@ export function buildTrdDocument(project: Project, d: TrdDocument, opts: TrdDocu
       sourceSite: "",
       targetSite: [detail("site"), detail("line")].filter((x) => x !== NOT_ESTABLISHED).join(", ") || NOT_ESTABLISHED,
       sourceStage: "",
-      targetStage: detail("programStage"),
+      ...coverStage(projectStage(project)),
     },
     sections,
     tbdCount: open.length,

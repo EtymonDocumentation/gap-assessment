@@ -64,9 +64,11 @@ describe("stored stage", () => {
 
 describe("stagedFor", () => {
   it("picks the bundle from the project's source stage", () => {
-    expect(stagedFor(content, kit.base({ sourceStage: "commercial" }))).toBe(stagedContent(content, true));
-    expect(stagedFor(content, kit.base({ sourceStage: "clinical" }))).toBe(stagedContent(content, false));
-    expect(stagedFor(content, kit.base({ sourceStage: "development" }))).toBe(stagedContent(content, false));
+    // The kit's base project has a commercial project (receiving-site) stage, so the bundle is staged for that too.
+    expect(stagedFor(content, kit.base({ sourceStage: "commercial" }))).toBe(stagedContent(content, true, "commercial"));
+    expect(stagedFor(content, kit.base({ sourceStage: "clinical" }))).toBe(stagedContent(content, false, "commercial"));
+    expect(stagedFor(content, kit.base({ sourceStage: "development" }))).toBe(stagedContent(content, false, "commercial"));
+    expect(stagedFor(content, kit.base({ sourceStage: "commercial", targetStage: "ppq" }))).toBe(stagedContent(content, true, "ppq"));
     expect(stagedFor(content, kit.newProject())).toBe(stagedContent(content, false));
   });
 
@@ -82,9 +84,9 @@ describe("validation expectations", () => {
 
   it("names both stages in the statement", () => {
     expect(basis("clinical", "commercial").statement).toBe(
-      "Sending unit (SU) program stage: Clinical (GMP, not process validated). Receiving unit (RU) program stage: Commercial (process validated).",
+      "Sending-site stage: Clinical batches (GMP, not process-validated). Project stage: Commercial batches (process validated).",
     );
-    expect(basis(undefined, undefined).statement).toBe("Sending unit (SU) program stage: [TBD]. Receiving unit (RU) program stage: [TBD].");
+    expect(basis(undefined, undefined).statement).toBe("Sending-site stage: [TBD]. Project stage: [TBD].");
   });
 
   it("offers no SU PPQ to leverage from a clinical or development source", () => {

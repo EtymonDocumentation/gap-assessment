@@ -68,8 +68,8 @@ describe("SU and RU wording", () => {
         expect(md).toContain("Sending unit program summary");
         expect(md).toContain("Receiving unit summary (planned state)");
         expect(md).toContain("| ID | Attribute | SU | RU | Gap | Severity | Actions | Notes |");
-        expect(md).toContain("- **SU program stage:**");
-        expect(md).toContain("- **RU program stage:**");
+        expect(md).toContain("- **Sending-site stage:**");
+        expect(md).toContain("- **Project stage:**");
       });
 
       it("names the range categories by the SU stage", () => {

@@ -58,6 +58,15 @@ export interface BuiltinParts {
 }
 
 /**
+ * The line under the banner on pages 2 onwards: the document title and the project stage ("Title · Project stage: PPQ"). The stage is in
+ * the page header, not only on the cover, so a printed page picked up on its own still says which batches the document is written for.
+ * Page 1 has no header; its cover carries the stage.
+ */
+export function headerTitleLine(doc: DocModel): string {
+  return doc.cover.stageShort ? `${doc.title} · Project stage: ${doc.cover.stageShort}` : doc.title;
+}
+
+/**
  * The complete built-in package, generated in code: styles, numbering, settings, header, footer and an A4 landscape section.
  * `upgraded` is the M5.1 look (cover page, accent colours, styled tables, refresh of the table of contents on open). The starter template and
  * the PDF-outline output keep the original look.
@@ -75,7 +84,7 @@ export function createBuiltin(doc: DocModel, o: { upgraded?: boolean } = {}): Bu
   const ftrStyle = BUILTIN_STYLE_ID.footer;
   dp.setPart(
     "word/header1.xml",
-    `${XML_DECL}<w:hdr xmlns:w="${W_NS}" xmlns:r="${R_NS}">${bannerLine(doc.banner, hdrStyle)}${para(textRuns(doc.title, { color: "595959", sz: 16 }), { style: hdrStyle, spacing: { before: 0, after: 240 } })}</w:hdr>`,
+    `${XML_DECL}<w:hdr xmlns:w="${W_NS}" xmlns:r="${R_NS}">${bannerLine(doc.banner, hdrStyle)}${para(textRuns(headerTitleLine(doc), { color: "595959", sz: 16 }), { style: hdrStyle, spacing: { before: 0, after: 240 } })}</w:hdr>`,
     CT.header,
     REL.header,
   );

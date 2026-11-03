@@ -25,7 +25,7 @@ export function ComparePage() {
         purpose="Each row shows what the sending unit (SU) does beside what the receiving unit (RU) plans, and how the tool classified the difference."
         meta={
           <span data-testid="stage-line">
-            <strong>Program stage:</strong> sending unit (SU) {wording.sourceLabel}; receiving unit (RU) {wording.targetLabel}.
+            <strong>Sending-site stage:</strong> {wording.sourceLabel}. <strong>Project stage:</strong> {wording.targetLabel}.
           </span>
         }
         about={{

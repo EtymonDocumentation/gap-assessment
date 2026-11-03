@@ -162,6 +162,8 @@ test("open items show as a warning pill whose words say so, in a list named At a
 
 test("the header comes in the same order everywhere: breadcrumb, title, purpose, chain strip, then the tabs", async ({ page }) => {
   await openDemoTrd(page);
+  // The order is measured from the top of the page: opening the steps scrolls the page, and the notice strip stays put while the rest moves.
+  await page.evaluate(() => window.scrollTo(0, 0));
   const y = async (loc: ReturnType<Page["locator"]>) => (await loc.first().boundingBox())!.y;
   const crumb = await y(breadcrumb(page));
   const title = await y(page.getByRole("heading", { level: 1 }));

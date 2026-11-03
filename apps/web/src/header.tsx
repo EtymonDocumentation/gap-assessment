@@ -6,9 +6,13 @@ import { GAP_STEPS } from "./next-step";
 import { href } from "./router";
 import { AccountMenu, ChangePasswordDialog, PhoneAccount, SaveProblem, SaveStatus, useIsRemote } from "./server/ServerUi";
 import { SERVER_MODE } from "./server/mode";
+import { StageChip } from "./stage-ui";
 import { useStore } from "./store";
 import { ThemeMenu } from "./theme-menu";
 import { PHONE_WIDTH, useNarrow } from "./viewport";
+
+/** At or below this width (px) the project-stage chip sits in its own row under the header bar instead of inside it. */
+const STAGE_STRIP_WIDTH = 1024;
 
 // ------------------------------------------------------------------ project button
 
@@ -38,6 +42,9 @@ function ProjectLink({ title }: { title: string }) {
  */
 export function AppHeader({ routePath, groups }: { routePath: string; groups: NavGroup[] }) {
   const narrow = useNarrow(PHONE_WIDTH);
+  // Below STAGE_STRIP_WIDTH the bar has no room for the stage chip beside the menus and the project button (on a tablet it wrapped
+  // to a second row), so the chip moves to the thin row under the bar, as on a phone.
+  const stageBelow = useNarrow(STAGE_STRIP_WIDTH);
   const title = useStore((s) => s.project?.meta.title);
   const remote = SERVER_MODE && useIsRemote();
   const [passwordOpen, setPasswordOpen] = useState(false);
@@ -87,6 +94,7 @@ export function AppHeader({ routePath, groups }: { routePath: string; groups: Na
             <div className="header-tools">
               {remote && <SaveStatus />}
               {title !== undefined && <ProjectLink title={title} />}
+              {title !== undefined && !stageBelow && <StageChip />}
               <ThemeMenu />
               {SERVER_MODE && <AccountMenu onChangePassword={() => setPasswordOpen(true)} />}
             </div>
@@ -94,6 +102,11 @@ export function AppHeader({ routePath, groups }: { routePath: string; groups: Na
         )}
       </header>
       {narrow && remote && <SaveProblem />}
+      {stageBelow && title !== undefined && (
+        <div className="stage-strip">
+          <StageChip />
+        </div>
+      )}
       {SERVER_MODE && passwordOpen && (
         <ChangePasswordDialog onClose={() => setPasswordOpen(false)} restoreFocus={() => document.querySelector<HTMLElement>(".account-btn, .nav-menu-btn")} />
       )}

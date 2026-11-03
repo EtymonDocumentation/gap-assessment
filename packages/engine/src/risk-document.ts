@@ -8,6 +8,7 @@ import { evaluateItem, hasResidual, linkedConfidence, riskOpenItems, thresholdRe
 import { buildTrdSeed } from "./trd-seed";
 import { NOTICE_DOCUMENT, PRODUCT_NAME, TBD_MARKER } from "./product";
 import { projectLabel } from "./format";
+import { coverStage, projectStage, stageOpenItems } from "./stage";
 
 /**
  * The risk assessment as a document (the same DocModel the other outputs use, so the shared renderers and the built-in Word style draw it).
@@ -247,6 +248,7 @@ export function buildRiskAssessmentDocument(
 
   // 5. Open items (always in the document)
   add("open-items", "Open items", [
+    ...stageOpenItems(project).map((text): Block => ({ type: "note", text: `Open item: ${text}` })),
     {
       type: "paragraph",
       text: open.length
@@ -316,7 +318,7 @@ export function buildRiskAssessmentDocument(
       sourceSite: "",
       targetSite: [m.receivingSite.name.display, m.receivingSite.line.display].filter(Boolean).join(", ") || NOT_ESTABLISHED,
       sourceStage: "",
-      targetStage: m.receivingSite.programStage.display ?? NOT_ESTABLISHED,
+      ...coverStage(projectStage(project)),
     },
     sections,
     tbdCount: open.length,

@@ -20,7 +20,7 @@ import { SEED_COLLECTIONS, SEED_STATUSES, seedSourceSchema, SEED_VERIFICATIONS, 
  */
 
 /** Version of the TRD format (shapes, output). Independent of the project schema version and of the seed format version. */
-export const TRD_FORMAT_VERSION = "1.3.0";
+export const TRD_FORMAT_VERSION = "1.4.0";
 
 /** Suggestions for the basis of a PAR or NOR (load-outs: the user may type any other text). */
 export const TRD_BASIS_LOADOUTS = ["Proposed from process development", "Confirmed by PPQ summary report", "Internal technical report"] as const;
@@ -199,7 +199,10 @@ export type TrdOrigin = z.infer<typeof trdOriginSchema>;
 export const trdApprovalSchema = z.object({ role: z.string().min(1), name: z.string().optional(), date: z.string().optional() });
 export type TrdApproval = z.infer<typeof trdApprovalSchema>;
 
-/** The product and site details of a TRD: key and label. */
+/**
+ * The product and site details of a TRD: key and label. The stage is not one of them (TRD format 1.4.0): it is the project stage, one
+ * value kept on the project and edited in the interview, the header chip, Home and the TRD form.
+ */
 export const TRD_DETAIL_KEYS = [
   ["program", "Program"],
   ["modality", "Modality"],
@@ -207,7 +210,6 @@ export const TRD_DETAIL_KEYS = [
   ["presentation", "Presentation"],
   ["site", "Receiving site"],
   ["line", "Filling line"],
-  ["programStage", "Program stage"],
 ] as const;
 
 export const trdDocumentSchema = z

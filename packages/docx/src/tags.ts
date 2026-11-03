@@ -35,6 +35,8 @@ export interface TagData {
   sourceSite: string;
   targetSite: string;
   sourceStage: string;
+  /** The project stage (the receiving site's next batches). `targetStage` is the older name for the same value. */
+  projectStage: string;
   targetStage: string;
   generated: string;
   regulatoryStatement: string;
@@ -187,7 +189,8 @@ export function buildTagData(rawContent: ContentBundle, project: Project, a: Ass
     sourceSite: siteText(project, "source"),
     targetSite: siteText(project, "target"),
     sourceStage: stages.sourceLabel,
-    targetStage: stages.targetLabel,
+    projectStage: doc.cover.targetStage,
+    targetStage: doc.cover.targetStage,
     generated: metaValue(doc, "Generated"),
     regulatoryStatement: noteIn(doc, "gap-table"),
     verificationStatement: metaValue(doc, "Verification"),
@@ -309,8 +312,9 @@ const TEXT_TAGS: [string, string, boolean?][] = [
   ["markets", "Markets."],
   ["sourceSite", "Sending unit (SU) site (name and line)."],
   ["targetSite", "Receiving unit (RU) site (name and line)."],
-  ["sourceStage", "Program stage of the sending unit (SU): Commercial (process validated), Clinical (GMP, not process validated), Development / engineering runs, or [TBD]."],
-  ["targetStage", "Program stage of the receiving unit (RU), with the same values as sourceStage."],
+  ["sourceStage", "Sending-site stage: Engineering / development runs, Clinical batches, PPQ batches, Commercial batches, or [TBD]."],
+  ["projectStage", "Project stage (what the receiving site's next batches are): Engineering / development runs, Clinical batches, PPQ batches, Commercial batches, or [not established]."],
+  ["targetStage", "The older name of projectStage; same value."],
   ["generated", "Date and time the document was generated (UTC)."],
   ["sendingUnit", "Sending unit's site (name and line), for example for the From line of a memo. Filled for the gap assessment and the sampling plan documents; other documents show [not available]."],
   ["receivingSite", "Receiving site (name and line), for example for the To line of a memo. Filled for the gap assessment and the sampling plan documents; other documents show [not available]."],

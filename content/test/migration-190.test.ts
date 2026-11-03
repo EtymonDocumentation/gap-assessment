@@ -85,7 +85,7 @@ const REVIEWER: Actor = { name: "A. Reviewer (fictional)", role: "QA", at: T1 };
 
 describe("migration 1.8.0 -> 1.9.0", () => {
   it("is the current schema version", () => {
-    expect(SCHEMA_VERSION).toBe("1.28.0");
+    expect(SCHEMA_VERSION).toBe("1.29.0");
   });
 
   it("converts every unknown entry to a TBD with empty details and nothing invented", () => {
@@ -93,7 +93,7 @@ describe("migration 1.8.0 -> 1.9.0", () => {
     const unknownCount = rawEntries(old).filter((e) => e.status === "unknown").length;
     expect(unknownCount).toBeGreaterThan(5);
     const p = parseProject(old, { now: NOW });
-    expect(p.schemaVersion).toBe("1.28.0");
+    expect(p.schemaVersion).toBe("1.29.0");
     const migrated = rawEntries(json(p));
     expect(migrated.some((e) => e.status === "unknown")).toBe(false);
     const converted = rawEntries(old)
@@ -113,7 +113,8 @@ describe("migration 1.8.0 -> 1.9.0", () => {
     const old = asVersion180(projectWithUnknowns());
     const unknownCount = rawEntries(old).filter((e) => e.status === "unknown").length;
     const p = parseProject(old, { now: NOW });
-    const added = p.changeLog.slice(old.changeLog.length);
+    // The kit's project has a commercial project stage, so the 1.29 update also writes its own stage-check record; this test is about the 1.9 ones.
+    const added = p.changeLog.slice(old.changeLog.length).filter((e) => e.action !== "migrate_stage");
     expect(added).toHaveLength(unknownCount);
     expect(p.changeLog.slice(0, old.changeLog.length)).toEqual(old.changeLog); // history is never rewritten
     for (const ev of added) {
@@ -144,7 +145,7 @@ describe("migration 1.8.0 -> 1.9.0", () => {
     const clean = json(kit.pair(kit.base(), "comp.vessel_type", "stainless_tank", "glass"));
     clean.schemaVersion = "1.8.0";
     const p = parseProject(clean, { now: NOW });
-    expect(p.changeLog).toHaveLength(clean.changeLog.length);
+    expect(p.changeLog.filter((e) => e.action !== "migrate_stage")).toHaveLength(clean.changeLog.length);
     expect(json(p).processes).toEqual(clean.processes);
   });
 
@@ -208,7 +209,8 @@ describe.each(SAMPLES)("behaviour is identical before and after migration: %s", 
   it("the document is equal apart from the change-log records that describe the conversion", () => {
     const a = buildDocument(content, native, assess(content, native), NOW);
     const b = buildDocument(content, migrated, assess(content, migrated), NOW);
-    const strip = (d: typeof a) => d.sections.filter((s) => !/change.?log/i.test(s.title + s.id));
+    // The open items are left out too: the 1.29 update marks this commercial project stage for a check, which is listed there.
+    const strip = (d: typeof a) => d.sections.filter((s) => !/change.?log/i.test(s.title + s.id) && s.id !== "open-items");
     expect(strip(b)).toEqual(strip(a));
     expect(b.tbdCount).toBe(a.tbdCount);
   });

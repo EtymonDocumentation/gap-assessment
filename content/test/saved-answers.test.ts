@@ -30,9 +30,9 @@ function answeredInst(p: Project, side: "source" | "target"): QuestionInstance {
 }
 
 describe("saved answer sets", { timeout: 60_000 }, () => {
-  it("is schema 1.28.0", () => {
-    expect(SCHEMA_VERSION).toBe("1.28.0");
-    expect(demo().schemaVersion).toBe("1.28.0");
+  it("is schema 1.29.0", () => {
+    expect(SCHEMA_VERSION).toBe("1.29.0");
+    expect(demo().schemaVersion).toBe("1.29.0");
   });
 
   it("saves only the chosen unit, and only real statements (no TBD, no 'same as SU', no open questions)", () => {

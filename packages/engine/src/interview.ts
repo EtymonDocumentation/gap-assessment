@@ -19,6 +19,7 @@ import {
 import { fieldLabel, labelResolver, optionsFor, parameterFields, sameAsSourceAllowed, type ContentBundle } from "./content";
 import type { ParameterField, Question } from "./content-schema";
 import { instanceRefs, type QuestionInstance } from "./sequencer";
+import { STAGE_QUESTION_ID } from "./stage";
 import { isQuantity, isRange } from "./values";
 
 export type FieldAnswer =
@@ -270,6 +271,13 @@ export function applyAnswer(
     by: actor.name,
     at: actor.at,
   });
+  // Answering the project stage through any editor (the interview, the header chip, Home, the TRD form) is the review a stage check asks
+  // for, so it clears the check. Choosing the same stage again clears it too: the person looked and confirmed. The clearing is logged.
+  if (q.id === STAGE_QUESTION_ID && side === "target" && input.kind === "value" && next.meta.stageCheck) {
+    const check = next.meta.stageCheck;
+    delete next.meta.stageCheck;
+    next.changeLog.push({ at: actor.at, by: actor.name, action: "clear_stage_check", path: fullRef(side, q.binds), detail: "The project stage was set again, so the stage check was cleared.", before: { stageCheck: check }, after: {} });
+  }
   return next;
 }
 

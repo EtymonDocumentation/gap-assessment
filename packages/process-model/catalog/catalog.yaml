@@ -446,11 +446,13 @@ optionSets:
   shipDestination:
     - { value: labelling_site, label: Labelling and packaging site }
     - { value: distribution, label: Distribution }
-  # The program stage of one side. The values and labels are tied to packages/engine/src/stage.ts by a test.
+  # The stage of one side's batches, in lifecycle order. Both sides offer all four. The values and labels are tied to
+  # packages/engine/src/stage.ts by a test.
   programStage:
-    - { value: commercial, label: "Commercial (process validated)" }
-    - { value: clinical, label: "Clinical (GMP, not process validated)" }
-    - { value: development, label: "Development / engineering runs" }
+    - { value: development, label: "Engineering / development runs" }
+    - { value: clinical, label: "Clinical batches (GMP, not process-validated)" }
+    - { value: ppq, label: "PPQ batches (process performance qualification)" }
+    - { value: commercial, label: "Commercial batches (process validated)" }
   classification:
     - { value: CPP, label: CPP (critical process parameter) }
     - { value: KPP, label: KPP (key process parameter) }

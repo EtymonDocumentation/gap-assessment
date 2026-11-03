@@ -55,8 +55,8 @@ describe("SU and RU in the front matter", () => {
     expect([...facts.keys()]).toEqual(["Program", "Product", COVER_LABELS.suSite, COVER_LABELS.suStage, COVER_LABELS.ruSite, COVER_LABELS.ruStage, "Status", "Generated"]);
     expect(facts.get("Sending unit (SU) site")).toBe("Site North (fictional), Line 2");
     expect(facts.get("Receiving unit (RU) site")).toBe("Site South (fictional), Line 4");
-    expect(facts.get("Sending unit (SU) program stage")).toBe("Commercial (process validated)");
-    expect(facts.get("Receiving unit (RU) program stage")).toBe("Clinical (GMP, not process validated)");
+    expect(facts.get("Sending-site stage")).toBe("Commercial batches (process validated)");
+    expect(facts.get("Project stage")).toBe("Clinical batches (GMP, not process-validated)");
   });
 
   it("has no cover or document-control label that calls a site source or target", async () => {

@@ -19,6 +19,7 @@ import {
 } from "@gap/process-model";
 import { NOTICE_DOCUMENT, PRODUCT_NAME, TBD_MARKER } from "./product";
 import { projectLabel } from "./format";
+import { coverStage, projectStage, STAGE_LABEL, stageOpenItems } from "./stage";
 import {
   acceptanceStatement,
   buildFigures,
@@ -229,7 +230,7 @@ export function buildSamplingPlanDocument(
         ["Presentation", a(m.product.presentation)],
         ["RU site", a(m.receivingSite.name)],
         ["RU line", a(m.receivingSite.line)],
-        ["RU program stage", a(m.receivingSite.programStage)],
+        ["Project stage", projectStage(project) ? STAGE_LABEL[projectStage(project)!] : NOT_ESTABLISHED],
       ],
     },
     ...subsAfter("product-site"),
@@ -669,6 +670,7 @@ export function buildSamplingPlanDocument(
 
   // Open items
   add("open-items", "Open items", [
+    ...stageOpenItems(project).map((text): Block => ({ type: "note", text: `Open item: ${text}` })),
     {
       type: "paragraph",
       text: open.length
@@ -775,7 +777,7 @@ export function buildSamplingPlanDocument(
       sourceSite: "",
       targetSite: [m.receivingSite.name.display, m.receivingSite.line.display].filter(Boolean).join(", ") || NOT_ESTABLISHED,
       sourceStage: "",
-      targetStage: m.receivingSite.programStage.display ?? NOT_ESTABLISHED,
+      ...coverStage(projectStage(project)),
     },
     sections,
     tbdCount: open.length,

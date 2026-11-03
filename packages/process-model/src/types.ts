@@ -421,6 +421,9 @@ export interface StepScope {
   excluded: ExcludedStep[];
 }
 
+/** Why the project stage is marked for a check (see Project.meta.stageCheck). */
+export type StageCheck = "commercial-before-ppq" | "trd-differed";
+
 export interface Project {
   schemaVersion: string;
   meta: {
@@ -430,6 +433,13 @@ export interface Project {
     createdBy: string;
     /** True for the bundled fictional demonstration project. */
     demo?: boolean;
+    /**
+     * Set by the 1.29.0 update when the project stage may not be what the team meant (schema 1.29.0). It is shown as a dot on the
+     * stage chip, a notice on Home and an open item in every document, until the stage is set again through any editor.
+     *  - "commercial-before-ppq": the stage was saved as Commercial before PPQ could be chosen. Nothing was re-mapped.
+     *  - "trd-differed": the old TRD form held a stage that differed from the project's own answer; the project's answer was kept.
+     */
+    stageCheck?: StageCheck;
   };
   /** Versions of the content (catalog, questions, rules, templates) the project was built with. */
   contentRefs: { catalog: string; questions: string; rules: string; templates: string };

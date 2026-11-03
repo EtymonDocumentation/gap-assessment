@@ -18,9 +18,9 @@ export const TOC_INSTRUCTION = 'TOC \\o "1-3" \\h \\z \\u';
 /** Labels of the cover facts that name the two sites (data keys stay source and target; only the wording is SU and RU). */
 export const COVER_LABELS = {
   suSite: "Sending unit (SU) site",
-  suStage: "Sending unit (SU) program stage",
+  suStage: "Sending-site stage",
   ruSite: "Receiving unit (RU) site",
-  ruStage: "Receiving unit (RU) program stage",
+  ruStage: "Project stage",
 } as const;
 
 function metaValue(doc: DocModel, label: string): string {
@@ -77,7 +77,11 @@ export function coverXml(ctx: WriterCtx): string {
   const c = d.cover;
   // A one-sided document (the TRD outline describes the RU only) leaves the SU cover fields empty, and those rows are
   // dropped rather than printed blank. The gap assessment always fills them (at worst "[site TBD]").
-  const su: [string, string][] = c.sourceSite || c.sourceStage ? [[COVER_LABELS.suSite, c.sourceSite], [COVER_LABELS.suStage, c.sourceStage]] : [];
+  // The project stage row is always there ("[not established]" when empty); the sending-site stage row only when the document has one.
+  const su: [string, string][] = [
+    ...(c.sourceSite ? ([[COVER_LABELS.suSite, c.sourceSite]] as [string, string][]) : []),
+    ...(c.sourceStage ? ([[COVER_LABELS.suStage, c.sourceStage]] as [string, string][]) : []),
+  ];
   const facts: [string, string][] = [
     ["Program", c.program],
     ["Product", c.product],

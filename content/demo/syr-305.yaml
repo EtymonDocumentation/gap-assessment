@@ -28,7 +28,7 @@ answers:
   - { q: site.line, side: source, value: DS Suite 1 }
   - { q: site.line, side: target, value: PFS Line 3 }
   - { q: site.stage, side: source, value: clinical }
-  - { q: site.stage, side: target, value: clinical }
+  - { q: site.stage, side: target, value: ppq }
   - { q: site.labelling_location, side: source, value: another_site }
   - { q: site.labelling_location, side: target, value: this_site }
   - { q: site.barrier, side: source, value: conventional }

@@ -8,7 +8,7 @@ const project = buildDemoProject(content, demos["arx-217"]);
 const assessment = assess(content, project);
 const doc = buildDocument(content, project, assessment, "2026-10-02T00:00:00.000Z");
 const BANNER = NOTICE_DOCUMENT;
-const EMPTY_COVER: DocModel["cover"] = { program: "", product: "", sourceSite: "", targetSite: "", sourceStage: "", targetStage: "" };
+const EMPTY_COVER: DocModel["cover"] = { program: "", product: "", sourceSite: "", targetSite: "", sourceStage: "", targetStage: "", stageShort: "" };
 
 /** A small document with hostile content, built by hand so the test controls every string. */
 const hostile: DocModel = {
@@ -19,7 +19,7 @@ const hostile: DocModel = {
     ["Key <i>", "Value <script>alert(1)</script>"],
     ["Quote", `He said "hi" & it's fine`],
   ],
-  cover: { program: "<b>P</b>", product: "x & y", sourceSite: "<i>S</i>", targetSite: "T", sourceStage: "<script>s</script>", targetStage: "t" },
+  cover: { program: "<b>P</b>", product: "x & y", sourceSite: "<i>S</i>", targetSite: "T", sourceStage: "<script>s</script>", targetStage: "t", stageShort: "t" },
   tbdCount: 0,
   sections: [
     {

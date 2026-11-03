@@ -40,6 +40,8 @@ export interface ContentBundle {
   effectiveOf?: ContentBundle;
   /** Set only on bundles made by stagedContent(): which wording its {{a|b}} variants were resolved to (true = validated source). */
   sourceValidated?: boolean;
+  /** Set only on bundles made by stagedContent(): the project stage its {{@stage ...}} markers were resolved to ("none" = not established). */
+  projectStage?: string;
   /** Set only on bundles made by stagedContent(): the bundle with the variants unresolved. */
   stagedOf?: ContentBundle;
 }

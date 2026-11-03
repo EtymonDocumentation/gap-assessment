@@ -64,7 +64,6 @@ export function fixturePlan(o: FixtureOptions = {}): SamplingPlan {
   const plan: SamplingPlan = {
     id: "SPL-001",
     title: "Line 1 PPQ plan (fictional)",
-    runType: "ppq",
     status: "draft",
     steps,
     batches: [{ id: "B-001", label: "PPQ batch 1" }],

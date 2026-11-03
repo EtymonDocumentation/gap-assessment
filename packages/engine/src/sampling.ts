@@ -136,7 +136,6 @@ export function createPlan(project: Project, input: { title: string; notes?: str
   const plan: SamplingPlan = clean({
     id,
     title,
-    runType: "ppq",
     status: "draft",
     notes: input.notes?.trim() || undefined,
     steps: [],

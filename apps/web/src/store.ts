@@ -5,6 +5,7 @@ import {
   effectiveContent,
   importedTitle,
   programStage,
+  projectStage,
   renameProject,
   sourceValidated,
   stagedContent,
@@ -208,9 +209,10 @@ if (SERVER_MODE) {
 export function useContent(): ContentBundle {
   const custom = useStore((s) => s.project?.custom);
   const validated = useStore((s) => (s.project ? sourceValidated(s.project) : false));
+  const stage = useStore((s) => (s.project ? projectStage(s.project) : undefined));
   const project = useStore.getState().project;
-  // The bundle is staged for the source program stage, so every text and label in the app uses the right wording.
-  return useMemo(() => stagedContent(project ? effectiveContent(content, project) : content, validated), [custom, validated]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The bundle is staged for the sending site's state (validated or not) and the project stage, so every text and label in the app uses the right wording.
+  return useMemo(() => stagedContent(project ? effectiveContent(content, project) : content, validated, stage), [custom, validated, stage]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 /** The stage-aware wording of the open project: both stage labels, the source column header and the category labels. */

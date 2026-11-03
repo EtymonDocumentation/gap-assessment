@@ -127,16 +127,20 @@ questions:
 
   - id: site.stage
     section: site
-    prompt: Program stage at this site
-    label: Program stage
+    prompt: Which batches does each site make or plan to make?
+    label: Batch stage
     why: >-
-      The stage decides what evidence the SU can offer and what the RU is expected to show. A commercial
-      (process validated) SU has PPQ and validation to leverage; a clinical (GMP, not process validated) SU
-      or a development SU does not, so the document then says "SU range" and "current state" instead of
-      "validated". It also sets the validation expectations for the RU (PPQ, phase-appropriate or
-      engineering runs). Nothing is assumed: a stage you have not answered is listed as an open item.
+      The sending-site stage decides what evidence the SU can offer: a commercial (process validated) SU has PPQ and
+      validation to leverage; a PPQ, clinical or engineering SU does not, so the document then says "SU range" and
+      "current state" instead of "validated". The receiving site's answer is the project stage, shown at the top of every page
+      and in the header of every Word file. It sets the validation expectations for the RU and what the TRD, sampling plan and
+      batch record say. Nothing is assumed: a stage you have not answered is listed as an open item.
+    help: The receiving site's answer is the project stage. You can also change it from the stage button at the top of the page or on the Home page.
     sides: paired
     sameAsSource: false
+    sideLabels:
+      source: "Sending-site stage: what are the sending site's batches?"
+      target: What will the receiving site's next batches be?
     binds: site.programStage
     input: { type: choice, optionsFrom: programStage }
 

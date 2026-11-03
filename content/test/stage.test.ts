@@ -26,7 +26,7 @@ import { content, demos } from "../index";
 
 type Stage = ProgramStage | undefined;
 const GENERATED = "2026-10-02T00:00:00.000Z";
-const STAGES: ProgramStage[] = ["commercial", "clinical", "development"];
+const STAGES: ProgramStage[] = ["commercial", "clinical", "ppq", "development"];
 const PAIRS = STAGES.flatMap((s) => STAGES.map((t) => [s, t] as const));
 
 /** The demo with both stages set as given; an undefined stage leaves that side unanswered. */
@@ -54,8 +54,8 @@ const meta = (doc: ReturnType<typeof build>["doc"], label: string) => doc.meta.f
 /** Statements that are allowed to contain "validated" in a document for a source that is not commercial. */
 const ALLOWED = [
   new RegExp(NOTICE_DOCUMENT.replaceAll(".", "[.]"), "g"), // the permanent notice
-  /Commercial \(process validated\)/g, // a stage label (a commercial target)
-  /Clinical \(GMP, not process validated\)/g, // a stage label
+  /Commercial batches \(process validated\)/g, // a stage label (a commercial target)
+  /Clinical batches \(GMP, not process-validated\)/g, // a stage label
   /not process validated/gi, // the same wording in running text
   /not yet validated/gi,
   /(?:full )?process validation \(PPQ\) is not expected/gi, // target expectations
@@ -87,14 +87,15 @@ describe("program stage question", () => {
     expect(q.showWhen).toBeUndefined(); // asked for a scale change too
   });
 
-  it("has exactly three options, labelled as the engine labels them", () => {
+  it("has exactly four options, labelled as the engine labels them", () => {
     const opts = content.catalog.optionSets.programStage!;
     expect(opts.map((o) => o.value)).toEqual([...PROGRAM_STAGES]);
     for (const o of opts) expect(o.label).toBe(STAGE_LABEL[o.value as ProgramStage]);
     expect(STAGE_LABEL).toEqual({
-      commercial: "Commercial (process validated)",
-      clinical: "Clinical (GMP, not process validated)",
-      development: "Development / engineering runs",
+      development: "Engineering / development runs",
+      clinical: "Clinical batches (GMP, not process-validated)",
+      ppq: "PPQ batches (process performance qualification)",
+      commercial: "Commercial batches (process validated)",
     });
   });
 
@@ -143,24 +144,26 @@ describe.each(PAIRS)("source %s, target %s", (source, target) => {
   it("opens the validation plan with the stage basis", () => {
     const plan = section(doc, "validation-plan");
     const first = plan.blocks[0]!;
-    expect(first.type === "paragraph" && first.text).toBe(`Stage basis. Sending unit (SU) program stage: ${STAGE_LABEL[source]}. Receiving unit (RU) program stage: ${STAGE_LABEL[target]}.`);
+    expect(first.type === "paragraph" && first.text).toBe(`Stage basis. Sending-site stage: ${STAGE_LABEL[source]}. Project stage: ${STAGE_LABEL[target]}.`);
     const text = plain(JSON.stringify(plan.blocks.slice(0, 3)));
     if (source === "commercial") expect(text).toContain("The SU process is validated");
     else if (source === "clinical") expect(text).toContain("no SU PPQ or process validation evidence to leverage");
+    else if (source === "ppq") expect(text).toContain("no completed SU PPQ to leverage");
     else expect(text).toContain("no process validation and no GMP evidence to leverage");
     if (target === "commercial") expect(text).toContain("A commercial RU is expected to need PPQ at the RU");
     if (target === "clinical") expect(text).toContain("phase-appropriate expectations");
     if (target === "development") expect(text).toContain("They are not for GMP supply");
+    if (target === "ppq") expect(text).toContain("PPQ");
     expect(text).toContain("expectations to confirm with QA");
   });
 
   it("shows both stages on the cover and in the meta lines", () => {
     expect(doc.cover.sourceStage).toBe(STAGE_LABEL[source]);
     expect(doc.cover.targetStage).toBe(STAGE_LABEL[target]);
-    expect(meta(doc, "SU program stage")).toBe(STAGE_LABEL[source]);
-    expect(meta(doc, "RU program stage")).toBe(STAGE_LABEL[target]);
+    expect(meta(doc, "Sending-site stage")).toBe(STAGE_LABEL[source]);
+    expect(meta(doc, "Project stage")).toBe(STAGE_LABEL[target]);
     expect(doc.meta.some(([k]) => k === "Revision")).toBe(false);
-    expect(plain(md)).toContain(`Program stage: sending unit ${STAGE_LABEL[source]}; receiving unit ${STAGE_LABEL[target]}.`);
+    expect(plain(md)).toContain(`Sending-site stage: ${STAGE_LABEL[source]}. Project stage: ${STAGE_LABEL[target]}.`);
   });
 
   it("keeps every non-equivalent outcome with an activity, and the generic rules last", () => {
@@ -205,10 +208,10 @@ describe("stage not established", () => {
   it("prints [TBD] on the cover, in the meta lines and in the text", () => {
     expect(STAGE_NOT_ESTABLISHED).toBe("[TBD]");
     expect(doc.cover.sourceStage).toBe("[TBD]");
-    expect(doc.cover.targetStage).toBe("[TBD]");
-    expect(meta(doc, "SU program stage")).toBe("[TBD]");
-    expect(meta(doc, "RU program stage")).toBe("[TBD]");
-    expect(plain(md)).toContain("Program stage: sending unit [TBD]; receiving unit [TBD].");
+    expect(doc.cover.targetStage).toBe("[not established]");
+    expect(meta(doc, "Sending-site stage")).toBe("[TBD]");
+    expect(meta(doc, "Project stage")).toBe("[TBD]");
+    expect(plain(md)).toContain("Sending-site stage: [TBD]. Project stage: [TBD].");
   });
 
   it("uses the non-validated wording and makes no source validation claim", () => {
@@ -222,7 +225,7 @@ describe("stage not established", () => {
     expect(refs).toContain("source.site.programStage");
     expect(refs).toContain("target.site.programStage");
     const open = JSON.stringify(section(doc, "open-items"));
-    expect(open).toContain("Program stage at this site");
+    expect(open).toContain("Which batches does each site make or plan to make?");
   });
 
   it("says in the plan that the stage must be answered", () => {

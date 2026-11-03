@@ -222,6 +222,7 @@ export const projectSchema = z.object({
     createdAt: z.string(),
     createdBy: z.string(),
     demo: z.boolean().optional(),
+    stageCheck: z.enum(["commercial-before-ppq", "trd-differed"]).optional(),
   }),
   contentRefs: z.object({ catalog: z.string(), questions: z.string(), rules: z.string(), templates: z.string() }),
   settings: z.object({ entrySequence: z.enum(["paired", "sequential"]) }),
@@ -557,6 +558,13 @@ const MIGRATIONS: { from: string; to: string; migrate: Migrate }[] = [
     to: "1.28.0",
     migrate: (raw) => ({ ...raw, schemaVersion: "1.28.0" }),
   },
+  // 1.28.0 -> 1.29.0: the project stage (Cascade 1.29). PPQ is a new stage, the stage is one value for the whole project (the receiving
+  // site's answer to site.stage) and the TRD form no longer keeps a second copy. See migrateTo1290.
+  {
+    from: "1.28.0",
+    to: "1.29.0",
+    migrate: (raw, now) => migrateTo1290(raw, now),
+  },
 ];
 
 /**
@@ -623,6 +631,97 @@ function migrateTo1130(raw: Record<string, unknown>, now: string): Record<string
 
 /** Actor name on change-log records written by a file update rather than by a person. */
 export const SYSTEM_ACTOR = "System (file update)";
+
+/**
+ * The stage names a project could hold at schema 1.28.0, FROZEN for the migration below (it cannot read the catalog, and it is a
+ * statement about the data at one moment). The migration reads the old TRD "Program stage" text, which was either an option label
+ * or free text, so every spelling it ever showed is listed, together with the new PPQ labels.
+ */
+const STAGE_NAMES_AT_1290: readonly (readonly [key: string, names: readonly string[]])[] = [
+  ["development", ["development", "Development / engineering runs", "Engineering / development runs"]],
+  ["clinical", ["clinical", "Clinical (GMP, not process validated)", "Clinical batches (GMP, not process-validated)"]],
+  ["ppq", ["ppq", "PPQ batches (process performance qualification)"]],
+  ["commercial", ["commercial", "Commercial (process validated)", "Commercial batches (process validated)"]],
+];
+
+/** The stage key a text names (a key or a label, ignoring case), or undefined. */
+function stageNamedBy(text: string): string | undefined {
+  const t = text.trim().toLowerCase();
+  if (!t) return undefined;
+  return STAGE_NAMES_AT_1290.find(([, names]) => names.some((n) => n.toLowerCase() === t))?.[0];
+}
+
+/** What an old TRD detail field read as: the author's own text over the project's pulled one. Empty when it held nothing. */
+function trdDetailText(f: any): string { // eslint-disable-line @typescript-eslint/no-explicit-any
+  if (f?.override) return f.override.status === "established" && typeof f.override.display === "string" ? f.override.display.trim() : "";
+  const p = f?.pulled;
+  if (!p || p.status !== "established") return "";
+  if (typeof p.display === "string" && p.display.trim()) return p.display.trim();
+  return typeof p.value === "string" ? p.value.trim() : "";
+}
+
+/**
+ * Schema 1.29.0. One value for the project stage and a check where the old data may not mean what the new list means. Nothing is
+ * re-mapped and nothing is deleted without a change-log record; running it again changes nothing (the version moves on, and each step
+ * only acts on what is still there).
+ *  1. A project stage of Commercial is kept and marked for a check: PPQ could not be chosen before, so some of these projects were
+ *     really at PPQ. The tool cannot know which, so it says so instead of deciding.
+ *  2. The TRD form used to hold its own "Program stage". It is dropped; its text is kept in the log, or moved into the project stage
+ *     when the project had none.
+ *  3. A sampling plan's run type was always "ppq"; the plan's purpose now follows the project stage, so the field goes.
+ */
+function migrateTo1290(raw: Record<string, unknown>, now: string): Record<string, unknown> {
+  const next = structuredClone(raw) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  next.schemaVersion = "1.29.0";
+  const log: Record<string, unknown>[] = [];
+  const fields = next.processes?.target?.site?.fields;
+  const answered = (e: any) => e?.status === "established" && typeof e.value === "string"; // eslint-disable-line @typescript-eslint/no-explicit-any
+  let differed = false;
+
+  // 2. The TRD form's own stage.
+  for (const d of Array.isArray(next.trd?.documents) ? next.trd.documents : []) {
+    const idx = Array.isArray(d.details) ? d.details.findIndex((f: any) => f?.key === "programStage") : -1; // eslint-disable-line @typescript-eslint/no-explicit-any
+    if (idx < 0) continue;
+    const text = trdDetailText(d.details[idx]);
+    d.details.splice(idx, 1);
+    if (!text) continue;
+    const named = stageNamedBy(text);
+    const current = fields?.programStage;
+    const path = `trd.${d.id}.details.programStage`;
+    if (named && answered(current) && current.value === named) continue; // the same stage as the project's: nothing to keep
+    if (named && fields && !current) {
+      // The project had no stage, so the TRD's becomes the project's, with its provenance said in the source.
+      const n = log.length + 1;
+      next.sources = Array.isArray(next.sources) ? next.sources : [];
+      next.sources.push({ id: `src-stage-1290-${n}`, type: "user_entry", label: "Moved from the TRD form by the 1.29 update", date: now });
+      fields.programStage = { id: `ent-stage-1290-${n}`, path: "target.site.programStage", status: "established", value: named, sourceIds: [`src-stage-1290-${n}`], recordedBy: SYSTEM_ACTOR, recordedAt: now, revision: 1 };
+      log.push({ at: now, by: SYSTEM_ACTOR, action: "migrate_stage", path, detail: `The TRD form's program stage ("${text}") became the project stage (schema 1.29.0): the project had none, and the TRD form no longer keeps its own.`, before: { text }, after: { projectStage: named } });
+      continue;
+    }
+    differed = true;
+    log.push({ at: now, by: SYSTEM_ACTOR, action: "migrate_stage", path, detail: `The TRD form's program stage ("${text}") was removed (schema 1.29.0): the project stage is now the one value, and the project's own answer was kept. The old text is kept here.`, before: { text }, after: {} });
+  }
+
+  // 1. A project stage of Commercial is marked for a check.
+  const finalAnswer = fields?.programStage;
+  if (answered(finalAnswer) && finalAnswer.value === "commercial") {
+    next.meta = { ...next.meta, stageCheck: "commercial-before-ppq" };
+    log.push({ at: now, by: SYSTEM_ACTOR, action: "migrate_stage", path: "target.site.programStage", detail: "Cascade 1.29 added the PPQ stage. This project's stage was saved as Commercial before PPQ could be chosen, so it is marked for a check.", before: { value: "commercial" }, after: { value: "commercial", stageCheck: "commercial-before-ppq" } });
+  } else if (differed) {
+    next.meta = { ...next.meta, stageCheck: "trd-differed" };
+  }
+
+  // 3. The sampling plan's run type.
+  for (const plan of Array.isArray(next.sampling?.plans) ? next.sampling.plans : []) {
+    if (!("runType" in plan)) continue;
+    const before = plan.runType;
+    delete plan.runType;
+    log.push({ at: now, by: SYSTEM_ACTOR, action: "migrate_sampling_runtype", path: `sampling.${plan.id}`, detail: "The plan's run type was removed (schema 1.29.0): it was always PPQ, and the plan's purpose now follows the project stage.", before: { runType: before }, after: {} });
+  }
+
+  next.changeLog = [...(Array.isArray(next.changeLog) ? next.changeLog : []), ...log];
+  return next;
+}
 
 function migrateTo190(raw: Record<string, unknown>, now: string): Record<string, unknown> {
   const next = structuredClone(raw) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any

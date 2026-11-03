@@ -6,6 +6,7 @@ import { focusWhenReady, PageHeader, type PagePill } from "../PageHeader";
 import { Tabs, type TabDef } from "../Tabs";
 import { countOf, dateTime } from "../lib";
 import { href, navigate } from "../router";
+import { StageRow } from "../stage-ui";
 import { useContent, useStore } from "../store";
 import type { Run } from "./SamplingFlow";
 import { FieldRow } from "./TrdFieldRow";
@@ -338,6 +339,10 @@ function Details({ d, run }: { d: TrdDocument; run: Run }) {
       <section className="card stack" aria-labelledby="trd-product-h">
         <h2 id="trd-product-h">Product and site</h2>
         <p className="muted small">These come from the project. Override one when the TRD should say something else; the project value stays beside it.</p>
+        <p className="trd-project-stage" data-testid="trd-project-stage">
+          <strong>Project stage:</strong> <StageRow />
+          <span className="small muted"> One value for the whole project; the TRD, sampling plan and batch record follow it.</span>
+        </p>
         <ul className="plain-list trd-fields" aria-label="Product and site values">
           {d.details.map((f) => (
             <FieldRow key={f.key} docId={d.id} f={f} addr={{ part: "details", field: f.key }} run={run} testId={`trd-field-details-${f.key}`} />

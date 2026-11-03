@@ -1,6 +1,7 @@
 import { COLLECTION_LABELS, SEED_COLLECTIONS, type SeedAnswer, type SeedField, type SeedItem, type SeedUnitOperation, type TrdSeed } from "@gap/process-model";
 import type { Block, DocModel, DocSection } from "./document";
 import { NO_VALUE_YET, NOTICE_DOCUMENT, TBD_MARKER } from "./product";
+import { coverStage, isProgramStage } from "./stage";
 
 /**
  * The draft TRD outline: a Word / HTML document built from a TRD seed ALONE (never from the live project), so the file a person
@@ -70,7 +71,7 @@ function metaAnswers(seed: TrdSeed): { name: string; a: SeedAnswer }[] {
     { name: "Presentation", a: p.presentation },
     { name: "RU site", a: s.name },
     { name: "RU line", a: s.line },
-    { name: "RU program stage", a: s.programStage },
+    { name: "Project stage", a: s.programStage },
   ];
 }
 
@@ -288,7 +289,8 @@ export function buildTrdOutline(seed: TrdSeed, opts: TrdOutlineOptions = {}): Do
       sourceSite: "",
       targetSite: [m.receivingSite.name.display, m.receivingSite.line.display].filter(Boolean).join(", ") || NOT_ESTABLISHED,
       sourceStage: "",
-      targetStage: m.receivingSite.programStage.display ?? NOT_ESTABLISHED,
+      // The outline is built from a seed, which holds the project stage as an answer: its value is the stage key.
+      ...coverStage(isProgramStage(m.receivingSite.programStage.value) ? m.receivingSite.programStage.value : undefined),
     },
     sections,
     tbdCount,

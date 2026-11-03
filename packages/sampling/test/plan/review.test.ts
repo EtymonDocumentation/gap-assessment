@@ -22,7 +22,7 @@ const point = (id: string, extra: Partial<SamplingPoint> = {}, method?: SampleMe
   }) as SamplingPoint;
 const step = (n: number, unitOp: string, label = unitOp): PlanStep => ({ id: `ST-${String(n).padStart(2, "0")}`, unitOp, label });
 const planOf = (points: SamplingPoint[], steps: PlanStep[] = [], extra: Partial<SamplingPlan> = {}): SamplingPlan =>
-  ({ id: "SPL-001", title: "Plan", runType: "ppq", status: "draft", steps, batches: [], batchRationale: "", parties: [], agencyRequests: [], points, subsections: [], createdAt: at, updatedAt: at, ...extra }) as SamplingPlan;
+  ({ id: "SPL-001", title: "Plan", status: "draft", steps, batches: [], batchRationale: "", parties: [], agencyRequests: [], points, subsections: [], createdAt: at, updatedAt: at, ...extra }) as SamplingPlan;
 const raised = (p: SamplingPlan, check: string, ctx?: ReviewContext) => designReview(p, ctx).filter((f) => f.checkId === check);
 /** A point with its way of being taken stated (so A8 stays quiet) and the given method. */
 const taken = (id: string, method: SampleMethod, extra: Partial<SamplingPoint> = {}) => point(id, extra, { access: "dedicated_port", closedSystem: "closed", ...method });

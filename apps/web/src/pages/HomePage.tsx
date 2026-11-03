@@ -12,6 +12,7 @@ import { href, navigate } from "../router";
 import { CloseProjectButton, ProjectListCard, useIsRemote } from "../server/ServerUi";
 import { SERVER_MODE } from "../server/mode";
 import { ensureSaved, loadList, useSync } from "../server/sync";
+import { StageCheckNotice, StageRow } from "../stage-ui";
 import { content, useAssessment, useContent, useStageWording, useStore } from "../store";
 
 const HIDE_KEY = "gap-getting-started-hidden";
@@ -207,6 +208,7 @@ export function HomePage({ notice }: { notice?: string }) {
               </>
             )}
           </div>
+          <StageCheckNotice />
           <div className="next-step" data-testid="next-step">
             <p className="next-step-label">Next step</p>
             <div className="row wrap">
@@ -239,12 +241,14 @@ export function HomePage({ notice }: { notice?: string }) {
               </dd>
             </div>
             <div>
-              <dt>Program stage</dt>
+              <dt>Project stage</dt>
               <dd>
-                Sending unit (SU): {wording.sourceLabel}
-                <br />
-                Receiving unit (RU): {wording.targetLabel}
+                <StageRow />
               </dd>
+            </div>
+            <div>
+              <dt>Sending-site stage</dt>
+              <dd>{wording.sourceLabel}</dd>
             </div>
             <div>
               <dt>Responder</dt>

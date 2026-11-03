@@ -125,6 +125,7 @@ export const DOCUMENT_CSS = `
 .gap-doc .banner { border: 2px solid #8a1c1c; color: #8a1c1c; font-weight: 700; padding: 6px 10px; text-align: center; margin-bottom: 16px; }
 .gap-doc h1 { font-size: 18pt; margin: 0 0 4px; }
 .gap-doc .status { font-weight: 700; letter-spacing: 0.1em; color: #444; }
+.gap-doc .stage-line { color: #444; font-size: 9pt; margin-top: 2px; }
 .gap-doc dl.meta { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 12px 0 20px; }
 .gap-doc dl.meta dt { font-weight: 600; }
 .gap-doc dl.meta dd { margin: 0; }
@@ -162,6 +163,7 @@ export function renderHtmlBody(doc: DocModel): string {
 <div class="banner" role="note">${escapeHtml(doc.banner)}</div>
 <h1>${escapeHtml(doc.title)}</h1>
 <div class="status">${escapeHtml(doc.status)}</div>
+<div class="stage-line">${escapeHtml(`${doc.title} · Project stage: ${doc.cover.stageShort}`)}</div>
 <dl class="meta">${meta}</dl>
 ${sections}
 <div class="footer">${escapeHtml(doc.banner)}</div>
