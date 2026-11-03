@@ -1,6 +1,7 @@
 import { blockLibraryStatus, buildDemoProject, buildMbrDocument, mbrOpenItems, NOTE_TIGHTER, numberSteps, paramNote, renderStepText, stepRefsIn, targetSum, trdNotices, trdRequirementsWithoutStep } from "@gap/engine";
 import { mbrChoiceText } from "@gap/process-model";
 import { describe, expect, it } from "vitest";
+import { expectNoPrivateTerms } from "../../test-support/private-terms";
 import { content, demos, designLoadouts, failureModes, mbrLibrary, riskLoadouts, samplingSuggestions, trdWriteups } from "../index";
 
 // The SYR-305 demo master batch record (MBR), built from its approved TRD. The TRD numbers are final, so these tests read them from the
@@ -302,7 +303,8 @@ describe("SYR-305 demo batch record", () => {
 
   it("is fictional and carries no client code or forbidden word", () => {
     const text = JSON.stringify(rec) + JSON.stringify(demos["syr-305"]);
-    expect(text).not.toMatch(/CTP\d{4}|QC\d{4}|client-system-A|client-system-B/);
+    expect(text).not.toMatch(/CTP\d{4}|QC\d{4}/);
+    expectNoPrivateTerms(text);
     expect(JSON.stringify(rec)).not.toMatch(/\b(must|violation|non-compliant)\b/i);
   });
 });

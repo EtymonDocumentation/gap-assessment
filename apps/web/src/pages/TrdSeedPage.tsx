@@ -9,7 +9,7 @@ import { APP_VERSION, download, projectFileStem, today } from "../lib";
 import { href } from "../router";
 import { useTrdAllowed } from "../risk-module";
 import { useContent, useStore } from "../store";
-import { BUILTIN_RECORD, ExportHistory } from "./document-panels";
+import { BUILTIN_RECORD, ExportHistory, WORD_BUILDING_LABEL } from "./document-panels";
 
 const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
@@ -250,8 +250,8 @@ export function TrdSeedPage() {
               <button type="button" className="btn primary" onClick={downloadSeedJson}>
                 Download TRD seed (JSON)
               </button>
-              <button type="button" className="btn" disabled={busy} onClick={downloadOutlineWord}>
-                {busy ? "Creating the Word document..." : "Download draft outline (Word)"}
+              <button type="button" className="btn" disabled={busy} aria-live="polite" onClick={downloadOutlineWord}>
+                {busy ? WORD_BUILDING_LABEL : "Download draft outline (Word)"}
               </button>
               <button type="button" className="btn" onClick={downloadOutlineHtml}>
                 Download draft outline (HTML)

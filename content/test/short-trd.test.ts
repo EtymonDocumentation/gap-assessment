@@ -1,7 +1,14 @@
 import { buildDemoProject, buildTrdDocument, segmentsOf, trdOpenItems } from "@gap/engine";
 import { formatQuantity, formatRange, printableUnit } from "@gap/process-model";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { content, demos, trdWriteups } from "../index";
+
+// The SYR-305 demo build takes a second or more (several on a busy machine). Two tests read it, so it is built once per file.
+// Both only read it. The explicit limit replaces the default 5 s, which failed once while a build kept the CPU busy.
+let syr305: ReturnType<typeof buildDemoProject>;
+beforeAll(() => {
+  syr305 = buildDemoProject(content, demos["syr-305"], undefined, undefined, undefined, undefined, { writeups: trdWriteups });
+}, 60_000);
 
 /**
  * The short standard TRD and the ten wording and data fixes that came with it. The structure of the two documents is tested in
@@ -67,7 +74,7 @@ describe("TRD items for the lane, the filtration time and the hold time", () => 
   });
 
   it("SYR-305 gets all three from the interview instead of typed write-up values", () => {
-    const p = buildDemoProject(content, demos["syr-305"], undefined, undefined, undefined, undefined, { writeups: trdWriteups });
+    const p = syr305;
     const d = p.trd.documents[0]!;
     const item = (step: string, key: string) => d.steps.find((s) => s.key === step)!.items.find((i) => i.key === key);
     expect(item("ds_shipping_inbound", "lane_qualification")).toBeDefined();
@@ -88,7 +95,7 @@ describe("the TRD the author wrote", () => {
   });
 
   it("prints the SYR-305 standard TRD with no 'to be assigned' placeholder source, no '1 hours' and no double minus", () => {
-    const p = buildDemoProject(content, demos["syr-305"], undefined, undefined, undefined, undefined, { writeups: trdWriteups });
+    const p = syr305;
     const text = JSON.stringify(buildTrdDocument(p, p.trd.documents[0]!, { content }));
     expect(text).not.toMatch(/\b1 hours\b/);
     expect(text).not.toMatch(/\d–-\d|-\d+–-\d/);

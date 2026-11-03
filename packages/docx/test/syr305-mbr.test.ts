@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { buildDemoProject, buildMbrDocument, CMO_PLACEHOLDER } from "@gap/engine";
 import { renderHtml } from "@gap/renderers";
 import { describe, expect, it, vi } from "vitest";
+import { expectNoPrivateTerms } from "../../../test-support/private-terms";
 import { content, demos, designLoadouts, failureModes, mbrLibrary, riskLoadouts, samplingSuggestions, trdWriteups } from "../../../content/index";
 import { renderDocx } from "../src/index";
 import { BANNER, GENERATED_AT } from "./fixtures";
@@ -46,7 +47,8 @@ describe("Syringe demo batch record in Word and HTML", () => {
     expect(text).not.toMatch(/filter integrity block/);
     expect(text).not.toMatch(/\bvials?\b|crimp|capping|sterile holding vessel|sterile bulk vessel/i);
     expect(text).not.toMatch(/\b(violation|non-compliant)\b|filing category/i);
-    expect(text).not.toMatch(/CTP\d{4}|QC\d{4}|client-system-A|client-system-B/);
+    expect(text).not.toMatch(/CTP\d{4}|QC\d{4}/);
+    expectNoPrivateTerms(text);
     const dir = join(tmpdir(), "gap-docx-samples", "syr305l-mbr");
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "mbr.docx"), out.bytes);
@@ -58,7 +60,8 @@ describe("Syringe demo batch record in Word and HTML", () => {
     const html = renderHtml(syrDoc);
     expect(html).toContain(BANNER);
     expect(html).toContain(CMO_PLACEHOLDER);
-    expect(html).not.toMatch(/CTP\d{4}|QC\d{4}|client-system-A|client-system-B/);
+    expect(html).not.toMatch(/CTP\d{4}|QC\d{4}/);
+    expectNoPrivateTerms(html);
   });
 
   it("still renders the vial record, and writes it for a look", async () => {
@@ -67,7 +70,8 @@ describe("Syringe demo batch record in Word and HTML", () => {
     expect(text).toContain(BANNER);
     expect(text).toContain("ARX-217 batch record");
     expect(text).toContain("Tighter than the TRD");
-    expect(text).not.toMatch(/CTP\d{4}|QC\d{4}|client-system-A|client-system-B/);
+    expect(text).not.toMatch(/CTP\d{4}|QC\d{4}/);
+    expectNoPrivateTerms(text);
     const dir = join(tmpdir(), "gap-docx-samples", "arx217-mbr");
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "mbr.docx"), out.bytes);

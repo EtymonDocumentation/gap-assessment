@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { parseTrdSeed, type Project } from "@gap/process-model";
 import { NOTICE_DOCUMENT, buildDemoProject, buildTrdOutline, buildTrdSeed, seedStatusText, seedValueText, trdSeedCounts, TRD_OUTLINE_TITLE, type DocModel } from "@gap/engine";
 import { renderHtml, renderMarkdown } from "../../renderers/src/index";
@@ -8,7 +8,13 @@ import { demos } from "../../../content/index";
 const { base, v, ask, unk } = kit;
 const AT = "2026-10-21T08:00:00.000Z";
 const seed = (p: Project) => parseTrdSeed(JSON.stringify(buildTrdSeed(content, p, { exportedAt: AT, appVersion: "9.9.9" })));
-const demo = () => buildDemoProject(content, demos["arx-217"]);
+// The demo build takes about a second (several seconds on a busy machine), so it is built once for the whole file instead
+// of once per test. Nothing here changes the project: every test reads it or copies it through seed().
+let demoProject: Project;
+beforeAll(() => {
+  demoProject = buildDemoProject(content, demos["arx-217"]);
+}, 60_000); // explicit limit: the default 5 s is too tight when a build or a full test run keeps the CPU busy
+const demo = () => demoProject;
 const text = (d: DocModel) => JSON.stringify(d.sections);
 const titles = (d: DocModel) => d.sections.map((s) => s.title);
 

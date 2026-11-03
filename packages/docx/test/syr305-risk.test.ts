@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { buildDemoProject, buildRiskAssessmentDocument } from "@gap/engine";
 import { renderHtml } from "@gap/renderers";
 import { describe, expect, it, vi } from "vitest";
+import { expectNoPrivateTerms } from "../../../test-support/private-terms";
 import { content, demos, designLoadouts, failureModes, riskLoadouts, samplingSuggestions } from "../../../content/index";
 import { renderDocx } from "../src/index";
 import { BANNER, GENERATED_AT } from "./fixtures";
@@ -31,7 +32,8 @@ describe("SYR-305 PDA TR 44 FMEA in Word and HTML", () => {
       expect(text, s).toContain(s);
     }
     expect(text).not.toMatch(/filing category/i);
-    expect(text).not.toMatch(/CTP\d{4}|QC\d{4}|client-system-A|client-system-B/);
+    expect(text).not.toMatch(/CTP\d{4}|QC\d{4}/);
+    expectNoPrivateTerms(text);
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "risk-assessment.docx"), out.bytes);
     writeFileSync(join(dir, "risk-assessment.html"), renderHtml(doc));

@@ -124,9 +124,17 @@ export interface WordExportInput {
   tagData?: (m: DocxModule) => TagData | DocumentTagData | SamplingTagData;
 }
 
+/** The words on every Word download button while the file is being made (the same on every page). */
+export const WORD_BUILDING_LABEL = "Building the Word file…";
+/** A download that took longer than this many seconds gets a "takes about N s" note the next time (measured, never guessed). */
+const SLOW_AFTER_SECONDS = 5;
+const measuredSeconds = new Map<string, number>();
+
 export interface WordExporter {
   checks: Checks | null;
   busy: boolean;
+  /** "This one takes about N s" while busy, once an earlier download of this document took longer than 5 s; otherwise "". */
+  slowNote: string;
   error: string;
   result: { file: string; template: TemplateRecord; warnings: string[]; omitted: string[] } | null;
   /** True while a blocker (or the template check still running) means the download cannot be made. */
@@ -145,6 +153,7 @@ export function useWordExport({ choice, doc, content, project, assessment, gener
   const t = choice.template;
 
   async function exportWord() {
+    const started = performance.now();
     setBusy(true);
     setError("");
     setResult(null);
@@ -172,13 +181,16 @@ export function useWordExport({ choice, doc, content, project, assessment, gener
     } catch (e) {
       setError(`The Word tools could not be loaded: ${(e as Error).message}. Check your connection and reload the page.`);
     } finally {
+      measuredSeconds.set(fileBase, Math.round((performance.now() - started) / 1000));
       setBusy(false);
     }
   }
 
+  const lastSeconds = measuredSeconds.get(fileBase) ?? 0;
   return {
     checks,
     busy,
+    slowNote: busy && lastSeconds > SLOW_AFTER_SECONDS ? `This one takes about ${lastSeconds} s.` : "",
     error,
     result,
     blocked: !checks || checks.blockers.length > 0,
@@ -342,9 +354,10 @@ export function WordPanelView({
 
       {showButton && (
         <div className="row wrap">
-          <button type="button" className="btn primary" disabled={blocked || busy} aria-describedby={checks?.blockers.length ? `${idPrefix}-blockers` : undefined} data-testid={testIdPrefix ? `${testIdPrefix}-download-word` : undefined} onClick={exporter.run}>
-            {busy ? "Creating…" : buttonLabel}
+          <button type="button" className="btn primary" disabled={blocked || busy} aria-live="polite" aria-describedby={checks?.blockers.length ? `${idPrefix}-blockers` : undefined} data-testid={testIdPrefix ? `${testIdPrefix}-download-word` : undefined} onClick={exporter.run}>
+            {busy ? WORD_BUILDING_LABEL : buttonLabel}
           </button>
+          {exporter.slowNote && <span className="small muted" role="status">{exporter.slowNote}</span>}
           <HelpTip label="the Word export" text={WORD_EXPORT_HELP} />
         </div>
       )}

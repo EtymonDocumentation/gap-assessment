@@ -3,6 +3,7 @@
 import { NOTICE_DOCUMENT, buildDemoProject, buildSamplingPlanDocument, sampleDiff, sampleFieldsOf, samplingOpenItems } from "@gap/engine";
 import { planTotals, unitsPerBatch } from "@gap/sampling";
 import { describe, expect, it } from "vitest";
+import { expectNoPrivateTerms } from "../../test-support/private-terms";
 import { content, demos, designLoadouts, failureModes, mbrLibrary, riskLoadouts, samplingSuggestions, trdWriteups } from "../index";
 
 const project = buildDemoProject(content, demos["syr-305"], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes }, { library: mbrLibrary }, { writeups: trdWriteups });
@@ -79,7 +80,8 @@ describe("SYR-305 PPQ sampling plan", () => {
     expect(text).toMatch(/100 L/);
     expect(text).toMatch(/50 L/);
     expect(text).not.toMatch(/\b40 L\b/);
-    expect(JSON.stringify(plan)).not.toMatch(/CTP\d{4}|QC\d{4}|client-system-A|client-system-B/);
+    expect(JSON.stringify(plan)).not.toMatch(/CTP\d{4}|QC\d{4}/);
+    expectNoPrivateTerms(JSON.stringify(plan));
   });
 
   it("renders to a document that carries the banner and the filing wording only as the assessment request", () => {

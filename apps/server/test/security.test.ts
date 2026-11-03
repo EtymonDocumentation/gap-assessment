@@ -3,6 +3,7 @@ import { connect } from "node:net";
 import { readdir, writeFile } from "node:fs/promises";
 import { request as httpRequest } from "node:http";
 import { networkInterfaces } from "node:os";
+import { brotliCompressSync, brotliDecompressSync, gunzipSync, gzipSync } from "node:zlib";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { clientIp, csrfOk, drainLimitFor, ownOrigin } from "../src/http";
@@ -287,6 +288,36 @@ describe("ids", () => {
 });
 
 describe("static files", () => {
+  it("sends the precompressed Brotli or gzip copy when accepted, and the original otherwise", async () => {
+    const text = "console.log('compress me');".repeat(50);
+    await writeFile(join(env.webDir, "assets", "big.js"), text);
+    await writeFile(join(env.webDir, "assets", "big.js.br"), brotliCompressSync(Buffer.from(text)));
+    await writeFile(join(env.webDir, "assets", "big.js.gz"), gzipSync(Buffer.from(text)));
+    const get = (accept?: string) => rawRequest(env.port, { path: "/assets/big.js", ...(accept ? { headers: { "Accept-Encoding": accept } } : {}) });
+
+    const br = await get("gzip, deflate, br");
+    expect(br.headers["content-encoding"]).toBe("br");
+    expect(br.headers["vary"]).toBe("Accept-Encoding");
+    expect(br.headers["content-type"]).toContain("text/javascript");
+    expect(Number(br.headers["content-length"])).toBe(br.body.length);
+    expect(brotliDecompressSync(br.body).toString()).toBe(text);
+
+    const gz = await get("gzip;q=0.8, br;q=0");
+    expect(gz.headers["content-encoding"]).toBe("gzip");
+    expect(gunzipSync(gz.body).toString()).toBe(text);
+
+    for (const accept of [undefined, "identity", "deflate"]) {
+      const plain = await get(accept);
+      expect(plain.headers["content-encoding"]).toBeUndefined();
+      expect(plain.headers["vary"]).toBe("Accept-Encoding");
+      expect(plain.text).toBe(text);
+    }
+    // a text file with no precompressed copy, and a picture, are sent as they are
+    const noCopy = await rawRequest(env.port, { path: "/assets/app.js", headers: { "Accept-Encoding": "br, gzip" } });
+    expect(noCopy.headers["content-encoding"]).toBeUndefined();
+    expect(noCopy.text).toBe("console.log(1)");
+  });
+
   it("serves index.html at / and assets, and 404s everything else", async () => {
     const index = await rawRequest(env.port, { path: "/" });
     expect(index.status).toBe(200);

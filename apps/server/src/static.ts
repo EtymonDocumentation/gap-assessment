@@ -52,23 +52,58 @@ export async function resolveStatic(root: string, urlPath: string): Promise<stri
   }
 }
 
+/** Text types the build precompresses (apps/web/vite.config.ts); only these get Vary and a .br / .gz sibling lookup. */
+const COMPRESSIBLE = new Set([".js", ".mjs", ".css", ".map", ".svg", ".json", ".html", ".txt"]);
+
+/** Encodings the request accepts, best first (Brotli, then gzip). "br;q=0" means refused. */
+function acceptedEncodings(header: string | string[] | undefined): ("br" | "gzip")[] {
+  const text = Array.isArray(header) ? header.join(",") : (header ?? "");
+  const accepted = new Set<string>();
+  for (const part of text.split(",")) {
+    const [name, ...params] = part.trim().toLowerCase().split(";");
+    const q = params.map((p) => p.trim()).find((p) => p.startsWith("q="));
+    if (name && (q === undefined || Number(q.slice(2)) > 0)) accepted.add(name.trim());
+  }
+  const out: ("br" | "gzip")[] = [];
+  if (accepted.has("br")) out.push("br");
+  if (accepted.has("gzip") || accepted.has("x-gzip")) out.push("gzip");
+  return out;
+}
+
 /** Serves one static file; resolves false when there is nothing to serve (the caller answers 404). */
 export async function serveStatic(root: string, req: IncomingMessage, res: ServerResponse, pathname: string): Promise<boolean> {
   if (req.method !== "GET" && req.method !== "HEAD") return false;
   const file = await resolveStatic(root, pathname);
   if (!file) return false;
-  const info = await stat(file);
-  const type = TYPES[extname(file).toLowerCase()] ?? "application/octet-stream";
+  let info = await stat(file);
+  const ext = extname(file).toLowerCase();
+  const type = TYPES[ext] ?? "application/octet-stream";
+  // Use the precompressed copy written by the build when the browser accepts it. The original goes out otherwise.
+  let serveFrom = file;
+  const headers: Record<string, string | number> = {};
+  if (COMPRESSIBLE.has(ext)) {
+    headers["Vary"] = "Accept-Encoding";
+    for (const encoding of acceptedEncodings(req.headers["accept-encoding"])) {
+      const copy = file + (encoding === "br" ? ".br" : ".gz");
+      const copyInfo = await stat(copy).catch(() => null);
+      if (copyInfo?.isFile()) {
+        serveFrom = copy;
+        info = copyInfo;
+        headers["Content-Encoding"] = encoding;
+        break;
+      }
+    }
+  }
   // Built asset names carry a content hash, so they may be cached for good; the page itself must stay fresh.
   // The pictures in /art/ keep fixed names (no hash), so they get a day: long enough not to download 2 MB again on every visit,
   // short enough that a replaced picture shows up the next day.
   const cache = pathname.startsWith("/assets/") ? "public, max-age=31536000, immutable" : pathname.startsWith("/art/") ? "public, max-age=86400" : "no-cache";
-  res.writeHead(200, { "Content-Type": type, "Content-Length": info.size, "Cache-Control": cache });
+  res.writeHead(200, { ...headers, "Content-Type": type, "Content-Length": info.size, "Cache-Control": cache });
   if (req.method === "HEAD") {
     res.end();
     return true;
   }
-  const stream = createReadStream(file);
+  const stream = createReadStream(serveFrom);
   stream.on("error", () => res.destroy());
   stream.pipe(res);
   return true;

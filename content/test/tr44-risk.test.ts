@@ -19,6 +19,7 @@ import {
 import { parseProject, type Actor, type RiskConfig } from "@gap/process-model";
 import { aboveThreshold, interventionTally, isTr44, severityConfidenceText, TR44_DETECTION_TEXT, TR44_GUIDANCE, TR44_THRESHOLD_HINT } from "@gap/risk";
 import { describe, expect, it, vi } from "vitest";
+import { expectNoPrivateTerms } from "../../test-support/private-terms";
 import { content, demos, designLoadouts, failureModes, riskLoadouts, samplingSuggestions, trdWriteups } from "../index";
 
 const ACTOR: Actor = { name: "Pat Placeholder (fictional)", role: "QA", at: "2026-10-27T09:00:00.000Z" };
@@ -215,6 +216,7 @@ describe("SYR-305 demo FMEA", () => {
   });
   it("carries no client names, client codes or supplier brands", () => {
     const text = JSON.stringify(a) + JSON.stringify(buildRiskAssessmentDocument(content, project, a, failureModes, opts));
-    expect(text).not.toMatch(/\b(CTP|QC)\d{3,}|client-system-A|client-system-B/);
+    expect(text).not.toMatch(/\b(CTP|QC)\d{3,}/);
+    expectNoPrivateTerms(text);
   });
 });

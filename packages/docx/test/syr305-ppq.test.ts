@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { buildCmoInstructionsDocument, buildDemoProject, buildSamplingPlanDocument } from "@gap/engine";
 import { renderHtml } from "@gap/renderers";
 import { describe, expect, it, vi } from "vitest";
+import { expectNoPrivateTerms } from "../../../test-support/private-terms";
 import { content, demos, designLoadouts, failureModes, riskLoadouts, samplingSuggestions } from "../../../content/index";
 import { renderDocx } from "../src/index";
 import { nodeRasteriser } from "./figure-rasteriser";
@@ -34,7 +35,8 @@ describe("SYR-305 PPQ sampling plan in Word and HTML", () => {
     for (const b of ["PPQ 1", "PPQ 2", "PPQ 3"]) expect(text, b).toContain(b);
     expect(text).toContain("Figure 1");
     expect(text).not.toMatch(/filing category/i);
-    expect(text).not.toMatch(/CTP\d{4}|QC\d{4}|client-system-A|client-system-B/);
+    expect(text).not.toMatch(/CTP\d{4}|QC\d{4}/);
+    expectNoPrivateTerms(text);
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "sampling-plan.docx"), out.bytes);
     writeFileSync(join(dir, "sampling-plan.html"), renderHtml(doc));
@@ -47,7 +49,8 @@ describe("SYR-305 PPQ sampling plan in Word and HTML", () => {
     const text = plainText(strictDocx(out.bytes));
     expect(text).toContain(BANNER);
     expect(text).toContain("Reporting instructions per sampling point");
-    expect(text).not.toMatch(/CTP\d{4}|QC\d{4}|client-system-A|client-system-B/);
+    expect(text).not.toMatch(/CTP\d{4}|QC\d{4}/);
+    expectNoPrivateTerms(text);
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "cmo-instructions.docx"), out.bytes);
     writeFileSync(join(dir, "cmo-instructions.html"), renderHtml(doc));

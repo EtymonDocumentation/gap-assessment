@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { buildDemoProject, buildMbrDocument, mergeMbr, updateSplit, WRITE_IN } from "@gap/engine";
 import { renderHtml } from "@gap/renderers";
 import { describe, expect, it, vi } from "vitest";
+import { expectNoPrivateTerms } from "../../../test-support/private-terms";
 import { content, demos, designLoadouts, failureModes, mbrLibrary, riskLoadouts, samplingSuggestions, trdWriteups } from "../../../content/index";
 import { renderDocx } from "../src/index";
 import { BANNER, GENERATED_AT } from "./fixtures";
@@ -67,7 +68,9 @@ describe("split batch record in Word", () => {
     expect(t2).not.toContain("Hold start (end of Part 1)");
     // The site fills no batch execution value and gives no verdict on the hold time.
     expect(JSON.stringify(part2.sections.find((x) => x.id === "hold-end"))).not.toMatch(/within the limit\.|acceptable|compliant/i);
-    expect(t1 + t2).not.toMatch(/CTP\d{4}|QC\d{4}|client-system-A|client-system-B/);
+    expect(t1 + t2).not.toMatch(/CTP\d{4}|QC\d{4}/);
+
+    expectNoPrivateTerms(t1 + t2);
   });
 
   it("says 'No limit stated' on the hold-end entry when the record names no limit row", async () => {

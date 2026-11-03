@@ -340,6 +340,9 @@ function recordFor(input: RenderDocxInput): TemplateRecord {
 
 type Pictures = Map<string, Uint8Array>;
 
+/** How many figure pages are drawn at the same time. */
+const FIGURE_CONCURRENCY = 3;
+
 /**
  * Draws every figure page of the document as a PNG before writing starts (the writers are synchronous). A page that cannot be drawn
  * leaves its figure as text, and the reason is returned as a warning; the export itself never fails because of a picture.
@@ -355,15 +358,28 @@ async function drawFigures(input: RenderDocxInput, warnings: string[]): Promise<
     warnings.push("The flow figures are written as a caption and a text description, because no picture renderer was available.");
     return pics;
   }
-  for (const f of figures) {
-    try {
-      const made: Uint8Array[] = [];
-      for (const pg of f.pages) made.push(await input.rasteriser({ svg: pg.svg, widthPt: pg.width, heightPt: pg.height }, FIGURE_DPI));
-      made.forEach((png, i) => pics.set(figureKey(f.number, i), png));
-    } catch (e) {
-      warnings.push(`Figure ${f.number} could not be drawn as a picture (${e instanceof Error ? e.message : "unknown reason"}); it is written as a caption and a text description.`);
+  const rasteriser = input.rasteriser;
+  // A few pages at a time: the browser decodes and encodes each one off the main thread, so they overlap. Results are
+  // kept in figure order, and the warnings come out in figure order too, so the same document gives the same result.
+  const results: ({ made: Uint8Array[] } | { error: string })[] = new Array(figures.length);
+  let next = 0;
+  const worker = async () => {
+    for (let i = next++; i < figures.length; i = next++) {
+      try {
+        const made: Uint8Array[] = [];
+        for (const pg of figures[i]!.pages) made.push(await rasteriser({ svg: pg.svg, widthPt: pg.width, heightPt: pg.height }, FIGURE_DPI));
+        results[i] = { made };
+      } catch (e) {
+        results[i] = { error: e instanceof Error ? e.message : "unknown reason" };
+      }
     }
-  }
+  };
+  await Promise.all(Array.from({ length: Math.min(FIGURE_CONCURRENCY, figures.length) }, worker));
+  figures.forEach((f, i) => {
+    const r = results[i]!;
+    if ("made" in r) r.made.forEach((png, p) => pics.set(figureKey(f.number, p), png));
+    else warnings.push(`Figure ${f.number} could not be drawn as a picture (${r.error}); it is written as a caption and a text description.`);
+  });
   return pics;
 }
 

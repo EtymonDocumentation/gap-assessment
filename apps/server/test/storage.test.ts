@@ -1,9 +1,10 @@
 /// <reference types="node" />
 import { createHash, randomBytes } from "node:crypto";
-import { readFile, readdir } from "node:fs/promises";
+import { readFile, readdir, writeFile } from "node:fs/promises";
 import { join, sep } from "node:path";
 import { parseProject } from "@gap/process-model";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { Store } from "../src/store";
 import { Client, sampleProject, signedInClient, startEnv, type TestEnv } from "./helpers";
 
 let env: TestEnv;
@@ -418,5 +419,46 @@ describe("storage mode client", () => {
     } finally {
       await client.cleanup();
     }
+  });
+});
+
+describe("crash safety of the data files", () => {
+  it("keeps the last good copy and falls back to it when the main file is cut short or empty", async () => {
+    const store = new Store(join(env.dataDir, "crash-test"));
+    const file = store.path("thing.json");
+    await store.writeJson(file, { v: 1 });
+    await store.writeJson(file, { v: 2 });
+    expect(JSON.parse(await readFile(file + ".bak", "utf8"))).toEqual({ v: 1 }); // the copy before the latest write
+    expect(await store.readJson(file, null)).toEqual({ v: 2 });
+
+    // a power cut leaves the main file truncated: the read uses the last good copy and says so
+    await writeFile(file, '{"v": ');
+    const warnings: string[] = [];
+    const warn = console.warn;
+    console.warn = (m: string) => warnings.push(m);
+    try {
+      expect(await store.readJson(file, null)).toEqual({ v: 1 });
+    } finally {
+      console.warn = warn;
+    }
+    expect(warnings.join(" ")).toContain("last good copy");
+
+    // an empty file (rename reached the disk before the content) is handled the same way
+    await writeFile(file, "");
+    expect(await store.readJson(file, null)).toEqual({ v: 1 });
+
+    // a damaged main file never overwrites the good copy; the next save heals the main file
+    await store.update(file, { v: 0 }, (cur) => ({ v: (cur as { v: number }).v + 10 }));
+    expect(JSON.parse(await readFile(file, "utf8"))).toEqual({ v: 11 });
+    expect(JSON.parse(await readFile(file + ".bak", "utf8"))).toEqual({ v: 1 });
+  });
+
+  it("still reports a damaged file when there is no usable copy, and a missing file as the fallback", async () => {
+    const store = new Store(join(env.dataDir, "crash-test-2"));
+    const file = store.path("other.json");
+    expect(await store.readJson(file, "none")).toBe("none");
+    await store.writeJson(file, { ok: true });
+    await writeFile(file, "{");
+    await expect(store.readJson(file, null)).rejects.toThrow(SyntaxError);
   });
 });

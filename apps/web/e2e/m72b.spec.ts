@@ -10,6 +10,9 @@ import { goTo, openDemo } from "./nav-helper";
 const SHOTS = tmpdir();
 
 test.beforeEach(async ({ page }) => {
+  // Every test here builds the vial demo first. Alone that takes about 8 s; with a full run's workers building demos at the same time
+  // it takes up to 24 s, close to the default 30 s. Triple the limit for this file instead of raising the global one.
+  test.slow();
   page.on("dialog", (d) => void d.accept());
 });
 

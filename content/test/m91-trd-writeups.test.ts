@@ -27,6 +27,7 @@ import {
 import { parseProject, type Project, type TrdDocument, type TrdLibraryWriteup } from "@gap/process-model";
 import { renderHtml, renderMarkdown } from "@gap/renderers";
 import { describe, expect, it } from "vitest";
+import { expectNoPrivateTerms } from "../../test-support/private-terms";
 import { content, demos, trdWriteups } from "../index";
 
 const T1 = "2026-10-24T09:00:00.000Z";
@@ -54,7 +55,8 @@ describe("the shipped write-up library", () => {
 
   it("carries no client names, codes or supplier brands", () => {
     const all = JSON.stringify(trdWriteups);
-    expect(all).not.toMatch(/CTP\d|QC\d{3}|client-system-A|client-system-B/);
+    expect(all).not.toMatch(/CTP\d|QC\d{3}/);
+    expectNoPrivateTerms(all);
   });
 
   it("is refused when it names an unknown unit operation", () => {

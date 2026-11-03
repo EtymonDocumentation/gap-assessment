@@ -8,7 +8,7 @@ import { PageHeader } from "../PageHeader";
 import { download, projectFileStem, sideText, today } from "../lib";
 import { href } from "../router";
 import { useAssessment, useContent, useStageWording, useStore } from "../store";
-import { BUILTIN_RECORD, ExportHistory, useWordChoice, useWordExport, WORD_EXPORT_HELP, WordPanelView } from "./document-panels";
+import { BUILTIN_RECORD, ExportHistory, useWordChoice, useWordExport, WORD_BUILDING_LABEL, WORD_EXPORT_HELP, WordPanelView } from "./document-panels";
 import { DocumentSectionsBlock, ProcessStepsBlock, useScopeSummary } from "./ScopeEditor";
 
 /** Live preview of the generated document, with the scope panel, downloads (Markdown, HTML, Word) and the export history. */
@@ -124,11 +124,13 @@ export function DocumentPage() {
               type="button"
               className="btn primary"
               disabled={word.blocked || word.busy}
+              aria-live="polite"
               aria-describedby={word.checks?.blockers.length ? "word-blockers" : undefined}
               onClick={word.run}
             >
-              {word.busy ? "Creating…" : "Download gap assessment (Word)"}
+              {word.busy ? WORD_BUILDING_LABEL : "Download gap assessment (Word)"}
             </button>
+            {word.slowNote && <span className="small muted" role="status">{word.slowNote}</span>}
             <HelpTip label="the Word export" text={WORD_EXPORT_HELP} />
           </span>
           <button className="btn" onClick={downloadHtml}>

@@ -196,6 +196,29 @@ test("company tables: validation in words, save, export, and a chosen table in a
   await expect(page.getByTestId("tables-list")).toContainText("Can be chosen");
 });
 
+test("while the Word file is being made the button is disabled and says so, then it is back", async ({ page }) => {
+  // Drawing the figures takes about a second; hold each picture back a little longer so the busy state is always there to see.
+  await page.addInitScript(() => {
+    const original = HTMLCanvasElement.prototype.toBlob;
+    HTMLCanvasElement.prototype.toBlob = function (this: HTMLCanvasElement, callback: BlobCallback, ...rest: unknown[]) {
+      setTimeout(() => (original as (...a: unknown[]) => void).call(this, callback, ...rest), 400);
+    };
+  });
+  await openDemoPlan(page);
+  const button = page.getByTestId("sampling-download-word");
+  const idleText = (await button.textContent()) ?? "";
+  const downloaded = page.waitForEvent("download");
+  await button.click();
+  await page.getByRole("button", { name: "Download anyway" }).click();
+  await expect(button).toHaveText("Building the Word file…");
+  await expect(button).toBeDisabled();
+  await expect(button).toHaveAttribute("aria-live", "polite");
+  await page.screenshot({ path: join(SHOTS, "m7-word-building.png") });
+  await downloaded;
+  await expect(button).toHaveText(idleText);
+  await expect(button).toBeEnabled();
+});
+
 test("Word and HTML downloads carry the banner, the headings, the working and the versions; the export history lists them", async ({ page }) => {
   await openDemoPlan(page);
   await page.getByTestId("sampling-preview-toggle").click();

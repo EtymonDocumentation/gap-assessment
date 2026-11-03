@@ -13,10 +13,18 @@ concurrency:
   group: pages-${{ github.ref }}
   cancel-in-progress: true
 
+# One long job used to take about 93 minutes (81 of them the browser tests), so a push during a run cancelled it and the
+# site stayed on an old build for hours. The slow part now runs in parallel:
+#   check       typecheck, unit tests, content validation, build        (a few minutes)
+#   web-e2e     the browser tests in 4 shards that run at the same time (about 20 minutes each)
+#   server-e2e  the server-mode browser tests                           (its own job)
+# The site goes live only when ALL of them pass (deploy needs every job). Every job has a timeout, so a hung browser
+# cannot hold the queue for hours.
 jobs:
   check:
-    name: Typecheck, content validation, tests, build, smoke
+    name: Typecheck, content validation, tests, build
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -30,6 +38,20 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      # The leak-guard tests look for client-identifying terms that must never appear in any output. The terms are not in
+      # the repository: they come from the repository secret GAP_PRIVATE_TERMS_TEXT (one term per line). Without the secret
+      # (a fork, or not set yet) that part of the guard is skipped and the test log says so.
+      - name: Private terms for the leak guard
+        env:
+          PRIVATE_TERMS_TEXT: ${{ secrets.GAP_PRIVATE_TERMS_TEXT }}
+        run: |
+          if [ -n "$PRIVATE_TERMS_TEXT" ]; then
+            printf '%s\n' "$PRIVATE_TERMS_TEXT" > "$RUNNER_TEMP/private-terms.txt"
+            echo "GAP_PRIVATE_TERMS=$RUNNER_TEMP/private-terms.txt" >> "$GITHUB_ENV"
+          else
+            echo "GAP_PRIVATE_TERMS_TEXT is not set: the private-term leak guard will be skipped."
+          fi
+
       # Content YAML is schema-validated inside the test run (content/test); a bad edit fails here.
       - name: Unit tests and content validation
         run: npm test
@@ -37,15 +59,70 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Upload site
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/dist
+
+  web-e2e:
+    name: Smoke and accessibility tests (shard ${{ matrix.shard }} of 4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # The browser tests run against the production build (vite preview).
+      - name: Build
+        run: npm run build
+
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
       - name: Smoke and accessibility tests
-        run: npm run e2e
+        working-directory: apps/web
+        run: npx playwright test --shard=${{ matrix.shard }}/4
+
+      - name: Keep the smoke report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-shard-${{ matrix.shard }}
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+          retention-days: 7
+
+  server-e2e:
+    name: Server-mode browser tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
 
       # Server mode (accounts, server storage): builds the server and the server-mode web build, then runs the browser
-      # tests against the real server. Written to its own folders (apps/web/dist-server, apps/server/dist); the site
-      # uploaded below is still only apps/web/dist.
+      # tests against the real server. Written to its own folders (apps/web/dist-server, apps/server/dist).
       - name: Build server mode
         run: npm run build:server
 
@@ -53,29 +130,22 @@ jobs:
         working-directory: apps/web
         run: npx playwright test -c playwright.server.config.ts
 
-      - name: Keep the smoke report on failure
+      - name: Keep the server-mode report on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-server
           path: |
-            apps/web/playwright-report
-            apps/web/test-results
             apps/web/playwright-report-server
             apps/web/test-results-server
           retention-days: 7
 
-      - name: Upload site
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: apps/web/dist
-
   deploy:
     name: Deploy to GitHub Pages
-    needs: check
+    needs: [check, web-e2e, server-e2e]
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       pages: write
       id-token: write

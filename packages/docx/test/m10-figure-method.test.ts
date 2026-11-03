@@ -6,6 +6,7 @@ import { buildDemoProject, buildSamplingPlanDocument } from "@gap/engine";
 import { renderHtml } from "@gap/renderers";
 import PizZip from "pizzip";
 import { describe, expect, it, vi } from "vitest";
+import { expectNoPrivateTerms } from "../../../test-support/private-terms";
 import { content, demos, designLoadouts, failureModes, riskLoadouts, samplingSuggestions } from "../../../content/index";
 import { renderDocx } from "../src/index";
 import { nodeRasteriser } from "./figure-rasteriser";
@@ -56,7 +57,9 @@ describe("Word flow figures show how each sample is taken", () => {
         expect(renderHtml(doc)).toContain('data-testid="figure-method-note"');
         expect(xml).toMatch(/descr="[^"]*How the sample is taken, as the plan states it: SP-\d+/);
         // Nothing from a real client in the Word XML.
-        expect(xml).not.toMatch(/CTP\d{4}|QC\d{4}|client-system-A|client-system-B/);
+        expect(xml).not.toMatch(/CTP\d{4}|QC\d{4}/);
+
+        expectNoPrivateTerms(xml);
         mkdirSync(dir, { recursive: true });
         writeFileSync(join(dir, `${name}-${style}.docx`), out.bytes);
         writeFileSync(join(dir, `${name}-${style}.html`), renderHtml(doc));

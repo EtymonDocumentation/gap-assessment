@@ -1,5 +1,6 @@
 import { assess, buildDemoProject, buildTrdDocument, trdDocumentOpenItems, trdOpenItems, writeupBlanks, openFigures } from "@gap/engine";
 import { describe, expect, it } from "vitest";
+import { expectNoPrivateTerms } from "../../test-support/private-terms";
 import { content, demos, trdWriteups } from "../index";
 
 // The second demo: SYR-305, a fictional liquid mAb in a prefilled syringe made from frozen drug substance. Its TRD is complete on purpose, so
@@ -48,7 +49,8 @@ describe("SYR-305 demo", () => {
 
   it("names only fictional people and companies and carries no client code or supplier brand", () => {
     const text = JSON.stringify(project) + JSON.stringify(buildTrdDocument(project, doc)) + JSON.stringify(raw);
-    expect(text).not.toMatch(/CTP\d{4}|QC\d{4}|client-system-A|client-system-B/);
+    expect(text).not.toMatch(/CTP\d{4}|QC\d{4}/);
+    expectNoPrivateTerms(text);
     // every person or company named in the script says (fictional)
     for (const n of ["Alex Example", "Sam Example", "Robin Example", "Example Biologics", "Example Fill Site"]) {
       for (const m of text.matchAll(new RegExp(`${n}.{0,50}`, "g"))) expect(m[0], m[0]).toContain("(fictional");

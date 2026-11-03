@@ -170,7 +170,7 @@ describe("path traversal and name sanitising", () => {
     }
     const files = await walk(env.dataDir);
     const mine = files.filter((f) => f.startsWith(`files/${c.userId}/`));
-    for (const f of mine.filter((x) => !x.endsWith("index.json"))) {
+    for (const f of mine.filter((x) => !/index.json(.bak)?$/.test(x))) {
       const parts = f.split("/");
       expect(parts).toHaveLength(4); // files / account / id / name: never deeper, never shallower
       expect(parts[3]).not.toMatch(/[<>:"|?*\\]/);
@@ -472,7 +472,8 @@ describe("rename, delete, bulk", () => {
     const bulk = await c.post("/api/myfiles/bulk", { action: "delete", ids: [b.json.file.id, d.json.file.id, "12345678-1234-1234-1234-123456789012"] });
     expect(bulk.json).toEqual({ done: 2, missing: 1 });
     expect((await c.get("/api/myfiles")).json.files).toEqual([]);
-    expect(await readdir(join(env.dataDir, "files", c.userId))).toEqual([".incoming", "index.json"]);
+    // index.json.bak is the last good copy the store keeps beside every JSON file
+    expect((await readdir(join(env.dataDir, "files", c.userId))).filter((n) => !n.endsWith(".bak"))).toEqual([".incoming", "index.json"]);
   });
 });
 

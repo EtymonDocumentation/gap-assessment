@@ -1,6 +1,6 @@
 /// <reference types="node" />
 import { randomUUID } from "node:crypto";
-import { appendFile, mkdir, open, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import { appendFile, copyFile, mkdir, open, readFile, readdir, rename, rm, stat } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
 
 const FILE_MODE = 0o600;
@@ -24,17 +24,42 @@ async function renameWithRetry(from: string, to: string): Promise<void> {
   }
 }
 
-/** Writes to a temp file in the same folder, then renames, so a reader never sees half a file. */
-async function atomicWrite(file: string, data: string | Uint8Array): Promise<void> {
+/** Name of the last good copy kept beside a JSON data file. */
+export const BACKUP_SUFFIX = ".bak";
+
+/**
+ * Writes to a temp file in the same folder, flushes it to the disk, then renames, so a reader never sees half a file
+ * and a power cut cannot leave an empty one (a rename alone can reach the disk before the file's content does).
+ * For JSON files the previous content is first kept as "<file>.bak", but only when it still parses: a damaged file
+ * must never overwrite the last good copy.
+ */
+async function atomicWrite(file: string, data: string | Uint8Array, keepBackup = false): Promise<void> {
   await mkdir(dirname(file), { recursive: true, mode: DIR_MODE });
   const tmp = `${file}.${randomUUID()}.tmp`;
   try {
-    await writeFile(tmp, data, { mode: FILE_MODE });
+    const handle = await open(tmp, "w", FILE_MODE);
+    try {
+      await handle.writeFile(data);
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
+    if (keepBackup) await backUpIfValid(file);
     await renameWithRetry(tmp, file);
   } catch (err) {
     await rm(tmp, { force: true }).catch(() => undefined);
     throw err;
   }
+}
+
+async function backUpIfValid(file: string): Promise<void> {
+  try {
+    JSON.parse(await readFile(file, "utf8"));
+  } catch {
+    return; // nothing there yet, or already damaged: keep the older .bak
+  }
+  // A failed backup must not fail the save itself.
+  await copyFile(file, file + BACKUP_SUFFIX).catch(() => undefined);
 }
 
 /** Files that both the server and the admin tool change. Every change to them happens under the cross-process lock. */
@@ -119,12 +144,23 @@ export class Store {
     return run;
   }
 
+  /**
+   * Reads a JSON file. A file that fails to parse (for example cut short by a crash) falls back to the last good
+   * copy "<file>.bak" with a logged warning; only when that is unusable too does the original error surface.
+   */
   async readJson<T>(file: string, fallback: T): Promise<T> {
     try {
       return JSON.parse(await readFile(file, "utf8")) as T;
     } catch (err) {
       if (isMissing(err)) return fallback;
-      throw err;
+      if (!(err instanceof SyntaxError)) throw err;
+      try {
+        const good = JSON.parse(await readFile(file + BACKUP_SUFFIX, "utf8")) as T;
+        console.warn(`${basename(file)} could not be read; using its last good copy (${basename(file)}${BACKUP_SUFFIX}).`);
+        return good;
+      } catch {
+        throw err;
+      }
     }
   }
 
@@ -138,7 +174,7 @@ export class Store {
   }
 
   writeJson(file: string, value: unknown): Promise<void> {
-    return this.withLock(file, () => atomicWrite(file, JSON.stringify(value, null, 2)));
+    return this.withLock(file, () => atomicWrite(file, JSON.stringify(value, null, 2), true));
   }
 
   writeBytes(file: string, bytes: Uint8Array): Promise<void> {
@@ -153,7 +189,7 @@ export class Store {
   update<T>(file: string, fallback: T, fn: (current: T) => T | Promise<T>): Promise<T> {
     const step = async () => {
       const next = await fn(await this.readJson(file, fallback));
-      await atomicWrite(file, JSON.stringify(next, null, 2));
+      await atomicWrite(file, JSON.stringify(next, null, 2), true);
       return next;
     };
     const shared = dirname(resolve(file)) === this.dir && SHARED_FILES.has(basename(file));

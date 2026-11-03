@@ -86,6 +86,8 @@ test("a project with no documents says 'Not started', proposes the TRD after the
 });
 
 test("Next and Back walk gap document, TRD, sampling plan, batch record and Process view, following links that already exist", async ({ page }) => {
+  // A demo build, six pages and two axe scans: about 5 s alone, 22 s or more when a full run builds demos in every worker.
+  test.slow();
   await openSyringe(page);
   await hash(page, "#/document");
   await expect(page.getByTestId("chain-gap")).toHaveAttribute("aria-current", "step");

@@ -1,10 +1,44 @@
 import yaml from "@rollup/plugin-yaml";
+import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { extname, join, resolve } from "node:path";
+import { brotliCompressSync, constants, gzipSync } from "node:zlib";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 // Relative base + hash routing: the build works from any sub-path (GitHub Pages
 // project sites, Netlify, or a local folder) without server rewrites.
 //
+// Text files that compress well; pictures and fonts are already compressed.
+const COMPRESSIBLE = new Set([".js", ".mjs", ".css", ".map", ".svg", ".json", ".html", ".txt"]);
+
+/**
+ * Server build only: next to every text file in the output folder, write "<file>.br" (Brotli) and "<file>.gz" (gzip).
+ * The laptop server sends the matching copy with Content-Encoding when the browser accepts it (apps/server/src/static.ts),
+ * so a first visit downloads about a quarter of the 2.7 MB script. A copy is kept only when it is really smaller.
+ */
+function precompress(outDir: string) {
+  return {
+    name: "gap-precompress",
+    apply: "build" as const,
+    closeBundle() {
+      const walk = (dir: string): string[] =>
+        readdirSync(dir).flatMap((name) => {
+          const path = join(dir, name);
+          return statSync(path).isDirectory() ? walk(path) : [path];
+        });
+      for (const file of walk(resolve(outDir))) {
+        if (!COMPRESSIBLE.has(extname(file).toLowerCase())) continue;
+        const raw = readFileSync(file);
+        if (raw.length < 1024) continue;
+        const br = brotliCompressSync(raw, { params: { [constants.BROTLI_PARAM_QUALITY]: 11, [constants.BROTLI_PARAM_SIZE_HINT]: raw.length } });
+        const gz = gzipSync(raw, { level: 9 });
+        if (br.length < raw.length) writeFileSync(file + ".br", br);
+        if (gz.length < raw.length) writeFileSync(file + ".gz", gz);
+      }
+    },
+  };
+}
+
 // Two builds:
 //  - `vite build` is the static demo (Pages): no server code, no network calls. Output: dist.
 //  - `vite build --mode server` (npm run build:server) is the server-mode build for the laptop server. It sets
@@ -13,7 +47,7 @@ export default defineConfig(({ mode }) => {
   const serverMode = mode === "server" || process.env.VITE_SERVER_MODE === "1";
   return {
     base: "./",
-    plugins: [react(), yaml()],
+    plugins: [react(), yaml(), ...(serverMode ? [precompress("dist-server")] : [])],
     // The demo is built in a module Web Worker (src/demo-worker.ts), which imports the YAML content too, so it needs the same plugin.
     worker: { format: "es" as const, plugins: () => [yaml()] },
     // A literal replacement, so the static build folds every `import.meta.env.VITE_SERVER_MODE` check away
