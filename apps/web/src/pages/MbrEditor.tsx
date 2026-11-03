@@ -2,6 +2,7 @@ import {
   addBlockForRequirement,
   addBlockFromLibrary,
   addCustomBlock,
+  addPlanPointToSection,
   addSection,
   blocksForUnitOp,
   deleteMbr,
@@ -13,6 +14,7 @@ import {
   numberSteps,
   removeBlock,
   removeSection,
+  sampleHomeBlock,
   sampleNotices,
   splitIndex,
   splitMbr,
@@ -21,13 +23,14 @@ import {
   updateMbr,
   updateSection,
   updateSplit,
+  type MbrOpenItem,
   type TrdRequirement,
 } from "@gap/engine";
 import type { MbrRecord, MbrSection, SamplingPlan } from "@gap/process-model";
 import { Fragment, useMemo, useRef, useState } from "react";
 import { HelpTip } from "../HelpTip";
 import { Modal } from "../components";
-import { dateTime } from "../lib";
+import { countOf, dateTime } from "../lib";
 import { href, navigate } from "../router";
 import { useStore } from "../store";
 import { useMbrLibrary } from "../mbr-blocks-store";
@@ -77,6 +80,29 @@ export function MbrEditor({ rec, tab = "edit" }: { rec: MbrRecord; tab?: "edit" 
       el?.focus();
     }, 50);
   };
+  // From an open item about a plan point: opens the section's blocks and moves focus to the first sample picker there, where the author
+  // chooses the block and the point. A section with no block has no picker; focus then goes to its heading.
+  const goToSection = (sectionId: string) => {
+    const section = rec.sections.find((s) => s.id === sectionId);
+    if (!section) return;
+    setOpenBlocks((s) => {
+      const n = new Set(s);
+      section.blocks.forEach((b) => n.add(b.id));
+      return n;
+    });
+    setTimeout(() => {
+      const picker = section.blocks.map((b) => document.getElementById(`mbr-sample-pick-${b.id}`)).find((el) => el !== null);
+      const target = picker ?? document.getElementById(`mbr-sec-${section.id}`);
+      target?.scrollIntoView({ block: "center" });
+      target?.focus();
+    }, 50);
+  };
+  // A plan point that names no unit operation could go into any section: the author is taken to the list of sections to choose.
+  const goToSections = () => {
+    const el = document.getElementById("mbr-sections-h");
+    el?.scrollIntoView({ block: "start" });
+    el?.focus();
+  };
 
   return (
     <MbrFrame rec={rec} tab={tab}>
@@ -104,11 +130,13 @@ export function MbrEditor({ rec, tab = "edit" }: { rec: MbrRecord; tab?: "edit" 
         </section>
       )}
 
-      <OpenItems rec={rec} open={open} requirements={requirements} library={library} run={run} goToRow={goToRow} />
+      <OpenItems rec={rec} plan={plan} open={open} requirements={requirements} library={library} run={run} goToRow={goToRow} goToSection={goToSection} goToSections={goToSections} />
 
       <section className="stack" aria-labelledby="mbr-sections-h">
         <div className="row wrap between">
-          <h2 id="mbr-sections-h">Sections</h2>
+          <h2 id="mbr-sections-h" tabIndex={-1}>
+            Sections
+          </h2>
           <button
             type="button"
             className="btn small"
@@ -176,7 +204,7 @@ export function MbrEditor({ rec, tab = "edit" }: { rec: MbrRecord; tab?: "edit" 
           open
           onOpenChange={(o) => !o && setConfirm(null)}
           title={confirm.kind === "record" ? "Delete this batch record?" : confirm.kind === "section" ? "Remove this section?" : "Remove this block?"}
-          description={confirm.kind === "record" ? `${rec.id}: ${rec.title}` : confirm.kind === "section" ? `${confirm.section.title}, with ${confirm.section.blocks.length} blocks.` : confirm.title}
+          description={confirm.kind === "record" ? `${rec.id}: ${rec.title}` : confirm.kind === "section" ? `${confirm.section.title}, with ${countOf(confirm.section.blocks.length, "block")}.` : confirm.title}
           restoreFocus={() => opener.current}
         >
           <div className="row end">
@@ -315,18 +343,24 @@ function Details({ rec, run, trdTitle, planTitle }: { rec: MbrRecord; run: Run; 
 
 function OpenItems({
   rec,
+  plan,
   open,
   requirements,
   library,
   run,
   goToRow,
+  goToSection,
+  goToSections,
 }: {
   rec: MbrRecord;
+  plan: SamplingPlan | undefined;
   open: ReturnType<typeof mbrOpenItems>;
   requirements: TrdRequirement[];
   library: ReturnType<typeof useMbrLibrary>;
   run: Run;
   goToRow: (blockId: string, rowId: string) => void;
+  goToSection: (sectionId: string) => void;
+  goToSections: () => void;
 }) {
   const rest = open.filter((o) => o.kind !== "no_step");
   return (
@@ -346,13 +380,14 @@ function OpenItems({
                   Go to row
                 </button>
               )}
+              {o.kind === "sample_not_in_record" && <PlanPointActions rec={rec} plan={plan} item={o} library={library} run={run} goToSection={goToSection} goToSections={goToSections} />}
             </li>
           ))}
         </ul>
       )}
       {requirements.length > 0 && (
         <div className="stack" data-testid="mbr-requirements">
-          <h3>TRD requirement without an MBR step ({requirements.length})</h3>
+          <h3>TRD requirement without a batch record step ({requirements.length})</h3>
           <ul className="plain-list">
             {requirements.map((q) => {
               const lib = q.suggestedBlockIds.map((id) => library.find((b) => b.id === id)).filter((b) => b !== undefined);
@@ -376,6 +411,65 @@ function OpenItems({
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * What the author can do about a plan point the record leaves out. Exactly one section fits and it has a block that holds sample rows: the
+ * point is added there in one click (the row, and its sampling step where a block names a place for it). Otherwise the author chooses: the
+ * section's own sample picker (several sections fit, or the section has no block that holds sample rows), or the list of sections when the
+ * plan names no unit operation for the point. Nothing is added until a button is pressed.
+ */
+function PlanPointActions({
+  rec,
+  plan,
+  item,
+  library,
+  run,
+  goToSection,
+  goToSections,
+}: {
+  rec: MbrRecord;
+  plan: SamplingPlan | undefined;
+  item: MbrOpenItem;
+  library: ReturnType<typeof useMbrLibrary>;
+  run: Run;
+  goToSection: (sectionId: string) => void;
+  goToSections: () => void;
+}) {
+  const pointId = item.pointId;
+  const point = plan?.points.find((p) => p.id === pointId);
+  const sections = rec.sections.filter((s) => item.sectionIds?.includes(s.id));
+  if (!pointId || !point || sections.length === 0) return null;
+  const only = sections.length === 1 ? sections[0]! : undefined;
+  if (only && sampleHomeBlock(only, point, library)) {
+    return (
+      <button
+        type="button"
+        className="btn small"
+        aria-label={`Add to ${only.title}: sample ${pointId}`}
+        data-testid={`mbr-plan-point-add-${pointId}`}
+        onClick={() => run((p, a) => addPlanPointToSection(p, rec.id, only.id, pointId, library, a), `Sample row ${pointId} added to ${only.title}`)}
+      >
+        Add to {only.title}
+      </button>
+    );
+  }
+  if (item.chooseWhere && !only) {
+    return (
+      <button type="button" className="btn small" aria-label={`Go to the sections: choose where sample ${pointId} goes`} data-testid={`mbr-plan-point-sections-${pointId}`} onClick={goToSections}>
+        Go to the sections
+      </button>
+    );
+  }
+  return (
+    <>
+      {sections.map((s) => (
+        <button key={s.id} type="button" className="btn small" aria-label={`Go to ${s.title}: choose the block for sample ${pointId}`} data-testid={`mbr-plan-point-go-${pointId}-${s.id}`} onClick={() => goToSection(s.id)}>
+          Go to {s.title}
+        </button>
+      ))}
+    </>
   );
 }
 
@@ -417,7 +511,7 @@ function SectionView({
     <section className="card stack" aria-labelledby={`mbr-sec-${section.id}`} data-testid={`mbr-section-${section.id}`}>
       <div className="row wrap between">
         {!renaming ? (
-          <h3 id={`mbr-sec-${section.id}`}>
+          <h3 id={`mbr-sec-${section.id}`} tabIndex={-1}>
             {index + 1}. {section.title}
             {part && (
               <span className="guide-badge split-part" data-testid={`mbr-part-label-${section.id}`}>

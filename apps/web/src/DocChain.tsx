@@ -35,6 +35,25 @@ export function DocChainStrip({ route, heading = true }: { route?: ChainRoute; h
   const numbered = stages.filter((s) => s.id !== "risk");
   const at = numbered.findIndex((s) => s.current);
 
+  // The risk assessment has no number ("N of 5"), so its page names the stage instead and offers the stage that follows it.
+  const riskAt = stages.findIndex((s) => s.current && s.id === "risk");
+  if (narrow && at < 0 && riskAt >= 0) {
+    const here = stages[riskAt]!;
+    const next = stages[riskAt + 1];
+    return (
+      <nav aria-label="Document chain" className="doc-chain doc-chain-compact no-print" data-testid="doc-chain">
+        <span className="doc-chain-now" aria-current="step" data-testid={`chain-${here.id}`}>
+          <span className="doc-chain-label">Chain</span> <strong>{here.name}</strong>
+        </span>
+        {next && (
+          <a className="doc-chain-next" href={to(next)} data-testid="chain-strip-next">
+            Next: {next.name} <span aria-hidden="true">›</span>
+          </a>
+        )}
+      </nav>
+    );
+  }
+
   if (narrow && at >= 0) {
     const here = numbered[at]!;
     const next = numbered[at + 1];

@@ -3,6 +3,7 @@ import type { RiskAssessment } from "@gap/process-model";
 import { useState } from "react";
 import { useContent, useStore } from "../store";
 import type { Run } from "./SamplingFlow";
+import { countOf } from "../lib";
 
 /*
  * The "Process steps" card of a risk assessment (same idea as the sampling plan's).
@@ -69,7 +70,7 @@ export function RiskSteps({ a, run }: { a: RiskAssessment; run: Run }) {
         {pending && (
           <div className="notice" role="alertdialog" aria-label={`Remove ${pending.label}`} data-testid="risk-step-remove-confirm">
             <p>
-              {pending.label} holds {itemsOn(pending.id)} items. Removing the step leaves them in the assessment as "Not placed on a step". No item is deleted.
+              {pending.label} holds {countOf(itemsOn(pending.id), "item")}. Removing the step leaves {itemsOn(pending.id) === 1 ? "it" : "them"} in the assessment as "Not placed on a step". No item is deleted.
             </p>
             <div className="row wrap">
               <button type="button" className="btn danger" autoFocus onClick={() => remove(pending.id)}>

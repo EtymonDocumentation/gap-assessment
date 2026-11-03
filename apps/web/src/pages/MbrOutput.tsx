@@ -1,10 +1,10 @@
-import { buildMbrDocument, documentFingerprint, mbrBasisText, recordExport } from "@gap/engine";
+import { buildMbrDocument, documentFingerprint, mbrBasisText, projectLabel, recordExport } from "@gap/engine";
 import { MBR_FORMAT_VERSION, PROCESS_MODEL_VERSION, type DocumentExport, type MbrRecord, type TemplateRecord } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlBody } from "@gap/renderers";
 import { useMemo, useRef, useState } from "react";
 import { Modal } from "../components";
 import { HelpTip } from "../HelpTip";
-import { APP_VERSION, download, today } from "../lib";
+import { APP_VERSION, download, projectFileStem, today } from "../lib";
 import { useContent, useStore } from "../store";
 import { BUILTIN_RECORD, ExportHistory, GENERIC_MODES, useWordChoice, WordPanel } from "./document-panels";
 
@@ -29,7 +29,7 @@ export function MbrOutput({ rec }: { rec: MbrRecord }) {
   const part = rec.split && partChoice !== "whole" ? (Number(partChoice) as 1 | 2) : undefined;
   const doc = useMemo(() => buildMbrDocument(project, rec, { generatedAt, appVersion: APP_VERSION, catalogVersion: content.versions.catalog, part }), [project, rec, content, generatedAt, part]);
   const body = useMemo(() => (showPreview ? renderHtmlBody(doc) : ""), [doc, showPreview]);
-  const stamp = `${project.meta.id}-${rec.id}${part ? `-part${part}` : ""}-${today()}`;
+  const stamp = `${projectFileStem(project.meta)}-${rec.id}${part ? `-part${part}` : ""}-${today()}`;
   const tbd = doc.tbdCount ?? 0;
 
   const [pending, setPending] = useState<(() => void) | null>(null);
@@ -61,9 +61,9 @@ export function MbrOutput({ rec }: { rec: MbrRecord }) {
   return (
     <>
       <section className="card stack no-print" aria-labelledby="mbr-doc" data-testid="mbr-output">
-        <h2 id="mbr-doc">Master batch record (draft)</h2>
+        <h2 id="mbr-doc">Batch record (draft)</h2>
         <p>
-          {mbrBasisText(project.meta.id, rec)} The document has one section per unit operation in process order, with automatic step numbers, parameter tables that show the TRD value and its source beside the MBR value, a time-limit table, sample tables from the sampling plan, and a "To be completed by the CMO" place for everything only the CMO can state. It states no filing category: the only wording is "Requires regulatory affairs assessment".
+          {mbrBasisText(projectLabel(project.meta), rec, "plain")} The document has one section per unit operation in process order, with automatic step numbers, parameter tables that show the TRD value and its source beside the batch record value, a time-limit table, sample tables from the sampling plan, and a "To be completed by the CMO" place for everything only the CMO can state. It states no filing category: the only wording is "Requires regulatory affairs assessment".
         </p>
         {rec.split && (
           <fieldset className="field" data-testid="mbr-part-choice">
@@ -121,7 +121,7 @@ export function MbrOutput({ rec }: { rec: MbrRecord }) {
         tagData={(m) => m.buildDocumentTagData(doc)}
         testIdPrefix="mbr"
         buttonLabel="Download batch record (Word)"
-        note={'"Map to their headings" is offered for the gap assessment document only. For a tagged template, {title}, {banner}, {status}, {generated}, {meta} and {sections} are filled, and {@body} or a section tag such as {@section_basis} brings in the batch record in your template\'s styles. The sections of each unit operation have their own tags, for example {@section_section_SC_01}.'}
+        note={'"A template\'s headings" is offered for the gap assessment document only. For a tagged template, {title}, {banner}, {status}, {generated}, {meta} and {sections} are filled, and {@body} or a section tag such as {@section_basis} brings in the batch record in your template\'s styles. The sections of each unit operation have their own tags, for example {@section_section_SC_01}.'}
       />
 
       <ExportHistory exports={exports} idPrefix="mbr-export-history" title="Export history" />

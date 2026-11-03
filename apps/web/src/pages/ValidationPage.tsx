@@ -15,7 +15,7 @@ import type { GapStatus, Severity } from "@gap/process-model";
 import { useMemo, useState } from "react";
 import { PageHeader } from "../PageHeader";
 import { CategoryChip, Empty, ProvisionalFlag, SeverityBadge } from "../components";
-import { download, SEVERITY_TEXT, slug, today } from "../lib";
+import { countOf, download, projectFileStem, SEVERITY_TEXT, today } from "../lib";
 import { href } from "../router";
 import { useAssessment, useContent, useStageWording, useStore } from "../store";
 
@@ -82,7 +82,7 @@ export function ValidationPage() {
     );
   }, [plan, ready, sev, text]);
 
-  const name = slug(project.meta.title);
+  const name = projectFileStem(project.meta);
   return (
     <div className="stack-lg">
       <PageHeader
@@ -95,7 +95,7 @@ export function ValidationPage() {
         <div className="row between wrap">
           <h2 id="plan-h">Validation plan</h2>
           <button className="btn" disabled={!rows.length} onClick={() => download(`${name}-validation-plan-${today()}.csv`, validationPlanToCsv(rows), "text/csv;charset=utf-8")}>
-            Export CSV ({rows.length} rows)
+            Export CSV ({countOf(rows.length, "row")})
           </button>
         </div>
 
@@ -147,7 +147,7 @@ export function ValidationPage() {
             ) : (
               <div className="table-scroll" role="region" aria-label="Validation plan table" tabIndex={0}>
                 <table className="data validation-plan">
-                  <caption className="visually-hidden">Validation plan, {rows.length} activities, most severe first</caption>
+                  <caption className="visually-hidden">Validation plan, {countOf(rows.length, "activity", "activities")}, most severe first</caption>
                   <thead>
                     <tr>
                       <th scope="col">Activity</th>
@@ -177,7 +177,7 @@ export function ValidationPage() {
             disabled={!equipment.length}
             onClick={() => download(`${name}-equipment-qualification-${today()}.csv`, equipmentQualificationToCsv(equipment), "text/csv;charset=utf-8")}
           >
-            Export CSV ({equipment.length} rows)
+            Export CSV ({countOf(equipment.length, "row")})
           </button>
         </div>
         {equipment.length === 0 ? (
@@ -185,7 +185,7 @@ export function ValidationPage() {
         ) : (
           <div className="table-scroll" role="region" aria-label="Equipment qualification table" tabIndex={0}>
             <table className="data equipment-qualification">
-              <caption className="visually-hidden">Equipment qualification, {equipment.length} items</caption>
+              <caption className="visually-hidden">Equipment qualification, {countOf(equipment.length, "item")}</caption>
               <thead>
                 <tr>
                   <th scope="col">Unit operation</th>
@@ -247,7 +247,7 @@ function PlanRowView({ r }: { r: PlanRow }) {
         <ReadinessTag readiness={r.readiness} />
         {r.openItems > 0 && (
           <div className="small muted">
-            {r.openItems} open information {r.openItems === 1 ? "item" : "items"}
+            {r.openItems} open {r.openItems === 1 ? "item" : "items"}
           </div>
         )}
       </td>

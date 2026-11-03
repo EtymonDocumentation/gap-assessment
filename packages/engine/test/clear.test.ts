@@ -54,7 +54,7 @@ describe("clearInstances: clearing answers on purpose", () => {
     const row = changeLogView(content, project, {}).find((r) => r.action === "answer_cleared")!;
     expect(row.actionLabel).toBe("Answer cleared");
     expect(row.before).toMatch(/single/i);
-    expect(row.after).toMatch(/Not established/i);
+    expect(row.after).toMatch(/TBD/i);
     expect(row.detail).toMatch(/kept only in this log/i);
   });
 

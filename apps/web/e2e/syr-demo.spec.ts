@@ -4,7 +4,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { goTo } from "./nav-helper";
+import { goTo, openDemo } from "./nav-helper";
 
 test.beforeEach(async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
@@ -12,8 +12,8 @@ test.beforeEach(async ({ page }) => {
 
 test("the syringe demo opens from the start page with a complete TRD", async ({ page }) => {
   await page.goto("./");
-  await expect(page.getByRole("button", { name: "Load demo" })).toHaveCount(1);
-  await page.getByRole("button", { name: "Open syringe example" }).click();
+  await expect(page.getByRole("button", { name: "Open demo: ARX-217 vials" })).toHaveCount(1);
+  await openDemo(page, "syr");
   await expect(page.getByTestId("home-chain")).toBeVisible();
   await goTo(page, "TRD");
   await expect(page.getByTestId("trd-list-table")).toContainText("SYR-305 technical requirements document (fictional)");
@@ -27,10 +27,10 @@ test("the syringe demo opens from the start page with a complete TRD", async ({ 
 // The syringe demo also opens with its master batch record, built from the approved TRD.
 async function openSyringeRecord(page: Page) {
   await page.goto("./");
-  await page.getByRole("button", { name: "Open syringe example" }).click();
+  await openDemo(page, "syr");
   await expect(page.getByTestId("home-chain")).toBeVisible();
   await goTo(page, "Batch record");
-  await expect(page.getByTestId("mbr-list-table")).toContainText("SYR-305 master batch record");
+  await expect(page.getByTestId("mbr-list-table")).toContainText("SYR-305 batch record");
   await page.getByTestId("mbr-list-table").getByRole("link").first().click();
   await expect(page.getByRole("heading", { level: 1, name: /MBR-001/ })).toBeVisible();
 }
@@ -64,7 +64,7 @@ for (const [name, size] of [["desktop", { width: 1280, height: 900 }], ["phone",
     await expect(open).toContainText("To be entered before issue");
     await expect(open).not.toContainText("Nothing open");
     await expect(open).not.toContainText("Not decided");
-    // Every TRD requirement now has a step in the record, so the "TRD requirement without an MBR step" list is not shown at all.
+    // Every TRD requirement now has a step in the record, so the "TRD requirement without a batch record step" list is not shown at all.
     await expect(page.getByTestId("mbr-requirements")).toHaveCount(0);
 
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

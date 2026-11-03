@@ -3,7 +3,7 @@
 // hour of a sample, the export choice, the Word export with real pictures, accessibility, 390 px and light / dark screenshots.
 // All data are fictional.
 import AxeBuilder from "@axe-core/playwright";
-import { goTo } from "./nav-helper";
+import { goTo, openDemo } from "./nav-helper";
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -18,7 +18,7 @@ test.beforeEach(async ({ page }) => {
 
 async function openDemoPlan(page: Page) {
   await page.goto("./");
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
   await goTo(page, "Sampling plan");
   await page.getByTestId("plan-list").getByRole("link").first().click();

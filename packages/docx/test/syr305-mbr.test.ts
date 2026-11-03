@@ -26,7 +26,7 @@ describe("Syringe demo batch record in Word and HTML", () => {
     const out = await renderDocx({ doc: syrDoc, mode: "builtin", generatedAt: GENERATED_AT });
     const text = plainText(strictDocx(out.bytes));
     expect(text).toContain(BANNER);
-    expect(text).toContain("SYR-305 master batch record");
+    expect(text).toContain("SYR-305 batch record");
     expect(text).toContain(CMO_PLACEHOLDER);
     expect(text).toContain("Tighter than the TRD");
     expect(text).toContain("Maximum total time out of refrigeration");
@@ -65,7 +65,7 @@ describe("Syringe demo batch record in Word and HTML", () => {
     const out = await renderDocx({ doc: arxDoc, mode: "builtin", generatedAt: GENERATED_AT });
     const text = plainText(strictDocx(out.bytes));
     expect(text).toContain(BANNER);
-    expect(text).toContain("ARX-217 master batch record");
+    expect(text).toContain("ARX-217 batch record");
     expect(text).toContain("Tighter than the TRD");
     expect(text).not.toMatch(/CTP\d{4}|QC\d{4}|client-system-A|client-system-B/);
     const dir = join(tmpdir(), "gap-docx-samples", "arx217-mbr");

@@ -39,7 +39,7 @@ export function DesignReviewLine({ plan, onOpen }: { plan: SamplingPlan; onOpen:
   );
 }
 
-const STATE_TEXT = { unanswered: "Unanswered", answered: "Answered", look_again: "Look again" } as const;
+const STATE_TEXT = { unanswered: "Open", answered: "Answered", look_again: "Look again" } as const;
 
 export function SamplingReview({ plan, run, onOpenPoint }: { plan: SamplingPlan; run: Run; onOpenPoint: (id: string) => void }) {
   const view = useDesignReview(plan);

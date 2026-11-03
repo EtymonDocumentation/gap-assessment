@@ -38,7 +38,7 @@ export const DOCUMENT_SECTION_IDS: readonly string[] = [
 
 /**
  * The sections a user may leave out of the document, in document order. Everything else is mandatory: the purpose, the
- * scope, the SU and RU summaries, the detailed gap table and the open information items (TBD values must stay visible).
+ * scope, the SU and RU summaries, the detailed gap table and the open items (TBD values must stay visible).
  * The titles here are the titles buildDocument uses.
  */
 export const OPTIONAL_SECTIONS: readonly { id: string; title: string; appendix: boolean }[] = [
@@ -68,7 +68,7 @@ export const SECTION_CHOICES: readonly { id: string; title: string; appendix: bo
   { id: "gap-table", title: "Detailed gap table", appendix: false, optional: false },
   { id: "validation-plan", title: "Validation plan", appendix: false, optional: true },
   { id: "equipment-qualification", title: "Equipment qualification comparison", appendix: false, optional: true },
-  { id: "open-items", title: "Open information items", appendix: false, optional: false },
+  { id: "open-items", title: "Open items", appendix: false, optional: false },
   { id: "risk", title: "Risk ranking", appendix: false, optional: true },
   { id: "verification-status", title: "Verification status", appendix: false, optional: true },
   { id: "references", title: "References", appendix: false, optional: true },

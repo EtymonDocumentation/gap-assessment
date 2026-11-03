@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { PageHeader } from "../PageHeader";
 import { Empty, Modal } from "../components";
 import { loadDocx, useDocx } from "../docx-loader";
-import { dateTime, download, MODE_LABEL, shortHash, slug } from "../lib";
+import { dateTime, download, MODE_LABEL, slug } from "../lib";
 import { fetchSample, SAMPLE_TEMPLATES } from "../sample-templates";
 import { href } from "../router";
 import { BrowserLibraryPanel, useIsRemote } from "../server/ServerUi";
@@ -107,7 +107,7 @@ export function TemplatesPage() {
         throw userError("This template file is damaged or has been changed: its checksum (SHA-256) does not match the document inside it. It was not added.");
       }
       const imp = await m.importTemplateFile(tf.fileName, tf.bytes);
-      if (useTemplates.getState().items.some((i) => i.sha256 === tf.sha256)) throw userError(`This template is already in the library: the file with checksum ${shortHash(tf.sha256)} was added before.`);
+      if (useTemplates.getState().items.some((i) => i.sha256 === tf.sha256)) throw userError("This template is already in the library: a file with exactly the same content was added before.");
       const stored = toStored(tf.name, tf.version, tf.fileName, imp);
       stored.sha256 = tf.sha256;
       stored.analysis = { ...stored.analysis, stripped: [...new Set([...tf.stripped, ...stored.analysis.stripped])] };
@@ -433,13 +433,8 @@ function TemplateCard({
           {t.fileName} ({FORMAT_TEXT[t.sourceFormat]})
         </dd>
         <dt>Added</dt>
-        <dd>{dateTime(t.addedAt)}</dd>
-        <dt>SHA-256</dt>
-        <dd>
-          <code title={t.sha256}>{shortHash(t.sha256)}</code>
-          <span className="muted small"> (of the file as uploaded; full value in the report below)</span>
-        </dd>
-        <dt>Can be used for</dt>
+        <dd>{dateTime(t.addedAt)} (local time)</dd>
+        <dt>Works with</dt>
         <dd>{usableText(t.analysis.usableModes)}</dd>
         {canMap && (
           <>

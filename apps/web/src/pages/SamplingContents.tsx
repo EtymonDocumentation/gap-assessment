@@ -28,7 +28,7 @@ const BY_TAB: Record<ContentsTab, Item[]> = {
     { id: "sp-points", label: "Sampling points", tab: "overview" },
     { id: "sp-totals", label: "Sample totals per batch", tab: "overview" },
     { id: "sampling-doc", label: "Download the sampling plan", tab: "overview" },
-    { id: "cmo-doc", label: "Download the CMO reporting instructions", tab: "overview" },
+    { id: "cmo-doc", label: "Download the CMO (contract manufacturing organization) reporting instructions", tab: "overview" },
   ],
   interview: [
     { id: "sp-parties", label: "Who does what", tab: "interview" },

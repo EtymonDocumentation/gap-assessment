@@ -1,6 +1,6 @@
 // Milestone 11, server build: the batch record module gates the menu, the page and the step-blocks library page, and a batch record is
 // kept with the project on the server.
-import { expectNoMenuEntry } from "../e2e/nav-helper";
+import { expectNoMenuEntry, openDemo } from "../e2e/nav-helper";
 import { expect, go, loadDemo, makeSamplingInvite, newAccount, serverRevision, signUp, test } from "./helpers";
 
 const DEMO_TITLE = "ARX-217 transfer: Site North Line 2 to Site South Line 4 (fictional demo)";
@@ -51,9 +51,9 @@ test("server build: the syringe example opens with its batch record, and the ser
   test.setTimeout(150_000);
   await signUp(page, newAccount("mbrsyr"), makeSamplingInvite());
   await go(page, "#/");
-  await page.getByRole("button", { name: "Open syringe example" }).click();
+  await openDemo(page, "syr");
   await expect(page.getByTestId("home-chain")).toBeVisible();
   await go(page, "#/mbr");
-  await expect(page.getByTestId("mbr-list-table")).toContainText("SYR-305 master batch record");
+  await expect(page.getByTestId("mbr-list-table")).toContainText("SYR-305 batch record");
   await expect.poll(() => serverRevision(page, "SYR-305 technology transfer: Example Biologics to Example Fill Site (fictional demo)")).toBeGreaterThan(0);
 });

@@ -44,14 +44,14 @@ function textOf(doc: DocModel): string {
 const build = (variant: "standard" | "evidence" = "standard") => buildTrdDocument(project, trd, { variant, generatedAt: "2026-10-27T09:00:00.000Z", content });
 
 describe("TRD: classification table and data map (T2)", () => {
-  it("is generated from the parameters and reads Not established where nothing was entered", () => {
+  it("is generated from the parameters and reads TBD where nothing was entered", () => {
     const text = textOf(build());
     expect(text).toContain("Parameter classification and data map");
     expect(text).toContain("Quality attribute protected");
     expect(text).toContain("Operator instruction in the batch record");
     expect(text).toContain("Protein quality (aggregates)");
     // A parameter without an entry is listed, and its cells say so; nothing is filled in.
-    expect(text).toContain("Not established");
+    expect(text).toContain("TBD");
   });
 
   it("is also a section of the evidence record, and an export can leave it out", () => {

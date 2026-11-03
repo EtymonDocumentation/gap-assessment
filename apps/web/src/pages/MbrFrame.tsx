@@ -28,7 +28,7 @@ const TABS: TabDef<MbrTab>[] = [
   },
   {
     id: "word",
-    label: "Word document",
+    label: "Document",
     testId: "mbr-tab-word",
     purpose: "Download the batch record as a Word or HTML draft, with a preview.",
     help: "Makes the draft document from the record as it stands. Open items and \"to be completed\" placeholders stay in the draft; you are shown the count before a download. Each download is written to the export history.",
@@ -36,7 +36,7 @@ const TABS: TabDef<MbrTab>[] = [
 ];
 
 /**
- * One batch record with real tabs: Edit, Process view, Word document. The tabs are routes (the Process view is still /mbr/view,
+ * One batch record with real tabs: Edit, Process view, Document. The tabs are routes (the Process view is still /mbr/view,
  * Word is /mbr?tab=word), so every existing link keeps working, a tab is a link a person can share, and the browser Back button
  * walks back through the tabs they visited. Arrow keys only move focus here; Enter or Space opens the tab, so a run of arrow
  * presses does not push a run of history entries.
@@ -56,7 +56,7 @@ export function MbrFrame({ rec, tab, children }: { rec: MbrRecord; tab: MbrTab; 
     { label: `${open} open ${open === 1 ? "item" : "items"}`, warning: open > 0, testId: "mbr-pill-open" },
   ];
   const started = [rec.trdId ? `TRD ${rec.trdId}` : "", rec.planId ? `plan ${rec.planId}` : ""].filter(Boolean).join(" and ");
-  // The downloads are in the Word document tab (the part choice, the Word kind and the pre-download check are there); the menu opens that
+  // The downloads are in the Document tab (the part choice, the Word kind and the pre-download check are there); the menu opens that
   // tab and puts focus on the matching button.
   const toDownload = (testId: string) => () => {
     go("word");
@@ -72,9 +72,9 @@ export function MbrFrame({ rec, tab, children }: { rec: MbrRecord; tab: MbrTab; 
             children: (
               <>
                 <p>
-                  A master batch record is the step-by-step instruction for making one batch. It is built from step blocks, and it can start from a TRD record (the parameter values) and a sampling plan (the sample rows), or from neither.
+                  A batch record is the step-by-step instruction for making one batch. It is built from step blocks, and it can start from a TRD record (the parameter values) and a sampling plan (the sample rows), or from neither.
                 </p>
-                <p>Next in the chain: the Process view draws the record as an equipment train, and the Word document tab produces the draft for review.</p>
+                <p>Next in the chain: the Process view draws the record as an equipment train, and the Document tab produces the draft for review.</p>
                 <p data-testid="mbr-scope-text">{mbrScopeText}</p>
               </>
             ),

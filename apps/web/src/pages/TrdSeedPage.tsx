@@ -1,11 +1,11 @@
-import { buildTrdOutline, buildTrdSeed, recordExport, trdSeedCounts, trdSeedFingerprint } from "@gap/engine";
+import { NO_VALUE_YET, buildTrdOutline, buildTrdSeed, recordExport, trdSeedCounts, trdSeedFingerprint } from "@gap/engine";
 import { PROCESS_MODEL_VERSION, TRD_SEED_VERSION, parseTrdSeed, type DocumentExport, type TemplateRecord } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlBody } from "@gap/renderers";
 import { useMemo, useRef, useState } from "react";
 import { PageHeader } from "../PageHeader";
 import { Modal } from "../components";
 import { loadDocx } from "../docx-loader";
-import { APP_VERSION, download, today } from "../lib";
+import { APP_VERSION, download, projectFileStem, today } from "../lib";
 import { href } from "../router";
 import { useTrdAllowed } from "../risk-module";
 import { useContent, useStore } from "../store";
@@ -43,8 +43,7 @@ export function TrdSeedPage() {
   const body = useMemo(() => (outline ? renderHtmlBody(outline) : ""), [outline]);
   const counts = useMemo(() => (seed ? trdSeedCounts(seed) : null), [seed]);
 
-  const id = project.meta.id;
-  const stamp = `${id}-${today()}`;
+  const stamp = `${projectFileStem(project.meta)}-${today()}`;
 
   // Downloading with TBD values open is allowed, after the person has seen the count (same rule as the gap document).
   const [pending, setPending] = useState<(() => void) | null>(null);
@@ -143,7 +142,7 @@ export function TrdSeedPage() {
               </p>
               <ul className="plain-list">
                 <li>Only values of the RU are exported as values. SU values appear only as a reference, and only in the optional Traceability section.</li>
-                <li>Nothing is filled in for you. A value nobody recorded reads "Not established", and a best guess for a TBD is labelled "TBD best guess, provisional".</li>
+                <li>Nothing is filled in for you. A value nobody recorded reads "TBD", and a best guess for a TBD is labelled "TBD best guess, provisional".</li>
                 <li>Process steps and topics you left out in the Scope step are not exported.</li>
                 <li>The outline is not an approved TRD, and it never names a regulatory filing category.</li>
                 <li>The outline uses the built-in style only. Customer templates are not applied to it yet.</li>
@@ -183,7 +182,7 @@ export function TrdSeedPage() {
               {sc.excluded.length ? `, ${sc.excluded.length} left out by the project` : ""}
               {sc.notApplicable.length ? `, ${sc.notApplicable.length} not applicable` : ""}
               {sc.topicsLeftOut.length ? `, ${sc.topicsLeftOut.length} ${sc.topicsLeftOut.length === 1 ? "topic" : "topics"} switched off` : ""}. Receiving unit:{" "}
-              {[seed.meta.receivingSite.name.display, seed.meta.receivingSite.line.display].filter(Boolean).join(", ") || "not established"}.
+              {[seed.meta.receivingSite.name.display, seed.meta.receivingSite.line.display].filter(Boolean).join(", ") || "TBD"}.
             </p>
             <div className="table-scroll" role="region" aria-label="RU values per process step" tabIndex={0}>
               <table className="data trd-counts" data-testid="trd-counts">
@@ -192,8 +191,8 @@ export function TrdSeedPage() {
                   <tr>
                     <th scope="col">Process step</th>
                     <th scope="col">Established</th>
-                    <th scope="col">TBD</th>
-                    <th scope="col">Not established</th>
+                    <th scope="col">Marked TBD</th>
+                    <th scope="col">{NO_VALUE_YET}</th>
                     <th scope="col">Not applicable</th>
                   </tr>
                 </thead>
@@ -230,7 +229,7 @@ export function TrdSeedPage() {
                 )}
                 {counts.total.notEstablished > 0 && (
                   <>
-                    {counts.total.notEstablished} {counts.total.notEstablished === 1 ? "value is" : "values are"} not established. They are exported as open items without a value.{" "}
+                    {counts.total.notEstablished} {counts.total.notEstablished === 1 ? "value has" : "values have"} no value yet. They are exported as open items without a value.{" "}
                   </>
                 )}
                 See the <a href={href("/tbd")}>TBD page</a>.
@@ -259,7 +258,7 @@ export function TrdSeedPage() {
               </button>
             </div>
             <p className="small muted">
-              Files are named with the project id and today's date. The drafting-aid notice is in every output. Seed format {TRD_SEED_VERSION}, process model {PROCESS_MODEL_VERSION}.
+              Files are named with the project title and today's date. The drafting-aid notice is in every output. Seed format {TRD_SEED_VERSION}, process model {PROCESS_MODEL_VERSION}.
             </p>
             <div role="status" aria-live="polite">
               {done && <p data-testid="trd-done">{done}</p>}
@@ -288,13 +287,13 @@ export function TrdSeedPage() {
         <Modal
           open
           onOpenChange={(o) => !o && setPending(null)}
-          title="Download with TBD values?"
-          description={`This seed still lists ${tbd} TBD ${tbd === 1 ? "value" : "values"}. They are open items, not confirmed values, and a best guess is labelled provisional.`}
+          title="Download with open items?"
+          description={`This seed still lists ${tbd} ${tbd === 1 ? "value" : "values"} marked TBD. They are open items, not confirmed values, and a best guess is labelled provisional.`}
           restoreFocus={() => opener.current}
         >
           <div className="stack">
             <p data-testid="tbd-warning">
-              The download will record that <strong>{tbd} TBD {tbd === 1 ? "value was" : "values were"}</strong> open when it was made.
+              The download will record <strong>{tbd} marked TBD</strong> in the export history.
             </p>
             <div className="row end">
               <button type="button" className="btn" autoFocus onClick={() => setPending(null)}>

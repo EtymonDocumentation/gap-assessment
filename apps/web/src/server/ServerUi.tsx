@@ -1,18 +1,21 @@
-import { PRODUCT_NAME, sourceLabel } from "@gap/engine";
+import { copyProject, PRODUCT_NAME, ProjectNameError, renameProject, sourceLabel } from "@gap/engine";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { PageBanner } from "../art";
 import { CascadeMark, ProductEyebrow } from "../brand";
-import { Modal, NoticeFooter, NoticeStrip } from "../components";
+import { InlineRename, Modal, NoticeFooter, NoticeStrip } from "../components";
 import { useDisclosure } from "../disclosure";
 import { dateTime, shortHash, slug, today, download } from "../lib";
-import { useStore } from "../store";
+import { AboutPage } from "../pages/AboutPage";
+import { href, useRoute } from "../router";
+import { actorOf, useStore } from "../store";
 import { readBrowserLibrary, removeFromBrowserLibrary, useTemplates, type StoredTemplate } from "../templates-store";
-import type { ApiError, FileMeta } from "./api";
+import { ThemeMenu } from "../theme-menu";
+import type { ApiError, FileMeta, ProjectSummary } from "./api";
 import * as api from "./api";
 import { formatBytes, useFiles } from "./files";
 import { planLine } from "./plan";
 import { useSession } from "./session-store";
-import { closeProject, deleteProjectById, flush, keepMine, loadList, loadNewerVersion, openProject, useSync } from "./sync";
+import { closeProject, copyStoredProject, deleteProjectById, editStoredProject, flush, keepMine, loadList, loadNewerVersion, openProject, useSync } from "./sync";
 
 /** Everything the server mode adds to the screen. Imported only behind `SERVER_MODE`, so the static build leaves it out. */
 
@@ -26,9 +29,21 @@ export function useIsRemote(): boolean {
 /** Shows the sign-in page until the person is signed in, then the app. Checks the server on first load. */
 export function ServerGate({ children }: { children: ReactNode }) {
   const phase = useSession((s) => s.phase);
+  const route = useRoute();
   useEffect(() => {
     void useSession.getState().start();
   }, []);
+  // Moving between the sign-in form and the About and privacy page puts focus on the new page, as the signed-in app does. Not on the first
+  // render: a person arriving at the sign-in page lands where the browser puts them.
+  const arrived = useRef(false);
+  useEffect(() => {
+    if (!arrived.current) {
+      arrived.current = true;
+      return;
+    }
+    document.getElementById("main")?.focus({ preventScroll: true });
+    window.scrollTo(0, 0);
+  }, [route.path]);
   if (phase === "ready") return <>{children}</>;
   return (
     <>
@@ -41,12 +56,36 @@ export function ServerGate({ children }: { children: ReactNode }) {
           <CascadeMark />
           <span className="brand-name">{PRODUCT_NAME}</span>
         </div>
+        {/* The same light / dark button as the signed-in header, so a person can set the colours before signing in. */}
+        <div className="header-tools">
+          <ThemeMenu />
+        </div>
       </header>
       <main id="main" tabIndex={-1}>
-        {phase === "loading" ? <p className="muted">Loading…</p> : phase === "unreachable" ? <Unreachable /> : <SignInPage />}
+        {phase === "loading" ? (
+          <p className="muted">Loading…</p>
+        ) : phase === "unreachable" ? (
+          <Unreachable />
+        ) : route.path === "/about" ? (
+          <SignedOutAbout />
+        ) : (
+          <SignInPage />
+        )}
       </main>
       <NoticeFooter />
     </>
+  );
+}
+
+/** The About and privacy page for a person who has not signed in, with the way back to the sign-in form. */
+function SignedOutAbout() {
+  return (
+    <div className="stack-lg">
+      <p>
+        <a href={href("/")}>Back to sign in</a>
+      </p>
+      <AboutPage />
+    </div>
   );
 }
 
@@ -83,7 +122,8 @@ function SignInPage() {
   const headingRef = useRef<HTMLHeadingElement>(null);
   return (
     <div className="stack-lg">
-      <PageBanner art="page-signin" size="hero">
+      {/* The slim banner: the form is the point of this page, so it starts near the top of the screen. */}
+      <PageBanner art="page-signin" size="slim">
         <ProductEyebrow />
         <h1 ref={headingRef} tabIndex={-1}>
           Sign in
@@ -91,7 +131,7 @@ function SignInPage() {
       </PageBanner>
       <div>
         <p className="muted">
-          This copy of {PRODUCT_NAME} needs an account. Accounts are by invitation only.{" "}
+          This copy of {PRODUCT_NAME} needs an account. Accounts are by invitation only. Ask the person who invited you for an invite code.{" "}
           {storage === "client"
             ? "Your projects and documents stay in this browser; the server holds only your account."
             : "Your projects, templates and files are kept on the server, so they follow you to any computer."}
@@ -152,6 +192,9 @@ function SignInForm() {
           {busy ? "Signing in…" : "Sign in"}
         </button>
       </div>
+      <p className="small">
+        <a href={href("/about")}>About and privacy</a>
+      </p>
     </form>
   );
 }
@@ -487,14 +530,60 @@ export function ProjectListCard() {
   const state = useSync((s) => s.listState);
   const listError = useSync((s) => s.listError);
   const currentId = useSync((s) => s.projectId);
+  const openTitle = useStore((s) => s.project?.meta.title);
+  const note = useStore((s) => s.listNote);
   const [confirm, setConfirm] = useState<{ id: string; title: string } | null>(null);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState("");
+  const [renaming, setRenaming] = useState("");
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
 
   useEffect(() => {
     void loadList();
   }, []);
+
+  // A project that was just copied or imported: bring its row into view, because the button that made it may be far from the list.
+  useEffect(() => {
+    if (!note?.newId) return;
+    listRef.current?.querySelector(`[data-project-id="${note.newId}"]`)?.scrollIntoView({ block: "nearest" });
+  }, [note?.newId, list.length]);
+
+  // The open project's name comes from the project itself, so a rename shows at once instead of after the next save.
+  const titleOf = (p: ProjectSummary) => (p.id === currentId && openTitle ? openTitle : p.title);
+  const say = (text: string, newId?: string) => useStore.setState({ listNote: text ? { text, ...(newId ? { newId } : {}) } : null });
+
+  /** Saves a new name. Returns the problem to show beside the field, or null when it was saved. */
+  const rename = async (p: ProjectSummary, title: string): Promise<string | null> => {
+    const wanted = title.trim();
+    const others = list.filter((x) => x.id !== p.id).map((x) => x.title);
+    const was = titleOf(p);
+    try {
+      if (p.id === currentId) {
+        // The open project is changed through the store, so its unsaved edits are kept and the usual autosave writes it.
+        const problem = useStore.getState().update((pr, actor) => renameProject(pr, wanted, actor, { taken: others }), `Renamed: ${wanted}`);
+        if (problem) return problem;
+      } else {
+        await editStoredProject(p.id, (pr) => renameProject(pr, wanted, actorOf(pr), { taken: others }));
+      }
+    } catch (e) {
+      return e instanceof ProjectNameError ? e.message : `${was} could not be renamed. ${(e as Error).message}`;
+    }
+    say(wanted === was ? `The name was not changed: ${was}` : `Renamed: ${was} is now called ${wanted}.`);
+    return null;
+  };
+
+  const copy = (p: ProjectSummary) => {
+    const was = titleOf(p);
+    setBusyId(p.id);
+    setError("");
+    say("");
+    const listed = list.map((x) => x.title);
+    copyStoredProject(p.id, (source) => copyProject(source, actorOf(source), listed))
+      .then((c) => say(`Copied: ${was}. The copy is called ${c.title}.`, c.id))
+      .catch((x) => setError(`${was} could not be copied. ${(x as Error).message}`))
+      .finally(() => setBusyId(""));
+  };
 
   return (
     <section className="card stack" aria-labelledby="mine-h">
@@ -502,6 +591,10 @@ export function ProjectListCard() {
         My projects
       </h2>
       <p className="muted small">Saved on the server under your account, so you can open them from any computer.</p>
+      {/* Always on the page, so a screen reader announces the line when it appears. */}
+      <div role="status" data-testid="projects-note">
+        {note && <p className="notice">{note.text}</p>}
+      </div>
       {state === "loading" && list.length === 0 && <p className="muted">Loading…</p>}
       {state === "error" && (
         <p className="error" role="alert">
@@ -518,36 +611,75 @@ export function ProjectListCard() {
       )}
       {state === "ready" && list.length === 0 && <p className="empty">You have no saved projects yet. Start one below.</p>}
       {list.length > 0 && (
-        <ul className="project-list" aria-label="My projects">
-          {list.map((p) => (
-            <li key={p.id}>
-              <div className="project-info">
-                <strong>{p.title}</strong>
-                {p.id === currentId && <span className="tag">Open now</span>}
-                <div className="small muted">Last saved {dateTime(p.updatedAt)}</div>
-              </div>
-              <div className="row wrap">
-                <button
-                  type="button"
-                  className="btn small"
-                  aria-label={`Open ${p.title}`}
-                  disabled={busyId === p.id || p.id === currentId}
-                  onClick={() => {
-                    setBusyId(p.id);
-                    setError("");
-                    openProject(p.id)
-                      .catch((x) => setError(`${p.title} could not be opened. ${(x as Error).message}`))
-                      .finally(() => setBusyId(""));
-                  }}
-                >
-                  Open
-                </button>
-                <button type="button" className="btn small danger" aria-label={`Delete ${p.title}`} onClick={() => setConfirm({ id: p.id, title: p.title })}>
-                  Delete
-                </button>
-              </div>
-            </li>
-          ))}
+        <ul className="project-list" aria-label="My projects" ref={listRef}>
+          {list.map((p) => {
+            const title = titleOf(p);
+            const isNew = note?.newId === p.id;
+            return (
+              <li key={p.id} data-project-id={p.id} className={isNew ? "is-new" : undefined}>
+                <div className="project-info">
+                  {renaming === p.id ? (
+                    <InlineRename
+                      current={title}
+                      label={title}
+                      save={(t) => rename(p, t)}
+                      onClose={() => {
+                        setRenaming("");
+                        // The form was in place of the title, so focus goes back to the button that opened it.
+                        window.setTimeout(() => document.getElementById(`rename-${p.id}`)?.focus(), 0);
+                      }}
+                    />
+                  ) : (
+                    <>
+                      <strong>{title}</strong>
+                      {p.id === currentId && <span className="tag">Open now</span>}
+                      {/* The tinted row is not the only cue: the tag says it too. */}
+                      {isNew && <span className="tag">New</span>}
+                    </>
+                  )}
+                  <div className="small muted">Last saved {dateTime(p.updatedAt)}</div>
+                </div>
+                <div className="row wrap">
+                  <button
+                    type="button"
+                    className="btn small"
+                    aria-label={`Open ${title}`}
+                    disabled={busyId === p.id || p.id === currentId}
+                    onClick={() => {
+                      setBusyId(p.id);
+                      setError("");
+                      say("");
+                      openProject(p.id)
+                        .catch((x) => setError(`${title} could not be opened. ${(x as Error).message}`))
+                        .finally(() => setBusyId(""));
+                    }}
+                  >
+                    Open
+                  </button>
+                  <button
+                    type="button"
+                    className="btn small"
+                    id={`rename-${p.id}`}
+                    aria-label={`Rename ${title}`}
+                    disabled={renaming === p.id}
+                    onClick={() => {
+                      setError("");
+                      say("");
+                      setRenaming(p.id);
+                    }}
+                  >
+                    Rename
+                  </button>
+                  <button type="button" className="btn small" aria-label={`Copy ${title}`} disabled={busyId === p.id} onClick={() => copy(p)}>
+                    Copy
+                  </button>
+                  <button type="button" className="btn small danger" aria-label={`Delete ${title}`} onClick={() => setConfirm({ id: p.id, title })}>
+                    Delete
+                  </button>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
       {confirm && (

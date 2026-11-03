@@ -18,7 +18,7 @@ export function ScopePage() {
           children: (
             <>
               <p>
-                A gap assessment compares how a product is made and tested at the sending unit with the receiving unit, question by question, and lists every difference with its source. Nothing is assumed: an unanswered question stays visible.
+                A gap assessment compares how a product is made and tested at the sending unit with the receiving unit, question by question, and lists every difference with its source. Nothing is assumed: an open question stays visible.
               </p>
               <p>Everything is included to start with. You can change these choices at any time: values you already entered are kept, never deleted.</p>
               <p>Next in the chain: the TRD, the sampling plan and the batch record can start from this project. Every stage is optional.</p>

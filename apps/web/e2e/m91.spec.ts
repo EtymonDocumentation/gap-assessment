@@ -8,7 +8,7 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
-import { breadcrumb, goTo, NOTICE_DOCUMENT, openAbout } from "./nav-helper";
+import { breadcrumb, goTo, NOTICE_DOCUMENT, openAbout, openDemo } from "./nav-helper";
 
 const SHOTS = tmpdir();
 
@@ -18,7 +18,7 @@ test.beforeEach(async ({ page }) => {
 
 async function loadDemo(page: Page) {
   await page.goto("./");
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
 

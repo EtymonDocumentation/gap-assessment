@@ -270,7 +270,7 @@ export const PLAN_CSV_COLUMNS = [
   "SU study status",
   "RU study status",
   "Open gaps",
-  "Open information items",
+  "Open items",
   "Provisional",
 ] as const;
 

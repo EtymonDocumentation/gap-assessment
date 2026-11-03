@@ -40,6 +40,14 @@ describe("importing the Brightwater sample template", () => {
     strictDocx(t.bytes);
   });
 
+  it("names a missing Word style the way a person sees it, without the jargon of the stored name", async () => {
+    const t = await importTemplateFile("brightwater-template.docx", fixture("brightwater-template.docx"));
+    // Tester D row 26: the warning said 'no style named "heading 3"', the lower-case name Word stores in the file; a reader sees "Heading 3".
+    const warning = t.analysis.warnings.find((w) => w.includes("Word styles"));
+    expect(warning).toBe("The template does not define these Word styles: Heading 3. The tool uses its own look for them where it needs one.");
+    expect(warning).not.toMatch(/no style named|heading 3/);
+  });
+
   it("finds the tags in the tag sample, with none unknown and none missing from the loops", async () => {
     const t = await importTemplateFile("brightwater-tags.docx", fixture("brightwater-tags.docx"));
     const tags = t.analysis.tags!;

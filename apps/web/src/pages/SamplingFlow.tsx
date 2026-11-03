@@ -17,6 +17,7 @@ import {
 } from "@gap/sampling";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { useStore } from "../store";
+import { countOf } from "../lib";
 
 /*
  * The process flow diagram of a sampling plan.
@@ -428,7 +429,7 @@ export function FlowDiagram({
           viewBox={`0 0 ${layout.width} ${layout.height}`}
           style={{ width: "100%", maxWidth: Math.round(layout.width * 1.25) }}
           role="group"
-          aria-label={`Process flow diagram of ${plan.steps.length} steps`}
+          aria-label={`Process flow diagram of ${countOf(plan.steps.length, "step")}`}
           data-cols={cols}
         >
           <defs>

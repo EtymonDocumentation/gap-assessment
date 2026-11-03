@@ -5,7 +5,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { expectNotice } from "./nav-helper";
+import { expectNotice, openDemo } from "./nav-helper";
 
 const SHOTS = tmpdir();
 
@@ -32,7 +32,7 @@ async function expectNoHorizontalScroll(page: Page, label: string) {
 async function loadDemo(page: Page) {
   await page.goto("./");
   await expectNotice(page);
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
 

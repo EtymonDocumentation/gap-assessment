@@ -55,7 +55,7 @@ describe("Word output of a project converted to TBD", () => {
   it("lists the converted entries as TBD open items and never calls the not-known answer Unknown or 'to be confirmed'", async () => {
     const { doc, text } = await render();
     expect(doc.tbdCount).toBe(4);
-    expect(text).toMatch(/TBD values/);
+    expect(text).toMatch(/Marked TBD/);
     expect(text).not.toMatch(/to be confirmed/i);
     // "Unknown" may appear only inside a quoted old record ("Unknown converted to TBD ..."), never as an answer.
     const stripped = text.replace(/Unknown converted to TBD \(schema 1\.9\.0, no change in meaning\)/g, "");

@@ -61,7 +61,7 @@ export function gapSpecs(variant: LabelVariant = "validated", extreme = false): 
     { ...base, id: "G-004", attribute: "Batch size", su: "40 L", ru: "120 L", gap: "Scale change. Scale changes ×3.0 (40 L to 120 L).", severity: "Medium", actions: "Process performance qualification at scale", rule: "R-SCALE v1.1.0" },
     { ...base, id: "G-005", attribute: "In-process check: fill weight", su: "Not performed", ru: "Every 30 min", gap: "New requirement. Present at the RU, absent from the SU.", severity: "Medium", actions: "Write procedure; Train operators", rule: "R-GEN-IPC-DESCRIPTION v1.2.0" },
     { ...base, id: "G-006", attribute: "Nitrogen overlay", su: "Used", ru: "Not used", gap: "Removed element. Present at the SU, absent from the RU.", severity: "Low", actions: "Confirm oxygen limit in the stability data", rule: "R-GEN-MAT-PRESENCE v1.2.0" },
-    { ...base, id: "G-007", attribute: extreme ? "Polyethersulfone-membrane-supplier" : "Membrane supplier", su: "[not established]", ru: "Vendor X (fictional)", gap: "Information required. The SU value is not established.", severity: "None", actions: "—", rule: "R-GEN-MAT-PRESENCE v1.2.0", owner: "[unassigned]" },
+    { ...base, id: "G-007", attribute: extreme ? "Polyethersulfone-membrane-supplier" : "Membrane supplier", su: "[TBD]", ru: "Vendor X (fictional)", gap: "Information required. The SU value is not established.", severity: "None", actions: "—", rule: "R-GEN-MAT-PRESENCE v1.2.0", owner: "[unassigned]" },
     { ...base, id: "G-008", attribute: "Stopper compression", su: "Setting A", ru: "Setting B", gap: "Something new. A label the tool has never produced.", severity: "High (adjusted from Medium by A. Reviewer (fictional): worst-case seal)", actions: "Seal integrity test", rule: "R-GEN-EQUIP-PRINCIPLE v1.2.0", status: "Accepted, no action" },
   ];
 }
@@ -72,7 +72,7 @@ const SECTION_TITLES: Record<string, string> = {
   "source-summary": "SU program summary (current state)",
   "gap-table": "Detailed gap table",
   "validation-plan": "Validation plan",
-  "open-items": "Open information items",
+  "open-items": "Open items",
   approval: "Approval",
   "gap-details": "Gap details",
   "source-register": "Source register",
@@ -106,7 +106,7 @@ function blocksFor(id: string, specs: GapSpec[]): Block[] {
         { type: "table", columns: ["Activity", "Description", "Implied by gaps", "Severity", "Regulatory", "Linked studies: SU status", "Linked studies: RU status", "Readiness"], rows: [["Hold-time study", "Show the longer hold time is acceptable.", "G-001", "High", REGULATORY, "—", "Not started", "Not ready"]] },
       ];
     case "open-items":
-      return [{ type: "paragraph", text: "No open information items." }];
+      return [{ type: "paragraph", text: "No open items." }];
     case "approval":
       return [
         { type: "paragraph", text: "Names, signatures and dates are completed outside this tool." },

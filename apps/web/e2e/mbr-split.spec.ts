@@ -4,7 +4,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { goTo } from "./nav-helper";
+import { goTo, openDemo } from "./nav-helper";
 
 test.beforeEach(async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
@@ -12,7 +12,7 @@ test.beforeEach(async ({ page }) => {
 
 async function openSyringeRecord(page: Page) {
   await page.goto("./");
-  await page.getByRole("button", { name: "Open syringe example" }).click();
+  await openDemo(page, "syr");
   await expect(page.getByTestId("home-chain")).toBeVisible();
   await goTo(page, "Batch record");
   await page.getByTestId("mbr-list-table").getByRole("link").first().click();

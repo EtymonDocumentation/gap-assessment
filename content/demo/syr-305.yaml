@@ -2,7 +2,7 @@ demo:
   id: syr-305
   title: "SYR-305 technology transfer: Example Biologics to Example Fill Site (fictional demo)"
   version: 1.0.0
-responder: { name: Alex Example (fictional), role: MSAT engineer }
+responder: { name: Alex Example (fictional), role: MSAT (manufacturing science and technology) engineer }
 date: "2026-10-01T09:00:00.000Z"
 entrySequence: paired
 documents:
@@ -432,7 +432,7 @@ trd:
   purpose: >-
     This technical requirements document sets out the technical requirements for transferring the SYR-305 prefilled syringe process
     from Example Biologics Drug Substance Site (fictional), which supplies frozen drug substance, to Example Fill Site (fictional),
-    which thaws, formulates, filters, fills, inspects, packs and ships the drug product. It is the basis from which the master batch
+    which thaws, formulates, filters, fills, inspects, packs and ships the drug product. It is the basis from which the batch
     record of the receiving unit is written (fictional demonstration document).
   scopeNote: >-
     The scope runs from the receipt of frozen drug substance at Example Fill Site (fictional) to the shipment of labelled prefilled
@@ -467,7 +467,7 @@ trd:
       description: Pressure-sensitive labels are applied, serialization is applied and aggregated, and the units are packed into single-unit cartons.
     - uo: storage_shipping
       description: Labelled syringes are stored in the refrigerated warehouse and shipped refrigerated in qualified passive shippers.
-  # Classification evidence and data map (TRD format 1.3.0). The team's own entries; a parameter with no entry reads "Not established".
+  # Classification evidence and data map (TRD format 1.3.0). The team's own entries; a parameter with no entry reads "TBD".
   controls:
     - { uo: ds_receipt_thaw, item: param.thaw_temperature, cqa: Protein quality (aggregates), evidence: "Development report DEMO-PD-305-01 thaw study (fictional)", controlledBy: automated_control, recordedIn: Thaw unit chart record (fictional) }
     - { uo: ds_receipt_thaw, item: param.max_ambient_time, cqa: Protein quality (aggregates), evidence: Hold study DEMO-STB-305-01 (fictional), controlledBy: batch_record, recordedIn: "Batch record, thaw section" }
@@ -872,7 +872,7 @@ sampling:
         - { key: equipment_qualified, status: complete, note: "Isolator, filling line and mixing bag qualified; the report is DEMO-OQ-305-01 (fictional)." }
         - { key: methods_ready, status: open, note: "Two analytical methods are still being transferred (fictional)." }
         - { key: training, status: complete }
-        - { key: batch_records, status: open, note: "Master batch record in draft (fictional)." }
+        - { key: batch_records, status: open, note: "Batch record in draft (fictional)." }
       parties:
         - {"party": "sponsor", "name": "Alex Example (fictional)", "role": "Technology transfer lead", "department": "Process Validation (fictional)", "memoLine": "from"}
         - {"party": "cmo", "name": "Receiving site manufacturing (fictional)", "role": "Takes the samples and writes the PPQ summary report", "department": "Manufacturing Sciences (fictional)", "memoLine": "to"}
@@ -982,7 +982,7 @@ mbr:
   at: "2026-10-19T09:00:00.000Z"
   by: Alex Example (fictional)
   role: MSAT engineer
-  title: SYR-305 master batch record, Example Fill Site PFS Line 3 (fictional)
+  title: SYR-305 batch record, Example Fill Site PFS Line 3 (fictional)
   docRef: DEMO-MBR-305-01
   purpose: This record gives the steps to fill the SYR-305 prefilled syringe at the receiving unit (fictional).
   sections:

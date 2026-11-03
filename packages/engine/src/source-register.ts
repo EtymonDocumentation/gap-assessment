@@ -135,7 +135,7 @@ export interface SourceRemovalPreview {
   source: Source;
   /** Entries that cite the source. */
   citing: number;
-  /** Entries whose only source this is: they become "Not established" and the value is kept only in the change log. */
+  /** Entries whose only source this is: they become TBD and the value is kept only in the change log. */
   reverting: EntryImpact[];
   /** Entries that keep another source and stay as they are. */
   staying: EntryImpact[];
@@ -232,7 +232,7 @@ export function previewSourceRemoval(content: ContentBundle, project: Project, s
   if (reverting.length === 0 && staying.length === 0) lines.push("No entry cites this source. Removing it changes no value.");
   if (reverting.length) {
     lines.push(
-      `${plural(reverting.length, "value will lose its only source and become “Not established”", "values will lose their only source and become “Not established”")}. The value is then kept only in the change log.`,
+      `${plural(reverting.length, "value will lose its only source and become TBD", "values will lose their only source and become TBD")}. The value is then kept only in the change log.`,
     );
   }
   if (staying.length) lines.push(`${plural(staying.length, "value keeps", "values keep")} another source and stays as it is.`);
@@ -242,7 +242,7 @@ export function previewSourceRemoval(content: ContentBundle, project: Project, s
   const openItemsBefore = a0.openItems.length;
   const openItemsAfter = a1.openItems.length;
   if (openItemsAfter > openItemsBefore) {
-    lines.push(`${plural(openItemsAfter - openItemsBefore, "more open information item", "more open information items")} will appear.`);
+    lines.push(`${plural(openItemsAfter - openItemsBefore, "more open item", "more open items")} will appear.`);
   }
   const hidden = reverting.filter((r) => !r.active).length;
   if (hidden) lines.push(`${plural(hidden, "of the values is", "of the values are")} not currently asked about (inactive), so no gap is affected by ${hidden === 1 ? "it" : "them"}.`);
@@ -270,7 +270,7 @@ export function attachToCell(project: Project, refs: string[], sourceId: string,
 }
 
 export interface DetachPreview {
-  /** Entries whose only source this is: they would become "Not established". */
+  /** Entries whose only source this is: they would become TBD. */
   reverting: string[];
   staying: string[];
   /** Plain-language warning shown before detaching; empty when nothing is lost. */
@@ -287,7 +287,7 @@ export function previewDetach(project: Project, refs: string[], sourceId: string
     else staying.push(r);
   }
   const warning = reverting.length
-    ? `This is the only source for ${reverting.length === 1 ? "this value" : `${reverting.length} values`}. Detaching it makes ${reverting.length === 1 ? "it" : "them"} “Not established” and keeps the value only in the change log.`
+    ? `This is the only source for ${reverting.length === 1 ? "this value" : `${reverting.length} values`}. Detaching it makes ${reverting.length === 1 ? "it" : "them"} TBD and keeps the value only in the change log.`
     : "";
   return { reverting, staying, warning };
 }

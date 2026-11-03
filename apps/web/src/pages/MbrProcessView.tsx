@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { href } from "../router";
 import { useStore } from "../store";
 import { MbrFrame } from "./MbrFrame";
+import { countOf } from "../lib";
 
 /*
  * The Process view of one batch record: the equipment train, a moments slider, the clocks against their limits, the samples at their
@@ -447,7 +448,7 @@ function Train({ view, at }: { view: ProcessView; at: number }) {
   const methodNote = nMethod ? ` ${nMethod} ${nMethod === 1 ? "sample shows" : "samples show"} how it is taken; the sample list below says it in words.` : "";
   const branchNote = branches.length ? ` ${branches.length === 1 ? "One side preparation feeds" : `${branches.length} side preparations feed`} the main line.` : "";
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} role="img" aria-label={`Equipment train of ${main.length} items.${branchNote} ${where ? `The product is in ${where}.` : "The product is not in any equipment at this moment."}${methodNote}`} className="pv-svg">
+    <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} role="img" aria-label={`Equipment train of ${countOf(main.length, "item")}.${branchNote} ${where ? `The product is in ${where}.` : "The product is not in any equipment at this moment."}${methodNote}`} className="pv-svg">
       <defs>
         <pattern id="pv-hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
           <line x1="0" y1="0" x2="0" y2="8" className="pv-hatch" />
@@ -783,6 +784,12 @@ function Findings({ view, counts, go }: { view: ProcessView; counts: (readonly [
               Show at moment {f.moments[0]! + 1}
             </button>
           )}
+          {/* The sampling-plan difference is in the batch record, not in the picture: its open items name the points and its sample tables the rows. */}
+          {f.checkId === "S7" && (
+            <p>
+              <a href={href("/mbr", { mbr: view.recordId })}>Open the batch record</a>
+            </p>
+          )}
         </article>
       ))}
       <h3>Not enough data in the record</h3>
@@ -915,7 +922,7 @@ function Tables({ view, go }: { view: ProcessView; go: (i: number) => void }) {
                   </th>
                   <td>{v.statedL !== undefined ? `${num(v.statedL)} L (row ${v.statedRowId})` : `Not enough data: ${v.missing}`}</td>
                   <td>
-                    {num(v.sampleMl / 1000)} L in {v.sampleCount} samples
+                    {num(v.sampleMl / 1000)} L in {countOf(v.sampleCount, "sample")}
                     {v.flushMl > 0 ? `; plus ${num(v.flushMl / 1000)} L flushed to waste (not sample volume)` : ""}
                   </td>
                   <td>{v.percent !== undefined ? `${num(v.percent, 2)} %` : "Not enough data"}</td>

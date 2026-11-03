@@ -32,8 +32,8 @@ test("server build: unticking Risk ranking changes the HTML and the Word downloa
     ])) as [Download, void];
     return readFile(await d.path());
   };
-  const html = async () => (await dl("Download HTML")).toString("utf8");
-  const word = () => dl("Download Word document");
+  const html = async () => (await dl("Download gap assessment (HTML)")).toString("utf8");
+  const word = () => dl("Download gap assessment (Word)");
   const risk = (h: string[]) => h.some((x) => /Risk ranking/.test(x));
 
   const before = { html: await html(), word: await word() };

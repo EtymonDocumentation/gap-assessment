@@ -194,8 +194,8 @@ export function recordersOf(project: Project, ref: string): string[] {
 
 /**
  * Why an entry cannot be verified, or undefined when it can.
- * Decision: established and not-applicable entries are verifiable. An entry that is not established has no
- * value to confirm, and a TBD entry is an open information item, so both are refused.
+ * Decision: established and not-applicable entries are verifiable. An entry with no value yet has no
+ * value to confirm, and a TBD entry is an open item, so both are refused.
  */
 export function verificationProblem(project: Project, ref: string): string | undefined {
   const e = getEntry(project, ref);
@@ -203,7 +203,7 @@ export function verificationProblem(project: Project, ref: string): string | und
   const r = resolveEntry(project, ref);
   // Checked before the status: a TBD with a best guess resolves as "established" for the comparison, but a guess is not a fact.
   if (r.tbd) return "An entry marked TBD (to be decided) cannot be verified";
-  if (r.status === "not_established") return "An entry that is not established cannot be verified";
+  if (r.status === "not_established") return "An entry with no value yet cannot be verified";
   return undefined;
 }
 

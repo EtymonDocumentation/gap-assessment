@@ -86,11 +86,11 @@ describe("starting a TRD", () => {
     expect(d.origin.seedSources?.length).toBe(seed0.sources.length);
   });
 
-  it("blank: every detail reads Not established and is open; no pulled value anywhere", () => {
+  it("blank: every detail reads TBD and is open; no pulled value anywhere", () => {
     const r = createTrd(base, { title: "Blank (fictional)", start: { kind: "blank", steps: [{ unitOp: "sterile_filtration", label: "Sterile filtration" }, { label: "Special hold (fictional)" }] } }, who);
     const d = doc(r.project, r.trdId);
     expect(d.origin).toEqual({ kind: "blank", importedAt: who.at });
-    expect(d.details.every((f) => !f.pulled && effectiveField(f).text === "Not established")).toBe(true);
+    expect(d.details.every((f) => !f.pulled && effectiveField(f).text === "TBD")).toBe(true);
     expect(d.steps.map((s) => [s.label, s.custom, s.entered])).toEqual([["Sterile filtration", false, true], ["Special hold (fictional)", true, true]]);
     expect(trdOpenItems(d).filter((o) => o.kind === "not_established")).toHaveLength(7);
   });
@@ -253,7 +253,7 @@ describe("steps and items", () => {
     project = r.project;
     const item = doc(project, id).steps.find((s) => s.id === stepId)!.items.find((i) => i.key === r.ref.key)!;
     expect(item).toMatchObject({ custom: true, entered: true });
-    expect(effectiveField(item.fields[0]!).text).toBe("Not established");
+    expect(effectiveField(item.fields[0]!).text).toBe("TBD");
     expect(trdOpenItems(doc(project, id)).some((o) => o.where.endsWith("Soak time (fictional), Classification"))).toBe(true);
     project = removeTrdItem(project, id, r.ref, who);
     expect(project.changeLog.at(-1)).toMatchObject({ action: "trd_item_remove" });
@@ -539,7 +539,7 @@ describe("the TRD document", () => {
     expect(text).toContain("No purpose has been entered");
     expect(text).toContain("No description has been entered for this step.");
     expect(text).toContain("No set point, NOR or PAR has been entered.");
-    expect(o.cover.program).toBe("Not established");
+    expect(o.cover.program).toBe("TBD");
   });
 
   it("is deterministic for the same content", () => {

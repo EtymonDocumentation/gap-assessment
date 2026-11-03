@@ -58,7 +58,9 @@ export function placeholderPng(width: number, height: number): Uint8Array {
   for (let i = 0; i < raw.length; i += 65535) {
     const part = raw.subarray(i, Math.min(raw.length, i + 65535));
     const last = i + 65535 >= raw.length ? 1 : 0;
-    z.push(last, part.length & 255, part.length >>> 8, ~part.length & 255, (~part.length >>> 8) & 255, ...part);
+    z.push(last, part.length & 255, part.length >>> 8, ~part.length & 255, (~part.length >>> 8) & 255);
+    // A loop, not push(...part): spreading a 64 KB block into call arguments needs more stack than a browser Web Worker has, and the demo is built in one.
+    for (let k = 0; k < part.length; k++) z.push(part[k]!);
   }
   z.push(...u32(adler32(raw)));
   const ihdr = new Uint8Array([...u32(width), ...u32(height), 8, 2, 0, 0, 0]);

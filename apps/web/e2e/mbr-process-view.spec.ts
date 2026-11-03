@@ -4,7 +4,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { goTo } from "./nav-helper";
+import { goTo, openDemo } from "./nav-helper";
 
 const SHOTS = tmpdir();
 
@@ -14,7 +14,7 @@ test.beforeEach(async ({ page }) => {
 
 async function openDemoView(page: Page) {
   await page.goto("./");
-  await page.getByRole("button", { name: "Open syringe example" }).click();
+  await openDemo(page, "syr");
   await expect(page.getByTestId("home-chain")).toBeVisible();
   await goTo(page, "Batch record");
   await page.getByTestId("mbr-list-table").getByRole("link").first().click();
@@ -98,7 +98,7 @@ test("a blank record says not enough data and does not guess", async ({ page }) 
   test.setTimeout(120_000);
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("./");
-  await page.getByRole("button", { name: "Open syringe example" }).click();
+  await openDemo(page, "syr");
   await goTo(page, "Batch record");
   await page.getByTestId("mbr-title-input").fill("Blank process view record (fictional)");
   await page.getByTestId("mbr-create").click();

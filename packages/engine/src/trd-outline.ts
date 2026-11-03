@@ -1,6 +1,6 @@
 import { COLLECTION_LABELS, SEED_COLLECTIONS, type SeedAnswer, type SeedField, type SeedItem, type SeedUnitOperation, type TrdSeed } from "@gap/process-model";
 import type { Block, DocModel, DocSection } from "./document";
-import { NOTICE_DOCUMENT } from "./product";
+import { NO_VALUE_YET, NOTICE_DOCUMENT, TBD_MARKER } from "./product";
 
 /**
  * The draft TRD outline: a Word / HTML document built from a TRD seed ALONE (never from the live project), so the file a person
@@ -8,14 +8,14 @@ import { NOTICE_DOCUMENT } from "./product";
  * renderers (Markdown, HTML, built-in Word style) draw it without change.
  *
  * GMP rules kept here: values of the receiving unit (RU) only, the SU appears solely in the optional Traceability section; a TBD
- * best guess is written "TBD best guess, provisional" in words (never colour only); an unknown value reads "Not established"; the
+ * best guess is written "TBD best guess, provisional" in words (never colour only); an unknown value reads "TBD"; the
  * outline never claims to be an approved TRD, and it never states a regulatory filing category.
  */
 
 export const TRD_OUTLINE_TITLE = "Technical requirements document — draft outline";
 /** The notice at the top and in the footer of the document: the one shared wording (product.ts), the same in every document. */
 export const TRD_BANNER = NOTICE_DOCUMENT;
-const NOT_ESTABLISHED = "Not established";
+const NOT_ESTABLISHED = TBD_MARKER;
 
 export interface TrdOutlineOptions {
   /** Adds the Traceability section (SU reference values and gap ids per RU value). On by default. */
@@ -92,7 +92,7 @@ const countOf = (fields: SeedAnswer[]): Omit<TrdSeedCounts, "key" | "label"> => 
   return { established: fields.length - tbd - notEstablished - notApplicable, tbd, notEstablished, notApplicable, total: fields.length };
 };
 
-/** Counts per unit operation (RU values: established / TBD / not established), then a total row that also counts product and site answers. */
+/** Counts per unit operation (RU values: established / marked TBD / no value yet), then a total row that also counts product and site answers. */
 export function trdSeedCounts(seed: TrdSeed): { rows: TrdSeedCounts[]; total: Omit<TrdSeedCounts, "key" | "label"> } {
   const rows = seed.unitOperations.map((u) => ({ key: u.key, label: u.label, ...countOf([...u.fields, ...u.items.flatMap((i) => i.fields)]) }));
   return { rows, total: countOf([...allFields(seed).map((l) => l.field), ...metaAnswers(seed).map((m) => m.a)]) };
@@ -126,7 +126,7 @@ export function buildTrdOutline(seed: TrdSeed, opts: TrdOutlineOptions = {}): Do
     { type: "note", text: basis },
     {
       type: "paragraph",
-      text: `This outline lists what the gap assessment recorded about the planned process at the receiving unit (RU) for ${program}. It is meant as a starting point for the technical requirements document (TRD): each value shows whether it is established, still to be decided (TBD) or not established. Nothing has been filled in on behalf of the project, and unit operations or topics left out are not listed below.`,
+      text: `This outline lists what the gap assessment recorded about the planned process at the receiving unit (RU) for ${program}. It is meant as a starting point for the technical requirements document (TRD): each value shows whether it is established, marked TBD (to be decided) or has no value yet. Nothing has been filled in on behalf of the project, and unit operations or topics left out are not listed below.`,
     },
     { type: "table", columns: ["Unit operation or topic", "Scope", "Note"], rows: scopeRows, caption: "Scope of the outline" },
   ]);
@@ -158,11 +158,11 @@ export function buildTrdOutline(seed: TrdSeed, opts: TrdOutlineOptions = {}): Do
   add("overview", "Process overview", [
     {
       type: "paragraph",
-      text: "The unit operations in process order, with how many RU values are established, TBD or not established. Unit operations that wait for an unanswered scoping question have no values yet.",
+      text: "The unit operations in process order, with how many RU values are established, marked TBD or without a value yet. Unit operations that wait for an open scoping question have no values yet.",
     },
     {
       type: "table",
-      columns: ["Unit operation", "Stage group", "Established", "TBD", "Not established", "Not applicable"],
+      columns: ["Unit operation", "Stage group", "Established", "Marked TBD", NO_VALUE_YET, "Not applicable"],
       rows: seed.scope.included.map((u) => {
         const c = counts.rows.find((r) => r.key === u.key);
         return [u.label, u.stageGroup?.label ?? "Added by the project", c ? String(c.established) : "0", c ? String(c.tbd) : "0", c ? String(c.notEstablished) : "0", c ? String(c.notApplicable) : "0"];
@@ -209,8 +209,8 @@ export function buildTrdOutline(seed: TrdSeed, opts: TrdOutlineOptions = {}): Do
     {
       type: "paragraph",
       text: openRows.length
-        ? "Values that are still to be decided (TBD) or not established. They must be resolved or accepted before the TRD can rely on them."
-        : "The gap assessment holds no TBD or not established values for the units listed in this outline.",
+        ? "Values that are still TBD (to be decided), whether marked or with no value yet. They must be resolved or accepted before the TRD can rely on them."
+        : "The gap assessment holds no TBD values for the units listed in this outline.",
     },
     ...(openRows.length ? ([{ type: "table", columns: ["Where", "Attribute", "Status", "Owner", "Due", "Note"], rows: openRows }] as Block[]) : []),
   ]);
@@ -277,8 +277,8 @@ export function buildTrdOutline(seed: TrdSeed, opts: TrdOutlineOptions = {}): Do
       ["Project", m.project.name],
       ["Basis", basis],
       ["Generated", m.exportedAt.replace("T", " ").slice(0, 16) + " UTC"],
-      ["TBD values", String(tbdCount)],
-      ["Values not established", String(notEstablishedCount)],
+      ["Marked TBD", String(tbdCount)],
+      ["No value yet", String(notEstablishedCount)],
       ["Traceability section", traceability ? "Included" : "Left out"],
     ],
     cover: {

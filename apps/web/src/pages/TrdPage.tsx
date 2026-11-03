@@ -76,7 +76,7 @@ function List({ missing, preselect }: { missing?: string | undefined; preselect:
     <div className="stack-lg">
       <PageHeader
         title="TRD"
-        purpose="A TRD (technical requirements document) can start from this project, from a TRD seed file, or blank."
+        purpose="A TRD (technical requirements document) can start from this project, from a TRD seed file (a saved copy of a project's values), or blank."
         about={{
           art: "page-document",
           children: (
@@ -85,7 +85,7 @@ function List({ missing, preselect }: { missing?: string | undefined; preselect:
               <ul className="plain-list">
                 <li>You can override any value. The project value stays beside yours, and the override is written to the change log.</li>
                 <li>When the project changes, you get a notice and a list of differences. A value you overrode is never replaced unless you choose to.</li>
-                <li>The set point, NOR and PAR are entered by you with sources from the source register. They do not come from the sampling plan.</li>
+                <li>The set point, NOR (normal operating range) and PAR (proven acceptable range) are entered by you with sources from the source register. They do not come from the sampling plan.</li>
                 <li>
                   The seed itself is on the <a href={href("/trd-seed")}>TRD seed</a> page.
                 </li>
@@ -108,8 +108,9 @@ function List({ missing, preselect }: { missing?: string | undefined; preselect:
       <section className="card stack" aria-labelledby="trd-from-project" data-testid="trd-from-project">
         <h2 id="trd-from-project">Start from this project</h2>
         <p className="small">
-          Takes the receiving unit's values from the gap assessment, so you do not retype them. The TRD seed shows exactly what would be carried over, and you can update the TRD from the project later.
+          Takes the receiving unit's values from the gap assessment, so you do not retype them. The TRD seed is that list of values; "See the TRD seed" shows exactly what would be carried over. You can update the TRD from the project later.
         </p>
+        <p className="muted small">The button below does not create anything. It takes you to the New TRD form with "From this project" chosen; you give the TRD a title and press Create TRD.</p>
         <div className="row wrap">
           <button
             type="button"
@@ -123,7 +124,7 @@ function List({ missing, preselect }: { missing?: string | undefined; preselect:
             }}
             data-testid="trd-from-project-btn"
           >
-            Start from this project
+            Go to the New TRD form
           </button>
           <a className="btn" href={href("/trd-seed")}>
             See the TRD seed
@@ -208,7 +209,7 @@ function List({ missing, preselect }: { missing?: string | undefined; preselect:
               <input type="radio" name="trd-start" checked={kind === "blank"} onChange={() => setKind("blank")} data-testid="trd-start-blank" />
               <span>
                 <strong>Blank</strong>
-                <span className="block muted small">No values at all. Every product and site detail reads "Not established" until you enter it, and you add the steps yourself.</span>
+                <span className="block muted small">No values at all. Every product and site detail reads "TBD" until you enter it, and you add the steps yourself.</span>
               </span>
             </label>
           </fieldset>

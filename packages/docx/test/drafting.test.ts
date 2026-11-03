@@ -20,7 +20,7 @@ describe("Word output of the drafting features", () => {
     const m = buildModel();
     const t = await text(m);
     expect(t).toContain(PROVISIONAL_LABEL);
-    expect(t).toMatch(/TBD values/);
+    expect(t).toMatch(/Marked TBD/);
     expect(m.doc.tbdCount).toBe(4);
     expect(t).toContain("Best guess:");
   });

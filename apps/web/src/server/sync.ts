@@ -268,6 +268,35 @@ export async function deleteProjectById(id: string): Promise<void> {
   }
 }
 
+// ------------------------------------------------------------------ rename and copy a saved project
+
+/**
+ * Changes a saved project that is not the open one: reads it from the server, applies `change`, and saves it on top of the revision it read.
+ * The open project is changed through the store instead, because its unsaved edits live there. A change that returns the project as it was
+ * (a name that did not change) is not saved.
+ */
+export async function editStoredProject(id: string, change: (p: Project) => Project): Promise<void> {
+  const r = await api.getProject(id);
+  const stored = parseProject(r.project);
+  const next = change(stored);
+  if (next === stored) return;
+  const saved = await api.putProject(id, next, r.revision);
+  upsertListEntry({ id, title: next.meta.title, updatedAt: saved.updatedAt, revision: saved.revision, schemaVersion: next.schemaVersion });
+}
+
+/**
+ * Saves a copy of a project as a new project and returns its id and name. A copy of the open project starts from what is on screen, unsaved
+ * changes included. The copy is not opened: the person stays where they are and opens it from the list when they want to.
+ */
+export async function copyStoredProject(id: string, make: (source: Project) => Project): Promise<{ id: string; title: string }> {
+  const open = H().getProject();
+  const source = id === useSync.getState().projectId && open ? open : parseProject((await api.getProject(id)).project);
+  const copy = make(source);
+  const r = await api.createProject(copy);
+  upsertListEntry({ id: r.id, title: copy.meta.title, updatedAt: r.updatedAt, revision: r.revision, schemaVersion: copy.schemaVersion });
+  return { id: r.id, title: copy.meta.title };
+}
+
 // ------------------------------------------------------------------ conflict
 
 /** Takes the server's newer version. `saveBackup` is given the local, unsaved project first (the app downloads it as a JSON file). */

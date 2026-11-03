@@ -6,7 +6,7 @@ import { StartArt } from "../art";
 import { Empty, Modal } from "../components";
 import { focusWhenReady, PageHeader, type PagePill } from "../PageHeader";
 import { Tabs, type TabDef } from "../Tabs";
-import { dateTime } from "../lib";
+import { countOf, dateTime } from "../lib";
 import { href, navigate } from "../router";
 import { useContent, useStore } from "../store";
 import { RiskActions } from "./RiskActions";
@@ -17,7 +17,7 @@ import { RiskOutput } from "./RiskOutput";
 import type { Run } from "./SamplingFlow";
 
 type Tab = "method" | "items" | "actions" | "output";
-const TAB_LABEL: Record<Tab, string> = { method: "1. Method", items: "2. Items", actions: "3. Actions", output: "4. Output" };
+const TAB_LABEL: Record<Tab, string> = { method: "1. Method", items: "2. Items", actions: "3. Actions", output: "4. Document" };
 const TABS = Object.keys(TAB_LABEL) as Tab[];
 /** The four steps of the assessment, in the order the work goes: how to score, what to score, what to do about it, the document. */
 const TAB_DEFS: TabDef<Tab>[] = [
@@ -106,9 +106,6 @@ function List({ missing }: { missing?: string | undefined }) {
                 <li>An item without enough answers stays "Not scored" and shows as an open item. The tool never guesses a value.</li>
                 <li>The gap severity is shown for reference. It is never copied into a score.</li>
               </ul>
-              <p>
-                Methods your company has defined are kept on the <a href={href("/risk/methods")}>Method library</a> page.
-              </p>
             </>
           ),
         }}
@@ -212,7 +209,7 @@ function Editor({ a, initialTab }: { a: RiskAssessment; initialTab: Tab }) {
     { label: `${a.actions.length} ${a.actions.length === 1 ? "action" : "actions"}`, testId: "risk-pill-actions" },
     { label: `${open.length} open ${open.length === 1 ? "item" : "items"}`, warning: open.length > 0, testId: "risk-pill-open" },
   ];
-  // The downloads are made in the Output tab (the section choice, the Word kind and the pre-download check are there); the menu takes the
+  // The downloads are made in the Document tab (the section choice, the Word kind and the pre-download check are there); the menu takes the
   // person there with the matching button focused.
   const toDownload = (testId: string) => () => {
     select("output");
@@ -248,7 +245,7 @@ function Editor({ a, initialTab }: { a: RiskAssessment; initialTab: Tab }) {
               <p>
                 A risk assessment (ICH Q9(R1)) lists what could go wrong in the process, scores each item with a method your team chooses, and records the actions that follow. It can draw on the gaps found earlier and on sampling points from the sampling plan, but needs neither.
               </p>
-              <p>Next: download the draft from the Output tab for review.</p>
+              <p>Next: download the draft from the Document tab for review.</p>
               <p data-testid="risk-scope-text">{RISK_SCOPE_TEXT}</p>
             </>
           ),
@@ -313,7 +310,7 @@ function Editor({ a, initialTab }: { a: RiskAssessment; initialTab: Tab }) {
       </section>
 
       {confirmDelete && (
-        <Modal open onOpenChange={(o) => !o && setConfirmDelete(false)} title="Delete this assessment?" description={`${a.id}: ${a.title} has ${a.items.length} items and ${a.actions.length} actions.`} restoreFocus={() => opener.current}>
+        <Modal open onOpenChange={(o) => !o && setConfirmDelete(false)} title="Delete this assessment?" description={`${a.id}: ${a.title} has ${countOf(a.items.length, "item")} and ${countOf(a.actions.length, "action")}.`} restoreFocus={() => opener.current}>
           <div className="row end">
             <button type="button" className="btn" autoFocus onClick={() => setConfirmDelete(false)}>
               Keep the assessment

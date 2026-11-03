@@ -1,5 +1,5 @@
 import { createMbr, mbrOpenItems, projectScopeSteps, proposeBlocks, type BlockProposal } from "@gap/engine";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { StartArt } from "../art";
 import { Empty } from "../components";
 import { dateTime } from "../lib";
@@ -25,6 +25,12 @@ interface UnitOpOffer {
   proposals: BlockProposal[];
 }
 
+/**
+ * Where the "can't create yet" message goes. Tester D row 1: it used to sit under 59 tick-boxes, about 3,000 px from the
+ * dropdown that needed fixing, so it went unseen. Now it sits beside the control to fix, and the cursor goes there.
+ */
+type StartError = { field: "title" | "trd" | "plan" | "form"; text: string };
+
 /** A block belongs under a unit operation when it names it, or when it is a sample block that applies to any of them. Other general blocks go under "General". */
 const forOp = (unitOp: string) => (p: BlockProposal) => p.block.unitOps.includes(unitOp) || (p.block.unitOps.length === 0 && p.block.sampleTypes.length > 0);
 
@@ -41,7 +47,10 @@ function List({ missing }: { missing?: string | undefined }) {
   const [planId, setPlanId] = useState("");
   // Blocks the author ticked; absent from the map = the offer's own suggestion (ticked only when a chosen source backs it).
   const [ticks, setTicks] = useState<Record<string, boolean>>({});
-  const [error, setError] = useState("");
+  const [error, setError] = useState<StartError | null>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
+  const trdRef = useRef<HTMLSelectElement>(null);
+  const planRef = useRef<HTMLSelectElement>(null);
   const list = project.mbr.records;
   const trds = project.trd.documents;
   const plans = project.sampling.plans;
@@ -71,10 +80,23 @@ function List({ missing }: { missing?: string | undefined }) {
   const tickKey = (offerKey: string, blockId: string) => `${offerKey}|${blockId}`;
   const isTicked = (offerKey: string, p: BlockProposal) => ticks[tickKey(offerKey, p.block.id)] ?? p.ticked;
 
+  const blockCount = offers.reduce((n, o) => n + o.proposals.length, 0);
+  const tickedCount = offers.reduce((n, o) => n + o.proposals.filter((p) => isTicked(o.key, p)).length, 0);
+
+  /** Show the message beside the control that needs fixing and put the cursor there, so the fix is one step away. */
+  function fail(field: StartError["field"], text: string) {
+    setError({ field, text });
+    if (field === "title") titleRef.current?.focus();
+    if (field === "trd") trdRef.current?.focus();
+    if (field === "plan") planRef.current?.focus();
+  }
+  /** A message about a control goes away as soon as that control is changed. */
+  const clearError = (field: StartError["field"]) => setError((e) => (e?.field === field ? null : e));
+
   function create() {
-    if (!title.trim()) return setError("Enter a title for the batch record.");
-    if (useTrd && !trd) return setError("Choose which TRD record to start from, or untick it.");
-    if (usePlan && !plan) return setError("Choose which sampling plan to start from, or untick it.");
+    if (!title.trim()) return fail("title", "Enter a title for the batch record.");
+    if (useTrd && !trd) return fail("trd", trds.length === 0 ? "This project has no TRD record to start from. Untick it, or add one on the TRD page first." : "Choose which TRD record to start from, or untick it.");
+    if (usePlan && !plan) return fail("plan", plans.length === 0 ? "This project has no sampling plan to start from. Untick it, or add one on the Sampling page first." : "Choose which sampling plan to start from, or untick it.");
     const sections = offers
       .map((o) => ({ ...(o.unitOp ? { unitOp: o.unitOp } : {}), title: o.label, blocks: o.proposals.filter((p) => isTicked(o.key, p)).map((p) => p.block) }))
       .filter((s) => s.blocks.length > 0);
@@ -84,10 +106,10 @@ function List({ missing }: { missing?: string | undefined }) {
       newId = r.recordId;
       return r.project;
     }, "Batch record created");
-    if (err) return setError(err);
+    if (err) return fail("form", err);
     setTitle("");
     setDocRef("");
-    setError("");
+    setError(null);
     navigate("/mbr", { mbr: newId });
   }
 
@@ -102,7 +124,7 @@ function List({ missing }: { missing?: string | undefined }) {
             <>
               <p data-testid="mbr-scope-text">{mbrScopeText}</p>
               <ul className="plain-list">
-                <li>A master batch record can start from a TRD record, from a sampling plan, from both, or blank.</li>
+                <li>A batch record can start from a TRD record, from a sampling plan, from both, or blank.</li>
                 <li>It is built from step blocks. The blocks come from a library you can edit; an edit makes a new version, and records already made keep their own copy until you choose to update them.</li>
                 <li>When the TRD or the sampling plan changes, the rows concerned show a notice and an Update button. Nothing is rewritten for you.</li>
                 <li>
@@ -169,18 +191,42 @@ function List({ missing }: { missing?: string | undefined }) {
           <div className="row wrap">
             <label className="field grow">
               <span>Title</span>
-              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. ARX-217 master batch record (fictional)" data-testid="mbr-title-input" />
+              <input
+                ref={titleRef}
+                value={title}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  clearError("title");
+                }}
+                placeholder="e.g. ARX-217 batch record (fictional)"
+                aria-invalid={error?.field === "title" || undefined}
+                aria-describedby={error?.field === "title" ? "mbr-title-error" : undefined}
+                data-testid="mbr-title-input"
+              />
             </label>
             <label className="field">
               <span>Document reference (optional)</span>
               <input value={docRef} onChange={(e) => setDocRef(e.target.value)} data-testid="mbr-docref-input" />
             </label>
           </div>
+          {error?.field === "title" && (
+            <p className="error" role="alert" id="mbr-title-error" data-testid="mbr-create-error">
+              {error.text}
+            </p>
+          )}
           <fieldset className="fs stack" data-testid="mbr-start-options">
             <legend>What does the batch record start from? (any combination, or neither for a blank record)</legend>
             <div className="stack">
               <label className="check top">
-                <input type="checkbox" checked={useTrd} onChange={(e) => setUseTrd(e.target.checked)} data-testid="mbr-start-trd" />
+                <input
+                  type="checkbox"
+                  checked={useTrd}
+                  onChange={(e) => {
+                    setUseTrd(e.target.checked);
+                    clearError("trd");
+                  }}
+                  data-testid="mbr-start-trd"
+                />
                 <span>
                   <strong>A TRD record</strong>
                   <span className="block muted small">Parameter rows take the TRD value with its source. Unit operations come from the TRD steps.</span>
@@ -192,7 +238,17 @@ function List({ missing }: { missing?: string | undefined }) {
                 ) : (
                   <label className="field">
                     <span>TRD record</span>
-                    <select value={trdId} onChange={(e) => setTrdId(e.target.value)} data-testid="mbr-start-trd-select">
+                    <select
+                      ref={trdRef}
+                      value={trdId}
+                      onChange={(e) => {
+                        setTrdId(e.target.value);
+                        clearError("trd");
+                      }}
+                      aria-invalid={error?.field === "trd" || undefined}
+                      aria-describedby={error?.field === "trd" ? "mbr-start-trd-error" : undefined}
+                      data-testid="mbr-start-trd-select"
+                    >
                       <option value="">Choose a TRD record</option>
                       {trds.map((d) => (
                         <option key={d.id} value={d.id}>
@@ -202,8 +258,21 @@ function List({ missing }: { missing?: string | undefined }) {
                     </select>
                   </label>
                 ))}
+              {error?.field === "trd" && (
+                <p className="error" role="alert" id="mbr-start-trd-error" data-testid="mbr-create-error">
+                  {error.text}
+                </p>
+              )}
               <label className="check top">
-                <input type="checkbox" checked={usePlan} onChange={(e) => setUsePlan(e.target.checked)} data-testid="mbr-start-plan" />
+                <input
+                  type="checkbox"
+                  checked={usePlan}
+                  onChange={(e) => {
+                    setUsePlan(e.target.checked);
+                    clearError("plan");
+                  }}
+                  data-testid="mbr-start-plan"
+                />
                 <span>
                   <strong>A sampling plan</strong>
                   <span className="block muted small">Sample rows come from the plan, and a notice tells you when the plan changes.</span>
@@ -215,7 +284,17 @@ function List({ missing }: { missing?: string | undefined }) {
                 ) : (
                   <label className="field">
                     <span>Sampling plan</span>
-                    <select value={planId} onChange={(e) => setPlanId(e.target.value)} data-testid="mbr-start-plan-select">
+                    <select
+                      ref={planRef}
+                      value={planId}
+                      onChange={(e) => {
+                        setPlanId(e.target.value);
+                        clearError("plan");
+                      }}
+                      aria-invalid={error?.field === "plan" || undefined}
+                      aria-describedby={error?.field === "plan" ? "mbr-start-plan-error" : undefined}
+                      data-testid="mbr-start-plan-select"
+                    >
                       <option value="">Choose a sampling plan</option>
                       {plans.map((p) => (
                         <option key={p.id} value={p.id}>
@@ -225,35 +304,47 @@ function List({ missing }: { missing?: string | undefined }) {
                     </select>
                   </label>
                 ))}
+              {error?.field === "plan" && (
+                <p className="error" role="alert" id="mbr-start-plan-error" data-testid="mbr-create-error">
+                  {error.text}
+                </p>
+              )}
             </div>
           </fieldset>
 
-          <fieldset className="fs stack" data-testid="mbr-blocks-offer">
-            <legend>Proposed step blocks</legend>
-            <p className="muted small">
-              These are offers. A block is ticked only when a source you chose backs it (the TRD holds its values, or the sampling plan has sample points). You can tick or untick any of them, and add more later.
-            </p>
-            {offers
-              .filter((o) => o.proposals.length > 0)
-              .map((o) => (
-                <fieldset key={o.key} className="fs stack">
-                  <legend>{o.label}</legend>
-                  {o.proposals.map((p) => (
-                    <label key={p.block.id} className="check top">
-                      <input type="checkbox" checked={isTicked(o.key, p)} onChange={(e) => setTicks((t) => ({ ...t, [tickKey(o.key, p.block.id)]: e.target.checked }))} data-testid={`mbr-offer-${o.key}-${p.block.id}`} />
-                      <span>
-                        <strong>{p.block.title}</strong>
-                        <span className="block muted small">{p.reason}</span>
-                      </span>
-                    </label>
+          {blockCount > 0 && (
+            <details className="mbr-blocks-details" data-testid="mbr-blocks-details">
+              <summary>
+                Step blocks to include (optional): {tickedCount} of {blockCount} ticked
+              </summary>
+              <fieldset className="fs stack" data-testid="mbr-blocks-offer">
+                <legend>Proposed step blocks</legend>
+                <p className="muted small">
+                  These are offers. A block is ticked only when a source you chose backs it (the TRD holds its values, or the sampling plan has sample points). You can tick or untick any of them, and add more later.
+                </p>
+                {offers
+                  .filter((o) => o.proposals.length > 0)
+                  .map((o) => (
+                    <fieldset key={o.key} className="fs stack">
+                      <legend>{o.label}</legend>
+                      {o.proposals.map((p) => (
+                        <label key={p.block.id} className="check top">
+                          <input type="checkbox" checked={isTicked(o.key, p)} onChange={(e) => setTicks((t) => ({ ...t, [tickKey(o.key, p.block.id)]: e.target.checked }))} data-testid={`mbr-offer-${o.key}-${p.block.id}`} />
+                          <span>
+                            <strong>{p.block.title}</strong>
+                            <span className="block muted small">{p.reason}</span>
+                          </span>
+                        </label>
+                      ))}
+                    </fieldset>
                   ))}
-                </fieldset>
-              ))}
-          </fieldset>
+              </fieldset>
+            </details>
+          )}
 
-          {error && (
+          {error?.field === "form" && (
             <p className="error" role="alert" data-testid="mbr-create-error">
-              {error}
+              {error.text}
             </p>
           )}
           <div>

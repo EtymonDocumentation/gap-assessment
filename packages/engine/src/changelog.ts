@@ -29,6 +29,8 @@ export const ACTION_LABELS: Record<string, string> = {
   gap_update: "Gap updated",
   confirm_section: "Section confirmed",
   set_responder: "Responder changed",
+  project_rename: "Project renamed",
+  project_copy: "Project copied",
   apply_saved_answers: "Saved answers applied",
   set_entry_sequence: "Entry order changed",
   custom_uo_add: "Custom unit operation added",
@@ -336,8 +338,8 @@ const SAMPLING_FIELD_TEXT: Record<string, string> = {
   docRef: "Document reference",
   version: "Version",
   purpose: "Purpose",
-  mbrValue: "MBR value",
-  mbrUnit: "MBR unit",
+  mbrValue: "Batch record value",
+  mbrUnit: "Batch record unit",
   choice: "Choice",
   reason: "Reason",
   studyPoint: "Study point, not a limit",
@@ -471,7 +473,7 @@ function toRow(content: ContentBundle, project: Project, ev: ChangeEvent, i: num
         row.after = name(a) ?? NONE;
       } else {
         row.before = name(b) ?? NONE;
-        if (a) row.detail = `Cited by ${String(a.citingEntries)} entries; ${String(a.reverted)} reverted to Not established`;
+        if (a) row.detail = `Cited by ${String(a.citingEntries)} entries; ${String(a.reverted)} reverted to TBD`;
       }
       return row;
     }
@@ -497,6 +499,17 @@ function toRow(content: ContentBundle, project: Project, ev: ChangeEvent, i: num
       row.subject = "Responder";
       row.before = r(ev.before);
       row.after = r(ev.after);
+      return row;
+    }
+    case "project_rename": {
+      row.subject = "Project name";
+      row.before = String(ev.before ?? NONE);
+      row.after = String(ev.after ?? NONE);
+      return row;
+    }
+    case "project_copy": {
+      row.subject = "Project";
+      row.after = String(ev.after ?? NONE);
       return row;
     }
     case "set_entry_sequence": {

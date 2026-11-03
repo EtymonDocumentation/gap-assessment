@@ -108,10 +108,10 @@ describe("change log: every mutation leaves an event with before and after", () 
     const reverted = rows.find((r) => r.action === "revert_on_source_removal")!;
     expect(reverted).toBeTruthy();
     expect(reverted.before).toMatch(/stainless/i);
-    expect(reverted.after).toMatch(/Not established/i);
+    expect(reverted.after).toMatch(/TBD/i);
     expect(reverted.detail).toMatch(/kept only in this log/i);
     const removed = rows.find((r) => r.action === "remove_source" && /TEST-DOC-001/.test(r.subject))!;
-    expect(removed.detail).toMatch(/reverted to Not established/);
+    expect(removed.detail).toMatch(/reverted to TBD/);
   });
 
   it("verification: verify and unverify log the verifier, the status change and the reason", () => {

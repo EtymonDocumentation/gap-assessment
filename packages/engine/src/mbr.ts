@@ -2,6 +2,8 @@ import {
   mbrRecordSchema,
   MBR_CHOICE_LABEL,
   MBR_SAMPLE_MOMENTS,
+  UNIT_OP_CUSTOM_STEP,
+  UNIT_OP_NONE,
   type Actor,
   type ChangeEvent,
   type MbrBlock,
@@ -265,12 +267,18 @@ export function sampleDiff(row: MbrSampleRow, plan: SamplingPlan | undefined): {
   return { missing: false, keys: SAMPLE_KEYS.filter((k) => (row[k] ?? "") !== (live[k] ?? "")) };
 }
 
+/** Whether a block's sample types take a plan point: "*" takes every point, otherwise a type word must appear in what the point tests. */
+function sampleTypeFits(p: SamplingPoint, sampleTypes: readonly string[]): boolean {
+  if (sampleTypes.length === 0) return false;
+  if (sampleTypes.includes("*")) return true;
+  const what = `${p.attribute} ${p.typeLabel ?? ""} ${p.type ?? ""}`.toLowerCase();
+  return sampleTypes.some((w) => what.includes(w.toLowerCase()));
+}
+
 /** Plan points that fit a block: those on the section's unit operation, narrowed by the block's sample types ("*" = all of them). */
 export function candidateSamplePoints(plan: SamplingPlan | undefined, unitOp: string | undefined, sampleTypes: readonly string[]): SamplingPoint[] {
   if (!plan || !unitOp || sampleTypes.length === 0) return [];
-  const all = sampleTypes.includes("*");
-  const words = sampleTypes.map((w) => w.toLowerCase());
-  return plan.points.filter((p) => p.unitOp === unitOp && (all || words.some((w) => `${p.attribute} ${p.typeLabel ?? ""} ${p.type ?? ""}`.toLowerCase().includes(w))));
+  return plan.points.filter((p) => p.unitOp === unitOp && sampleTypeFits(p, sampleTypes));
 }
 
 function sampleRow(plan: SamplingPlan, p: SamplingPoint, id: string): MbrSampleRow {
@@ -1052,7 +1060,7 @@ export function setParam(project: Project, recordId: string, rowId: string, patc
       if (patch.choice === "same_as_trd") {
         // "Same as TRD" makes the MBR value the TRD value (the unit too, copied as the TRD states it). A TRD that holds no value leaves
         // the MBR value blank: the row then reads "value not held by the site", never a made-up number.
-        if (patch.mbrValue !== undefined || patch.mbrUnit !== undefined) throw new MbrError("While the choice is 'same as TRD' the MBR value follows the TRD value. Choose 'tightened by the CMO' to enter a different value.");
+        if (patch.mbrValue !== undefined || patch.mbrUnit !== undefined) throw new MbrError("While the choice is 'same as TRD' the batch record value follows the TRD value. Choose 'tightened by the CMO' to enter a different value.");
         const t = row.trd && row.trd.status === "established" ? row.trd : undefined;
         if (t?.text) row.mbrValue = t.text;
         else delete row.mbrValue;
@@ -1061,7 +1069,7 @@ export function setParam(project: Project, recordId: string, rowId: string, patc
       }
     }
     if (patch.mbrValue !== undefined || patch.mbrUnit !== undefined) {
-      if (row.choice === "same_as_trd") throw new MbrError("While the choice is 'same as TRD' the MBR value follows the TRD value. Choose 'tightened by the CMO' to enter a different value.");
+      if (row.choice === "same_as_trd") throw new MbrError("While the choice is 'same as TRD' the batch record value follows the TRD value. Choose 'tightened by the CMO' to enter a different value.");
       if (patch.mbrValue !== undefined) {
         const v = text(patch.mbrValue);
         if (v) row.mbrValue = v;
@@ -1286,20 +1294,26 @@ export function removeTarget(project: Project, recordId: string, targetId: strin
 
 // ------------------------------------------------------------------ sample rows
 
+/** Puts a sample row for each listed plan point into a block, skipping those the block already holds. Returns the point numbers added. */
+function pushSampleRows(plan: SamplingPlan, block: MbrBlock, pointIds: readonly string[], ids: IdIssuer): string[] {
+  const have = new Set(block.samples.map((s) => s.pointId));
+  const added: string[] = [];
+  for (const pid of pointIds) {
+    const p = plan.points.find((x) => x.id === pid);
+    if (!p) throw new MbrError(`Sample point ${pid} is not in ${plan.id}`);
+    if (have.has(pid)) continue;
+    block.samples.push(sampleRow(plan, p, ids("R")));
+    added.push(pid);
+  }
+  return added;
+}
+
 export function addSampleRows(project: Project, recordId: string, blockId: string, pointIds: string[], actor: Actor): Project {
   return mutate(project, recordId, actor, (rec, ids) => {
     const { section, block } = blockLoc(rec, blockId);
     const plan = planOf(project, rec);
     if (!plan) throw new MbrError("This batch record has no sampling plan to take sample rows from");
-    const have = new Set(block.samples.map((s) => s.pointId));
-    const added: string[] = [];
-    for (const pid of pointIds) {
-      const p = plan.points.find((x) => x.id === pid);
-      if (!p) throw new MbrError(`Sample point ${pid} is not in ${plan.id}`);
-      if (have.has(pid)) continue;
-      block.samples.push(sampleRow(plan, p, ids("R")));
-      added.push(pid);
-    }
+    const added = pushSampleRows(plan, block, pointIds, ids);
     if (added.length === 0) return undefined;
     return { action: "mbr_sample_add", path: rowPath(rec, section, block), detail: `${added.length} sample row${added.length === 1 ? "" : "s"} (${added.join(", ")}) added to block "${block.title}" in ${rec.id}`, after: { samplingPointIds: added.join(", ") } };
   });
@@ -1360,6 +1374,129 @@ export function sampleNotices(project: Project, rec: MbrRecord): SampleNotice[] 
     if (d.missing || d.keys.length) out.push({ blockId: b.id, rowId: r.id, pointId: r.pointId, missing: d.missing, keys: d.keys });
   }
   return out;
+}
+
+// ------------------------------------------------------------------ plan points the record leaves out
+
+/**
+ * A plan point that names no unit operation of the process: "none" (supporting work that belongs to no single step) or "custom_step" (a step
+ * the plan's author labelled freely). No section of a record is "its" section, so the author chooses where it goes.
+ */
+const namesNoUnitOp = (p: SamplingPoint): boolean => p.unitOp === UNIT_OP_NONE || p.unitOp === UNIT_OP_CUSTOM_STEP;
+
+export interface PlanPointNotInRecord {
+  pointId: string;
+  /** What is tested, as a sample row of this record would name it. */
+  test: string;
+  /** Sections of this record that could take the point: those on its unit operation, or every section when the point names none. */
+  sectionIds: string[];
+  /** The plan names no unit operation for the point, so nothing says which section it belongs in ("choose where"). */
+  chooseWhere: boolean;
+}
+
+/**
+ * The points of the record's linked sampling plan that no sample row of the record covers ("in the sampling plan, not in this batch record").
+ * The plan covers the whole PPQ and a record is often one part of it, so only a point whose unit operation matches a section of THIS record
+ * is listed: a point on another unit operation is another record's business. A point that names no unit operation fits any section and is
+ * listed as "choose where". Nothing is added for the author; this only points at the difference.
+ */
+export function planPointsNotInRecord(project: Project, rec: MbrRecord): PlanPointNotInRecord[] {
+  const plan = planOf(project, rec);
+  if (!plan) return [];
+  const covered = new Set<string>();
+  for (const s of rec.sections) for (const b of s.blocks) for (const r of b.samples) if (r.planId === plan.id) covered.add(r.pointId);
+  const out: PlanPointNotInRecord[] = [];
+  for (const p of plan.points) {
+    if (covered.has(p.id)) continue;
+    const free = namesNoUnitOp(p);
+    const sections = free ? rec.sections : rec.sections.filter((s) => s.unitOp === p.unitOp);
+    if (sections.length === 0) continue;
+    out.push({ pointId: p.id, test: sampleFieldsOf(plan, p).test, sectionIds: sections.map((s) => s.id), chooseWhere: free });
+  }
+  return out;
+}
+
+/** The library block a record block was made from; undefined for a block the author wrote, or whose library block is gone. */
+const libraryOf = (b: MbrBlock, library: readonly MbrLibraryBlock[]): MbrLibraryBlock | undefined => (b.libraryId ? library.find((l) => l.id === b.libraryId) : undefined);
+
+/**
+ * The block of a section that takes a new sample row: the first block whose library block takes this kind of sample (the sample table, which
+ * is where a new record puts its rows), else the one block of the section that already holds sample rows. When neither tells, no block is
+ * picked for the author: the section has no sample block or several, and the author chooses in the block's own sample picker.
+ */
+export function sampleHomeBlock(section: MbrSection, point: SamplingPoint, library: readonly MbrLibraryBlock[]): MbrBlock | undefined {
+  const made = section.blocks.find((b) => {
+    const lib = libraryOf(b, library);
+    return lib !== undefined && sampleTypeFits(point, lib.sampleTypes);
+  });
+  if (made) return made;
+  const holding = section.blocks.filter((b) => b.samples.length > 0);
+  return holding.length === 1 ? holding[0] : undefined;
+}
+
+/**
+ * Writes the sampling step for a sample added to a record that already exists, as a new record writes it (placeSampleSteps): in the block of
+ * the section that names a place for the moment, right after the library step that place follows, in the library's words. The place is found
+ * by the text of that step, not by its number, so a block whose steps were added, moved or reworded is not guessed at: when the step is gone,
+ * no step is written and the sample shows as an open item ("No step names this sample"). A sample of the hold that a split record stands
+ * for is told on the hold entry and gets no step. A step the author may have reworded is never rewritten: the sample gets a step of its own.
+ * Returns the block the step went into.
+ */
+function placeStepForAddedSample(rec: MbrRecord, section: MbrSection, point: SamplingPoint, library: readonly MbrLibraryBlock[], ids: IdIssuer): MbrBlock | undefined {
+  const moment = sampleMomentKey(point);
+  if (!moment) return undefined;
+  if (rec.split?.planHoldId && point.flow?.holdId === rec.split.planHoldId && (moment === "hold_start" || moment === "hold_end")) return undefined;
+  for (const block of section.blocks) {
+    const lib = libraryOf(block, library);
+    const slots = lib?.sampleSlots;
+    const slot = slots?.find((s) => s.moment === moment);
+    if (!lib || !slots || !slot) continue;
+    let at = 0;
+    if (slot.afterStep > 0) {
+      const follows = lib.steps[slot.afterStep - 1];
+      const i = block.steps.findIndex((st) => !st.placedFor && st.text === follows);
+      if (i < 0) continue;
+      at = i + 1;
+    }
+    // Sampling steps at one place stay in the order the slots are written in, as placeSampleSteps leaves them.
+    const rank = (m: string) => slots.findIndex((s) => s.moment === m);
+    for (;;) {
+      const next = block.steps[at]?.placedFor;
+      if (!next || slots[rank(next.moment)]?.afterStep !== slot.afterStep || rank(next.moment) > rank(moment)) break;
+      at++;
+    }
+    block.steps.splice(at, 0, { id: ids("ST"), text: slot.text.replace("{samples}", samplesWords([point.id])), placedFor: { moment, points: [point.id] } });
+    return block;
+  }
+  return undefined;
+}
+
+/**
+ * Adds the sample row of a plan point that the record leaves out (planPointsNotInRecord) to a section. The row goes into the block that
+ * holds the section's samples (sampleHomeBlock) and its sampling step is written where a block names a place for the moment
+ * (placeStepForAddedSample). One logged edit. Where no step could be written, the sample shows as an open item until the author writes it.
+ */
+export function addPlanPointToSection(project: Project, recordId: string, sectionId: string, pointId: string, library: readonly MbrLibraryBlock[], actor: Actor): Project {
+  return mutate(project, recordId, actor, (rec, ids) => {
+    const section = sectionOf(rec, sectionId);
+    const plan = planOf(project, rec);
+    if (!plan) throw new MbrError("This batch record has no sampling plan to take sample rows from");
+    const point = plan.points.find((x) => x.id === pointId);
+    if (!point) throw new MbrError(`Sample point ${pointId} is not in ${plan.id}`);
+    const left = planPointsNotInRecord(project, rec).find((x) => x.pointId === pointId);
+    if (!left) return undefined; // the record has a row for it already: nothing to add
+    if (!left.sectionIds.includes(sectionId)) throw new MbrError(`Sample point ${pointId} does not belong in section "${section.title}"`);
+    const home = sampleHomeBlock(section, point, library);
+    if (!home) throw new MbrError(`Section "${section.title}" has no block that holds sample rows: add the row in the block you choose`);
+    pushSampleRows(plan, home, [pointId], ids);
+    const stepBlock = placeStepForAddedSample(rec, section, point, library, ids);
+    return {
+      action: "mbr_sample_add",
+      path: rowPath(rec, section, home),
+      detail: `1 sample row (${pointId}) added to block "${home.title}" in ${rec.id} from the open items (in the sampling plan, not in the batch record); ${stepBlock ? `its sampling step was written in block "${stepBlock.title}"` : "no sampling step was written for it"}`,
+      after: { samplingPointIds: pointId },
+    };
+  });
 }
 
 // ------------------------------------------------------------------ open items and TRD requirements
@@ -1454,11 +1591,16 @@ export function addBlockForRequirement(
 }
 
 export interface MbrOpenItem {
-  kind: "not_decided" | "no_step" | "broken_reference" | "no_trd_value" | "sample_not_placed" | "no_purpose" | "no_sections" | "trd_open" | "before_issue";
+  kind: "not_decided" | "no_step" | "broken_reference" | "no_trd_value" | "sample_not_placed" | "sample_not_in_record" | "no_purpose" | "no_sections" | "trd_open" | "before_issue";
   where: string;
   text: string;
   blockId?: string;
   rowId?: string;
+  /** sample_not_in_record: the plan point the record has no row for, and the sections that could take it (one section: "Add to <section>"). */
+  pointId?: string;
+  sectionIds?: string[];
+  /** sample_not_in_record: the plan names no unit operation for the point, so any section could take it. */
+  chooseWhere?: boolean;
 }
 
 const BEFORE_ISSUE = /(entered|completed|filled in)[^.]*before (the record is |the batch record is )?issu(e|ed)/i;
@@ -1486,7 +1628,20 @@ export function mbrOpenItems(project: Project, rec: MbrRecord, library: readonly
   }
   const onEntries = new Set(holdEntryInfo(project, rec).entries.flatMap((e) => e.samples.map((x) => x.pointId)));
   for (const s of rec.sections) for (const x of unplacedSamples(s, onEntries)) out.push({ kind: "sample_not_placed", where: `${s.title}, sample ${x.pointId}`, text: `No step names this sample (${x.test}): add the step where it is taken`, blockId: x.blockId, rowId: x.rowId });
-  for (const q of trdRequirementsWithoutStep(rec, trdOf(project, rec), library)) out.push({ kind: "no_step", where: `${q.stepLabel}, ${q.label}`, text: "TRD requirement without an MBR step" });
+  // The sampling plan asks for these samples and the record has no row for them. Counted as open items so that "nothing open" never hides a
+  // sample of the plan; the Word and HTML open-items table prints the same two columns.
+  for (const x of planPointsNotInRecord(project, rec)) {
+    const titles = x.sectionIds.map((id) => rec.sections.find((s) => s.id === id)!.title);
+    out.push({
+      kind: "sample_not_in_record",
+      where: x.chooseWhere ? "Choose where" : titles.length === 1 ? titles[0]! : `Choose where: ${titles.join(", ")}`,
+      text: `In the sampling plan, not in this batch record: ${x.pointId} (${x.test})`,
+      pointId: x.pointId,
+      sectionIds: x.sectionIds,
+      chooseWhere: x.chooseWhere,
+    });
+  }
+  for (const q of trdRequirementsWithoutStep(rec, trdOf(project, rec), library)) out.push({ kind: "no_step", where: `${q.stepLabel}, ${q.label}`, text: "TRD requirement without a batch record step" });
   for (const x of brokenReferences(rec)) {
     const s = rec.sections.find((sec) => sec.id === x.sectionId)!;
     out.push({ kind: "broken_reference", where: s.title, text: "A step reference points to a step that was removed", blockId: x.blockId });

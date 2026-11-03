@@ -4,7 +4,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Download, type Locator, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
-import { expectNotice } from "./nav-helper";
+import { expectNotice, openDemo } from "./nav-helper";
 
 const TBD_BUTTON = "TBD (to be decided)";
 /** Wording that would be a second not-known answer. */
@@ -21,7 +21,7 @@ async function go(page: Page, hash: string) {
 async function loadDemo(page: Page) {
   await page.goto("./");
   await expectNotice(page);
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
 
@@ -70,7 +70,7 @@ test("one click saves a TBD with no details, on a one-sided question and on a pa
   await panel(page, "source").getByRole("button", { name: TBD_BUTTON }).click();
   await go(page, "#/tbd");
   await expect(page.locator("tbody tr", { hasText: "Filling pump" })).toHaveCount(1);
-  await expect(page.locator("[role=status].tbd-summary")).toContainText("5 TBD (1 overdue)");
+  await expect(page.locator("[role=status].tbd-summary")).toContainText("5 marked TBD (1 overdue)");
   await expectAccessible(page, "TBD list after one-click TBD");
 });
 
@@ -115,7 +115,9 @@ test("Add details opens an optional best guess, owner, due date and note; keyboa
 test("the Home card says TBD and nowhere offers Unknown or 'to be confirmed'", async ({ page }) => {
   await loadDemo(page);
   await go(page, "#/");
-  await expect(page.getByRole("link", { name: "4 TBD (1 overdue)" })).toBeVisible();
+  // The two counts sit together and say how they relate; the overdue part is beside the link.
+  await expect(page.getByRole("link", { name: "4 open items, 4 marked TBD" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "4 open items, 4 marked TBD" }).locator("xpath=..")).toContainText("(1 overdue)");
   await expect(page.locator("main")).not.toContainText(/\bunknown\b|to be confirmed/i);
   await expectAccessible(page, "Home with TBD card");
   await expectNoHorizontalScroll(page, "Home with TBD card");
@@ -154,7 +156,8 @@ test("an old project (schema 1.8.0, with Unknown answers) converts on import and
 
   await page.goto("./");
   await page.getByLabel("Project JSON file to import").setInputFiles({ name: "old-1.8.0.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(project)) });
-  await expect(page.getByRole("heading", { level: 1, name: "Interview summary" })).toBeVisible();
+  // An import says what it made and stays on Home (Tester D row 18); the conversion itself is read from the change log below.
+  await expect(page.getByTestId("import-result")).toContainText("Imported:");
 
   await go(page, "#/changes");
   const rows = page.locator("table.change-table tbody tr", { hasText: "System (file update)" });
@@ -174,7 +177,7 @@ test("an old project (schema 1.8.0, with Unknown answers) converts on import and
 
   // Behaviour is the same: the Home card counts the same TBD entries as before.
   await go(page, "#/");
-  await expect(page.getByRole("link", { name: "4 TBD (1 overdue)" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "4 open items, 4 marked TBD" })).toBeVisible();
 });
 
 // One question of each kind, on both sides where the question is paired. The control for "not known" is the TBD button,

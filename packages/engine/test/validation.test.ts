@@ -314,7 +314,7 @@ describe("validation plan: study status and readiness", () => {
     blank = pair(blank, "f.principle", "a", "b");
     const b = row(blank, "act_ppq");
     expect(b.readiness).toBe("information_required");
-    expect(b.studies[0]!.target).toEqual({ display: "Not established", entry: "not_established" });
+    expect(b.studies[0]!.target).toEqual({ display: "TBD", entry: "not_established" });
     expect(b.openItems).toBe(1);
   });
 
@@ -428,7 +428,7 @@ describe("validation plan: CSV", () => {
     const csv = validationPlanToCsv(planOf(p));
     const lines = csv.trimEnd().split("\r\n");
     expect(lines).toHaveLength(planOf(p).length + 1);
-    expect(lines[0]).toBe('"Activity","Description","Implied by gaps","Gap statuses","Highest severity","Regulatory","Readiness","Linked studies","SU study status","RU study status","Open gaps","Open information items","Provisional"');
+    expect(lines[0]).toBe('"Activity","Description","Implied by gaps","Gap statuses","Highest severity","Regulatory","Readiness","Linked studies","SU study status","RU study status","Open gaps","Open items","Provisional"');
     expect(csv.endsWith("\r\n")).toBe(true);
     expect(csv).toContain('"PPQ activity"');
     expect(csv).toContain("PPQ (Filling X): Not covered");
@@ -492,9 +492,9 @@ describe("equipment qualification", () => {
     p = unk(p, "f.qual", "source");
     const filler = eq(p)[0]!;
     expect(filler.source).toEqual({ display: "To be decided (TBD)", entry: "tbd" });
-    expect(filler.target).toEqual({ display: "Not established", entry: "not_established" });
-    expect(filler.ranges[0]!.qualified).toEqual({ display: "Not established", entry: "not_established" });
-    expect(filler.ranges[0]!.required).toMatchObject({ display: "Not established", entry: "not_established" });
+    expect(filler.target).toEqual({ display: "TBD", entry: "not_established" });
+    expect(filler.ranges[0]!.qualified).toEqual({ display: "TBD", entry: "not_established" });
+    expect(filler.ranges[0]!.required).toMatchObject({ display: "TBD", entry: "not_established" });
   });
 
   it("has no rows when the unit operation is not in scope", () => {

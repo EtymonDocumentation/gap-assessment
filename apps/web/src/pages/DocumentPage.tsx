@@ -1,11 +1,11 @@
-import { buildDocument, documentFingerprint, omittedSectionIds, recordExport, verificationSummary } from "@gap/engine";
+import { buildDocument, documentFingerprint, omittedSectionIds, openItemsText, recordExport, verificationSummary } from "@gap/engine";
 import type { DocumentExport, TemplateRecord } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlBody, renderMarkdown } from "@gap/renderers";
 import { useMemo, useRef, useState } from "react";
 import { Modal } from "../components";
 import { HelpTip } from "../HelpTip";
 import { PageHeader } from "../PageHeader";
-import { download, sideText, slug, today } from "../lib";
+import { download, projectFileStem, sideText, today } from "../lib";
 import { href } from "../router";
 import { useAssessment, useContent, useStageWording, useStore } from "../store";
 import { BUILTIN_RECORD, ExportHistory, useWordChoice, useWordExport, WORD_EXPORT_HELP, WordPanelView } from "./document-panels";
@@ -21,7 +21,7 @@ export function DocumentPage() {
   const doc = useMemo(() => buildDocument(content, project, a, generatedAt), [project, a, generatedAt]);
   const body = useMemo(() => renderHtmlBody(doc), [doc]);
   const vs = useMemo(() => verificationSummary(content, project), [content, project]);
-  const base = `${slug(project.meta.title)}-gap-assessment-${today()}`;
+  const base = `${projectFileStem(project.meta)}-gap-assessment-${today()}`;
   const update = useStore((s) => s.update);
   const choice = useWordChoice();
   const wording = useStageWording();
@@ -29,8 +29,8 @@ export function DocumentPage() {
   const omitted = omittedSectionIds(project);
   const [scopeOpen, setScopeOpen] = useState(false);
 
-  // Downloading with TBD values still open is allowed, but only after the person has seen the count. The count is
-  // recorded in the export history. (GMP: a document with open TBD values must not leave the tool without that being plain.)
+  // Downloading with TBD values still open is allowed, but only after the person has seen the count. The count of values marked TBD
+  // is recorded in the export history. (GMP: a document with open TBD values must not leave the tool without that being plain.)
   const [pending, setPending] = useState<(() => void) | null>(null);
   const opener = useRef<HTMLElement | null>(null);
   const guard = (run: () => void) => {
@@ -70,13 +70,15 @@ export function DocumentPage() {
   const printPdf = () => guard(() => window.print());
 
   const n = doc.tbdCount;
+  const open = a.openItems.length;
   const included = summary.steps.included;
   return (
     <div className="stack-lg">
       <PageHeader
         title="Document"
         purpose="Draft the gap assessment document from your answers and gap decisions."
-        pills={n > 0 ? [{ label: `${n} TBD ${n === 1 ? "value" : "values"} open`, warning: true, testId: "doc-tbd-pill" }] : []}
+        // Both counts, with how they relate (every value marked TBD is an open item). The pill shows whenever anything is open, not only for TBD.
+        pills={open > 0 ? [{ label: openItemsText(open, n), warning: true, testId: "doc-tbd-pill" }] : []}
         about={{
           art: "page-document",
           children: (
@@ -89,9 +91,9 @@ export function DocumentPage() {
           ),
         }}
         exports={[
-          { label: "Download Word document", onSelect: word.run, testId: "export-word" },
-          { label: "Download HTML", onSelect: downloadHtml, testId: "export-html" },
-          { label: "Download Markdown", onSelect: downloadMarkdown, testId: "export-markdown" },
+          { label: "Download gap assessment (Word)", onSelect: word.run, testId: "export-word" },
+          { label: "Download gap assessment (HTML)", onSelect: downloadHtml, testId: "export-html" },
+          { label: "Download gap assessment (Markdown)", onSelect: downloadMarkdown, testId: "export-markdown" },
           { label: "Print / save as PDF", onSelect: printPdf, testId: "export-print" },
         ]}
       />
@@ -125,15 +127,15 @@ export function DocumentPage() {
               aria-describedby={word.checks?.blockers.length ? "word-blockers" : undefined}
               onClick={word.run}
             >
-              {word.busy ? "Creating…" : "Download Word document"}
+              {word.busy ? "Creating…" : "Download gap assessment (Word)"}
             </button>
             <HelpTip label="the Word export" text={WORD_EXPORT_HELP} />
           </span>
           <button className="btn" onClick={downloadHtml}>
-            Download HTML
+            Download gap assessment (HTML)
           </button>
           <button className="btn" onClick={downloadMarkdown}>
-            Download Markdown
+            Download gap assessment (Markdown)
           </button>
           <button className="btn" onClick={printPdf}>
             Print / save as PDF
@@ -150,7 +152,7 @@ export function DocumentPage() {
         <p className="small">
           {vs.all.verified} of {vs.all.total} entries are verified. {vs.all.withdrawn} {vs.all.withdrawn === 1 ? "verification is" : "verifications are"} withdrawn
           after a change, {vs.all.unverified} {vs.all.unverified === 1 ? "entry is" : "entries are"} unverified and {vs.all.notVerifiable}{" "}
-          {vs.all.notVerifiable === 1 ? "has" : "have"} no value to verify yet (TBD or Not established). Verify entries in the{" "}
+          {vs.all.notVerifiable === 1 ? "has" : "have"} no value to verify yet (TBD). Verify entries in the{" "}
           <a href={href("/builder")}>Builder</a>.
         </p>
         <div className="table-scroll" role="region" aria-label="Verification counts by side" tabIndex={0}>
@@ -182,7 +184,7 @@ export function DocumentPage() {
           </table>
         </div>
         <p className="small muted">
-          Names are free text without a login, so verification is not attributable in a GMP sense. The full breakdown by section is in the document.
+          Names are free text, not an electronic signature, so verification is not attributable in a GMP sense. The full breakdown by section is in the document.
         </p>
       </section>
       <ExportHistory exports={project.document.exports} />
@@ -194,13 +196,13 @@ export function DocumentPage() {
         <Modal
           open
           onOpenChange={(o) => !o && setPending(null)}
-          title="Download with TBD values?"
-          description={`This document still lists ${n} TBD ${n === 1 ? "value" : "values"}. They are open items, not confirmed values, and every result that uses a best guess is labelled Provisional.`}
+          title="Download with open items?"
+          description={`This document still lists ${openItemsText(open, n)}. None of them is a confirmed value, and every result that uses a best guess is labelled Provisional.`}
           restoreFocus={() => opener.current}
         >
           <div className="stack">
             <p data-testid="tbd-warning">
-              The download will record that <strong>{n} TBD {n === 1 ? "value was" : "values were"}</strong> open when it was made.
+              The download will record <strong>{n} marked TBD</strong> in the export history.
             </p>
             <div className="row end">
               <button type="button" className="btn" autoFocus onClick={() => setPending(null)}>

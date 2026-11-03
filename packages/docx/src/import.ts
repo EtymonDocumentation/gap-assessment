@@ -95,9 +95,10 @@ function analyseDocx(dp: DocPackage, sourceFormat: "docx" | "dotx" | "docm", str
 
   const missing = ["Title", "heading 1", "heading 2", "heading 3", "List Paragraph"].filter((n) => !styles.find(n, "paragraph"));
   if (!styles.find("Table Grid", "table")) missing.push("Table Grid");
-  if (missing.length) warnings.push(`The template has no style named ${missing.map((m) => `"${m}"`).join(", ")}. The tool adds its own matching style when it needs one.`);
-  if (!outline.length) warnings.push("No headings were found in this template. \"Map to their headings\" would put all tool content at the end under one heading.");
-  if (/<w:(ins|del)\s/.test(mainXml)) warnings.push("The template contains tracked changes. They are kept as they are in \"Map to their headings\" and dropped in \"Their look\".");
+  // Word's own names for the styles (the file stores them in lower case, "heading 3"): a reader sees "Heading 3".
+  if (missing.length) warnings.push(`The template does not define these Word styles: ${missing.map((m) => m.charAt(0).toUpperCase() + m.slice(1)).join(", ")}. The tool uses its own look for them where it needs one.`);
+  if (!outline.length) warnings.push("No headings were found in this template. \"A template's headings\" would put all tool content at the end under one heading.");
+  if (/<w:(ins|del)\s/.test(mainXml)) warnings.push("The template contains tracked changes. They are kept as they are in \"A template's headings\" and dropped in \"A template's look\".");
 
   const sect = split.sectPr ?? "";
   const partsOf = (type: string) => dp.mainRels.filter((r) => r.type === type && !r.external).map((r) => resolveTarget(dp.mainName, r.target));

@@ -122,7 +122,7 @@ export interface DocModel {
   banner: string;
   status: string;
   meta: [string, string][];
-  /** Facts for renderers that draw a cover page (the built-in Word template). Values not established read "[not established]". */
+  /** Facts for renderers that draw a cover page (the built-in Word template). Values that are TBD read "[TBD]". */
   cover: DocCover;
   /**
    * Document control facts a document already holds (its own reference, version and named roles). Optional: the built-in Word look
@@ -131,7 +131,7 @@ export interface DocModel {
    */
   control?: DocControl;
   sections: DocSection[];
-  /** How many TBD values the document lists as open items (also the "TBD values" line). Date-independent by design. */
+  /** How many TBD values the document lists as open items (also the "Marked TBD" line). Date-independent by design. */
   tbdCount: number;
 }
 
@@ -146,7 +146,7 @@ function scopeText(content: ContentBundle, project: Project, key: string): strin
 function siteText(project: Project, side: "source" | "target"): string {
   const name = resolveEntry(project, `${side}.site.name`);
   const line = resolveEntry(project, `${side}.site.line`);
-  const n = name.status === "established" ? String(name.value) : "[site not established]";
+  const n = name.status === "established" ? String(name.value) : "[site TBD]";
   return line.status === "established" ? `${n}, ${String(line.value)}` : n;
 }
 
@@ -408,7 +408,7 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
 
   const tbdList = tbdItems(content, project, a);
   const tbdByRef = new Map(tbdList.map((i) => [i.ref, i]));
-  add("open-items", "Open information items", [
+  add("open-items", "Open items", [
     { type: "paragraph", text: fill(t.openItemsIntro, vars) },
     a.openItems.length
       ? {
@@ -421,7 +421,7 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
             return [String(i + 1), o.sectionTitle, o.side === "shared" ? "Scoping" : o.side === "source" ? "SU" : "RU", tbd ? tbd.attribute : o.prompt, tbd ? tbdStatusText(tbd) : STATUS_TEXT[o.status]];
           }),
         }
-      : { type: "paragraph", text: "No open information items." },
+      : { type: "paragraph", text: "No open items." },
   ]);
 
   const ranked = riskRanked(a.gaps);
@@ -586,8 +586,8 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
       ["RU program stage", w.targetLabel],
       ["Generated", generatedAt.replace("T", " ").slice(0, 16) + " UTC"],
       ["Differences identified", String(diffs.length)],
-      ["Open information items", String(a.openItems.length)],
-      ["TBD values", String(tbdList.length)],
+      ["Open items", String(a.openItems.length)],
+      ["Marked TBD", String(tbdList.length)],
       ["Entries verified", `${vs.all.verified} of ${vs.all.total}`],
       ["Sections omitted", omittedIds.length ? omittedIds.map((id) => optionalSectionTitle(id)).join("; ") : "None"],
       ["Verification", t.verificationStatement],

@@ -1,5 +1,6 @@
 import { STORAGE_PHRASE_BROWSER, STORAGE_PHRASE_SERVER } from "@gap/engine";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { AboutPage } from "./pages/AboutPage";
 import { ScopePage } from "./pages/ScopePage";
 import { ComparePage } from "./pages/ComparePage";
 import { DocumentPage } from "./pages/DocumentPage";
@@ -109,17 +110,28 @@ function AppShell() {
     void init();
   }, [init]);
 
+  // The hidden announcement area keeps its last message until something replaces it, so "Batch record created" was still there when a
+  // tester reached My files. A message belongs to the page it was made on: it is cleared on the next page change, unless it was made in the
+  // same moment as the change (an action that opens a new page announces its result there, and that has to be heard).
+  const statusAt = useRef(0);
+  useEffect(() => {
+    statusAt.current = Date.now();
+  }, [status]);
+
   // Move focus to the main heading on page change, for keyboard and screen reader users.
   // A page that has already put focus somewhere inside the main area (the interview card does) keeps it.
   useEffect(() => {
     const main = document.getElementById("main");
     if (!main?.contains(document.activeElement) || document.activeElement === main) main?.focus({ preventScroll: true });
     window.scrollTo(0, 0);
+    // "Demo opened: ..." belongs to the visit to Home that followed the click; it is gone once the user goes anywhere else.
+    if (route.path !== "/") useStore.setState({ homeFlash: "", listNote: null });
+    if (Date.now() - statusAt.current > 1500) useStore.setState({ status: "" });
   }, [route.path]);
 
   // The template library belongs to the browser, not to a project, so it opens without one. So does the guidance library,
   // which is reference material and has nothing to do with the open project.
-  const needsProject = route.path !== "/" && route.path !== "/templates" && route.path !== "/guidance" && route.path !== "/saved-answers" && route.path !== "/sampling/tables" && route.path !== "/sampling/subsections" && route.path !== "/risk/methods" && route.path !== "/mbr/library" && route.path !== "/trd/writeups" && route.path !== "/myfiles";
+  const needsProject = route.path !== "/" && route.path !== "/templates" && route.path !== "/guidance" && route.path !== "/saved-answers" && route.path !== "/sampling/tables" && route.path !== "/sampling/subsections" && route.path !== "/risk/methods" && route.path !== "/mbr/library" && route.path !== "/trd/writeups" && route.path !== "/myfiles" && route.path !== "/about";
   const mappingId = /^\/templates\/([^/]+)\/mapping$/.exec(route.path)?.[1];
   // Documents run in chain order (gap assessment, TRD, sampling plan, batch record), each with a line saying what it is for. They are all
   // optional: the order is a suggestion about which document feeds the next, never a rule. Risk and the TBD list sit alongside the chain.
@@ -138,8 +150,8 @@ function AppShell() {
           children: GAP_STEPS.map((s) => ({ path: s.path, label: s.label })),
         },
         ...(trdAllowed ? [{ path: "/trd", label: "TRD", num: 2, desc: "Technical requirements. Start from this project or blank." }] : []),
-        ...(samplingAllowed ? [{ path: "/sampling", label: "Sampling plan", num: 3, desc: "Where and when to sample in the PPQ batches." }] : []),
-        ...(mbrAllowed ? [{ path: "/mbr", label: "Batch record", num: 4, desc: "The manufacturing batch record. Also opens the Process view." }] : []),
+        ...(samplingAllowed ? [{ path: "/sampling", label: "Sampling plan", num: 3, desc: "Where and when to sample in the PPQ (process performance qualification) batches." }] : []),
+        ...(mbrAllowed ? [{ path: "/mbr", label: "Batch record", num: 4, desc: "The step-by-step instruction for making one batch. Also opens the Process view." }] : []),
       ],
       sub: {
         heading: "Alongside",
@@ -152,18 +164,19 @@ function AppShell() {
     {
       label: "Library",
       items: [
-        { path: "/templates", label: "Templates" },
-        { path: "/guidance", label: "Guidance" },
-        { path: "/saved-answers", label: "Saved answers" },
-        { path: "/sources", label: "Sources" },
-        { path: "/builder", label: "Builder" },
-        { path: "/changes", label: "Change log" },
+        { path: "/templates", label: "Templates", desc: "Your own Word or PDF templates, to choose when you create a Word document." },
+        { path: "/guidance", label: "Guidance", desc: "Official regulations and guidance, to read the source text behind a gap." },
+        { path: "/saved-answers", label: "Saved answers", desc: "Your own sets of interview answers, to offer to another project." },
+        { path: "/sources", label: "Sources", desc: "Where each answer came from." },
+        { path: "/builder", label: "Builder", desc: "Advanced view; the Interview is easier." },
+        { path: "/changes", label: "Change log", desc: "Every change to the project, newest first." },
       ],
     },
   ];
   let page: React.ReactNode;
   if (!ready) page = <p className="muted">Loading…</p>;
   else if (needsProject && !project) page = <HomePage notice="Open the demo or start a new project first." />;
+  else if (route.path === "/about") page = <AboutPage />;
   else if (SERVER_MODE && route.path === "/myfiles") page = <MyFilesPage params={route.params} />;
   else if (route.path === "/scope") page = <ScopePage />;
   else if (route.path === "/interview") page = <InterviewPage params={route.params} />;

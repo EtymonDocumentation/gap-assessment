@@ -137,7 +137,7 @@ export function BuilderPage() {
         title="Builder"
         titleRef={headingRef}
         titleId="builder-title"
-        purpose="Every attribute of the process model, SU beside RU, with its status, sources, verification state and revision."
+        purpose="Advanced view; the Interview is easier. Every attribute of the process model, SU beside RU, with its status, sources, verification state and revision."
         about={{ art: "page-builder", children: <p>Edit a value in place, or add your own unit operations and items. Nothing is filled in by default: every value has a source.</p> }}
       />
 
@@ -479,7 +479,7 @@ export function BuilderPage() {
               `Source detached from ${dialog.target.attr.label}`,
             );
             if (!err) {
-              if (reverted) useStore.setState({ status: `Source detached. ${dialog.target.attr.label} is now Not established.` });
+              if (reverted) useStore.setState({ status: `Source detached. ${dialog.target.attr.label} is now TBD.` });
               setDialog(null);
             }
             return err;
@@ -968,7 +968,7 @@ function DetachDialog({
             Cancel
           </button>
           <button type="button" className={preview.warning ? "btn danger" : "btn primary"} onClick={() => setError(onDetach() ?? "")}>
-            {preview.warning ? "Detach and make Not established" : "Detach source"}
+            {preview.warning ? "Detach and make TBD" : "Detach source"}
           </button>
         </div>
       </div>
@@ -1007,7 +1007,7 @@ function VerifySectionDialog({
       wide
       onOpenChange={(o) => !o && onClose()}
       title={`Verify all in ${title}`}
-      description="Only entries that hold a value are verified. TBD and Not established entries are skipped."
+      description="Only entries that hold a value are verified. TBD entries and entries with no value yet are skipped."
       restoreFocus={restoreFocus}
     >
       <form

@@ -93,9 +93,9 @@ export function tbdSummary(items: TbdItem[], today: string): TbdSummary {
   };
 }
 
-/** "N TBD (M overdue)" for the Home card. */
+/** "N marked TBD (M overdue)": the TBD page summary. The Home card puts it next to the open-items count (see openItemsText). */
 export function tbdSummaryText(s: TbdSummary): string {
-  return `${s.total} TBD (${s.overdue} overdue)`;
+  return `${s.total} marked TBD (${s.overdue} overdue)`;
 }
 
 /**

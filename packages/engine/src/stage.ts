@@ -11,7 +11,7 @@ import type { ContentBundle } from "./content";
  * Rules:
  *   - "Validated" wording is used ONLY when the source stage is established as commercial. A clinical source,
  *     a development source and a source whose stage is not answered yet all use the non-validated wording.
- *   - Nothing is defaulted. An unanswered stage reads "[not established]" and shows up in the open items.
+ *   - Nothing is defaulted. An unanswered stage reads "[TBD]" and shows up in the open items.
  *   - The stage is not compared as a gap (rule R-SITE-INFO is informational). Its effect is on the wording and
  *     on the validation expectations below, which are phrased as expectations to confirm with QA.
  *   - The tool never decides a filing category.
@@ -36,7 +36,7 @@ export const STAGE_BINDS = "site.programStage";
 export const STAGE_QUESTION_ID = "site.stage";
 
 /** What is printed for a stage that has not been answered. */
-export const STAGE_NOT_ESTABLISHED = "[not established]";
+export const STAGE_NOT_ESTABLISHED = "[TBD]";
 
 export function isProgramStage(v: unknown): v is ProgramStage {
   return typeof v === "string" && (PROGRAM_STAGES as readonly string[]).includes(v);
@@ -140,7 +140,7 @@ export function stagedFor(content: ContentBundle, project: Project): ContentBund
 export interface StageWording {
   source: ProgramStage | undefined;
   target: ProgramStage | undefined;
-  /** Stage label, or "[not established]". */
+  /** Stage label, or "[TBD]". */
   sourceLabel: string;
   targetLabel: string;
   sourceValidated: boolean;
@@ -198,7 +198,7 @@ const SOURCE_POINT: Record<ProgramStage | "none", string> = {
     "The SU is GMP clinical manufacture and is not process validated, so there is no SU PPQ or process validation evidence to leverage. Aseptic process simulation (media fill) and qualification history at the SU may exist and can be cited where documented.",
   development:
     "The SU is development or engineering runs. There is no process validation and no GMP evidence to leverage; development data can inform the RU work but do not replace GMP evidence.",
-  none: "The SU program stage is not established, so no SU validation evidence is assumed. Answer the program stage question to complete this basis.",
+  none: "The SU program stage is TBD, so no SU validation evidence is assumed. Answer the program stage question to complete this basis.",
 };
 
 function targetPoint(source: ProgramStage | undefined, target: ProgramStage | undefined): string {
@@ -215,7 +215,7 @@ function targetPoint(source: ProgramStage | undefined, target: ProgramStage | un
   if (target === "development") {
     return "A development RU covers engineering or demonstration runs. They are not for GMP supply, so GMP validation activities are not expected.";
   }
-  return "The RU program stage is not established, so the validation work expected at the RU cannot be stated. Answer the program stage question to complete this basis.";
+  return "The RU program stage is TBD, so the validation work expected at the RU cannot be stated. Answer the program stage question to complete this basis.";
 }
 
 export function stageBasis(w: StageWording): StageBasis {
@@ -241,16 +241,16 @@ export function activityStageNote(activityKey: string, w: StageWording): string 
             ? "Expected at a commercial RU; the extent depends on SU PPQ coverage."
             : w.source
               ? "Expected at a commercial RU; from an SU that is not process validated this is typically a full PPQ."
-              : "Expected at a commercial RU; the extent depends on the SU stage, which is not established.",
+              : "Expected at a commercial RU; the extent depends on the SU stage, which is TBD.",
         );
       } else if (w.target === "clinical") parts.push("Full process validation (PPQ) is not expected at a clinical RU; phase-appropriate evidence applies.");
       else if (w.target === "development") parts.push("PPQ is not expected for development or engineering runs.");
-      else parts.push("Whether PPQ is expected depends on the RU program stage, which is not established.");
+      else parts.push("Whether PPQ is expected depends on the RU program stage, which is TBD.");
       break;
     case "ppq_coverage_assessment":
       if (w.source === "commercial") parts.push("The SU PPQ can be assessed for coverage of the RU condition.");
       else if (w.source) parts.push("The SU has no PPQ to assess for coverage; expect new RU work instead.");
-      else parts.push("Whether SU PPQ exists to assess depends on the SU stage, which is not established.");
+      else parts.push("Whether SU PPQ exists to assess depends on the SU stage, which is TBD.");
       break;
     case "media_fill":
       if (w.source === "clinical") parts.push("Media fill history at the clinical GMP SU may exist and can be cited; the RU media fill is still assessed on its own.");

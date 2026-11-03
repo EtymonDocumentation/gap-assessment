@@ -7,7 +7,7 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
-import { expectNotice, goTo, NOTICE_DOCUMENT, openAbout } from "./nav-helper";
+import { expectNotice, goTo, NOTICE_DOCUMENT, openAbout, openDemo } from "./nav-helper";
 
 const TITLE = "PPQ sampling plan — draft";
 const SHOTS = tmpdir();
@@ -18,7 +18,7 @@ test.beforeEach(async ({ page }) => {
 
 async function loadDemo(page: Page) {
   await page.goto("./");
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
 
@@ -83,7 +83,7 @@ test("the page says what the tool does and does not do, and the demo plan is lis
   await openSampling(page);
   await openAbout(page);
   await expect(page.getByTestId("sampling-scope-text")).toHaveText(
-    "The tool works out sample sizes from the method you choose. It does not judge whether that choice is adequate for your process; that decision belongs to QA / statistics.",
+    "The tool works out sample sizes from the method you choose. It does not judge whether that choice is adequate for your process; that decision belongs to QA (quality assurance) or statistics.",
   );
   await expect(page.getByTestId("plan-list")).toContainText("ARX-217 PPQ sampling plan");
   await expectNotice(page);

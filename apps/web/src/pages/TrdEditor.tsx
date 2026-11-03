@@ -1,10 +1,10 @@
-import { deleteTrd, openBlankCount, trdOpenItems, trdOverrides, updateTrd, writeupsInOrder, type BlankContext, type TrdOpenItem } from "@gap/engine";
+import { NO_VALUE_YET, deleteTrd, openBlankCount, trdOpenItems, trdOverrides, updateTrd, writeupsInOrder, type BlankContext, type TrdOpenItem } from "@gap/engine";
 import type { TrdDocument } from "@gap/process-model";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Modal } from "../components";
 import { focusWhenReady, PageHeader, type PagePill } from "../PageHeader";
 import { Tabs, type TabDef } from "../Tabs";
-import { dateTime } from "../lib";
+import { countOf, dateTime } from "../lib";
 import { href, navigate } from "../router";
 import { useContent, useStore } from "../store";
 import type { Run } from "./SamplingFlow";
@@ -15,7 +15,7 @@ import { TrdUpdate, useProjectDifferences } from "./TrdUpdate";
 import { TrdWriteups } from "./TrdWriteups";
 
 export type TrdTab = "details" | "process" | "writeups" | "open" | "output";
-const TAB_LABEL: Record<TrdTab, string> = { details: "1. Details", process: "2. Process", writeups: "3. Descriptions", open: "4. Open items", output: "5. Output" };
+const TAB_LABEL: Record<TrdTab, string> = { details: "1. Details", process: "2. Process", writeups: "3. Descriptions", open: "4. Open items", output: "5. Document" };
 export const TRD_TABS = Object.keys(TAB_LABEL) as TrdTab[];
 /** The five existing steps become tabs unchanged (same order and test ids); each gets a one-line purpose and a longer "?" help. */
 const TAB_INFO: Omit<TabDef<TrdTab>, "label">[] = [
@@ -28,7 +28,7 @@ const TAB_INFO: Omit<TabDef<TrdTab>, "label">[] = [
   {
     id: "process",
     testId: "trd-tab-process",
-    purpose: "The process steps and their parameters, with the project value beside yours.",
+    purpose: "The process steps and their parameters, with the project value beside yours. You enter the set point, the NOR (normal operating range) and the PAR (proven acceptable range).",
     help: "Each step holds parameter rows. A value comes from the project or a seed file and can be overridden; the original stays beside yours. Set point, NOR and PAR are entered by you with a source.",
   },
   {
@@ -41,7 +41,7 @@ const TAB_INFO: Omit<TabDef<TrdTab>, "label">[] = [
     id: "open",
     testId: "trd-tab-open",
     purpose: "Everything still missing, provisional or in need of a check.",
-    help: "A to-do list built from the TRD: values not established, TBD entries and limits that failed a check. The count in the tab name goes down as you fill them in.",
+    help: "A to-do list built from the TRD: values that are still TBD, provisional values and limits that failed a check. The count in the tab name goes down as you fill them in.",
   },
   {
     id: "output",
@@ -56,7 +56,7 @@ export const TRD_SCOPE_TEXT =
   "The TRD is your document. Values come from the project or a seed file, and you can override any of them; the project value stays beside yours. The set point, NOR and PAR are entered by you with their sources. The tool checks them and reports; it does not decide a filing category.";
 
 const KIND_TEXT: Record<TrdOpenItem["kind"], string> = {
-  not_established: "Not established",
+  not_established: NO_VALUE_YET,
   tbd: "TBD",
   provisional: "TBD best guess, provisional",
   limit_problem: "Check",
@@ -110,7 +110,7 @@ export function TrdEditor({ d, initialTab }: { d: TrdDocument; initialTab: TrdTa
         Update from a newer seed file
       </button>
     ) : undefined;
-  // The downloads are made in the Output tab, where the kind of Word document and the pre-download checks are shown; the menu takes the
+  // The downloads are made in the Document tab, where the kind of Word document and the pre-download checks are shown; the menu takes the
   // person there with the matching button focused.
   const toOutput = (testId: string) => () => {
     select("output");
@@ -130,7 +130,7 @@ export function TrdEditor({ d, initialTab }: { d: TrdDocument; initialTab: TrdTa
           children: (
             <>
               <p>
-                The TRD (technical requirements document) is the written statement of the process: its steps, parameters, set points, normal and proven acceptable ranges, each with a source. It starts from the project, a seed file or blank.
+                The TRD (technical requirements document) is the written statement of the process: its steps, parameters, set points, normal operating ranges (NOR) and proven acceptable ranges (PAR), each with a source. It starts from the project, a seed file or blank.
               </p>
               <p>Next in the chain: the sampling plan, then the batch record, which can take its parameter values from this TRD.</p>
               <p data-testid="trd-scope-text">{TRD_SCOPE_TEXT}</p>
@@ -183,7 +183,7 @@ export function TrdEditor({ d, initialTab }: { d: TrdDocument; initialTab: TrdTa
       </section>
 
       {confirmDelete && (
-        <Modal open onOpenChange={(o) => !o && setConfirmDelete(false)} title="Delete this TRD?" description={`${d.id}: ${d.title} has ${d.steps.length} steps.`} restoreFocus={() => opener.current}>
+        <Modal open onOpenChange={(o) => !o && setConfirmDelete(false)} title="Delete this TRD?" description={`${d.id}: ${d.title} has ${countOf(d.steps.length, "step")}.`} restoreFocus={() => opener.current}>
           <div className="row end">
             <button type="button" className="btn" autoFocus onClick={() => setConfirmDelete(false)}>
               Keep the TRD

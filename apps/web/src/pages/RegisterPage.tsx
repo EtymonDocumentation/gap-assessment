@@ -3,7 +3,7 @@ import { verificationState, type GapStatus, type Severity } from "@gap/process-m
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "../PageHeader";
 import { CategoryChip, Empty, ProvisionalFlag, RegulatoryFlag, SeverityBadge } from "../components";
-import { categoryShort, download, SEVERITY_TEXT, slug, today } from "../lib";
+import { categoryShort, countOf, download, projectFileStem, SEVERITY_TEXT, today } from "../lib";
 import { href } from "../router";
 import { useAssessment, useContent, useStageWording, useStore } from "../store";
 
@@ -33,17 +33,18 @@ export function RegisterPage() {
   }, [focusKey]);
 
   const order = useMemo(() => new Map(a.gaps.map((g, i) => [g.key, i])), [a.gaps]);
-  const rows = useMemo(() => {
+  const { rows, hiddenEqual } = useMemo(() => {
     const t = text.trim().toLowerCase();
-    const out = a.gaps.filter(
-      (g) =>
-        (showEqual || g.category !== "equivalent" || g.key === focusKey) &&
-        (!cat || g.category === cat) &&
-        (!sev || g.severity === sev) &&
-        (!section || g.sectionId === section) &&
-        (!status || g.status === status) &&
-        (!t || [g.displayId, g.attribute, g.sourceDisplay, g.targetDisplay, g.detail, g.ruleId].some((s) => s.toLowerCase().includes(t))),
-    );
+    const matches = (g: Gap) =>
+      (!cat || g.category === cat) &&
+      (!sev || g.severity === sev) &&
+      (!section || g.sectionId === section) &&
+      (!status || g.status === status) &&
+      (!t || [g.displayId, g.attribute, g.sourceDisplay, g.targetDisplay, g.detail, g.ruleId].some((s) => s.toLowerCase().includes(t)));
+    const shown = (g: Gap) => showEqual || g.category !== "equivalent" || g.key === focusKey;
+    const out = a.gaps.filter((g) => shown(g) && matches(g));
+    // Only the rows the unticked "Show equivalent" hides count here, not the ones another filter already left out.
+    const hidden = a.gaps.filter((g) => !shown(g) && matches(g)).length;
     const cmp = (x: Gap, y: Gap): number => {
       switch (sort.key) {
         case "severity":
@@ -56,8 +57,10 @@ export function RegisterPage() {
           return order.get(x.key)! - order.get(y.key)!;
       }
     };
-    return out.sort((x, y) => cmp(x, y) * sort.dir);
+    return { rows: out.sort((x, y) => cmp(x, y) * sort.dir), hiddenEqual: hidden };
   }, [a.gaps, showEqual, cat, sev, section, status, text, sort, order, focusKey]);
+  const rowsText = `${countOf(rows.length, "row")}${hiddenEqual > 0 ? ` (${hiddenEqual} equivalent hidden)` : ""}`;
+  const meaning = (c: Category) => content.catalog.categories.find((x) => x.key === c)?.description;
 
   const counts = useMemo(() => {
     const m = new Map<Category, number>();
@@ -88,8 +91,8 @@ export function RegisterPage() {
           children: <p>Open a row to see why, then record who owns it and what is decided. Export the list as a spreadsheet if you need it elsewhere.</p>,
         }}
         actions={
-          <button className="btn primary" onClick={() => download(`${slug(project.meta.title)}-gap-register-${today()}.csv`, gapsToCsv(content, rows, project), "text/csv;charset=utf-8")}>
-            Export CSV ({rows.length} rows)
+          <button className="btn primary" onClick={() => download(`${projectFileStem(project.meta)}-gap-register-${today()}.csv`, gapsToCsv(content, rows, project), "text/csv;charset=utf-8")}>
+            Export CSV ({countOf(rows.length, "row")})
           </button>
         }
       />
@@ -101,6 +104,8 @@ export function RegisterPage() {
               <CategoryChip category={c} />
               <span className="count">{counts.get(c) ?? 0}</span>
             </button>
+            {/* The chip names a category; this says what it means (Tester D row 12: the eight names were never defined). */}
+            <span className="cat-meaning small muted">{meaning(c)}</span>
           </li>
         ))}
       </ul>
@@ -148,12 +153,16 @@ export function RegisterPage() {
         </label>
       </div>
 
+      {/* The chips count every gap; this line says how many the table below shows (Tester D row 13: 186 in the chips, 114 in the table). */}
+      <p className="small" role="status" data-testid="register-count">
+        Showing {rowsText}.{hiddenEqual > 0 && " Tick Show equivalent to include them."}
+      </p>
       {rows.length === 0 ? (
         <Empty>No rows match these filters.</Empty>
       ) : (
         <div className="table-scroll" role="region" aria-label="Gap register table" tabIndex={0}>
           <table className="data register">
-            <caption className="visually-hidden">Gap register, {rows.length} rows</caption>
+            <caption className="visually-hidden">Gap register, {rowsText}</caption>
             <thead>
               <tr>
                 <th scope="col" aria-sort={ariaSort("id")}>

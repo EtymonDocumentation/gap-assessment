@@ -69,7 +69,7 @@ export function buildStarterTemplate(doc?: Pick<DocModel, "sections">): Uint8Arr
       ["Receiving unit (RU) site", "{targetSite}"],
       ["Generated", "{generated}"],
       ["Differences identified", "{differencesCount}"],
-      ["Open information items", "{openItemsCount}"],
+      ["Open items", "{openItemsCount}"],
       ["Entries verified", "{verifiedSummary}"],
     ]) +
     h("Contents") +
@@ -81,7 +81,7 @@ export function buildStarterTemplate(doc?: Pick<DocModel, "sections">): Uint8Arr
     loopTable(ctx, "activities", COLUMNS.activities!, fieldsOf("activities")) +
     h("Equipment qualification comparison") +
     loopTable(ctx, "equipment", COLUMNS.equipment!, fieldsOf("equipment")) +
-    h("Open information items") +
+    h("Open items") +
     loop("openItems", "{no}. {section} ({side}): {question} [{status}]") +
     h("Risk ranking") +
     loopTable(ctx, "risks", COLUMNS.risks!, fieldsOf("risks")) +

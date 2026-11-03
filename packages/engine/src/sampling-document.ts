@@ -17,7 +17,8 @@ import {
   type SamplingType,
   type CustomSubsection,
 } from "@gap/process-model";
-import { NOTICE_DOCUMENT, PRODUCT_NAME } from "./product";
+import { NOTICE_DOCUMENT, PRODUCT_NAME, TBD_MARKER } from "./product";
+import { projectLabel } from "./format";
 import {
   acceptanceStatement,
   buildFigures,
@@ -82,7 +83,7 @@ import { buildTrdSeed } from "./trd-seed";
 export const SAMPLING_PLAN_TITLE = "PPQ sampling plan — draft";
 /** The notice at the top and in the footer of the document: the one shared wording (product.ts), the same in every document. */
 export const SAMPLING_BANNER = NOTICE_DOCUMENT;
-const NOT_ESTABLISHED = "Not established";
+const NOT_ESTABLISHED = TBD_MARKER;
 const REPORT_ONLY_TEXT = "Report only (no acceptance criterion)";
 
 export interface SamplingDocumentOptions {
@@ -97,7 +98,7 @@ export interface SamplingDocumentOptions {
 }
 
 /** The sentence under the title and in the first section. */
-export const samplingBasisText = (projectId: string): string => `Draft sampling plan generated from project ${projectId}. Not approved.`;
+export const samplingBasisText = (projectName: string): string => `Draft sampling plan generated from project ${projectName}. Not approved.`;
 
 export function acceptanceText(p: SamplingPoint): string {
   if (!p.acceptance) return "Not given";
@@ -165,7 +166,7 @@ export function buildSamplingPlanDocument(
   const labelOf = (uo: string) => labels.get(uo) ?? uo;
   const live = new Set(seed.scope.included.map((u) => u.key));
   const stepText = (uo: string) => (uo === UNIT_OP_FINISHED_PRODUCT || uo === UNIT_OP_NONE || live.has(uo) ? labelOf(uo) : `${labelOf(uo)} (now left out of the assessment)`);
-  const basis = samplingBasisText(project.meta.id);
+  const basis = samplingBasisText(projectLabel(project.meta));
   const open = samplingOpenItems(content, project, plan);
   // Unanswered design review questions are still open work, but they are the team's answers, not entries missing from the plan: counted on
   // their own line so they are visible without changing the plan's open-item number.

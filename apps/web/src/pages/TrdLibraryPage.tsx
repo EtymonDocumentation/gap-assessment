@@ -4,7 +4,7 @@ import { TRD_PART_KIND_LABELS, TRD_PART_KINDS, type TrdLibraryPart, type TrdLibr
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader } from "../PageHeader";
 import { Empty, Modal } from "../components";
-import { dateTime } from "../lib";
+import { countOf, dateTime } from "../lib";
 import { SERVER_MODE } from "../server/mode";
 import { actorOf, useContent, useStore } from "../store";
 import { RowsEditor } from "../rows-editor";
@@ -514,7 +514,7 @@ function WriteupForm({
             <ul className="plain-list" data-testid="twl-history">
               {[...cur.history!].reverse().map((h) => (
                 <li key={h.version}>
-                  <strong>Version {h.version}</strong>: {h.title}, {h.parts.length} parts{h.at ? `, saved ${dateTime(h.at)}` : ""}
+                  <strong>Version {h.version}</strong>: {h.title}, {countOf(h.parts.length, "part")}{h.at ? `, saved ${dateTime(h.at)}` : ""}
                 </li>
               ))}
             </ul>

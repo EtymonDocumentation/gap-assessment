@@ -76,7 +76,7 @@ export function coverXml(ctx: WriterCtx): string {
   });
   const c = d.cover;
   // A one-sided document (the TRD outline describes the RU only) leaves the SU cover fields empty, and those rows are
-  // dropped rather than printed blank. The gap assessment always fills them (at worst "[site not established]").
+  // dropped rather than printed blank. The gap assessment always fills them (at worst "[site TBD]").
   const su: [string, string][] = c.sourceSite || c.sourceStage ? [[COVER_LABELS.suSite, c.sourceSite], [COVER_LABELS.suStage, c.sourceStage]] : [];
   const facts: [string, string][] = [
     ["Program", c.program],

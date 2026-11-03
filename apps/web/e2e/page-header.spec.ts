@@ -3,7 +3,7 @@
 // the page, and no sideways scroll on a narrow phone. Runs on the desktop, tablet and phone projects.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { breadcrumb, expectNotice } from "./nav-helper";
+import { breadcrumb, expectNotice, openDemo } from "./nav-helper";
 
 test.beforeEach(async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
@@ -16,7 +16,7 @@ async function go(page: Page, hash: string) {
 async function loadDemo(page: Page) {
   await page.goto("./");
   await expectNotice(page);
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
 
@@ -147,7 +147,7 @@ test("open items show as a warning pill whose words say so, in a list named At a
   await go(page, "#/document");
   const pill = page.getByTestId("doc-tbd-pill");
   await expect(pill).toBeVisible();
-  await expect(pill).toHaveText(/^\d+ TBD values? open$/);
+  await expect(pill).toHaveText(/^\d+ open items?, \d+ marked TBD$/);
   await expect(pill).toHaveClass(/\bwarn\b/);
   await expect(page.getByRole("list", { name: "At a glance" }).getByRole("listitem")).toHaveCount(1);
 
@@ -289,19 +289,19 @@ test("Export menu on the Document page runs the same downloads as the buttons, i
   await expect(page.getByRole("heading", { level: 1, name: "Document" })).toBeVisible();
   // (The "?" beside Word is a help tip, not a download.)
   const buttons = page.getByTestId("downloads-row").getByRole("button", { name: /^(Download|Print)/ });
-  await expect(buttons).toHaveText(["Download Word document", "Download HTML", "Download Markdown", "Print / save as PDF"]);
+  await expect(buttons).toHaveText(["Download gap assessment (Word)", "Download gap assessment (HTML)", "Download gap assessment (Markdown)", "Print / save as PDF"]);
   // Word is the one highlighted download; Print is not set above it.
   await expect(buttons.nth(0)).toHaveClass(/\bprimary\b/);
   await expect(buttons.nth(3)).not.toHaveClass(/\bprimary\b/);
 
   await page.getByTestId("export-menu-button").click();
-  await expect(page.getByRole("menuitem")).toHaveText(["Download Word document", "Download HTML", "Download Markdown", "Print / save as PDF"]);
+  await expect(page.getByRole("menuitem")).toHaveText(["Download gap assessment (Word)", "Download gap assessment (HTML)", "Download gap assessment (Markdown)", "Print / save as PDF"]);
   const [md] = await Promise.all([
     page.waitForEvent("download"),
     (async () => {
-      await page.getByRole("menuitem", { name: "Download Markdown" }).click();
+      await page.getByRole("menuitem", { name: "Download gap assessment (Markdown)" }).click();
       // The demo has open TBD values, so the same warning as the button's appears first.
-      await expect(page.getByRole("dialog", { name: "Download with TBD values?" })).toBeVisible();
+      await expect(page.getByRole("dialog", { name: "Download with open items?" })).toBeVisible();
       await page.getByRole("button", { name: "Download anyway" }).click();
     })(),
   ]);
@@ -337,7 +337,9 @@ async function workTop(page: Page): Promise<{ y: number | null; what: string }> 
     const tabs = [...main.querySelectorAll('[role="tablist"], [data-testid="plan-tabs"]')].filter(vis)[0];
     if (tabs) return { y: abs(tabs), what: "tab strip" };
     // A page with no card (Guidance) starts with its search box.
-    const block = [...main.querySelectorAll(".card, .table-scroll, fieldset, form, table, input:not([type=hidden]), select, textarea")].filter(vis)[0];
+    // The Register starts with its category chips, each with a line saying what the category means (Tester D row 12).
+    // They are buttons, which this measure ignores, and eight definitions are taller than the old row of bare chips.
+    const block = [...main.querySelectorAll(".card, .table-scroll, fieldset, form, table, .cat-summary, input:not([type=hidden]), select, textarea")].filter(vis)[0];
     return { y: block ? abs(block) : null, what: "first content block" };
   });
 }

@@ -1,6 +1,6 @@
 import type { MbrRecord, MbrSampleRow, MbrStep, MbrTimeLimit, Project, SamplingPlan } from "@gap/process-model";
 import { sampleMethodView, samplingMethodReminders, type SampleMethodView } from "@gap/sampling";
-import { holdEntryInfo, numberSteps, sampleMomentKey, splitIndex } from "./mbr";
+import { holdEntryInfo, numberSteps, planPointsNotInRecord, sampleMomentKey, sampleNotices, splitIndex } from "./mbr";
 
 /*
  * The "Process view" of a batch record: the record drawn as an equipment train, a moments slider through its steps, the clocks against
@@ -753,6 +753,19 @@ export function buildProcessView(project: Project, rec: MbrRecord): ProcessView 
     const lines = gaps.map((a) => `${a.x.pointId}: ${[...new Set(a.rem.map((r) => r.field))].join("; ")}`);
     const f = addFinding("S6", "note", `${gaps.length} ${gaps.length === 1 ? "sample has" : "samples have"} sampling-method details not stated`, `Not stated in the sampling plan: ${lines.join(". ")}. A reminder only; it does not block anything.`, gaps.flatMap((a) => (a.x.stepNumber ? [a.x.stepNumber] : [])), gaps.map((a) => a.x.rowId), gaps.map((a) => a.x.momentIndex));
     return { status: "finding", summary: `${gaps.length} of ${asked.length} samples have method details not stated.`, found: [f] };
+  });
+
+  // S7: the record and its sampling plan have drifted apart. The tracker draws the record as written and never redraws it from the plan, so a
+  // person is told when the plan says something else: a sample row that changed in the plan, or a plan point on one of this record's unit
+  // operations that the record has no row for. A note only: it never blocks anything and changes nothing in the record.
+  check("S7", "Samples", "The sample rows agree with the sampling plan", "A linked sampling plan, and the sample rows of the record", () => {
+    if (!plan) return { status: "na", summary: "No sampling plan is linked." };
+    const changed = sampleNotices(project, rec).length;
+    const missing = planPointsNotInRecord(project, rec).length;
+    if (changed + missing === 0) return { status: "ok", summary: "Every sample row says what the plan says, and the plan has no point for this record that the record leaves out." };
+    const counts = `${changed} ${changed === 1 ? "row" : "rows"} changed, ${missing} ${missing === 1 ? "point" : "points"} missing`;
+    const f = addFinding("S7", "note", `The batch record and its sampling plan differ: ${counts}`, "The picture shows the batch record as written.", [], [], []);
+    return { status: "finding", summary: `${counts}.`, found: [f] };
   });
 
   // V1 and V2

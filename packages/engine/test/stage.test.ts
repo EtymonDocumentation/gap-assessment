@@ -39,7 +39,7 @@ describe("stored stage", () => {
     expect(programStage(p0, "source")).toBeUndefined();
     expect(programStage(p0, "target")).toBeUndefined();
     expect(sourceValidated(p0)).toBe(false);
-    expect(stageLabel(undefined)).toBe("[not established]");
+    expect(stageLabel(undefined)).toBe("[TBD]");
   });
 
   it.each(PROGRAM_STAGES.flatMap((s) => PROGRAM_STAGES.map((t) => [s, t] as const)))("reads source %s and target %s independently", (s, t) => {
@@ -84,7 +84,7 @@ describe("validation expectations", () => {
     expect(basis("clinical", "commercial").statement).toBe(
       "Sending unit (SU) program stage: Clinical (GMP, not process validated). Receiving unit (RU) program stage: Commercial (process validated).",
     );
-    expect(basis(undefined, undefined).statement).toBe("Sending unit (SU) program stage: [not established]. Receiving unit (RU) program stage: [not established].");
+    expect(basis(undefined, undefined).statement).toBe("Sending unit (SU) program stage: [TBD]. Receiving unit (RU) program stage: [TBD].");
   });
 
   it("offers no SU PPQ to leverage from a clinical or development source", () => {
@@ -108,9 +108,9 @@ describe("validation expectations", () => {
     }
   });
 
-  it("says what is missing when a stage is not established", () => {
-    expect(basis(undefined, "commercial").sourcePoint).toContain("not established");
-    expect(basis("commercial", undefined).targetPoint).toContain("not established");
+  it("says what is missing when a stage is TBD", () => {
+    expect(basis(undefined, "commercial").sourcePoint).toContain("is TBD");
+    expect(basis("commercial", undefined).targetPoint).toContain("is TBD");
   });
 
   it("phrases everything as expectations to confirm with QA and never names a filing category", () => {
@@ -129,7 +129,7 @@ describe("validation expectations", () => {
     expect(note("commercial", "commercial")).toContain("depends on SU PPQ coverage");
     expect(note("commercial", "clinical")).toContain("not expected at a clinical RU");
     expect(note("commercial", "development")).toContain("not expected for development");
-    expect(note("commercial", undefined)).toContain("not established");
+    expect(note("commercial", undefined)).toContain("which is TBD");
     for (const s of [...PROGRAM_STAGES, undefined]) for (const t of [...PROGRAM_STAGES, undefined]) expect(note(s, t)).toMatch(/Confirm with QA\.$/);
   });
 

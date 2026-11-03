@@ -66,7 +66,7 @@ const NO_PARTIES = { parties: [] as PartyTag[], fromParties: [] as PartyTag[], t
 
 type Table = { columns: string[]; rows: string[][] };
 
-/** The first table of a document section, or undefined (for example when the section only says "No open information items."). */
+/** The first table of a document section, or undefined (for example when the section only says "No open items."). */
 function tableOf(doc: DocModel, sectionId: string): Table | undefined {
   const b = doc.sections.find((s) => s.id === sectionId)?.blocks.find((x) => x.type === "table");
   return b && b.type === "table" ? { columns: b.columns, rows: b.rows } : undefined;
@@ -147,13 +147,13 @@ function noteIn(doc: DocModel, sectionId: string): string {
 function scopeText(content: ContentBundle, project: Project, key: string): string {
   const q = content.questions.find((x) => x.binds === `scope.${key}`);
   const r = resolveEntry(project, `scope.${key}`);
-  return r.status === "established" ? formatResolved(content, q, r) : "[not established]";
+  return r.status === "established" ? formatResolved(content, q, r) : "[TBD]";
 }
 
 function siteText(project: Project, side: "source" | "target"): string {
   const name = resolveEntry(project, `${side}.site.name`);
   const line = resolveEntry(project, `${side}.site.line`);
-  const n = name.status === "established" ? String(name.value) : "[site not established]";
+  const n = name.status === "established" ? String(name.value) : "[site TBD]";
   return line.status === "established" ? `${n}, ${String(line.value)}` : n;
 }
 
@@ -193,7 +193,7 @@ export function buildTagData(rawContent: ContentBundle, project: Project, a: Ass
     verificationStatement: metaValue(doc, "Verification"),
     identityStatement: noteIn(doc, "verification-status"),
     differencesCount: metaValue(doc, "Differences identified"),
-    openItemsCount: metaValue(doc, "Open information items"),
+    openItemsCount: metaValue(doc, "Open items"),
     verifiedSummary: metaValue(doc, "Entries verified"),
     gaps,
     openItems: rowsAs(doc, "open-items", { no: "No.", section: "Section", side: "Side", question: "Question", status: "Status" }),
@@ -309,7 +309,7 @@ const TEXT_TAGS: [string, string, boolean?][] = [
   ["markets", "Markets."],
   ["sourceSite", "Sending unit (SU) site (name and line)."],
   ["targetSite", "Receiving unit (RU) site (name and line)."],
-  ["sourceStage", "Program stage of the sending unit (SU): Commercial (process validated), Clinical (GMP, not process validated), Development / engineering runs, or [not established]."],
+  ["sourceStage", "Program stage of the sending unit (SU): Commercial (process validated), Clinical (GMP, not process validated), Development / engineering runs, or [TBD]."],
   ["targetStage", "Program stage of the receiving unit (RU), with the same values as sourceStage."],
   ["generated", "Date and time the document was generated (UTC)."],
   ["sendingUnit", "Sending unit's site (name and line), for example for the From line of a memo. Filled for the gap assessment and the sampling plan documents; other documents show [not available]."],
@@ -323,7 +323,7 @@ const TEXT_TAGS: [string, string, boolean?][] = [
   ["verificationStatement", "The statement about data verification."],
   ["identityStatement", "The statement that explains how verifier identity is recorded."],
   ["differencesCount", "Number of differences identified."],
-  ["openItemsCount", "Number of open information items."],
+  ["openItemsCount", "Number of open items."],
   ["verifiedSummary", "Entries verified, for example \"12 of 40\"."],
 ];
 
@@ -360,7 +360,7 @@ const LOOP_TAGS: { tag: string; description: string; fields: { name: string; des
       f("targetVerification", "Verification state of the RU inputs."),
     ],
   },
-  { tag: "openItems", description: "Open information items.", fields: [f("no", "Number."), f("section", "Section."), f("side", "Scoping, SU or RU."), f("question", "The question still to be answered."), f("status", "Status.")] },
+  { tag: "openItems", description: "Open items.", fields: [f("no", "Number."), f("section", "Section."), f("side", "Scoping, SU or RU."), f("question", "The question still to be answered."), f("status", "Status.")] },
   {
     tag: "activities",
     description: "Validation plan activities.",

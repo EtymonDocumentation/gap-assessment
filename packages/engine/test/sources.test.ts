@@ -275,7 +275,7 @@ describe("previewSourceRemoval", () => {
     expect(prev.reverting.map((r) => r.ref)).toEqual([VESSEL_T]);
     expect(prev.reverting[0]).toMatchObject({ verified: true, active: true, remaining: [] });
     expect(prev.verificationsWithdrawn).toBe(1);
-    expect(prev.lines.join(" ")).toMatch(/become “Not established”|become “Not established”/);
+    expect(prev.lines.join(" ")).toMatch(/become TBD/);
     expect(prev.lines.join(" ")).toMatch(/kept only in the change log/);
     expect(prev.lines.join(" ")).toMatch(/1 verification will be withdrawn/);
     expect(prev.gapChanges[0]).toMatchObject({ kind: "changed", after: { category: "information_required" } });

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { openDemo } from "./nav-helper";
 
 test.beforeEach(async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
@@ -6,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 
 async function loadDemo(page: Page) {
   await page.goto("./");
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
 

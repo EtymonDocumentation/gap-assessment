@@ -4,11 +4,21 @@ import type { ParameterField, Question } from "./content-schema";
 import { adaptText, sourceValidated } from "./stage";
 import { isQuantity, isRange } from "./values";
 
+// A value nobody has given yet reads "TBD", the same marker as a value somebody marked TBD on purpose: one word for "not known yet" on
+// the screen, in the HTML and in Word (Tester D rows 6 and 25). The status key stays `not_established` in the data; only the words changed.
 export const STATUS_TEXT = {
-  not_established: "Not established",
+  not_established: "TBD",
   tbd: "To be decided (TBD)",
   not_applicable: "Not applicable",
 } as const;
+
+/**
+ * What a reader of a downloaded file calls the project: its title. The id (P-001) only means something inside the tool, so it is used
+ * only when the project has no title yet (a first-time tester asked "who is P-001?" about a file name and a "generated from" line).
+ */
+export function projectLabel(meta: { title: string; id: string }): string {
+  return meta.title.trim() || meta.id;
+}
 
 export function formatValue(content: ContentBundle, q: Question | undefined, v: EntryValue, optionSet?: string): string {
   if (typeof v === "boolean") return v ? "Yes" : "No";

@@ -75,7 +75,7 @@ questions:
     section: scoping
     prompt: Does the program involve dilution or formulation with a buffer or diluent?
     label: Dilution or formulation with a buffer
-    why: A yes adds the Buffer preparation section and the dilution questions in compounding (target concentration, buffer or diluent used). A no hides them, and they are left out of progress and of the gap assessment. Nothing is assumed. An unanswered question is listed as an open item.
+    why: A yes adds the Buffer preparation section and the dilution questions in compounding (target concentration, buffer or diluent used). A no hides them, and they are left out of progress and of the gap assessment. Nothing is assumed. A question you have not answered is listed as an open item.
     sides: shared
     binds: scope.dilution
     input: { type: yes_no }
@@ -134,7 +134,7 @@ questions:
       (process validated) SU has PPQ and validation to leverage; a clinical (GMP, not process validated) SU
       or a development SU does not, so the document then says "SU range" and "current state" instead of
       "validated". It also sets the validation expectations for the RU (PPQ, phase-appropriate or
-      engineering runs). Nothing is assumed: an unanswered stage is listed as an open item.
+      engineering runs). Nothing is assumed: a stage you have not answered is listed as an open item.
     sides: paired
     sameAsSource: false
     binds: site.programStage
@@ -147,7 +147,7 @@ questions:
     why: >-
       Many products leave the filling site as unlabelled packed bulk and are labelled and packaged at another site. If so,
       the labelling and packaging questions are out of scope for that side, and the document says where they happen. Nothing
-      is assumed: an unanswered or TBD location is listed as an open item, and the labelling questions stay visible
+      is assumed: a location you have not answered, or marked TBD, is listed as an open item, and the labelling questions stay visible
       until the location is known.
     sides: paired
     sameAsSource: false
@@ -202,7 +202,7 @@ questions:
     section: site
     prompt: Batch record system
     label: Batch record system
-    why: A change in batch record system affects computerized system validation, data integrity controls and the MBR.
+    why: A change in batch record system affects computerized system validation, data integrity controls and the batch record.
     sides: paired
     binds: site.batchRecordSystem
     input: { type: choice, optionsFrom: batchRecordSystem }

@@ -52,12 +52,12 @@ export function SourcesPage() {
       <PageHeader
         title="Sources"
         titleRef={headingRef}
-        purpose="Every value in the assessment cites at least one source."
+        purpose="Where each answer came from. Every value in the assessment cites at least one source."
         about={{
           art: "page-sources",
           children: (
             <p>
-              Removing a source cannot leave a value without one: a value that loses its only source becomes Not established, its old value is kept only in the change log, and the gaps are recalculated.
+              Removing a source cannot leave a value without one: a value that loses its only source becomes TBD, its old value is kept only in the change log, and the gaps are recalculated.
             </p>
           ),
         }}
@@ -280,7 +280,7 @@ export function SourcesPage() {
             );
             if (!err) {
               useStore.setState({
-                status: `Source removed. ${reverted} ${reverted === 1 ? "value is" : "values are"} now Not established.`,
+                status: `Source removed. ${reverted} ${reverted === 1 ? "value is" : "values are"} now TBD.`,
               });
               setDialog(null);
             }
@@ -464,7 +464,7 @@ function RemoveDialog({
         </ul>
         {preview.reverting.length > 0 && (
           <section aria-labelledby="revert-title" className="stack">
-            <h3 id="revert-title">Values that become Not established ({preview.reverting.length})</h3>
+            <h3 id="revert-title">Values that become TBD ({preview.reverting.length})</h3>
             <ul className="plan-list">
               {preview.reverting.map((i) => (
                 <li key={i.ref}>

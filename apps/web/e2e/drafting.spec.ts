@@ -2,7 +2,7 @@
 // Runs on the desktop, tablet and phone projects.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { expectNotice } from "./nav-helper";
+import { expectNotice, openDemo } from "./nav-helper";
 
 
 test.beforeEach(async ({ page }) => {
@@ -16,7 +16,7 @@ async function go(page: Page, hash: string) {
 async function loadDemo(page: Page) {
   await page.goto("./");
   await expectNotice(page);
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
 
@@ -154,7 +154,7 @@ test("a TBD with a best guess is compared, and every result that uses it says Pr
   await expect(page.locator("main .tag-provisional").first()).toBeVisible();
   await go(page, "#/document");
   await expect(page.locator(".doc-preview")).toContainText("Provisional — based on a TBD value");
-  await expect(page.locator(".doc-preview")).toContainText("TBD values");
+  await expect(page.locator(".doc-preview")).toContainText("Marked TBD");
 });
 
 test("the interview records a TBD with a best guess, owner and due date; the Home card and list show it", async ({ page }) => {
@@ -170,8 +170,10 @@ test("the interview records a TBD with a best guess, owner and due date; the Hom
   await page.getByRole("button", { name: "Record TBD with these details" }).click();
   await expect(page.locator("#q-prompt")).not.toHaveText("Program or product code");
   await go(page, "#/");
-  const card = page.getByRole("link", { name: "1 TBD (1 overdue)" });
+  // One link: how many open items there are and how many of them are marked TBD; the overdue count sits next to it.
+  const card = page.getByRole("link", { name: /^\d+ open items?, 1 marked TBD$/ });
   await expect(card).toBeVisible();
+  await expect(card.locator("xpath=..")).toContainText("(1 overdue)");
   await card.click();
   await expect(page.getByRole("heading", { level: 1, name: "TBD (to be decided)" })).toBeVisible();
   const row = page.locator("tbody tr").first();
@@ -191,7 +193,9 @@ test("the demo's Home card counts its TBD values and the overdue one; Show only 
   test.setTimeout(90_000);
   await loadDemo(page);
   await go(page, "#/");
-  await expect(page.getByRole("link", { name: "4 TBD (1 overdue)" })).toBeVisible();
+  const card = page.getByRole("link", { name: /^\d+ open items?, 4 marked TBD$/ });
+  await expect(card).toBeVisible();
+  await expect(card.locator("xpath=..")).toContainText("(1 overdue)");
   await expectAccessible(page, "home with TBD card");
   await expectNoHorizontalScroll(page, "home with TBD card");
   await go(page, "#/tbd");
@@ -211,23 +215,23 @@ test("a download with TBD values asks first and names the count, in every format
   test.setTimeout(90_000);
   await loadDemo(page);
   await go(page, "#/document");
-  for (const name of ["Download Markdown", "Download HTML"]) {
+  for (const name of ["Download gap assessment (Markdown)", "Download gap assessment (HTML)"]) {
     await page.getByRole("button", { name }).click();
-    const warn = page.getByRole("dialog", { name: "Download with TBD values?" });
-    await expect(warn).toContainText("4 TBD values");
-    await expect(warn.getByTestId("tbd-warning")).toContainText("4 TBD values were");
+    const warn = page.getByRole("dialog", { name: "Download with open items?" });
+    await expect(warn).toContainText(/\d+ open items?, 4 marked TBD/);
+    await expect(warn.getByTestId("tbd-warning")).toContainText("4 marked TBD");
     await warn.getByRole("button", { name: "Go back" }).click();
     await expect(page.getByRole("dialog")).toBeHidden();
   }
-  await page.getByRole("button", { name: "Download Word document" }).click();
-  const warn = page.getByRole("dialog", { name: "Download with TBD values?" });
+  await page.getByRole("button", { name: "Download gap assessment (Word)" }).click();
+  const warn = page.getByRole("dialog", { name: "Download with open items?" });
   await expectAccessible(page, "TBD warning dialog");
   // Nothing was recorded by going back.
   await expect(page.getByRole("region", { name: "Export history" }).or(page.locator("section", { has: page.getByRole("heading", { name: "Export history" }) })).locator("tbody tr")).toHaveCount(0);
   const [dl] = await Promise.all([page.waitForEvent("download"), warn.getByRole("button", { name: "Download anyway" }).click()]);
   expect(dl.suggestedFilename()).toMatch(/\.docx$/);
   await expect(page.getByRole("dialog")).toBeHidden();
-  await expect(page.locator("section", { has: page.getByRole("heading", { name: "Export history" }) }).locator("tbody tr").first()).toContainText("4");
+  await expect(page.locator("section", { has: page.getByRole("heading", { name: "Export history" }) }).locator("tbody tr").first()).toContainText("4 marked TBD");
 });
 
 test("the Interview page with the bar is accessible, keyboard operable and does not scroll sideways", async ({ page }) => {

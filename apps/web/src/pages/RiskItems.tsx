@@ -19,6 +19,7 @@ import { RiskItemForm } from "./RiskItemForm";
 import { ScoreBadge } from "./RiskScore";
 import { RiskSteps } from "./RiskSteps";
 import type { Run } from "./SamplingFlow";
+import { countOf } from "../lib";
 
 /*
  * Step 2 of a risk assessment: the items (failure modes).
@@ -427,7 +428,7 @@ function Register({ a, evals, onEdit }: { a: RiskAssessment; evals: Evals; onEdi
         </label>
       </div>
       <p className="muted small" role="status" aria-live="polite" data-testid="risk-register-count">
-        Showing {rows.length} of {a.items.length} items. Sorting and filtering change this view only, not the document.
+        Showing {rows.length} of {countOf(a.items.length, "item")}. Sorting and filtering change this view only, not the document.
       </p>
       <div className="table-scroll" role="region" aria-label="Risk register table" tabIndex={0}>
         <table className="data points-table" data-testid="risk-register">

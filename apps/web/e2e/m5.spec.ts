@@ -2,7 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Download, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { expectNotice, setTheme } from "./nav-helper";
+import { expectNotice, openDemo, setTheme } from "./nav-helper";
 
 const FIXTURES = new URL("../../../packages/docx/fixtures/", import.meta.url);
 const fixture = (name: string) => fileURLToPath(new URL(name, FIXTURES));
@@ -14,7 +14,7 @@ test.beforeEach(async ({ page }) => {
 async function loadDemo(page: Page) {
   await page.goto("./");
   await expectNotice(page);
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
 
@@ -76,7 +76,7 @@ test("templates: samples with analysis, .doc advice, rename, export, delete and 
 
   // The PDF template is read in the browser, listed with its outline and offered only for mapping.
   const pdf = card(page, "PDF outline");
-  await expect(pdf.locator("dt", { hasText: "Can be used for" }).locator("+ dd")).toHaveText("Map to their headings");
+  await expect(pdf.locator("dt", { hasText: "Works with" }).locator("+ dd")).toHaveText("A template's headings");
   await pdf.locator("summary").click();
   await expect(pdf.getByRole("list", { name: "Headings found in the template" })).toContainText("Objective");
   await expect(pdf.getByRole("list", { name: "Headings found in the template" })).toContainText("Process Description");
@@ -86,7 +86,7 @@ test("templates: samples with analysis, .doc advice, rename, export, delete and 
   await tags.locator("summary").click();
   await expect(tags.getByRole("heading", { level: 4, name: "Placeholder tags" })).toBeVisible();
   await expect(tags).toContainText("{program}");
-  await expect(card(page, "SOP-style template").locator("dt", { hasText: "Can be used for" }).locator("+ dd")).toContainText("Their look");
+  await expect(card(page, "SOP-style template").locator("dt", { hasText: "Works with" }).locator("+ dd")).toContainText("A template's look");
 
   // Adding the samples again adds nothing.
   await page.getByRole("button", { name: "Add the fictional sample templates" }).click();
@@ -159,7 +159,9 @@ test("templates: uploading a Word file asks for a name and version", async ({ pa
   await expect(page.getByRole("heading", { level: 2, name: "Library (1)" })).toBeVisible();
   const c = card(page, "Macro sample (fictional)");
   await expect(c).toContainText("brightwater-macro.docm");
-  await expect(c.locator("dt", { hasText: "SHA-256" }).locator("+ dd code").first()).toHaveText(/^[0-9a-f]{12}$/);
+  // The checksum is in the analysis report only (not on the card), in full.
+  await c.locator("summary").click();
+  await expect(c.locator("dt", { hasText: "SHA-256 of the uploaded file" }).locator("+ dd code").first()).toHaveText(/^[0-9a-f]{64}$/);
 
   // The same file twice is refused.
   await page.getByLabel(/^Template file/).setInputFiles(fixture("brightwater-macro.docm"));
@@ -246,7 +248,7 @@ test("document: Word export in all four modes, from the saved mapping, with the 
   await expect(page.getByRole("heading", { level: 2, name: "Word document" })).toBeVisible();
   const panel = page.locator("section", { has: page.getByRole("heading", { level: 2, name: "Word document" }) });
   // The Word button sits beside the other downloads (under the page header), not inside the panel that holds the choices.
-  const exportBtn = page.getByRole("button", { name: "Download Word document" });
+  const exportBtn = page.getByRole("button", { name: "Download gap assessment (Word)" });
   const pick = async (mode: RegExp, templateText?: string) => {
     await panel.getByRole("radio", { name: mode }).check();
     if (templateText) {
@@ -260,12 +262,12 @@ test("document: Word export in all four modes, from the saved mapping, with the 
   expectZip(await downloadBytes(page, () => exportBtn.click()), "built-in");
   await expect(panel.getByRole("status")).toContainText("Built-in default");
 
-  // 2. Their look.
-  await pick(/^Their look/, "SOP-style");
+  // 2. A template's look.
+  await pick(/^A template's look/, "SOP-style");
   expectZip(await downloadBytes(page, () => exportBtn.click()), "their look");
 
   // 3. Mapped: blocked until a mapping is saved, then it uses the saved mapping.
-  await pick(/^Map to their headings/, "SOP-style");
+  await pick(/^A template's headings/, "SOP-style");
   await expect(exportBtn).toBeDisabled();
   await expect(panel).toContainText("no saved heading mapping");
   await panel.getByRole("link", { name: /^Create the heading mapping/ }).click();
@@ -273,7 +275,7 @@ test("document: Word export in all four modes, from the saved mapping, with the 
   await page.getByRole("button", { name: "Save mapping" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Mapping saved." })).toBeVisible();
   await go(page, "#/document");
-  await pick(/^Map to their headings/, "SOP-style");
+  await pick(/^A template's headings/, "SOP-style");
   await expect(exportBtn).toBeEnabled();
   await expect(panel).toContainText("not mapped to a heading");
   expectZip(await downloadBytes(page, () => exportBtn.click()), "mapped");
@@ -285,9 +287,9 @@ test("document: Word export in all four modes, from the saved mapping, with the 
   expectZip(await downloadBytes(page, () => exportBtn.click()), "tags");
 
   // 5. Mapped with the PDF template (headings only). The PDF is not offered for the other options.
-  await panel.getByRole("radio", { name: /^Their look/ }).check();
+  await panel.getByRole("radio", { name: /^A template's look/ }).check();
   await expect(panel.locator("select").locator("option", { hasText: "PDF outline" })).toHaveCount(0);
-  await panel.getByRole("radio", { name: /^Map to their headings/ }).check();
+  await panel.getByRole("radio", { name: /^A template's headings/ }).check();
   await expect(panel.locator("select").locator("option", { hasText: "PDF outline" })).toHaveCount(1);
   await panel.locator("select").selectOption(await panel.locator("select").locator("option", { hasText: "PDF outline" }).getAttribute("value"));
   await expect(exportBtn).toBeDisabled();
@@ -297,7 +299,7 @@ test("document: Word export in all four modes, from the saved mapping, with the 
   await page.getByRole("button", { name: "Save mapping" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Mapping saved." })).toBeVisible();
   await go(page, "#/document");
-  await pick(/^Map to their headings/, "PDF outline");
+  await pick(/^A template's headings/, "PDF outline");
   await expect(exportBtn).toBeEnabled();
   expectZip(await downloadBytes(page, () => exportBtn.click()), "mapped with a PDF");
 
@@ -309,17 +311,22 @@ test("document: Word export in all four modes, from the saved mapping, with the 
   await expect(rows.first()).toContainText("PDF outline");
   await expect(rows.nth(1)).toContainText("placeholder-tag");
   await expect(rows.last()).toContainText("Built-in default 1.2.0");
-  await expect(rows.last().locator("td").nth(4)).toHaveText("4"); // TBD values open
-  await expect(rows.last().locator("td").nth(6)).toHaveText("No earlier download");
-  await expect(rows.first().locator("td").nth(2).locator("code")).toHaveText(/^[0-9a-f]{12}$/);
+  await expect(rows.last().locator("td").nth(3)).toHaveText("4 marked TBD"); // what was open when it was made
+  await expect(rows.last().locator("td").nth(5)).toHaveText("No earlier download");
+  // The codes sit in the Details cell with a plain explanation (Tester D row 26); the time says which clock it is.
+  await expect(history.getByRole("columnheader", { name: "Date (local time) and person" })).toBeVisible();
+  const details = rows.first().getByTestId("export-details");
+  await details.locator("summary").click();
+  await expect(details.locator("dt", { hasText: "Template file checksum" }).locator("+ dd code")).toHaveText(/^[0-9a-f]{12}$/);
+  await expect(details).toContainText("The same code means the same content.");
 
   // Markdown and HTML downloads add a row too, recorded against the built-in template.
-  await page.getByRole("button", { name: "Download Markdown" }).click();
+  await page.getByRole("button", { name: "Download gap assessment (Markdown)" }).click();
   await confirmTbd(page);
   await expect(rows).toHaveCount(6);
   await expect(rows.first()).toContainText("Markdown");
   await expect(rows.first()).toContainText("Built-in default 1.2.0");
-  await page.getByRole("button", { name: "Download HTML" }).click();
+  await page.getByRole("button", { name: "Download gap assessment (HTML)" }).click();
   await confirmTbd(page);
   await expect(rows).toHaveCount(7);
   await expect(rows.first()).toContainText("HTML");
@@ -338,7 +345,7 @@ test("document: the tag sample passes the pre-export check", async ({ page }) =>
   const panel = page.locator("section", { has: page.getByRole("heading", { level: 2, name: "Word document" }) });
   await panel.getByRole("radio", { name: /^Placeholder tags/ }).check();
   await expect(panel.getByText("No problems found.").or(panel.getByText("Warnings"))).toBeVisible();
-  await expect(page.getByRole("button", { name: "Download Word document" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Download gap assessment (Word)" })).toBeEnabled();
 });
 
 for (const theme of ["light", "dark"] as const) {
@@ -396,9 +403,9 @@ for (const theme of ["light", "dark"] as const) {
     // The document page: panels, then each dialog.
     await go(page, "#/document");
     const panel = page.locator("section", { has: page.getByRole("heading", { level: 2, name: "Word document" }) });
-    await panel.getByRole("radio", { name: /^Map to their headings/ }).check();
-    await expect(page.getByRole("button", { name: "Download Word document" })).toBeDisabled();
-    await page.getByRole("button", { name: "Download Markdown" }).click();
+    await panel.getByRole("radio", { name: /^A template's headings/ }).check();
+    await expect(page.getByRole("button", { name: "Download gap assessment (Word)" })).toBeDisabled();
+    await page.getByRole("button", { name: "Download gap assessment (Markdown)" }).click();
     await confirmTbd(page);
     await expect(page.getByRole("region", { name: "Export history table" })).toBeVisible();
     for (const width of [1280, 768, 390]) {

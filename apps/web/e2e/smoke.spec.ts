@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Download, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
-import { expectNotice, NOTICE_DOCUMENT, setTheme } from "./nav-helper";
+import { expectNotice, NOTICE_DOCUMENT, openDemo, setTheme } from "./nav-helper";
 
 const CATEGORIES = [
   "Equivalent",
@@ -22,7 +22,7 @@ test.beforeEach(async ({ page }) => {
 async function loadDemo(page: Page) {
   await page.goto("./");
   await expectNotice(page);
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
 
@@ -240,13 +240,13 @@ test("document preview and downloads", async ({ page }) => {
   await expect(preview).toContainText("Gap assessment: ARX-217");
   await expect(preview).toContainText("Requires regulatory affairs assessment");
 
-  const md = await downloadText(page, () => page.getByRole("button", { name: "Download Markdown" }).click());
+  const md = await downloadText(page, () => page.getByRole("button", { name: "Download gap assessment (Markdown)" }).click());
   expect(md.name).toMatch(/\.md$/);
   expect(md.text).toContain("# Gap assessment: ARX-217");
   expect(md.text).toContain(NOTICE_DOCUMENT);
   expect(md.text).not.toMatch(/undefined|NaN/);
 
-  const html = await downloadText(page, () => page.getByRole("button", { name: "Download HTML" }).click());
+  const html = await downloadText(page, () => page.getByRole("button", { name: "Download gap assessment (HTML)" }).click());
   expect(html.name).toMatch(/\.html$/);
   expect(html.text).toContain("<!doctype html>");
   expect(html.text).toContain(NOTICE_DOCUMENT);
@@ -448,7 +448,7 @@ test("sources: the register lists sources; removing one shows the impact, then r
   // The consequences are stated before anything is removed.
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("list", { name: "Consequences of removing this source" })).toBeVisible();
-  await expect(dialog).toContainText("Not established");
+  await expect(dialog).toContainText("become TBD");
   await expect(dialog).toContainText("Filling pump principle");
   await dialog.getByRole("button", { name: "Cancel" }).click();
   await expect(dialog).toBeHidden();
@@ -463,10 +463,10 @@ test("sources: the register lists sources; removing one shows the impact, then r
   await expect(page.getByRole("dialog")).toBeHidden();
   await expect(remove).toHaveCount(0); // the source side's own source is still listed
 
-  // The value is Not established in the Builder ...
+  // The value is TBD in the Builder ...
   await go(page, "#/builder");
   await page.getByRole("searchbox", { name: "Filter by text or path" }).fill("Filling pump principle");
-  await expect(page.locator("main")).toContainText("Not established");
+  await expect(page.locator("main")).toContainText("TBD");
 
   // ... and the register no longer counts the different principle.
   await go(page, "#/register");

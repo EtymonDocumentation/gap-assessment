@@ -1,7 +1,7 @@
 // Milestone 5.1: program stage per side and the stage-aware wording. Runs on the desktop, tablet and phone projects.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { expectNotice } from "./nav-helper";
+import { expectNotice, openDemo } from "./nav-helper";
 
 
 test.beforeEach(async ({ page }) => {
@@ -45,7 +45,7 @@ async function answerChoice(page: Page, side: "source" | "target", option: strin
 
 async function loadDemo(page: Page) {
   await page.goto("./");
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
 
@@ -66,9 +66,9 @@ test("a new project asks the program stage for each side, with no preselected op
   await expectAccessible(page, "stage question");
   await expectNoHorizontalScroll(page, "stage question");
 
-  // Unanswered: Compare shows the stage as not established and the document says so too.
+  // Unanswered: Compare shows the stage as TBD and the document says so too.
   await go(page, "#/compare");
-  await expect(page.getByTestId("stage-line")).toContainText("sending unit (SU) [not established]; receiving unit (RU) [not established]");
+  await expect(page.getByTestId("stage-line")).toContainText("sending unit (SU) [TBD]; receiving unit (RU) [TBD]");
   await go(page, "#/document");
   await expect(page.getByRole("heading", { name: "Sending unit program summary (current state)" }).first()).toBeVisible();
 });

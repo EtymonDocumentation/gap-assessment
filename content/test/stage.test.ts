@@ -202,13 +202,13 @@ describe("stage not established", () => {
     expect(resolveEntry(project, "target.site.programStage").status).toBe("not_established");
   });
 
-  it("prints [not established] on the cover, in the meta lines and in the text", () => {
-    expect(STAGE_NOT_ESTABLISHED).toBe("[not established]");
-    expect(doc.cover.sourceStage).toBe("[not established]");
-    expect(doc.cover.targetStage).toBe("[not established]");
-    expect(meta(doc, "SU program stage")).toBe("[not established]");
-    expect(meta(doc, "RU program stage")).toBe("[not established]");
-    expect(plain(md)).toContain("Program stage: sending unit [not established]; receiving unit [not established].");
+  it("prints [TBD] on the cover, in the meta lines and in the text", () => {
+    expect(STAGE_NOT_ESTABLISHED).toBe("[TBD]");
+    expect(doc.cover.sourceStage).toBe("[TBD]");
+    expect(doc.cover.targetStage).toBe("[TBD]");
+    expect(meta(doc, "SU program stage")).toBe("[TBD]");
+    expect(meta(doc, "RU program stage")).toBe("[TBD]");
+    expect(plain(md)).toContain("Program stage: sending unit [TBD]; receiving unit [TBD].");
   });
 
   it("uses the non-validated wording and makes no source validation claim", () => {

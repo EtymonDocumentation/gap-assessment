@@ -441,39 +441,46 @@ function MyFilesView({ folder }: { folder: string }) {
             <p className="empty">{folder ? "This folder is empty." : "You have no files yet. Drag a file onto the box above, paste a screenshot, or choose files."}</p>
           ) : (
             <div className="table-scroll" role="region" aria-label="Files table" tabIndex={0}>
-              <table className="data myfiles-table">
-                <thead>
-                  <tr>
-                    <th scope="col">
-                      <input
-                        type="checkbox"
-                        aria-label="Select all files in this folder"
-                        checked={files.length > 0 && chosen.length === files.length}
-                        disabled={files.length === 0}
-                        onChange={(e) => setSelected(e.target.checked ? new Set(files.map((f) => f.id)) : new Set())}
-                      />
+              {/*
+                At 600 px and below each row is drawn as a small card (see .myfiles-table in styles.css), which takes the rows out of table layout. The
+                explicit roles keep them a table for assistive technology; on a wide screen they say the same as the native elements.
+              */}
+              <table className="data myfiles-table" role="table">
+                <thead role="rowgroup">
+                  <tr role="row">
+                    <th scope="col" role="columnheader" className="myfiles-selectall">
+                      <label className="myfiles-selectall-label">
+                        <input
+                          type="checkbox"
+                          aria-label="Select all files in this folder"
+                          checked={files.length > 0 && chosen.length === files.length}
+                          disabled={files.length === 0}
+                          onChange={(e) => setSelected(e.target.checked ? new Set(files.map((f) => f.id)) : new Set())}
+                        />
+                        <span className="myfiles-label" aria-hidden="true">Select all</span>
+                      </label>
                     </th>
-                    <th scope="col">Name</th>
-                    <th scope="col">Size</th>
-                    <th scope="col">Uploaded</th>
-                    <th scope="col">From</th>
-                    <th scope="col">Auto-delete</th>
-                    <th scope="col">Actions</th>
+                    <th scope="col" role="columnheader">Name</th>
+                    <th scope="col" role="columnheader">Size</th>
+                    <th scope="col" role="columnheader">Uploaded</th>
+                    <th scope="col" role="columnheader">From</th>
+                    <th scope="col" role="columnheader">Auto-delete</th>
+                    <th scope="col" role="columnheader">Actions</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody role="rowgroup">
                   {folders.map((f) => (
-                    <tr key={`d:${f.path}`}>
-                      <td />
-                      <th scope="row">
+                    <tr key={`d:${f.path}`} role="row">
+                      <td role="cell" className="myfiles-check" />
+                      <th scope="row" role="rowheader" className="myfiles-namecell">
                         <span className="tag">Folder</span>{" "}
                         <a href={href("/myfiles", { folder: f.path })}>{f.name}</a>
                       </th>
-                      <td className="nowrap">{plural(f.files, "file")}</td>
-                      <td />
-                      <td />
-                      <td />
-                      <td>
+                      <td role="cell" className="nowrap myfiles-size">{plural(f.files, "file")}</td>
+                      <td role="cell" className="myfiles-date" />
+                      <td role="cell" className="myfiles-from" />
+                      <td role="cell" className="myfiles-expiry" />
+                      <td role="cell" className="myfiles-actions">
                         <span className="row wrap">
                           <button type="button" className="btn small" aria-label={`Rename folder ${f.name}`} onClick={(e) => open({ kind: "rename-folder", folder: f }, e)}>
                             Rename
@@ -489,21 +496,27 @@ function MyFilesView({ folder }: { folder: string }) {
                     </tr>
                   ))}
                   {files.map((f) => (
-                    <tr key={f.id}>
-                      <td>
+                    <tr key={f.id} role="row">
+                      <td role="cell" className="myfiles-check">
                         <input type="checkbox" aria-label={`Select ${f.name}`} checked={selected.has(f.id)} onChange={() => toggle(f.id)} />
                       </td>
-                      <th scope="row">
+                      <th scope="row" role="rowheader" className="myfiles-namecell">
                         <span className="myfiles-name">
                           {f.previewable && <img className="myfiles-thumb" src={api.myPreviewUrl(f.id)} alt="" loading="lazy" width={40} height={40} />}
                           <span>{f.name}</span>
                         </span>
                       </th>
-                      <td className="nowrap">{formatBytes(f.size)}</td>
-                      <td className="nowrap">{dateTime(f.uploadedAt)}</td>
-                      <td>{f.uploadedFrom}</td>
-                      <td className="nowrap">{f.expiresAt ? `Deletes on ${dateTime(f.expiresAt).slice(0, 10)}` : "Never"}</td>
-                      <td>
+                      <td role="cell" className="nowrap myfiles-size">{formatBytes(f.size)}</td>
+                      <td role="cell" className="nowrap myfiles-date">{dateTime(f.uploadedAt)}</td>
+                      <td role="cell" className="myfiles-from">
+                        <span className="myfiles-label" aria-hidden="true">From </span>
+                        {f.uploadedFrom}
+                      </td>
+                      <td role="cell" className="nowrap myfiles-expiry">
+                        <span className="myfiles-label" aria-hidden="true">Auto-delete: </span>
+                        {f.expiresAt ? `Deletes on ${dateTime(f.expiresAt).slice(0, 10)}` : "Never"}
+                      </td>
+                      <td role="cell" className="myfiles-actions">
                         <span className="row wrap">
                           <a className="btn small" href={api.myDownloadUrl(f.id)} download={f.name} aria-label={`Download ${f.name}`}>
                             Download
@@ -731,7 +744,7 @@ function NameDialog({
         className="stack"
         onSubmit={(e) => {
           e.preventDefault();
-          if (!name.trim()) return setError(`Give the ${label.toLowerCase()}.`);
+          if (!name.trim()) return setError(`Give the ${label.replace(/ name$/i, "").toLowerCase()} a name.`);
           onClose();
           void onSubmit(name.trim());
         }}
@@ -863,7 +876,7 @@ function AutoDeleteDialog({
             Never delete this file
           </button>
           <button type="submit" className="btn primary">
-            Set the date
+            Set the days
           </button>
         </div>
       </form>

@@ -15,8 +15,9 @@ export const TRD_IMAGE_LIMIT_TEXT = "A PNG or JPEG picture of at most 2 MB. Pict
 
 export function bytesToBase64(bytes: Uint8Array): string {
   let out = "";
-  // In slices so a 2 MB picture does not overflow the argument limit of fromCharCode.
-  for (let i = 0; i < bytes.length; i += 0x8000) out += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  // In small slices so a 2 MB picture does not overflow the argument limit of fromCharCode. 4096 arguments (32 KB of stack) also fit the smaller stack of a
+  // browser Web Worker, where the demo is built; the 32768 used before did not leave room there.
+  for (let i = 0; i < bytes.length; i += 0x1000) out += String.fromCharCode(...bytes.subarray(i, i + 0x1000));
   return btoa(out);
 }
 

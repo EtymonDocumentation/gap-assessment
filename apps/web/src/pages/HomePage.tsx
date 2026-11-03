@@ -1,15 +1,17 @@
-import { isAnswered, localDate, PRODUCT_NAME, tbdItems, tbdSummary, tbdSummaryText } from "@gap/engine";
+import { isAnswered, localDate, openItemsText, PRODUCT_NAME, renameProject, TBD_DEFINITION, tbdItems, tbdSummary } from "@gap/engine";
 import { useMemo, useRef, useState } from "react";
 import { PageBanner } from "../art";
 import { ProductEyebrow } from "../brand";
 import { thenStep } from "../chain";
+import { DEMO_NAMES, type DemoId } from "../demo-build";
 import { DocChainStrip, useChainAllowed } from "../DocChain";
-import { Modal, ResponderForm } from "../components";
-import { download, slug, today } from "../lib";
-import { interviewCounts, interviewCountsText, nextStep, stepDone } from "../next-step";
+import { InlineRename, Modal, ResponderForm } from "../components";
+import { download, projectFileStem, today } from "../lib";
+import { documentDownloadedNote, interviewCounts, interviewCountsText, nextStep, stepDone } from "../next-step";
 import { href, navigate } from "../router";
 import { CloseProjectButton, ProjectListCard, useIsRemote } from "../server/ServerUi";
 import { SERVER_MODE } from "../server/mode";
+import { ensureSaved, loadList, useSync } from "../server/sync";
 import { content, useAssessment, useContent, useStageWording, useStore } from "../store";
 
 const HIDE_KEY = "gap-getting-started-hidden";
@@ -32,13 +34,14 @@ function writeHidden(hidden: boolean): void {
 }
 
 export function HomePage({ notice }: { notice?: string }) {
-  const { project, loadDemo, newProject, importJson, setProject } = useStore();
+  const { project, openDemo, demoBuilding, homeFlash, listNote, newProject, importJson, setProject, update } = useStore();
   const a = useAssessment();
   const wording = useStageWording();
   const allowed = useChainAllowed();
   const [creating, setCreating] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [importError, setImportError] = useState("");
+  const [renaming, setRenaming] = useState(false);
   const [hidden, setHidden] = useState(readHidden);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -55,28 +58,56 @@ export function HomePage({ notice }: { notice?: string }) {
   const then = project && next?.path === "/register" ? thenStep(project, allowed) : null;
   const firstRecord = project?.mbr.records[0];
 
+  // Opens a demo and, if the user is still where they clicked, lands on Home (the overview of the project). The demo builds away from the page, so the
+  // user may have gone elsewhere meanwhile; they are then left where they are and the screen reader line still says the demo is open.
+  const startDemo = async (id: DemoId) => {
+    if (demoBuilding || !confirmReplace()) return;
+    const where = window.location.hash;
+    if ((await openDemo(id)) && window.location.hash === where) navigate("/");
+  };
+  const busy = demoBuilding !== null;
+
+  // Renames the open project. A name another saved project has is refused (server mode), so My projects never shows two projects with one name.
+  const saveName = (title: string): string | null => {
+    const s = useSync.getState();
+    const others = s.list.filter((x) => x.id !== s.projectId).map((x) => x.title);
+    return update((p, actor) => renameProject(p, title, actor, { taken: others }), `Renamed: ${title.trim()}`);
+  };
+
   const setHide = (h: boolean) => {
     setHidden(h);
     writeHidden(h);
   };
 
   // Each item ticks only where the project data proves it; the rest are plain links (no tick never means "not done").
-  const checklist: { key: string; label: string; hint: string; path?: string; params?: Record<string, string>; ticked: boolean }[] = [
-    { key: "create", label: "Create a project", hint: "Give it a name and say who is answering.", ticked: !!project },
+  const checklist: { key: string; label: string; hint: string; path?: string; params?: Record<string, string>; ticked: boolean; note?: string | undefined }[] = [
+    { key: "create", label: "Create a project", hint: "Press “Start a new project” at the top of this page. Give it a name and say who is answering.", ticked: !!project },
     { key: "scope", label: "Choose the scope", hint: "Untick the process steps and document sections that do not apply.", path: "/scope", ticked: !!done.scope },
     { key: "interview", label: "Answer the interview", hint: "One question at a time, for the sending and receiving side. Choose TBD for anything not known yet.", path: "/interview", ticked: !!done.interview },
     { key: "register", label: "Review the gap register", hint: "Check every difference the tool found and decide what to do about each.", path: "/register", ticked: !!done.register },
-    { key: "document", label: "Write the gap assessment document", hint: "Add your own text, then download the finished document.", path: "/document", ticked: !!done.document },
-    // The rest of the chain. Every item is optional and can be done in any order, or not at all; a TRD can start blank.
+    {
+      key: "document",
+      label: "Write the gap assessment document",
+      hint: "Add your own text, then download the finished document.",
+      path: "/document",
+      ticked: !!done.document,
+      // Downloaded once but items are still open: say so in words instead of a tick (Tester D row 14).
+      note: project && a ? documentDownloadedNote(project, a) : undefined,
+    },
+    // The rest, in the order of the chain strip: the risk assessment sits beside the chain and comes straight after the gap assessment. Every item
+    // is optional and can be done in any order, or not at all; a TRD can start blank.
+    ...(allowed.risk
+      ? [{ key: "risk", label: "Assess risk (optional)", hint: "Rate risks with a method you choose. It sits beside the document chain.", path: "/risk", ticked: !!project && project.risk.assessments.length > 0 }]
+      : []),
     ...(allowed.trd
       ? [{ key: "trd", label: "Start the TRD (optional)", hint: "The technical requirements document that follows the gap assessment. It can start from this project or blank.", path: "/trd", ticked: !!project && project.trd.documents.length > 0 }]
       : []),
     ...(allowed.sampling
-      ? [{ key: "sampling", label: "Make a sampling plan (optional)", hint: "Where and when samples are taken in the PPQ batches.", path: "/sampling", ticked: !!project && project.sampling.plans.length > 0 }]
+      ? [{ key: "sampling", label: "Make a sampling plan (optional)", hint: "Where and when samples are taken in the PPQ (process performance qualification) batches.", path: "/sampling", ticked: !!project && project.sampling.plans.length > 0 }]
       : []),
     ...(allowed.mbr
       ? [
-          { key: "mbr", label: "Write the batch record (optional)", hint: "The manufacturing batch record. It can use a TRD and a sampling plan, or start blank.", path: "/mbr", ticked: !!firstRecord },
+          { key: "mbr", label: "Write the batch record (optional)", hint: "The step-by-step instruction for making one batch. It can use a TRD and a sampling plan, or start blank.", path: "/mbr", ticked: !!firstRecord },
           {
             key: "view",
             label: "See the Process view (optional)",
@@ -86,9 +117,6 @@ export function HomePage({ notice }: { notice?: string }) {
             ticked: false,
           },
         ]
-      : []),
-    ...(allowed.risk
-      ? [{ key: "risk", label: "Assess risk (optional)", hint: "Rate risks with a method you choose. It sits beside the document chain.", path: "/risk", ticked: !!project && project.risk.assessments.length > 0 }]
       : []),
   ];
 
@@ -108,23 +136,77 @@ export function HomePage({ notice }: { notice?: string }) {
         <h2 id="what-h">What this tool does</h2>
         <p className="lede">
           You compare how a product is made at the <strong>sending unit</strong> (SU) with how the <strong>receiving unit</strong> (RU) site plans to make it. The tool asks guided
-          questions, lists every difference (gap), and drafts the gap assessment and the follow-on documents. They run in a chain, and every stage is optional: gap assessment, TRD, sampling plan, batch record, then the Process view of the batch record. A risk assessment sits beside the chain.
+          questions, lists every difference (gap), and drafts the gap assessment and the follow-on documents. They run in a chain, and every stage is optional: gap assessment, technical requirements document (TRD), sampling plan, batch record, then the Process view of the batch record. A risk assessment sits beside the chain.
         </p>
-        <p className="muted">Anything not yet known stays visible as an open item (TBD). The tool never fills in values for you.</p>
-        <div className="row wrap">
-          <button className="btn primary big" onClick={() => confirmReplace() && setCreating(true)}>
-            Start a new project
-          </button>
+        <p className="muted">
+          Anything not yet known is marked TBD and stays visible as an open item. {TBD_DEFINITION} The tool never fills in values for you.
+        </p>
+        <div className="start-grid" data-testid="start-options">
+          <div className="start-option">
+            <button className="btn primary big" disabled={busy} onClick={() => confirmReplace() && setCreating(true)}>
+              Start a new project
+            </button>
+            <p className="muted small">Name it and say who is answering. Then you choose the scope and answer the guided questions.</p>
+          </div>
+          <div className="start-option">
+            <button className="btn big" disabled={busy} onClick={() => void startDemo("arx-217")}>
+              Open demo: {DEMO_NAMES["arx-217"]}
+            </button>
+            <p className="muted small">
+              A fictional liquid mAb in 2R vials moving between two sites. It shows every kind of difference the tool can find (all eight comparison categories), so it is a good way to
+              see the gap assessment from start to finish. It also carries a short TRD, batch record, sampling plan and risk assessment.
+            </p>
+          </div>
+          <div className="start-option">
+            <button className="btn big" disabled={busy} onClick={() => void startDemo("syr-305")}>
+              Open demo: {DEMO_NAMES["syr-305"]}
+            </button>
+            <p className="muted small">
+              A fictional prefilled syringe, filled at a receiving fill site from frozen drug substance. The whole document chain is filled in (a complete TRD, batch record, sampling
+              plan and risk assessment), so it is a good way to see the follow-on documents.
+            </p>
+          </div>
         </div>
+        {/* A status region that is always on the page, so a screen reader announces the text when it appears. */}
+        <div role="status" data-testid="demo-status">
+          {demoBuilding && <p className="notice">Building the demo: {demoBuilding}…</p>}
+        </div>
+        {homeFlash && (
+          <p className="notice" data-testid="demo-opened">
+            {homeFlash}
+          </p>
+        )}
+        <p className="muted small">
+          Both demos are fictional. {remote ? "Opening one adds it to your projects on the server." : "Opening one replaces the project open in this browser (you are asked first)."}
+        </p>
       </section>
 
       {project && a && next ? (
         <section className="card stack" aria-labelledby="current-h" data-testid="open-project">
           <h2 id="current-h">Open project</h2>
-          <p className="project-title">
-            {project.meta.title}
-            {project.meta.demo && <span className="tag">Fictional demo</span>}
-          </p>
+          <div className="project-title-row">
+            {renaming ? (
+              <InlineRename
+                current={project.meta.title}
+                label={project.meta.title}
+                save={saveName}
+                onClose={() => {
+                  setRenaming(false);
+                  window.setTimeout(() => document.getElementById("rename-open-project")?.focus(), 0);
+                }}
+              />
+            ) : (
+              <>
+                <p className="project-title">
+                  {project.meta.title}
+                  {project.meta.demo && <span className="tag">Fictional demo</span>}
+                </p>
+                <button type="button" className="btn small" id="rename-open-project" aria-label={`Rename ${project.meta.title}`} onClick={() => setRenaming(true)}>
+                  Rename
+                </button>
+              </>
+            )}
+          </div>
           <div className="next-step" data-testid="next-step">
             <p className="next-step-label">Next step</p>
             <div className="row wrap">
@@ -149,17 +231,13 @@ export function HomePage({ notice }: { notice?: string }) {
               <dd>{differences}</dd>
             </div>
             <div>
-              <dt>Open information items</dt>
-              <dd>{a.openItems.length}</dd>
+              <dt>Open items</dt>
+              <dd>
+                {/* The two counts sit together and say how they relate: every value marked TBD is an open item, and so is every question not answered yet. */}
+                {tbd ? <a href={href("/tbd")}>{openItemsText(a.openItems.length, tbd.total)}</a> : a.openItems.length}
+                {tbd && tbd.overdue > 0 && <span className="small"> ({tbd.overdue} overdue)</span>}
+              </dd>
             </div>
-            {tbd && (
-              <div>
-                <dt>TBD values</dt>
-                <dd>
-                  <a href={href("/tbd")}>{tbdSummaryText(tbd)}</a>
-                </dd>
-              </div>
-            )}
             <div>
               <dt>Program stage</dt>
               <dd>
@@ -174,7 +252,7 @@ export function HomePage({ notice }: { notice?: string }) {
             </div>
           </dl>
           <div className="row wrap quiet-actions">
-            <button className="btn small" onClick={() => download(`${slug(project.meta.title)}-${today()}.json`, JSON.stringify(project, null, 2), "application/json")}>
+            <button className="btn small" onClick={() => download(`${projectFileStem(project.meta)}-${today()}.json`, JSON.stringify(project, null, 2), "application/json")}>
               Export project (JSON)
             </button>
             {remote ? (
@@ -245,14 +323,11 @@ export function HomePage({ notice }: { notice?: string }) {
                 <div>
                   {c.path && project ? (
                     <a href={href(c.path, c.params)}>{c.label}</a>
-                  ) : c.key === "create" && !project ? (
-                    <button className="link-btn" onClick={() => confirmReplace() && setCreating(true)}>
-                      {c.label}
-                    </button>
                   ) : (
                     <strong>{c.label}</strong>
                   )}
                   {c.ticked && <span className="visually-hidden"> (done)</span>}
+                  {c.note && <span className="muted small"> ({c.note})</span>}
                   <p className="muted small">{c.hint}</p>
                 </div>
               </li>
@@ -274,76 +349,51 @@ export function HomePage({ notice }: { notice?: string }) {
         </ul>
       </details>
 
-      <section className="card stack" aria-labelledby="demo-h">
-        <h2 id="demo-h">Or try a demo</h2>
-        <p className="muted small">
-          Both demos are fictional. {remote ? "Opening one adds it to your projects on the server." : "Opening one replaces the project open in this browser (you are asked first)."}
-        </p>
-        <div className="start-grid">
-          <div className="start-option">
-            <h3>ARX-217 vials</h3>
-            <p className="muted">
-              A fictional liquid mAb in 2R vials moving between two sites. It shows every kind of difference the tool can find (all eight comparison categories), so it is a good way to
-              see the gap assessment from start to finish. It also carries a short TRD, batch record, sampling plan and risk assessment.
-            </p>
-            <button
-              className="btn"
-              onClick={() => {
-                if (!confirmReplace()) return;
-                loadDemo();
-                navigate("/register");
-              }}
-            >
-              Load demo
-            </button>
-          </div>
-          <div className="start-option">
-            <h3>SYR-305 syringe</h3>
-            <p className="muted">
-              A fictional prefilled syringe, filled at a receiving fill site from frozen drug substance. The whole document chain is filled in (a complete TRD, batch record, sampling
-              plan and risk assessment), so it is a good way to see the follow-on documents.
-            </p>
-            <button
-              className="btn"
-              onClick={() => {
-                if (!confirmReplace()) return;
-                loadDemo("syr-305");
-                // Lands on Home, where the document chain is in view; this demo is about the whole chain, not the gap register alone.
-                navigate("/");
-              }}
-            >
-              Open syringe example
-            </button>
-          </div>
-          <div className="start-option">
-            <h3>Import a project</h3>
-            <p className="muted">Open a project JSON file exported from this tool. It is validated before it opens.</p>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="application/json,.json"
-              className="visually-hidden"
-              id="import-file"
-              aria-label="Project JSON file to import"
-              tabIndex={-1}
-              onChange={async (e) => {
-                const f = e.target.files?.[0];
-                e.target.value = "";
-                if (!f || !confirmReplace()) return;
-                const err = importJson(await f.text());
-                setImportError(err ?? "");
-                if (!err) navigate("/interview");
-              }}
-            />
-            <button className="btn" onClick={() => fileRef.current?.click()}>
-              Import JSON…
-            </button>
-            {importError && (
-              <p className="error" role="alert">
-                Import failed: {importError}
-              </p>
-            )}
-          </div>
+      <section className="card stack" aria-labelledby="import-h">
+        <h2 id="import-h">Import a project</h2>
+        <p className="muted small">Open a project JSON file exported from this tool. It is validated before it opens.</p>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/json,.json"
+          className="visually-hidden"
+          id="import-file"
+          aria-label="Project JSON file to import"
+          tabIndex={-1}
+          onChange={async (e) => {
+            const f = e.target.files?.[0];
+            e.target.value = "";
+            if (!f || !confirmReplace()) return;
+            useStore.setState({ listNote: null });
+            // The names already in My projects decide whether the imported one needs "(imported)"; make sure the list has been read.
+            if (remote && useSync.getState().listState !== "ready") await loadList();
+            const r = importJson(await f.text(), useSync.getState().list.map((x) => x.title));
+            if (r.error !== null) {
+              setImportError(r.error);
+              return;
+            }
+            setImportError("");
+            // The person stays on this page (it used to jump to the Interview with no message). The line says what was made, and in server mode
+            // My projects marks the new row once the server has saved it.
+            const text = r.title === r.fileTitle ? `Imported: ${r.fileTitle}` : `Imported: ${r.fileTitle}. A project with this name is already listed, so this one is called ${r.title}.`;
+            useStore.setState({ listNote: { text } });
+            if (remote) {
+              const id = await ensureSaved().catch(() => null);
+              if (id) useStore.setState({ listNote: { text, newId: id } });
+            }
+          }}
+        />
+        <button className="btn" onClick={() => fileRef.current?.click()}>
+          Import JSON…
+        </button>
+        {importError && (
+          <p className="error" role="alert">
+            Import failed: {importError}
+          </p>
+        )}
+        {/* Without a My projects list (one project in this browser) the line sits here; with one, the list shows it beside the new row. */}
+        <div role="status" data-testid="import-result">
+          {!remote && listNote && <p className="notice">{listNote.text}</p>}
         </div>
       </section>
 

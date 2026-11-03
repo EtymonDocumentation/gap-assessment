@@ -37,6 +37,7 @@ import { MBR_CHOICE_LABEL, POINT_AFTER_PPQ_LABEL, mbrChoiceText, type MbrBlock, 
 import { useId, useRef, useState } from "react";
 import { useStore } from "../store";
 import type { Run } from "./SamplingFlow";
+import { countOf } from "../lib";
 
 /*
  * One block of a master batch record: its steps, parameter rows, time limits, sample rows and the places left for the CMO.
@@ -220,7 +221,7 @@ function ParamRowView({ env, block, row }: { env: BlockEnv; block: MbrBlock; row
   const choose = (c: MbrChoice | "unset") => run((p, a) => setParam(p, rec.id, row.id, { choice: c === "unset" ? null : c }, a), "Choice saved");
   const commit = (patch: { mbrValue?: string; mbrUnit?: string }) => {
     if (following) return;
-    run((p, a) => setParam(p, rec.id, row.id, patch, a), "MBR value saved");
+    run((p, a) => setParam(p, rec.id, row.id, patch, a), "Batch record value saved");
   };
   return (
     <li className="mbr-row" id={`mbr-row-${row.id}`} data-testid={`mbr-row-${row.id}`} tabIndex={-1}>
@@ -256,7 +257,7 @@ function ParamRowView({ env, block, row }: { env: BlockEnv; block: MbrBlock; row
       </fieldset>
       <div className="row wrap end-align">
         <label className="field">
-          <span>MBR value{following ? " (follows the TRD value)" : ""}</span>
+          <span>Batch record value{following ? " (follows the TRD value)" : ""}</span>
           <input
             value={following ? (row.mbrValue ?? "") : value}
             readOnly={following}
@@ -267,7 +268,7 @@ function ParamRowView({ env, block, row }: { env: BlockEnv; block: MbrBlock; row
           />
         </label>
         <label className="field">
-          <span>MBR unit</span>
+          <span>Batch record unit</span>
           <input
             className="num"
             value={following ? (row.mbrUnit ?? "") : unit}
@@ -565,7 +566,9 @@ function Samples({ env, block }: { env: BlockEnv; block: MbrBlock }) {
                 <th scope="col">Container</th>
                 <th scope="col">Storage</th>
                 <th scope="col">Moment and hold</th>
-                <th scope="col">After PPQ</th>
+                <th scope="col">
+                  After PPQ <span className="muted small">(process performance qualification)</span>
+                </th>
                 <th scope="col">Plan check</th>
               </tr>
             </thead>
@@ -610,7 +613,7 @@ function Samples({ env, block }: { env: BlockEnv; block: MbrBlock }) {
         <div className="row wrap end-align">
           <label className="field">
             <span>Add a sample row from the plan</span>
-            <select value={pick} onChange={(e) => setPick(e.target.value)} data-testid={`mbr-sample-pick-${block.id}`}>
+            <select id={`mbr-sample-pick-${block.id}`} value={pick} onChange={(e) => setPick(e.target.value)} data-testid={`mbr-sample-pick-${block.id}`}>
               <option value="">Choose a sample point</option>
               {candidates.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -711,7 +714,7 @@ export function BlockCard({ env, block, index, count, open, onToggle, onRemove }
       {status.kind === "newer" && (
         <p className="notice small" role="status" data-testid={`mbr-library-newer-${block.id}`}>
           The library has a newer version of this block (version {status.libraryVersion}; this block is version {status.usedVersion}).
-          {diff && ` Differences: ${diff.stepsAdded} steps added, ${diff.stepsRemoved} removed, ${diff.stepsChanged} changed${diff.titleChanged ? ", title changed" : ""}${diff.paramsAdded.length ? `, new parameter rows: ${diff.paramsAdded.join(", ")}` : ""}.`}{" "}
+          {diff && ` Differences: ${countOf(diff.stepsAdded, "step")} added, ${diff.stepsRemoved} removed, ${diff.stepsChanged} changed${diff.titleChanged ? ", title changed" : ""}${diff.paramsAdded.length ? `, new parameter rows: ${diff.paramsAdded.join(", ")}` : ""}.`}{" "}
           <button type="button" className="btn small" data-testid={`mbr-library-update-${block.id}`} onClick={() => run((p, a) => updateBlockFromLibrary(p, rec.id, block.id, lib!, a), "Block updated from the library")}>
             Update from library
           </button>

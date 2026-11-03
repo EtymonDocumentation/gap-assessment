@@ -1,11 +1,11 @@
-import { buildCmoInstructionsDocument, buildSamplingPlanDocument, CMO_INSTRUCTIONS_TITLE, documentFingerprint, recordExport, samplingBasisText } from "@gap/engine";
+import { buildCmoInstructionsDocument, buildSamplingPlanDocument, CMO_INSTRUCTIONS_TITLE, documentFingerprint, projectLabel, recordExport, samplingBasisText } from "@gap/engine";
 import { PROCESS_MODEL_VERSION, SAMPLING_PLAN_FORMAT_VERSION, type DocumentExport, type SamplingPlan, type TemplateRecord } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlBody } from "@gap/renderers";
 import { FIGURE_STYLE_LABEL, FIGURE_STYLES, SAMPLING_STATS_VERSION, type FigureStyle } from "@gap/sampling";
 import { samplingSuggestions } from "@gap/content";
 import { useMemo, useRef, useState } from "react";
 import { Modal } from "../components";
-import { APP_VERSION, download, today } from "../lib";
+import { APP_VERSION, download, projectFileStem, today } from "../lib";
 import { useContent, useStore } from "../store";
 import { BUILTIN_RECORD, ExportHistory, GENERIC_MODES, useWordChoice, WordPanel } from "./document-panels";
 
@@ -24,7 +24,7 @@ export function SamplingOutput({ plan }: { plan: SamplingPlan }) {
 }
 
 const SAMPLING_WORD_NOTE =
-  `"Map to their headings" is offered for the gap assessment document only: a saved mapping names the gap document's sections. For a tagged template, {title}, {banner}, {status}, {generated}, {meta} and {sections} are filled, and {@body} brings in the document in your template's styles. The parties from "Who does what" are available as {#parties}, {#fromParties}, {#toParties} and {#ccParties} (name, role, department), and as {sendingUnit}, {receivingSite}, {cmoName} and {sponsorName}; the Templates page lists every tag.`;
+  `"A template's headings" is offered for the gap assessment document only: a saved mapping names the gap document's sections. For a tagged template, {title}, {banner}, {status}, {generated}, {meta} and {sections} are filled, and {@body} brings in the document in your template's styles. The parties from "Who does what" are available as {#parties}, {#fromParties}, {#toParties} and {#ccParties} (name, role, department), and as {sendingUnit}, {receivingSite}, {cmoName} and {sponsorName}; the Templates page lists every tag.`;
 
 /** One document card. The CMO reporting instructions are a second output of the same plan, with their own export-history kinds. */
 function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "cmo" }) {
@@ -45,7 +45,7 @@ function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "
 
   const doc = useMemo(() => (cmo ? buildCmoInstructionsDocument : buildSamplingPlanDocument)(content, project, plan, samplingSuggestions, { generatedAt, appVersion: APP_VERSION, ...(cmo ? {} : { figureStyle }) }), [content, project, plan, generatedAt, cmo, figureStyle]);
   const body = useMemo(() => (showPreview ? renderHtmlBody(doc) : ""), [doc, showPreview]);
-  const stamp = `${project.meta.id}-${plan.id}-${today()}`;
+  const stamp = `${projectFileStem(project.meta)}-${plan.id}-${today()}`;
   const tbd = doc.tbdCount ?? 0;
 
   const [pending, setPending] = useState<(() => void) | null>(null);
@@ -84,7 +84,7 @@ function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "
           <p>The reporting instructions of every sampling point, in plan order, with the custom subsections marked for the CMO and the agency requests the points answer. It carries the plan fingerprint so the CMO can see which plan version it belongs to. It contains no sample-size working.</p>
         ) : (
           <p>
-            {samplingBasisText(project.meta.id)} The document shows each sample size with its working and the source of the method. It states no filing category; where a filing question arises it reads "Requires regulatory affairs assessment".
+            {samplingBasisText(projectLabel(project.meta))} The document shows each sample size with its working and the source of the method. It states no filing category; where a filing question arises it reads "Requires regulatory affairs assessment".
           </p>
         )}
         {!cmo && (

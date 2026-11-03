@@ -1,4 +1,4 @@
-import { addTrdItem, addTrdStep, catalogInsertIndex, checkLimits, effectiveField, moveTrdStep, removeTrdItem, removeTrdStep, updateTrdStep } from "@gap/engine";
+import { NO_VALUE_YET, addTrdItem, addTrdStep, catalogInsertIndex, checkLimits, effectiveField, moveTrdStep, removeTrdItem, removeTrdStep, updateTrdStep } from "@gap/engine";
 import { COLLECTION_LABELS, type SeedCollection, type TrdDocument, type TrdItem, type TrdStep } from "@gap/process-model";
 import { useEffect, useRef, useState } from "react";
 import { Modal } from "../components";
@@ -7,6 +7,7 @@ import type { Run } from "./SamplingFlow";
 import { FieldRow, FieldTags } from "./TrdFieldRow";
 import { ControlEditor, ControlSummary } from "./TrdControl";
 import { LimitsEditor, LimitsSummary } from "./TrdLimits";
+import { countOf } from "../lib";
 
 /** The filters of the process view. A filter only hides items from the view; it never changes the TRD. */
 export type TrdFilter = "all" | "overridden" | "problem" | "not_established" | "tbd";
@@ -14,7 +15,7 @@ export const TRD_FILTERS: { id: TrdFilter; label: string }[] = [
   { id: "all", label: "All" },
   { id: "overridden", label: "Overridden" },
   { id: "problem", label: "Has a PAR/NOR problem" },
-  { id: "not_established", label: "Not established" },
+  { id: "not_established", label: NO_VALUE_YET },
   { id: "tbd", label: "TBD" },
 ];
 
@@ -52,7 +53,7 @@ export function stepSummary(s: TrdStep): string {
     ...n(s.items.length - params, "other item", "other items"),
     ...n(fields.filter((v) => v.overridden).length, "overridden"),
     ...n(problems, "PAR/NOR problem", "PAR/NOR problems"),
-    ...n(fields.filter((v) => v.status === "not_established").length, "not established"),
+    ...n(fields.filter((v) => v.status === "not_established").length, "with no value yet"),
     ...n(fields.filter((v) => v.status === "tbd").length, "TBD"),
   ].join(", ");
 }
@@ -113,7 +114,7 @@ export function TrdSteps({ d, run }: { d: TrdDocument; run: Run }) {
         </div>
         {filter !== "all" && (
           <p className="small" role="status" data-testid="trd-filter-note">
-            Showing {shown.length} of {d.steps.length} steps. A filter only hides items from this view.
+            Showing {shown.length} of {countOf(d.steps.length, "step")}. A filter only hides items from this view.
           </p>
         )}
       </section>
@@ -191,7 +192,7 @@ export function TrdSteps({ d, run }: { d: TrdDocument; run: Run }) {
           open
           onOpenChange={(o) => !o && setPendingRemove(null)}
           title="Remove this step?"
-          description={`${pendingRemove.label} has ${pendingRemove.items.length} items. The change log keeps what the step held.`}
+          description={`${pendingRemove.label} has ${countOf(pendingRemove.items.length, "item")}. The change log keeps what the step held.`}
           restoreFocus={() => opener.current}
         >
           <div className="row end">

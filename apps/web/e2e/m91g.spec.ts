@@ -7,7 +7,7 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
-import { breadcrumb, goTo, openAbout } from "./nav-helper";
+import { breadcrumb, goTo, openAbout, openDemo } from "./nav-helper";
 
 const SHOTS = tmpdir();
 /** A real 1 by 1 pixel PNG (so the reader sees a true PNG header). */
@@ -19,7 +19,7 @@ test.beforeEach(async ({ page }) => {
 
 async function loadDemo(page: Page) {
   await page.goto("./");
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
 

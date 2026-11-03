@@ -1,10 +1,10 @@
-import { buildTrdDocument, documentFingerprint, recordExport, trdBasisText, TRD_OPTIONAL_SECTIONS, updateTrd, type TrdOptionalSection } from "@gap/engine";
+import { buildTrdDocument, documentFingerprint, projectLabel, recordExport, trdBasisText, TRD_OPTIONAL_SECTIONS, updateTrd, type TrdOptionalSection } from "@gap/engine";
 import type { DocModel } from "@gap/engine";
 import { PROCESS_MODEL_VERSION, TRD_FORMAT_VERSION, type DocumentExport, type TemplateRecord, type TrdApproval, type TrdDocument } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlBody } from "@gap/renderers";
 import { useMemo, useRef, useState } from "react";
 import { Modal } from "../components";
-import { APP_VERSION, download, today } from "../lib";
+import { APP_VERSION, download, projectFileStem, today } from "../lib";
 import { useContent, useStore } from "../store";
 import { BUILTIN_RECORD, ExportHistory, GENERIC_MODES, useWordChoice, WordPanel } from "./document-panels";
 import type { Run } from "./SamplingFlow";
@@ -31,7 +31,7 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
   const doc = useMemo(() => buildTrdDocument(project, d, { generatedAt, appVersion: APP_VERSION, catalogVersion: content.versions.catalog, omit, content }), [project, d, content, generatedAt, omit]);
   const evidenceDoc = useMemo(() => buildTrdDocument(project, d, { generatedAt, appVersion: APP_VERSION, catalogVersion: content.versions.catalog, omit: omitEvidence, content, variant: "evidence" }), [project, d, content, generatedAt, omitEvidence]);
   const body = useMemo(() => (showPreview ? renderHtmlBody(doc) : ""), [doc, showPreview]);
-  const stamp = `${project.meta.id}-${d.id}-${today()}`;
+  const stamp = `${projectFileStem(project.meta)}-${d.id}-${today()}`;
   const tbd = doc.tbdCount ?? 0;
 
   const [pending, setPending] = useState<(() => void) | null>(null);
@@ -69,7 +69,7 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
       <section className="card stack no-print" aria-labelledby="trd-doc" data-testid="trd-output">
         <h2 id="trd-doc">Technical requirements document</h2>
         <p>
-          {trdBasisText(project.meta.id, d)} This is the short document for approval: document control, the numbered sections and process descriptions, one table of parameters for each process step (set point, NOR, PAR and unit), the open items, the approval section and the documents referred to. Where each value came from is in the evidence record below. It states no filing category: the only wording is "Requires regulatory affairs assessment".
+          {trdBasisText(projectLabel(project.meta), d)} This is the short document for approval: document control, the numbered sections and process descriptions, one table of parameters for each process step (set point, NOR (normal operating range), PAR (proven acceptable range) and unit), the open items, the approval section and the documents referred to. Where each value came from is in the evidence record below. It states no filing category: the only wording is "Requires regulatory affairs assessment".
         </p>
         <fieldset className="fs stack" data-testid="trd-sections">
           <legend>Optional sections in this download</legend>
@@ -121,7 +121,7 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
         tagData={(m) => m.buildDocumentTagData(doc)}
         testIdPrefix="trd"
         buttonLabel="Download TRD (Word)"
-        note={'"Map to their headings" is offered for the gap assessment document only: a saved mapping names the gap document\'s sections. For a tagged template, {title}, {banner}, {status}, {generated}, {meta} and {sections} are filled, and {@body} or a section tag such as {@section_par_nor} brings in the TRD in your template\'s styles. The sections of each process step have their own tags, for example {@section_step_TS_01}.'}
+        note={'"A template\'s headings" is offered for the gap assessment document only: a saved mapping names the gap document\'s sections. For a tagged template, {title}, {banner}, {status}, {generated}, {meta} and {sections} are filled, and {@body} or a section tag such as {@section_par_nor} brings in the TRD in your template\'s styles. The sections of each process step have their own tags, for example {@section_step_TS_01}.'}
       />
 
       <section className="card stack no-print" aria-labelledby="trd-evidence" data-testid="trd-evidence-output">

@@ -137,7 +137,7 @@ describe("provisional label reaches the validation plan, document and CSV", () =
     const text = JSON.stringify(doc.sections);
     expect(text).toContain(PROVISIONAL_LABEL);
     expect(doc.tbdCount).toBe(1);
-    expect(doc.meta.find(([k]) => k === "TBD values")).toEqual(["TBD values", "1"]);
+    expect(doc.meta.find(([k]) => k === "Marked TBD")).toEqual(["Marked TBD", "1"]);
     const open = doc.sections.find((s) => s.id === "open-items")!;
     expect(JSON.stringify(open)).toContain("Best guess:");
   });
@@ -177,7 +177,7 @@ describe("overdue", () => {
     let p = ask(base(), "fill.pump", "target", { kind: "tbd", due: "2026-10-01" });
     p = ask(p, "fill.pump", "source", { kind: "tbd", due: "2026-12-01", bestGuess: "rotary_piston" });
     const items = tbdItems(content, p, assess(content, p));
-    expect(tbdSummaryText(tbdSummary(items, "2026-10-21"))).toBe("2 TBD (1 overdue)");
+    expect(tbdSummaryText(tbdSummary(items, "2026-10-21"))).toBe("2 marked TBD (1 overdue)");
     expect(tbdSummary(items, "2026-10-21").withBestGuess).toBe(1);
   });
 });

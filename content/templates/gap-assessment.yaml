@@ -1,12 +1,12 @@
 # Fixed wording for the generated gap assessment document.
 # Placeholders: {program} {modality} {dosageForm} {presentation} {transferType}
 # {markets} {sourceSite} {targetSite} {sourceStage} {targetStage} {date}. Values that are not known appear as written
-# by the engine (for example "To be decided (TBD)", or "[not established]" for a program stage);
+# by the engine (for example "To be decided (TBD)", or "[TBD]" for a program stage);
 # nothing is invented.
 #
 # Stage-aware wording: {{validated wording|other wording}}. The first variant is used only when the source
-# program stage is established as commercial (process validated); every other case, including an unanswered
-# stage, uses the second. Quote a value that holds a marker if it would otherwise start with a brace.
+# program stage is established as commercial (process validated); every other case, including an open
+# stage question, uses the second. Quote a value that holds a marker if it would otherwise start with a brace.
 templates:
   id: gap-assessment-document
   version: 1.6.0
@@ -30,8 +30,8 @@ document:
     not assessed in this version.
   sourceSummaryIntro: >-
     The SU process {{as validated|as it currently stands}}, as recorded in the interview. Each value shows
-    its source and verification state. Values marked "To be decided (TBD)" or
-    "Not established" are open information items.
+    its source and verification state. A value that reads TBD (to be decided)
+    is an open item.
   targetSummaryIntro: >-
     The planned RU process, as recorded in the interview. Values marked "same as
     SU" were asserted by the responder to match the SU and follow the SU
@@ -57,8 +57,7 @@ document:
     that drive each, most severe first. Where a study provides evidence for an
     activity, its SU and RU status are shown, and the readiness column
     summarises the RU status: evidence available, planned, not planned,
-    bridging or action required, or information required (the status is TBD or
-    not established). Activities whose gaps are closed or accepted in the register
+    bridging or action required, or information required (the status is TBD). Activities whose gaps are closed or accepted in the register
     remain listed with that status. The list is a starting point for the transfer
     plan; it does not replace a documented risk assessment.
   equipmentQualificationIntro: >-
@@ -67,7 +66,7 @@ document:
     TBD or missing values are shown as such; none is assumed. Related gaps are
     the differences recorded for the same equipment.
   openItemsIntro: >-
-    Information that is TBD (to be decided) or not established. Each item must be resolved before
+    Information that is TBD (to be decided). Each item must be resolved before
     the related comparison can be completed. Until then the comparison is classified
     as "Information required".
   riskIntro: >-
@@ -82,7 +81,7 @@ document:
     signatures and responder names are free text; the document is not attributable
     in a GMP sense. Review and approve it in your own document control system.
   approvalRoles:
-    - Author (MSAT)
+    - Author (manufacturing science and technology, MSAT)
     - Process owner, RU site
     - Quality assurance
     - Regulatory affairs
@@ -98,9 +97,9 @@ document:
     Verification status section.
   verificationStatusIntro: >-
     Counts of the entries behind this document by verification state, for each
-    section and side. "Not verifiable" means the entry is TBD or not
-    established, so there is no value to confirm yet. A verification covers the
-    value and status at the time it was given; a later change withdraws it.
+    section and side. "Not verifiable" means the entry is TBD, so there is no
+    value to confirm yet. A verification covers the value and status at the time
+    it was given; a later change withdraws it.
   identityStatement: >-
     Responder and verifier names and roles are free text typed into the tool.
     There is no login, authentication or electronic signature, so these identities
@@ -110,7 +109,7 @@ document:
   sourceRegisterIntro: >-
     Every source held in the project register, with the entries that cite it. A
     source that no entry cites is shown as unused. Removing a source from the
-    register returns every entry left without a source to "Not established"; the
+    register returns every entry left without a source to "TBD"; the
     removed value is kept only in the change log.
   changeLogSummaryIntro: >-
     Number of recorded changes by type. The full change log, with who, when, and

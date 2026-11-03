@@ -6,7 +6,7 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
-import { goTo, NOTICE_DOCUMENT } from "./nav-helper";
+import { goTo, NOTICE_DOCUMENT, openDemo } from "./nav-helper";
 
 const SHOTS = tmpdir();
 
@@ -16,7 +16,7 @@ test.beforeEach(async ({ page }) => {
 
 async function loadDemo(page: Page) {
   await page.goto("./");
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
 
@@ -116,7 +116,7 @@ test("the sampling plan and the CMO instructions can use a library template; the
   const planPanel = page.getByRole("region", { name: "Word document: sampling plan" });
   const cmoPanel = page.getByRole("region", { name: "Word document: reporting instructions" });
   await expect(planPanel.getByRole("radio", { name: /^Built-in default/ })).toBeChecked();
-  await expect(planPanel.getByRole("radio", { name: /^Map to their headings/ })).toHaveCount(0);
+  await expect(planPanel.getByRole("radio", { name: /^A template's headings/ })).toHaveCount(0);
   await expect(planPanel.getByRole("combobox")).toHaveCount(0);
 
   await planPanel.getByRole("radio", { name: /^Placeholder tags/ }).check();

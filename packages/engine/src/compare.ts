@@ -128,7 +128,7 @@ const est = (r: Resolved) => r.status === "established" && r.value !== undefined
 
 function statusText(r: Resolved): string {
   // Read inside a sentence ("RU set point TBD (to be decided)"), so the TBD wording keeps its capitals.
-  return r.status === "established" ? "established" : r.status === "tbd" ? "TBD (to be decided)" : STATUS_TEXT[r.status].toLowerCase();
+  return r.status === "established" ? "established" : r.status === "tbd" ? "TBD (to be decided)" : r.status === "not_established" ? "TBD (no value yet)" : STATUS_TEXT[r.status].toLowerCase();
 }
 
 function info(...parts: [string, Resolved][]): ComparatorResult {
@@ -428,7 +428,7 @@ function ruleSeverity(ctx: Ctx, res: ComparatorResult): { severity: Severity; no
       return { severity: map[String(cls.value)]!, note: `Parameter classified as ${label} at SU.` };
     }
     const worst = (Object.values(map) as Severity[]).reduce((a, b) => (RANK[b] > RANK[a] ? b : a), "none" as Severity);
-    return { severity: worst, note: "Classification not established at SU; the most conservative severity is applied." };
+    return { severity: worst, note: "Classification TBD at SU; the most conservative severity is applied." };
   }
   return { severity: rule.severity };
 }

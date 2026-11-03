@@ -1,4 +1,4 @@
-import { isOverdue, localDate, tbdItems, tbdSummary, tbdSummaryText } from "@gap/engine";
+import { isOverdue, localDate, TBD_DEFINITION, tbdItems, tbdSummary, tbdSummaryText } from "@gap/engine";
 import { useMemo } from "react";
 import { Empty } from "../components";
 import { href } from "../router";
@@ -22,7 +22,7 @@ export function TbdPage() {
       <div>
         <h1>TBD (to be decided)</h1>
         <p className="muted">
-          A TBD is a value that is not decided yet. A best guess, when given, is compared as if it were established and every result that depends on it is labelled
+          {TBD_DEFINITION} A best guess, when given, is compared as if it were established and every result that depends on it is labelled
           “Provisional — based on a TBD value”. A TBD cannot be verified.
         </p>
         <p role="status" className="tbd-summary">

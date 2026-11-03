@@ -4,7 +4,7 @@
 // desktop, tablet and phone projects.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { expectNotice, openAbout } from "./nav-helper";
+import { expectNotice, openAbout, openDemo } from "./nav-helper";
 
 
 test.beforeEach(async ({ page }) => {
@@ -18,7 +18,7 @@ async function go(page: Page, hash: string) {
 async function loadDemo(page: Page) {
   await page.goto("./");
   await expectNotice(page);
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
 

@@ -14,6 +14,8 @@ export default defineConfig(({ mode }) => {
   return {
     base: "./",
     plugins: [react(), yaml()],
+    // The demo is built in a module Web Worker (src/demo-worker.ts), which imports the YAML content too, so it needs the same plugin.
+    worker: { format: "es" as const, plugins: () => [yaml()] },
     // A literal replacement, so the static build folds every `import.meta.env.VITE_SERVER_MODE` check away
     // and the server code is removed from it.
     define: { "import.meta.env.VITE_SERVER_MODE": JSON.stringify(serverMode ? "1" : "") },

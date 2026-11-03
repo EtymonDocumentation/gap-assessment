@@ -7,7 +7,7 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
-import { expectNotice, goTo, NOTICE_DOCUMENT, openAbout } from "./nav-helper";
+import { expectNotice, goTo, NOTICE_DOCUMENT, openAbout, openDemo } from "./nav-helper";
 
 const SHOTS = tmpdir();
 
@@ -17,7 +17,7 @@ test.beforeEach(async ({ page }) => {
 
 async function loadDemo(page: Page) {
   await page.goto("./");
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
 
@@ -89,8 +89,8 @@ test("a starter is a copy the person edits: the FMEA scale and bands can be chan
   await createBlank(page, "Starter edit (fictional)");
   await page.getByTestId("risk-loadout-fmea-1-5").click();
   await expect(page.getByTestId("risk-method-summary")).toContainText("FMEA");
-  // The starter carries no bands: the page says so.
-  await expect(page.getByTestId("risk-method-summary")).toContainText("No bands defined by the user");
+  // The starter carries no bands: the page says so, to the reader (the Word record says "the user", see the preview test below).
+  await expect(page.getByTestId("risk-method-summary")).toContainText("No bands defined by you");
   await page.getByTestId("scale-Severity-max").fill("10");
   await page.getByTestId("band-add").click();
   await page.getByTestId("band-label-0").fill("Review needed (fictional wording)");

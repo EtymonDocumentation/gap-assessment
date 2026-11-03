@@ -3,7 +3,7 @@
 // controls first). All data are fictional.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { goTo, isPhone } from "./nav-helper";
+import { goTo, isPhone, openDemo } from "./nav-helper";
 
 test.beforeEach(async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
@@ -21,7 +21,7 @@ async function expectAccessible(page: Page, label: string) {
 
 async function openSyringe(page: Page) {
   await page.goto("./");
-  await page.getByRole("button", { name: "Open syringe example" }).click();
+  await openDemo(page, "syr");
   await expect(page.getByTestId("home-chain")).toBeVisible();
 }
 
@@ -62,7 +62,7 @@ test("the syringe example opens on Home with the whole chain in view, each stage
 
 test("a project with no documents says 'Not started', proposes the TRD after the register, and never blocks a stage", async ({ page }) => {
   await page.goto("./");
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
   // On a gap assessment page the gap stage is the current one.
   await expect(page.getByRole("navigation", { name: "Document chain" })).toBeVisible();

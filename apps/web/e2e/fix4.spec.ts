@@ -5,7 +5,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { goTo, isPhone } from "./nav-helper";
+import { goTo, isPhone, openDemo } from "./nav-helper";
 
 test.beforeEach(async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
@@ -34,7 +34,7 @@ test("on a phone the first screen shows the page title and the first action", as
 
 test("the chain strip lists the risk assessment after the gap assessment, and the TRD button opens the TRD once one exists", async ({ page }) => {
   await page.goto("./");
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
   await page.goto("./#/");
   const items = page.getByTestId("home-chain").getByRole("link");
@@ -89,7 +89,7 @@ test("a 'to be decided' answer counts as open: the count says so and the step is
 
 test("the sticky banner never covers a button: axe target-size at several scroll positions", async ({ page }) => {
   await page.goto("./");
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
   await page.goto("./#/");
   for (const y of [0, 12, 30, 60]) {

@@ -49,7 +49,7 @@ export function MappingPage({ id }: { id: string }) {
       <div className="stack">
         <h1>Heading mapping</h1>
         <p className="notice">
-          {t.name} has no headings that can be mapped. Use it with "Their look" or "Placeholder tags" instead.
+          {t.name} has no headings that can be mapped. Use it with "A template's look" or "Placeholder tags" instead.
         </p>
         <p>
           <a href={href("/templates")}>Back to templates</a>
@@ -121,7 +121,7 @@ function Editor({ t }: { t: StoredTemplate }) {
         }
         about={{
           art: "page-mapping",
-          children: <p>Nothing changes until you save, and the same mapping is used for every Word document made with "Map to their headings".</p>,
+          children: <p>Nothing changes until you save, and the same mapping is used for every Word document made with "A template's headings".</p>,
         }}
       />
       {pdf && (

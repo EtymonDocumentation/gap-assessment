@@ -82,13 +82,18 @@ function isTbdInstance(project: Project, inst: QuestionInstance): boolean {
   return instanceRefs(inst).some((r) => getEntry(project, r)?.status === "tbd");
 }
 
+/** The tag on a side that holds an answer. A TBD says so: after the quick TBD button only the Save button changed, and nothing said it had been saved. */
+function answeredTag(project: Project, inst: QuestionInstance): string {
+  return isTbdInstance(project, inst) ? "Saved as TBD" : "Answered";
+}
+
 /** What the user is asked to confirm before answers are cleared. */
 interface ClearRequest {
   title: string;
   /** Label and value rows naming exactly what will be cleared. */
   facts: [string, string][];
   insts: QuestionInstance[];
-  /** Entries that will go back to Not established. */
+  /** Entries that will go back to TBD. */
   count: number;
   /** True when a scoping answer is among them: it decides which sections are asked. */
   scoping: boolean;
@@ -121,7 +126,7 @@ function ClearDialog({ request, onClose, onDone, restoreFocus }: { request: Clea
           ))}
         </dl>
         <ul className="impact" aria-label="What happens when you clear">
-          <li>Each of these entries goes back to “Not established”.</li>
+          <li>Each of these entries goes back to TBD.</li>
           <li>The old values stay in the change log, so the history is kept.</li>
           <li>Any verification of these entries is withdrawn.</li>
           <li>The source records stay in the source register; they are no longer cited by these entries.</li>
@@ -609,7 +614,8 @@ function QuestionCard({
 
   const savePrimary = () => {
     if (!toSave.length) {
-      failWith({}, "Enter an answer for SU, RU or both, or choose TBD for a side.");
+      // A single card shows its own error beside the Save button; only a paired card shows the summary line (Tester D row 11: nothing appeared).
+      failWith(combined ? {} : { [group[0]!.key]: "Choose an answer first, or choose TBD if it is not known yet." }, combined ? "Choose an answer first: enter one for SU, RU or both, or choose TBD for a side." : "");
       if (combined) {
         pendingFocus.current = "source";
         setNonce((n) => n + 1);
@@ -645,7 +651,7 @@ function QuestionCard({
     setClearing(clearRequest(project, insts, title, [["Question", questionLabel(q)], ["Side", who || "SU and RU (one answer for both)"]]));
   };
   const clearable = (i: QuestionInstance) => clearableRefs(project, [i]).length > 0;
-  // The cleared sides are rebuilt from the new project, so the form shows Not established; unsaved input on the other side stays.
+  // The cleared sides are rebuilt from the new project, so the form shows TBD; unsaved input on the other side stays.
   const afterClear = (insts: QuestionInstance[]) => {
     const np = useStore.getState().project!;
     setStates((cur) => ({ ...cur, ...Object.fromEntries(insts.map((i) => [i.key, makeState(i, np)])) }));
@@ -687,7 +693,7 @@ function QuestionCard({
         {sectionArt(current.section.id) && <ArtFigure art={sectionArt(current.section.id)!} className="art-uo" sizes="96px" />}
         {isCustomQuestion(q) && <span className="tag tag-custom">Custom item</span>}
         <TailorButton sectionId={current.section.id} className="btn ghost small tailor-link" />
-        {single && answeredHere(single) && <span className="tag">Answered</span>}
+        {single && answeredHere(single) && <span className="tag">{answeredTag(project, single)}</span>}
       </div>
       {current.depth > 0 && q.triggerNote && <p className="trigger">↳ {q.triggerNote}</p>}
       <div className={closeupArt(q.id) ? "art-head" : undefined}>
@@ -1041,7 +1047,7 @@ function SidePanel({
         </span>
         <span>{sideDescription(project, unitSide, wording)}</span>
       </legend>
-      {answered && <span className="tag side-answered">Answered</span>}
+      {answered && <span className="tag side-answered">{answeredTag(project, inst)}</span>}
       {body}
     </fieldset>
   );
@@ -1078,7 +1084,7 @@ function SectionSummary({ sectionId, instances, thenKey }: { sectionId: string; 
       </div>
       {unanswered.length > 0 ? (
         <p className="notice">
-          {unanswered.length} question{unanswered.length === 1 ? "" : "s"} still unanswered.{" "}
+          {unanswered.length} question{unanswered.length === 1 ? "" : "s"} still open.{" "}
           <a href={href("/interview", { q: unanswered[0]!.key })}>Go to the first one</a>
         </p>
       ) : counts.tbd > 0 ? (

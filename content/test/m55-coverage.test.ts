@@ -111,7 +111,7 @@ describe("labelling location per side", () => {
     const answers = raw.answers.filter((x) => x.q !== "site.labelling_location");
     const p = buildDemoProject(content, { ...raw, answers });
     expect(ids(p).has("lp.presence")).toBe(true);
-    expect(labellingScopeText(content, p, "source")).toMatch(/not established/);
+    expect(labellingScopeText(content, p, "source")).toMatch(/TBD/);
     expect(assess(content, p).openItems.some((o) => o.questionId === "site.labelling_location")).toBe(true);
   });
 
@@ -119,7 +119,7 @@ describe("labelling location per side", () => {
     const p = kit.ask(kit.newProject(), "site.labelling_location", "target", { kind: "tbd" });
     expect(assess(content, p).openItems.some((o) => o.questionId === "site.labelling_location" && o.status === "tbd")).toBe(true);
     expect(visibleInstances(content, p, "paired").some((i) => i.question.id === "lp.presence" && i.side === "target")).toBe(true);
-    expect(labellingScopeText(content, p, "target")).toMatch(/not established/);
+    expect(labellingScopeText(content, p, "target")).toMatch(/TBD/);
   });
 });
 

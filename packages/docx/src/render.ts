@@ -374,7 +374,7 @@ export async function renderDocx(input: RenderDocxInput): Promise<RenderDocxResu
   const t = input.template;
   if (input.mode !== "builtin" && t) {
     if (t.analysis.sourceFormat === "pdf" && input.mode !== "mapped") {
-      throw new TemplateError("A PDF template can only be used with \"Map to their headings\". Choose that, or upload a Word version of the template.");
+      throw new TemplateError("A PDF template can only be used with \"A template's headings\". Choose that, or upload a Word version of the template.");
     }
     if (!t.analysis.usableModes.includes(input.mode)) throw new TemplateError(`This template cannot be used for the chosen kind of Word document (${input.mode.replace("_", " ")}).`);
   }

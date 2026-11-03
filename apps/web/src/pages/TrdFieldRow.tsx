@@ -1,4 +1,4 @@
-import { clearOverride, effectiveField, setOverride, type FieldAddr } from "@gap/engine";
+import { NO_VALUE_YET, clearOverride, effectiveField, setOverride, type FieldAddr } from "@gap/engine";
 import type { SeedStatus, TrdField } from "@gap/process-model";
 import { useId, useRef, useState } from "react";
 import { dateTime } from "../lib";
@@ -8,7 +8,7 @@ import type { Run } from "./SamplingFlow";
 export const STATUS_TEXT: Record<SeedStatus, string> = {
   established: "Established",
   tbd: "To be decided (TBD)",
-  not_established: "Not established",
+  not_established: NO_VALUE_YET,
   not_applicable: "Not applicable",
 };
 

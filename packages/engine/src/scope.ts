@@ -113,7 +113,7 @@ export function notApplicableReason(content: ContentBundle, project: Project, uo
 export function dependsOnReason(content: ContentBundle, project: Project, uo: string): NotApplicable | undefined {
   const b = blocker(content, project, uo);
   if (!b || b.decided) return undefined;
-  return { text: `Depends on an unanswered question: ${b.q.label ?? b.q.prompt}`, questionKey: `${b.q.id}@${b.side}` };
+  return { text: `Depends on an open question: ${b.q.label ?? b.q.prompt}`, questionKey: `${b.q.id}@${b.side}` };
 }
 
 export type StepState = "included" | "excluded" | "not_applicable";

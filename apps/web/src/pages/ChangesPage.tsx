@@ -2,7 +2,7 @@ import { changeLogOptions, changeLogToCsv, changeLogView } from "@gap/engine";
 import { useMemo, useState } from "react";
 import { PageHeader } from "../PageHeader";
 import { Empty } from "../components";
-import { download, slug, today } from "../lib";
+import { download, projectFileStem, today } from "../lib";
 import { useContent, useStore } from "../store";
 
 /** Every change made to the project, newest first, with who made it and the value before and after. */
@@ -27,12 +27,12 @@ export function ChangesPage() {
       <PageHeader
         title="Change log"
         purpose="Every change to the project, newest first: answers, sources, verifications and gap decisions, each with the value before and after."
-        about={{ art: "page-changes", children: <p>Names are free text without a login, so they are not attributable in a GMP sense.</p> }}
+        about={{ art: "page-changes", children: <p>Names are free text, not an electronic signature, so they are not attributable in a GMP sense.</p> }}
         actions={
           <button
             type="button"
             className="btn primary"
-            onClick={() => download(`${slug(project.meta.title)}-change-log-${today()}.csv`, changeLogToCsv(content, project, filter), "text/csv;charset=utf-8")}
+            onClick={() => download(`${projectFileStem(project.meta)}-change-log-${today()}.csv`, changeLogToCsv(content, project, filter), "text/csv;charset=utf-8")}
           >
             Export CSV{filtered ? " (filtered)" : ""}
           </button>

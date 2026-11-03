@@ -244,7 +244,7 @@ function MethodEditor({ m, id, initial, from, onClose, onSave }: { m: StoredMeth
   const result = useMemo(() => draftToConfig(draft), [draft]);
   /** A library entry never carries a link to another library entry: that link belongs to the assessment that uses it. */
   const config = result.ok ? ((): RiskConfig => { const { libraryRef: _l, ...rest } = result.config; void _l; return rest as RiskConfig; })() : undefined;
-  const d = config ? describeMethod(config) : undefined;
+  const d = config ? describeMethod(config, "you") : undefined;
   const edit = (fn: (d: Draft) => void) => {
     const n = structuredClone(draft);
     fn(n);

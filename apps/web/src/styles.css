@@ -515,6 +515,14 @@ main:focus {
   padding: 16px;
   border-top: 1px solid var(--border);
 }
+.app-footer p {
+  margin: 0;
+}
+/* The About and privacy link: padded so the tap target is comfortably more than 24 px. */
+.app-footer-links a {
+  display: inline-block;
+  padding: 6px 10px;
+}
 
 .alert {
   display: flex;
@@ -1270,12 +1278,23 @@ table.data tr.inactive {
   width: 100%;
 }
 .cat-summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr));
+  gap: 10px 16px;
   list-style: none;
   padding: 0;
   margin: 0;
+}
+/* One chip with its one-line meaning under it. */
+.cat-summary > li {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+.cat-meaning {
+  margin-left: 4px;
 }
 .cat-filter {
   display: inline-flex;
@@ -1938,6 +1957,38 @@ details.report h4 {
 .project-info {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+/* The open project's name with its Rename button beside it. */
+.project-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 0 0 8px;
+}
+.project-title-row .project-title {
+  margin: 0;
+}
+/* A name edited in place: the field takes the room, Save and Cancel stay beside it (below it on a narrow screen). */
+.rename-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.rename-form input {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+.rename-error {
+  flex-basis: 100%;
+  margin: 0;
+}
+/* A project just copied or imported: tinted with a bar at the side. The "New" tag says it in words as well. */
+.project-list > li.is-new {
+  background: var(--accent-soft);
+  border-left: 4px solid var(--accent);
+  padding-inline: 8px;
 }
 .source-files {
   margin-top: 6px;
@@ -3032,6 +3083,112 @@ details > summary {
 .myfiles-table th {
   vertical-align: middle;
 }
+/* Phone My files (600 px and below): the table is drawn as a list of small cards. The markup keeps its table roles, so a screen reader still
+   reads rows, cells and column headings; only the drawing changes. A card is the name (it wraps by word), the size and date, where the file
+   came from and when it deletes itself, then Download on a line of its own and the other actions as small buttons under it. Nothing is wider
+   than the screen, so there is no sideways scrolling at 390, 360 or 320 px. */
+.myfiles-label {
+  display: none;
+}
+@media (max-width: 600px) {
+  .myfiles-label {
+    display: inline;
+  }
+  table.myfiles-table,
+  table.myfiles-table thead,
+  table.myfiles-table tbody,
+  table.myfiles-table thead tr {
+    display: block;
+    background: transparent;
+  }
+  /* The column headings stay for assistive technology but are not drawn; "Select all" is. */
+  table.myfiles-table thead th:not(.myfiles-selectall) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  table.myfiles-table thead th.myfiles-selectall {
+    display: block;
+    position: static;
+    padding: 0 0 6px;
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    font-size: 0.875rem;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .myfiles-selectall-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+  }
+  .myfiles-selectall-label input,
+  table.myfiles-table td.myfiles-check input {
+    width: 1.5rem;
+    height: 1.5rem;
+    margin: 0;
+  }
+  table.myfiles-table tbody tr {
+    display: block;
+    position: relative;
+    margin: 0 0 10px;
+    padding: 10px 12px 12px 48px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+  }
+  table.myfiles-table tbody th,
+  table.myfiles-table tbody td {
+    padding: 0;
+    border: 0;
+    white-space: normal;
+  }
+  table.myfiles-table td.myfiles-check {
+    position: absolute;
+    top: 10px;
+    left: 12px;
+  }
+  table.myfiles-table th.myfiles-namecell {
+    display: block;
+    min-height: 1.5rem;
+    font-size: 0.9375rem;
+    overflow-wrap: anywhere;
+  }
+  /* Each fact is kept whole and wraps as a unit: "Auto-delete: Never" never splits across two lines. */
+  table.myfiles-table td.myfiles-size,
+  table.myfiles-table td.myfiles-date,
+  table.myfiles-table td.myfiles-from,
+  table.myfiles-table td.myfiles-expiry {
+    display: inline-block;
+    margin: 4px 14px 0 0;
+    color: var(--muted);
+    font-size: 0.8125rem;
+  }
+  table.myfiles-table td.myfiles-actions {
+    display: block;
+    margin-top: 10px;
+  }
+  table.myfiles-table td.myfiles-actions .row {
+    gap: 8px;
+  }
+  /* Download is what is wanted most often, so it takes a line of its own; Rename, Move, Auto-delete and Delete wrap in a row under it. */
+  table.myfiles-table td.myfiles-actions a.btn {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+  /* A folder's empty cells (and the checkbox cell it does not have) take no room. */
+  table.myfiles-table td:empty {
+    display: none;
+  }
+}
 
 /* M9: TRD module. Tokens only, so light and dark follow the page. An override is shown with words ("Overridden (project: X)"), a
    solid double border and bold text, never colour alone. Everything wraps, so nothing scrolls sideways at 390 px. */
@@ -3505,6 +3662,37 @@ table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
   color: var(--ok);
   font-weight: 700;
 }
+/* The Details cell of the export history: a quiet toggle in the table, the codes inside it stay readable and wrap. */
+.export-details > summary {
+  cursor: pointer;
+  color: var(--accent);
+  min-height: 24px;
+}
+.export-details dl.facts {
+  grid-template-columns: 1fr;
+  gap: 0;
+  margin: 6px 0 0;
+  min-width: 14rem;
+}
+.export-details dl.facts dd {
+  margin-bottom: 8px;
+}
+.export-details code {
+  overflow-wrap: anywhere;
+}
+/* The batch record start form folds its long block list away (Tester D row 1); a one-line summary keeps the 24 px target size. */
+.mbr-blocks-details > summary {
+  min-height: 24px;
+  padding: 0.25rem 0;
+}
+.mbr-blocks-details[open] > summary {
+  margin-bottom: 0.5rem;
+}
+.gap-step-note {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 400;
+}
 .gap-step-compact {
   display: none;
   margin: 0;
@@ -3873,6 +4061,33 @@ table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
 }
 .nav-sub-list a {
   padding: 3px 10px;
+}
+/* Phone Menu panel: the gap assessment's steps fold under one line, and a "more below" line sticks to the bottom while the panel can still
+   scroll (the panel is capped at 75% of the screen, so a long list scrolls inside itself and nothing else would say so). */
+.nav-steps {
+  margin: 0 0 4px 10px;
+}
+.nav-steps > summary {
+  display: list-item;
+  list-style-position: inside;
+  min-height: 44px;
+  padding: 11px 10px;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+.nav-more {
+  position: sticky;
+  bottom: 0;
+  margin: 0;
+  padding: 6px 10px;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--text);
+  background: var(--surface-2);
+  border-top: 1px solid var(--border);
+}
+.nav-more.is-off {
+  visibility: hidden;
 }
 .nav-panel {
   min-width: 18rem;

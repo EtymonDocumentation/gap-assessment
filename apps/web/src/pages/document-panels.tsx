@@ -16,7 +16,7 @@ export const BUILTIN_RECORD: TemplateRecord = { mode: "builtin", name: "Built-in
 const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 function templateText(t: TemplateRecord): string {
-  return `${t.name} ${t.version}${t.sha256 ? ` (${shortHash(t.sha256)})` : ""}`;
+  return `${t.name} ${t.version}`;
 }
 
 // ------------------------------------------------------------------ the Word choice
@@ -102,7 +102,7 @@ export const WORD_EXPORT_HELP = "Creates a .docx in your browser from the docume
 const MODES: TemplateMode[] = ["builtin", "their_look", "mapped", "tags"];
 
 /**
- * The kinds of Word document that work for any tool document. "Map to their headings" is left out for the risk assessment: a
+ * The kinds of Word document that work for any tool document. "A template's headings" is left out for the risk assessment: a
  * saved mapping names the sections of the gap document, so it cannot place the risk sections (the page says so).
  */
 export const GENERIC_MODES: TemplateMode[] = ["builtin", "their_look", "tags"];
@@ -222,7 +222,7 @@ export function WordPanelView({
   note,
   idPrefix = "word",
   title = "Word document",
-  buttonLabel = "Download Word document",
+  buttonLabel = "Download gap assessment (Word)",
   showButton = true,
 }: WordPanelProps & { exporter: WordExporter }) {
   const { checks, busy, error, result, blocked } = exporter;
@@ -268,7 +268,7 @@ export function WordPanelView({
         <div className="stack">
           {choice.candidates.length === 0 ? (
             <p className="notice">
-              No template in the library works with "{MODE_LABEL[choice.mode]}".{hasPdf && choice.mode !== "mapped" ? " A PDF template can only be used with \"Map to their headings\"." : ""} Add one on the{" "}
+              No template in the library works with "{MODE_LABEL[choice.mode]}".{hasPdf && choice.mode !== "mapped" ? " A PDF template can only be used with \"A template's headings\"." : ""} Add one on the{" "}
               <a href={href("/templates")}>Templates page</a>.
             </p>
           ) : (
@@ -277,7 +277,9 @@ export function WordPanelView({
               <select value={t?.id ?? ""} onChange={(e) => choice.setTemplateId(e.target.value)}>
                 {choice.candidates.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name} (version {c.version}, {shortHash(c.sha256)})
+                    {c.name} (version {c.version}
+                    {/* Two templates with the same name and version are told apart by the date they were added, not by a checksum. */}
+                    {choice.candidates.some((o) => o !== c && o.name === c.name && o.version === c.version) ? `, added ${dateTime(c.addedAt)} (local time)` : ""})
                   </option>
                 ))}
               </select>
@@ -379,6 +381,16 @@ export function WordPanelView({
 
 // ------------------------------------------------------------------ export history
 
+/**
+ * The gap document and the TRD seed record how many values were marked TBD; the sampling, risk, TRD and batch record documents record
+ * their open items. The cell names the unit, so one column never mixes two kinds of number without saying which is which.
+ */
+const MARKED_TBD_FORMATS: ReadonlySet<string> = new Set(["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html"]);
+function openWhenMade(r: DocumentExport): string {
+  if (r.tbdCount === undefined) return "Not recorded";
+  return MARKED_TBD_FORMATS.has(r.format) ? `${r.tbdCount} marked TBD` : `${r.tbdCount} open ${r.tbdCount === 1 ? "item" : "items"}`;
+}
+
 /** What the document was downloaded with and when. Not a revision history: formal versions live in the company's document system. */
 export function ExportHistory({ exports, idPrefix = "export-history", title = "Export history" }: { exports: DocumentExport[]; idPrefix?: string; title?: string }) {
   const rows = [...exports].reverse();
@@ -392,13 +404,13 @@ export function ExportHistory({ exports, idPrefix = "export-history", title = "E
           <table className="data export-table">
             <thead>
               <tr>
-                <th scope="col">Date and person</th>
+                <th scope="col">Date (local time) and person</th>
                 <th scope="col">Format</th>
                 <th scope="col">Template</th>
-                <th scope="col">Fingerprint</th>
-                <th scope="col">TBD values open</th>
+                <th scope="col">Open when made</th>
                 <th scope="col">Sections left out</th>
                 <th scope="col">Answers changed since previous download</th>
+                <th scope="col">Details</th>
               </tr>
             </thead>
             <tbody>
@@ -411,23 +423,43 @@ export function ExportHistory({ exports, idPrefix = "export-history", title = "E
                   <td>{FORMAT_LABEL[r.format]}</td>
                   <td className="small">
                     {r.template.name} {r.template.version}
-                    {r.versions && (
-                      <div className="muted" data-testid="export-versions">
-                        Process model {r.versions.processModel}; catalog {r.versions.catalog}; {r.format.startsWith("sampling-") ? "plan" : r.format.startsWith("risk-") ? "risk" : r.format === "trd-docx" || r.format === "trd-html" || r.format === "trd-evidence-docx" || r.format === "trd-evidence-html" ? "TRD" : r.format.startsWith("mbr-") ? "batch record" : "seed"} format {r.versions.format}
-                      </div>
-                    )}
-                    {r.template.sha256 && (
-                      <div className="muted">
-                        SHA-256 <code title={r.template.sha256}>{shortHash(r.template.sha256)}</code>
-                      </div>
-                    )}
                   </td>
-                  <td className="small">
-                    <code title={r.fingerprint}>{r.fingerprint}</code>
-                  </td>
-                  <td>{r.tbdCount ?? "Not recorded"}</td>
+                  <td>{openWhenMade(r)}</td>
                   <td className="small">{((r.format.startsWith("trd-") && r.format !== "trd-docx" && r.format !== "trd-html" && r.format !== "trd-evidence-docx" && r.format !== "trd-evidence-html") || r.format.startsWith("sampling-") || r.format.startsWith("mbr-")) ? "Not applicable" : r.omittedSections?.length ? r.omittedSections.map((id) => optionalSectionTitle(id) ?? id).join("; ") : "None"}</td>
                   <td>{r.changedSincePrevious === undefined ? "No earlier download" : r.changedSincePrevious ? "Yes" : "No"}</td>
+                  <td className="small">
+                    {/* The codes an auditor may need, kept out of the way: a first-time reader found "Fingerprint" and "Process model 1.15.0" unexplained. */}
+                    <details className="export-details" data-testid="export-details">
+                      <summary>Details</summary>
+                      <dl className="facts">
+                        <dt>Fingerprint</dt>
+                        <dd>
+                          <code title={r.fingerprint}>{r.fingerprint}</code>
+                          <span className="block muted">A short code made from the content. The same code means the same content.</span>
+                        </dd>
+                        {r.template.sha256 && (
+                          <>
+                            <dt>Template file checksum (SHA-256)</dt>
+                            <dd>
+                              <code title={r.template.sha256}>{shortHash(r.template.sha256)}</code>
+                              <span className="block muted">Identifies the exact template file that was used.</span>
+                            </dd>
+                          </>
+                        )}
+                        {r.versions && (
+                          <>
+                            <dt>Versions used</dt>
+                            <dd>
+                              <span data-testid="export-versions">
+                                Process model {r.versions.processModel}; catalog {r.versions.catalog}; {r.format.startsWith("sampling-") ? "plan" : r.format.startsWith("risk-") ? "risk" : r.format === "trd-docx" || r.format === "trd-html" || r.format === "trd-evidence-docx" || r.format === "trd-evidence-html" ? "TRD" : r.format.startsWith("mbr-") ? "batch record" : "seed"} format {r.versions.format}
+                              </span>
+                              <span className="block muted">The version of the project format, of the question catalog and of this file's layout that made it.</span>
+                            </dd>
+                          </>
+                        )}
+                      </dl>
+                    </details>
+                  </td>
                 </tr>
               ))}
             </tbody>

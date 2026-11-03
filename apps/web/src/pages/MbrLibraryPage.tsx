@@ -4,7 +4,7 @@ import { MBR_TRD_COLLECTIONS, type MbrLibraryBlock, type MbrLibraryParam, type M
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader } from "../PageHeader";
 import { Empty, Modal } from "../components";
-import { dateTime } from "../lib";
+import { countOf, dateTime } from "../lib";
 import { useMbrBlocks, useMbrLibrary } from "../mbr-blocks-store";
 import { SERVER_MODE } from "../server/mode";
 import { actorOf, useContent, useStore } from "../store";
@@ -42,7 +42,7 @@ export function MbrLibraryPage() {
     <div className="stack-lg">
       <PageHeader
         title="Step blocks library"
-        purpose="The step blocks a master batch record is built from: the steps, the parameter rows that pull a TRD value, the time limits, and what the CMO completes."
+        purpose="The blocks a batch record is built from: steps, parameter rows that pull a TRD value, time limits, and what the CMO (contract manufacturing organization) completes."
         about={{
           art: "page-document",
           children: (
@@ -337,7 +337,7 @@ function BlockForm({ cur, onSave, onCancel }: { cur: MbrLibraryBlock | undefined
             <ul className="plain-list" data-testid="mbl-history">
               {[...cur.history!].reverse().map((h) => (
                 <li key={h.version}>
-                  <strong>Version {h.version}</strong>: {h.title}, {h.steps.length} steps{h.at ? `, saved ${dateTime(h.at)}` : ""}
+                  <strong>Version {h.version}</strong>: {h.title}, {countOf(h.steps.length, "step")}{h.at ? `, saved ${dateTime(h.at)}` : ""}
                 </li>
               ))}
             </ul>

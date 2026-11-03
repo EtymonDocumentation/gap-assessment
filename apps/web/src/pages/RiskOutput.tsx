@@ -1,11 +1,11 @@
-import { buildRiskAssessmentDocument, documentFingerprint, recordExport, riskBasisText, RISK_OPTIONAL_SECTIONS, updateAssessment, type RiskOptionalSection } from "@gap/engine";
+import { buildRiskAssessmentDocument, documentFingerprint, projectLabel, recordExport, riskBasisText, RISK_OPTIONAL_SECTIONS, updateAssessment, type RiskOptionalSection } from "@gap/engine";
 import { failureModes } from "@gap/content";
 import { PROCESS_MODEL_VERSION, RISK_FORMAT_VERSION, type DocumentExport, type RiskApproval, type RiskAssessment, type TemplateRecord } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlBody } from "@gap/renderers";
 import { RISK_SCORING_VERSION } from "@gap/risk";
 import { useMemo, useRef, useState } from "react";
 import { Modal } from "../components";
-import { APP_VERSION, download, today } from "../lib";
+import { APP_VERSION, download, projectFileStem, today } from "../lib";
 import { useContent, useStore } from "../store";
 import { BUILTIN_RECORD, ExportHistory, GENERIC_MODES, useWordChoice, WordPanel } from "./document-panels";
 import type { Run } from "./SamplingFlow";
@@ -29,7 +29,7 @@ export function RiskOutput({ a, run }: { a: RiskAssessment; run: Run }) {
   const choice = useWordChoice();
   const doc = useMemo(() => buildRiskAssessmentDocument(content, project, a, failureModes, { generatedAt, appVersion: APP_VERSION, omit }), [content, project, a, generatedAt, omit]);
   const body = useMemo(() => (showPreview ? renderHtmlBody(doc) : ""), [doc, showPreview]);
-  const stamp = `${project.meta.id}-${a.id}-${today()}`;
+  const stamp = `${projectFileStem(project.meta)}-${a.id}-${today()}`;
   const tbd = doc.tbdCount ?? 0;
 
   const [pending, setPending] = useState<(() => void) | null>(null);
@@ -65,7 +65,7 @@ export function RiskOutput({ a, run }: { a: RiskAssessment; run: Run }) {
       <section className="card stack no-print" aria-labelledby="risk-doc" data-testid="risk-output">
         <h2 id="risk-doc">Risk assessment document</h2>
         <p>
-          {riskBasisText(project.meta.id)} The document describes the method from your entries, lists every item with its working, the actions, the open items and the traceability. It says no risk is acceptable and states no filing category.
+          {riskBasisText(projectLabel(project.meta))} The document describes the method from your entries, lists every item with its working, the actions, the open items and the traceability. It says no risk is acceptable and states no filing category.
         </p>
         <fieldset className="fs stack" data-testid="risk-sections">
           <legend>Optional sections in this download</legend>
@@ -117,7 +117,7 @@ export function RiskOutput({ a, run }: { a: RiskAssessment; run: Run }) {
         tagData={(m) => m.buildDocumentTagData(doc)}
         testIdPrefix="risk"
         buttonLabel="Download risk assessment (Word)"
-        note={'"Map to their headings" is offered for the gap assessment document only: a saved mapping names the gap document\'s sections. For a tagged template, {title}, {banner}, {status}, {generated}, {meta} and {sections} are filled, and {@body} or a section tag such as {@section_register} brings in the risk assessment in your template\'s styles.'}
+        note={'"A template\'s headings" is offered for the gap assessment document only: a saved mapping names the gap document\'s sections. For a tagged template, {title}, {banner}, {status}, {generated}, {meta} and {sections} are filled, and {@body} or a section tag such as {@section_register} brings in the risk assessment in your template\'s styles.'}
       />
 
       <ExportHistory exports={exports} idPrefix="risk-export-history" title="Export history" />

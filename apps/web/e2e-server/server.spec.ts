@@ -185,8 +185,8 @@ test("a project saves as you work, and a fresh browser shows it after signing in
   await go(page, "#/");
   await page.getByRole("button", { name: "Close project" }).click();
   await page.getByLabel("Project JSON file to import").setInputFiles({ name: "imported.json", mimeType: "application/json", buffer: file });
-  await expect(page.getByRole("heading", { level: 1, name: "Interview" })).toBeVisible();
-  await go(page, "#/");
+  // An import says what it made and stays on My projects instead of opening the Interview (Tester D row 18); the new project is a row of its own.
+  await expect(page.getByTestId("projects-note")).toContainText("Imported:");
   await expect(page.getByRole("list", { name: "My projects" }).getByRole("listitem")).toHaveCount(3);
   await other.context().close();
 });
@@ -455,13 +455,13 @@ test("Word and Markdown export work under the server's security policy", async (
   const panel = page.locator("section", { has: page.getByRole("heading", { level: 2, name: "Word document" }) });
   await panel.getByRole("radio", { name: /^Built-in default/ }).check();
   const [word] = await Promise.all([page.waitForEvent("download"), (async () => {
-      await page.getByRole("button", { name: "Download Word document" }).click();
+      await page.getByRole("button", { name: "Download gap assessment (Word)" }).click();
       await page.getByRole("button", { name: "Download anyway" }).click(); // the demo has open TBD values
     })()]);
   expect(word.suggestedFilename()).toMatch(/\.docx$/);
   expect((await readFile((await word.path())!)).subarray(0, 2).toString("latin1")).toBe("PK");
   const [md] = await Promise.all([page.waitForEvent("download"), (async () => {
-      await page.getByRole("button", { name: "Download Markdown" }).click();
+      await page.getByRole("button", { name: "Download gap assessment (Markdown)" }).click();
       await page.getByRole("button", { name: "Download anyway" }).click(); // the demo has open TBD values
     })()]);
   expect(md.suggestedFilename()).toMatch(/\.md$/);

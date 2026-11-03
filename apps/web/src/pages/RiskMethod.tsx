@@ -83,7 +83,7 @@ export function RiskMethod({ a, run }: { a: RiskAssessment; run: Run }) {
     );
   }
 
-  const description = useMemo(() => (a.config ? describeMethod(a.config) : undefined), [a.config]);
+  const description = useMemo(() => (a.config ? describeMethod(a.config, "you") : undefined), [a.config]);
   const differsKind = confirm ? (a.config?.method ?? null) !== (confirm.config?.method ?? null) : false;
 
   return (

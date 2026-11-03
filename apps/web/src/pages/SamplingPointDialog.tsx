@@ -355,7 +355,7 @@ function MixingDesignEditor({ design, onChange }: { design: MixingDesignData | u
         blank={() => ({ parameter: "" })}
         addLabel="Add a range row"
         testId="design-ranges"
-        hint="The parameter and the range this study is meant to support, in your words. The kind (PAR, NOR or other) is your choice."
+        hint="The parameter and the range this study is meant to support, in your words. The kind (proven acceptable range, normal operating range or other) is your choice."
         render={(r, set, i) => (
           <>
             <label className="field">

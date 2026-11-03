@@ -1,9 +1,10 @@
-// Milestone 5.7, part 0: the reported bug "when I change the checked selections and press Download HTML or Word it gives
+// Milestone 5.7, part 0: the reported bug "when I change the checked selections and press Download gap assessment (HTML) or Word it gives
 // the same file no matter the selection". Unticking an optional section must change every download, and ticking it again
 // must bring it back.
 import { expect, test, type Download, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import PizZip from "pizzip";
+import { openDemo } from "./nav-helper";
 
 test.beforeEach(async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
@@ -15,7 +16,7 @@ async function go(page: Page, hash: string) {
 
 async function loadDemo(page: Page) {
   await page.goto("./");
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
 
@@ -49,8 +50,8 @@ test("unticking Risk ranking changes the HTML and the Word download, and ticking
     await page.getByRole("button", { name }).click();
     await page.getByRole("button", { name: "Download anyway" }).click();
   };
-  const html = () => downloadBytes(page, press("Download HTML")).then((b) => b.toString("utf8"));
-  const word = () => downloadBytes(page, press("Download Word document"));
+  const html = () => downloadBytes(page, press("Download gap assessment (HTML)")).then((b) => b.toString("utf8"));
+  const word = () => downloadBytes(page, press("Download gap assessment (Word)"));
   const risk = (h: string[]) => h.some((x) => /Risk ranking/.test(x));
 
   const before = { html: await html(), word: await word() };

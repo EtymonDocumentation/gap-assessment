@@ -13,12 +13,25 @@ export function download(filename: string, data: string | Uint8Array, type: stri
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+/** "1 row", "2 rows": a count with its noun in the right number (a first-time tester met "1 rows" and "1 activities"). */
+export function countOf(n: number, one: string, many = `${one}s`): string {
+  return `${n} ${n === 1 ? one : many}`;
+}
+
 export function slug(s: string): string {
   return s
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")
     .slice(0, 60);
+}
+
+/**
+ * The start of every downloaded file's name: the project title in file-name-safe form (the id only when there is no title), so the
+ * file names a person receives read like the project they know. Falls back to "project" if neither gives a usable letter or digit.
+ */
+export function projectFileStem(meta: { title: string; id: string }): string {
+  return slug(meta.title) || slug(meta.id) || "project";
 }
 
 /** Version of this web app (package.json); written into the generator field of a TRD seed. */
@@ -76,19 +89,22 @@ export function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-/** The four kinds of Word document, as the user sees them. */
+/**
+ * The four kinds of Word document, as the user sees them. A first-time tester asked whose look and whose headings ("Their look", "Map to
+ * their headings"): they are those of a template the user keeps in the Library (Templates), so the labels say "a template's".
+ */
 export const MODE_LABEL = {
   builtin: "Built-in default",
-  their_look: "Their look",
-  mapped: "Map to their headings",
+  their_look: "A template's look",
+  mapped: "A template's headings",
   tags: "Placeholder tags",
 } as const;
 
 export const MODE_HELP = {
   builtin: "The tool's own clean layout. No template needed.",
-  their_look: "Our sections, written in the fonts, styles, header, footer and page setup of a template.",
-  mapped: "Our content placed under the headings of a template, as you assigned it in the mapping editor.",
-  tags: "A template with placeholder tags such as {program}. The tool fills them in.",
+  their_look: "Our sections, written in the fonts, styles, header, footer and page setup of one of your templates.",
+  mapped: "Our content placed under the headings of one of your templates, as you assigned it in the mapping editor.",
+  tags: "One of your templates with placeholder tags such as {program}. The tool fills them in.",
 } as const;
 
 export const FORMAT_LABEL = {

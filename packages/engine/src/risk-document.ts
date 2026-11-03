@@ -6,7 +6,8 @@ import type { Block, DocModel, DocSection } from "./document";
 import { documentSourceRefs } from "./document";
 import { evaluateItem, hasResidual, linkedConfidence, riskOpenItems, thresholdReading, type RiskOpenItem } from "./risk";
 import { buildTrdSeed } from "./trd-seed";
-import { NOTICE_DOCUMENT, PRODUCT_NAME } from "./product";
+import { NOTICE_DOCUMENT, PRODUCT_NAME, TBD_MARKER } from "./product";
+import { projectLabel } from "./format";
 
 /**
  * The risk assessment as a document (the same DocModel the other outputs use, so the shared renderers and the built-in Word style draw it).
@@ -22,7 +23,7 @@ import { NOTICE_DOCUMENT, PRODUCT_NAME } from "./product";
 export const RISK_ASSESSMENT_TITLE = "Risk assessment — draft";
 /** The notice at the top and in the footer of the document: the one shared wording (product.ts), the same in every document. */
 export const RISK_BANNER = NOTICE_DOCUMENT;
-const NOT_ESTABLISHED = "Not established";
+const NOT_ESTABLISHED = TBD_MARKER;
 
 /** Sections the person can leave out of one export. Everything else is always there, so an export cannot hide the method or the open items. */
 export const RISK_OPTIONAL_SECTIONS = [
@@ -41,7 +42,7 @@ export interface RiskDocumentOptions {
   omit?: readonly RiskOptionalSection[];
 }
 
-export const riskBasisText = (projectId: string): string => `Draft risk assessment generated from project ${projectId}. Not approved.`;
+export const riskBasisText = (projectName: string): string => `Draft risk assessment generated from project ${projectName}. Not approved.`;
 
 const STATUS_TEXT = { open: "Open", in_progress: "In progress", done: "Done", dropped: "Dropped" } as const;
 
@@ -74,7 +75,7 @@ export function buildRiskAssessmentDocument(
 
   // 1. Purpose and scope
   add("purpose-scope", "Purpose and scope", [
-    { type: "note", text: riskBasisText(project.meta.id) },
+    { type: "note", text: riskBasisText(projectLabel(project.meta)) },
     {
       type: "paragraph",
       text: `This draft records a quality risk assessment of the technology transfer of ${program} to the receiving unit, in the manner of ICH Q9(R1): the failure modes the team identified, how the team scored them with the method chosen below, the controls in place and the actions agreed. It records the team's own judgement. The tool calculates the scores from the team's entries and does not judge whether any risk is acceptable.`,

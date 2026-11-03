@@ -14,7 +14,7 @@ demo:
   title: "ARX-217 transfer: Site North Line 2 to Site South Line 4 (fictional demo)"
   version: 1.8.0
 
-responder: { name: Alex Example (fictional), role: MSAT engineer }
+responder: { name: Alex Example (fictional), role: MSAT (manufacturing science and technology) engineer }
 date: "2026-10-01T09:00:00.000Z"
 entrySequence: paired
 
@@ -379,7 +379,7 @@ answers:
   - { q: cap.seal, side: source, value: "Seal Vendor E, SEAL-20-DEMO" }
   - { q: cap.seal, side: target, same: true }
   - { q: cap.cci, side: target, value: planned }
-  # TBD without a best guess is an open information item (information required); this one also carries an owner and a due date. The due date is
+  # TBD without a best guess is an open item (information required); this one also carries an owner and a due date. The due date is
   # long past, so the Home card and the TBD list show it as overdue.
   - { q: cap.rsf_correlation, side: target, tbd: { owner: "Process Validation Lead (fictional)", due: "2026-10-01", note: "Study protocol not yet approved" } }
   - q: cap.rsf
@@ -1119,7 +1119,7 @@ mbr:
   at: "2026-10-14T09:00:00.000Z"
   by: Alex Example (fictional)
   role: MSAT engineer
-  title: ARX-217 master batch record, Site South Line 4 (fictional)
+  title: ARX-217 batch record, Site South Line 4 (fictional)
   docRef: DEMO-MBR-217-01
   purpose: This record gives the steps to fill the ARX-217 vial at the receiving unit (fictional).
   sections:

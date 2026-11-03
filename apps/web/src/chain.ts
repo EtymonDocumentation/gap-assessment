@@ -53,9 +53,11 @@ export interface ChainRoute {
 const NAMES: Record<ChainId, string> = { gap: "Gap assessment", risk: "Risk assessment", trd: "TRD", sampling: "Sampling plan", mbr: "Batch record", view: "Process view" };
 const GAP_PATHS = ["/scope", "/interview", "/compare", "/register", "/validation", "/document"];
 
-/** Which stage a route belongs to, or undefined when the route is not part of the chain (libraries, risk, templates...). */
+/** Which stage a route belongs to, or undefined when the route is not part of the chain (libraries, templates...). */
 export function chainStageOf(path: string): ChainId | undefined {
   if (GAP_PATHS.includes(path)) return "gap";
+  // The risk assessment sits beside the chain: its page shows the strip, but it has no number and no Back / Next (see chainBar).
+  if (path === "/risk") return "risk";
   if (path === "/trd") return "trd";
   if (path === "/sampling") return "sampling";
   if (path === "/mbr") return "mbr";

@@ -2,6 +2,7 @@
 // pages, and the Home page that tells a new user what to do next. All data are fictional.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
+import { openDemo } from "./nav-helper";
 
 test.beforeEach(async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
@@ -37,12 +38,12 @@ test("home with no project explains the tool, what you need and how to start, wi
   await expect(page.getByTestId("next-step")).toHaveCount(0);
   // The "what you need" list is open on a first visit.
   await expect(page.getByTestId("before-you-start")).toHaveAttribute("open", "");
-  await expect(page.getByRole("heading", { level: 2, name: "Or try a demo" })).toBeVisible();
+  // The two demos sit next to "Start a new project" (the start options), not in a card further down.
+  await expect(page.getByTestId("start-options").getByRole("button", { name: /^Open demo: / })).toHaveCount(2);
   await expect(page.getByText("Both demos are fictional.")).toBeVisible();
   await expect(page.getByTestId("getting-started")).toContainText("Answer the interview");
-  // Without a project the "Gap assessment" link goes Home, where a project is started.
-  const gap = isPhone(test.info()) ? undefined : mainNav(page).getByRole("link", { name: "Gap assessment" });
-  if (gap) await expect(gap).toHaveAttribute("href", "#/");
+  // Without a project there is no gap assessment to open, so the top link is left out instead of looking dead (it comes back with a project).
+  await expect(mainNav(page).getByRole("link", { name: "Gap assessment", exact: true })).toHaveCount(0);
   await expectNoSidewaysScroll(page, "home, no project");
   await expectAccessible(page, "home, no project");
 });
@@ -62,7 +63,7 @@ test("home with the demo open leads with the next step; demo cards say what they
   await page.goto("./");
   await expect(page.getByText("all eight comparison categories")).toBeVisible();
   await expect(page.getByText("The whole document chain is filled in")).toBeVisible();
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
   await page.evaluate(() => (window.location.hash = "#/"));
   const next = page.getByTestId("next-step");
@@ -90,7 +91,7 @@ test("getting started can be hidden, stays hidden after a reload, and can be sho
 test("the Documents and Library drop-downs open on click, move with the arrow keys, close on Escape and on a click outside", async ({ page }, testInfo) => {
   test.skip(isPhone(testInfo), "the phone uses the Menu button, tested below");
   await page.goto("./");
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
   const nav = mainNav(page);
   const documents = nav.getByRole("button", { name: /^Documents/ });
@@ -159,7 +160,7 @@ test("the Documents and Library drop-downs open on click, move with the arrow ke
 test("the phone folds the menu into one Menu button with no sideways scroll", async ({ page }, testInfo) => {
   test.skip(!isPhone(testInfo), "phone width only");
   await page.goto("./");
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
   const nav = mainNav(page);
   const menu = nav.getByRole("button", { name: /^Menu/ });
@@ -181,7 +182,7 @@ test("the phone folds the menu into one Menu button with no sideways scroll", as
 
 test("the step bar marks the current step, ticks only what is proven, and Back / Next walk the six steps", async ({ page }, testInfo) => {
   await page.goto("./");
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
   await page.evaluate(() => (window.location.hash = "#/interview"));
   const bar = page.getByRole("navigation", { name: "Gap assessment steps" });

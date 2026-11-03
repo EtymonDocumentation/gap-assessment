@@ -3,6 +3,7 @@ import { agencyCoverage, methodDocumentLines, CMO_INTRO, placementText, renderSu
 import type { ContentBundle } from "./content";
 import { effectiveContent } from "./custom";
 import type { Block, DocModel, DocSection } from "./document";
+import { TBD_MARKER } from "./product";
 import { documentFingerprint } from "./review";
 import { buildSamplingPlanDocument, samplingOpenItems, SAMPLING_BANNER, type SamplingDocumentOptions } from "./sampling-document";
 import type { SamplingSuggestions } from "./sampling-seed";
@@ -31,7 +32,7 @@ export function buildCmoInstructionsDocument(content: ContentBundle, project: Pr
   labels.set(UNIT_OP_NONE, "Supporting work (no single step)");
   const unitOpLabel = (k: string) => labels.get(k) ?? k;
   const open = samplingOpenItems(content, project, plan);
-  const program = seed.meta.product.program.display ?? "Not established";
+  const program = seed.meta.product.program.display ?? TBD_MARKER;
   const ctx = tokenContext(plan, {
     ...(seed.meta.product.program.display ? { productName: seed.meta.product.program.display } : {}),
     ...(seed.meta.receivingSite.name.display ? { ruSite: seed.meta.receivingSite.name.display } : {}),

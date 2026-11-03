@@ -3,7 +3,7 @@
 // tablet and phone widths. All data are fictional.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { expectNotice, isPhone, NOTICE_FOOTER, PRODUCT_NAME, PRODUCT_SUBTITLE, setTheme, STORAGE_PHRASE_BROWSER } from "./nav-helper";
+import { expectNotice, isPhone, NOTICE_FOOTER, openDemo, PRODUCT_NAME, PRODUCT_SUBTITLE, setTheme, STORAGE_PHRASE_BROWSER } from "./nav-helper";
 
 test.beforeEach(async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
@@ -13,7 +13,7 @@ const hash = (page: Page, h: string) => page.evaluate((x) => (window.location.ha
 
 async function openSyringe(page: Page) {
   await page.goto("./");
-  await page.getByRole("button", { name: "Open syringe example" }).click();
+  await openDemo(page, "syr");
   await expect(page.getByTestId("home-chain")).toBeVisible();
 }
 
@@ -66,8 +66,9 @@ test("the notice strip is on every page in the short or long form for the width,
     return { size: s.fontSize, top: s.paddingTop, bottom: s.paddingBottom, bg: s.backgroundColor, color: s.color };
   });
   expect(look).toEqual({ size: "12px", top: "4px", bottom: "4px", bg: "rgb(122, 23, 23)", color: "rgb(255, 255, 255)" });
-  // The page footer says it again, with the filing-category sentence.
-  await expect(page.getByTestId("notice-footer")).toHaveText(NOTICE_FOOTER);
+  // The page footer says it again, with the filing-category sentence, and links to the About and privacy page.
+  await expect(page.getByTestId("notice-footer").locator(".app-footer-text")).toHaveText(NOTICE_FOOTER);
+  await expect(page.getByTestId("notice-footer").getByRole("link", { name: "About and privacy" })).toBeVisible();
 
   // It is on the pages of every module, and it stays in view while the page scrolls.
   await openSyringe(page);
@@ -101,14 +102,16 @@ test("the header: a dark bar with the same menus, the open project, a theme menu
     }
     await expect(nav.getByRole("link")).toHaveCount(0);
     await menuButton(page).click();
-    for (const name of ["Home", "Gap assessment", "TRD", "Sampling plan", "Batch record", "Risk assessment", "Open items", "Templates", "Guidance"]) {
+    for (const name of ["Home", "TRD", "Sampling plan", "Batch record", "Risk assessment", "Open items", "Templates", "Guidance"]) {
       await expect(nav.getByRole("link", { name, exact: true })).toBeVisible();
     }
+    // No project is open, so there is no "Gap assessment" link to nowhere.
+    await expect(nav.getByRole("link", { name: "Gap assessment", exact: true })).toHaveCount(0);
     await page.keyboard.press("Escape");
     await expect(menuButton(page)).toBeFocused();
   } else {
     await expect(nav.getByRole("link", { name: "Home", exact: true })).toHaveAttribute("aria-current", "page");
-    await expect(nav.getByRole("link", { name: "Gap assessment", exact: true })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Gap assessment", exact: true })).toHaveCount(0);
     for (const group of ["Documents", "Library"]) {
       const button = nav.getByRole("button", { name: new RegExp(`^${group}`) });
       await expect(button).toHaveAttribute("aria-expanded", "false");

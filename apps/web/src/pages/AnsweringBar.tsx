@@ -72,144 +72,151 @@ export function AnsweringBar({ notice, onUndo, onDismissNotice }: { notice: Cite
   };
 
   return (
-    <section
-      className="answering-bar"
-      aria-label="Answering from"
-      // Escape closes the form from anywhere in the bar, the toggle button included.
-      onKeyDown={(e) => {
-        if (e.key === "Escape" && open) {
-          setOpen(false);
-          toggleRef.current?.focus();
-        }
-      }}
-    >
-      <div className="ab-line">
-        <strong className="ab-label">Answering from:</strong>
-        {bar ? (
-          <span className="ab-doc" title={answeringFromText(bar)}>
-            {answeringFromText(bar)}
-          </span>
-        ) : (
-          <span className="ab-doc muted">no document chosen</span>
-        )}
-        <button ref={toggleRef} type="button" className="btn small" aria-expanded={open} aria-controls={formId} onClick={() => (open ? setOpen(false) : openForm())}>
-          {bar ? "Change" : "Choose a document"}
-        </button>
-        {bar && (
-          <button
-            type="button"
-            className="btn small"
-            onClick={() => {
-              update((p, actor) => clearAnsweringFrom(p, actor), "No longer answering from a document");
-              setOpen(false);
-            }}
-          >
-            Clear<span className="visually-hidden"> answering from</span>
-          </button>
-        )}
-      </div>
-
-      {notice && (
-        <p className="ab-notice" role="status">
-          <span>{notice.text}</span>
-          <button type="button" className="btn small" onClick={onUndo}>
-            <span aria-hidden="true">✕ </span>Undo<span className="visually-hidden"> citation</span>
-          </button>
-          <button type="button" className="link-btn small" onClick={onDismissNotice}>
-            Dismiss
-          </button>
+    <>
+      {!bar && (
+        <p className="small muted ab-hint" data-testid="answering-from-hint">
+          Optional. If you are taking the answers from a document, choose it here and each answer you save is cited to it.
         </p>
       )}
-
-      {open && (
-        <form
-          id={formId}
-          className="ab-form stack"
-          onSubmit={(e) => {
-            e.preventDefault();
-            submit();
-          }}
-        >
-          <p className="small muted">
-            While a document is chosen, each answer you save with a value is cited to it. TBD without a best guess and “Same as SU” are not cited.
-          </p>
-          <div className="row wrap">
-            <label className="field">
-              <span>Document</span>
-              <select aria-label="Document" value={docId} onChange={(e) => setDocId(e.target.value)} aria-describedby={error ? errId : undefined}>
-                <option value="">Choose…</option>
-                {docs.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {sourceShort(s)}
-                  </option>
-                ))}
-                <option value={NEW_DOC}>Add a new document…</option>
-              </select>
-            </label>
-            <fieldset className="segmented">
-              <legend className="small">Cite on</legend>
-              {(
-                [
-                  ["source", "SU"],
-                  ["target", "RU"],
-                  ["both", "Both"],
-                ] as const
-              ).map(([v, t]) => (
-                <label key={v}>
-                  <input type="radio" name={`${formId}-sides`} value={v} checked={sides === v} onChange={() => setSides(v)} />
-                  <span>{t}</span>
-                </label>
-              ))}
-            </fieldset>
-          </div>
-          {docId === NEW_DOC && (
-            <div className="row wrap">
-              <label className="field">
-                <span>Document ID</span>
-                <input value={newId} onChange={(e) => setNewId(e.target.value)} placeholder="e.g. DEMO-PPQ-001 (fictional)" />
-              </label>
-              <label className="field">
-                <span>Title</span>
-                <input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
-              </label>
-              <label className="field compact">
-                <span>Version</span>
-                <input value={newVersion} onChange={(e) => setNewVersion(e.target.value)} />
-              </label>
-            </div>
+      <section
+        className="answering-bar"
+        aria-label="Answering from"
+        // Escape closes the form from anywhere in the bar, the toggle button included.
+        onKeyDown={(e) => {
+          if (e.key === "Escape" && open) {
+            setOpen(false);
+            toggleRef.current?.focus();
+          }
+        }}
+      >
+        <div className="ab-line">
+          <strong className="ab-label">Answering from:</strong>
+          {bar ? (
+            <span className="ab-doc" title={answeringFromText(bar)}>
+              {answeringFromText(bar)}
+            </span>
+          ) : (
+            <span className="ab-doc muted">no document chosen</span>
           )}
-          <div className="row wrap">
-            <label className="field compact">
-              <span>Section (optional)</span>
-              <input value={section} onChange={(e) => setSection(e.target.value)} placeholder="e.g. 4.2" />
-            </label>
-            <label className="field compact">
-              <span>Page (optional)</span>
-              <input value={page} onChange={(e) => setPage(e.target.value)} placeholder="e.g. 12" />
-            </label>
-          </div>
-          {error && (
-            <p className="error" id={errId} role="alert">
-              {error}
-            </p>
-          )}
-          <div className="row wrap">
-            <button type="submit" className="btn primary">
-              {bar ? "Update" : "Start answering from this document"}
-            </button>
+          <button ref={toggleRef} type="button" className="btn small" aria-expanded={open} aria-controls={formId} onClick={() => (open ? setOpen(false) : openForm())}>
+            {bar ? "Change" : "Choose a document"}
+          </button>
+          {bar && (
             <button
               type="button"
-              className="btn ghost"
+              className="btn small"
               onClick={() => {
+                update((p, actor) => clearAnsweringFrom(p, actor), "No longer answering from a document");
                 setOpen(false);
-                toggleRef.current?.focus();
               }}
             >
-              Cancel
+              Clear<span className="visually-hidden"> answering from</span>
             </button>
-          </div>
-        </form>
-      )}
-    </section>
+          )}
+        </div>
+
+        {notice && (
+          <p className="ab-notice" role="status">
+            <span>{notice.text}</span>
+            <button type="button" className="btn small" onClick={onUndo}>
+              <span aria-hidden="true">✕ </span>Undo<span className="visually-hidden"> citation</span>
+            </button>
+            <button type="button" className="link-btn small" onClick={onDismissNotice}>
+              Dismiss
+            </button>
+          </p>
+        )}
+
+        {open && (
+          <form
+            id={formId}
+            className="ab-form stack"
+            onSubmit={(e) => {
+              e.preventDefault();
+              submit();
+            }}
+          >
+            <p className="small muted">
+              While a document is chosen, each answer you save with a value is cited to it. TBD without a best guess and “Same as SU” are not cited.
+            </p>
+            <div className="row wrap">
+              <label className="field">
+                <span>Document</span>
+                <select aria-label="Document" value={docId} onChange={(e) => setDocId(e.target.value)} aria-describedby={error ? errId : undefined}>
+                  <option value="">Choose…</option>
+                  {docs.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {sourceShort(s)}
+                    </option>
+                  ))}
+                  <option value={NEW_DOC}>Add a new document…</option>
+                </select>
+              </label>
+              <fieldset className="segmented">
+                <legend className="small">Cite on</legend>
+                {(
+                  [
+                    ["source", "SU"],
+                    ["target", "RU"],
+                    ["both", "Both"],
+                  ] as const
+                ).map(([v, t]) => (
+                  <label key={v}>
+                    <input type="radio" name={`${formId}-sides`} value={v} checked={sides === v} onChange={() => setSides(v)} />
+                    <span>{t}</span>
+                  </label>
+                ))}
+              </fieldset>
+            </div>
+            {docId === NEW_DOC && (
+              <div className="row wrap">
+                <label className="field">
+                  <span>Document ID</span>
+                  <input value={newId} onChange={(e) => setNewId(e.target.value)} placeholder="e.g. DEMO-PPQ-001 (fictional)" />
+                </label>
+                <label className="field">
+                  <span>Title</span>
+                  <input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
+                </label>
+                <label className="field compact">
+                  <span>Version</span>
+                  <input value={newVersion} onChange={(e) => setNewVersion(e.target.value)} />
+                </label>
+              </div>
+            )}
+            <div className="row wrap">
+              <label className="field compact">
+                <span>Section (optional)</span>
+                <input value={section} onChange={(e) => setSection(e.target.value)} placeholder="e.g. 4.2" />
+              </label>
+              <label className="field compact">
+                <span>Page (optional)</span>
+                <input value={page} onChange={(e) => setPage(e.target.value)} placeholder="e.g. 12" />
+              </label>
+            </div>
+            {error && (
+              <p className="error" id={errId} role="alert">
+                {error}
+              </p>
+            )}
+            <div className="row wrap">
+              <button type="submit" className="btn primary">
+                {bar ? "Update" : "Start answering from this document"}
+              </button>
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={() => {
+                  setOpen(false);
+                  toggleRef.current?.focus();
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+      </section>
+    </>
   );
 }

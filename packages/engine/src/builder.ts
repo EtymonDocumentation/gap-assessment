@@ -11,6 +11,7 @@ import type { Assessment, Gap } from "./compare";
 import { fieldLabel, type ContentBundle } from "./content";
 import type { Question, Section } from "./content-schema";
 import { stagedFor } from "./stage";
+import { NO_VALUE_YET } from "./product";
 import { CUSTOM_KIND_LABELS, isCustomQuestion, isCustomSection, recordedEntries } from "./custom";
 import { citationNames, displaySourceNames, displaySources, entryLocation, sourceWithLocation } from "./labels";
 import { cellVerification, type CellVerification } from "./verification";
@@ -32,7 +33,7 @@ export interface AttributeSide {
   status: AggregateStatus;
   statusText: string;
   sameAsSource: boolean;
-  /** TBD or not yet established: an open information item. */
+  /** TBD or no value yet: an open item. */
   open: boolean;
   /** Sources shown for this value, documents first (see displaySources), with the entries that cite each (for attaching and detaching). */
   sourceLinks: { id: string; label: string; refs: string[] }[];
@@ -103,7 +104,7 @@ const STATUS_TEXT: Record<AggregateStatus, string> = {
   established: "Established",
   tbd: "TBD (to be decided)",
   not_applicable: "Not applicable",
-  not_established: "Not established",
+  not_established: NO_VALUE_YET,
   partial: "Partly recorded",
 };
 

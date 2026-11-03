@@ -1,10 +1,11 @@
 import {
   assess,
-  buildDemoProject,
   demoSamplingTables,
   demoSubsectionLibrary,
   effectiveContent,
+  importedTitle,
   programStage,
+  renameProject,
   sourceValidated,
   stagedContent,
   stageWordingFor,
@@ -16,7 +17,9 @@ import { emptyProject, parseProject, type Actor, type Project } from "@gap/proce
 import { del, get, set } from "idb-keyval";
 import { useMemo } from "react";
 import { create } from "zustand";
-import { content, demos, designLoadouts, failureModes, mbrLibrary, riskLoadouts, samplingSuggestions, trdWriteups } from "@gap/content";
+import { content, demos } from "@gap/content";
+import { DEMO_NAMES, type DemoId } from "./demo-build";
+import { buildDemoAway, nextPaint } from "./demo-run";
 import { useSamplingTables } from "./sampling-tables-store";
 import { useSubsectionLibrary } from "./subsections-library-store";
 import { resetFiles } from "./server/files";
@@ -25,6 +28,12 @@ import { afterSessionEnds, remoteStorage, useSession } from "./server/session-st
 import * as sync from "./server/sync";
 
 const STORAGE_KEY = "gap-assessment:project";
+
+/** True from the click on a demo button until that demo is open (see openDemo). */
+let demoInFlight = false;
+
+/** What an import did: the name it ended up with, and the name in the file (they differ when the file's name was already listed). */
+export type ImportResult = { error: string } | { error: null; title: string; fileTitle: string };
 
 interface State {
   project: Project | null;
@@ -42,10 +51,27 @@ interface State {
   setProject(p: Project | null, status?: string, fresh?: boolean): void;
   /** Applies an engine function. Returns an error message instead of throwing. */
   update(fn: (p: Project, actor: Actor) => Project, status?: string): string | null;
-  /** Opens a fictional demo project; the id picks the script from content/demo (default: the ARX-217 vial demo). */
-  loadDemo(id?: keyof typeof demos): void;
+  /** Name of the demo being built, or null. The Home page shows "Building the demo" from it and keeps every demo button off until it is open. */
+  demoBuilding: string | null;
+  /** The line Home shows once a demo is open ("Demo opened: <name>"). The app clears it when the user leaves Home. */
+  homeFlash: string;
+  /**
+   * What the last Copy, Rename or Import in My projects said, and (for a copy or an import) the server id of the project it made, so the list can mark
+   * that row. The app clears it when the user leaves Home.
+   */
+  listNote: { text: string; newId?: string } | null;
+  /**
+   * Opens a fictional demo project; the id picks the script from content/demo. The build takes seconds, so it runs off the page (demo-run.ts) after
+   * the "Building the demo" line has painted. A second call while one demo is being built is ignored, so a double click makes ONE project.
+   * Resolves true once the demo is open.
+   */
+  openDemo(id: DemoId): Promise<boolean>;
   newProject(title: string, responder: { name: string; role?: string }): void;
-  importJson(text: string): string | null;
+  /**
+   * Opens a project from an exported JSON file as a new project. `listedTitles` are the names already in My projects: when one is the file's name,
+   * the project is called "<name> (imported)" (the change log says so), so the list never shows two projects with one name.
+   */
+  importJson(text: string, listedTitles?: readonly string[]): ImportResult;
   clearError(): void;
 }
 
@@ -65,6 +91,9 @@ export const useStore = create<State>((setState, getState) => ({
   ready: false,
   error: null,
   status: "",
+  demoBuilding: null,
+  homeFlash: "",
+  listNote: null,
 
   async init() {
     if (SERVER_MODE && remoteStorage()) {
@@ -105,19 +134,36 @@ export const useStore = create<State>((setState, getState) => ({
     }
   },
 
-  loadDemo(id = "arx-217") {
-    const demo = buildDemoProject(content, demos[id], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes }, { library: mbrLibrary }, { writeups: trdWriteups });
-    // The demo carries a TRD. An account without the TRD module could not save it (the server refuses a project holding TRD
-    // documents), so the demo opens without it there; the rest of the demo is unchanged.
-    const trdOn = !SERVER_MODE || !!useSession.getState().user?.plan.modules.includes("trd");
-    const mbrOn = !SERVER_MODE || !!useSession.getState().user?.plan.modules.includes("mbr");
-    // The batch record is built from the TRD, so it goes with the TRD; an account without the batch record module gets the demo without it.
-    let shown = trdOn ? demo : { ...demo, trd: { documents: [] }, changeLog: demo.changeLog.filter((e) => !(e.path ?? "").startsWith("trd.")) };
-    if (!trdOn || !mbrOn) shown = { ...shown, mbr: { records: [] }, changeLog: shown.changeLog.filter((e) => !(e.path ?? "").startsWith("mbr.")) };
-    getState().setProject(shown, "Demo project loaded", true);
-    // The demo plan uses a fictional company table. Offer it in the library too, so the plan does not say its table has gone.
-    void useSamplingTables.getState().ensure(demoSamplingTables(demos[id]));
-    void useSubsectionLibrary.getState().ensure(demoSubsectionLibrary(demos[id]));
+  async openDemo(id) {
+    // The guard is a plain variable set before the first await: two clicks in the same frame both run this function before React has
+    // re-rendered the buttons as disabled, and the second must find the first already in flight.
+    if (demoInFlight) return false;
+    demoInFlight = true;
+    const name = DEMO_NAMES[id];
+    setState({ demoBuilding: name, homeFlash: "" });
+    try {
+      await nextPaint();
+      const demo = await buildDemoAway(id);
+      // The demo carries a TRD. An account without the TRD module could not save it (the server refuses a project holding TRD
+      // documents), so the demo opens without it there; the rest of the demo is unchanged.
+      const trdOn = !SERVER_MODE || !!useSession.getState().user?.plan.modules.includes("trd");
+      const mbrOn = !SERVER_MODE || !!useSession.getState().user?.plan.modules.includes("mbr");
+      // The batch record is built from the TRD, so it goes with the TRD; an account without the batch record module gets the demo without it.
+      let shown = trdOn ? demo : { ...demo, trd: { documents: [] }, changeLog: demo.changeLog.filter((e) => !(e.path ?? "").startsWith("trd.")) };
+      if (!trdOn || !mbrOn) shown = { ...shown, mbr: { records: [] }, changeLog: shown.changeLog.filter((e) => !(e.path ?? "").startsWith("mbr.")) };
+      getState().setProject(shown, `Demo opened: ${name}`, true);
+      setState({ homeFlash: `Demo opened: ${name}` });
+      // The demo plan uses a fictional company table. Offer it in the library too, so the plan does not say its table has gone.
+      void useSamplingTables.getState().ensure(demoSamplingTables(demos[id]));
+      void useSubsectionLibrary.getState().ensure(demoSubsectionLibrary(demos[id]));
+      return true;
+    } catch (e) {
+      setState({ error: `The demo could not be built: ${(e as Error).message}` });
+      return false;
+    } finally {
+      demoInFlight = false;
+      setState({ demoBuilding: null });
+    }
   },
 
   newProject(title, responder) {
@@ -127,13 +173,16 @@ export const useStore = create<State>((setState, getState) => ({
     getState().setProject(p, "New project created", true);
   },
 
-  importJson(text) {
+  importJson(text, listedTitles = []) {
     try {
-      const p = parseProject(JSON.parse(text));
-      getState().setProject(p, "Project imported", true);
-      return null;
+      const parsed = parseProject(JSON.parse(text));
+      const fileTitle = parsed.meta.title;
+      const title = importedTitle(fileTitle, listedTitles);
+      const p = title === fileTitle ? parsed : renameProject(parsed, title, actorOf(parsed), { detail: "Renamed on import: a project with this name was already listed" });
+      getState().setProject(p, `Imported: ${fileTitle}`, true);
+      return { error: null, title, fileTitle };
     } catch (e) {
-      return e instanceof SyntaxError ? "The file is not valid JSON." : (e as Error).message;
+      return { error: e instanceof SyntaxError ? "The file is not valid JSON." : (e as Error).message };
     }
   },
 

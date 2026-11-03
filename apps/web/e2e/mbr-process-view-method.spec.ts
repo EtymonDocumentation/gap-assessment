@@ -4,7 +4,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { goTo } from "./nav-helper";
+import { goTo, openDemo } from "./nav-helper";
 
 const SHOTS = tmpdir();
 
@@ -12,10 +12,10 @@ test.beforeEach(async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
 });
 
-async function openView(page: Page, demo: "Open syringe example" | "Load demo") {
+async function openView(page: Page, demo: "syr" | "arx") {
   await page.goto("./");
-  await page.getByRole("button", { name: demo }).click();
-  await expect(page.getByTestId("home-chain").or(page.getByRole("heading", { level: 1, name: "Gap register" }))).toBeVisible();
+  await openDemo(page, demo);
+  await expect(page.getByTestId("home-chain")).toBeVisible();
   await goTo(page, "Batch record");
   await page.getByTestId("mbr-list-table").getByRole("link").first().click();
   await expect(page.getByRole("heading", { level: 1, name: /MBR-001/ })).toBeVisible();
@@ -43,7 +43,7 @@ for (const [name, size] of [["desktop", { width: 1280, height: 900 }], ["phone",
   test(`syringe demo: glyphs, study tag, flush to waste, words and legend: ${name}`, async ({ page }) => {
     test.setTimeout(180_000);
     await page.setViewportSize(size);
-    await openView(page, "Open syringe example");
+    await openView(page, "syr");
 
     // The Y-connector point: a Y glyph, drawn dashed (added for the study), with its tag and the flush to waste.
     const y = page.getByTestId("pv-glyph-SP-021");
@@ -117,7 +117,7 @@ test("syringe demo in the dark theme: glyphs stay readable and accessible", asyn
   test.setTimeout(180_000);
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.emulateMedia({ colorScheme: "dark" });
-  await openView(page, "Open syringe example");
+  await openView(page, "syr");
   await goToSample(page, "SP-001");
   await page.getByTestId("pv-diagram").scrollIntoViewIfNeeded();
   await page.screenshot({ path: join(SHOTS, "smp-method-b-syr-dark.png") });
@@ -127,7 +127,7 @@ test("syringe demo in the dark theme: glyphs stay readable and accessible", asyn
 test("antibody demo: the shared-port sample shows its glyph, flush to waste and words", async ({ page }) => {
   test.setTimeout(180_000);
   await page.setViewportSize({ width: 1280, height: 900 });
-  await openView(page, "Load demo");
+  await openView(page, "arx");
   await expect(page.getByTestId("pv-glyph-SP-007")).toHaveAttribute("data-access", "shared_port");
   await expect(page.getByTestId("pv-waste-SP-007")).toContainText("30 mL to waste");
   await goToSample(page, "SP-007");

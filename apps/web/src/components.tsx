@@ -1,8 +1,9 @@
 import { NOTICE_FOOTER, NOTICE_STRIP, NOTICE_STRIP_PHONE, PROVISIONAL_LABEL, type Category, type Gap } from "@gap/engine";
 import type { Severity } from "@gap/process-model";
 import * as Dialog from "@radix-ui/react-dialog";
-import { useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { categoryShort, SEVERITY_TEXT } from "./lib";
+import { href } from "./router";
 import { useStageWording } from "./store";
 import { useNarrow } from "./viewport";
 
@@ -62,11 +63,17 @@ export function NoticeStrip({ storage }: { storage?: string }) {
   );
 }
 
-/** The foot of every screen: the strip wording in full (a phone only shows the short form at the top) and the filing-category statement. */
+/**
+ * The foot of every screen: the strip wording in full (a phone only shows the short form at the top) and the filing-category statement, then
+ * the link to the About and privacy page, which opens without signing in.
+ */
 export function NoticeFooter() {
   return (
     <footer className="app-footer" data-testid="notice-footer">
-      {NOTICE_FOOTER}
+      <p className="app-footer-text">{NOTICE_FOOTER}</p>
+      <p className="app-footer-links">
+        <a href={href("/about")}>About and privacy</a>
+      </p>
     </footer>
   );
 }
@@ -162,7 +169,7 @@ export function ResponderForm({
         <span>
           Role <span className="muted">(optional)</span>
         </span>
-        <input value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. MSAT engineer" />
+        <input value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. process engineer" />
       </label>
       <p className="muted small">
         Recorded as free text on every answer. This tool has no electronic signature, so answers are not attributable in a GMP sense.
@@ -177,6 +184,90 @@ export function ResponderForm({
           {submitLabel}
         </button>
       </div>
+    </form>
+  );
+}
+
+/**
+ * A name edited where it is shown: one text field with Save and Cancel (Enter saves, Escape cancels). `save` returns the problem to show
+ * beside the field, or null once the name is saved. Used to rename a project in the "My projects" list and on the Home page.
+ */
+export function InlineRename({
+  current,
+  label,
+  save,
+  onClose,
+}: {
+  current: string;
+  /** What is being renamed, for the field's hidden label. */
+  label: string;
+  save: (title: string) => string | null | Promise<string | null>;
+  onClose: () => void;
+}) {
+  const [value, setValue] = useState(current);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const input = useRef<HTMLInputElement>(null);
+  const id = useId();
+  useEffect(() => {
+    input.current?.focus();
+    input.current?.select();
+  }, []);
+  async function submit() {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      const problem = await save(value);
+      if (problem) {
+        setError(problem);
+        input.current?.focus();
+      } else {
+        onClose();
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <form
+      className="rename-form"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void submit();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          e.stopPropagation();
+          onClose();
+        }
+      }}
+    >
+      <label className="visually-hidden" htmlFor={`${id}-name`}>
+        New name for {label}
+      </label>
+      <input
+        id={`${id}-name`}
+        ref={input}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        autoComplete="off"
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${id}-error` : undefined}
+      />
+      <button type="submit" className="btn small primary" disabled={busy}>
+        Save
+      </button>
+      <button type="button" className="btn small" onClick={onClose}>
+        Cancel
+      </button>
+      {error && (
+        <p className="error rename-error" role="alert" id={`${id}-error`}>
+          {error}
+        </p>
+      )}
     </form>
   );
 }
@@ -228,7 +319,7 @@ export function VerifierFields({
         <span>
           Role <span className="muted">(optional)</span>
         </span>
-        <input value={role} onChange={(e) => onRole(e.target.value)} placeholder="e.g. QA" />
+        <input value={role} onChange={(e) => onRole(e.target.value)} placeholder="e.g. QA (quality assurance)" />
       </label>
       {selfNeeded && (
         <div className="na-box">

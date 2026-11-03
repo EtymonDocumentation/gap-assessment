@@ -8,7 +8,7 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
-import { goTo, NOTICE_DOCUMENT, openAbout } from "./nav-helper";
+import { goTo, NOTICE_DOCUMENT, openAbout, openDemo } from "./nav-helper";
 
 const SHOTS = tmpdir();
 
@@ -18,7 +18,7 @@ test.beforeEach(async ({ page }) => {
 
 async function loadDemo(page: Page) {
   await page.goto("./");
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
 
@@ -100,7 +100,7 @@ interface Changed {
 /** The seed of the demo project, downloaded from the TRD seed page like a person would, as text. */
 async function downloadSeed(page: Page): Promise<string> {
   await page.goto("./");
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
   await page.evaluate(() => (window.location.hash = "#/trd-seed"));
   const got = await download(page, () => page.getByRole("button", { name: "Download TRD seed (JSON)" }).click());
@@ -165,13 +165,13 @@ test("start from the project: values arrive as project values, nothing is overri
   await expect(page.locator("article.trd-item").first()).toBeVisible();
 });
 
-test("start blank: every product and site detail reads Not established", async ({ page }) => {
+test("start blank: every product and site detail reads TBD", async ({ page }) => {
   await openTrd(page);
   await createTrd(page, "Blank (fictional)", "blank");
   await expect(page.getByTestId("trd-update")).toHaveCount(0);
   const values = page.locator('[data-testid^="trd-field-details-"][data-testid$="-value"]');
   expect(await values.count()).toBeGreaterThan(0);
-  for (const v of await values.allInnerTexts()) expect(v).toBe("Not established");
+  for (const v of await values.allInnerTexts()) expect(v).toBe("TBD");
   await openProcess(page);
   await expect(page.locator("article.trd-item")).toHaveCount(0);
   await page.getByTestId("trd-step-custom-input").fill("Intermediate hold (fictional)");

@@ -3,7 +3,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Download, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
-import { expectNotice } from "./nav-helper";
+import { expectNotice, openDemo } from "./nav-helper";
 
 
 test.beforeEach(async ({ page }) => {
@@ -17,7 +17,7 @@ async function go(page: Page, hash: string) {
 async function loadDemo(page: Page) {
   await page.goto("./");
   await expectNotice(page);
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
 
@@ -86,7 +86,7 @@ test("a gap note edited on Compare shows on the Document page and in the Markdow
   const preview = page.locator(".doc-preview");
   await expect(preview.getByRole("columnheader", { name: "Notes" }).first()).toBeVisible();
   await expect(preview).toContainText(NOTE);
-  const md = await downloadText(page, () => page.getByRole("button", { name: "Download Markdown" }).click());
+  const md = await downloadText(page, () => page.getByRole("button", { name: "Download gap assessment (Markdown)" }).click());
   expect(md).toContain(NOTE);
   expect(md).toContain("| ID | Attribute | SU | RU | Gap | Severity | Actions | Notes |");
 });
@@ -118,10 +118,10 @@ test("leaving out Risk ranking and Approval removes them and the document says s
   await expect(preview).toContainText("Risk ranking; Approval");
   // The mandatory sections stay.
   await expect(preview.getByRole("heading", { name: /Detailed gap table/ })).toBeVisible();
-  await expect(preview.getByRole("heading", { name: /Open information items/ })).toBeVisible();
+  await expect(preview.getByRole("heading", { name: /Open items/ })).toBeVisible();
 
   // The Markdown follows the same choice, and the export history records it.
-  const md = await downloadText(page, () => page.getByRole("button", { name: "Download Markdown" }).click());
+  const md = await downloadText(page, () => page.getByRole("button", { name: "Download gap assessment (Markdown)" }).click());
   expect(md).not.toMatch(/^## .*Risk ranking/m);
   expect(md).not.toMatch(/^## .*Approval/m);
   expect(md).toContain("Risk ranking; Approval");

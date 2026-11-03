@@ -94,7 +94,7 @@ describe("what can be verified", () => {
     const p = recorded();
     const reverted = removeSource(p, getEntry(p, VESSEL_S)!.sourceIds[0]!, ACTOR).project;
     expect(getEntry(reverted, VESSEL_S)!.status).toBe("not_established");
-    expect(() => verifyEntry(reverted, VESSEL_S, REVIEWER)).toThrow(/not established/);
+    expect(() => verifyEntry(reverted, VESSEL_S, REVIEWER)).toThrow(/no value yet/);
   });
 
   it("refuses a TBD entry: it is an open information item", () => {
@@ -198,7 +198,7 @@ describe("bulk verification", () => {
     expect(r.verified).toEqual([VESSEL_S, VESSEL_T]);
     expect(r.skipped.map((s) => s.ref)).toEqual([MIXER_S, "target.uo.compounding.equip.mixer.operatingPrinciple"]);
     expect(r.skipped[0]!.reason).toMatch(/TBD/);
-    expect(r.skipped[1]!.reason).toMatch(/not established|No entry/);
+    expect(r.skipped[1]!.reason).toMatch(/no value yet|No entry/);
     expect(verificationState(r.project, VESSEL_S).state).toBe("verified");
     expect(verificationState(r.project, MIXER_S).state).toBe("unverified");
   });

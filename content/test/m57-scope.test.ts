@@ -175,7 +175,7 @@ describe("not applicable, from the answers", () => {
     expect(stepSummary(content, blank).notApplicable).toBe(0);
     const lyo = steps.find((s) => s.uo === "lyophilization")!;
     expect(lyo.state).toBe("included");
-    expect(lyo.dependsOn!.text).toMatch(/^Depends on an unanswered question: /);
+    expect(lyo.dependsOn!.text).toMatch(/^Depends on an open question: /);
     expect(lyo.dependsOn!.questionKey).toMatch(/@(shared|source)$/);
     expect(notApplicableReason(content, blank, "lyophilization")).toBeUndefined();
     expect(dependsOnReason(content, blank, "lyophilization")).toEqual(lyo.dependsOn);

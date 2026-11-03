@@ -7,7 +7,7 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
-import { NOTICE_DOCUMENT, openAbout } from "./nav-helper";
+import { NOTICE_DOCUMENT, openAbout, openDemo } from "./nav-helper";
 
 const SHOTS = tmpdir();
 
@@ -17,7 +17,7 @@ test.beforeEach(async ({ page }) => {
 
 async function loadDemo(page: Page) {
   await page.goto("./");
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
 
@@ -213,7 +213,7 @@ test("an assessment keeps its copy; the library's newer version is announced and
   await page.getByTestId("risk-list").getByRole("link").first().click();
   await page.getByTestId("risk-tab-method").click();
   await expect(page.getByTestId("risk-method-newer")).toContainText("Library has v2; this assessment uses v1");
-  await expect(page.getByTestId("risk-method-summary")).toContainText("No bands defined by the user");
+  await expect(page.getByTestId("risk-method-summary")).toContainText("No bands defined by you");
 
   // Nothing changes until the person confirms; the dialog lists what would read differently.
   await page.getByTestId("risk-method-update").click();
@@ -245,11 +245,11 @@ test("the risk Output tab offers the Templates library; their look and placehold
   await page.getByTestId("risk-list").getByRole("link").first().click();
   await page.getByTestId("risk-tab-output").click();
 
-  // "Map to their headings" is a gap-document feature, so it is not offered; the note says why.
-  await expect(page.getByRole("radio", { name: /^Map to their headings/ })).toHaveCount(0);
+  // "A template's headings" is a gap-document feature, so it is not offered; the note says why.
+  await expect(page.getByRole("radio", { name: /^A template's headings/ })).toHaveCount(0);
   await expect(page.getByTestId("risk-word-note")).toBeVisible();
 
-  await page.getByRole("radio", { name: /^Their look/ }).check();
+  await page.getByRole("radio", { name: /^A template's look/ }).check();
   const look = await download(page, "risk-download-word");
   expect(look.file).toMatch(/^risk-assessment-.*\.docx$/);
   const lookText = wordText(look.bytes);
@@ -352,7 +352,7 @@ for (const scheme of ["light", "dark"] as const) {
     await page.keyboard.press("Escape");
 
     await page.getByTestId("risk-tab-output").click();
-    await page.getByRole("radio", { name: /^Their look/ }).check();
+    await page.getByRole("radio", { name: /^A template's look/ }).check();
     await expect(page.getByTestId("risk-download-word")).toBeVisible();
     await expectAccessible(page, `${scheme} output template picker`);
     await expectNoHorizontalScroll(page, `${scheme} output template picker`);

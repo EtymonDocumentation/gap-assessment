@@ -7,7 +7,7 @@ import { readFile } from "node:fs/promises";
 import { mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { expectNotice, setTheme } from "./nav-helper";
+import { expectNotice, openDemo, setTheme } from "./nav-helper";
 
 const SHOTS = tmpdir();
 
@@ -34,7 +34,7 @@ async function expectNoHorizontalScroll(page: Page, label: string) {
 async function loadDemo(page: Page) {
   await page.goto("./");
   await expectNotice(page);
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
 
@@ -71,7 +71,7 @@ test("a new project opens the Scope step first: everything is included, nothing 
   await page.getByRole("button", { name: "Expand all groups" }).click();
   await expect(page.getByTestId("scope-summary")).not.toContainText("not applicable");
   await expect(page.getByText(/^Not applicable/)).toHaveCount(0);
-  const waiting = page.getByText(/^Depends on an unanswered question: /);
+  const waiting = page.getByText(/^Depends on an open question: /);
   expect(await waiting.count()).toBeGreaterThan(0);
   await expect(page.locator("#scope-step-lyophilization")).toBeEnabled();
   await expect(page.locator("#scope-step-lyophilization")).toBeChecked();
@@ -215,14 +215,14 @@ test("HTML and Word downloads follow the selection, including a left-out process
     ]);
     return readFile(await dl.path());
   };
-  const before = { html: await grab("Download HTML"), word: await grab("Download Word document") };
+  const before = { html: await grab("Download gap assessment (HTML)"), word: await grab("Download gap assessment (Word)") };
   const panel = page.getByTestId("doc-scope-panel");
   await panel.getByRole("button", { name: "Change" }).click();
   await panel.getByRole("button", { name: "Expand all groups" }).click();
   await page.locator("#doc-step-capping").click();
   await page.getByRole("dialog", { name: /Leave out/ }).getByRole("button", { name: "Leave out" }).click();
   await expect(page.getByTestId("download-contents")).toContainText("process step");
-  const after = { html: await grab("Download HTML"), word: await grab("Download Word document") };
+  const after = { html: await grab("Download gap assessment (HTML)"), word: await grab("Download gap assessment (Word)") };
   expect(after.html.equals(before.html)).toBe(false);
   expect(after.word.equals(before.word)).toBe(false);
   // The document says what was left out, with "No reason recorded" because none was typed.
@@ -246,17 +246,17 @@ test("the review workflow is gone: no revisions, no Draft/Issued, no comments", 
 test("a download with TBD values names the count, in every format", async ({ page }, testInfo) => {
   await loadDemo(page);
   await go(page, "#/document");
-  await page.getByRole("button", { name: "Download Markdown" }).click();
-  const warn = page.getByRole("dialog", { name: "Download with TBD values?" });
-  await expect(warn.getByTestId("tbd-warning")).toContainText("TBD values were");
+  await page.getByRole("button", { name: "Download gap assessment (Markdown)" }).click();
+  const warn = page.getByRole("dialog", { name: "Download with open items?" });
+  await expect(warn.getByTestId("tbd-warning")).toContainText("marked TBD");
   await expectAccessible(page, "TBD warning");
   await shot(page, "tbd-warning", testInfo, false);
   await warn.getByRole("button", { name: "Go back" }).click();
-  await page.getByRole("button", { name: "Download HTML" }).click();
-  await expect(page.getByRole("dialog", { name: "Download with TBD values?" })).toBeVisible();
+  await page.getByRole("button", { name: "Download gap assessment (HTML)" }).click();
+  await expect(page.getByRole("dialog", { name: "Download with open items?" })).toBeVisible();
   await page.getByRole("button", { name: "Go back" }).click();
-  await page.getByRole("button", { name: "Download Word document" }).click();
-  await expect(page.getByRole("dialog", { name: "Download with TBD values?" })).toBeVisible();
+  await page.getByRole("button", { name: "Download gap assessment (Word)" }).click();
+  await expect(page.getByRole("dialog", { name: "Download with open items?" })).toBeVisible();
 });
 
 test("tailoring a topic needs no reason: the document says 'No reason recorded'", async ({ page }) => {

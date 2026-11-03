@@ -54,14 +54,14 @@ describe("buildTrdOutline", () => {
     expect(titles(buildTrdOutline(s))).toContain("Traceability to the gap assessment");
   });
 
-  it("labels a provisional TBD value in words and shows an unknown value as not established", () => {
+  it("labels a provisional TBD value in words and shows an unknown value as TBD", () => {
     let p = v(base(), "fill.pump", "source", "rotary_piston");
     p = ask(p, "fill.pump", "target", { kind: "tbd", bestGuess: "peristaltic", owner: "Process lead (fictional)" });
     const d = buildTrdOutline(seed(p));
     const t = text(d);
     expect(t).toContain("TBD best guess, provisional");
     expect(t).toContain("TBD best guess (provisional)");
-    expect(t).toContain("Not established");
+    expect(t).toContain("TBD");
     expect(d.tbdCount).toBeGreaterThan(0);
     // A provisional value is never written as a plain established value.
     const f = seed(p).unitOperations.find((u) => u.key === "aseptic_filling")!.items.flatMap((i) => i.fields).find((x) => x.field === "operatingPrinciple")!;

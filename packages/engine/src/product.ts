@@ -39,3 +39,34 @@ export const NOTICE_FOOTER = `${NOTICE_STRIP}. ${FILING_CATEGORY_STATEMENT}`;
 /** What the app says about where the data lives, after the strip wording. */
 export const STORAGE_PHRASE_BROWSER = "Data stays in this browser.";
 export const STORAGE_PHRASE_SERVER = "Your data is kept on the server.";
+
+/**
+ * The words for a value nobody knows yet, written once (a first-time tester met four names for one idea: "Not established", "TBD",
+ * "unanswered" and "open information items"). The screen, the HTML and the Word documents all use these:
+ *  - TBD is the marker for a value that is not known or not decided yet. A cell, a table and a sentence show it instead of an invented
+ *    value, so an unknown always stays visible.
+ *  - "open items" is the list and the count of everything still to answer or confirm. A TBD is one kind of open item; an answer nobody has
+ *    given yet is another. Where both counts sit together the text says how they relate ("38 open items, 1 marked TBD").
+ */
+export const TBD_MARKER = "TBD";
+
+/** The one-line definition of TBD. Shown once on every page where the marker first appears; the TBD page opens with the same sentence. */
+export const TBD_DEFINITION = "A TBD is a value that is not decided yet.";
+
+/**
+ * A status column, filter or picker that has to tell "somebody marked this TBD" from "nothing recorded yet" uses this label for the second
+ * state. A value cell never does: there both read TBD, because to a reader both mean "not known yet".
+ */
+export const NO_VALUE_YET = "No value yet";
+
+/** The name of the list/count of everything still to answer or confirm, in the plural. */
+export const OPEN_ITEMS_NAME = "open items";
+
+/**
+ * "38 open items, 1 marked TBD": how many things are still to answer or confirm, and how many of those somebody marked as TBD on purpose.
+ * Both numbers are given because they answer different questions (what is left to do, and what was knowingly postponed); the wording says
+ * the second is part of the first so nobody adds them up.
+ */
+export function openItemsText(open: number, markedTbd: number): string {
+  return `${open} open ${open === 1 ? "item" : "items"}, ${markedTbd} marked ${TBD_MARKER}`;
+}

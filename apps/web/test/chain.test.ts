@@ -31,7 +31,9 @@ describe("the document chain", { timeout: 60_000 }, () => {
     expect(chainStageOf("/register")).toBe("gap");
     expect(chainStageOf("/mbr/view")).toBe("view");
     expect(chainStageOf("/mbr/library")).toBeUndefined();
-    expect(chainStageOf("/risk")).toBeUndefined();
+    // The risk page shows the strip (Tester D row 27) but is not a numbered stage; its library page is not in the chain at all.
+    expect(chainStageOf("/risk")).toBe("risk");
+    expect(chainStageOf("/risk/methods")).toBeUndefined();
   });
 
   it("derives status from the stored documents, and Next follows an existing link", () => {

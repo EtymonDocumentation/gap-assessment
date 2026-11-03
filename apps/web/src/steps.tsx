@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { HelpTip } from "./HelpTip";
-import { GAP_STEPS, stepDone } from "./next-step";
+import { documentDownloadedNote, GAP_STEPS, stepDone } from "./next-step";
 import { href } from "./router";
 import { useAssessment, useStore } from "./store";
 
@@ -17,12 +17,15 @@ export function GapStepBar({ path }: { path: string }) {
   const project = useStore((s) => s.project);
   const a = useAssessment();
   const done = useMemo(() => (project && a ? stepDone(project, a) : {}), [project, a]);
+  // A document downloaded while items are still open gets words instead of a tick (shown as text, so it never relies on a colour or a mark).
+  const docNote = useMemo(() => (project && a ? documentDownloadedNote(project, a) : undefined), [project, a]);
   const at = gapStepIndex(path);
   if (at < 0) return null;
   return (
     <nav aria-label="Gap assessment steps" className="gap-step-bar">
       <p className="gap-step-compact">
         Step {at + 1} of {GAP_STEPS.length}: <strong>{GAP_STEPS[at]!.label}</strong>
+        {GAP_STEPS[at]!.id === "document" && docNote ? ` (${docNote})` : ""}
       </p>
       <ol className="gap-step-list">
         {GAP_STEPS.map((s, i) => (
@@ -40,6 +43,7 @@ export function GapStepBar({ path }: { path: string }) {
                   <span className="visually-hidden"> (done)</span>
                 </>
               )}
+              {s.id === "document" && docNote && <span className="gap-step-note">{docNote}</span>}
             </a>
           </li>
         ))}

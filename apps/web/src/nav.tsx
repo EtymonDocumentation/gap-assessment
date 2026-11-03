@@ -46,7 +46,7 @@ function itemCurrent(i: NavItem, routePath: string): boolean {
 
 const groupCurrent = (g: NavGroup, routePath: string) => [...g.items, ...(g.sub?.items ?? [])].some((i) => itemCurrent(i, routePath));
 
-function NavEntry({ item, routePath, onPick }: { item: NavItem; routePath: string; onPick: () => void }) {
+function NavEntry({ item, routePath, onPick, collapse }: { item: NavItem; routePath: string; onPick: () => void; collapse?: boolean }) {
   const descId = useId();
   const label = (
     <>
@@ -75,20 +75,29 @@ function NavEntry({ item, routePath, onPick }: { item: NavItem; routePath: strin
           {item.desc}
         </span>
       )}
-      {item.children && item.children.length > 0 && (
+      {item.children && item.children.length > 0 && !collapse && (
         <ul className="nav-panel-list nav-sub-list" aria-label={`${item.label} steps`}>
           <ItemLinks items={item.children} routePath={routePath} onPick={onPick} />
         </ul>
+      )}
+      {/* On a phone the steps fold under one line, so the Menu panel is not six rows longer; it opens by itself when a step is on screen. */}
+      {item.children && item.children.length > 0 && collapse && (
+        <details className="nav-steps" open={item.children.some((c) => itemCurrent(c, routePath))}>
+          <summary>The {item.children.length} steps</summary>
+          <ul className="nav-panel-list nav-sub-list" aria-label={`${item.label} steps`}>
+            <ItemLinks items={item.children} routePath={routePath} onPick={onPick} />
+          </ul>
+        </details>
       )}
     </li>
   );
 }
 
-function ItemLinks({ items, routePath, onPick }: { items: NavItem[]; routePath: string; onPick: () => void }) {
+function ItemLinks({ items, routePath, onPick, collapse }: { items: NavItem[]; routePath: string; onPick: () => void; collapse?: boolean }) {
   return (
     <>
       {items.map((i) => (
-        <NavEntry key={i.path + i.label} item={i} routePath={routePath} onPick={onPick} />
+        <NavEntry key={i.path + i.label} item={i} routePath={routePath} onPick={onPick} {...(collapse ? { collapse } : {})} />
       ))}
     </>
   );
@@ -208,7 +217,8 @@ export function MainNav({
 }: {
   routePath: string;
   home: NavItem;
-  gap: NavItem & { covers: string[] };
+  /** Left out while no project is open: the link would only lead back to Home, so it would look dead. */
+  gap?: NavItem & { covers: string[] };
   groups: NavGroup[];
   extra: NavItem[];
   phoneExtra?: (close: () => void) => ReactNode;
@@ -217,6 +227,8 @@ export function MainNav({
   const [menuOpen, setMenuOpen] = useState(false);
   const panelId = useId();
   const menuRef = useRef<HTMLElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [more, setMore] = useState(false);
   useEffect(() => setMenuOpen(false), [routePath]);
   useEffect(() => {
     if (!menuOpen) return;
@@ -227,7 +239,22 @@ export function MainNav({
     return () => document.removeEventListener("pointerdown", outside);
   }, [menuOpen]);
 
-  const gapCurrent = gap.covers.includes(routePath);
+  // The phone panel scrolls inside itself when it is taller than the screen, and nothing else says so: "more below" is shown while there is.
+  const measure = () => {
+    const panel = bodyRef.current?.parentElement;
+    if (panel) setMore(panel.scrollHeight - panel.scrollTop - panel.clientHeight > 8);
+  };
+  useEffect(() => {
+    const body = bodyRef.current;
+    if (!menuOpen || !body || typeof ResizeObserver === "undefined") return;
+    measure();
+    // A step list opening or closing changes the height without a scroll event.
+    const watch = new ResizeObserver(measure);
+    watch.observe(body);
+    return () => watch.disconnect();
+  }, [menuOpen]);
+
+  const gapCurrent = !!gap && gap.covers.includes(routePath);
   const homeLink = (onPick: () => void) => (
     <li>
       <a href={href(home.path)} aria-current={routePath === home.path ? "page" : undefined} onClick={onPick}>
@@ -235,13 +262,14 @@ export function MainNav({
       </a>
     </li>
   );
-  const gapLink = (onPick: () => void) => (
-    <li>
-      <a href={href(gap.path)} aria-current={gapCurrent ? "page" : undefined} onClick={onPick}>
-        {gap.label}
-      </a>
-    </li>
-  );
+  const gapLink = (onPick: () => void) =>
+    gap && (
+      <li>
+        <a href={href(gap.path)} aria-current={gapCurrent ? "page" : undefined} onClick={onPick}>
+          {gap.label}
+        </a>
+      </li>
+    );
 
   if (narrow) {
     const close = () => setMenuOpen(false);
@@ -262,31 +290,37 @@ export function MainNav({
             <path d={menuOpen ? "M6 6l12 12M18 6L6 18" : "M4 7h16M4 12h16M4 17h16"} />
           </svg>
         </button>
-        <div id={panelId} className="nav-menu-panel" hidden={!menuOpen}>
+        <div id={panelId} className="nav-menu-panel" hidden={!menuOpen} onScroll={measure}>
           {menuOpen && (
             <>
-              <ul className="nav-panel-list">
-                {homeLink(close)}
-                {gapLink(close)}
-                <ItemLinks items={extra} routePath={routePath} onPick={close} />
-              </ul>
-              {groups.map((g) => (
-                <section key={g.label}>
-                  <p className="nav-panel-head">{g.label}</p>
-                  <ul className="nav-panel-list">
-                    <ItemLinks items={g.items} routePath={routePath} onPick={close} />
-                  </ul>
-                  {g.sub && g.sub.items.length > 0 && (
-                    <>
-                      <p className="nav-panel-sub">{g.sub.heading}</p>
-                      <ul className="nav-panel-list">
-                        <ItemLinks items={g.sub.items} routePath={routePath} onPick={close} />
-                      </ul>
-                    </>
-                  )}
-                </section>
-              ))}
-              {phoneExtra?.(close)}
+              <div ref={bodyRef}>
+                <ul className="nav-panel-list">
+                  {homeLink(close)}
+                  {gapLink(close)}
+                  <ItemLinks items={extra} routePath={routePath} onPick={close} />
+                </ul>
+                {groups.map((g) => (
+                  <section key={g.label}>
+                    <p className="nav-panel-head">{g.label}</p>
+                    <ul className="nav-panel-list">
+                      <ItemLinks items={g.items} routePath={routePath} onPick={close} collapse />
+                    </ul>
+                    {g.sub && g.sub.items.length > 0 && (
+                      <>
+                        <p className="nav-panel-sub">{g.sub.heading}</p>
+                        <ul className="nav-panel-list">
+                          <ItemLinks items={g.sub.items} routePath={routePath} onPick={close} />
+                        </ul>
+                      </>
+                    )}
+                  </section>
+                ))}
+                {phoneExtra?.(close)}
+              </div>
+              {/* Kept in the layout (hidden, not removed) so showing and hiding it never changes the height it reports on. */}
+              <p className={`nav-more${more ? "" : " is-off"}`} aria-hidden="true" data-testid="menu-more">
+                More below, scroll <span>▾</span>
+              </p>
             </>
           )}
         </div>

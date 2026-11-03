@@ -81,7 +81,8 @@ export function interviewCountsText(c: InterviewCounts): string {
  * - Scope: a scope choice is recorded, or interview answers exist (see scopePassed).
  * - Interview: every question has a real answer; "to be decided" counts as still open.
  * - Gap register: the interview is done and either there are no differences or at least one gap has an owner, status or note recorded.
- * - Document: a download of the document is recorded.
+ * - Document: the gap assessment document was downloaded and no open items are left. A download while items are still open is not
+ *   "done" (a first-time tester saw "done" after one download with 38 items open): see documentDownloadedNote for what it shows then.
  */
 export function stepDone(project: Project, a: Assessment): Partial<Record<GapStepId, boolean>> {
   const done: Partial<Record<GapStepId, boolean>> = {};
@@ -92,6 +93,22 @@ export function stepDone(project: Project, a: Assessment): Partial<Record<GapSte
     const differences = a.gaps.filter((g) => g.category !== "equivalent").length;
     if (differences === 0 || project.gapOverlays.length > 0) done.register = true;
   }
-  if (project.document.exports.length > 0) done.document = true;
+  if (gapDocumentDownloaded(project) && a.openItems.length === 0) done.document = true;
   return done;
+}
+
+/**
+ * The export history also holds the TRD seed, sampling plan, risk and batch record downloads. Only the three formats of the gap
+ * assessment document itself say anything about this step.
+ */
+const GAP_DOCUMENT_FORMATS: ReadonlySet<string> = new Set(["markdown", "html", "docx"]);
+
+export function gapDocumentDownloaded(project: Project): boolean {
+  return project.document.exports.some((e) => GAP_DOCUMENT_FORMATS.has(e.format));
+}
+
+/** "downloaded, 38 open items": what the Document step shows instead of a tick after a download that still lists open items. */
+export function documentDownloadedNote(project: Project, a: Assessment): string | undefined {
+  const open = a.openItems.length;
+  return gapDocumentDownloaded(project) && open > 0 ? `downloaded, ${open} open ${open === 1 ? "item" : "items"}` : undefined;
 }

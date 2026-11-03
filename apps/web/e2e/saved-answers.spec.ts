@@ -5,7 +5,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { expectNotice, goTo } from "./nav-helper";
+import { expectNotice, goTo, openDemo as openDemoFromHome } from "./nav-helper";
 
 const SET_NAME = "Site North answers (fictional)";
 
@@ -33,18 +33,18 @@ async function go(page: Page, hash: string) {
   await page.evaluate((h) => (window.location.hash = h), hash);
 }
 
-async function openDemo(page: Page, which: "Load demo" | "Open syringe example") {
+async function openDemo(page: Page, which: "arx" | "syr") {
   await page.goto("./");
   await expectNotice(page);
   const details = page.getByTestId("before-you-start");
   if (!(await details.evaluate((el) => (el as HTMLDetailsElement).open))) await details.locator("summary").click();
-  await page.getByRole("button", { name: which }).click();
-  await expect(page.getByTestId("home-chain").or(page.getByRole("heading", { level: 1, name: "Gap register" }))).toBeVisible();
+  await openDemoFromHome(page, which);
+  await expect(page.getByTestId("home-chain")).toBeVisible();
 }
 
 test("save an SU-only set, apply it to a second project with one row unticked, and see where the answers came from", async ({ page }) => {
   test.setTimeout(150_000);
-  await openDemo(page, "Load demo");
+  await openDemo(page, "arx");
   await go(page, "#/interview");
   await expect(page.getByTestId("saved-answers-card")).toBeVisible();
 
@@ -78,7 +78,7 @@ test("save an SU-only set, apply it to a second project with one row unticked, a
   await noSideScroll(page);
 
   // A second project: the syringe example replaces the open one in this browser; the saved set stays.
-  await openDemo(page, "Open syringe example");
+  await openDemo(page, "syr");
   await go(page, "#/interview");
   await page.getByTestId("saved-apply").click();
   const apply = page.getByRole("dialog", { name: "Apply saved answers" });
@@ -132,7 +132,7 @@ test("save an SU-only set, apply it to a second project with one row unticked, a
 
 test("export a set to a file, delete it (with a confirm step), import the file back, rename it, and refuse bad files", async ({ page }) => {
   test.setTimeout(150_000);
-  await openDemo(page, "Load demo");
+  await openDemo(page, "arx");
   await go(page, "#/interview");
   await page.getByTestId("saved-save").click();
   const save = page.getByRole("dialog", { name: "Save these answers" });

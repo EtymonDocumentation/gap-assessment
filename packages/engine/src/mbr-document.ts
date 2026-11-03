@@ -4,7 +4,8 @@ import type { Block, DocModel, DocSection } from "./document";
 import { methodDocumentLines } from "@gap/sampling";
 import { effectiveField } from "./trd";
 import { TRD_BANNER } from "./trd-outline";
-import { PRODUCT_NAME } from "./product";
+import { PRODUCT_NAME, TBD_MARKER } from "./product";
+import { projectLabel } from "./format";
 import { holdEntryInfo, mbrOpenItems, numberSteps, renderStepText, sampleIdsTakenAt, splitIndex, stepNumberText, type HoldEntryInfo, type MbrOpenItem, type MbrPart } from "./mbr";
 import { NOT_HELD, NOTE_OUTSIDE, NOTE_TIGHTER, paramNote, targetSum, trdRefText } from "./mbr-values";
 
@@ -38,11 +39,15 @@ export interface MbrDocumentOptions {
   part?: MbrPart;
 }
 
-const NOT_ESTABLISHED = "Not established";
+const NOT_ESTABLISHED = TBD_MARKER;
 
-export const mbrBasisText = (projectId: string, rec: MbrRecord): string => {
+/**
+ * The first note of the document. The Word document keeps the formal name and spells the abbreviation out here, once (its record ids start
+ * with it); the app says "batch record" everywhere, so the app card passes "plain" (Tester D row 30: one name for one thing).
+ */
+export const mbrBasisText = (projectName: string, rec: MbrRecord, name: "formal" | "plain" = "formal"): string => {
   const from = [rec.trdId ? `TRD ${rec.trdId}` : "", rec.planId ? `sampling plan ${rec.planId}` : ""].filter(Boolean);
-  return `Draft master batch record ${rec.id}, started from project ${projectId}${from.length ? ` with ${from.join(" and ")}` : " without a TRD or a sampling plan"}. Not approved. It is a first draft for the CMO to complete and approve in its own system.`;
+  return `Draft ${name === "formal" ? "master batch record (MBR)" : "batch record"} ${rec.id}, started from project ${projectName}${from.length ? ` with ${from.join(" and ")}` : " without a TRD or a sampling plan"}. Not approved. It is a first draft for the CMO to complete and approve in its own system.`;
 };
 
 /** The documents the batch record's TRD values point at, numbered in order of first use. */
@@ -230,7 +235,7 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
         });
       }
       if (b.params.length) {
-        blocks.push({ type: "table", columns: ["Parameter", "MBR value (TRD value, source)", "Choice", "Reason and notes"], rows: b.params.map((r) => paramRow(r, src)), caption: "Parameters", weights: MBR_PARAM_WEIGHTS });
+        blocks.push({ type: "table", columns: ["Parameter", "Batch record value (TRD value, source)", "Choice", "Reason and notes"], rows: b.params.map((r) => paramRow(r, src)), caption: "Parameters", weights: MBR_PARAM_WEIGHTS });
       }
       if (b.timeLimits.length) {
         const rows: string[][] = [];
@@ -280,12 +285,12 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
   });
 
   appendix("basis", "Basis and how to read this draft", [
-    { type: "note", text: mbrBasisText(project.meta.id, rec) },
+    { type: "note", text: mbrBasisText(projectLabel(project.meta), rec) },
     ...(part ? ([{ type: "paragraph", text: `This is Part ${part} of 2 of one batch record. The other part is a separate document (${rec.split![part === 1 ? "part2DocRef" : "part1DocRef"]?.trim() || "document number not given"}). Section and step numbers run on across the two parts, and the TRD values, time limits and open items below belong to the whole record.` }] as Block[]) : []),
     rec.purpose?.trim() ? { type: "paragraph", text: rec.purpose.trim() } : { type: "paragraph", text: "No purpose has been entered. This is left to the team; the tool does not supply wording." },
     { type: "list", items: [
-      "TRD value: the value in the technical requirements document at the time it was copied. MBR value: the value this batch record states.",
-      "Same as TRD: the MBR value is the TRD value. Tightened by the CMO: the MBR value is the CMO's own, with its reason. Not decided: nobody has chosen yet. Study point (not a limit): a challenge value kept for a study; it is not a limit and is not counted as not decided.",
+      "TRD value: the value in the technical requirements document at the time it was copied. Batch record value: the value this batch record states.",
+      "Same as TRD: the batch record value is the TRD value. Tightened by the CMO: the batch record value is the CMO's own, with its reason. Not decided: nobody has chosen yet. Study point (not a limit): a challenge value kept for a study; it is not a limit and is not counted as not decided.",
       `${NOT_HELD}: the TRD record has no established value for it. Nothing was filled in.`,
       `${NOTE_OUTSIDE} and ${NOTE_TIGHTER} are comparisons for information only. They do not say a value is acceptable.`,
       `${CMO_PLACEHOLDER}: entries only the CMO can make (batch number, equipment IDs, calibration, BOM and ERP IDs, form and SOP numbers, alarm values, weights, densities, signatures and all results).`,
@@ -311,7 +316,7 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
       rows: [
         ["Generator", `${opts.generatorName ?? PRODUCT_NAME} ${opts.appVersion ?? "unversioned"}`],
         ["Batch record", `${rec.id}${rec.version ? `, version ${rec.version}` : ""}${part ? `, part ${part} of 2` : ""}, last changed ${rec.updatedAt.replace("T", " ").slice(0, 16)} UTC`],
-        ["MBR format", MBR_FORMAT_VERSION],
+        ["Batch record format", MBR_FORMAT_VERSION],
         ["Process model", PROCESS_MODEL_VERSION],
         ["Catalog", opts.catalogVersion ?? "Not recorded"],
         ["Project schema", project.schemaVersion ?? SCHEMA_VERSION],

@@ -7,7 +7,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { breadcrumb, expectNotice, goTo, NOTICE_DOCUMENT, openAbout } from "./nav-helper";
+import { breadcrumb, expectNotice, goTo, NOTICE_DOCUMENT, openAbout, openDemo } from "./nav-helper";
 
 const SHOTS = tmpdir();
 
@@ -17,7 +17,7 @@ test.beforeEach(async ({ page }) => {
 
 async function loadDemo(page: Page) {
   await page.goto("./");
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
 
@@ -119,7 +119,7 @@ test.describe("batch record: the demo record", () => {
     const panel = page.getByTestId("mbr-open-items");
     await expect(panel).toContainText("Not decided");
     const reqs = page.getByTestId("mbr-requirements");
-    await expect(reqs).toContainText("TRD requirement without an MBR step");
+    await expect(reqs).toContainText("TRD requirement without a batch record step");
     const before = await reqs.locator("li").count();
     await reqs.getByRole("button", { name: /Add a block of my own/ }).first().click();
     await expect(reqs.locator("li")).toHaveCount(before - 1);
@@ -222,10 +222,41 @@ test.describe("batch record: new record", () => {
     await page.getByTestId("mbr-start-trd-select").selectOption({ index: 1 });
     await page.getByTestId("mbr-start-plan").check();
     await page.getByTestId("mbr-start-plan-select").selectOption({ index: 1 });
+    // The long block list is folded away (Tester D row 1); its summary says what the sources ticked, and opening it shows the ticked blocks.
+    const summary = page.getByTestId("mbr-blocks-details").locator("summary");
+    await expect(summary).toContainText(/[1-9]\d* of \d+ ticked/);
+    await summary.click();
     await expect(page.getByTestId("mbr-blocks-offer").locator('input[type="checkbox"]:checked').first()).toBeVisible();
     await page.getByTestId("mbr-create").click();
     await expect(page.getByRole("heading", { level: 1, name: /MBR-002/ })).toBeVisible();
     await expect(page.locator("section[data-testid^='mbr-section-']").first()).toBeVisible();
+  });
+
+  // Tester D row 1: Create was at the bottom under 59 tick-boxes, and "Choose which TRD record" appeared about 3,000 px from the dropdown.
+  test("Create and the missing-source message sit beside the source dropdown", async ({ page }) => {
+    await openMbr(page);
+    await page.getByTestId("mbr-title-input").fill("Distance test (fictional)");
+    await page.getByTestId("mbr-start-trd").check();
+    const select = page.getByTestId("mbr-start-trd-select");
+    const create = page.getByTestId("mbr-create");
+    const screen = page.viewportSize()!.height;
+    const before = { select: (await select.boundingBox())!, create: (await create.boundingBox())! };
+    expect(before.create.y - before.select.y, "Create is within one screen of the dropdown").toBeLessThan(screen * 0.75);
+    await create.click();
+    const message = page.getByTestId("mbr-create-error");
+    await expect(message).toHaveText("Choose which TRD record to start from, or untick it.");
+    await expect(select).toBeFocused();
+    await expect(select).toHaveAttribute("aria-invalid", "true");
+    const after = { select: (await select.boundingBox())!, message: (await message.boundingBox())! };
+    expect(Math.abs(after.message.y - after.select.y), "the message sits at the dropdown").toBeLessThan(120);
+    // Choosing a record takes the message away.
+    await select.selectOption({ index: 1 });
+    await expect(message).toHaveCount(0);
+    // A missing title is reported at the title field, not at the bottom.
+    await page.getByTestId("mbr-title-input").fill("");
+    await create.click();
+    await expect(message).toHaveText("Enter a title for the batch record.");
+    await expect(page.getByTestId("mbr-title-input")).toBeFocused();
   });
 });
 

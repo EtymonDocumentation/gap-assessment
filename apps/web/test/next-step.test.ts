@@ -1,8 +1,8 @@
-import { assess, buildDemoProject, setStepsExcluded, stepGroups } from "@gap/engine";
+import { assess, buildDemoProject, setStepsExcluded, stepGroups, type Assessment } from "@gap/engine";
 import { content, demos, designLoadouts, failureModes, mbrLibrary, riskLoadouts, samplingSuggestions, trdWriteups } from "@gap/content";
-import { emptyProject } from "@gap/process-model";
+import { emptyProject, type DocumentExport, type Project } from "@gap/process-model";
 import { describe, expect, it } from "vitest";
-import { nextStep, scopeRecorded, stepDone } from "../src/next-step";
+import { documentDownloadedNote, gapDocumentDownloaded, nextStep, scopeRecorded, stepDone } from "../src/next-step";
 
 const blank = () => emptyProject({ title: "Test project", actor: { name: "Tester", at: "2026-01-01T00:00:00.000Z" }, contentRefs: content.versions });
 const demo = (id: keyof typeof demos) =>
@@ -39,4 +39,51 @@ describe("next step on the Home page", () => {
     expect(stepDone(p, a).register).toBeUndefined();
     expect(stepDone(p, a).document).toBeUndefined();
   }, 30000);
+});
+
+// Tester D row 14: the Document step read "done" after one download while 38 items were still open.
+describe("the Document step after a download", () => {
+  const exportOf = (format: DocumentExport["format"]): DocumentExport => ({
+    at: "2026-01-03T00:00:00.000Z",
+    format,
+    template: { mode: "builtin", name: "Built-in default", version: "1" },
+    fingerprint: "abc",
+  });
+  const withExport = (p: Project, format: DocumentExport["format"]): Project => ({ ...p, document: { ...p.document, exports: [exportOf(format)] } });
+
+  it("is not done, and says how many items are open, when the document was downloaded with items still open", () => {
+    const p = withExport(blank(), "docx");
+    const a = assess(content, p);
+    expect(a.openItems.length).toBeGreaterThan(0);
+    expect(stepDone(p, a).document).toBeUndefined();
+    expect(documentDownloadedNote(p, a)).toBe(`downloaded, ${a.openItems.length} open items`);
+  });
+
+  it("uses the singular for one open item", () => {
+    const p = withExport(blank(), "html");
+    const a = { ...assess(content, p) };
+    a.openItems = a.openItems.slice(0, 1);
+    expect(documentDownloadedNote(p, a as Assessment)).toBe("downloaded, 1 open item");
+  });
+
+  it("is done, with no note, once a download is recorded and nothing is open", () => {
+    const p = withExport(blank(), "markdown");
+    const a = { ...assess(content, p), openItems: [] } as Assessment;
+    expect(stepDone(p, a).document).toBe(true);
+    expect(documentDownloadedNote(p, a)).toBeUndefined();
+  });
+
+  it("has no note and no tick before any download", () => {
+    const p = blank();
+    const a = { ...assess(content, p), openItems: [] } as Assessment;
+    expect(stepDone(p, a).document).toBeUndefined();
+    expect(documentDownloadedNote(p, assess(content, p))).toBeUndefined();
+  });
+
+  it("ignores downloads of other documents (a TRD seed or a sampling plan says nothing about the gap assessment)", () => {
+    const p = withExport(blank(), "sampling-plan-docx");
+    const a = { ...assess(content, p), openItems: [] } as Assessment;
+    expect(gapDocumentDownloaded(p)).toBe(false);
+    expect(stepDone(p, a).document).toBeUndefined();
+  });
 });

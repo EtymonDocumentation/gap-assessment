@@ -147,12 +147,21 @@ export type MethodDescription = {
   problems: string[];
 };
 
-/** The method described from its config, for the document and for the Method page. The words are the user's; the wrapper words are fixed. */
-export function describeMethod(config: RiskConfig): MethodDescription {
+/** Who the description is written for: "record" says "the user" (the Word and HTML record that others read), "you" speaks to the person on the Method page. */
+export type MethodVoice = "record" | "you";
+
+/**
+ * The method described from its config, for the document and for the Method page. The words are the user's; the wrapper words are fixed.
+ * The two voices differ only in who "the user" is, never in the facts (Tester D row 27: the page said "the user's own wording" to the user).
+ */
+export function describeMethod(config: RiskConfig, voice: MethodVoice = "record"): MethodDescription {
+  const mine = voice === "you" ? "your" : "the user's";
+  const byMe = voice === "you" ? "by you" : "by the user";
   const bandsOf = (bands: { label: string; minRpn: number; maxRpn: number; note?: string }[]) =>
     [...bands].sort((a, b) => a.minRpn - b.minRpn).map((b) => ({ label: b.label, range: b.minRpn === b.maxRpn ? `${b.minRpn}` : `${b.minRpn} to ${b.maxRpn}`, ...(b.note ? { note: b.note } : {}) }));
   const base = { method: config.method, title: METHOD_LABEL[config.method], scales: [], levelLists: [], bands: [], bandsText: "", extra: [], problems: configProblems(config) } satisfies Omit<MethodDescription, "formula">;
-  const noBands = "No bands defined by the user. Scores are shown without a judgement.";
+  const noBands = `No bands defined ${byMe}. Scores are shown without a judgement.`;
+  const definedBands = `Bands defined ${byMe}:`;
   switch (config.method) {
     case "fmea": {
       const d: MethodDescription = {
@@ -164,37 +173,37 @@ export function describeMethod(config: RiskConfig): MethodDescription {
           { name: "Detection", ...config.detection },
         ],
         bands: bandsOf(config.bands),
-        bandsText: config.bands.length ? "Bands defined by the user:" : noBands,
+        bandsText: config.bands.length ? definedBands : noBands,
       };
       // The TR 44 layout adds reading guidance (reversed detection, how to reduce a sterility risk). Hints, never answers.
       if (config.layout === "tr44") {
         d.title = "FMEA, PDA TR 44 layout (severity x occurrence x detection)";
         d.extra.push(...TR44_GUIDANCE);
       }
-      if (config.severityTrigger) d.extra.push(`Rule defined by the user: a severity of ${config.severityTrigger.min} or more gives "${config.severityTrigger.label}" whatever the RPN.${config.severityTrigger.note ? ` ${config.severityTrigger.note}` : ""}`);
+      if (config.severityTrigger) d.extra.push(`Rule defined ${byMe}: a severity of ${config.severityTrigger.min} or more gives "${config.severityTrigger.label}" whatever the RPN.${config.severityTrigger.note ? ` ${config.severityTrigger.note}` : ""}`);
       return d;
     }
     case "matrix": {
       const cells = config.likelihood.map((_, r) => config.severity.map((_, c) => config.cells.find((x) => x.row === r + 1 && x.col === c + 1)?.label ?? ""));
       return {
         ...base,
-        formula: "The risk is read from the matrix: the row is the likelihood, the column is the severity, and the cell holds the user's risk label.",
+        formula: `The risk is read from the matrix: the row is the likelihood, the column is the severity, and the cell holds ${mine} risk label.`,
         levelLists: [
           { name: "Likelihood (rows)", levels: config.likelihood },
           { name: "Severity (columns)", levels: config.severity },
         ],
         grid: { rows: config.likelihood.map((l) => l.label), cols: config.severity.map((l) => l.label), cells },
-        bandsText: "The risk labels are the user's own wording for each cell.",
+        bandsText: `The risk labels are ${mine} own wording for each cell.`,
       };
     }
     case "custom": {
-      const how = { product: "the product of the factors", sum: "the sum of the factors", max: "the highest factor", lookup: "looked up in the user's table of combinations" }[config.combine];
+      const how = { product: "the product of the factors", sum: "the sum of the factors", max: "the highest factor", lookup: `looked up in ${mine} table of combinations` }[config.combine];
       const d: MethodDescription = {
         ...base,
         formula: `Score = ${how}: ${config.factors.map((f) => f.name).join(", ")}.`,
         scales: config.factors.map((f) => ({ name: f.name, ...f.scale })),
         bands: config.combine === "lookup" ? [] : bandsOf(config.bands),
-        bandsText: config.combine === "lookup" ? "The risk labels come from the user's table." : config.bands.length ? "Bands defined by the user:" : noBands,
+        bandsText: config.combine === "lookup" ? `The risk labels come from ${mine} table.` : config.bands.length ? definedBands : noBands,
       };
       if (config.combine === "lookup") {
         for (const e of [...config.lookup].sort((a, b) => a.levels.join(",").localeCompare(b.levels.join(",")))) d.extra.push(`${config.factors.map((f, i) => `${f.name} ${e.levels[i]}`).join(", ")}: ${e.label}`);
@@ -204,9 +213,9 @@ export function describeMethod(config: RiskConfig): MethodDescription {
     case "qualitative":
       return {
         ...base,
-        formula: "Each item is given one level from the user's list, with a written reason. No number is calculated.",
+        formula: `Each item is given one level from ${mine} list, with a written reason. No number is calculated.`,
         levelLists: [{ name: "Levels", levels: config.levels }],
-        bandsText: "The levels are the user's own wording.",
+        bandsText: `The levels are ${mine} own wording.`,
       };
   }
 }

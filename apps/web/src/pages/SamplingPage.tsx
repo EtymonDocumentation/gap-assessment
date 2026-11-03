@@ -21,7 +21,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { StartArt } from "../art";
 import { Empty, Modal } from "../components";
 import { focusWhenReady, PageHeader, type PagePill } from "../PageHeader";
-import { dateTime } from "../lib";
+import { countOf, dateTime } from "../lib";
 import { href, navigate } from "../router";
 import { useContent, useStore } from "../store";
 import { AddSampleDialog, type AddRequest } from "./SamplingAdd";
@@ -45,7 +45,7 @@ const TAB_LABEL: Record<Tab, string> = { overview: "Overview", interview: "Inter
 
 /** The sentence the page and the document both carry: what the tool does and what it leaves to people. */
 export const SAMPLING_SCOPE_TEXT =
-  "The tool works out sample sizes from the method you choose. It does not judge whether that choice is adequate for your process; that decision belongs to QA / statistics.";
+  "The tool works out sample sizes from the method you choose. It does not judge whether that choice is adequate for your process; that decision belongs to QA (quality assurance) or statistics.";
 
 /** Plan list and create page (no `plan` parameter) or the editor of one plan. */
 export function SamplingPage({ params }: { params: URLSearchParams }) {
@@ -84,7 +84,7 @@ function PlanList({ missing }: { missing?: string | undefined }) {
     <div className="stack-lg">
       <PageHeader
         title="Sampling plan"
-        purpose="A plan lists which samples are pulled from which process steps during the PPQ batches, and how many."
+        purpose="A plan lists which samples are pulled from which process steps during the PPQ (process performance qualification) batches, and how many."
         about={{
           art: "page-document",
           children: (
@@ -261,7 +261,7 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
       <PageHeader
         title={`${plan.id}: ${plan.title}`}
         crumb={plan.id}
-        purpose="Which samples are taken from which process steps during the PPQ batches, how many, and by what method."
+        purpose="Which samples are taken from which process steps during the PPQ (process performance qualification) batches, how many, and by what method."
         pills={pills}
         meta={`Last changed ${dateTime(plan.updatedAt)}`}
         about={{
@@ -335,12 +335,18 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
       <section className="card stack" aria-labelledby="sp-open" data-testid="plan-open-items">
         <h2 id="sp-open">Open items ({open.length})</h2>
         {open.length === 0 ? (
-          <p>No open items. This says the entries are all there, not that the plan is adequate; that decision belongs to QA / statistics.</p>
+          <p>No open items. This says the entries are all there, not that the plan is adequate; that decision belongs to QA (quality assurance) or statistics.</p>
         ) : (
           <ul className="plain-list small">
             {open.map((o, i) => (
               <li key={i}>
-                <strong>{o.ref}</strong>: {o.text}
+                {o.ref === "plan" ? (
+                  o.text
+                ) : (
+                  <>
+                    <strong>{o.ref}</strong>: {o.text}
+                  </>
+                )}
               </li>
             ))}
           </ul>
@@ -480,7 +486,7 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
       )}
 
       {confirmDelete && (
-        <Modal open onOpenChange={(o) => !o && setConfirmDelete(false)} title="Delete this plan?" description={`${plan.id}: ${plan.title} has ${plan.points.length} points and ${plan.batches.length} batches.`} restoreFocus={() => opener.current}>
+        <Modal open onOpenChange={(o) => !o && setConfirmDelete(false)} title="Delete this plan?" description={`${plan.id}: ${plan.title} has ${countOf(plan.points.length, "point")} and ${countOf(plan.batches.length, "batch", "batches")}.`} restoreFocus={() => opener.current}>
           <div className="row end">
             <button type="button" className="btn" autoFocus onClick={() => setConfirmDelete(false)}>
               Keep the plan

@@ -19,6 +19,7 @@ import {
   removeBatch,
   removePoint,
   removeStep,
+  projectLabel,
   samplingBasisText,
   samplingOpenItems,
   SamplingError,
@@ -253,8 +254,17 @@ describe("the sampling plan document", () => {
   it("has the title, the banner and the not-approved line", () => {
     expect(doc.title).toBe("PPQ sampling plan — draft");
     expect(doc.banner).toContain(NOTICE_DOCUMENT);
-    expect(md).toContain(samplingBasisText(demo.meta.id));
+    expect(md).toContain(samplingBasisText(projectLabel(demo.meta)));
     expect(samplingBasisText("P-1")).toBe("Draft sampling plan generated from project P-1. Not approved.");
+  });
+
+  // Tester D row 28: the line names the project by its title; the id means nothing to someone who only has the Word file.
+  it("says which project it was generated from by its title, and by the id only when there is no title", () => {
+    expect(demo.meta.title.trim()).not.toBe("");
+    expect(md).toContain(`generated from project ${demo.meta.title}.`);
+    expect(md).not.toContain(`project ${demo.meta.id}.`);
+    expect(projectLabel({ title: "  ", id: "P-7" })).toBe("P-7");
+    expect(projectLabel({ title: " Fictional line A ", id: "P-7" })).toBe("Fictional line A");
   });
 
   it("has the planned sections in order", () => {

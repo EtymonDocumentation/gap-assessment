@@ -3,7 +3,8 @@ import type { Block, DocModel, DocSection, Run } from "./document";
 import { effectiveField, trdLimitChecks, trdOpenItems, trdOverrides, type TrdOpenItem } from "./trd";
 import { rangeText, setPointText } from "./trd-check";
 import { TRD_BANNER } from "./trd-outline";
-import { PRODUCT_NAME } from "./product";
+import { NO_VALUE_YET, PRODUCT_NAME, TBD_MARKER } from "./product";
+import { projectLabel } from "./format";
 import type { ContentBundle } from "./content";
 import { activeParts } from "./trd-writeup";
 import { addWriteupSections } from "./trd-writeup-document";
@@ -16,7 +17,7 @@ import { addWriteupSections } from "./trd-writeup-document";
  *  - The document is a draft and never says it is approved or that a range is acceptable. The PAR/NOR check lists facts only.
  *  - The RU value is the TRD value. The SU value appears only in the optional traceability appendix, as reference.
  *  - Every override is listed in an appendix with the project value beside it and the reason, or "No reason recorded".
- *  - Unknown stays visible: "Not established", "TBD", "provisional" are written out in words, never only by colour.
+ *  - Unknown stays visible: "TBD", "No value yet", "provisional" are written out in words, never only by colour.
  *  - It states no regulatory filing category.
  */
 
@@ -57,10 +58,10 @@ export interface TrdDocumentOptions {
   content?: ContentBundle;
 }
 
-export const trdBasisText = (projectId: string, d: TrdDocument): string =>
-  d.origin.kind === "project" ? `Draft technical requirements document ${d.id}, started from project ${projectId}. Not approved.` : d.origin.kind === "seed-import" ? `Draft technical requirements document ${d.id}, started from an imported TRD seed. Not approved.` : `Draft technical requirements document ${d.id}, entered by hand. Not approved.`;
+export const trdBasisText = (projectName: string, d: TrdDocument): string =>
+  d.origin.kind === "project" ? `Draft technical requirements document ${d.id}, started from project ${projectName}. Not approved.` : d.origin.kind === "seed-import" ? `Draft technical requirements document ${d.id}, started from an imported TRD seed. Not approved.` : `Draft technical requirements document ${d.id}, entered by hand. Not approved.`;
 
-const NOT_ESTABLISHED = "Not established";
+const NOT_ESTABLISHED = TBD_MARKER;
 const stop = (s: string) => (/[.!?]$/.test(s.trimEnd()) ? s : `${s}.`);
 
 /**
@@ -76,7 +77,7 @@ function fieldLabel(f: TrdField): string {
 /** The status of a field in words. An override is named as such so a reader sees it without comparing values. */
 function statusWords(f: TrdField): string {
   const v = effectiveField(f);
-  const base = v.status === "established" ? "Established" : v.status === "not_applicable" ? "Not applicable" : v.status === "tbd" ? (v.provisional ? "TBD (provisional best guess)" : "TBD") : NOT_ESTABLISHED;
+  const base = v.status === "established" ? "Established" : v.status === "not_applicable" ? "Not applicable" : v.status === "tbd" ? (v.provisional ? "TBD (provisional best guess)" : "TBD") : NO_VALUE_YET;
   return v.overridden ? `${base}; overridden` : base;
 }
 
@@ -167,10 +168,10 @@ export function buildTrdDocument(project: Project, d: TrdDocument, opts: TrdDocu
     const f = d.details.find((x) => x.key === key);
     return f ? effectiveField(f).text : NOT_ESTABLISHED;
   };
-  // The evidence record keeps the Status column; the standard document shows the value only (an unknown value reads "Not established").
+  // The evidence record keeps the Status column; the standard document shows the value only (an unknown value reads "TBD").
   const detailRow = (key: string): string[] => {
     const f = d.details.find((x) => x.key === key);
-    if (evidence) return f ? [f.label, valueWords(f), statusWords(f)] : [key, NOT_ESTABLISHED, NOT_ESTABLISHED];
+    if (evidence) return f ? [f.label, valueWords(f), statusWords(f)] : [key, NOT_ESTABLISHED, NO_VALUE_YET];
     return f ? [f.label, valueWords(f)] : [key, NOT_ESTABLISHED];
   };
   const detailColumns = evidence ? ["Item", "Value", "Status"] : ["Item", "Value"];
@@ -188,8 +189,8 @@ export function buildTrdDocument(project: Project, d: TrdDocument, opts: TrdDocu
   if (!libraryPurposeScope) {
     add("purpose-scope", "Purpose and scope", [
       ...(evidence ? ([{ type: "note", text: TRD_EVIDENCE_NOTE }] as Block[]) : []),
-      { type: "note", text: trdBasisText(project.meta.id, d) },
-      ...(open.length ? ([{ type: "note", text: `This draft lists ${open.length} open item${open.length === 1 ? "" : "s"}: values not established or still to be decided, provisional values, and findings of the PAR/NOR check. It is not complete while they remain.` }] as Block[]) : []),
+      { type: "note", text: trdBasisText(projectLabel(project.meta), d) },
+      ...(open.length ? ([{ type: "note", text: `This draft lists ${open.length} open item${open.length === 1 ? "" : "s"}: values that are still TBD, provisional values, and findings of the PAR/NOR check. It is not complete while they remain.` }] as Block[]) : []),
       d.purpose?.trim() ? { type: "paragraph", text: d.purpose.trim() } : { type: "paragraph", text: "No purpose has been entered. This is left to the team; the tool does not supply wording." },
       ...(d.scopeNote?.trim() ? ([{ type: "heading", text: "Scope" }, { type: "paragraph", text: d.scopeNote.trim() }] as Block[]) : []),
       { type: "paragraph", text: trdCoverageText(d) },
@@ -209,7 +210,7 @@ export function buildTrdDocument(project: Project, d: TrdDocument, opts: TrdDocu
     add("product", "About this document", [
       { type: "note", text: "The product and site values on the cover page are those of the receiving unit. The sending unit's values are not shown here." },
       // The built-in purpose and scope section is replaced by the library's, so its draft status and coverage sentences live here, once.
-      ...(libraryPurposeScope ? ([{ type: "note", text: trdBasisText(project.meta.id, d) }, { type: "note", text: trdCoverageText(d) }] as Block[]) : []),
+      ...(libraryPurposeScope ? ([{ type: "note", text: trdBasisText(projectLabel(project.meta), d) }, { type: "note", text: trdCoverageText(d) }] as Block[]) : []),
     ]);
   }
 
@@ -433,7 +434,7 @@ export function buildTrdDocument(project: Project, d: TrdDocument, opts: TrdDocu
       ["Document reference", d.docRef?.trim() || "Not given"],
       ...(d.version?.trim() ? ([["Version", d.version.trim()]] as [string, string][]) : []),
       ["Generated", generatedAt.replace("T", " ").slice(0, 16) + " UTC"],
-      // Two different counts, so both are named: open items are the entries of the "Open items" section (values not established, TBD,
+      // Two different counts, so both are named: open items are the entries of the "Open items" section (values with no value yet, TBD,
       // provisional, PAR/NOR findings); blank fields are the square-bracket gaps inside the process descriptions. A reader who sees only
       // "14" would think the document is nearly complete while the text still has many gaps (an unknown must stay visible).
       ["Open items", wu.open.length ? `${open.length}, and ${wu.open.length} blank field${wu.open.length === 1 ? "" : "s"} in the text` : String(open.length)],
@@ -539,7 +540,7 @@ function splitUnit(text: string): { value: string; unit: string } {
 /**
  * The one parameter table of a step in the standard document: Parameter, Set point, NOR, PAR, Unit. No basis, sources, status or
  * classification (those are in the evidence record). A limit the team entered wins; otherwise the project value recorded for the
- * parameter is shown, so a parameter that only has a maximum still reads "max 48 h". A value that is not established reads so in words.
+ * parameter is shown, so a parameter that only has a maximum still reads "max 48 h". A value that is TBD reads so in words.
  */
 function compactParameterTable(items: TrdItem[], src: SourceNumbers): Block | undefined {
   // A parameter the project answered "not applicable" in full (nothing typed, every field not applicable) is left out: a row of empty
@@ -630,7 +631,7 @@ function statusSummary(fields: TrdField[], hasLimits: boolean): string {
  * The parameter classification table and the data map, GENERATED from the parameters of the model (so they cannot disagree with the
  * parameter tables). Classification: CPP / KPP / non-critical as established, the quality attribute the parameter protects, and the
  * evidence for it. Data map: how the parameter is controlled and where its value is recorded. A cell the team has not filled reads
- * "Not established"; nothing is derived or assumed. Printed only when at least one parameter has an entry, so a TRD that never
+ * "TBD"; nothing is derived or assumed. Printed only when at least one parameter has an entry, so a TRD that never
  * used the feature is unchanged. Basis: PDA TR 60 s4 (classification and control strategy).
  */
 function controlBlocks(d: TrdDocument, src: SourceNumbers): Block[] {

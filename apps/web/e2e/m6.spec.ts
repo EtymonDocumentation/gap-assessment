@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
 import { parseTrdSeed } from "@gap/process-model";
-import { expectNotice, goTo, NOTICE_DOCUMENT, openAbout } from "./nav-helper";
+import { expectNotice, goTo, NOTICE_DOCUMENT, openAbout, openDemo } from "./nav-helper";
 
 const TITLE = "Technical requirements document — draft outline";
 const SHOTS = tmpdir();
@@ -23,7 +23,7 @@ async function go(page: Page, hash: string) {
 
 async function loadDemo(page: Page) {
   await page.goto("./");
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
 
@@ -91,7 +91,8 @@ test("downloads: the JSON parses with the schema, the Word file has the outline 
   await openTrdPage(page);
 
   const json = await download(page, "Download TRD seed (JSON)");
-  expect(json.file).toMatch(/^trd-seed-prj-[a-z0-9]+-\d{4}-\d{2}-\d{2}\.json$/);
+  // The file name carries the project's title (Tester D row 28), not its internal id.
+  expect(json.file).toMatch(/^trd-seed-arx-217-[a-z0-9-]+-\d{4}-\d{2}-\d{2}\.json$/);
   const seed = parseTrdSeed(json.bytes.toString("utf8"));
   expect(seed.meta.format).toBe("gap-assessment.trd-seed");
   expect(seed.meta.product.program).toMatchObject({ status: "established", value: "ARX-217" });
@@ -102,7 +103,7 @@ test("downloads: the JSON parses with the schema, the Word file has the outline 
   expect(all.some((f) => f.status === "tbd")).toBe(true);
 
   const word = await download(page, "Download draft outline (Word)");
-  expect(word.file).toMatch(/^trd-outline-prj-[a-z0-9]+-\d{4}-\d{2}-\d{2}\.docx$/);
+  expect(word.file).toMatch(/^trd-outline-arx-217-[a-z0-9-]+-\d{4}-\d{2}-\d{2}\.docx$/);
   const headings = wordHeadings(word.bytes);
   for (const h of ["Purpose and scope", "Product and presentation", "Receiving site and line", "Process overview", "Open items", "Source register", "Traceability to the gap assessment", "Versions"]) {
     expect(headings.some((x) => x.includes(h)), `Word heading ${h}`).toBe(true);
@@ -115,7 +116,7 @@ test("downloads: the JSON parses with the schema, the Word file has the outline 
   expect(text).toContain("TBD best guess");
 
   const html = await download(page, "Download draft outline (HTML)");
-  expect(html.file).toMatch(/^trd-outline-prj-[a-z0-9]+-\d{4}-\d{2}-\d{2}\.html$/);
+  expect(html.file).toMatch(/^trd-outline-arx-217-[a-z0-9-]+-\d{4}-\d{2}-\d{2}\.html$/);
   expect(html.bytes.toString("utf8")).toContain(TITLE);
   expect(html.bytes.toString("utf8")).toContain(NOTICE_DOCUMENT);
 
@@ -125,7 +126,7 @@ test("downloads: the JSON parses with the schema, the Word file has the outline 
   await expect(history.getByRole("cell", { name: "TRD outline (HTML)" })).toBeVisible();
   await expect(history.getByTestId("export-versions").first()).toContainText("Process model 1.15.0; catalog 1.9.0; seed format 1.0.0");
   // The same seed behind all three: one fingerprint.
-  const prints = await history.locator("tbody tr td:nth-child(4) code").allTextContents();
+  const prints = await history.locator("tbody tr td:nth-child(7) dt:has-text('Fingerprint') + dd code").allTextContents();
   expect(new Set(prints).size).toBe(1);
 });
 

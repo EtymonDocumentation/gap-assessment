@@ -2,7 +2,7 @@
 // Runs on the desktop, tablet and phone projects.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { expectNotice } from "./nav-helper";
+import { expectNotice, openDemo } from "./nav-helper";
 
 
 test.beforeEach(async ({ page }) => {
@@ -16,7 +16,7 @@ async function go(page: Page, hash: string) {
 async function loadDemo(page: Page) {
   await page.goto("./");
   await expectNotice(page);
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
 
@@ -30,7 +30,7 @@ async function expectAccessible(page: Page, label: string) {
 const panel = (page: Page, side: "source" | "target"): Locator => page.locator(`fieldset.side-panel[data-side="${side}"]`);
 const PUMP = "#/interview?q=fill.pump%40source";
 
-test("clear one RU answer: confirm, it shows Not established, the old value stays in the change log", async ({ page }) => {
+test("clear one RU answer: confirm, it shows TBD, the old value stays in the change log", async ({ page }) => {
   await loadDemo(page);
   await go(page, PUMP);
   const ru = panel(page, "target");
@@ -60,10 +60,10 @@ test("clear one RU answer: confirm, it shows Not established, the old value stay
   await expect(ru.getByRole("button", { name: "Clear RU answer" })).toHaveCount(0);
   await expect(panel(page, "source").locator(".recorded span").last()).toHaveText(suText);
 
-  // The section summary shows Not established for RU.
+  // The section summary shows TBD for RU.
   await go(page, "#/interview?summary=uo.aseptic_filling");
   const row = page.locator("table.data tbody tr", { hasText: "Filling pump principle" });
-  await expect(row.locator("td").nth(1)).toContainText("Not established");
+  await expect(row.locator("td").nth(1)).toContainText("TBD");
 
   // The old value is only in the change log.
   await go(page, "#/changes");
@@ -71,7 +71,7 @@ test("clear one RU answer: confirm, it shows Not established, the old value stay
   const cleared = log.locator("tbody tr", { hasText: "Answer cleared" }).first();
   await expect(cleared).toContainText("Filling pump");
   await expect(cleared).toContainText(old);
-  await expect(cleared).toContainText("Not established");
+  await expect(cleared).toContainText("TBD");
 });
 
 test("cancel leaves everything unchanged", async ({ page }) => {
@@ -136,7 +136,7 @@ test("Clear section answers empties the section on both sides and leaves other s
   const cells = page.locator("table.data tbody td a");
   const n = await cells.count();
   expect(n).toBeGreaterThan(0);
-  for (let i = 0; i < n; i++) await expect(cells.nth(i)).toHaveText("Not established");
+  for (let i = 0; i < n; i++) await expect(cells.nth(i)).toHaveText("TBD");
   await expect(page.getByRole("button", { name: "Clear section answers" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /Confirm section/ })).toBeDisabled();
 

@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test as base, type Browser, type Locator, type Page, type TestInfo } from "@playwright/test";
 import { randomInt } from "node:crypto";
-import { expectNotice, isPhone, NOTICE_DOCUMENT } from "../e2e/nav-helper";
+import { expectNotice, isPhone, NOTICE_DOCUMENT, openDemo } from "../e2e/nav-helper";
 import { INVITES_PER_WORKER, SAMPLING_INVITES_PER_WORKER } from "./global-setup";
 
 // The notice wording and its check are shared with the static suite (e2e/nav-helper.ts), which reads them from the app's own source module.
@@ -227,7 +227,7 @@ export async function answerTbd(page: Page): Promise<void> {
 
 export async function loadDemo(page: Page): Promise<void> {
   await go(page, "#/");
-  await page.getByRole("button", { name: "Load demo" }).click();
+  await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 }
 
@@ -257,7 +257,28 @@ export async function expectAccessible(page: Page, label: string): Promise<void>
   expect(report, label).toBe("");
 }
 
+/** axe in the light colour scheme and then in the dark one (the app follows the browser's setting), leaving the page light again. */
+export async function expectAccessibleInBothThemes(page: Page, label: string): Promise<void> {
+  for (const scheme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme: scheme });
+    await expectAccessible(page, `${label} (${scheme})`);
+  }
+  await page.emulateMedia({ colorScheme: "light" });
+}
+
 export async function expectNoHorizontalScroll(page: Page, label: string): Promise<void> {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow, `${label}: page scrolls sideways by ${overflow}px`).toBeLessThanOrEqual(1);
+}
+
+/**
+ * The same check for a test that resizes the window half way. The header picks its phone or desktop form in a media-query listener, so for a
+ * frame or two after the resize it is still the old form and pokes out of the new, narrower screen (the account button, 16 px; seen in 14 of 30
+ * immediate measurements). That passing state is not a defect, so this waits for it to pass, and still fails, with the label, when something is
+ * really wider than the screen once the page has settled.
+ */
+export async function expectNoHorizontalScrollOnceSettled(page: Page, label: string): Promise<void> {
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), { message: `${label}: page scrolls sideways`, timeout: 5_000 })
+    .toBeLessThanOrEqual(1);
 }

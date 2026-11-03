@@ -653,7 +653,7 @@ export function trdOpenItems(d: TrdDocument): TrdOpenItem[] {
   const field = (f: TrdField, where: string, ref?: ItemRef, stepId?: string) => {
     const v = effectiveField(f);
     const base = { where: `${where}, ${f.label}`, ...(stepId ? { stepId } : {}), ...(ref ? { itemRef: ref } : {}) };
-    if (v.status === "not_established") out.push({ ...base, kind: "not_established", text: "Not established" });
+    if (v.status === "not_established") out.push({ ...base, kind: "not_established", text: "TBD" });
     else if (v.status === "tbd") out.push({ ...base, kind: v.provisional ? "provisional" : "tbd", text: v.provisional ? `${v.text}` : "To be decided (TBD)" });
   };
   for (const f of d.details) field(f, "Details");

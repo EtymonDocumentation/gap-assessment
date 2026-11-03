@@ -106,3 +106,18 @@ export async function openAbout(page: Page) {
   await expect(panel).toBeVisible();
   return panel;
 }
+
+/** The two fictional demos on Home: the name on their buttons, messages and the project title. */
+export const DEMO_NAMES = { arx: "ARX-217 vials", syr: "SYR-305 syringe" } as const;
+
+/**
+ * Opens one of the demos from Home and waits until it is open. The demo builds away from the page, so the click returns long before the
+ * project exists; "Demo opened: <name>" on Home is the sign it is ready. The vial demo used to land on the Gap register: a spec that goes on
+ * from there passes `then: "#/register"`.
+ */
+export async function openDemo(page: Page, which: keyof typeof DEMO_NAMES = "arx", then?: string): Promise<void> {
+  const name = DEMO_NAMES[which];
+  await page.getByRole("button", { name: `Open demo: ${name}` }).click();
+  await expect(page.getByTestId("demo-opened")).toHaveText(`Demo opened: ${name}`, { timeout: 90_000 });
+  if (then) await page.evaluate((h) => (window.location.hash = h), then);
+}

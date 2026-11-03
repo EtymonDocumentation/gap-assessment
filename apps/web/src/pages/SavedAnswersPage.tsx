@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { PageHeader } from "../PageHeader";
 import { Empty, Modal } from "../components";
 import { HelpTip } from "../HelpTip";
-import { download, slug } from "../lib";
+import { countOf, download, slug } from "../lib";
 import { useSavedAnswers } from "../saved-answers-store";
 import { SERVER_MODE } from "../server/mode";
 import { useStore } from "../store";
@@ -238,7 +238,7 @@ export function SavedAnswersPage() {
           open
           onOpenChange={(o) => !o && setConfirm(null)}
           title="Delete this set?"
-          description={`"${confirm.name}" (${confirm.answers.length} answers) is removed from your list. Projects it was applied to keep their answers and the note of where they came from.`}
+          description={`"${confirm.name}" (${countOf(confirm.answers.length, "answer")}) is removed from your list. Projects it was applied to keep their answers and the note of where they came from.`}
           restoreFocus={restore}
         >
           <div className="row end">

@@ -145,7 +145,7 @@ export function SubsectionsEditor({ plan, run }: { plan: SamplingPlan; run: Run 
       <section className="card stack" aria-labelledby="sub-intro">
         <h2 id="sub-intro">Plan subsections ({plan.subsections.length})</h2>
         <p className="muted small">
-          Your own text for the plan, placed where you choose: after a section, inside a study-type section, inside a point, or in an appendix. Tick "also in the CMO instructions" to print a subsection in the CMO reporting instructions. Reusable text lives in the <a href="#/sampling/subsections">Plan subsections library</a>.
+          Your own text for the plan, placed where you choose: after a section, inside a study-type section, inside a point, or in an appendix. Tick "also in the CMO instructions" to print a subsection in the reporting instructions for the CMO (contract manufacturing organization). Reusable text lives in the <a href="#/sampling/subsections">Plan subsections library</a>.
         </p>
         <TokenHelp />
       </section>

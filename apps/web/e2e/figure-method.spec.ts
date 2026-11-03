@@ -4,7 +4,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { goTo } from "./nav-helper";
+import { goTo, openDemo } from "./nav-helper";
 
 const SHOTS = tmpdir();
 
@@ -12,10 +12,10 @@ test.beforeEach(async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
 });
 
-async function openPlan(page: Page, demo: "Open syringe example" | "Load demo") {
+async function openPlan(page: Page, demo: "syr" | "arx") {
   await page.goto("./");
-  await page.getByRole("button", { name: demo }).click();
-  await expect(page.getByTestId("home-chain").or(page.getByRole("heading", { level: 1, name: "Gap register" }))).toBeVisible();
+  await openDemo(page, demo);
+  await expect(page.getByTestId("home-chain")).toBeVisible();
   await goTo(page, "Sampling plan");
   await page.getByTestId("plan-list").getByRole("link").first().click();
   await expect(page.getByTestId("plan-figure")).toBeVisible();
@@ -28,13 +28,13 @@ async function expectAccessible(page: Page, label: string) {
 }
 
 for (const [demo, tag, only] of [
-  ["Open syringe example", "syr", false],
-  ["Load demo", "arx", true],
+  ["Open demo: SYR-305 syringe", "syr", false],
+  ["Open demo: ARX-217 vials", "arx", true],
 ] as const) {
   test(`${demo}: the flow figure shows how each sample is taken, in both styles`, async ({ page }, info) => {
     test.setTimeout(180_000);
     const size = info.project.name;
-    await openPlan(page, demo);
+    await openPlan(page, tag);
     for (const style of ["time_scale", "step_cards"] as const) {
       await page.getByTestId(`figure-style-${style}`).click();
       const fig = page.getByTestId("plan-figure");

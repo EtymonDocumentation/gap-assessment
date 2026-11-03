@@ -240,7 +240,7 @@ describe("verification", () => {
     expect(() => verifyEntry(p, VESSEL_T, ACTOR)).toThrow(/No entry at/);
     const reverted = removeSource(p, interviewSourceId(p, VESSEL_S), ACTOR).project;
     expect(getEntry(reverted, VESSEL_S)!.status).toBe("not_established");
-    expect(() => verifyEntry(reverted, VESSEL_S, ACTOR)).toThrow(/not established/);
+    expect(() => verifyEntry(reverted, VESSEL_S, ACTOR)).toThrow(/no value yet/);
   });
 });
 

@@ -82,6 +82,28 @@ describe("describe and columns", () => {
     expect(d.bandsText).toBe("No bands defined by the user. Scores are shown without a judgement.");
     expect(d.bands).toEqual([]);
   });
+  it("speaks to the reader on the Method page and about the user in the record, with the same facts", () => {
+    // Tester D row 27: the page said "the user's own wording" to the user. The Word and HTML record keeps the third person.
+    const you = (c: Parameters<typeof describeMethod>[0]) => describeMethod(c, "you");
+    expect(you(fmea()).bandsText).toBe("No bands defined by you. Scores are shown without a judgement.");
+    expect(you(matrix3()).bandsText).toBe("The risk labels are your own wording for each cell.");
+    expect(describeMethod(matrix3()).bandsText).toBe("The risk labels are the user's own wording for each cell.");
+    expect(you(qualitative()).bandsText).toBe("The levels are your own wording.");
+    expect(describeMethod(qualitative()).bandsText).toBe("The levels are the user's own wording.");
+    expect(you(custom("lookup")).bandsText).toBe("The risk labels come from your table.");
+    expect(you(custom("lookup")).formula).toContain("looked up in your table of combinations");
+    const withBands = fmea({ bands: [{ label: "A", minRpn: 1, maxRpn: 49 }], severityTrigger: { min: 9, label: "Assess" } });
+    expect(you(withBands).bandsText).toBe("Bands defined by you:");
+    expect(you(withBands).extra[0]).toContain("Rule defined by you: a severity of 9");
+    // Nothing but the wording differs.
+    expect(you(withBands).bands).toEqual(describeMethod(withBands).bands);
+    expect(you(withBands).scales).toEqual(describeMethod(withBands).scales);
+    // The page version never says "the user".
+    for (const c of [fmea(), matrix3(), qualitative(), custom("lookup"), withBands]) {
+      const d = you(c);
+      expect([d.formula, d.bandsText, ...d.extra].join(" ")).not.toMatch(/the user/i);
+    }
+  });
   it("describes bands sorted by range, with the severity rule", () => {
     const d = describeMethod(fmea({ bands: [{ label: "B", minRpn: 50, maxRpn: 100, note: "n" }, { label: "A", minRpn: 1, maxRpn: 49 }], severityTrigger: { min: 9, label: "Assess" } }));
     expect(d.bands).toEqual([{ label: "A", range: "1 to 49" }, { label: "B", range: "50 to 100", note: "n" }]);

@@ -141,7 +141,7 @@ describe("range comparator (process parameter, R-PARAM-RANGE)", () => {
     expect(g).toMatchObject({
       category: "outside_validated_range",
       severity: "high",
-      severityNote: "Classification not established at SU; the most conservative severity is applied.",
+      severityNote: "Classification TBD at SU; the most conservative severity is applied.",
     });
   });
 
@@ -447,7 +447,7 @@ describe("enum comparator", () => {
 
   it("information_required when a side was never answered", () => {
     const g = gap(run(v(base(), "fill.pump", "source", "rotary_piston")), PUMP);
-    expect(g).toMatchObject({ category: "information_required", detail: "RU value not established." }); // sentence starts with a capital even when the source is fine
+    expect(g).toMatchObject({ category: "information_required", detail: "RU value TBD (no value yet)." }); // sentence starts with a capital even when the source is fine
   });
 
   it("config.differentAs chooses the category for a difference", () => {
@@ -724,7 +724,7 @@ describe("evidence comparator (RU-side answer mapped to a category)", () => {
 
   it("information_required when the answer is unknown or missing", () => {
     expect(gap(run(unk(pumpChanged(), "fill.accuracy", "target")), ACCURACY)).toMatchObject({ category: "information_required", detail: "Evidence status TBD (to be decided)." });
-    expect(gap(run(pumpChanged()), ACCURACY)).toMatchObject({ category: "information_required", detail: "Evidence status not established." });
+    expect(gap(run(pumpChanged()), ACCURACY)).toMatchObject({ category: "information_required", detail: "Evidence status TBD (no value yet)." });
   });
 
   it("not applicable reads as equivalent and quotes the justification", () => {

@@ -4,6 +4,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { openDemo } from "./nav-helper";
 
 test.beforeEach(async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
@@ -24,7 +25,7 @@ async function expectAccessible(page: Page, label: string) {
 
 async function openSyringe(page: Page) {
   await page.goto("./");
-  await page.getByRole("button", { name: "Open syringe example" }).click();
+  await openDemo(page, "syr");
   await expect(page.getByTestId("home-chain")).toBeVisible();
 }
 
@@ -38,10 +39,10 @@ test("batch record tabs: roles, arrow keys, deep link to the Process view tab, B
   await openSyringe(page);
   await hash(page, "#/mbr?mbr=MBR-001");
   const tablist = page.getByRole("tablist", { name: "Batch record views" });
-  await expect(tablist.getByRole("tab")).toHaveText(["Edit", "Process view", "Word document"]);
+  await expect(tablist.getByRole("tab")).toHaveText(["Edit", "Process view", "Document"]);
   const edit = tablist.getByRole("tab", { name: "Edit" });
   const view = tablist.getByRole("tab", { name: "Process view" });
-  const word = tablist.getByRole("tab", { name: "Word document" });
+  const word = tablist.getByRole("tab", { name: "Document" });
   await expect(edit).toHaveAttribute("aria-selected", "true");
   await expect(view).toHaveAttribute("aria-selected", "false");
   await expect(view).toHaveAttribute("tabindex", "-1");
@@ -72,7 +73,7 @@ test("batch record tabs: roles, arrow keys, deep link to the Process view tab, B
   await shot(page, "mbr-view-" + test.info().project.name);
   await expectNoSidewaysScroll(page, "process view tab");
 
-  await page.getByRole("tab", { name: "Word document" }).click();
+  await page.getByRole("tab", { name: "Document" }).click();
   await expect(page).toHaveURL(/tab=word/);
   await expect(page.getByTestId("mbr-output")).toBeVisible();
   await expect(page.getByTestId("tab-purpose")).toContainText("Download the batch record");
@@ -96,7 +97,7 @@ test("an old Process view address and a Word deep link open the right tab", asyn
   await expect(page.getByRole("heading", { level: 1, name: /MBR-001/ })).toBeVisible();
   await expectAccessible(page, "process view tab");
   await hash(page, "#/mbr?mbr=MBR-001&tab=word");
-  await expect(page.getByRole("tab", { name: "Word document" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "Document" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByTestId("mbr-output")).toBeVisible();
 });
 
@@ -223,7 +224,7 @@ test("About this page: closed on every visit, opens with the page's explanation 
   expect(await panel.getAttribute("id")).toBe(await toggle.getAttribute("aria-controls"));
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-expanded", "true");
-  await expect(panel).toContainText("master batch record");
+  await expect(panel).toContainText("A batch record is the step-by-step instruction");
   await expect(panel.locator("figure[data-art]")).toBeVisible();
   await shot(page, "about-" + test.info().project.name);
   await expectAccessible(page, "about this page, open");
