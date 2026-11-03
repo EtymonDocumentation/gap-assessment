@@ -2,7 +2,7 @@ import PizZip from "pizzip";
 import { TemplateError } from "./errors";
 import { CT_NS, PKG_REL_NS, XML_DECL, esc, attrByLocal, childElements, localName, parseXml } from "./xml";
 
-export const MAX_FILE_BYTES = 20 * 1024 * 1024;
+export const MAX_FILE_BYTES = 25 * 1024 * 1024;
 export const MAX_UNCOMPRESSED_BYTES = 100 * 1024 * 1024;
 export const MAX_ENTRIES = 2000;
 

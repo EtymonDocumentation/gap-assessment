@@ -4803,3 +4803,272 @@ fieldset.stage-options {
 .app-footer-links a {
   display: inline-block;
 }
+
+/* Upload a TRD: the review screen. Fields first in the page order, so on a phone the fields come before the document; on a wide screen
+   the document is on the left and the fields on the right. No meaning rests on colour: every state is also written out. */
+.upload-trd {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+.upload-message {
+  max-width: 60ch;
+}
+.import-panes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+@media (min-width: 1000px) {
+  .import-panes {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    grid-template-areas: "doc fields";
+    align-items: start;
+  }
+  .import-fields {
+    grid-area: fields;
+  }
+  .import-doc {
+    grid-area: doc;
+    position: sticky;
+    top: 8px;
+    max-height: 90vh;
+    overflow: auto;
+  }
+}
+.import-fields,
+.import-doc {
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+}
+.import-group > summary {
+  cursor: pointer;
+}
+.import-step-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+.import-step-head h3,
+.import-group > h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+.import-old {
+  text-decoration: line-through;
+}
+.import-new {
+  font-weight: 700;
+}
+.import-value {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.import-empty > summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+/* One row per parameter. Under about 700px of pane width (a phone, or a narrow window) every row becomes one compact block: the name,
+   then set point / NOR and PAR / unit on two lines, then the reading word and the buttons. */
+.import-fields {
+  container-type: inline-size;
+}
+.import-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.import-table th,
+.import-table td {
+  padding: 6px 6px;
+  text-align: left;
+  vertical-align: top;
+  border-top: 1px solid var(--border);
+}
+.import-table thead th {
+  border-top: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.import-name {
+  font-weight: 600;
+}
+.import-cell-state {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.import-word .tag {
+  display: inline-block;
+  margin: 0 4px 2px 0;
+  white-space: nowrap;
+}
+.import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: flex-start;
+  position: relative;
+}
+.import-actions .btn,
+.import-more > summary {
+  padding: 2px 8px;
+  min-height: 24px;
+}
+.import-more > summary {
+  cursor: pointer;
+  list-style: none;
+  display: inline-block;
+}
+.import-more > summary::-webkit-details-marker {
+  display: none;
+}
+.import-more-body {
+  position: absolute;
+  right: 0;
+  z-index: 5;
+  min-width: 280px;
+  margin-top: 4px;
+  padding: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.25);
+}
+.import-more-item {
+  display: grid;
+  gap: 4px;
+}
+.import-more-name {
+  font-weight: 600;
+}
+.import-change-row > td,
+.import-edit-row > td {
+  background: var(--surface-2);
+}
+.import-changed {
+  border: 2px dashed var(--warn-border);
+  background: var(--warn-bg);
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: grid;
+  gap: 4px;
+}
+.import-changed p {
+  margin: 0;
+}
+.import-editor {
+  display: grid;
+  gap: 8px;
+}
+.import-doc-toggle {
+  display: none;
+}
+@media (max-width: 999px) {
+  .import-doc-toggle {
+    display: inline-block;
+  }
+  .import-doc-body.collapsed {
+    display: none;
+  }
+}
+@container (max-width: 700px) {
+  .import-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .import-table,
+  .import-table tbody {
+    display: block;
+  }
+  .import-table tr.import-prow {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2px 12px;
+    padding: 8px 0;
+    border-top: 1px solid var(--border);
+  }
+  .import-table tr.import-wide {
+    display: block;
+  }
+  .import-table tr > * {
+    display: block;
+    border: 0;
+    padding: 0;
+    min-width: 0;
+  }
+  .import-table tr.import-wide > td {
+    padding: 4px 0;
+  }
+  .import-prow > .import-name {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .import-prow > .import-word {
+    grid-column: 2;
+    grid-row: 1;
+    text-align: right;
+  }
+  /* "tr > *" above turns every cell into a block; the actions cell must stay a flex row, or the More
+     disclosure (a block <details>) drops onto its own line under Accept and Edit. */
+  .import-prow > .import-actions {
+    display: flex;
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+  .import-value {
+    display: inline;
+  }
+  .import-cell-state {
+    display: inline;
+    margin-left: 6px;
+  }
+  .import-cell-state[data-testid="import-now"] {
+    display: block;
+    margin-left: 0;
+  }
+  .import-simple > .import-cell {
+    grid-column: 1 / -1;
+  }
+  .import-cell::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  .import-simple > .import-cell::before {
+    content: none;
+  }
+  .import-word::before {
+    content: "Reading: ";
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  .import-more-body {
+    left: 0;
+    right: 0;
+    min-width: 0;
+  }
+}
+.import-doc-heading {
+  font-weight: 700;
+  margin: 8px 0 0;
+}
+.import-doc-table th,
+.import-doc-table td {
+  font-size: 0.85rem;
+  vertical-align: top;
+}
+.import-doc-table td .btn {
+  text-align: left;
+  white-space: normal;
+}

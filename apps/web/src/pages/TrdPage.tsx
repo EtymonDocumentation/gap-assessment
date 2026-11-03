@@ -9,6 +9,7 @@ import { href, navigate } from "../router";
 import { useStore } from "../store";
 import { useTrdWriteupLibrary } from "../trd-writeups-store";
 import { TRD_SCOPE_TEXT, TRD_TABS, TrdEditor, type TrdTab } from "./TrdEditor";
+import { TrdFormButton, TrdUploadButton } from "./TrdUploadButton";
 import { useProjectSeed } from "./TrdUpdate";
 
 type StartKind = "project" | "seed-import" | "blank";
@@ -76,7 +77,13 @@ function List({ missing, preselect }: { missing?: string | undefined; preselect:
     <div className="stack-lg">
       <PageHeader
         title="TRD"
-        purpose="A TRD (technical requirements document) can start from this project, from a TRD seed file (a saved copy of a project's values), or blank."
+        purpose="A TRD (technical requirements document) can start from this project, from a TRD seed file (a saved copy of a project's values), from a document you have, or blank."
+        actions={
+          <>
+            <TrdFormButton testId="trd-blank-form" />
+            <TrdUploadButton testId="trd-upload" />
+          </>
+        }
         about={{
           art: "page-document",
           children: (

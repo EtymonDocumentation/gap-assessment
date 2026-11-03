@@ -24,6 +24,7 @@ import { SavedAnswersPage } from "./pages/SavedAnswersPage";
 import { TrdLibraryPage } from "./pages/TrdLibraryPage";
 import { MbrPage } from "./pages/MbrPage";
 import { MbrProcessViewPage } from "./pages/MbrProcessView";
+import { TrdImportPage } from "./pages/TrdImportPage";
 import { TrdPage } from "./pages/TrdPage";
 import { TrdSeedPage } from "./pages/TrdSeedPage";
 import { MappingPage } from "./pages/MappingPage";
@@ -194,6 +195,7 @@ function AppShell() {
   else if (route.path === "/risk/methods") page = riskAllowed ? <RiskMethodsPage /> : <RiskNotIncluded />;
   else if (route.path === "/risk") page = riskAllowed ? <RiskPage params={route.params} /> : <RiskNotIncluded />;
   else if (route.path === "/trd/writeups") page = trdAllowed ? <TrdLibraryPage /> : <TrdNotIncluded />;
+  else if (route.path === "/trd/import") page = trdAllowed ? <TrdImportPage /> : <TrdNotIncluded />;
   else if (route.path === "/trd") page = trdAllowed ? <TrdPage params={route.params} /> : <TrdNotIncluded />;
   else if (route.path === "/mbr/library") page = mbrAllowed ? <MbrLibraryPage /> : <MbrNotIncluded />;
   else if (route.path === "/mbr/view") page = mbrAllowed ? <MbrProcessViewPage params={route.params} /> : <MbrNotIncluded />;

@@ -22,3 +22,7 @@ export { renderDocx } from "./render";
 export { FIGURE_DPI } from "./types";
 export { readOutlineFromPdf } from "./pdf";
 export { FIXTURE_FILES } from "./fixtures";
+export { buildTrdFormDocx, FORM_INTRO, FORM_PLACEHOLDER } from "./trd-form";
+export { readTrdUpload } from "./trd-read";
+export { readDataPart, writeDataPart } from "./trd-data";
+export type { DataPart } from "./trd-data";

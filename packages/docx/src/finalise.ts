@@ -6,6 +6,7 @@ import type { TemplateMode } from "./types";
 import { W_NS, XML_DECL, attrByLocal, childElements, esc, localName, parseXml, textOf } from "./xml";
 import { restoreFirstPageHeader } from "./inspect";
 import type { WriterCtx } from "./writer";
+import { writeDataPart, type DataPart } from "./trd-data";
 
 /** The "Created by" text of the document properties: the product name (the wording lives in the engine, product.ts). */
 export const CREATOR = PRODUCT_NAME;
@@ -18,6 +19,7 @@ export interface FinaliseInput {
   templateVersion: string;
   templateSha256?: string;
   generatedAt: string;
+  dataPart?: DataPart;
 }
 
 /** W3CDTF timestamp without milliseconds; a fixed date when the input is not a date (the output must not depend on the clock). */
@@ -155,4 +157,5 @@ export function finalisePackage(dp: DocPackage, ctx: WriterCtx, input: FinaliseI
   // The tool writes no Word comments (reviewer comments were removed in schema 1.10.0); a comments part is never carried over.
   dp.removePart(dp.partOf(REL.comments) ?? "word/comments.xml");
   writeDocProps(dp, input);
+  if (input.dataPart) writeDataPart(dp, input.dataPart);
 }

@@ -85,6 +85,8 @@ export interface RenderDocxInput {
   /** Needed only for a tagged template (mode "tags"); the built-in look and the other template modes ignore it. */
   tagData?: import("./tags").TagData | import("./tags").DocumentTagData | import("./tags").SamplingTagData;
   mode: TemplateMode;
+  /** Data that travels inside the file for a later upload (the TRD record, or a form description). Not shown in Word. */
+  dataPart?: import("./trd-data").DataPart;
   /** ISO timestamp; used for the document properties so the output is the same every time. */
   generatedAt: string;
   template?: {

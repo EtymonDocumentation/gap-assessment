@@ -1,4 +1,4 @@
-import { buildTrdDocument, documentFingerprint, projectLabel, recordExport, trdBasisText, TRD_OPTIONAL_SECTIONS, updateTrd, type TrdOptionalSection } from "@gap/engine";
+import { buildTrdData, buildTrdDocument, documentFingerprint, projectLabel, recordExport, trdBasisText, TRD_OPTIONAL_SECTIONS, updateTrd, type TrdOptionalSection } from "@gap/engine";
 import type { DocModel } from "@gap/engine";
 import { PROCESS_MODEL_VERSION, TRD_FORMAT_VERSION, type DocumentExport, type TemplateRecord, type TrdApproval, type TrdDocument } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlBody } from "@gap/renderers";
@@ -8,6 +8,7 @@ import { APP_VERSION, download, projectFileStem, today } from "../lib";
 import { useContent, useStore } from "../store";
 import { BUILTIN_RECORD, ExportHistory, GENERIC_MODES, useWordChoice, WordPanel } from "./document-panels";
 import type { Run } from "./SamplingFlow";
+import { TrdFormButton } from "./TrdUploadButton";
 
 /**
  * Step 4 of a TRD: the Word or HTML draft, with a preview. The same rules as the other documents: the banner is in every output, a
@@ -120,6 +121,7 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
         modes={GENERIC_MODES}
         tagData={(m) => m.buildDocumentTagData(doc)}
         testIdPrefix="trd"
+        dataPart={() => ({ kind: "trd-data", json: buildTrdData(project, d, doc, "standard") })}
         buttonLabel="Download TRD (Word)"
         note={'"A template\'s headings" is offered for the gap assessment document only: a saved mapping names the gap document\'s sections. For a tagged template, {title}, {banner}, {status}, {generated}, {meta} and {sections} are filled, and {@body} or a section tag such as {@section_par_nor} brings in the TRD in your template\'s styles. The sections of each process step have their own tags, for example {@section_step_TS_01}.'}
       />
@@ -156,6 +158,14 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
         </div>
       </section>
 
+      <section className="card stack" aria-labelledby="trd-form-h" data-testid="trd-form-card">
+        <h2 id="trd-form-h">Fill-in form (Word)</h2>
+        <p className="small">A Word form with the values this TRD holds so far. Anyone can fill in the rest offline and you upload it back with "Upload a TRD" on the TRD page. A cell left empty stays not established.</p>
+        <div className="row wrap">
+          <TrdFormButton d={d} testId="trd-form-so-far" />
+        </div>
+      </section>
+
       <WordPanel
         choice={evidenceChoice}
         doc={evidenceDoc}
@@ -168,6 +178,7 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
         modes={GENERIC_MODES}
         tagData={(m) => m.buildDocumentTagData(evidenceDoc)}
         testIdPrefix="trd-evidence"
+        dataPart={() => ({ kind: "trd-data", json: buildTrdData(project, d, evidenceDoc, "evidence") })}
         idPrefix="trd-evidence-word"
         title="Evidence record (Word)"
         buttonLabel="Download evidence record (Word)"

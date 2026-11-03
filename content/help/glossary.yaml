@@ -122,6 +122,11 @@ terms:
     short: The quality unit that reviews and approves documents in your company's own document control. The tool only drafts.
     see: [drafting-aid]
 
+  - id: reading-word
+    term: Reading word (Exact / Matched / Not found)
+    short: On the "Upload a TRD" review screen, how sure the reading of a value is. Exact means it was read straight from the data our own Word export carries. Matched means it was matched to a field by its label. Not found means the file gives no value, so it stays not established. Only Exact values are taken by "Accept all exact".
+    see: [tbd, open-item, trd]
+
   - id: receiving-unit
     term: Receiving unit (RU)
     short: The site that will make the product next. The gap assessment compares its plan with the sending unit.

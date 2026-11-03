@@ -122,6 +122,8 @@ export interface WordExportInput {
   onExported: (template: TemplateRecord) => void;
   /** Tag data for a document other than the gap assessment. Default: the gap assessment's tags. */
   tagData?: (m: DocxModule) => TagData | DocumentTagData | SamplingTagData;
+  /** Data that travels inside the Word file (the TRD export carries its record, so the file can be uploaded again). Made at download time. */
+  dataPart?: () => { kind: "trd-data" | "trd-form"; json: string };
 }
 
 /** The words on every Word download button while the file is being made (the same on every page). */
@@ -145,7 +147,7 @@ export interface WordExporter {
   reset: () => void;
 }
 
-export function useWordExport({ choice, doc, content, project, assessment, generatedAt, fileBase, guard, onExported, tagData }: WordExportInput): WordExporter {
+export function useWordExport({ choice, doc, content, project, assessment, generatedAt, fileBase, guard, onExported, tagData, dataPart }: WordExportInput): WordExporter {
   const checks = usePreExportChecks(choice, doc);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -165,6 +167,7 @@ export function useWordExport({ choice, doc, content, project, assessment, gener
           tagData: tagData ? tagData(m) : m.buildTagData(content, project, assessment!, doc),
           mode: choice.mode,
           generatedAt,
+          ...(dataPart ? { dataPart: dataPart() } : {}),
           // Flow figures (sampling plan) are drawn as pictures by the browser; other documents have none.
           rasteriser: browserRasteriser,
           ...(choice.mode !== "builtin" && t

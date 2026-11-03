@@ -550,7 +550,7 @@ function splitUnit(text: string): { value: string; unit: string } {
  * classification (those are in the evidence record). A limit the team entered wins; otherwise the project value recorded for the
  * parameter is shown, so a parameter that only has a maximum still reads "max 48 h". A value that is TBD reads so in words.
  */
-function compactParameterTable(items: TrdItem[], src: SourceNumbers): Block | undefined {
+function compactParameterTable(items: TrdItem[], src: SourceNumbers, shownOut?: TrdItem[]): Block | undefined {
   // A parameter the project answered "not applicable" in full (nothing typed, every field not applicable) is left out: a row of empty
   // cells says nothing to an approver. The evidence record still lists it, with its status.
   const shown = items.filter((i) => {
@@ -558,6 +558,7 @@ function compactParameterTable(items: TrdItem[], src: SourceNumbers): Block | un
     return Boolean(l?.setPoint || l?.nor || l?.par) || !i.fields.length || !i.fields.every((x) => effectiveField(x).status === "not_applicable");
   });
   if (!shown.length) return undefined;
+  shownOut?.push(...shown);
   const rows = shown.map((i) => {
     const l = i.limits;
     const f = (key: string) => {
@@ -718,4 +719,43 @@ function traceability(d: TrdDocument): Block[] {
     { type: "paragraph", text: "For each value that came in from the project: the sending unit's value, shown as reference only, and the gap ids that compare the two. The sending unit's value is never the value of this TRD. Gap ids can renumber when the gap assessment changes." },
     rows.length ? { type: "table", columns: ["Where", "Field", "SU value (reference only)", "Gap ids"], rows } : { type: "paragraph", text: "No reference values." },
   ];
+}
+
+/**
+ * One parameter table of a TRD Word export as the reader sees it: the rows in the cells' own words, with the step and the parameters
+ * they belong to. The export stores these beside the TRD record, so that an upload can tell which cells were typed over in Word.
+ */
+export interface TrdVisibleTable {
+  stepId: string;
+  /** The parameter (item key) of each row, in row order. */
+  itemKeys: string[];
+  /** Parameter, Set point, NOR, PAR, Unit: the five columns both documents share. */
+  columns: string[];
+  rows: string[][];
+}
+
+export const TRD_TABLE_COLUMNS = ["Parameter", "Set point", "NOR", "PAR", "Unit"] as const;
+
+/**
+ * The parameter tables of the standard (or evidence) document, built by the same functions that write them into the document, so what
+ * is stored can never disagree with what the reader sees. Only the first five columns are kept; the evidence record's extra columns
+ * (basis, sources, status) are not values a person would retype in Word.
+ */
+export function trdVisibleTables(project: Project, d: TrdDocument, variant: TrdVariant = "standard"): TrdVisibleTable[] {
+  const src = new SourceNumbers(project, d);
+  const out: TrdVisibleTable[] = [];
+  for (const s of d.steps) {
+    const params = s.items.filter((i) => i.collection === "param");
+    if (!params.length) continue;
+    let table: Block | undefined;
+    let shown: TrdItem[] = params;
+    if (variant === "evidence") table = parameterBlocks(params, src)[0];
+    else {
+      shown = [];
+      table = compactParameterTable(params, src, shown);
+    }
+    if (!table || table.type !== "table") continue;
+    out.push({ stepId: s.id, itemKeys: shown.map((i) => i.key), columns: [...TRD_TABLE_COLUMNS], rows: table.rows.map((r) => r.slice(0, 5)) });
+  }
+  return out;
 }

@@ -48,6 +48,7 @@ function finaliseInput(input: RenderDocxInput, record: TemplateRecord): Finalise
     templateVersion: record.version,
     templateSha256: record.sha256,
     generatedAt: input.generatedAt,
+    ...(input.dataPart ? { dataPart: input.dataPart } : {}),
   };
 }
 

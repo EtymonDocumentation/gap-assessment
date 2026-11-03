@@ -707,3 +707,7 @@ export function trdSourceChanged(d: TrdDocument, currentSeed: TrdSeed): boolean 
   if (!d.origin.seed) return false;
   return d.origin.seed.fingerprint !== trdSeedContentFingerprint(currentSeed);
 }
+
+/** Ids for a TRD and its steps, for the upload (import) code, which builds a TRD from a file instead of from a seed. Never reused. */
+export const nextTrdDocumentId = (project: Project): string => nextId(project, "TRD", undefined, project.trd.documents.map((d) => d.id));
+export const nextTrdStepId = (project: Project, docId: string, existing: readonly string[]): string => nextId(project, "TS", docId, existing);

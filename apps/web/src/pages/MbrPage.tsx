@@ -8,6 +8,7 @@ import { PageHeader } from "../PageHeader";
 import { href, navigate } from "../router";
 import { useContent, useStore } from "../store";
 import { MbrEditor } from "./MbrEditor";
+import { TrdUploadButton } from "./TrdUploadButton";
 import { mbrPurpose, mbrScopeText } from "./mbr-text";
 
 /** The batch record list and the "New batch record" form (no `mbr` parameter), or the editor of one record. */
@@ -15,7 +16,7 @@ export function MbrPage({ params }: { params: URLSearchParams }) {
   const project = useStore((s) => s.project)!;
   const id = params.get("mbr");
   const rec = id ? project.mbr.records.find((x) => x.id === id) : undefined;
-  return rec ? <MbrEditor rec={rec} tab={params.get("tab") === "word" ? "word" : "edit"} /> : <List missing={id ?? undefined} />;
+  return rec ? <MbrEditor rec={rec} tab={params.get("tab") === "word" ? "word" : "edit"} /> : <List missing={id ?? undefined} preTrd={params.get("trd")} />;
 }
 
 interface UnitOpOffer {
@@ -34,15 +35,17 @@ type StartError = { field: "title" | "trd" | "plan" | "form"; text: string };
 /** A block belongs under a unit operation when it names it, or when it is a sample block that applies to any of them. Other general blocks go under "General". */
 const forOp = (unitOp: string) => (p: BlockProposal) => p.block.unitOps.includes(unitOp) || (p.block.unitOps.length === 0 && p.block.sampleTypes.length > 0);
 
-function List({ missing }: { missing?: string | undefined }) {
+function List({ missing, preTrd }: { missing?: string | undefined; preTrd?: string | null }) {
   const project = useStore((s) => s.project)!;
   const update = useStore((s) => s.update);
   const content = useContent();
   const library = useMbrLibrary();
   const [title, setTitle] = useState("");
   const [docRef, setDocRef] = useState("");
-  const [useTrd, setUseTrd] = useState(false);
-  const [trdId, setTrdId] = useState("");
+  // "Start the batch record from this TRD" (after an upload) arrives with the TRD named: the choice is then made, the title is still yours.
+  const named = preTrd ? project.trd.documents.some((d) => d.id === preTrd) : false;
+  const [useTrd, setUseTrd] = useState(named);
+  const [trdId, setTrdId] = useState(named ? preTrd! : "");
   const [usePlan, setUsePlan] = useState(false);
   const [planId, setPlanId] = useState("");
   // Blocks the author ticked; absent from the map = the offer's own suggestion (ticked only when a chosen source backs it).
@@ -234,7 +237,7 @@ function List({ missing }: { missing?: string | undefined }) {
               </label>
               {useTrd &&
                 (trds.length === 0 ? (
-                  <p className="notice small">This project has no TRD record yet. Add one on the TRD page, or untick this.</p>
+                  <p className="notice small">This project has no TRD record yet. Add one on the TRD page, upload one, or untick this. <TrdUploadButton className="btn small" testId="mbr-upload-trd" /></p>
                 ) : (
                   <label className="field">
                     <span>TRD record</span>
