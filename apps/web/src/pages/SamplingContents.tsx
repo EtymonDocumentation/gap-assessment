@@ -11,13 +11,13 @@ interface Item {
   tab?: ContentsTab;
 }
 
-// Always on the page, in page order.
-const ALWAYS: Item[] = [
-  { id: "sp-details", label: "Plan details" },
-  { id: "sp-steps-h", label: "Process steps" },
-  { id: "sp-figdata-h", label: "Flow figure details" },
-  { id: "sp-batches", label: "PPQ batches" },
-  { id: "sp-design", label: "PPQ design and readiness" },
+// The plan's set-up cards, in page order. They are the top of the Overview tab.
+const SETUP: Item[] = [
+  { id: "sp-details", label: "Plan details", tab: "overview" },
+  { id: "sp-steps-h", label: "Process steps", tab: "overview" },
+  { id: "sp-figdata-h", label: "Flow figure details", tab: "overview" },
+  { id: "sp-batches", label: "PPQ batches", tab: "overview" },
+  { id: "sp-design", label: "PPQ design and readiness", tab: "overview" },
 ];
 const BY_TAB: Record<ContentsTab, Item[]> = {
   overview: [
@@ -27,7 +27,8 @@ const BY_TAB: Record<ContentsTab, Item[]> = {
     { id: "sp-figure-h", label: "PPQ flow figure", tab: "overview" },
     { id: "sp-points", label: "Sampling points", tab: "overview" },
     { id: "sp-totals", label: "Sample totals per batch", tab: "overview" },
-    { id: "sampling-doc", label: "Sampling plan document", tab: "overview" },
+    { id: "sampling-doc", label: "Download the sampling plan", tab: "overview" },
+    { id: "cmo-doc", label: "Download the CMO reporting instructions", tab: "overview" },
   ],
   interview: [
     { id: "sp-parties", label: "Who does what", tab: "interview" },
@@ -51,7 +52,7 @@ export function SamplingContents({ tab, onTab }: { tab: ContentsTab; onTab: (t: 
     }, it.tab && it.tab !== tab ? 60 : 0);
   };
   const groups: { title: string; items: Item[]; tab?: ContentsTab }[] = [
-    { title: "Plan set-up", items: ALWAYS },
+    { title: "Plan set-up", items: SETUP, tab: "overview" },
     { title: "Overview tab", items: BY_TAB.overview, tab: "overview" },
     { title: "Interview tab", items: BY_TAB.interview, tab: "interview" },
     { title: "Design review tab", items: BY_TAB.review, tab: "review" },

@@ -1,6 +1,6 @@
 import { formatQuestionSide, questionLabel, setGapOverlay, sidesOf, type Gap } from "@gap/engine";
 import { useState } from "react";
-import { PageBanner } from "../art";
+import { PageHeader } from "../PageHeader";
 import { CategoryChip, Empty, ProvisionalFlag, RegulatoryFlag, SeverityBadge } from "../components";
 import { href } from "../router";
 import { useAssessment, useContent, useStageWording, useStore } from "../store";
@@ -20,21 +20,31 @@ export function ComparePage() {
 
   return (
     <div className="stack-lg">
-      <PageBanner art="page-compare">
-        <h1>Side by side</h1>
-      </PageBanner>
-      <p className="lede">Each row shows what the sending unit (SU) does beside what the receiving unit (RU) plans, and how the tool classified the difference. Read it to check the answers before you review the gaps.</p>
+      <PageHeader
+        title="Side by side"
+        purpose="Each row shows what the sending unit (SU) does beside what the receiving unit (RU) plans, and how the tool classified the difference."
+        meta={
+          <span data-testid="stage-line">
+            <strong>Program stage:</strong> sending unit (SU) {wording.sourceLabel}; receiving unit (RU) {wording.targetLabel}.
+          </span>
+        }
+        about={{
+          art: "page-compare",
+          children: (
+            <>
+              <p>Read it to check the answers before you review the gaps.</p>
+              <p>
+                Every visible question, with the sending unit (SU) {wording.sourceValidated ? "validated" : "current"} state and the receiving unit (RU) planned state. Select a value to change it in the interview. Add a note to a difference here; it appears in the Notes column of the document.
+              </p>
+            </>
+          ),
+        }}
+      />
       <div className="row between wrap">
         <label className="row inline">
           <input type="checkbox" checked={hideEqual} onChange={(e) => setHideEqual(e.target.checked)} /> Hide equivalent rows
         </label>
       </div>
-      <p className="small" data-testid="stage-line">
-        <strong>Program stage:</strong> sending unit (SU) {wording.sourceLabel}; receiving unit (RU) {wording.targetLabel}.
-      </p>
-      <p className="muted">
-        Every visible question, with the sending unit (SU) {wording.sourceValidated ? "validated" : "current"} state and the receiving unit (RU) planned state. Select a value to change it in the interview. Add a note to a difference here; it appears in the Notes column of the document.
-      </p>
       {sections.length === 0 && <Empty>No unit operations are in scope yet. Answer the scoping questions first.</Empty>}
       {sections.map((sec) => {
         const qs = [...new Map(a.instances.filter((i) => i.section.id === sec.id).map((i) => [i.question.id, i.question])).values()];

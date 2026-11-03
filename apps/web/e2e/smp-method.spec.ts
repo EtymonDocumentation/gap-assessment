@@ -60,7 +60,9 @@ test("a point's method section starts with nothing chosen and its answers show a
   await expectNoHorizontalScroll(page, `${name} method section`);
   await page.screenshot({ path: join(SHOTS, `smp-method-editor-${name}.png`) });
   await page.getByTestId("point-save").click();
-  // Saved, and reminders are listed at plan level (apart from the open items).
+  // Saved, and reminders are listed at plan level (apart from the open items). Open shows a point's editor in the Interview tab;
+  // the plan-level card sits with the plan's set-up on the Overview tab, so that the tabs themselves stay on the first screen.
+  await page.getByTestId("tab-overview").click();
   await expect(page.getByTestId("plan-method-reminders")).toContainText("SP-003");
   await expect(page.getByTestId("plan-method-reminders")).toContainText("State whether the modified assembly is covered");
   await expectAccessible(page, `${name} plan reminders`);

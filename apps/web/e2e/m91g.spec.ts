@@ -7,7 +7,7 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
-import { goTo } from "./nav-helper";
+import { breadcrumb, goTo, openAbout } from "./nav-helper";
 
 const SHOTS = tmpdir();
 /** A real 1 by 1 pixel PNG (so the reader sees a true PNG header). */
@@ -26,6 +26,7 @@ async function loadDemo(page: Page) {
 async function openTrdList(page: Page) {
   await loadDemo(page);
   await goTo(page, "TRD");
+  await openAbout(page);
   await expect(page.getByTestId("trd-scope-text")).toBeVisible();
 }
 
@@ -148,7 +149,7 @@ test("a pasted screenshot becomes the picture, and Word and HTML number the figu
   expect(html).toContain("<figcaption>Figure 2. Pasted view (fictional)</figcaption>");
   expect(html).toContain('<img src="data:image/png;base64,');
 
-  const word = await download(page, () => page.getByRole("button", { name: /Download Word|Word document/i }).first().click());
+  const word = await download(page, () => page.getByRole("button", { name: "Download TRD (Word)" }).click());
   const zip = new PizZip(word.bytes);
   const media = Object.keys(zip.files).filter((n) => n.startsWith("word/media/gapfigure"));
   expect(media.length).toBeGreaterThanOrEqual(2);
@@ -302,7 +303,8 @@ for (const scheme of ["light", "dark"] as const) {
       expect(box!.width, "row button width").toBeGreaterThanOrEqual(24);
     }
 
-    await page.getByRole("link", { name: "All TRDs" }).click();
+    await breadcrumb(page).getByRole("link", { name: "TRD", exact: true }).click();
+    await openAbout(page);
     await page.getByTestId("trd-writeups-link").click();
     await page.getByTestId("twl-edit-sec_dilution_buffer").click();
     await page.getByTestId("twl-place-where").selectOption("before");

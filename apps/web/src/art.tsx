@@ -70,6 +70,20 @@ export function PageBanner({
   );
 }
 
+/**
+ * The picture in a module's empty "start" state (no records yet), with no title on it: the card beside it says what to do. Elsewhere the
+ * page pictures live only behind the "About this page" button (see PageHeader).
+ */
+export function StartArt({ art }: { art: string }) {
+  return (
+    <div className="art-banner art-start" data-art={art}>
+      <div className="art-banner-img" aria-hidden="true">
+        <ArtImg name={art} sizes="(min-width: 1312px) 1280px, 100vw" />
+      </div>
+    </div>
+  );
+}
+
 /** A small decorative figure (unit-operation picture or close-up). `sizes` follows the CSS width of the figure. */
 export function ArtFigure({ art, className, sizes }: { art: string; className: string; sizes: string }) {
   return (

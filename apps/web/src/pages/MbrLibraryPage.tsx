@@ -2,11 +2,10 @@ import { mbrLibrary } from "@gap/content";
 import { editChangesBlock, editLibraryBlock, newLibraryBlock, type LibraryEdit } from "@gap/engine";
 import { MBR_TRD_COLLECTIONS, type MbrLibraryBlock, type MbrLibraryParam, type MbrLibraryTimeLimit } from "@gap/process-model";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { PageBanner } from "../art";
+import { PageHeader } from "../PageHeader";
 import { Empty, Modal } from "../components";
 import { dateTime } from "../lib";
 import { useMbrBlocks, useMbrLibrary } from "../mbr-blocks-store";
-import { href } from "../router";
 import { SERVER_MODE } from "../server/mode";
 import { actorOf, useContent, useStore } from "../store";
 
@@ -41,22 +40,21 @@ export function MbrLibraryPage() {
 
   return (
     <div className="stack-lg">
-      <PageBanner art="page-document">
-        <h1>Step blocks library</h1>
-      </PageBanner>
-      <p className="no-print">
-        <a href={href("/mbr")}>Batch records</a>
-      </p>
-      <section className="card stack" aria-labelledby="mbl-about">
-        <h2 id="mbl-about">What this is</h2>
-        <p>The step blocks a master batch record is built from: the steps, the parameter rows that pull a TRD value, the time limits, and what the CMO completes.</p>
-        <ul className="plain-list">
-          <li>{SERVER_MODE ? "Your edits are kept on the server for your account." : "Your edits are kept in this browser, not in the project file."}</li>
-          <li>The shipped blocks are not changed. Editing one saves your copy with the next version number, and the earlier content stays in its history.</li>
-          <li>A batch record keeps its own copy of a block and the version it was made from. When the library has a newer version, the record shows "Update from library" and you choose.</li>
-          <li>A block names which TRD value a row pulls; it never holds a number of its own.</li>
-        </ul>
-      </section>
+      <PageHeader
+        title="Step blocks library"
+        purpose="The step blocks a master batch record is built from: the steps, the parameter rows that pull a TRD value, the time limits, and what the CMO completes."
+        about={{
+          art: "page-document",
+          children: (
+            <ul className="plain-list">
+              <li>{SERVER_MODE ? "Your edits are kept on the server for your account." : "Your edits are kept in this browser, not in the project file."}</li>
+              <li>The shipped blocks are not changed. Editing one saves your copy with the next version number, and the earlier content stays in its history.</li>
+              <li>A batch record keeps its own copy of a block and the version it was made from. When the library has a newer version, the record shows "Update from library" and you choose.</li>
+              <li>A block names which TRD value a row pulls; it never holds a number of its own.</li>
+            </ul>
+          ),
+        }}
+      />
 
       {storeError && (
         <p className="notice" role="alert" data-testid="mbl-error">

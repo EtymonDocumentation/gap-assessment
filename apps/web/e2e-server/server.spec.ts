@@ -455,7 +455,7 @@ test("Word and Markdown export work under the server's security policy", async (
   const panel = page.locator("section", { has: page.getByRole("heading", { level: 2, name: "Word document" }) });
   await panel.getByRole("radio", { name: /^Built-in default/ }).check();
   const [word] = await Promise.all([page.waitForEvent("download"), (async () => {
-      await panel.getByRole("button", { name: "Download Word document" }).click();
+      await page.getByRole("button", { name: "Download Word document" }).click();
       await page.getByRole("button", { name: "Download anyway" }).click(); // the demo has open TBD values
     })()]);
   expect(word.suggestedFilename()).toMatch(/\.docx$/);

@@ -1,6 +1,6 @@
 import type { ImportedTemplate, TemplateAnalysis, TemplateMode } from "@gap/docx";
 import { useEffect, useRef, useState } from "react";
-import { PageBanner } from "../art";
+import { PageHeader } from "../PageHeader";
 import { Empty, Modal } from "../components";
 import { loadDocx, useDocx } from "../docx-loader";
 import { dateTime, download, MODE_LABEL, shortHash, slug } from "../lib";
@@ -133,21 +133,27 @@ export function TemplatesPage() {
 
   return (
     <div className="stack-lg">
-      <PageBanner art="page-templates">
-        <h1 ref={headingRef} tabIndex={-1}>
-          Templates
-        </h1>
-      </PageBanner>
-      <div>
-        <p className="muted">
-          Keep your own Word or PDF templates here and choose one when you create a Word document.{" "}
-          {remote
-            ? "The library is kept on the server under your account, so it follows you to any computer."
-            : "The library is stored only in this browser."}{" "}
-          It is not part of the project file, so the same templates can be used for every project.{" "}
-          {remote ? "Export a template as a file to keep a copy of your own." : "Export a template as a file to back it up or move it to another browser."} Macros in a template are never run and are removed.
-        </p>
-      </div>
+      <PageHeader
+        title="Templates"
+        titleRef={headingRef}
+        purpose="Keep your own Word or PDF templates here and choose one when you create a Word document."
+        about={{
+          art: "page-templates",
+          children: (
+            <>
+              <p>
+                {remote
+                  ? "The library is kept on the server under your account, so it follows you to any computer."
+                  : "The library is stored only in this browser."}{" "}
+                It is not part of the project file, so the same templates can be used for every project.
+              </p>
+              <p>
+                {remote ? "Export a template as a file to keep a copy of your own." : "Export a template as a file to back it up or move it to another browser."} Macros in a template are never run and are removed.
+              </p>
+            </>
+          ),
+        }}
+      />
 
       {(error || storageError) && (
         <p className="error" role="alert">

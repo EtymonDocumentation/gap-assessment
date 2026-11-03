@@ -90,7 +90,7 @@ export function RiskOutput({ a, run }: { a: RiskAssessment; run: Run }) {
               })
             }
           >
-            Download HTML
+            Download risk assessment (HTML)
           </button>
           <button type="button" className="btn" aria-expanded={showPreview} onClick={() => setShowPreview((v) => !v)} data-testid="risk-preview-toggle">
             {showPreview ? "Hide preview" : "Show preview"}
@@ -116,6 +116,7 @@ export function RiskOutput({ a, run }: { a: RiskAssessment; run: Run }) {
         modes={GENERIC_MODES}
         tagData={(m) => m.buildDocumentTagData(doc)}
         testIdPrefix="risk"
+        buttonLabel="Download risk assessment (Word)"
         note={'"Map to their headings" is offered for the gap assessment document only: a saved mapping names the gap document\'s sections. For a tagged template, {title}, {banner}, {status}, {generated}, {meta} and {sections} are filled, and {@body} or a section tag such as {@section_register} brings in the risk assessment in your template\'s styles.'}
       />
 

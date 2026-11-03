@@ -18,8 +18,9 @@ import { UNIT_OP_CUSTOM_STEP, UNIT_OP_FINISHED_PRODUCT, UNIT_OP_NONE, type Sampl
 import { TYPE_LABEL, planTotals } from "@gap/sampling";
 import { samplingSuggestions } from "@gap/content";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { PageBanner } from "../art";
+import { StartArt } from "../art";
 import { Empty, Modal } from "../components";
+import { focusWhenReady, PageHeader, type PagePill } from "../PageHeader";
 import { dateTime } from "../lib";
 import { href, navigate } from "../router";
 import { useContent, useStore } from "../store";
@@ -38,7 +39,6 @@ import { SubsectionsEditor } from "./SamplingSubsections";
 import { SamplingContents } from "./SamplingContents";
 import { DesignReviewLine, SamplingReview } from "./SamplingReview";
 import { HelpTip } from "../HelpTip";
-import { WhatThisIs } from "../WhatThisIs";
 
 type Tab = "overview" | "interview" | "review" | "subsections";
 const TAB_LABEL: Record<Tab, string> = { overview: "Overview", interview: "Interview", review: "Design review", subsections: "Plan subsections" };
@@ -82,22 +82,27 @@ function PlanList({ missing }: { missing?: string | undefined }) {
 
   return (
     <div className="stack-lg">
-      <PageBanner art="page-document">
-        <h1>Sampling plan</h1>
-      </PageBanner>
-      <section className="card stack" aria-labelledby="sp-about">
-        <h2 id="sp-about">What this is</h2>
-        <p data-testid="sampling-scope-text">{SAMPLING_SCOPE_TEXT}</p>
-        <ul className="plain-list">
-          <li>A plan lists which samples are pulled from which process steps during the PPQ batches, and how many.</li>
-          <li>Nothing is filled in for you. A decision you have not made stays a visible open item.</li>
-          <li>Suggestions come from the receiving unit (RU) data of this project. A suggestion becomes a point only when you add it.</li>
-          <li>The plan is a draft and never says that a plan is approved.</li>
-        </ul>
-        <p>
-          Company sampling tables are kept on the <a href={href("/sampling/tables")}>Sampling tables</a> page. Reusable plan text is kept on the <a href={href("/sampling/subsections")}>Plan subsections</a> page.
-        </p>
-      </section>
+      <PageHeader
+        title="Sampling plan"
+        purpose="A plan lists which samples are pulled from which process steps during the PPQ batches, and how many."
+        about={{
+          art: "page-document",
+          children: (
+            <>
+              <p data-testid="sampling-scope-text">{SAMPLING_SCOPE_TEXT}</p>
+              <ul className="plain-list">
+                <li>Nothing is filled in for you. A decision you have not made stays a visible open item.</li>
+                <li>Suggestions come from the receiving unit (RU) data of this project. A suggestion becomes a point only when you add it.</li>
+                <li>The plan is a draft and never says that a plan is approved.</li>
+              </ul>
+              <p>
+                Company sampling tables are kept on the <a href={href("/sampling/tables")}>Sampling tables</a> page. Reusable plan text is kept on the <a href={href("/sampling/subsections")}>Plan subsections</a> page.
+              </p>
+            </>
+          ),
+        }}
+      />
+      {plans.length === 0 && <StartArt art="page-document" />}
 
       {missing && (
         <p className="notice" role="alert">
@@ -238,38 +243,46 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
     return (k: string) => m.get(k) ?? k;
   }, [content]);
 
+  // Facts the page already knows (the same counts the plan list shows).
+  const pills: PagePill[] = [
+    { label: `${plan.batches.length} PPQ ${plan.batches.length === 1 ? "batch" : "batches"}`, testId: "plan-pill-batches" },
+    { label: `${plan.points.length} sampling ${plan.points.length === 1 ? "point" : "points"}`, testId: "plan-pill-points" },
+    { label: `${open.length} open ${open.length === 1 ? "item" : "items"}`, warning: open.length > 0, testId: "plan-pill-open" },
+  ];
+  // The downloads are made in the Overview tab (the document cards), where the kind of Word document and the pre-download checks are
+  // shown; the menu takes the person there with the matching button focused.
+  const toDownload = (testId: string) => () => {
+    setTab("overview");
+    focusWhenReady(testId);
+  };
+
   return (
     <div className="stack-lg">
-      <PageBanner art="page-document">
-        <h1>
-          {plan.id}: {plan.title}
-        </h1>
-      </PageBanner>
-      <p className="no-print">
-        <a href={href("/sampling")}>All sampling plans</a>
-      </p>
-      <WhatThisIs id="sampling">
-        <p>
-          A PPQ sampling plan says which samples are taken from which process steps during the PPQ batches, how many, and by what method. Its steps and suggestions come from this project's receiving unit data, so it is easiest after the gap assessment and the TRD, but nothing has to come first.
-        </p>
-        <p>Next in the chain: the batch record can take its sample rows from this plan. Nothing is filled in for you; a decision you have not made stays a visible open item.</p>
-      </WhatThisIs>
-      <p className="muted" data-testid="sampling-scope-text">
-        {SAMPLING_SCOPE_TEXT}
-      </p>
-      <SamplingContents tab={tab} onTab={setTab} />
-      {error && (
-        <p className="notice" role="alert" data-testid="sampling-error">
-          {error}
-        </p>
-      )}
-
-      <DetailsCard plan={plan} run={run} />
-      <ProcessStepsCard plan={plan} run={run} />
-      <FigureDataCard plan={plan} run={run} />
-      <BatchesCard plan={plan} run={run} />
-      <DesignCard plan={plan} run={run} />
-      <MethodCard plan={plan} run={run} />
+      <PageHeader
+        title={`${plan.id}: ${plan.title}`}
+        crumb={plan.id}
+        purpose="Which samples are taken from which process steps during the PPQ batches, how many, and by what method."
+        pills={pills}
+        meta={`Last changed ${dateTime(plan.updatedAt)}`}
+        about={{
+          art: "page-document",
+          children: (
+            <>
+              <p>
+                A PPQ sampling plan says which samples are taken from which process steps during the PPQ batches, how many, and by what method. Its steps and suggestions come from this project's receiving unit data, so it is easiest after the gap assessment and the TRD, but nothing has to come first.
+              </p>
+              <p>Next in the chain: the batch record can take its sample rows from this plan. Nothing is filled in for you; a decision you have not made stays a visible open item.</p>
+              <p data-testid="sampling-scope-text">{SAMPLING_SCOPE_TEXT}</p>
+            </>
+          ),
+        }}
+        exports={[
+          { label: "Download sampling plan (Word)", onSelect: toDownload("sampling-download-word") },
+          { label: "Download sampling plan (HTML)", onSelect: toDownload("sampling-download-html") },
+          { label: "Download reporting instructions (Word)", onSelect: toDownload("cmo-download-word") },
+          { label: "Download reporting instructions (HTML)", onSelect: toDownload("cmo-download-html") },
+        ]}
+      />
 
       <div role="group" aria-label="Plan sections" className="row wrap seg no-print" data-testid="plan-tabs">
         {(Object.keys(TAB_LABEL) as Tab[]).map((t) => (
@@ -279,6 +292,13 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
         ))}
         <HelpTip label="Plan sections" text="Overview shows the open items, the flow diagram, the sampling points and the document. Interview asks about each step or study type. Design review asks questions about how the samples are taken and where they sit. Plan subsections holds reusable text for the document. Switching tabs never loses anything you entered." />
       </div>
+
+      <SamplingContents tab={tab} onTab={setTab} />
+      {error && (
+        <p className="notice" role="alert" data-testid="sampling-error">
+          {error}
+        </p>
+      )}
 
       {tab === "interview" && (
         <>
@@ -304,6 +324,14 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
 
       {tab === "overview" && (
       <>
+      {/* The plan's set-up, in the order a plan is filled in. It used to sit above the tab strip and push it thousands of pixels down. */}
+      <DetailsCard plan={plan} run={run} />
+      <ProcessStepsCard plan={plan} run={run} />
+      <FigureDataCard plan={plan} run={run} />
+      <BatchesCard plan={plan} run={run} />
+      <DesignCard plan={plan} run={run} />
+      <MethodCard plan={plan} run={run} />
+
       <section className="card stack" aria-labelledby="sp-open" data-testid="plan-open-items">
         <h2 id="sp-open">Open items ({open.length})</h2>
         {open.length === 0 ? (

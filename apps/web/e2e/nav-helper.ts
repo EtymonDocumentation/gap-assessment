@@ -89,3 +89,20 @@ export async function expectNoMenuEntry(page: Page, label: string): Promise<void
   }
   await expect(nav.getByRole("link", { name: label, exact: true })).toHaveCount(0);
 }
+
+/** The breadcrumb at the top of a page ("Project name > Area > Page"): earlier parts are links, the last part is plain text. */
+export const breadcrumb = (page: Page) => page.getByRole("navigation", { name: "Breadcrumb" });
+
+/**
+ * Opens the page's "About this page" panel and returns it. The panel is closed on every visit (it holds the page's explanation and its
+ * picture, which would otherwise push the work down), so a spec that reads the explanation opens it first.
+ */
+export async function openAbout(page: Page) {
+  const toggle = page.getByTestId("about-toggle");
+  await expect(toggle).toBeVisible();
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  const panel = page.getByTestId("about-panel");
+  await expect(panel).toBeVisible();
+  return panel;
+}

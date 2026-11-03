@@ -7,7 +7,7 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
-import { goTo, NOTICE_DOCUMENT } from "./nav-helper";
+import { breadcrumb, goTo, NOTICE_DOCUMENT } from "./nav-helper";
 
 const SHOTS = tmpdir();
 const TYPES = ["ipc", "release", "ppq_enhanced", "mixing_homogeneity", "hold_time", "filter_study", "stability", "retain_reserve", "characterization", "supporting_study", "regulatory_commitment", "other"];
@@ -137,7 +137,7 @@ test("a custom subsection goes to the library and comes back; the library note a
   await expect(item.locator('[data-testid^="lib-history-"] li')).toHaveCount(2);
 
   // Back in the plan, insert it from the library into a study-type section.
-  await page.getByRole("link", { name: "Back to the sampling plans" }).click();
+  await breadcrumb(page).getByRole("link", { name: "Sampling plan", exact: true }).click();
   await page.getByTestId("plan-list").getByRole("link").first().click();
   await page.getByTestId("tab-subsections").click();
   await page.getByTestId("lib-select").selectOption({ label: "Cold chain note (fictional) (version 2)" });

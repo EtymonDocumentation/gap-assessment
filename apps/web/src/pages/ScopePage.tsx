@@ -1,4 +1,4 @@
-import { PageBanner } from "../art";
+import { PageHeader } from "../PageHeader";
 import { href } from "../router";
 import { DocumentSectionsBlock, ProcessStepsBlock, useScopeSummary } from "./ScopeEditor";
 
@@ -10,13 +10,22 @@ export function ScopePage() {
   const summary = useScopeSummary();
   return (
     <div className="stack-lg">
-      <PageBanner art="page-interview">
-        <h1>What does this assessment cover?</h1>
-      </PageBanner>
-      <p className="lede">
-        Everything is included to start with. Untick the process steps your process does not have, and the document sections you do not need, so the interview and the document only
-        cover what matters. You can change these choices at any time: values you already entered are kept, never deleted.
-      </p>
+      <PageHeader
+        title="What does this assessment cover?"
+        purpose="Untick the process steps your process does not have, and the document sections you do not need, so the interview and the document only cover what matters."
+        about={{
+          art: "page-interview",
+          children: (
+            <>
+              <p>
+                A gap assessment compares how a product is made and tested at the sending unit with the receiving unit, question by question, and lists every difference with its source. Nothing is assumed: an unanswered question stays visible.
+              </p>
+              <p>Everything is included to start with. You can change these choices at any time: values you already entered are kept, never deleted.</p>
+              <p>Next in the chain: the TRD, the sampling plan and the batch record can start from this project. Every stage is optional.</p>
+            </>
+          ),
+        }}
+      />
       <p className="scope-summary" role="status" data-testid="scope-summary">
         <strong>{summary.text}</strong>
       </p>

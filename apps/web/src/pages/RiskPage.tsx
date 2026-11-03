@@ -2,10 +2,10 @@ import { createAssessment, deleteAssessment, projectScopeSteps, riskOpenItems, u
 import type { RiskAssessment } from "@gap/process-model";
 import { describeMethod } from "@gap/risk";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { PageBanner } from "../art";
+import { StartArt } from "../art";
 import { Empty, Modal } from "../components";
+import { focusWhenReady, PageHeader, type PagePill } from "../PageHeader";
 import { Tabs, type TabDef } from "../Tabs";
-import { WhatThisIs } from "../WhatThisIs";
 import { dateTime } from "../lib";
 import { href, navigate } from "../router";
 import { useContent, useStore } from "../store";
@@ -55,6 +55,9 @@ const TAB_DEFS: TabDef<Tab>[] = [
 export const RISK_SCOPE_TEXT =
   "The tool calculates scores from the method you define. It does not judge whether a risk is acceptable; that decision belongs to your team and your quality system (ICH Q9(R1)).";
 
+/** The one line under the page title (the longer explanation is behind "About this page"). */
+const RISK_PURPOSE = "What could go wrong in the process, scored with a method your team chooses, and the actions that follow.";
+
 /** Assessment list and create page (no `ra` parameter) or the editor of one assessment. */
 export function RiskPage({ params }: { params: URLSearchParams }) {
   const project = useStore((s) => s.project)!;
@@ -89,22 +92,28 @@ function List({ missing }: { missing?: string | undefined }) {
 
   return (
     <div className="stack-lg">
-      <PageBanner art="page-document">
-        <h1>Risk assessment</h1>
-      </PageBanner>
-      <section className="card stack" aria-labelledby="ra-about">
-        <h2 id="ra-about">What this is</h2>
-        <p data-testid="risk-scope-text">{RISK_SCOPE_TEXT}</p>
-        <ul className="plain-list">
-          <li>You choose the method (FMEA, a risk matrix, your own factors, or plain levels with a written reason). The tool has no default method, scale or bands.</li>
-          <li>Items come from the gaps, from a catalog of typical failure modes, from sampling points, or from you. A suggestion becomes an item only when you add it.</li>
-          <li>An item without enough answers stays "Not scored" and shows as an open item. The tool never guesses a value.</li>
-          <li>The gap severity is shown for reference. It is never copied into a score.</li>
-        </ul>
-        <p>
-          Methods your company has defined are kept on the <a href={href("/risk/methods")}>Method library</a> page.
-        </p>
-      </section>
+      <PageHeader
+        title="Risk assessment"
+        purpose={RISK_PURPOSE}
+        about={{
+          art: "page-document",
+          children: (
+            <>
+              <p data-testid="risk-scope-text">{RISK_SCOPE_TEXT}</p>
+              <ul className="plain-list">
+                <li>You choose the method (FMEA, a risk matrix, your own factors, or plain levels with a written reason). The tool has no default method, scale or bands.</li>
+                <li>Items come from the gaps, from a catalog of typical failure modes, from sampling points, or from you. A suggestion becomes an item only when you add it.</li>
+                <li>An item without enough answers stays "Not scored" and shows as an open item. The tool never guesses a value.</li>
+                <li>The gap severity is shown for reference. It is never copied into a score.</li>
+              </ul>
+              <p>
+                Methods your company has defined are kept on the <a href={href("/risk/methods")}>Method library</a> page.
+              </p>
+            </>
+          ),
+        }}
+      />
+      {list.length === 0 && <StartArt art="page-document" />}
 
       {missing && (
         <p className="notice" role="alert">
@@ -197,56 +206,92 @@ function Editor({ a, initialTab }: { a: RiskAssessment; initialTab: Tab }) {
   };
   const open = useMemo(() => riskOpenItems(project, a), [project, a]);
 
+  // Facts the page already knows (the same counts the assessment list shows).
+  const pills: PagePill[] = [
+    { label: `${a.items.length} ${a.items.length === 1 ? "item" : "items"}`, testId: "risk-pill-items" },
+    { label: `${a.actions.length} ${a.actions.length === 1 ? "action" : "actions"}`, testId: "risk-pill-actions" },
+    { label: `${open.length} open ${open.length === 1 ? "item" : "items"}`, warning: open.length > 0, testId: "risk-pill-open" },
+  ];
+  // The downloads are made in the Output tab (the section choice, the Word kind and the pre-download check are there); the menu takes the
+  // person there with the matching button focused.
+  const toDownload = (testId: string) => () => {
+    select("output");
+    focusWhenReady(testId);
+  };
+  const openItems = (
+    <section className="card stack" aria-labelledby="ra-open" data-testid="risk-open-items">
+      <h2 id="ra-open">Open items ({open.length})</h2>
+      {open.length === 0 ? (
+        <p>No open items. This says the entries are all there, not that the risks are acceptable; that decision belongs to your team and your quality system.</p>
+      ) : (
+        <ul className="plain-list small">
+          {open.map((o, i) => (
+            <li key={i}>{o.text}</li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+
   return (
     <div className="stack-lg">
-      <PageBanner art="page-document">
-        <h1>
-          {a.id}: {a.title}
-        </h1>
-      </PageBanner>
-      <p className="no-print">
-        <a href={href("/risk")}>All risk assessments</a>
-      </p>
-      <WhatThisIs id="risk">
-        <p>
-          A risk assessment (ICH Q9(R1)) lists what could go wrong in the process, scores each item with a method your team chooses, and records the actions that follow. It can draw on the gaps found earlier and on sampling points from the sampling plan, but needs neither.
-        </p>
-        <p>Next: download the draft from the Output tab for review. The tool reports the band you defined; it never calls a risk acceptable.</p>
-      </WhatThisIs>
-      <p className="muted" data-testid="risk-scope-text">
-        {RISK_SCOPE_TEXT}
-      </p>
-      {error && (
-        <p className="notice" role="alert" data-testid="risk-error">
-          {error}
-        </p>
-      )}
-
-      <DetailsCard a={a} run={run} />
-
-      <section className="card stack" aria-labelledby="ra-open" data-testid="risk-open-items">
-        <h2 id="ra-open">Open items ({open.length})</h2>
-        {open.length === 0 ? (
-          <p>No open items. This says the entries are all there, not that the risks are acceptable; that decision belongs to your team and your quality system.</p>
-        ) : (
-          <ul className="plain-list small">
-            {open.map((o, i) => (
-              <li key={i}>{o.text}</li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <PageHeader
+        title={`${a.id}: ${a.title}`}
+        crumb={a.id}
+        purpose={RISK_PURPOSE}
+        pills={pills}
+        meta={`Method: ${a.config ? describeMethod(a.config).title : "not chosen"} · Last changed ${dateTime(a.updatedAt)}`}
+        about={{
+          art: "page-document",
+          children: (
+            <>
+              <p>
+                A risk assessment (ICH Q9(R1)) lists what could go wrong in the process, scores each item with a method your team chooses, and records the actions that follow. It can draw on the gaps found earlier and on sampling points from the sampling plan, but needs neither.
+              </p>
+              <p>Next: download the draft from the Output tab for review.</p>
+              <p data-testid="risk-scope-text">{RISK_SCOPE_TEXT}</p>
+            </>
+          ),
+        }}
+        exports={[
+          { label: "Download risk assessment (Word)", onSelect: toDownload("risk-download-word") },
+          { label: "Download risk assessment (HTML)", onSelect: toDownload("risk-download-html") },
+        ]}
+      />
 
       <Tabs label="Assessment steps" tabs={TAB_DEFS} selected={tab} onSelect={select} testId="risk-tabs">
+        {error && (
+          <p className="notice" role="alert" data-testid="risk-error">
+            {error}
+          </p>
+        )}
+        {/* The open items stay on every tab, as they were above the tab strip before; on the Method tab they follow the details. */}
         {tab === "method" && (
           <>
+            <DetailsCard a={a} run={run} />
+            {openItems}
             <RiskMethod a={a} run={run} />
             <RiskReview a={a} run={run} />
           </>
         )}
-        {tab === "items" && <RiskItems a={a} run={run} />}
-        {tab === "actions" && <RiskActions a={a} run={run} />}
-        {tab === "output" && <RiskOutput a={a} run={run} />}
+        {tab === "items" && (
+          <>
+            {openItems}
+            <RiskItems a={a} run={run} />
+          </>
+        )}
+        {tab === "actions" && (
+          <>
+            {openItems}
+            <RiskActions a={a} run={run} />
+          </>
+        )}
+        {tab === "output" && (
+          <>
+            {openItems}
+            <RiskOutput a={a} run={run} />
+          </>
+        )}
       </Tabs>
 
       <section className="card stack no-print" aria-labelledby="ra-delete">

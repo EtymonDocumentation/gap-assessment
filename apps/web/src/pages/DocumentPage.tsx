@@ -2,12 +2,13 @@ import { buildDocument, documentFingerprint, omittedSectionIds, recordExport, ve
 import type { DocumentExport, TemplateRecord } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlBody, renderMarkdown } from "@gap/renderers";
 import { useMemo, useRef, useState } from "react";
-import { PageBanner } from "../art";
 import { Modal } from "../components";
+import { HelpTip } from "../HelpTip";
+import { PageHeader } from "../PageHeader";
 import { download, sideText, slug, today } from "../lib";
 import { href } from "../router";
 import { useAssessment, useContent, useStageWording, useStore } from "../store";
-import { BUILTIN_RECORD, ExportHistory, useWordChoice, WordPanel } from "./document-panels";
+import { BUILTIN_RECORD, ExportHistory, useWordChoice, useWordExport, WORD_EXPORT_HELP, WordPanelView } from "./document-panels";
 import { DocumentSectionsBlock, ProcessStepsBlock, useScopeSummary } from "./ScopeEditor";
 
 /** Live preview of the generated document, with the scope panel, downloads (Markdown, HTML, Word) and the export history. */
@@ -55,14 +56,45 @@ export function DocumentPage() {
       "Download recorded in the export history",
     );
 
+  const word = useWordExport({ choice, doc, content, project, assessment: a, generatedAt, fileBase: base, guard, onExported: (template) => recordDownload("docx", template) });
+  const downloadMarkdown = () =>
+    guard(() => {
+      download(`${base}.md`, renderMarkdown(doc), "text/markdown;charset=utf-8");
+      recordDownload("markdown", BUILTIN_RECORD);
+    });
+  const downloadHtml = () =>
+    guard(() => {
+      download(`${base}.html`, renderHtml(doc), "text/html;charset=utf-8");
+      recordDownload("html", BUILTIN_RECORD);
+    });
+  const printPdf = () => guard(() => window.print());
+
   const n = doc.tbdCount;
   const included = summary.steps.included;
   return (
     <div className="stack-lg">
-      <PageBanner art="page-document">
-        <h1>Document</h1>
-      </PageBanner>
-      <p className="lede">Draft the gap assessment document from your answers and gap decisions. Check what it covers, add your own text where asked, then download it.</p>
+      <PageHeader
+        title="Document"
+        purpose="Draft the gap assessment document from your answers and gap decisions."
+        pills={n > 0 ? [{ label: `${n} TBD ${n === 1 ? "value" : "values"} open`, warning: true, testId: "doc-tbd-pill" }] : []}
+        about={{
+          art: "page-document",
+          children: (
+            <>
+              <p>Check what it covers, add your own text where asked, then download it.</p>
+              <p>
+                Draft generated from the current answers. It updates as answers change. The table of differences cites the rule and version that produced each classification.
+              </p>
+            </>
+          ),
+        }}
+        exports={[
+          { label: "Download Word document", onSelect: word.run, testId: "export-word" },
+          { label: "Download HTML", onSelect: downloadHtml, testId: "export-html" },
+          { label: "Download Markdown", onSelect: downloadMarkdown, testId: "export-markdown" },
+          { label: "Print / save as PDF", onSelect: printPdf, testId: "export-print" },
+        ]}
+      />
 
       <section className="card stack no-print" aria-labelledby="doc-scope-title" data-testid="doc-scope-panel">
         <div className="row between wrap">
@@ -84,44 +116,35 @@ export function DocumentPage() {
       </section>
 
       <div className="stack no-print">
-        <div className="row between wrap">
-          <div className="row wrap">
+        <div className="row wrap" data-testid="downloads-row">
+          <span className="row inline">
             <button
-              className="btn"
-              onClick={() =>
-                guard(() => {
-                  download(`${base}.md`, renderMarkdown(doc), "text/markdown;charset=utf-8");
-                  recordDownload("markdown", BUILTIN_RECORD);
-                })
-              }
+              type="button"
+              className="btn primary"
+              disabled={word.blocked || word.busy}
+              aria-describedby={word.checks?.blockers.length ? "word-blockers" : undefined}
+              onClick={word.run}
             >
-              Download Markdown
+              {word.busy ? "Creating…" : "Download Word document"}
             </button>
-            <button
-              className="btn"
-              onClick={() =>
-                guard(() => {
-                  download(`${base}.html`, renderHtml(doc), "text/html;charset=utf-8");
-                  recordDownload("html", BUILTIN_RECORD);
-                })
-              }
-            >
-              Download HTML
-            </button>
-            <button className="btn primary" onClick={() => guard(() => window.print())}>
-              Print / save as PDF
-            </button>
-          </div>
+            <HelpTip label="the Word export" text={WORD_EXPORT_HELP} />
+          </span>
+          <button className="btn" onClick={downloadHtml}>
+            Download HTML
+          </button>
+          <button className="btn" onClick={downloadMarkdown}>
+            Download Markdown
+          </button>
+          <button className="btn" onClick={printPdf}>
+            Print / save as PDF
+          </button>
         </div>
         <p className="small" data-testid="download-contents">
           Downloads include {included} process {included === 1 ? "step" : "steps"} and {summary.sectionsIncluded} of {summary.sectionsTotal} document sections
           {omitted.length ? ` (${omitted.length} optional ${omitted.length === 1 ? "section" : "sections"} left out)` : ""}. They match the preview below.
         </p>
       </div>
-      <p className="muted no-print">
-        Draft generated from the current answers. It updates as answers change. The table of differences cites the rule and version that produced
-        each classification.
-      </p>
+      <WordPanelView choice={choice} exporter={word} showButton={false} />
       <section className="card no-print" aria-labelledby="verif-summary-title">
         <h2 id="verif-summary-title">Verification status</h2>
         <p className="small">
@@ -162,17 +185,6 @@ export function DocumentPage() {
           Names are free text without a login, so verification is not attributable in a GMP sense. The full breakdown by section is in the document.
         </p>
       </section>
-      <WordPanel
-        choice={choice}
-        doc={doc}
-        content={content}
-        project={project}
-        assessment={a}
-        generatedAt={generatedAt}
-        fileBase={base}
-        guard={guard}
-        onExported={(template) => recordDownload("docx", template)}
-      />
       <ExportHistory exports={project.document.exports} />
       <style>{DOCUMENT_CSS}</style>
       {/* Content is built from escaped text by renderHtmlBody (every value passes through escapeHtml). */}

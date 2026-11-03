@@ -31,6 +31,15 @@ export function useProjectSeed(): { seed: TrdSeed | null; problem: string } {
 }
 
 /**
+ * For the page header: how many rows differ from the project right now, or null when the TRD did not start from the project (a TRD
+ * that started from a seed file is compared with a file the person picks in the Details tab, so there is nothing to count before that).
+ */
+export function useProjectDifferences(d: TrdDocument): number | null {
+  const { seed } = useProjectSeed();
+  return useMemo(() => (d.origin.kind === "project" && seed ? diffTrdAgainstSeed(d, seed).length : null), [d, seed]);
+}
+
+/**
  * Notice and review for a TRD that started from the project or from a seed file. A change in the project is a NOTICE, never a block:
  * the person may keep working and look at the differences when ready. In the review, a value the team overrode is never replaced on
  * its own. "Accept all not overridden" takes every other row; an overridden row needs its own choice, between keeping the team's

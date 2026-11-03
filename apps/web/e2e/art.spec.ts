@@ -1,8 +1,10 @@
-// Website art: a banner on every page, unit-operation pictures and close-ups in the interview, pictures load, no sideways scroll,
-// accessibility, title contrast over the picture, print. Runs on the desktop, tablet and phone projects.
+// Website art. The Home hero and the small "start" picture of a module with no records stay on their pages; every other page keeps
+// its picture behind "About this page" (one panel with the explanation, closed on every visit). Also: unit-operation pictures and
+// close-ups in the interview, pictures load, no sideways scroll, accessibility, title contrast over the hero, print. Runs on the
+// desktop, tablet and phone projects.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { expectNotice } from "./nav-helper";
+import { expectNotice, openAbout } from "./nav-helper";
 
 
 test.beforeEach(async ({ page }) => {
@@ -39,7 +41,7 @@ async function expectLoaded(img: Locator, label: string) {
 }
 
 /**
- * Worst-case contrast of the banner title over the picture. The title text is hidden, the area under it is photographed, and the
+ * Worst-case contrast of the hero title over the picture. The title text is hidden, the area under it is photographed, and the
  * lowest contrast between any pixel there and the title colour is computed, so the scrim is checked as it really renders.
  */
 async function worstTitleContrast(page: Page, banner: Locator): Promise<number> {
@@ -85,14 +87,17 @@ async function worstTitleContrast(page: Page, banner: Locator): Promise<number> 
   );
 }
 
-/** Every page with a banner: route, the art key in the banner, and whether a project is needed. */
+/** Every page whose picture is behind "About this page": route, the art key of the picture, and the name for messages. */
 const PAGES = [
-  { hash: "#/", art: "page-home-hero", name: "Home" },
-  { hash: "#/interview", art: "page-interview", name: "Interview" },
+  { hash: "#/scope", art: "page-interview", name: "Scope" },
   { hash: "#/compare", art: "page-compare", name: "Side by side" },
   { hash: "#/register", art: "page-register", name: "Gap register" },
   { hash: "#/validation", art: "page-validation", name: "Validation" },
   { hash: "#/document", art: "page-document", name: "Document" },
+  { hash: "#/trd", art: "page-document", name: "TRD" },
+  { hash: "#/sampling", art: "page-document", name: "Sampling plan" },
+  { hash: "#/mbr", art: "page-document", name: "Batch record" },
+  { hash: "#/risk", art: "page-document", name: "Risk assessment" },
   { hash: "#/templates", art: "page-templates", name: "Templates" },
   { hash: "#/guidance", art: "page-guidance", name: "Guidance" },
   { hash: "#/builder", art: "page-builder", name: "Builder" },
@@ -100,30 +105,61 @@ const PAGES = [
   { hash: "#/changes", art: "page-changes", name: "Change log" },
 ] as const;
 
+/** The picture of an open "About this page": loads, is decoration only, and sits beside the text (wide) or above it (phone). */
+async function expectAboutPicture(page: Page, art: string, name: string, phone: boolean) {
+  const fig = page.locator(`.about-art[data-art="${art}"]`);
+  await expect(fig, name).toBeVisible();
+  await expectLoaded(fig.locator("img"), name);
+  // The picture is decoration: no text alternative, hidden from assistive technology.
+  await expect(fig.locator("img")).toHaveAttribute("alt", "");
+  await expect(fig).toHaveAttribute("aria-hidden", "true");
+  const f = (await fig.boundingBox())!;
+  const t = (await page.locator(".about-panel .about-text").boundingBox())!;
+  if (phone) expect(f.y + f.height, `${name}: the picture is above the text on a phone`).toBeLessThanOrEqual(t.y + 1);
+  else expect(f.x, `${name}: the picture is beside the text`).toBeGreaterThanOrEqual(t.x + t.width - 1);
+}
+
 // One test per page, so a failure names the page and no single test runs a long chain of axe scans.
 for (const p of PAGES) {
-  test(`${p.name}: banner, picture loads, nothing scrolls sideways, axe clean, title readable in light and dark`, async ({ page }, info) => {
-    // Two axe scans and two screenshots on the heaviest pages (Builder, Document) take longer than the default 30 s.
+  test(`${p.name}: no banner, the picture is behind "About this page", loads, nothing scrolls sideways, axe clean in light and dark`, async ({ page }, info) => {
+    // Two axe scans on the heaviest pages (Builder, Document) take longer than the default 30 s.
     test.setTimeout(90_000);
     await loadDemo(page);
     await go(page, p.hash);
-    const banner = page.locator(`.art-banner[data-art="${p.art}"]`);
-    await expect(banner, p.name).toBeVisible();
-    await expectLoaded(banner.locator("img"), p.name);
-    // The picture is decoration: no text alternative, hidden from assistive technology.
-    await expect(banner.locator("img")).toHaveAttribute("alt", "");
-    await expect(banner.locator(".art-banner-img")).toHaveAttribute("aria-hidden", "true");
-    if (info.project.name === "phone") expect((await banner.boundingBox())!.height, `${p.name}: banner on a phone`).toBeLessThanOrEqual(121);
+    await expect(page.getByRole("heading", { level: 1 }).first(), p.name).toBeVisible();
+    // No big picture on the page: the Home hero and a module's empty "start" picture are the only banners.
+    await expect(page.locator(".art-banner"), `${p.name}: banner`).toHaveCount(0);
+    // Closed on every visit: no picture is drawn until the person asks for the explanation.
+    await expect(page.locator(".about-art")).toHaveCount(0);
+    await openAbout(page);
+    await expectAboutPicture(page, p.art, p.name, info.project.name === "phone");
     for (const scheme of ["light", "dark"] as const) {
       await page.emulateMedia({ colorScheme: scheme });
       await expectNoHorizontalScroll(page, `${p.name}, ${scheme}`);
       await expectAccessible(page, `${p.name}, ${scheme}`);
-      expect(await worstTitleContrast(page, banner), `${p.name}, ${scheme}: title contrast over the picture`).toBeGreaterThanOrEqual(4.5);
     }
   });
 }
 
-test("the home hero is larger than the other banners and loads first", async ({ page }, info) => {
+test("Home: the hero banner loads, its title is readable over the picture in light and dark, nothing scrolls sideways", async ({ page }, info) => {
+  test.setTimeout(90_000);
+  await loadDemo(page);
+  await go(page, "#/");
+  const hero = page.locator('.art-banner[data-art="page-home-hero"]');
+  await expect(hero).toBeVisible();
+  await expectLoaded(hero.locator("img"), "Home hero");
+  await expect(hero.locator("img")).toHaveAttribute("alt", "");
+  await expect(hero.locator(".art-banner-img")).toHaveAttribute("aria-hidden", "true");
+  if (info.project.name === "phone") expect((await hero.boundingBox())!.height, "hero on a phone").toBeLessThanOrEqual(241);
+  for (const scheme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme: scheme });
+    await expectNoHorizontalScroll(page, `Home, ${scheme}`);
+    await expectAccessible(page, `Home, ${scheme}`);
+    expect(await worstTitleContrast(page, hero), `Home, ${scheme}: title contrast over the picture`).toBeGreaterThanOrEqual(4.5);
+  }
+});
+
+test("the home hero is larger than the other pictures and loads first", async ({ page }, info) => {
   await page.goto("./");
   const hero = page.locator('.art-banner[data-art="page-home-hero"]');
   await expect(hero).toBeVisible();
@@ -138,26 +174,61 @@ test("the home hero is larger than the other banners and loads first", async ({ 
     const heroHeight = (await hero.boundingBox())!.height;
     await loadDemo(page);
     await go(page, "#/compare");
-    const other = (await page.locator('.art-banner[data-art="page-compare"]').boundingBox())!.height;
+    await openAbout(page);
+    const other = (await page.locator('.about-art[data-art="page-compare"]').boundingBox())!.height;
     expect(heroHeight).toBeGreaterThan(other);
-    // Other banners are lazy.
-    await expect(page.locator('.art-banner[data-art="page-compare"] img')).toHaveAttribute("loading", "lazy");
+    // Other pictures are lazy.
+    await expect(page.locator('.about-art[data-art="page-compare"] img')).toHaveAttribute("loading", "lazy");
   }
 });
 
-test("a template's heading mapping page has the mapping banner", async ({ page }) => {
+test("a template's heading mapping page keeps its picture behind About this page", async ({ page }, info) => {
   await loadDemo(page);
   await go(page, "#/templates");
   await page.getByRole("button", { name: "Add the fictional sample templates" }).click();
   await expect(page.getByRole("status").filter({ hasText: "4 sample templates added" })).toBeVisible();
   await page.locator("article.card", { hasText: "SOP-style template" }).getByRole("link", { name: /^Create mapping/ }).click();
   await expect(page.getByRole("heading", { level: 1, name: /^Heading mapping:/ })).toBeVisible();
-  const banner = page.locator('.art-banner[data-art="page-mapping"]');
-  await expect(banner).toBeVisible();
-  await expectLoaded(banner.locator("img"), "mapping");
+  await expect(page.locator(".art-banner")).toHaveCount(0);
+  await openAbout(page);
+  await expectAboutPicture(page, "page-mapping", "mapping", info.project.name === "phone");
   await expectNoHorizontalScroll(page, "mapping");
   await expectAccessible(page, "mapping");
-  expect(await worstTitleContrast(page, banner)).toBeGreaterThanOrEqual(4.5);
+});
+
+test("a module with no records shows a small start picture; once there is a record the picture is gone", async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.goto("./");
+  await page.getByRole("button", { name: "Start a new project" }).click();
+  const dialog = page.getByRole("dialog", { name: "New project" });
+  await dialog.getByLabel("Project title").fill("Start pictures (fictional)");
+  await dialog.getByLabel("Responder name").fill("Test Person (fictional)");
+  await dialog.getByRole("button", { name: "Create project" }).click();
+  for (const [hash, name] of [
+    ["#/trd", "TRD"],
+    ["#/sampling", "Sampling plan"],
+    ["#/mbr", "Batch record"],
+    ["#/risk", "Risk assessment"],
+  ] as const) {
+    await go(page, hash);
+    await expect(page.getByRole("heading", { level: 1, name }), name).toBeVisible();
+    const start = page.locator('.art-banner.art-start[data-art="page-document"]');
+    await expect(start, `${name}: start picture`).toBeVisible();
+    await expectLoaded(start.locator("img"), `${name} start picture`);
+    await expect(start.locator("img")).toHaveAttribute("alt", "");
+    await expect(start.locator(".art-banner-img")).toHaveAttribute("aria-hidden", "true");
+    // A start picture is small: the card that says what to do comes right under it.
+    expect((await start.boundingBox())!.height, `${name}: start picture height`).toBeLessThanOrEqual(131);
+    await expectNoHorizontalScroll(page, `${name} start`);
+    await expectAccessible(page, `${name} start`);
+  }
+  // With records (the demo project) no module page carries it.
+  await loadDemo(page);
+  for (const hash of ["#/trd", "#/sampling", "#/mbr", "#/risk"]) {
+    await go(page, hash);
+    await expect(page.getByTestId("about-toggle")).toBeVisible();
+    await expect(page.locator(".art-start"), hash).toHaveCount(0);
+  }
 });
 
 test("interview: the unit-operation picture and the PUPSIT close-up sit with the sterile filtration questions, and the form stays near the top", async ({ page }, info) => {
@@ -177,7 +248,7 @@ test("interview: the unit-operation picture and the PUPSIT close-up sit with the
     await expect(closeup).toBeVisible();
     await expectLoaded(closeup.locator("img"), "PUPSIT close-up");
   }
-  // The form is not pushed far down: its first input starts within the first two screens even with the slim banner above.
+  // The form is not pushed far down: its first input starts within the first two screens even with the page header above.
   const firstField = card.locator("form input, form select, form textarea").first();
   const y = (await firstField.boundingBox())!.y + (await page.evaluate(() => window.scrollY));
   // Tablet (820 x 1180) also carries the chain strip and step bar above the card; Linux CI fonts wrap a little more than
@@ -216,10 +287,18 @@ test("builder: unit-operation sections carry their small picture", async ({ page
 
 test("print hides every banner and picture", async ({ page }) => {
   await loadDemo(page);
-  await go(page, "#/document");
+  await go(page, "#/");
   await expect(page.locator(".art-banner")).toBeVisible();
   await page.emulateMedia({ media: "print" });
   await expect(page.locator(".art-banner")).toBeHidden();
+  await page.emulateMedia({ media: "screen" });
+  await go(page, "#/document");
+  await openAbout(page);
+  await expect(page.locator(".about-art")).toBeVisible();
+  await page.emulateMedia({ media: "print" });
+  await expect(page.locator(".about-art")).toBeHidden();
+  // the page's own title block (breadcrumb, title, purpose, buttons) is left out too: a printed page shows the document
+  await expect(page.getByTestId("page-head")).toBeHidden();
   await go(page, "#/interview?q=filt.pupsit%40source");
   await expect(page.locator(".art-fig").first()).toBeHidden();
   await expect(page.locator(".art-banner")).toBeHidden();

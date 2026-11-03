@@ -1,10 +1,9 @@
 import { type SubsectionLibraryItem } from "@gap/process-model";
 import { isPlacement, parseSubsectionText, placementLabel, subsectionText } from "@gap/sampling";
 import { useEffect, useRef, useState } from "react";
-import { PageBanner } from "../art";
+import { PageHeader } from "../PageHeader";
 import { Empty, Modal } from "../components";
 import { dateTime } from "../lib";
-import { href } from "../router";
 import { itemOf, newLibraryId, useSubsectionLibrary, type StoredSubsection } from "../subsections-library-store";
 import { PlacementPicker, TEXT_FORMAT_HELP, TokenHelp } from "./SamplingSubsections";
 
@@ -26,24 +25,26 @@ export function SamplingSubsectionsPage() {
 
   return (
     <div className="stack-lg">
-      <PageBanner art="page-document">
-        <h1>Plan subsections</h1>
-      </PageBanner>
-      <p className="no-print">
-        <a href={href("/sampling")}>Back to the sampling plans</a>
-      </p>
-      <section className="card stack" aria-labelledby="lib-about">
-        <h2 id="lib-about">What this is</h2>
-        <p className="small">
-          Reusable text for sampling plans, for example a sample-handling paragraph. A plan copies an item in and keeps its own text and the version it came from. If you change an item here, plans that used it show a note that the library has moved on; they are not changed.
+      <PageHeader
+        title="Plan subsections"
+        purpose="Reusable text for sampling plans, for example a sample-handling paragraph."
+        about={{
+          art: "page-document",
+          children: (
+            <>
+              <p>
+                A plan copies an item in and keeps its own text and the version it came from. If you change an item here, plans that used it show a note that the library has moved on; they are not changed.
+              </p>
+              <TokenHelp />
+            </>
+          ),
+        }}
+      />
+      {error && (
+        <p className="notice" role="alert" data-testid="lib-error">
+          {error}
         </p>
-        <TokenHelp />
-        {error && (
-          <p className="notice" role="alert" data-testid="lib-error">
-            {error}
-          </p>
-        )}
-      </section>
+      )}
 
       <section className="card stack" aria-labelledby="lib-add">
         <h2 id="lib-add">Add an item</h2>

@@ -7,7 +7,7 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
-import { expectNotice, goTo, NOTICE_DOCUMENT } from "./nav-helper";
+import { expectNotice, goTo, NOTICE_DOCUMENT, openAbout } from "./nav-helper";
 
 const SHOTS = tmpdir();
 
@@ -25,6 +25,7 @@ async function loadDemo(page: Page) {
 async function openRisk(page: Page) {
   await loadDemo(page);
   await goTo(page, "Risk assessment");
+  await openAbout(page);
   await expect(page.getByTestId("risk-scope-text")).toBeVisible();
 }
 

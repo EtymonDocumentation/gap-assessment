@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
 import { parseTrdSeed } from "@gap/process-model";
-import { expectNotice, goTo, NOTICE_DOCUMENT } from "./nav-helper";
+import { expectNotice, goTo, NOTICE_DOCUMENT, openAbout } from "./nav-helper";
 
 const TITLE = "Technical requirements document — draft outline";
 const SHOTS = tmpdir();
@@ -68,7 +68,9 @@ const wordText = (bytes: Buffer) => new PizZip(bytes).file("word/document.xml")!
 test("the TRD seed page explains itself, counts the values and offers the three downloads", async ({ page }) => {
   await openTrdPage(page);
   await expectNotice(page);
-  await expect(page.getByRole("heading", { level: 2, name: "What this is" })).toBeVisible();
+  // The explanation is behind "About this page"; the one-line purpose is always on screen.
+  await expect(page.getByTestId("page-purpose")).toContainText("technical requirements document");
+  await openAbout(page);
   await expect(page.getByText(/Customer templates are not applied to it yet/)).toBeVisible();
   await expect(page.getByTestId("trd-scope-summary")).toContainText("process steps in scope");
   // Counts per process step, inside a scrollable, labelled region.

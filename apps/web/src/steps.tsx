@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import { HelpTip } from "./HelpTip";
-import { WhatThisIs } from "./WhatThisIs";
 import { GAP_STEPS, stepDone } from "./next-step";
 import { href } from "./router";
 import { useAssessment, useStore } from "./store";
@@ -21,7 +20,6 @@ export function GapStepBar({ path }: { path: string }) {
   const at = gapStepIndex(path);
   if (at < 0) return null;
   return (
-    <>
     <nav aria-label="Gap assessment steps" className="gap-step-bar">
       <p className="gap-step-compact">
         Step {at + 1} of {GAP_STEPS.length}: <strong>{GAP_STEPS[at]!.label}</strong>
@@ -51,17 +49,6 @@ export function GapStepBar({ path }: { path: string }) {
         <HelpTip label={`step ${at + 1}, ${GAP_STEPS[at]!.label}`} text={STEP_HELP[GAP_STEPS[at]!.id]} />
       </p>
     </nav>
-      {/* Only on Scope, where the gap assessment starts: on the Interview the form must stay near the top of the
-          screen, and the card is remembered per browser, so returning users don't see it again. */}
-      {at === 0 && (
-        <WhatThisIs id="gap">
-          <p>
-            A gap assessment compares how a product is made and tested at the sending unit with the receiving unit, question by question, and lists every difference with its source. Nothing is assumed: an unanswered question stays visible.
-          </p>
-          <p>Next in the chain: the TRD, the sampling plan and the batch record can start from this project. Every stage is optional.</p>
-        </WhatThisIs>
-      )}
-    </>
   );
 }
 

@@ -113,7 +113,7 @@ function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "
               })
             }
           >
-            Download HTML
+            {cmo ? "Download reporting instructions (HTML)" : "Download sampling plan (HTML)"}
           </button>
           <button type="button" className="btn" aria-expanded={showPreview} onClick={() => setShowPreview((v) => !v)} data-testid={`${p}-preview-toggle`}>
             {showPreview ? "Hide preview" : "Show preview"}
@@ -141,6 +141,7 @@ function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "
         testIdPrefix={p}
         idPrefix={`${p}-word`}
         title={cmo ? "Word document: reporting instructions" : "Word document: sampling plan"}
+        buttonLabel={cmo ? "Download reporting instructions (Word)" : "Download sampling plan (Word)"}
         note={SAMPLING_WORD_NOTE}
       />
 

@@ -1,4 +1,4 @@
-// Layout job 2: real tabs on the batch record, TRD and risk assessment, the "?" help tips, the "What this is" cards and the sampling
+// Layout job 2: real tabs on the batch record, TRD and risk assessment, the "?" help tips, the "About this page" panel and the sampling
 // plan Contents list. Keyboard behaviour, deep links, phone width and axe. All data are fictional.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
@@ -211,28 +211,38 @@ test("HelpTip at the edge of a phone screen stays inside the viewport", async ({
   await expectNoSidewaysScroll(page, "help tip on a phone");
 });
 
-test("What this is: open the first time, hide it, and the choice is remembered in this browser", async ({ page }) => {
+test("About this page: closed on every visit, opens with the page's explanation and picture, and closes again", async ({ page }) => {
   await openSyringe(page);
   await hash(page, "#/mbr?mbr=MBR-001");
-  const card = page.getByTestId("whatis-mbr");
-  await expect(card).toContainText("master batch record");
-  await shot(page, "whatis-" + test.info().project.name);
-  const toggle = page.getByTestId("whatis-mbr-toggle");
+  const toggle = page.getByTestId("about-toggle");
+  const panel = page.getByTestId("about-panel");
+  // Closed the first time, so the explanation never pushes the tabs down; the button names what it opens.
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(toggle).toContainText("About this page");
+  await expect(panel).toBeHidden();
+  expect(await panel.getAttribute("id")).toBe(await toggle.getAttribute("aria-controls"));
+  await toggle.click();
   await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await expect(panel).toContainText("master batch record");
+  await expect(panel.locator("figure[data-art]")).toBeVisible();
+  await shot(page, "about-" + test.info().project.name);
+  await expectAccessible(page, "about this page, open");
+  await expectNoSidewaysScroll(page, "about this page, open");
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
-  await expect(card.getByText("A master batch record is the step-by-step")).toHaveCount(0);
+  await expect(panel).toBeHidden();
+  // Opening it is not remembered: every visit starts closed.
+  await toggle.click();
   await page.reload();
-  await expect(page.getByTestId("whatis-mbr-toggle")).toHaveAttribute("aria-expanded", "false");
-  await page.getByTestId("whatis-mbr-toggle").click();
-  await expect(page.getByTestId("whatis-mbr")).toContainText("master batch record");
-  // Each document kind keeps its own choice.
+  await expect(page.getByTestId("about-toggle")).toHaveAttribute("aria-expanded", "false");
+  // Each page explains itself in its own words.
   await hash(page, "#/trd?trd=TRD-001");
-  await expect(page.getByTestId("whatis-trd-toggle")).toHaveAttribute("aria-expanded", "true");
-  await expectAccessible(page, "what this is");
+  await expect(page.getByTestId("about-toggle")).toHaveAttribute("aria-expanded", "false");
+  await page.getByTestId("about-toggle").click();
+  await expect(page.getByTestId("about-panel")).toContainText("technical requirements");
 });
 
-test("What this is works with browser storage blocked", async ({ page }) => {
+test("About this page works with browser storage blocked (it needs none)", async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(window, "localStorage", {
       get() {
@@ -242,7 +252,7 @@ test("What this is works with browser storage blocked", async ({ page }) => {
   });
   await openSyringe(page);
   await hash(page, "#/mbr?mbr=MBR-001");
-  await expect(page.getByTestId("whatis-mbr-toggle")).toHaveAttribute("aria-expanded", "true");
-  await page.getByTestId("whatis-mbr-toggle").click();
-  await expect(page.getByTestId("whatis-mbr-toggle")).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByTestId("about-toggle")).toHaveAttribute("aria-expanded", "false");
+  await page.getByTestId("about-toggle").click();
+  await expect(page.getByTestId("about-toggle")).toHaveAttribute("aria-expanded", "true");
 });

@@ -5,7 +5,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { goTo } from "./nav-helper";
+import { breadcrumb, goTo } from "./nav-helper";
 
 const SHOTS = tmpdir();
 
@@ -195,7 +195,7 @@ test("the plus on a box and Add a sample use the one add dialog", async ({ page 
 
 test("a new plan copies the project scope's steps once, and the two lists stay independent", async ({ page }) => {
   await openDemoPlan(page);
-  await page.getByRole("link", { name: "All sampling plans" }).click();
+  await breadcrumb(page).getByRole("link", { name: "Sampling plan", exact: true }).click();
   await page.getByTestId("plan-title-input").fill("Second plan (fictional)");
   await page.getByTestId("plan-create").click();
   await expect(page.getByTestId("steps-card")).toBeVisible();
@@ -213,7 +213,7 @@ test("a new plan copies the project scope's steps once, and the two lists stay i
 
 test("an empty plan points to the Process steps card", async ({ page }) => {
   await openDemoPlan(page);
-  await page.getByRole("link", { name: "All sampling plans" }).click();
+  await breadcrumb(page).getByRole("link", { name: "Sampling plan", exact: true }).click();
   await page.getByTestId("plan-title-input").fill("Empty plan (fictional)");
   await page.getByTestId("plan-create").click();
   while ((await page.getByTestId("step-list").count()) > 0) await page.getByTestId("step-list").locator('[data-testid^="step-remove-"]').first().click();

@@ -1,10 +1,9 @@
 import { deleteTrd, openBlankCount, trdOpenItems, trdOverrides, updateTrd, writeupsInOrder, type BlankContext, type TrdOpenItem } from "@gap/engine";
 import type { TrdDocument } from "@gap/process-model";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { PageBanner } from "../art";
 import { Modal } from "../components";
+import { focusWhenReady, PageHeader, type PagePill } from "../PageHeader";
 import { Tabs, type TabDef } from "../Tabs";
-import { WhatThisIs } from "../WhatThisIs";
 import { dateTime } from "../lib";
 import { href, navigate } from "../router";
 import { useContent, useStore } from "../store";
@@ -12,7 +11,7 @@ import type { Run } from "./SamplingFlow";
 import { FieldRow } from "./TrdFieldRow";
 import { TrdOutput } from "./TrdOutput";
 import { TrdSteps } from "./TrdSteps";
-import { TrdUpdate } from "./TrdUpdate";
+import { TrdUpdate, useProjectDifferences } from "./TrdUpdate";
 import { TrdWriteups } from "./TrdWriteups";
 
 export type TrdTab = "details" | "process" | "writeups" | "open" | "output";
@@ -87,35 +86,78 @@ export function TrdEditor({ d, initialTab }: { d: TrdDocument; initialTab: TrdTa
   };
   const tabDefs = TAB_INFO.map((t) => ({ ...t, label: `${TAB_LABEL[t.id]}${t.id === "open" ? ` (${open.length})` : ""}` }));
 
+  // Facts the page already knows. "Differences from the project" is the same count the review in the Details tab lists.
+  const differences = useProjectDifferences(d);
+  const pills: PagePill[] = [
+    { label: `${d.steps.length} process ${d.steps.length === 1 ? "step" : "steps"}`, testId: "trd-pill-steps" },
+    { label: `${open.length} open ${open.length === 1 ? "item" : "items"}`, warning: open.length > 0, testId: "trd-pill-open" },
+    ...(differences === null
+      ? []
+      : [differences > 0 ? { label: `${differences} ${differences === 1 ? "difference" : "differences"} from the project`, warning: true, testId: "trd-pill-update" } : { label: "Up to date with the project", testId: "trd-pill-update" }]),
+  ];
+  // The update itself lives in the Details tab; this button takes the person there and puts the cursor on its first control.
+  const toUpdate = (testId: string) => () => {
+    select("details");
+    focusWhenReady(testId);
+  };
+  const updateAction =
+    d.origin.kind === "project" && differences ? (
+      <button type="button" className="btn" onClick={toUpdate("trd-review-toggle")} data-testid="trd-update-action">
+        Update from the project
+      </button>
+    ) : d.origin.kind === "seed-import" ? (
+      <button type="button" className="btn" onClick={toUpdate("trd-update-file")} data-testid="trd-update-action">
+        Update from a newer seed file
+      </button>
+    ) : undefined;
+  // The downloads are made in the Output tab, where the kind of Word document and the pre-download checks are shown; the menu takes the
+  // person there with the matching button focused.
+  const toOutput = (testId: string) => () => {
+    select("output");
+    focusWhenReady(testId);
+  };
+
   return (
     <div className="stack-lg">
-      <PageBanner art="page-document">
-        <h1>
-          {d.id}: {d.title}
-        </h1>
-      </PageBanner>
-      <p className="no-print">
-        <a href={href("/trd")}>All TRDs</a>
-      </p>
-      <WhatThisIs id="trd">
-        <p>
-          The TRD (technical requirements document) is the written statement of the process: its steps, parameters, set points, normal and proven acceptable ranges, each with a source. It starts from the project, a seed file or blank.
-        </p>
-        <p>Next in the chain: the sampling plan, then the batch record, which can take its parameter values from this TRD. The tool checks your values and reports; it does not decide a filing category.</p>
-      </WhatThisIs>
-      <p className="muted" data-testid="trd-scope-text">
-        {TRD_SCOPE_TEXT}
-      </p>
+      <PageHeader
+        title={`${d.id}: ${d.title}`}
+        crumb={d.id}
+        purpose="The written statement of the process: its steps, parameters and ranges, each with a source."
+        pills={pills}
+        meta={`${d.version ? `Version ${d.version} · ` : ""}Last changed ${dateTime(d.updatedAt)}`}
+        about={{
+          art: "page-document",
+          children: (
+            <>
+              <p>
+                The TRD (technical requirements document) is the written statement of the process: its steps, parameters, set points, normal and proven acceptable ranges, each with a source. It starts from the project, a seed file or blank.
+              </p>
+              <p>Next in the chain: the sampling plan, then the batch record, which can take its parameter values from this TRD.</p>
+              <p data-testid="trd-scope-text">{TRD_SCOPE_TEXT}</p>
+            </>
+          ),
+        }}
+        actions={updateAction}
+        exports={[
+          { label: "Download TRD (Word)", onSelect: toOutput("trd-download-word") },
+          { label: "Download TRD (HTML)", onSelect: toOutput("trd-download-html") },
+          { label: "Download evidence record (Word)", onSelect: toOutput("trd-evidence-download-word") },
+          { label: "Download evidence record (HTML)", onSelect: toOutput("trd-evidence-download-html") },
+        ]}
+      />
       {error && (
         <p className="notice" role="alert" data-testid="trd-error">
           {error}
         </p>
       )}
 
-      <TrdUpdate d={d} run={run} />
-
       <Tabs label="TRD steps" tabs={tabDefs} selected={tab} onSelect={select} testId="trd-tabs">
         {tab === "details" && <Details d={d} run={run} />}
+        {/* The update (a newer seed file, or the differences from the project) sits under the details. It stays mounted while another tab is
+            open, so a file already read and a review in progress are not lost by a look at the Process tab; the page shows it only here. */}
+        <div hidden={tab !== "details"}>
+          <TrdUpdate d={d} run={run} />
+        </div>
         {tab === "process" && <TrdSteps d={d} run={run} />}
         {tab === "writeups" && <TrdWriteups d={d} run={run} />}
         {tab === "open" && <OpenItems d={d} open={open} />}

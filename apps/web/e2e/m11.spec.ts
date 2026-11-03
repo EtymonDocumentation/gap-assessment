@@ -7,7 +7,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { expectNotice, goTo, NOTICE_DOCUMENT } from "./nav-helper";
+import { breadcrumb, expectNotice, goTo, NOTICE_DOCUMENT, openAbout } from "./nav-helper";
 
 const SHOTS = tmpdir();
 
@@ -25,6 +25,7 @@ async function loadDemo(page: Page) {
 async function openMbr(page: Page) {
   await loadDemo(page);
   await goTo(page, "Batch record");
+  await openAbout(page);
   await expect(page.getByTestId("mbr-scope-text")).toBeVisible();
 }
 
@@ -231,9 +232,9 @@ test.describe("batch record: new record", () => {
 test.describe("batch record: step blocks library", () => {
   test("an edit makes a new version, the record shows Update from library, and updating brings the record to it", async ({ page }) => {
     await openDemoRecord(page);
-    const libLink = page.getByRole("link", { name: "Batch records" });
+    const libLink = breadcrumb(page).getByRole("link", { name: "Batch record", exact: true });
     await libLink.click();
-    await page.getByRole("link", { name: "step blocks library" }).click();
+    await page.getByTestId("module-library").getByRole("link", { name: "Step blocks" }).click();
     await expect(page.getByTestId("mbl-table")).toBeVisible();
     await page.getByTestId("mbl-edit-pooling_with_weights").click();
     const steps = page.getByTestId("mbl-steps");
@@ -245,7 +246,7 @@ test.describe("batch record: step blocks library", () => {
     await expect(page.getByTestId("mbl-row-pooling_with_weights")).toContainText("Shipped, edited by you");
 
     // The record made from the earlier version keeps its copy and offers the update.
-    await page.getByRole("link", { name: "Batch records" }).click();
+    await breadcrumb(page).getByRole("link", { name: "Batch record", exact: true }).click();
     await page.getByTestId("mbr-list-table").getByRole("link").first().click();
     const notice = page.locator('[data-testid^="mbr-library-newer-"]').first();
     await expect(notice).toContainText("newer version");

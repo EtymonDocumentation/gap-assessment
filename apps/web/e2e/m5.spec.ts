@@ -245,7 +245,8 @@ test("document: Word export in all four modes, from the saved mapping, with the 
   await go(page, "#/document");
   await expect(page.getByRole("heading", { level: 2, name: "Word document" })).toBeVisible();
   const panel = page.locator("section", { has: page.getByRole("heading", { level: 2, name: "Word document" }) });
-  const exportBtn = panel.getByRole("button", { name: "Download Word document" });
+  // The Word button sits beside the other downloads (under the page header), not inside the panel that holds the choices.
+  const exportBtn = page.getByRole("button", { name: "Download Word document" });
   const pick = async (mode: RegExp, templateText?: string) => {
     await panel.getByRole("radio", { name: mode }).check();
     if (templateText) {
@@ -337,7 +338,7 @@ test("document: the tag sample passes the pre-export check", async ({ page }) =>
   const panel = page.locator("section", { has: page.getByRole("heading", { level: 2, name: "Word document" }) });
   await panel.getByRole("radio", { name: /^Placeholder tags/ }).check();
   await expect(panel.getByText("No problems found.").or(panel.getByText("Warnings"))).toBeVisible();
-  await expect(panel.getByRole("button", { name: "Download Word document" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Download Word document" })).toBeEnabled();
 });
 
 for (const theme of ["light", "dark"] as const) {
@@ -396,7 +397,7 @@ for (const theme of ["light", "dark"] as const) {
     await go(page, "#/document");
     const panel = page.locator("section", { has: page.getByRole("heading", { level: 2, name: "Word document" }) });
     await panel.getByRole("radio", { name: /^Map to their headings/ }).check();
-    await expect(panel.getByRole("button", { name: "Download Word document" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Download Word document" })).toBeDisabled();
     await page.getByRole("button", { name: "Download Markdown" }).click();
     await confirmTbd(page);
     await expect(page.getByRole("region", { name: "Export history table" })).toBeVisible();

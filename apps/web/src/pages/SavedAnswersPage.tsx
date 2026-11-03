@@ -1,7 +1,7 @@
 import type { SavedAnswerSet } from "@gap/process-model";
 import { savedDay } from "@gap/engine";
 import { useEffect, useRef, useState } from "react";
-import { PageBanner } from "../art";
+import { PageHeader } from "../PageHeader";
 import { Empty, Modal } from "../components";
 import { HelpTip } from "../HelpTip";
 import { download, slug } from "../lib";
@@ -44,14 +44,15 @@ export function SavedAnswersPage() {
 
   return (
     <div className="stack-lg">
-      <PageBanner art="page-document">
-        <h1>
-          Saved answers <HelpTip label="saved answers" text="Keep the answers of one project as a named set and offer them to another project. You always see every answer first and tick the ones you want. Nothing is applied on its own." />
-        </h1>
-      </PageBanner>
-      <p>
-        Your own sets of interview answers. {SERVER_MODE ? "They are kept on the server for your account." : "They are kept in this browser, not in the project file; use Export set to move one to another browser."}
-      </p>
+      <PageHeader
+        title={
+          <>
+            Saved answers <HelpTip label="saved answers" text="Keep the answers of one project as a named set and offer them to another project. You always see every answer first and tick the ones you want. Nothing is applied on its own." />
+          </>
+        }
+        purpose={`Your own sets of interview answers, ${SERVER_MODE ? "kept on the server for your account" : "kept in this browser, not in the project file"}.`}
+        {...(SERVER_MODE ? {} : { about: { art: "page-document", children: <p>Use Export set to move one to another browser.</p> } })}
+      />
 
       {storeError && (
         <p className="notice" role="alert" data-testid="sa-error">

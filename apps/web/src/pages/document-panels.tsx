@@ -47,7 +47,7 @@ export function useWordChoice(): WordChoice {
 
 // ------------------------------------------------------------------ Word document panel
 
-interface Checks {
+export interface Checks {
   blockers: string[];
   warnings: string[];
   notes: string[];
@@ -96,6 +96,9 @@ function usePreExportChecks(choice: WordChoice, doc: DocModel): Checks | null {
   }, [choice.mode, t, docx, doc]);
 }
 
+/** The help tip next to the Word download button (the Document page shows the button beside the other downloads, so it needs the text too). */
+export const WORD_EXPORT_HELP = "Creates a .docx in your browser from the document above, in the template style you chose. Check it in Word before you use it. Each download is recorded in the export history.";
+
 const MODES: TemplateMode[] = ["builtin", "their_look", "mapped", "tags"];
 
 /**
@@ -104,23 +107,8 @@ const MODES: TemplateMode[] = ["builtin", "their_look", "mapped", "tags"];
  */
 export const GENERIC_MODES: TemplateMode[] = ["builtin", "their_look", "tags"];
 
-export function WordPanel({
-  choice,
-  doc,
-  content,
-  project,
-  assessment,
-  generatedAt,
-  fileBase,
-  guard,
-  onExported,
-  modes = MODES,
-  tagData,
-  testIdPrefix,
-  note,
-  idPrefix = "word",
-  title = "Word document",
-}: {
+/** Everything the Word download needs. The Document page builds its own so the download button can sit beside the other downloads. */
+export interface WordExportInput {
   choice: WordChoice;
   doc: DocModel;
   content: ContentBundle;
@@ -132,25 +120,28 @@ export function WordPanel({
   /** Runs the download, after the TBD warning when the document still lists TBD values. */
   guard: (run: () => void) => void;
   onExported: (template: TemplateRecord) => void;
-  /** The kinds of Word document offered. A document that cannot use one (see GENERIC_MODES) leaves it out. */
-  modes?: TemplateMode[];
   /** Tag data for a document other than the gap assessment. Default: the gap assessment's tags. */
   tagData?: (m: DocxModule) => TagData | DocumentTagData | SamplingTagData;
-  /** Adds test ids to the download button and the result line, for pages with their own e2e tests. */
-  testIdPrefix?: string;
-  /** A short explanation shown under the choice of Word document (for a document that offers fewer kinds). */
-  note?: string;
-  /** Prefix of the element ids and of the radio group name. Needed when a page shows more than one Word panel. */
-  idPrefix?: string;
-  /** Heading of the panel; a page with two panels tells them apart here. */
-  title?: string;
-}) {
+}
+
+export interface WordExporter {
+  checks: Checks | null;
+  busy: boolean;
+  error: string;
+  result: { file: string; template: TemplateRecord; warnings: string[]; omitted: string[] } | null;
+  /** True while a blocker (or the template check still running) means the download cannot be made. */
+  blocked: boolean;
+  /** The download itself: the TBD warning first when the document still lists TBD values, then the .docx. */
+  run: () => void;
+  /** Forget the last result and error (the person changed the kind of Word document). */
+  reset: () => void;
+}
+
+export function useWordExport({ choice, doc, content, project, assessment, generatedAt, fileBase, guard, onExported, tagData }: WordExportInput): WordExporter {
   const checks = usePreExportChecks(choice, doc);
-  const items = useTemplates((s) => s.items);
-  const hasPdf = items.some((t) => t.analysis.sourceFormat === "pdf");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [result, setResult] = useState<{ file: string; template: TemplateRecord; warnings: string[]; omitted: string[] } | null>(null);
+  const [result, setResult] = useState<WordExporter["result"]>(null);
   const t = choice.template;
 
   async function exportWord() {
@@ -185,7 +176,60 @@ export function WordPanel({
     }
   }
 
-  const blocked = !checks || checks.blockers.length > 0;
+  return {
+    checks,
+    busy,
+    error,
+    result,
+    blocked: !checks || checks.blockers.length > 0,
+    run: () => guard(() => void exportWord()),
+    reset: () => {
+      setResult(null);
+      setError("");
+    },
+  };
+}
+
+/** The Word document card of a document's Output area: the kind of Word document, the checks, the download button and its result. */
+export function WordPanel(props: WordPanelProps & WordExportInput) {
+  const exporter = useWordExport(props);
+  return <WordPanelView {...props} exporter={exporter} />;
+}
+
+export interface WordPanelProps {
+  choice: WordChoice;
+  /** The kinds of Word document offered. A document that cannot use one (see GENERIC_MODES) leaves it out. */
+  modes?: TemplateMode[];
+  /** Adds test ids to the download button and the result line, for pages with their own e2e tests. */
+  testIdPrefix?: string;
+  /** A short explanation shown under the choice of Word document (for a document that offers fewer kinds). */
+  note?: string;
+  /** Prefix of the element ids and of the radio group name. Needed when a page shows more than one Word panel. */
+  idPrefix?: string;
+  /** Heading of the panel; a page with two panels tells them apart here. */
+  title?: string;
+  /** The button label. A page with two Word panels names what each one downloads. */
+  buttonLabel?: string;
+  /** False where the page puts the download button elsewhere (the Document page puts it beside the other downloads). */
+  showButton?: boolean;
+}
+
+export function WordPanelView({
+  choice,
+  exporter,
+  modes = MODES,
+  testIdPrefix,
+  note,
+  idPrefix = "word",
+  title = "Word document",
+  buttonLabel = "Download Word document",
+  showButton = true,
+}: WordPanelProps & { exporter: WordExporter }) {
+  const { checks, busy, error, result, blocked } = exporter;
+  const items = useTemplates((s) => s.items);
+  const hasPdf = items.some((t) => t.analysis.sourceFormat === "pdf");
+  const t = choice.template;
+
   return (
     <section className="card stack no-print" aria-labelledby={`${idPrefix}-title`}>
       <h2 id={`${idPrefix}-title`}>{title}</h2>
@@ -204,8 +248,7 @@ export function WordPanel({
               checked={choice.mode === m}
               onChange={() => {
                 choice.setMode(m);
-                setResult(null);
-                setError("");
+                exporter.reset();
               }}
             />
             <span>
@@ -295,12 +338,14 @@ export function WordPanel({
         )}
       </div>
 
-      <div className="row wrap">
-        <button type="button" className="btn primary" disabled={blocked || busy} aria-describedby={checks?.blockers.length ? `${idPrefix}-blockers` : undefined} data-testid={testIdPrefix ? `${testIdPrefix}-download-word` : undefined} onClick={() => guard(() => void exportWord())}>
-          {busy ? "Creating…" : "Download Word document"}
-        </button>
-        <HelpTip label="the Word export" text="Creates a .docx in your browser from the document above, in the template style you chose. Check it in Word before you use it. Each download is recorded in the export history." />
-      </div>
+      {showButton && (
+        <div className="row wrap">
+          <button type="button" className="btn primary" disabled={blocked || busy} aria-describedby={checks?.blockers.length ? `${idPrefix}-blockers` : undefined} data-testid={testIdPrefix ? `${testIdPrefix}-download-word` : undefined} onClick={exporter.run}>
+            {busy ? "Creating…" : buttonLabel}
+          </button>
+          <HelpTip label="the Word export" text={WORD_EXPORT_HELP} />
+        </div>
+      )}
       {error && (
         <p className="error" role="alert">
           {error}

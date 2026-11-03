@@ -1,9 +1,13 @@
+import { mbrOpenItems } from "@gap/engine";
 import type { MbrRecord } from "@gap/process-model";
-import type { ReactNode } from "react";
-import { PageBanner } from "../art";
-import { href, navigate } from "../router";
+import { useMemo, type ReactNode } from "react";
+import { dateTime } from "../lib";
+import { useMbrLibrary } from "../mbr-blocks-store";
+import { focusWhenReady, PageHeader, type PageAbout, type PagePill } from "../PageHeader";
+import { navigate } from "../router";
+import { useStore } from "../store";
 import { Tabs, type TabDef } from "../Tabs";
-import { WhatThisIs } from "../WhatThisIs";
+import { mbrPurpose, mbrScopeText } from "./mbr-text";
 
 export type MbrTab = "edit" | "view" | "word";
 
@@ -38,32 +42,58 @@ const TABS: TabDef<MbrTab>[] = [
  * presses does not push a run of history entries.
  */
 export function MbrFrame({ rec, tab, children }: { rec: MbrRecord; tab: MbrTab; children: ReactNode }) {
+  const project = useStore((s) => s.project)!;
+  const library = useMbrLibrary();
+  const open = useMemo(() => mbrOpenItems(project, rec, library).length, [project, rec, library]);
   const go = (t: MbrTab) => {
     if (t === "view") navigate("/mbr/view", { mbr: rec.id });
     else if (t === "word") navigate("/mbr", { mbr: rec.id, tab: "word" });
     else navigate("/mbr", { mbr: rec.id });
   };
+  // Facts the page already knows (the same counts the batch record list shows).
+  const pills: PagePill[] = [
+    { label: `${rec.sections.length} ${rec.sections.length === 1 ? "section" : "sections"}`, testId: "mbr-pill-sections" },
+    { label: `${open} open ${open === 1 ? "item" : "items"}`, warning: open > 0, testId: "mbr-pill-open" },
+  ];
+  const started = [rec.trdId ? `TRD ${rec.trdId}` : "", rec.planId ? `plan ${rec.planId}` : ""].filter(Boolean).join(" and ");
+  // The downloads are in the Word document tab (the part choice, the Word kind and the pre-download check are there); the menu opens that
+  // tab and puts focus on the matching button.
+  const toDownload = (testId: string) => () => {
+    go("word");
+    focusWhenReady(testId);
+  };
+  // The Process view has its own "What this shows" card, open on a wide screen; a second explanation there would only repeat it.
+  const about: { about?: PageAbout } =
+    tab === "view"
+      ? {}
+      : {
+          about: {
+            art: "page-document",
+            children: (
+              <>
+                <p>
+                  A master batch record is the step-by-step instruction for making one batch. It is built from step blocks, and it can start from a TRD record (the parameter values) and a sampling plan (the sample rows), or from neither.
+                </p>
+                <p>Next in the chain: the Process view draws the record as an equipment train, and the Word document tab produces the draft for review.</p>
+                <p data-testid="mbr-scope-text">{mbrScopeText}</p>
+              </>
+            ),
+          },
+        };
   return (
     <div className="stack-lg">
-      <PageBanner art="page-document">
-        <h1>
-          {rec.id}: {rec.title}
-        </h1>
-      </PageBanner>
-      <p className="no-print">
-        <a href={href("/mbr")} data-testid="pv-back">
-          All batch records
-        </a>
-      </p>
-      {/* The Process view has its own "What this shows" card; a second card there would push its slider off the first phone screen. */}
-      {tab !== "view" && (
-      <WhatThisIs id="mbr">
-        <p>
-          A master batch record is the step-by-step instruction for making one batch. It is built from step blocks, and it can start from a TRD record (the parameter values) and a sampling plan (the sample rows), or from neither.
-        </p>
-        <p>Next in the chain: the Process view draws the record as an equipment train, and the Word document tab produces the draft for review.</p>
-      </WhatThisIs>
-      )}
+      <PageHeader
+        title={`${rec.id}: ${rec.title}`}
+        crumb={rec.id}
+        purpose={mbrPurpose}
+        pills={pills}
+        meta={`${started ? `Started from ${started}` : "Started blank"} · Last changed ${dateTime(rec.updatedAt)}`}
+        {...about}
+        exports={[
+          { label: "Download batch record (Word)", onSelect: toDownload("mbr-download-word") },
+          { label: "Download batch record (HTML)", onSelect: toDownload("mbr-download-html") },
+        ]}
+      />
       <Tabs label="Batch record views" tabs={TABS} selected={tab} onSelect={go} activation="manual" testId="mbr-tabs">
         {children}
       </Tabs>

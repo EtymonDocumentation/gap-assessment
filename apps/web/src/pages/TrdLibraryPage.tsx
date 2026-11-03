@@ -2,10 +2,9 @@ import { trdWriteups } from "@gap/content";
 import { duplicateLibraryWriteup, editChangesWriteup, editLibraryWriteup, newLibraryWriteup, type WriteupLibraryEdit } from "@gap/engine";
 import { TRD_PART_KIND_LABELS, TRD_PART_KINDS, type TrdLibraryPart, type TrdLibraryWriteup, type TrdPartKind } from "@gap/process-model";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { PageBanner } from "../art";
+import { PageHeader } from "../PageHeader";
 import { Empty, Modal } from "../components";
 import { dateTime } from "../lib";
-import { href } from "../router";
 import { SERVER_MODE } from "../server/mode";
 import { actorOf, useContent, useStore } from "../store";
 import { RowsEditor } from "../rows-editor";
@@ -43,24 +42,23 @@ export function TrdLibraryPage() {
 
   return (
     <div className="stack-lg">
-      <PageBanner art="page-document">
-        <h1>Process description library</h1>
-      </PageBanner>
-      <p className="no-print">
-        <a href={href("/trd")}>TRDs</a>
-      </p>
-      <section className="card stack" aria-labelledby="twl-about">
-        <h2 id="twl-about">What this is</h2>
-        <p>The process descriptions a TRD is written from: one per unit operation, and the TRD-level sections such as the introduction or the fill weights.</p>
-        <ul className="plain-list">
-          <li>{SERVER_MODE ? "Your edits are kept on the server for your account." : "Your edits are kept in this browser, not in the project file."}</li>
-          <li>The shipped write-ups are not changed. Editing one saves your copy with the next version number, and the earlier content stays in its history.</li>
-          <li>A TRD keeps its own copy and the version it was made from. When the library has a newer version, the TRD shows "Update from library" and you choose.</li>
-          <li>
-            A blank is written <code>{"{{key|Label}}"}</code>. The key names the project or TRD value that fills it; with no value the blank stays visible in the TRD and in the export. Nothing is filled in for you.
-          </li>
-        </ul>
-      </section>
+      <PageHeader
+        title="Process description library"
+        purpose="The process descriptions a TRD is written from: one per unit operation, and the TRD-level sections such as the introduction or the fill weights."
+        about={{
+          art: "page-document",
+          children: (
+            <ul className="plain-list">
+              <li>{SERVER_MODE ? "Your edits are kept on the server for your account." : "Your edits are kept in this browser, not in the project file."}</li>
+              <li>The shipped write-ups are not changed. Editing one saves your copy with the next version number, and the earlier content stays in its history.</li>
+              <li>A TRD keeps its own copy and the version it was made from. When the library has a newer version, the TRD shows "Update from library" and you choose.</li>
+              <li>
+                A blank is written <code>{"{{key|Label}}"}</code>. The key names the project or TRD value that fills it; with no value the blank stays visible in the TRD and in the export. Nothing is filled in for you.
+              </li>
+            </ul>
+          ),
+        }}
+      />
 
       {storeError && (
         <p className="notice" role="alert" data-testid="twl-error">

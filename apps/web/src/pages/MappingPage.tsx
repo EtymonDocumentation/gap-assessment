@@ -1,7 +1,7 @@
 import { buildDocument } from "@gap/engine";
 import type { HeadingMapping, OutlineHeading, TemplateMapping } from "@gap/docx";
 import { useEffect, useMemo, useState } from "react";
-import { PageBanner } from "../art";
+import { PageHeader } from "../PageHeader";
 import { Empty } from "../components";
 import { useDocx } from "../docx-loader";
 import { href } from "../router";
@@ -111,23 +111,24 @@ function Editor({ t }: { t: StoredTemplate }) {
 
   return (
     <div className="stack-lg">
-      <div>
-        <p className="small">
-          <a href={href("/templates")}>Back to templates</a>
+      <PageHeader
+        title={`Heading mapping: ${t.name}`}
+        purpose="For each heading of the template, choose which content from this project's gap assessment goes under it."
+        meta={
+          <>
+            Version {t.version}, {t.fileName}. The list of content comes from the open project ({project.meta.title}).
+          </>
+        }
+        about={{
+          art: "page-mapping",
+          children: <p>Nothing changes until you save, and the same mapping is used for every Word document made with "Map to their headings".</p>,
+        }}
+      />
+      {pdf && (
+        <p className="notice">
+          This template is a PDF, so only its headings are used. A PDF has no text the tool can keep: headings without content are flagged as to be completed.
         </p>
-        <PageBanner art="page-mapping">
-          <h1>Heading mapping: {t.name}</h1>
-        </PageBanner>
-        <p className="muted">
-          For each heading of the template, choose which content from this project's gap assessment goes under it. Version {t.version}, {t.fileName}. The list of content comes from the open project
-          ({project.meta.title}). Nothing changes until you save, and the same mapping is used for every Word document made with "Map to their headings".
-        </p>
-        {pdf && (
-          <p className="notice">
-            This template is a PDF, so only its headings are used. A PDF has no text the tool can keep: headings without content are flagged as to be completed.
-          </p>
-        )}
-      </div>
+      )}
 
       {docxError && (
         <p className="error" role="alert">

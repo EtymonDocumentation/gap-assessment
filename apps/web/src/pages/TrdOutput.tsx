@@ -94,7 +94,7 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
               })
             }
           >
-            Download HTML
+            Download TRD (HTML)
           </button>
           <button type="button" className="btn" aria-expanded={showPreview} onClick={() => setShowPreview((v) => !v)} data-testid="trd-preview-toggle">
             {showPreview ? "Hide preview" : "Show preview"}
@@ -120,6 +120,7 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
         modes={GENERIC_MODES}
         tagData={(m) => m.buildDocumentTagData(doc)}
         testIdPrefix="trd"
+        buttonLabel="Download TRD (Word)"
         note={'"Map to their headings" is offered for the gap assessment document only: a saved mapping names the gap document\'s sections. For a tagged template, {title}, {banner}, {status}, {generated}, {meta} and {sections} are filled, and {@body} or a section tag such as {@section_par_nor} brings in the TRD in your template\'s styles. The sections of each process step have their own tags, for example {@section_step_TS_01}.'}
       />
 
@@ -169,6 +170,7 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
         testIdPrefix="trd-evidence"
         idPrefix="trd-evidence-word"
         title="Evidence record (Word)"
+        buttonLabel="Download evidence record (Word)"
       />
 
       <ExportHistory exports={exports} idPrefix="trd-export-history" title="Export history" />

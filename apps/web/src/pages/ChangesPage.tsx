@@ -1,6 +1,6 @@
 import { changeLogOptions, changeLogToCsv, changeLogView } from "@gap/engine";
 import { useMemo, useState } from "react";
-import { PageBanner } from "../art";
+import { PageHeader } from "../PageHeader";
 import { Empty } from "../components";
 import { download, slug, today } from "../lib";
 import { useContent, useStore } from "../store";
@@ -24,24 +24,20 @@ export function ChangesPage() {
 
   return (
     <div className="stack-lg">
-      <PageBanner art="page-changes">
-        <h1>Change log</h1>
-      </PageBanner>
-      <div className="row between wrap">
-        <div>
-          <p className="muted">
-            Every change to the project, newest first: answers, sources, verifications and gap decisions, each with the value before and after. Names are free
-            text without a login, so they are not attributable in a GMP sense.
-          </p>
-        </div>
-        <button
-          type="button"
-          className="btn primary"
-          onClick={() => download(`${slug(project.meta.title)}-change-log-${today()}.csv`, changeLogToCsv(content, project, filter), "text/csv;charset=utf-8")}
-        >
-          Export CSV{filtered ? " (filtered)" : ""}
-        </button>
-      </div>
+      <PageHeader
+        title="Change log"
+        purpose="Every change to the project, newest first: answers, sources, verifications and gap decisions, each with the value before and after."
+        about={{ art: "page-changes", children: <p>Names are free text without a login, so they are not attributable in a GMP sense.</p> }}
+        actions={
+          <button
+            type="button"
+            className="btn primary"
+            onClick={() => download(`${slug(project.meta.title)}-change-log-${today()}.csv`, changeLogToCsv(content, project, filter), "text/csv;charset=utf-8")}
+          >
+            Export CSV{filtered ? " (filtered)" : ""}
+          </button>
+        }
+      />
 
       <div className="filters" role="search" aria-label="Filter the change log">
         <label className="field">

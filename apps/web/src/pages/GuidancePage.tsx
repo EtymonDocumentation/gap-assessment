@@ -17,7 +17,7 @@ import {
   type GuidanceItem,
 } from "@gap/engine";
 import { useMemo, useState } from "react";
-import { PageBanner } from "../art";
+import { PageHeader } from "../PageHeader";
 import { Empty } from "../components";
 
 const NO_FILTER: Required<GuidanceFilter> = { text: "", jurisdiction: "all", agency: "all", topic: "all", type: "all", status: "all" };
@@ -84,19 +84,17 @@ export function GuidancePage() {
 
   return (
     <div className="stack-lg">
-      <PageBanner art="page-guidance">
-        <h1>Guidance</h1>
-      </PageBanner>
-      <div>
-        <p className="muted lede">
-          Official regulations and guidance for sterile injectable fill-finish, technology transfer and post-approval changes, from regulators and
-          pharmacopoeias around the world. Use it to read the source text behind a gap.
-        </p>
-        <p className="notice">
-          Links open the official agency site. Always confirm you are reading the current version there.
-          <span className="guide-checked"> Last checked: {guidance.checked}.</span>
-        </p>
-      </div>
+      <PageHeader
+        title="Guidance"
+        purpose="Official regulations and guidance for sterile injectable fill-finish, technology transfer and post-approval changes, from regulators and pharmacopoeias around the world."
+        meta={
+          <>
+            Links open the official agency site. Always confirm you are reading the current version there.
+            <span className="guide-checked"> Last checked: {guidance.checked}.</span>
+          </>
+        }
+        about={{ art: "page-guidance", children: <p>Use it to read the source text behind a gap.</p> }}
+      />
 
       <div className="filters guide-filters" role="search" aria-label="Search and filter the guidance">
         <label className="field guide-search">

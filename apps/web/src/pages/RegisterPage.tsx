@@ -1,7 +1,7 @@
 import { activityLabel, CATEGORIES, gapsToCsv, SEVERITY_RANK, setGapOverlay, type Category, type ContentBundle, type Gap } from "@gap/engine";
 import { verificationState, type GapStatus, type Severity } from "@gap/process-model";
 import { useEffect, useMemo, useState } from "react";
-import { PageBanner } from "../art";
+import { PageHeader } from "../PageHeader";
 import { CategoryChip, Empty, ProvisionalFlag, RegulatoryFlag, SeverityBadge } from "../components";
 import { categoryShort, download, SEVERITY_TEXT, slug, today } from "../lib";
 import { href } from "../router";
@@ -80,15 +80,19 @@ export function RegisterPage() {
 
   return (
     <div className="stack-lg">
-      <PageBanner art="page-register">
-        <h1>Gap register</h1>
-      </PageBanner>
-      <p className="lede">Every difference found, with its category and severity. Open a row to see why, then record who owns it and what is decided. Export the list as a spreadsheet if you need it elsewhere.</p>
-      <div className="row end wrap">
-        <button className="btn" onClick={() => download(`${slug(project.meta.title)}-gap-register-${today()}.csv`, gapsToCsv(content, rows, project), "text/csv;charset=utf-8")}>
-          Export CSV ({rows.length} rows)
-        </button>
-      </div>
+      <PageHeader
+        title="Gap register"
+        purpose="Every difference found, with its category and severity."
+        about={{
+          art: "page-register",
+          children: <p>Open a row to see why, then record who owns it and what is decided. Export the list as a spreadsheet if you need it elsewhere.</p>,
+        }}
+        actions={
+          <button className="btn primary" onClick={() => download(`${slug(project.meta.title)}-gap-register-${today()}.csv`, gapsToCsv(content, rows, project), "text/csv;charset=utf-8")}>
+            Export CSV ({rows.length} rows)
+          </button>
+        }
+      />
 
       <ul className="cat-summary" aria-label="Count by category">
         {CATEGORIES.map((c) => (

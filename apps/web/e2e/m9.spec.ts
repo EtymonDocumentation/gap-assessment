@@ -8,7 +8,7 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
-import { goTo, NOTICE_DOCUMENT } from "./nav-helper";
+import { goTo, NOTICE_DOCUMENT, openAbout } from "./nav-helper";
 
 const SHOTS = tmpdir();
 
@@ -26,6 +26,7 @@ async function loadDemo(page: Page) {
 async function openTrd(page: Page) {
   await loadDemo(page);
   await goTo(page, "TRD");
+  await openAbout(page);
   await expect(page.getByTestId("trd-scope-text")).toBeVisible();
 }
 
@@ -372,23 +373,32 @@ test("update from a newer seed: nothing is replaced on its own; an overridden va
   await f.locator('[data-testid$="-save"]').click();
   await expect(first.getByTestId("trd-overridden-badge").first()).toBeVisible();
 
+  // The update sits in the Details tab (the header button "Update from a newer seed file" leads there).
+  await page.getByTestId("trd-tab-details").click();
   await page.getByTestId("trd-update-file").setInputFiles({ name: "newer.json", mimeType: "application/json", buffer: Buffer.from(newer) });
   await expect(page.getByTestId("trd-changed-notice")).toContainText("2 rows differ");
   const rows = page.getByTestId("trd-review-row");
   await expect(rows).toHaveCount(2);
   await expect(page.getByTestId("trd-review-table").locator('tr[data-overridden="true"]')).toHaveCount(1);
-  // The TRD still says the team's value.
+  // The TRD still says the team's value, and a look at the Process tab does not lose the review in progress.
+  await page.getByTestId("trd-tab-process").click();
   await expect(first).toContainText("Team value (fictional)");
+  await page.getByTestId("trd-tab-details").click();
+  await expect(rows).toHaveCount(2);
 
   await page.getByTestId("trd-review-accept-all").click();
   await expect(rows).toHaveCount(1);
   await expect(rows.first()).toHaveAttribute("data-overridden", "true");
-  await expect(first).toContainText("Team value (fictional)");
   await expect(page.getByTestId("trd-review-accept-all")).toBeDisabled();
+  await page.getByTestId("trd-tab-process").click();
+  await expect(first).toContainText("Team value (fictional)");
+  await page.getByTestId("trd-tab-details").click();
 
   await page.getByTestId("trd-review-keep").click();
   await expect(rows).toHaveCount(0);
+  await page.getByTestId("trd-tab-process").click();
   await expect(first).toContainText("Team value (fictional)");
+  await page.getByTestId("trd-tab-details").click();
   await page.getByTestId("trd-review-finish").click();
   await expect(page.getByTestId("trd-uptodate")).toBeVisible();
 });
@@ -406,8 +416,10 @@ test("taking the project value for an overridden row replaces it only when chose
   await f.locator('[data-testid$="-toggle"]').check();
   await f.locator('[data-testid$="-display"]').fill("Team value (fictional)");
   await f.locator('[data-testid$="-save"]').click();
+  await page.getByTestId("trd-tab-details").click();
   await page.getByTestId("trd-update-file").setInputFiles({ name: "newer.json", mimeType: "application/json", buffer: Buffer.from(newer) });
   await page.getByTestId("trd-review-table").locator('tr[data-overridden="true"]').getByTestId("trd-review-accept").click();
+  await page.getByTestId("trd-tab-process").click();
   await expect(first).toContainText("changed in the newer seed");
   await expect(first).not.toContainText("Team value (fictional)");
   // The change log keeps the override that was replaced.
@@ -428,7 +440,7 @@ test("Word and HTML downloads carry the banner, the sections, the overrides and 
   await page.getByTestId("trd-preview-toggle").click();
   await expect(page.getByTestId("trd-preview")).toContainText(/requires regulatory affairs assessment/i);
 
-  const word = await download(page, () => page.getByRole("button", { name: /Download Word|Word document/i }).first().click());
+  const word = await download(page, () => page.getByRole("button", { name: "Download TRD (Word)" }).click());
   expect(word.file).toMatch(/\.docx$/);
   const text = wordText(word.bytes);
   expect(text).toContain(NOTICE_DOCUMENT);
@@ -554,6 +566,7 @@ for (const scheme of ["light", "dark"] as const) {
     await f.locator('[data-testid$="-toggle"]').check();
     await f.locator('[data-testid$="-display"]').fill("Team value (fictional)");
     await f.locator('[data-testid$="-save"]').click();
+    await page.getByTestId("trd-tab-details").click();
     await page.getByTestId("trd-update-file").setInputFiles({ name: "newer.json", mimeType: "application/json", buffer: Buffer.from(newer) });
     await expect(page.getByTestId("trd-review-table")).toBeVisible();
     await expectAccessible(page, `${scheme} review`);

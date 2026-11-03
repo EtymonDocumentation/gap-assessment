@@ -1,13 +1,14 @@
 import { createMbr, mbrOpenItems, projectScopeSteps, proposeBlocks, type BlockProposal } from "@gap/engine";
 import { useMemo, useState } from "react";
-import { PageBanner } from "../art";
+import { StartArt } from "../art";
 import { Empty } from "../components";
 import { dateTime } from "../lib";
 import { useMbrLibrary } from "../mbr-blocks-store";
+import { PageHeader } from "../PageHeader";
 import { href, navigate } from "../router";
 import { useContent, useStore } from "../store";
 import { MbrEditor } from "./MbrEditor";
-import { mbrScopeText } from "./mbr-text";
+import { mbrPurpose, mbrScopeText } from "./mbr-text";
 
 /** The batch record list and the "New batch record" form (no `mbr` parameter), or the editor of one record. */
 export function MbrPage({ params }: { params: URLSearchParams }) {
@@ -92,21 +93,27 @@ function List({ missing }: { missing?: string | undefined }) {
 
   return (
     <div className="stack-lg">
-      <PageBanner art="page-document">
-        <h1>Batch record</h1>
-      </PageBanner>
-      <section className="card stack" aria-labelledby="mbr-about">
-        <h2 id="mbr-about">What this is</h2>
-        <p data-testid="mbr-scope-text">{mbrScopeText}</p>
-        <ul className="plain-list">
-          <li>A master batch record can start from a TRD record, from a sampling plan, from both, or blank.</li>
-          <li>It is built from step blocks. The blocks come from a library you can edit; an edit makes a new version, and records already made keep their own copy until you choose to update them.</li>
-          <li>When the TRD or the sampling plan changes, the rows concerned show a notice and an Update button. Nothing is rewritten for you.</li>
-          <li>
-            The step blocks are on the <a href={href("/mbr/library")}>step blocks library</a> page.
-          </li>
-        </ul>
-      </section>
+      <PageHeader
+        title="Batch record"
+        purpose={mbrPurpose}
+        about={{
+          art: "page-document",
+          children: (
+            <>
+              <p data-testid="mbr-scope-text">{mbrScopeText}</p>
+              <ul className="plain-list">
+                <li>A master batch record can start from a TRD record, from a sampling plan, from both, or blank.</li>
+                <li>It is built from step blocks. The blocks come from a library you can edit; an edit makes a new version, and records already made keep their own copy until you choose to update them.</li>
+                <li>When the TRD or the sampling plan changes, the rows concerned show a notice and an Update button. Nothing is rewritten for you.</li>
+                <li>
+                  The step blocks are on the <a href={href("/mbr/library")}>step blocks library</a> page.
+                </li>
+              </ul>
+            </>
+          ),
+        }}
+      />
+      {list.length === 0 && <StartArt art="page-document" />}
 
       {missing && (
         <p className="notice" role="alert">

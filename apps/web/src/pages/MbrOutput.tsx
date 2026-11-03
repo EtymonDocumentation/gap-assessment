@@ -92,7 +92,7 @@ export function MbrOutput({ rec }: { rec: MbrRecord }) {
               })
             }
           >
-            Download HTML
+            Download batch record (HTML)
           </button>
           <HelpTip label="the HTML export" text="Saves the draft as a web page you can open in any browser or print. Use it for a quick read; use the Word panel below for a document your reviewers can mark up." />
           <button type="button" className="btn" aria-expanded={showPreview} onClick={() => setShowPreview((v) => !v)} data-testid="mbr-preview-toggle">
@@ -120,6 +120,7 @@ export function MbrOutput({ rec }: { rec: MbrRecord }) {
         modes={GENERIC_MODES}
         tagData={(m) => m.buildDocumentTagData(doc)}
         testIdPrefix="mbr"
+        buttonLabel="Download batch record (Word)"
         note={'"Map to their headings" is offered for the gap assessment document only. For a tagged template, {title}, {banner}, {status}, {generated}, {meta} and {sections} are filled, and {@body} or a section tag such as {@section_basis} brings in the batch record in your template\'s styles. The sections of each unit operation have their own tags, for example {@section_section_SC_01}.'}
       />
 

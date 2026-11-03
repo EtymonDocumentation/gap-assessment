@@ -1,6 +1,6 @@
 import type { CompanyTableSnapshot } from "@gap/process-model";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { PageBanner } from "../art";
+import { PageHeader } from "../PageHeader";
 import { Empty, Modal } from "../components";
 import { dateTime, download, slug } from "../lib";
 import { href } from "../router";
@@ -121,20 +121,25 @@ export function SamplingTablesPage() {
 
   return (
     <div className="stack-lg">
-      <PageBanner art="page-document">
-        <h1>Sampling tables</h1>
-      </PageBanner>
-      <section className="card stack" aria-labelledby="st-about">
-        <h2 id="st-about">What this is</h2>
-        <p>
-          Your quality system may set the sample size by lot size in its own table. Enter it here once, and choose it for a sampling point on the <a href={href("/sampling")}>Sampling plan</a> page. The tool reads the row that holds the batch's lot size.
-        </p>
-        <ul className="plain-list">
-          <li>{SERVER_MODE ? "Tables are kept on the server for your account." : "Tables are kept in this browser, not in the project file. Export a table to keep a copy as a file."}</li>
-          <li>A point keeps a copy of the table it used, so changing a table later does not silently change a plan that was already issued.</li>
-          <li>Row ranges must not overlap and must not leave gaps. A lot size outside every row has no sample size: the plan shows an open item.</li>
-        </ul>
-      </section>
+      <PageHeader
+        title="Sampling tables"
+        purpose="Your quality system may set the sample size by lot size in its own table."
+        about={{
+          art: "page-document",
+          children: (
+            <>
+              <p>
+                Enter it here once, and choose it for a sampling point on the <a href={href("/sampling")}>Sampling plan</a> page. The tool reads the row that holds the batch's lot size.
+              </p>
+              <ul className="plain-list">
+                <li>{SERVER_MODE ? "Tables are kept on the server for your account." : "Tables are kept in this browser, not in the project file. Export a table to keep a copy as a file."}</li>
+                <li>A point keeps a copy of the table it used, so changing a table later does not silently change a plan that was already issued.</li>
+                <li>Row ranges must not overlap and must not leave gaps. A lot size outside every row has no sample size: the plan shows an open item.</li>
+              </ul>
+            </>
+          ),
+        }}
+      />
 
       {storeError && (
         <p className="notice" role="alert" data-testid="tables-error">

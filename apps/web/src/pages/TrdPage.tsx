@@ -1,8 +1,9 @@
 import { createTrd, trdOpenItems, trdOverrides, type TrdStart } from "@gap/engine";
 import { parseTrdSeed, type TrdSeed } from "@gap/process-model";
 import { useState } from "react";
-import { PageBanner } from "../art";
+import { StartArt } from "../art";
 import { Empty } from "../components";
+import { PageHeader } from "../PageHeader";
 import { dateTime } from "../lib";
 import { href, navigate } from "../router";
 import { useStore } from "../store";
@@ -73,25 +74,30 @@ function List({ missing, preselect }: { missing?: string | undefined; preselect:
 
   return (
     <div className="stack-lg">
-      <PageBanner art="page-document">
-        <h1>TRD</h1>
-      </PageBanner>
-      <section className="card stack" aria-labelledby="trd-about">
-        <h2 id="trd-about">What this is</h2>
-        <p data-testid="trd-scope-text">{TRD_SCOPE_TEXT}</p>
-        <ul className="plain-list">
-          <li>A TRD (technical requirements document) can start from this project, from a TRD seed file, or blank.</li>
-          <li>You can override any value. The project value stays beside yours, and the override is written to the change log.</li>
-          <li>When the project changes, you get a notice and a list of differences. A value you overrode is never replaced unless you choose to.</li>
-          <li>The set point, NOR and PAR are entered by you with sources from the source register. They do not come from the sampling plan.</li>
-          <li>
-            The seed itself is on the <a href={href("/trd-seed")}>TRD seed</a> page.
-          </li>
-          <li>
-            The process descriptions of a TRD start as a copy of the <a href={href("/trd/writeups")} data-testid="trd-writeups-link">process description library</a>; edit, version or add your own there.
-          </li>
-        </ul>
-      </section>
+      <PageHeader
+        title="TRD"
+        purpose="A TRD (technical requirements document) can start from this project, from a TRD seed file, or blank."
+        about={{
+          art: "page-document",
+          children: (
+            <>
+              <p data-testid="trd-scope-text">{TRD_SCOPE_TEXT}</p>
+              <ul className="plain-list">
+                <li>You can override any value. The project value stays beside yours, and the override is written to the change log.</li>
+                <li>When the project changes, you get a notice and a list of differences. A value you overrode is never replaced unless you choose to.</li>
+                <li>The set point, NOR and PAR are entered by you with sources from the source register. They do not come from the sampling plan.</li>
+                <li>
+                  The seed itself is on the <a href={href("/trd-seed")}>TRD seed</a> page.
+                </li>
+                <li>
+                  The process descriptions of a TRD start as a copy of the <a href={href("/trd/writeups")} data-testid="trd-writeups-link">process description library</a>; edit, version or add your own there.
+                </li>
+              </ul>
+            </>
+          ),
+        }}
+      />
+      {list.length === 0 && <StartArt art="page-document" />}
 
       {missing && (
         <p className="notice" role="alert">

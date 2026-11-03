@@ -124,9 +124,10 @@ test("the Documents and Library drop-downs open on click, move with the arrow ke
   await expect(nav.getByRole("link", { name: "Scope", exact: true })).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(documents).toBeFocused();
-  // A click outside closes it.
+  // A click outside closes it. The page title now sits right under the menu, where the open list covers it, so the click goes to the
+  // plain-text notice at the foot of the page.
   await documents.click();
-  await page.getByRole("heading", { level: 1 }).click();
+  await page.getByTestId("notice-footer").click();
   await expect(documents).toHaveAttribute("aria-expanded", "false");
   // Choosing an entry navigates and closes the list; the group shows as current.
   await documents.click();

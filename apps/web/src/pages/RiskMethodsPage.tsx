@@ -1,7 +1,7 @@
 import type { RiskConfig } from "@gap/process-model";
 import { describeMethod, METHOD_LABEL } from "@gap/risk";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { PageBanner } from "../art";
+import { PageHeader } from "../PageHeader";
 import { Empty, Modal } from "../components";
 import { dateTime } from "../lib";
 import { href } from "../router";
@@ -43,20 +43,25 @@ export function RiskMethodsPage() {
 
   return (
     <div className="stack-lg">
-      <PageBanner art="page-document">
-        <h1>Risk methods</h1>
-      </PageBanner>
-      <section className="card stack" aria-labelledby="rml-about">
-        <h2 id="rml-about">What this is</h2>
-        <p>
-          A risk method is the way your quality system scores risk: its scales, the bands or labels, the matrix. Create and edit methods here, or define one on the Method step of a <a href={href("/risk")}>risk assessment</a> and save it here to reuse it.
-        </p>
-        <ul className="plain-list">
-          <li>{SERVER_MODE ? "Methods are kept on the server for your account." : "Methods are kept in this browser, not in the project file."}</li>
-          <li>An assessment keeps its own copy of the method and the name and version it came from, so changing a method here never changes an assessment that was already made. An assessment whose method has a newer library version shows a note and an "Update from library" button.</li>
-          <li>Saving a change keeps the earlier content in the method's history. Give the method a new version when its scales, bands or labels change, so an assessment can tell its copy from the newer one.</li>
-        </ul>
-      </section>
+      <PageHeader
+        title="Risk methods"
+        purpose="A risk method is the way your quality system scores risk: its scales, the bands or labels, the matrix."
+        about={{
+          art: "page-document",
+          children: (
+            <>
+              <p>
+                Create and edit methods here, or define one on the Method step of a <a href={href("/risk")}>risk assessment</a> and save it here to reuse it.
+              </p>
+              <ul className="plain-list">
+                <li>{SERVER_MODE ? "Methods are kept on the server for your account." : "Methods are kept in this browser, not in the project file."}</li>
+                <li>An assessment keeps its own copy of the method and the name and version it came from, so changing a method here never changes an assessment that was already made. An assessment whose method has a newer library version shows a note and an "Update from library" button.</li>
+                <li>Saving a change keeps the earlier content in the method's history. Give the method a new version when its scales, bands or labels change, so an assessment can tell its copy from the newer one.</li>
+              </ul>
+            </>
+          ),
+        }}
+      />
 
       {storeError && (
         <p className="notice" role="alert" data-testid="methods-error">

@@ -31,9 +31,9 @@ import { NoticeFooter, NoticeStrip } from "./components";
 import { AppHeader } from "./header";
 import type { NavGroup } from "./nav";
 import { GAP_STEPS } from "./next-step";
-import { DocChainBar, DocChainStrip, ModuleLibraryLinks } from "./DocChain";
+import { DocChainBar } from "./DocChain";
 import { chainStageOf } from "./chain";
-import { GapStepBar, GapStepFooter, gapStepIndex } from "./steps";
+import { GapStepFooter, gapStepIndex } from "./steps";
 import { useRoute } from "./router";
 import { ConflictDialog, ServerGate, useIsRemote } from "./server/ServerUi";
 import { SERVER_MODE } from "./server/mode";
@@ -208,9 +208,7 @@ function AppShell() {
         </div>
       )}
       <main id="main" tabIndex={-1}>
-        {ready && project && chainStageOf(route.path) && <DocChainStrip route={route} />}
-        {ready && project && gapStepIndex(route.path) >= 0 && <GapStepBar path={route.path} />}
-        {ready && project && <ModuleLibraryLinks path={route.path} />}
+        {/* The chain strip, the gap steps and the module library buttons are part of each page's header (PageHeader), under its title. */}
         {page}
         {ready && project && gapStepIndex(route.path) >= 0 && <GapStepFooter path={route.path} />}
         {ready && project && chainStageOf(route.path) && <DocChainBar route={route} />}

@@ -3974,8 +3974,11 @@ table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
 }
 .contents-list {
   margin: 0;
-  padding-left: 1.2rem;
-  columns: 2 16rem;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.9rem;
 }
 @media print {
   .help-tip {
@@ -3993,7 +3996,8 @@ table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
 }
 .contents-groups {
   display: grid;
-  gap: 0.75rem;
+  gap: 0.5rem 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
 }
 
 /* ---------------------------------------------------------------- saved answers */
@@ -4087,5 +4091,279 @@ table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
   }
   main {
     padding-top: 8px;
+  }
+}
+
+/* ---------------------------------------------------------------- page header (redesign job R2)
+   The same top on every module and library page: breadcrumb, title row (h1, one purpose sentence, status pills, "About this page", and on
+   the right the page's actions with an Export menu), then the chain strip. Only the tokens above are used; nothing here is a new colour. */
+.page-top {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.page-top > .doc-chain,
+.page-top > .gap-step-bar,
+.page-top > .module-library {
+  margin-bottom: 0;
+}
+.page-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.page-crumbs ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.page-crumbs li {
+  display: inline;
+}
+.page-crumbs li + li::before {
+  content: "\203A" / "";
+  margin: 0 0.4rem;
+}
+.page-crumbs a {
+  color: var(--muted);
+  text-decoration: underline;
+}
+.page-crumbs a:hover {
+  color: var(--accent);
+}
+.page-head-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+.page-head-main {
+  flex: 1 1 24rem;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.page-head h1 {
+  font-size: 1.625rem;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.page-head-purpose {
+  margin: 0;
+  color: var(--muted);
+  max-width: 80ch;
+}
+.page-head-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin-top: 2px;
+}
+.page-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.pill.warn {
+  background: var(--warn-bg);
+  border-color: var(--warn-border);
+  color: var(--warn);
+}
+.page-head-meta {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+.about-toggle {
+  min-height: 24px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.875rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.about-toggle:hover {
+  background: var(--accent-soft);
+}
+.page-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.about-panel {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-top: 4px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.about-panel[hidden] {
+  display: none;
+}
+.about-art {
+  order: 2;
+  width: 240px;
+}
+.about-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 75ch;
+}
+.about-text > p {
+  margin: 0;
+}
+
+/* The Export menu: one primary button, the page's downloads under it. */
+.export-menu {
+  position: relative;
+  display: inline-flex;
+}
+.export-menu-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 40;
+  min-width: 16rem;
+  max-width: min(26rem, 90vw);
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 20%);
+}
+.export-menu-item {
+  display: block;
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.export-menu-item:hover,
+.export-menu-item:focus-visible {
+  background: var(--accent-soft);
+}
+
+/* A module's empty "start" state keeps a picture (decoration; the text beside it says what to do). No title sits on it, so no scrim. */
+.art-banner.art-start {
+  height: clamp(96px, 9vw, 130px);
+}
+.art-start .art-banner-img::after {
+  display: none;
+}
+
+/* The interview's grid has two columns; its header spans both. */
+.interview-head {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 700px) {
+  .page-head h1 {
+    font-size: 1.3125rem;
+  }
+  /* The breadcrumb is one line on a phone. Only the first part (the project name, often long) gives way and ends in an ellipsis, so the
+     area and the page stay readable; the whole text is still in the page. The padding keeps a focus outline from being cut off. */
+  .page-crumbs ol {
+    display: flex;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    overflow: hidden;
+    font-size: 0.75rem;
+    padding: 3px 4px;
+    margin: -3px -4px;
+  }
+  .page-crumbs li {
+    flex: none;
+  }
+  .page-crumbs li:first-child {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+  .page-crumbs li:first-child > a {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .page-head-actions {
+    flex: 1 1 100%;
+    justify-content: stretch;
+  }
+  .page-head-actions > .btn,
+  .page-head-actions > .export-menu {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .page-head-actions .btn {
+    min-height: 44px;
+  }
+  .export-menu > .btn {
+    width: 100%;
+  }
+  .export-menu-list {
+    left: 0;
+    right: 0;
+    min-width: 0;
+    max-width: none;
+  }
+  .export-menu-item {
+    min-height: 44px;
+  }
+  .about-toggle {
+    min-height: 44px;
+    padding-inline: 8px;
+  }
+  .about-panel {
+    flex-direction: column;
+  }
+  .about-art {
+    order: 0;
+    width: 100%;
+    max-width: 360px;
+  }
+}
+/* A printed page shows the document, not the page's own title block (the old banner was hidden in print the same way). */
+@media print {
+  .page-top,
+  .about-toggle,
+  .about-panel {
+    display: none !important;
   }
 }

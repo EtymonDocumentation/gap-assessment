@@ -8,7 +8,7 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
-import { goTo, NOTICE_DOCUMENT } from "./nav-helper";
+import { breadcrumb, goTo, NOTICE_DOCUMENT, openAbout } from "./nav-helper";
 
 const SHOTS = tmpdir();
 
@@ -25,6 +25,7 @@ async function loadDemo(page: Page) {
 async function openTrdList(page: Page) {
   await loadDemo(page);
   await goTo(page, "TRD");
+  await openAbout(page);
   await expect(page.getByTestId("trd-scope-text")).toBeVisible();
 }
 
@@ -159,7 +160,7 @@ test("a library edit makes a new version; the TRD offers Update from library wit
   // Focus is back on the Edit button.
   await expect(page.getByTestId("twl-edit-wu_compounding")).toBeFocused();
 
-  await page.getByRole("link", { name: "TRDs", exact: true }).click();
+  await breadcrumb(page).getByRole("link", { name: "TRD", exact: true }).click();
   await page.getByTestId("trd-list-table").getByRole("link").first().click();
   await page.getByTestId("trd-tab-writeups").click();
   const { card, id } = await openCard(page, COMPOUNDING);
@@ -199,7 +200,7 @@ test("Word and HTML carry the Manufacturing process overview with numbered steps
   expect(html).toContain('<ol type="a" class="lettered">');
   expect(html).toContain('class="blank-open"');
 
-  const word = await download(page, () => page.getByRole("button", { name: /Download Word|Word document/i }).first().click());
+  const word = await download(page, () => page.getByRole("button", { name: "Download TRD (Word)" }).click());
   const xml = new PizZip(word.bytes).file("word/document.xml")!.asText();
   const text = xml.replace(/<[^>]+>/g, " ");
   expect(text).toContain(NOTICE_DOCUMENT);
@@ -232,7 +233,9 @@ for (const scheme of ["light", "dark"] as const) {
     await expectNoHorizontalScroll(page, `${scheme} output with descriptions`);
     await shot("output");
 
-    await page.getByRole("link", { name: "All TRDs" }).click();
+    await breadcrumb(page).getByRole("link", { name: "TRD", exact: true }).click();
+    // the link to the library sits in the page's "About this page" text, which is closed on every visit
+    await openAbout(page);
     await page.getByTestId("trd-writeups-link").click();
     await expect(page.getByTestId("twl-table")).toBeVisible();
     await expectAccessible(page, `${scheme} library`);

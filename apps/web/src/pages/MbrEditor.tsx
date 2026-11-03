@@ -28,7 +28,6 @@ import { Fragment, useMemo, useRef, useState } from "react";
 import { HelpTip } from "../HelpTip";
 import { Modal } from "../components";
 import { dateTime } from "../lib";
-import { mbrScopeText } from "./mbr-text";
 import { href, navigate } from "../router";
 import { useStore } from "../store";
 import { useMbrLibrary } from "../mbr-blocks-store";
@@ -85,9 +84,6 @@ export function MbrEditor({ rec, tab = "edit" }: { rec: MbrRecord; tab?: "edit" 
         <MbrOutput rec={rec} />
       ) : (
         <>
-      <p className="muted" data-testid="mbr-scope-text">
-        {mbrScopeText}
-      </p>
       {error && (
         <p className="notice" role="alert" data-testid="mbr-error">
           {error}

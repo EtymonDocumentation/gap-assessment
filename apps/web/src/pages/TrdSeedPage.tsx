@@ -2,7 +2,7 @@ import { buildTrdOutline, buildTrdSeed, recordExport, trdSeedCounts, trdSeedFing
 import { PROCESS_MODEL_VERSION, TRD_SEED_VERSION, parseTrdSeed, type DocumentExport, type TemplateRecord } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlBody } from "@gap/renderers";
 import { useMemo, useRef, useState } from "react";
-import { PageBanner } from "../art";
+import { PageHeader } from "../PageHeader";
 import { Modal } from "../components";
 import { loadDocx } from "../docx-loader";
 import { APP_VERSION, download, today } from "../lib";
@@ -77,6 +77,34 @@ export function TrdSeedPage() {
 
   const saved = (file: string) => setDone(`Saved ${file}. The download is recorded in the export history below.`);
 
+  // The same three downloads are in the Export menu at the top and in the Download section below (which also holds the Traceability choice).
+  const downloadSeedJson = () =>
+    guard(() => {
+      const file = `trd-seed-${stamp}.json`;
+      download(file, `${JSON.stringify(seed, null, 2)}\n`, "application/json;charset=utf-8");
+      record("trd-seed-json", BUILTIN_RECORD);
+      saved(file);
+    });
+  const downloadOutlineWord = () => {
+    if (!busy) guard(() => void exportWord());
+  };
+  const downloadOutlineHtml = () =>
+    guard(() => {
+      if (!outline) return;
+      const file = `trd-outline-${stamp}.html`;
+      download(file, renderHtml(outline), "text/html;charset=utf-8");
+      record("trd-outline-html", BUILTIN_RECORD);
+      saved(file);
+    });
+  const exportItems =
+    seed && outline
+      ? [
+          { label: "Download TRD seed (JSON)", onSelect: downloadSeedJson },
+          { label: "Download draft outline (Word)", onSelect: downloadOutlineWord },
+          { label: "Download draft outline (HTML)", onSelect: downloadOutlineHtml },
+        ]
+      : undefined;
+
   async function exportWord() {
     if (!outline) return;
     setBusy(true);
@@ -103,31 +131,35 @@ export function TrdSeedPage() {
   const sc = seed?.scope;
   return (
     <div className="stack-lg">
-      <PageBanner art="page-document">
-        <h1>TRD seed</h1>
-      </PageBanner>
-
-      <section className="card stack no-print" aria-labelledby="trd-about-title">
-        <h2 id="trd-about-title">What this is</h2>
-        <p>
-          A technical requirements document (TRD) describes how a process will run at the receiving unit (RU). This page turns the RU side of your gap assessment into a starting point for it. The{" "}
-          <strong>TRD seed</strong> is a JSON file that a TRD tool can read. The <strong>draft outline</strong> is the same content as a Word or HTML document that a person can read.
-        </p>
-        <ul className="plain-list">
-          <li>Only values of the RU are exported as values. SU values appear only as a reference, and only in the optional Traceability section.</li>
-          <li>Nothing is filled in for you. A value nobody recorded reads "Not established", and a best guess for a TBD is labelled "TBD best guess, provisional".</li>
-          <li>Process steps and topics you left out in the Scope step are not exported.</li>
-          <li>The outline is not an approved TRD, and it never names a regulatory filing category.</li>
-          <li>The outline uses the built-in style only. Customer templates are not applied to it yet.</li>
-        </ul>
-        {trdAllowed && (
-          <div>
-            <a className="btn primary" href={href("/trd", { start: "project" })} data-testid="trd-start-from-project">
+      <PageHeader
+        title="TRD seed"
+        purpose="A technical requirements document (TRD) describes how a process will run at the receiving unit (RU)."
+        about={{
+          art: "page-document",
+          children: (
+            <>
+              <p>
+                This page turns the RU side of your gap assessment into a starting point for it. The <strong>TRD seed</strong> is a JSON file that a TRD tool can read. The <strong>draft outline</strong> is the same content as a Word or HTML document that a person can read.
+              </p>
+              <ul className="plain-list">
+                <li>Only values of the RU are exported as values. SU values appear only as a reference, and only in the optional Traceability section.</li>
+                <li>Nothing is filled in for you. A value nobody recorded reads "Not established", and a best guess for a TBD is labelled "TBD best guess, provisional".</li>
+                <li>Process steps and topics you left out in the Scope step are not exported.</li>
+                <li>The outline is not an approved TRD, and it never names a regulatory filing category.</li>
+                <li>The outline uses the built-in style only. Customer templates are not applied to it yet.</li>
+              </ul>
+            </>
+          ),
+        }}
+        actions={
+          trdAllowed ? (
+            <a className="btn" href={href("/trd", { start: "project" })} data-testid="trd-start-from-project">
               Start a TRD from this project
             </a>
-          </div>
-        )}
-      </section>
+          ) : undefined
+        }
+        exports={exportItems}
+      />
 
       {!seed || !sc || !counts || !outline ? (
         <section className="card stack" role="alert" data-testid="trd-problem">
@@ -216,35 +248,13 @@ export function TrdSeedPage() {
               </span>
             </label>
             <div className="row wrap">
-              <button
-                type="button"
-                className="btn primary"
-                onClick={() =>
-                  guard(() => {
-                    const file = `trd-seed-${stamp}.json`;
-                    download(file, `${JSON.stringify(seed, null, 2)}\n`, "application/json;charset=utf-8");
-                    record("trd-seed-json", BUILTIN_RECORD);
-                    saved(file);
-                  })
-                }
-              >
+              <button type="button" className="btn primary" onClick={downloadSeedJson}>
                 Download TRD seed (JSON)
               </button>
-              <button type="button" className="btn" disabled={busy} onClick={() => guard(() => void exportWord())}>
+              <button type="button" className="btn" disabled={busy} onClick={downloadOutlineWord}>
                 {busy ? "Creating the Word document..." : "Download draft outline (Word)"}
               </button>
-              <button
-                type="button"
-                className="btn"
-                onClick={() =>
-                  guard(() => {
-                    const file = `trd-outline-${stamp}.html`;
-                    download(file, renderHtml(outline), "text/html;charset=utf-8");
-                    record("trd-outline-html", BUILTIN_RECORD);
-                    saved(file);
-                  })
-                }
-              >
+              <button type="button" className="btn" onClick={downloadOutlineHtml}>
                 Download draft outline (HTML)
               </button>
             </div>

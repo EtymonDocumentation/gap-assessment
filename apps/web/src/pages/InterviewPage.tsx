@@ -29,7 +29,8 @@ import {
 } from "@gap/engine";
 import { getEntry, type DocRef, type Project, type Source } from "@gap/process-model";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ArtFigure, PageBanner, closeupArt, sectionArt } from "../art";
+import { ArtFigure, closeupArt, sectionArt } from "../art";
+import { PageHeader } from "../PageHeader";
 import { CategoryChip, Modal, ProvisionalFlag, ResponderForm, SeverityBadge } from "../components";
 import { SIDE_SHORT, sideDescription, type UnitSide } from "../lib";
 import { href, navigate } from "../router";
@@ -264,8 +265,8 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
 
   return (
     <div className="interview">
-      {/* The h1 on this page is the question itself, so the banner carries a plain-text label, not a heading. */}
-      <PageBanner art="page-interview" size="slim" label="Interview" />
+      {/* The h1 on this page is the question itself, so the header is only the breadcrumb (which names the page) and the chain strips. */}
+      <PageHeader className="interview-head" />
       <aside className="interview-aside" aria-label="Interview progress">
         <div className="card tight">
           <p className="small muted">

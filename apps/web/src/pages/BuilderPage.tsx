@@ -28,7 +28,8 @@ import {
 } from "@gap/engine";
 import { addSource, CUSTOM_ITEM_KINDS, type Actor, type CustomItemKind } from "@gap/process-model";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArtFigure, PageBanner, sectionArt } from "../art";
+import { ArtFigure, sectionArt } from "../art";
+import { PageHeader } from "../PageHeader";
 import { CategoryChip, Empty, Modal, ResponderForm, VerificationBadge, VerifierFields } from "../components";
 import { useRoute } from "../router";
 import { useAssessment, useContent, useStageWording, useStore } from "../store";
@@ -132,17 +133,13 @@ export function BuilderPage() {
 
   return (
     <div className="stack-lg">
-      <PageBanner art="page-builder">
-        <h1 ref={headingRef} tabIndex={-1} id="builder-title">
-          Builder
-        </h1>
-      </PageBanner>
-      <div>
-        <p className="muted">
-          Every attribute of the process model, SU beside RU, with its status, sources, verification state and revision. Edit a value in place,
-          or add your own unit operations and items. Nothing is filled in by default: every value has a source.
-        </p>
-      </div>
+      <PageHeader
+        title="Builder"
+        titleRef={headingRef}
+        titleId="builder-title"
+        purpose="Every attribute of the process model, SU beside RU, with its status, sources, verification state and revision."
+        about={{ art: "page-builder", children: <p>Edit a value in place, or add your own unit operations and items. Nothing is filled in by default: every value has a source.</p> }}
+      />
 
       <div className="row wrap">
         <button

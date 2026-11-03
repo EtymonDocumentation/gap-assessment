@@ -7,7 +7,7 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
-import { expectNotice, goTo, NOTICE_DOCUMENT } from "./nav-helper";
+import { expectNotice, goTo, NOTICE_DOCUMENT, openAbout } from "./nav-helper";
 
 const TITLE = "PPQ sampling plan — draft";
 const SHOTS = tmpdir();
@@ -81,6 +81,7 @@ function wordHeadings(bytes: Buffer): string[] {
 
 test("the page says what the tool does and does not do, and the demo plan is listed", async ({ page }) => {
   await openSampling(page);
+  await openAbout(page);
   await expect(page.getByTestId("sampling-scope-text")).toHaveText(
     "The tool works out sample sizes from the method you choose. It does not judge whether that choice is adequate for your process; that decision belongs to QA / statistics.",
   );
