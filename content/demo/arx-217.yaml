@@ -884,7 +884,7 @@ sampling:
             bag: { fromBag: true, mixedFirst: true, mixingTime: 10 minutes at the validated mixing speed, drawFrom: the sample manifold at the bottom of the bag }
             closedSystem: closed
           patch:
-            timing: { options: [beginning, end] }
+            timing: { options: [end, beginning] }
             locationsCount: 2
             sampleSize: { method: fixed, inputs: { count: 3, basis: "Fictional hold study protocol HT-217 (fictional)." } }
             acceptance: { kind: criterion, text: Concentration and bioburden within the fictional hold limits (fictional). }
@@ -1127,13 +1127,13 @@ mbr:
     - { uo: ds_receipt_thaw, blocks: [receipt_and_thaw] }
     - { uo: compounding, blocks: [pooling_with_weights, dilution_and_mixing, sample_table] }
     - { uo: bbr_filtration, blocks: [bbr_filtration_run, filter_integrity_test] }
-    - { uo: sterile_filtration, blocks: [sterile_filtration_run] }
+    - { uo: sterile_filtration, blocks: [sterile_filtration_run, sample_table] }
     - { uo: aseptic_filling, blocks: [line_preparation, filling_run, stopper_position_check, filtered_hold, sample_table] }
-    - { uo: capping, blocks: [capping_run] }
-    - { uo: visual_inspection, blocks: [visual_inspection_run] }
+    - { uo: capping, blocks: [capping_run, sample_table] }
+    - { uo: visual_inspection, blocks: [visual_inspection_run, sample_table] }
     - { uo: bulk_packaging, blocks: [bulk_packing, reconciliation_chain] }
     - { uo: labeling_packaging, blocks: [labeling_run] }
-    - { uo: storage_shipping, blocks: [storage_and_shipment] }
+    - { uo: storage_shipping, blocks: [storage_and_shipment, sample_table] }
     - { title: Batch record review, blocks: [batch_review] }
   # Rows the team has not decided yet; every other row with a TRD value is set to "same as TRD".
   undecided:
@@ -1156,3 +1156,62 @@ mbr:
       targets:
         - { label: Mixing end to start of sterile filtration, value: "24", unit: h, fromStep: 6, toStep: 9 }
         - { label: Transfer and waiting before filtration, value: "8", unit: h, fromStep: 9, toStep: 9 }
+  # Plan points that name no unit operation of this record's sections ("Choose where" in the open items). Each is added the way the open-item
+  # button "Add to <section>" adds it, with its sampling step. Where each goes, and why (fictional demo, GMP reasoning):
+  # - SP-008 Sterility goes in Visual inspection. Sterility is tested on final filled, stoppered and crimped containers, and visual inspection
+  #   is the last section that works on those finished containers (the plan's own step for it is "QC release testing", a custom step that
+  #   the batch record does not have).
+  # - SP-009 Hold of the bulk solution before filtration goes in Pooling, compounding and dilution, where the bulk is made and then held
+  #   until sterile filtration (this record's time limit "bulk hold" is in that section).
+  # - SP-014 Sample or study that answers an agency request: the request (IR-DEMO-01) asks for homogeneity data of the bulk solution, so it
+  #   is taken in the same section as the bulk, Pooling, compounding and dilution.
+  # - SP-015 Operator-requested rinse sample goes in Aseptic filling and stoppering, because a rinse of the filling line is taken there at
+  #   the end of filling; the row is "for information" and has no limit.
+  samples:
+    - { uo: visual_inspection, point: SP-008 }
+    - { uo: compounding, point: SP-009 }
+    - { uo: compounding, point: SP-014 }
+    - { uo: aseptic_filling, point: SP-015 }
+  # Sampling steps for the samples that no step names yet (the library blocks only place steps for some moments, and the storage block has
+  # none). Without a step that names it, a sample shows as "not placed" in the open items. The rows are added first (see `samples`), so the
+  # step numbers below count the steps as they stand in the finished record.
+  steps:
+    - uo: compounding
+      block: dilution_and_mixing
+      step: 5
+      after:
+        - "Take sample SP-007 (sample table of this section) from the top, the middle and the bottom of the vessel in the middle of the mixing time, through the shared sampling port, and record the time and the person who took them: {sampling time}, {sampled by}."
+    - uo: sterile_filtration
+      block: sterile_filtration_run
+      step: 3
+      text: "Take sample SP-002 (sample table of this section), the bioburden sample before the sterilizing filter, and record the time, the volume and the sample number: {sampling time}, {sample volume}, {sample number}."
+    - uo: sterile_filtration
+      block: sterile_filtration_run
+      step: 5
+      after:
+        - "Record the readings of the integrity test before use and after use as sample SP-010 (sample table of this section): {pre-use reading}, {post-use reading}, {result}."
+    - uo: capping
+      block: capping_run
+      step: 3
+      after:
+        - "Take sample SP-003 (sample table of this section), the capped units for the container closure integrity test, and record how many were taken: {sampling time}, {units taken}, {taken by}."
+    - uo: visual_inspection
+      block: visual_inspection_run
+      step: 4
+      after:
+        - "Take sample SP-008 (sample table of this section), the sterility test units, from the accepted units, which are the final filled, stoppered and crimped containers, and send them to the test laboratory: {sampling time}, {units taken}, {taken by}."
+    - uo: visual_inspection
+      block: visual_inspection_run
+      step: 6
+      after:
+        - "Take sample SP-004 (sample table of this section) from the accepted units for the AQL check and record the result: {sampling time}, {units taken}, {result}."
+    - uo: storage_shipping
+      block: storage_and_shipment
+      step: 1
+      after:
+        - "Take the stability study units (sample SP-011) and the retain samples (sample SP-012) from the finished batch at the storage location, as the sample table of this section shows: {units taken}, {taken by}."
+    - uo: storage_shipping
+      block: storage_and_shipment
+      step: 3
+      after:
+        - "Pack the shipping study units (sample SP-013) with the shipment and record how many were packed: {units packed}, {packed by}."

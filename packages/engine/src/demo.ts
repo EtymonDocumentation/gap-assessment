@@ -8,7 +8,7 @@ import { addAction, addItem, addReview, createAssessment, pointRef, setMethod, u
 import { addItemFromGap, addItemFromSuggestion, gapSeeds, suggestFailureModes } from "./risk-seed";
 import { acceptSuggestion, addAgencyRequest, addBatch, addFigureItem, addPoint, addStep, addSubsection, applyDesignLoadout, createPlan, projectScopeSteps, setParties, setPointFlow, setReadiness, setTimeZero, updatePlan, updatePlanDesign, updatePoint, updateStep, type PointPatch } from "./sampling";
 import { suggestPoints, type SamplingSuggestions } from "./sampling-seed";
-import { addMbrStep, addParamRow, addTarget, createMbr, setParam, splitMbr, stepRefToken, updateMbrStep, updateSplit } from "./mbr";
+import { addMbrStep, addParamRow, addPlanPointToSection, addTarget, createMbr, setParam, splitMbr, stepRefToken, updateMbrStep, updateSplit } from "./mbr";
 import { createTrd, setControl, setLimits, setOverride, updateTrd, updateTrdStep } from "./trd";
 import { buildTrdSeed } from "./trd-seed";
 import { addWriteupFromLibrary, moveWriteup, removePart, setBlankValue, setNotApplicable, setPartImage, setPartIncluded, setPartText, setTableRows } from "./trd-writeup";
@@ -255,6 +255,9 @@ const mbrDemoSchema = z.object({
   // Step texts the team wrote for this record: `text` replaces the text of step `step` (1 = first) of the block, `after` adds steps behind it.
   // Used for the worked buffer calculation, which is the record's own (the library only says how to calculate).
   steps: z.array(z.object({ uo: z.string(), block: z.string(), step: z.number().int(), text: z.string().optional(), after: z.array(z.string()).default([]) })).default([]),
+  // Sampling-plan points the batch record takes in a section the plan itself does not name (a point on a custom step or with no unit
+  // operation): the same action as the open-item button `Add to <section>`, so the row and its sampling step are written the way a person's click writes them.
+  samples: z.array(z.object({ uo: z.string(), point: z.string() })).default([]),
   // The record is split in two parts after the section of unit operation `after`, at the plan hold with the label `hold` (found in the first
   // sampling plan). `limit` names the time limit row (by unit operation and library key) the elapsed hold time is compared with.
   // `rewrite` changes the wording of steps that the split makes untrue (the end of the hold is now recorded in Part 2): the step of the
@@ -611,6 +614,8 @@ function applyMbrDemo(project: Project, content: ContentBundle, m: z.infer<typeo
     if (!id) throw new Error(`Demo MBR: ${uo} has no step ${place} in block ${blockId}`);
     return id;
   };
+  // Sample rows and their sampling steps come first, so that the steps below count steps as they stand in the finished record.
+  for (const e of m.samples) project = addPlanPointToSection(project, recordId, sectionFor(e.uo).id, e.point, library, who);
   for (const e of m.steps) {
     const block = sectionFor(e.uo).blocks.find((x) => x.libraryId === e.block);
     const step = block?.steps[e.step - 1];

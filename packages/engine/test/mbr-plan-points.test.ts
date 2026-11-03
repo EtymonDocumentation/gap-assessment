@@ -79,25 +79,24 @@ describe("plan points the record leaves out", () => {
     expect(item!.where).toBe(`Choose where: ${first.title}, Compounding of the second tank`);
   });
 
-  it("is the same list in the ARX-217 demo: only points that fit a section of the record, or name no unit operation", () => {
+  it("is empty in the ARX-217 demo: its record has a row and a step for every point of its plan", () => {
     const arx = build("arx-217");
     const rec = recOf(arx);
     const plan = arx.sampling.plans.find((p) => p.id === rec.planId)!;
-    const covered = new Set(rec.sections.flatMap((s) => s.blocks.flatMap((b) => b.samples.map((r) => r.pointId))));
-    const left = planPointsNotInRecord(arx, rec);
-    expect(left.length).toBeGreaterThan(0);
-    for (const x of left) {
-      const point = plan.points.find((q) => q.id === x.pointId)!;
-      expect(covered.has(x.pointId), x.pointId).toBe(false);
-      if (x.chooseWhere) {
-        expect(["none", "custom_step"], x.pointId).toContain(point.unitOp);
-        expect(x.sectionIds, x.pointId).toEqual(rec.sections.map((s) => s.id));
-      } else {
-        expect(x.sectionIds.length, x.pointId).toBeGreaterThan(0);
-        for (const id of x.sectionIds) expect(rec.sections.find((s) => s.id === id)!.unitOp, x.pointId).toBe(point.unitOp);
-      }
-    }
-    expect(mbrOpenItems(arx, rec, mbrLibrary).filter((o) => o.kind === "sample_not_in_record")).toHaveLength(left.length);
+    const rows = rec.sections.flatMap((s) => s.blocks.flatMap((b) => b.samples.map((r) => ({ id: r.pointId, section: s.title }))));
+    expect(planPointsNotInRecord(arx, rec)).toEqual([]);
+    // A point on a unit operation that this record has no section for belongs to another record: nothing is missing for it.
+    const noRow = plan.points.filter((p) => !rows.some((r) => r.id === p.id));
+    for (const p of noRow) expect(rec.sections.some((s) => s.unitOp === p.unitOp), `${p.id} ${p.unitOp}`).toBe(false);
+    expect(noRow.map((p) => p.id), "points without a row").toEqual(["SP-006"]);
+    expect(mbrOpenItems(arx, rec, mbrLibrary).filter((o) => o.kind === "sample_not_in_record" || o.kind === "sample_not_placed")).toEqual([]);
+    // The points that name no unit operation of the record sit where the sampled material is (see the comment in the demo file).
+    const sectionOfPoint = (id: string) => rows.find((r) => r.id === id)?.section;
+    const named = (id: string) => plan.points.find((p) => p.id === id)!.attribute ?? id;
+    expect(sectionOfPoint("SP-008"), named("SP-008")).toBe("Visual inspection");
+    expect(sectionOfPoint("SP-009"), named("SP-009")).toBe("Pooling, compounding and dilution");
+    expect(sectionOfPoint("SP-014"), named("SP-014")).toBe("Pooling, compounding and dilution");
+    expect(sectionOfPoint("SP-015"), named("SP-015")).toBe("Aseptic filling and stoppering");
   });
 });
 
