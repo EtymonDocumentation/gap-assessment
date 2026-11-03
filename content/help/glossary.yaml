@@ -1,0 +1,173 @@
+# The glossary page (#/glossary): the words of the app in plain language. Shown in alphabetical order with a filter box.
+#
+#  - id: the anchor, written in lower case (a link to #/glossary?term=nor lands on the term). Unique.
+#  - term: the word as people see it. Give the abbreviation first when there is one ("NOR"), so the list sorts the way people look.
+#  - short: one or two plain sentences. Use the app's own wording: the same words as the page headers, the "?" notes and the documents.
+#  - see: optional ids of related terms.
+#
+# Rules the definitions follow (a unit test checks the mechanical ones):
+#  - Every PPQ hold and time challenge is run in every PPQ lot. The validated limit (the PAR of a hold or time limit) is the most
+#    conservative (lowest) value reached across the PPQ lots, never the full range tested. Before PPQ a hold is written "more than N h".
+#  - The tool never decides a filing category. The only wording it uses for that is "Requires regulatory affairs assessment".
+#  - A document is approved in the company's own document control. The tool is a drafting aid.
+version: 1
+terms:
+  - id: batch-record
+    term: Batch record (MBR)
+    short: The step-by-step instruction for making one batch. It is built from step blocks. It can start from a TRD and a sampling plan, or from neither. Its Process view draws it as an equipment train.
+    see: [trd, sampling-point, ppq-only-item]
+
+  - id: bioburden
+    term: Bioburden
+    short: The number of living microorganisms in a solution or on a product before it is sterile filtered, counted in colony forming units (CFU). A limit is written for a stated volume, for example per 100 mL.
+    see: [in-process-control]
+
+  - id: bracketing
+    term: Bracketing
+    short: Making the PPQ batches at the smallest, a middle and the largest batch size you plan to make, so the sizes in between are covered. Only the batch size is bracketed. Every hold and time challenge is still run in every PPQ lot.
+    see: [ppq, hold-time]
+
+  - id: cci
+    term: CCI (container closure integrity)
+    short: A test that shows a container and its closure, for example a vial and its stopper, keep the product sealed and sterile for as long as it is stored.
+    see: [release-testing]
+
+  - id: clinical-batch
+    term: Clinical batch
+    short: A GMP batch made for clinical use. The process is not yet validated. This is the Clinical project stage.
+    see: [project-stage, engineering-run, ppq]
+
+  - id: cmo
+    term: CMO (contract manufacturing organisation)
+    short: A company that makes a product for another company. The receiving unit is often a CMO.
+    see: [receiving-unit, sending-unit]
+
+  - id: commercial-production
+    term: Commercial (routine) production
+    short: Batches made for the market with a validated process. This is the Commercial project stage.
+    see: [project-stage, cpv, ppq]
+
+  - id: cpv
+    term: CPV (continued process verification)
+    short: Ongoing checking of routine commercial batches after PPQ, to confirm the process stays in control. The sampling plan has a place to note what you decide about sampling after PPQ.
+    see: [commercial-production, ppq]
+
+  - id: design-review
+    term: Design review
+    short: A tab of the sampling plan with questions about how the samples are taken and where they sit. Each question is answered, left open, or marked to look at again.
+    see: [sampling-point, open-item]
+
+  - id: drafting-aid
+    term: Drafting aid
+    short: What this tool is. It helps you write the documents and keeps every unknown visible. It decides nothing and fills in no value for you. A document is approved in your company's own document control. It is a proof of concept, not validated, and not for GMP use.
+    see: [open-item, tbd]
+
+  - id: engineering-run
+    term: Engineering run
+    short: An engineering or demonstration run to learn the process. It is not for GMP supply. This is the Engineering project stage.
+    see: [project-stage, clinical-batch]
+
+  - id: gap
+    term: Gap
+    short: A difference between how the product is made at the sending unit and how the receiving unit plans to make it. The tool lists every gap. What to do about it is your decision. The tool never decides a filing category. Where one may be needed it only says "Requires regulatory affairs assessment".
+    see: [sending-unit, receiving-unit, risk-rating]
+
+  - id: hold-time
+    term: Hold time
+    short: How long a product or an intermediate may wait between two steps, for example in a tank at a set temperature. Every hold is run in every PPQ lot. The validated limit is the most conservative (lowest) value reached across the PPQ lots, not the full range tested. Before PPQ a hold is written "more than N h".
+    see: [time-limit, par, ppq]
+
+  - id: include-anyway
+    term: Include anyway
+    short: A button in the batch record. At a project stage other than PPQ the Word document leaves out the PPQ-only items. They stay in the record, and Include anyway puts one back into the document. Leave out again reverses it.
+    see: [ppq-only-item, project-stage]
+
+  - id: in-process-control
+    term: In-process control (IPC)
+    short: A check made while a step runs, for example a pH, a weight or a filter test, to show the step is in control. It is not the release test of the finished batch.
+    see: [release-testing, sampling-point]
+
+  - id: nor
+    term: NOR (normal operating range)
+    short: The range around the set point in which the process normally runs. You enter it in the TRD, with a source.
+    see: [set-point, par, trd]
+
+  - id: open-item
+    term: Open item
+    short: A value or question still to be decided. Every TBD is an open item, and so is every question not answered yet. Open items stay visible in the pages and the documents, with an owner and a due date where you give them. They do not stop saving or downloading.
+    see: [tbd]
+
+  - id: par
+    term: PAR (proven acceptable range)
+    short: The range in which the process has been shown to give acceptable product. You enter it in the TRD, with a source. For a hold or time limit proved in PPQ, the PAR is the most conservative (lowest) value reached across the PPQ lots, not the full range tested.
+    see: [nor, set-point, hold-time]
+
+  - id: ppq
+    term: PPQ (process performance qualification)
+    short: The batches that prove the process works at the receiving site. Every hold and time challenge is run in every PPQ lot, and only the batch size is bracketed. This is the PPQ project stage.
+    see: [bracketing, hold-time, project-stage, ppq-only-item]
+
+  - id: ppq-only-item
+    term: PPQ-only item
+    short: A hold or time challenge, or a PPQ sample, that belongs to the PPQ batches. At a project stage other than PPQ the Word document leaves it out. It stays in the record and nothing is deleted.
+    see: [include-anyway, project-stage]
+
+  - id: project-stage
+    term: Project stage
+    short: "Which batches the receiving site will make next. Engineering / development runs: runs to learn the process, not for GMP supply. Clinical batches: GMP batches, the process is not yet validated. PPQ batches: batches that prove the process works at the receiving site. Commercial batches: batches for the market, made with a validated process. The stage changes the wording of the TRD ranges and limits, the purpose of the sampling plan, the PPQ steps of the batch record and the stage line in the header of every Word file. Nothing is hidden or blocked, and your own text is never changed or deleted. You choose the stage; the tool never fills it in."
+    see: [engineering-run, clinical-batch, ppq, commercial-production]
+
+  - id: qa
+    term: QA (quality assurance)
+    short: The quality unit that reviews and approves documents in your company's own document control. The tool only drafts.
+    see: [drafting-aid]
+
+  - id: receiving-unit
+    term: Receiving unit (RU)
+    short: The site that will make the product next. The gap assessment compares its plan with the sending unit.
+    see: [sending-unit, cmo]
+
+  - id: release-testing
+    term: Release testing
+    short: Tests on the finished batch against its specification, made before the batch is released. It is different from an in-process control.
+    see: [in-process-control, cci]
+
+  - id: risk-rating
+    term: Risk rating
+    short: The score given to a risk item by the method your team chooses in the risk assessment. The tool does not choose a method or a score for you.
+    see: [gap]
+
+  - id: sampling-point
+    term: Sampling point
+    short: A place and a time in the process where a sample is taken, with the reason for it and what it is tested for. The sampling plan lists them for the PPQ batches.
+    see: [study-point, in-process-control]
+
+  - id: sending-unit
+    term: Sending unit (SU)
+    short: The site that makes the product today. The gap assessment compares how it makes the product with the receiving unit's plan.
+    see: [receiving-unit]
+
+  - id: set-point
+    term: Set point
+    short: The target value of a process parameter. You enter it in the TRD, with a source.
+    see: [nor, par, trd]
+
+  - id: study-point
+    term: Study point
+    short: A sampling point that belongs to a study, for example a hold or mixing study. It tests a challenge value, not a limit.
+    see: [sampling-point, hold-time]
+
+  - id: tbd
+    term: TBD (to be decided)
+    short: A value that is not decided yet. Choose TBD for anything not known. It becomes an open item you can track, and nothing is filled in for you.
+    see: [open-item]
+
+  - id: time-limit
+    term: Time limit
+    short: The longest time allowed between two events, for example from thaw to filling. It is treated like a hold time. Every time challenge is run in every PPQ lot, and the validated limit is the most conservative (lowest) value reached across the PPQ lots.
+    see: [hold-time, par]
+
+  - id: trd
+    term: TRD (technical requirements document)
+    short: The written statement of the process. It lists the steps, the parameters (set point, NOR and PAR) and the process descriptions, each with a source. It starts from the project, a seed file or blank.
+    see: [set-point, nor, par, batch-record]

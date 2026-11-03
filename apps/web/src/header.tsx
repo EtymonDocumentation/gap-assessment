@@ -1,6 +1,7 @@
 import { PRODUCT_NAME, STORAGE_PHRASE_BROWSER, STORAGE_PHRASE_SERVER } from "@gap/engine";
 import { useId, useState } from "react";
 import { CascadeMark } from "./brand";
+import { HelpMenu, PhoneHelp } from "./help-menu";
 import { MainNav, type NavGroup } from "./nav";
 import { GAP_STEPS } from "./next-step";
 import { href } from "./router";
@@ -36,8 +37,8 @@ function ProjectLink({ title }: { title: string }) {
 // ------------------------------------------------------------------ header
 
 /**
- * The dark bar at the top of every page: the Cascade mark and name, the menus, then (right) the open project, the theme and, on the
- * server, the account. On a phone it is the mark, the name, the theme button and a 44 px Menu button; the open project, the account and
+ * The dark bar at the top of every page: the Cascade mark and name, the menus, then (right) the open project, Help (?), the theme and, on the
+ * server, the account. On a phone it is the mark, the name, the theme button and a 44 px Menu button; the open project, the account, Help and
  * where the data is kept move into the Menu panel, and a failed save gets its own line under the bar.
  */
 export function AppHeader({ routePath, groups }: { routePath: string; groups: NavGroup[] }) {
@@ -70,6 +71,7 @@ export function AppHeader({ routePath, groups }: { routePath: string; groups: Na
               }}
             />
           )}
+          <PhoneHelp routePath={routePath} onPick={close} />
           <p className="small muted nav-storage">{remote ? STORAGE_PHRASE_SERVER : STORAGE_PHRASE_BROWSER}</p>
         </>
       )}
@@ -95,6 +97,7 @@ export function AppHeader({ routePath, groups }: { routePath: string; groups: Na
               {remote && <SaveStatus />}
               {title !== undefined && <ProjectLink title={title} />}
               {title !== undefined && !stageBelow && <StageChip />}
+              <HelpMenu routePath={routePath} />
               <ThemeMenu />
               {SERVER_MODE && <AccountMenu onChangePassword={() => setPasswordOpen(true)} />}
             </div>

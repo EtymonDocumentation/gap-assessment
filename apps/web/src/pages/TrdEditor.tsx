@@ -152,7 +152,7 @@ export function TrdEditor({ d, initialTab }: { d: TrdDocument; initialTab: TrdTa
         </p>
       )}
 
-      <Tabs label="TRD steps" tabs={tabDefs} selected={tab} onSelect={select} testId="trd-tabs">
+      <Tabs label="TRD steps" tabs={tabDefs} selected={tab} onSelect={select} testId="trd-tabs" tour="trd-tabs">
         {tab === "details" && <Details d={d} run={run} />}
         {/* The update (a newer seed file, or the differences from the project) sits under the details. It stays mounted while another tab is
             open, so a file already read and a review in progress are not lost by a look at the Process tab; the page shows it only here. */}

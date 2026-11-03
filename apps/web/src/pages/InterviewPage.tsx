@@ -273,7 +273,7 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
       {/* The h1 on this page is the question itself, so the header is only the breadcrumb (which names the page) and the chain strips. */}
       <PageHeader className="interview-head" />
       <aside className="interview-aside" aria-label="Interview progress">
-        <div className="card tight">
+        <div className="card tight" data-tour="interview-progress">
           <p className="small muted">
             {interviewCountsText(interviewCounts(project, allInstances))}
           </p>
@@ -423,7 +423,7 @@ function ProgressMap({
   currentSection: string | undefined;
 }) {
   return (
-    <nav className="card tight" aria-label="Sections">
+    <nav className="card tight" aria-label="Sections" data-tour="interview-map">
       <h2 className="h-small">Progress map</h2>
       <p className="small muted pm-help" data-testid="pm-help">
         Counts are questions answered out of those showing. Some answers open follow-up questions, so totals can grow.
@@ -697,13 +697,13 @@ function QuestionCard({
       </div>
       {current.depth > 0 && q.triggerNote && <p className="trigger">↳ {q.triggerNote}</p>}
       <div className={closeupArt(q.id) ? "art-head" : undefined}>
-        <h1 id="q-prompt" ref={headingRef} tabIndex={-1} className="q-prompt">
+        <h1 id="q-prompt" ref={headingRef} tabIndex={-1} className="q-prompt" data-tour="interview-question">
           {heading}
         </h1>
         {closeupArt(q.id) && <ArtFigure art={closeupArt(q.id)!} className="art-closeup" sizes="(min-width: 761px) 200px, 0px" />}
       </div>
       {!combined && sideLabel && <p className="muted small">{q.prompt}</p>}
-      <details className="why">
+      <details className="why" data-tour="interview-why">
         <summary>Why is this asked?</summary>
         <p>{q.why}</p>
         {q.help && <p className="muted">{q.help}</p>}
@@ -950,7 +950,7 @@ function SidePanel({
       <div className="row wrap q-actions">
         {primary}
         {/* One click records a TBD with no details, as fast as the retired "Unknown" answer was. Details are optional (see below). */}
-        <button type="button" className="btn" onClick={() => onQuick({ kind: "tbd" })}>
+        <button type="button" className="btn" data-tour="interview-tbd" onClick={() => onQuick({ kind: "tbd" })}>
           TBD (to be decided)
         </button>
         {sameAllowed && (

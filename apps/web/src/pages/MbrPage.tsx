@@ -179,7 +179,7 @@ function List({ missing }: { missing?: string | undefined }) {
         )}
       </section>
 
-      <section className="card stack" aria-labelledby="mbr-new">
+      <section className="card stack" aria-labelledby="mbr-new" data-tour="mbr-new">
         <h2 id="mbr-new">New batch record</h2>
         <form
           className="stack"

@@ -4,7 +4,10 @@ import { catalog } from "@gap/process-model/catalog";
 import catalogOverlay from "./catalog/gap-overlay.yaml";
 import demoArx217 from "./demo/arx-217.yaml";
 import demoSyr305 from "./demo/syr-305.yaml";
+import glossaryRaw from "./help/glossary.yaml";
+import toursRaw from "./help/tours.yaml";
 import guidanceRaw from "./guidance/guidance.yaml";
+import { parseGlossary, parseTours } from "./help";
 import mbrBlocksRaw from "./mbr/blocks.yaml";
 import q00 from "./questions/00-scoping-and-site.yaml";
 import q05 from "./questions/05-ds-shipping-inbound.yaml";
@@ -118,3 +121,11 @@ export const trdWriteups: TrdLibraryWriteup[] = parseTrdWriteupLibrary(
   trdWriteupsRaw,
   content.catalog.unitOperations.map((u) => u.key),
 ).writeups;
+
+/** The short guided tour of each main page (see apps/web/src/tour.tsx). Text only: each step names the data-tour anchor it points at. */
+export const tours = parseTours(toursRaw);
+
+/** The glossary page: plain-language definitions, alphabetical. */
+export const glossary = parseGlossary(glossaryRaw);
+
+export type { GlossaryTerm, Tour, TourStep } from "./help";

@@ -9,6 +9,8 @@ export interface TabDef<T extends string> {
   /** Optional longer help for the selected tab, shown as a "?" next to the purpose line. */
   help?: string;
   testId?: string;
+  /** The guided tour anchor (data-tour) of this tab's button. */
+  tour?: string;
 }
 
 /**
@@ -26,6 +28,7 @@ export function Tabs<T extends string>({
   activation = "auto",
   children,
   testId,
+  tour,
 }: {
   label: string;
   tabs: TabDef<T>[];
@@ -34,6 +37,8 @@ export function Tabs<T extends string>({
   activation?: "auto" | "manual";
   children: ReactNode;
   testId?: string;
+  /** The guided tour anchor (data-tour) of the tab bar. */
+  tour?: string;
 }) {
   const base = useId().replace(/:/g, "");
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -57,7 +62,7 @@ export function Tabs<T extends string>({
 
   return (
     <div className="tabs-wrap stack" data-testid={testId}>
-      <div role="tablist" aria-label={label} className="tabs no-print">
+      <div role="tablist" aria-label={label} className="tabs no-print" data-tour={tour}>
         {tabs.map((t, i) => (
           <button
             key={t.id}
@@ -74,6 +79,7 @@ export function Tabs<T extends string>({
             onClick={() => onSelect(t.id)}
             onKeyDown={(e) => onKey(e, i)}
             data-testid={t.testId}
+            data-tour={t.tour}
           >
             {t.label}
           </button>

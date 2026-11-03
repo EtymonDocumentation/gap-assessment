@@ -137,7 +137,7 @@ export function MbrEditor({ rec, tab = "edit" }: { rec: MbrRecord; tab?: "edit" 
 
       <OpenItems rec={rec} plan={plan} open={open} requirements={requirements} library={library} run={run} goToRow={goToRow} goToSection={goToSection} goToSections={goToSections} />
 
-      <section className="stack" aria-labelledby="mbr-sections-h">
+      <section className="stack" aria-labelledby="mbr-sections-h" data-tour="mbr-sections">
         <div className="row wrap between">
           <h2 id="mbr-sections-h" tabIndex={-1}>
             Sections

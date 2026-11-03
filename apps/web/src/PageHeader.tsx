@@ -71,7 +71,7 @@ export function PageHeader(props: PageHeaderProps) {
   const hasFacts = (pills && pills.length > 0) || !!meta || !!about;
   return (
     <div className={className ? `page-top ${className}` : "page-top"}>
-      <header className="page-head" data-testid={testId ?? "page-head"}>
+      <header className="page-head" data-testid={testId ?? "page-head"} data-tour="page-head">
         <Crumbs path={route.path} crumb={crumb} />
         <div className="page-head-row">
           <div className="page-head-main">
@@ -98,7 +98,7 @@ export function PageHeader(props: PageHeaderProps) {
                 )}
                 {meta && <p className="page-head-meta">{meta}</p>}
                 {about && (
-                  <button type="button" id={toggleId} className="about-toggle" aria-expanded={aboutOpen} aria-controls={aboutId} onClick={() => setAboutOpen((o) => !o)} data-testid="about-toggle">
+                  <button type="button" id={toggleId} className="about-toggle" data-tour="page-about" aria-expanded={aboutOpen} aria-controls={aboutId} onClick={() => setAboutOpen((o) => !o)} data-testid="about-toggle">
                     About this page <span aria-hidden="true">{aboutOpen ? "▴" : "▾"}</span>
                   </button>
                 )}
@@ -106,7 +106,7 @@ export function PageHeader(props: PageHeaderProps) {
             )}
           </div>
           {((exports && exports.length > 0) || actions) && (
-            <div className="page-head-actions no-print">
+            <div className="page-head-actions no-print" data-tour={exports && exports.length > 0 ? "page-export" : undefined}>
               {actions}
               {exports && exports.length > 0 && <ExportMenu items={exports} label={exportLabel} />}
             </div>

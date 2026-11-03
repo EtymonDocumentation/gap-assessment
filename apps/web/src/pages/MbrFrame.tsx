@@ -23,6 +23,7 @@ const TABS: TabDef<MbrTab>[] = [
     id: "view",
     label: "Process view",
     testId: "mbr-tab-view",
+    tour: "mbr-view-tab",
     purpose: "The batch record drawn as an equipment train; follow the fluid step by step.",
     help: "A picture of the record, not a second place to edit. Move a slider through the steps to see where the product is, which clocks are running and which samples are taken. Use it to spot gaps in the record before it goes to review.",
   },
@@ -94,7 +95,7 @@ export function MbrFrame({ rec, tab, children }: { rec: MbrRecord; tab: MbrTab; 
           { label: "Download batch record (HTML)", onSelect: toDownload("mbr-download-html") },
         ]}
       />
-      <Tabs label="Batch record views" tabs={TABS} selected={tab} onSelect={go} activation="manual" testId="mbr-tabs">
+      <Tabs label="Batch record views" tabs={TABS} selected={tab} onSelect={go} activation="manual" testId="mbr-tabs" tour="mbr-tabs">
         {children}
       </Tabs>
     </div>

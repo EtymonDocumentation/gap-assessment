@@ -4,6 +4,7 @@ import { AboutPage } from "./pages/AboutPage";
 import { ScopePage } from "./pages/ScopePage";
 import { ComparePage } from "./pages/ComparePage";
 import { DocumentPage } from "./pages/DocumentPage";
+import { GlossaryPage } from "./pages/GlossaryPage";
 import { GuidancePage } from "./pages/GuidancePage";
 import { HomePage } from "./pages/HomePage";
 import { InterviewPage } from "./pages/InterviewPage";
@@ -36,6 +37,7 @@ import { DocChainBar } from "./DocChain";
 import { chainStageOf } from "./chain";
 import { GapStepFooter, gapStepIndex } from "./steps";
 import { useRoute } from "./router";
+import { TourHost } from "./tour";
 import { ConflictDialog, ServerGate, useIsRemote } from "./server/ServerUi";
 import { SERVER_MODE } from "./server/mode";
 import { useSession } from "./server/session-store";
@@ -131,7 +133,7 @@ function AppShell() {
 
   // The template library belongs to the browser, not to a project, so it opens without one. So does the guidance library,
   // which is reference material and has nothing to do with the open project.
-  const needsProject = route.path !== "/" && route.path !== "/templates" && route.path !== "/guidance" && route.path !== "/saved-answers" && route.path !== "/sampling/tables" && route.path !== "/sampling/subsections" && route.path !== "/risk/methods" && route.path !== "/mbr/library" && route.path !== "/trd/writeups" && route.path !== "/myfiles" && route.path !== "/about";
+  const needsProject = route.path !== "/" && route.path !== "/templates" && route.path !== "/guidance" && route.path !== "/saved-answers" && route.path !== "/sampling/tables" && route.path !== "/sampling/subsections" && route.path !== "/risk/methods" && route.path !== "/mbr/library" && route.path !== "/trd/writeups" && route.path !== "/myfiles" && route.path !== "/about" && route.path !== "/glossary";
   const mappingId = /^\/templates\/([^/]+)\/mapping$/.exec(route.path)?.[1];
   // Documents run in chain order (gap assessment, TRD, sampling plan, batch record), each with a line saying what it is for. They are all
   // optional: the order is a suggestion about which document feeds the next, never a rule. Risk and the TBD list sit alongside the chain.
@@ -177,6 +179,7 @@ function AppShell() {
   if (!ready) page = <p className="muted">Loading…</p>;
   else if (needsProject && !project) page = <HomePage notice="Open the demo or start a new project first." />;
   else if (route.path === "/about") page = <AboutPage />;
+  else if (route.path === "/glossary") page = <GlossaryPage params={route.params} />;
   else if (SERVER_MODE && route.path === "/myfiles") page = <MyFilesPage params={route.params} />;
   else if (route.path === "/scope") page = <ScopePage />;
   else if (route.path === "/interview") page = <InterviewPage params={route.params} />;
@@ -230,6 +233,7 @@ function AppShell() {
         {status}
       </div>
       <NoticeFooter />
+      <TourHost routePath={route.path} />
       {SERVER_MODE && remote && <ConflictDialog />}
     </>
   );

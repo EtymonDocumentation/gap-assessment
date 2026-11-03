@@ -165,6 +165,7 @@ export function StageChip() {
         type="button"
         className="stage-chip"
         data-testid="stage-chip"
+        data-tour="stage-chip"
         aria-label={check ? `${text}, needs a check. Change the project stage` : `${text}. Change the project stage`}
         onClick={() => setOpen(true)}
       >

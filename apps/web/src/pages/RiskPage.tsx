@@ -118,7 +118,7 @@ function List({ missing }: { missing?: string | undefined }) {
         </p>
       )}
 
-      <section className="card stack" aria-labelledby="ra-list">
+      <section className="card stack" aria-labelledby="ra-list" data-tour="risk-list">
         <h2 id="ra-list">Risk assessments in this project</h2>
         {list.length === 0 ? (
           <Empty>No risk assessment yet. Create one below.</Empty>
@@ -154,6 +154,7 @@ function List({ missing }: { missing?: string | undefined }) {
         )}
         <form
           className="row wrap end-align"
+          data-tour="risk-new"
           onSubmit={(e) => {
             e.preventDefault();
             create();
@@ -256,7 +257,7 @@ function Editor({ a, initialTab }: { a: RiskAssessment; initialTab: Tab }) {
         ]}
       />
 
-      <Tabs label="Assessment steps" tabs={TAB_DEFS} selected={tab} onSelect={select} testId="risk-tabs">
+      <Tabs label="Assessment steps" tabs={TAB_DEFS} selected={tab} onSelect={select} testId="risk-tabs" tour="risk-tabs">
         {error && (
           <p className="notice" role="alert" data-testid="risk-error">
             {error}

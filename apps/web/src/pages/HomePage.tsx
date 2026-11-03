@@ -142,7 +142,7 @@ export function HomePage({ notice }: { notice?: string }) {
         <p className="muted">
           Anything not yet known is marked TBD and stays visible as an open item. {TBD_DEFINITION} The tool never fills in values for you.
         </p>
-        <div className="start-grid" data-testid="start-options">
+        <div className="start-grid" data-testid="start-options" data-tour="home-start">
           <div className="start-option">
             <button className="btn primary big" disabled={busy} onClick={() => confirmReplace() && setCreating(true)}>
               Start a new project
@@ -209,7 +209,7 @@ export function HomePage({ notice }: { notice?: string }) {
             )}
           </div>
           <StageCheckNotice />
-          <div className="next-step" data-testid="next-step">
+          <div className="next-step" data-testid="next-step" data-tour="home-next">
             <p className="next-step-label">Next step</p>
             <div className="row wrap">
               <a className="btn primary big" href={href(next.path)}>
@@ -271,7 +271,7 @@ export function HomePage({ notice }: { notice?: string }) {
       ) : null}
 
       {project && (
-        <section className="card stack" aria-labelledby="chain-h" data-testid="home-chain">
+        <section className="card stack" aria-labelledby="chain-h" data-testid="home-chain" data-tour="home-chain">
           <h2 id="chain-h">Your documents</h2>
           <DocChainStrip heading={false} />
           <p className="muted small">
@@ -309,7 +309,7 @@ export function HomePage({ notice }: { notice?: string }) {
           </button>
         </p>
       ) : (
-        <section className="card stack" aria-labelledby="started-h" data-testid="getting-started">
+        <section className="card stack" aria-labelledby="started-h" data-testid="getting-started" data-tour="home-started">
           <div className="row between wrap">
             <h2 id="started-h">Getting started</h2>
             <button className="btn small" onClick={() => setHide(true)}>

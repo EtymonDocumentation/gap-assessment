@@ -138,6 +138,7 @@ function PlanList({ missing }: { missing?: string | undefined }) {
         )}
         <form
           className="row wrap end-align"
+          data-tour="plan-new"
           onSubmit={(e) => {
             e.preventDefault();
             create();
@@ -289,7 +290,7 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
         ]}
       />
 
-      <div role="group" aria-label="Plan sections" className="row wrap seg no-print" data-testid="plan-tabs">
+      <div role="group" aria-label="Plan sections" className="row wrap seg no-print" data-testid="plan-tabs" data-tour="plan-tabs">
         {(Object.keys(TAB_LABEL) as Tab[]).map((t) => (
           <button key={t} type="button" className={tab === t ? "btn primary" : "btn"} aria-pressed={tab === t} onClick={() => setTab(t)} data-testid={`tab-${t}`}>
             {TAB_LABEL[t]}
@@ -368,7 +369,7 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
 
       <FigureView plan={plan} highlightId={hl} onHighlight={setHl} onSelect={select} />
 
-      <section className="card stack" aria-labelledby="sp-points">
+      <section className="card stack" aria-labelledby="sp-points" data-tour="plan-points">
         <h2 id="sp-points">Sampling points ({plan.points.length})</h2>
         <PointsTable
           plan={plan}

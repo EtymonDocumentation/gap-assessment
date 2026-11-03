@@ -4685,3 +4685,121 @@ fieldset.stage-options {
 .trd-project-stage {
   margin: 0;
 }
+
+/* ---------------------------------------------------------------- Help (?) menu, guided tour, glossary */
+
+.help-popover {
+  min-width: 13rem;
+  padding: 4px;
+}
+.help-menu-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.help-menu-item,
+.nav-menu-panel .nav-action {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.help-menu-item:hover,
+.help-menu-item:focus-visible,
+.nav-menu-panel .nav-action:hover {
+  background: var(--surface-2);
+}
+
+/* The element a tour step points at: an outline (a shape, not only a colour) that does not shift the layout. */
+.tour-target {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: var(--radius);
+  scroll-margin: 80px;
+}
+/* The bubble sits above the page without covering it all: no backdrop, nothing traps the pointer or the focus. */
+.tour-bubble {
+  position: fixed;
+  z-index: 130;
+  box-sizing: border-box;
+  max-width: calc(100vw - 16px);
+  padding: 0.75rem 0.9rem;
+  background: var(--surface);
+  color: var(--text);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 30%);
+}
+/* On a phone the bubble docks to the bottom edge, full width less a 16 px gutter each side. */
+.tour-bubble.tour-docked {
+  left: 16px;
+  right: 16px;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  top: auto;
+  width: auto;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+.tour-count {
+  margin: 0 0 2px;
+}
+.tour-title {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+}
+.tour-text {
+  margin: 0 0 10px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.tour-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tour-actions .btn {
+  min-height: 44px;
+}
+@media print {
+  .tour-bubble {
+    display: none;
+  }
+}
+
+.glossary-list {
+  margin: 0;
+}
+.glossary-term {
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+  scroll-margin-top: 16px;
+}
+.glossary-term:first-child {
+  border-top: 0;
+}
+.glossary-term dt {
+  font-weight: 700;
+  scroll-margin-top: 16px;
+}
+.glossary-term dd {
+  margin: 4px 0 0;
+}
+.glossary-term dd p {
+  margin: 0 0 4px;
+}
+.glossary-term.is-target {
+  border-left: 4px solid var(--accent);
+  padding-left: 10px;
+}
+.app-footer-links a {
+  display: inline-block;
+}

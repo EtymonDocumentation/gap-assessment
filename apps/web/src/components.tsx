@@ -72,6 +72,8 @@ export function NoticeFooter() {
     <footer className="app-footer" data-testid="notice-footer">
       <p className="app-footer-text">{NOTICE_FOOTER}</p>
       <p className="app-footer-links">
+        <a href={href("/glossary")}>Glossary</a>
+        {" · "}
         <a href={href("/about")}>About and privacy</a>
       </p>
     </footer>

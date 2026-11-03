@@ -1,0 +1,129 @@
+# The short guided tour of each main page (opened by the Help (?) button; shown once, by itself, the first time a page is opened in a browser).
+#
+# Rules for every step (a unit test checks the mechanical ones):
+#  - anchor: the id of a real element on the page, written in the page source as data-tour="<id>" (or tour="<id>" on the Tabs component).
+#    A step whose element is not on screen (an empty list, the phone layout) is skipped by the app, so a tour is never wrong about what is there.
+#  - 3 to 5 steps per tour. A short title and one or two plain sentences. No filled-in values, no decision made for the reader.
+#  - Same words as the app and the documents. The tool never decides a filing category, and a document is approved in the company's
+#    own document control (the tool is a drafting aid).
+version: 1
+tours:
+  - id: home
+    path: /
+    title: Tour of the project page
+    steps:
+      - anchor: home-start
+        title: Start here
+        text: Start a new project, or open one of the two fictional demos to see a finished example first. A new project begins empty. Nothing is filled in for you.
+      - anchor: stage-chip
+        title: Project stage
+        text: Which batches the receiving site will make next (Engineering, Clinical, PPQ or Commercial). It changes the wording of your documents and adds reminders. Nothing is hidden or blocked, and your own text is never changed.
+      - anchor: home-next
+        title: Next step
+        text: The tool suggests what to do next. Every document is optional, so you can skip a step and come back to it later.
+      - anchor: home-chain
+        title: Your documents
+        text: The documents run in a chain, gap assessment, TRD, sampling plan, batch record. Each can use the one before it, but none is required.
+      - anchor: home-started
+        title: Getting started
+        text: The steps in order. Each one ticks itself when your project gets there, so there is nothing to tick by hand. Anything still unknown stays visible as an open item.
+
+  - id: interview
+    path: /interview
+    title: Tour of the interview
+    steps:
+      - anchor: interview-progress
+        title: Your progress
+        text: This shows how many questions you have answered. You can leave and come back at any time. Your answers are kept.
+      - anchor: interview-question
+        title: One question at a time
+        text: Each question asks about the sending unit (SU), the receiving unit (RU), or both. Answer what you know.
+      - anchor: interview-why
+        title: Why is this asked?
+        text: Open this to see why the tool asks the question and where the answer is used.
+      - anchor: interview-tbd
+        title: Not known yet?
+        text: Choose TBD (to be decided). It is saved as an open item, with an optional owner and due date. The tool never fills in an answer for you.
+      - anchor: interview-map
+        title: Progress map
+        text: Jump to any section. A section that still has a TBD is not counted as done until you settle it.
+
+  - id: risk
+    path: /risk
+    title: Tour of the risk assessment
+    steps:
+      - anchor: page-head
+        title: What this page is
+        text: A risk assessment lists what could go wrong in the process, scores each item with a method your team chooses, and records the actions that follow.
+      - anchor: risk-list
+        title: Your assessments
+        text: The assessments of this project are listed here. Open one to work on it.
+      - anchor: risk-new
+        title: Start an assessment
+        text: Give it a title and create it. You choose the scoring method yourself. None is chosen for you.
+      - anchor: risk-tabs
+        title: The steps
+        text: Method, Items, Actions and Document. Work through them in order or jump to any tab. A line under the tabs says what each one is for.
+      - anchor: page-export
+        title: Download a draft
+        text: Export downloads the draft as Word or HTML for review. The tool is a drafting aid, so the document is approved in your company's own document control.
+
+  - id: trd
+    path: /trd
+    title: Tour of the TRD
+    steps:
+      - anchor: page-head
+        title: What this page is
+        text: The TRD (technical requirements document) states the process, its steps and its parameters, each with a source.
+      - anchor: trd-from-project
+        title: Start from this project
+        text: A TRD can begin from the gap assessment answers. You can also start blank or from a seed file. Nothing is required.
+      - anchor: trd-new
+        title: Start a TRD
+        text: Give it a title and choose how it starts. Then you enter the set points and ranges yourself.
+      - anchor: trd-tabs
+        title: Five steps
+        text: Details, Process, Descriptions, Open items and Document. In Process you enter the set point, the NOR (normal operating range) and the PAR (proven acceptable range).
+      - anchor: page-export
+        title: Download a draft
+        text: Export downloads the draft as Word or HTML for review. The tool is a drafting aid, so the document is approved in your company's own document control.
+
+  - id: sampling
+    path: /sampling
+    title: Tour of the sampling plan
+    steps:
+      - anchor: page-head
+        title: What this page is
+        text: A sampling plan says where and when to sample in the PPQ (process performance qualification) batches.
+      - anchor: plan-new
+        title: Start a plan
+        text: Give the plan a title and create it. The number of batches and the sample sizes are your decisions.
+      - anchor: plan-tabs
+        title: Plan sections
+        text: Overview, Interview, Design review and Plan subsections. Switching tabs never loses anything you entered.
+      - anchor: plan-points
+        title: Sampling points
+        text: Each row is a place in the process where a sample is taken. Add one, select a row to edit it, and open the question marks for help.
+      - anchor: page-export
+        title: Download a draft
+        text: Export downloads the draft as Word or HTML for review. The tool is a drafting aid, so the document is approved in your company's own document control.
+
+  - id: mbr
+    path: /mbr
+    title: Tour of the batch record
+    steps:
+      - anchor: page-head
+        title: What this page is
+        text: A batch record (MBR) is the step-by-step instruction for making one batch.
+      - anchor: mbr-new
+        title: Start a batch record
+        text: It can start from a TRD, from a sampling plan, or from neither. You choose. Nothing is added unless you tick it.
+      - anchor: mbr-tabs
+        title: Three views
+        text: Edit is where you write the record. Process view draws it as an equipment train. Document gives the Word or HTML draft.
+      - anchor: mbr-sections
+        title: Sections and step blocks
+        text: Add sections and step blocks, fill in the rows, and clear the open items. Everything stays visible until you settle it.
+      - anchor: mbr-view-tab
+        title: Process view
+        text: Open this tab to follow the fluid step by step. It is a picture of the record, not a second place to edit. Use it to spot gaps before review.

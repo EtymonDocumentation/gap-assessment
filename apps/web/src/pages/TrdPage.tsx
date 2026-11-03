@@ -105,7 +105,7 @@ function List({ missing, preselect }: { missing?: string | undefined; preselect:
         </p>
       )}
 
-      <section className="card stack" aria-labelledby="trd-from-project" data-testid="trd-from-project">
+      <section className="card stack" aria-labelledby="trd-from-project" data-testid="trd-from-project" data-tour="trd-from-project">
         <h2 id="trd-from-project">Start from this project</h2>
         <p className="small">
           Takes the receiving unit's values from the gap assessment, so you do not retype them. The TRD seed is that list of values; "See the TRD seed" shows exactly what would be carried over. You can update the TRD from the project later.
@@ -170,7 +170,7 @@ function List({ missing, preselect }: { missing?: string | undefined; preselect:
         )}
       </section>
 
-      <section className="card stack" aria-labelledby="trd-new">
+      <section className="card stack" aria-labelledby="trd-new" data-tour="trd-new">
         <h2 id="trd-new">New TRD</h2>
         <form
           className="stack"
