@@ -88,6 +88,18 @@ function Review({ session, file }: { session: ImportSession; file: File }) {
     return !(now.exists && now.text === f.value) && !now.overridden;
   };
   const exactCount = session.fields.filter(bulkable).length;
+  /**
+   * A value the person can take with a row's or a table's Accept: an exact one, or (level 3) a MATCHED one. Matched values are
+   * suggestions from word rules, so they are never part of "Accept all exact"; a row or a table is taken only by pressing its own button.
+   */
+  const takeable = (f: ImportField): boolean => {
+    if (decisions[f.id] || f.lockedBy || f.value === "") return false;
+    if (f.confidence !== "exact" && f.confidence !== "matched") return false;
+    if (!updating) return true;
+    const now = currentValue(updating, f.id);
+    return !(now.exists && now.text === f.value) && !now.overridden;
+  };
+  const matchedIn = (block: number) => session.fields.filter((f) => f.table === block && f.confidence === "matched" && takeable(f));
 
   const set = (id: string, value: string) => setDecisions((d) => ({ ...d, [id]: { value } }));
   const clear = (id: string) =>
@@ -231,6 +243,7 @@ function Review({ session, file }: { session: ImportSession; file: File }) {
     editing,
     setEditing,
     bulkable,
+    takeable,
     set,
     clear,
     pick: (id) => {
@@ -241,6 +254,19 @@ function Review({ session, file }: { session: ImportSession; file: File }) {
     },
     show: showInDocument,
   };
+  function acceptTable(block: number, label: string) {
+    const take = matchedIn(block);
+    setDecisions((d) => ({ ...d, ...Object.fromEntries(take.map((f) => [f.id, { value: f.value }])) }));
+    setBulk(`${take.length} matched ${take.length === 1 ? "value" : "values"} from ${label} accepted.`);
+  }
+  function showTable(block: number) {
+    setDocOpen(true);
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`imp-table-${block}`);
+      el?.scrollIntoView({ block: "start" });
+      el?.focus();
+    });
+  }
   const stepAccept = (fields: ImportField[]) => {
     const take = fields.filter(bulkable);
     setDecisions((d) => ({ ...d, ...Object.fromEntries(take.map((f) => [f.id, { value: f.value }])) }));
@@ -257,25 +283,53 @@ function Review({ session, file }: { session: ImportSession; file: File }) {
         <h2 id="import-what-h">What was read</h2>
         <p data-testid="import-read-as">{session.readAs}</p>
         <p className="muted small" data-testid="import-explain">
-          Two parts: your document as it was read, and the fields taken from it. Accept a value, edit it, or pick it from the document. The word next to a field says how sure the reading is: Exact (read straight from our own data), Matched, or Not found.
+          {session.level === 3
+            ? "Two parts: your document as it was read, and the fields taken from it. Every value marked Matched is a suggestion from fixed word rules (no AI): check it against the document, then accept it, edit it, or pick another value from the document. Not found means nothing was recognised and the field stays open."
+            : "Two parts: your document as it was read, and the fields taken from it. Accept a value, edit it, or pick it from the document. The word next to a field says how sure the reading is: Exact (read straight from our own data), Matched, or Not found."}
         </p>
         <p role="status" aria-live="polite" data-testid="import-live-summary">
           {importSummaryText(counts, session.level)}
         </p>
         {session.notUsed.length > 0 && (
-          <div className="notice" data-testid="import-not-used">
-            <strong>Not used yet:</strong>
+          <details className="notice import-not-used" open={session.notUsed.length <= 8} data-testid="import-not-used">
+            <summary>
+              <strong>Not used yet ({session.notUsed.length}):</strong> text from your document that looks important and was not put into a field
+            </summary>
             <ul className="plain-list">
               {session.notUsed.map((n) => (
                 <li key={n}>{n}</li>
               ))}
             </ul>
+          </details>
+        )}
+        {session.level === 3 && (session.matchedTables?.length ?? 0) > 0 && (
+          <div className="stack" data-testid="import-matched-tables">
+            <h3>Tables with matches</h3>
+            <p className="muted small">Look at the table in your document, then accept everything matched in it with one press, or accept row by row below.</p>
+            <ul className="plain-list import-table-list">
+              {session.matchedTables!.map((t) => {
+                const n = matchedIn(t.block).length;
+                return (
+                  <li key={t.block} className="row wrap" data-testid="import-matched-table">
+                    <span>{t.label}</span>
+                    <button type="button" className="btn small" disabled={n === 0} onClick={() => acceptTable(t.block, t.label)} aria-label={`Accept all matched in this table (${n}): ${t.label}`} data-testid="import-accept-table">
+                      Accept all matched in this table ({n})
+                    </button>
+                    <button type="button" className="btn small ghost" onClick={() => showTable(t.block)} aria-label={`Show table: ${t.label}`}>
+                      Show table
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         )}
         <div className="row wrap">
-          <button type="button" className="btn" onClick={acceptAllExact} disabled={exactCount === 0} data-testid="import-accept-exact">
-            Accept all exact ({exactCount})
-          </button>
+          {session.level !== 3 && (
+            <button type="button" className="btn" onClick={acceptAllExact} disabled={exactCount === 0} data-testid="import-accept-exact">
+              Accept all exact ({exactCount})
+            </button>
+          )}
           <span role="status" aria-live="polite" className="small" data-testid="import-bulk-status">
             {bulk}
           </span>
@@ -320,9 +374,11 @@ function Review({ session, file }: { session: ImportSession; file: File }) {
               <section key={g.name} className="import-group stack" aria-label={g.name} data-testid="import-group">
                 <div className="import-step-head">
                   <h3>{g.name}</h3>
-                  <button type="button" className="btn small" disabled={take === 0} onClick={() => stepAccept(all)} data-testid="import-step-accept">
-                    Accept all exact in this step ({take})
-                  </button>
+                  {session.level !== 3 && (
+                    <button type="button" className="btn small" disabled={take === 0} onClick={() => stepAccept(all)} data-testid="import-step-accept">
+                      Accept all exact in this step ({take})
+                    </button>
+                  )}
                 </div>
                 <ParamTable ctx={ctx} subs={filled} />
                 {empty.length > 0 && (
@@ -368,13 +424,16 @@ function Review({ session, file }: { session: ImportSession; file: File }) {
             {session.blocks.map((b, bi) => {
               if (b.kind === "heading") return <p key={bi} className="import-doc-heading">{b.text}</p>;
               if (b.kind === "para") return <p key={bi} className="small">{b.text}</p>;
+              const tableNo = session.blocks.slice(0, bi + 1).filter((x) => x.kind === "table").length;
               return (
-                <div key={bi} className="table-scroll" role="region" aria-label={`Table ${bi + 1} of the document`} tabIndex={0}>
+                <div key={bi} id={`imp-table-${bi}`} className="table-scroll" role="region" aria-label={`Table ${tableNo} of the document${b.page ? `, page ${b.page}` : ""}`} tabIndex={0}>
                   <table className="data import-doc-table">
                     <tbody>
                       {b.rows.map((r, ri) => (
                         <tr key={ri}>
                           {r.map((c, ci) => {
+                            // The continuation of a vertical merge is covered by the cell above (its rowSpan).
+                            if (c.vContinue) return null;
                             const key = `${bi}:${ri}:${ci}`;
                             const used = session.cellFields[key] ?? [];
                             const fields = used.map((id) => byId.get(id)).filter(Boolean) as ImportField[];
@@ -387,7 +446,7 @@ function Review({ session, file }: { session: ImportSession; file: File }) {
                                 {!changed && fields.length > 0 && <span className="tag"> used</span>}
                               </>
                             );
-                            const props = { id: `imp-cell-${key.replace(/:/g, "-")}`, tabIndex: -1 };
+                            const props = { id: `imp-cell-${key.replace(/:/g, "-")}`, tabIndex: -1, ...(c.colSpan ? { colSpan: c.colSpan } : {}), ...(c.rowSpan ? { rowSpan: c.rowSpan } : {}) };
                             return cell === "th" ? (
                               <th key={ci} scope="col" {...props}>
                                 {content}

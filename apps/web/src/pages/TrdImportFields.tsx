@@ -22,6 +22,8 @@ export interface ImportCtx {
   setEditing: (e: Editing | null) => void;
   /** An Exact value that is not decided yet and (in update mode) neither equals the TRD nor replaces the person's own override. */
   bulkable: (f: ImportField) => boolean;
+  /** Exact or (level 3) Matched and not decided yet: what a row's own Accept takes. */
+  takeable: (f: ImportField) => boolean;
   set: (id: string, value: string) => void;
   clear: (id: string) => void;
   pick: (id: string) => void;
@@ -206,7 +208,7 @@ function ParamCell({ ctx, col, label, fields }: { ctx: ImportCtx; col: Col; labe
     const state = relevant.length === 0 ? "" : accepted === relevant.length ? "Accepted" : accepted === 0 ? "Open" : "Part accepted";
     const nows = parts.map(nowOf);
     const nowText = low || high ? rangeText(low ? (nowOf(low)?.text ?? "") : "", high ? (nowOf(high)?.text ?? "") : "") : (nows[0]?.text ?? "");
-    const loose = parts.filter((f) => !f.lockedBy && f.confidence !== "exact" && f.value && ctx.decisions[f.id] === undefined);
+    const loose = parts.filter((f) => !f.lockedBy && f.confidence !== "exact" && f.confidence !== "matched" && f.value && ctx.decisions[f.id] === undefined);
     body = (
       <>
         <span className="import-value">{text || <span className="muted">Not filled</span>}</span>
@@ -259,7 +261,7 @@ export function ParamTable({ ctx, subs }: { ctx: ImportCtx; subs: { name: string
 function ParamRows({ ctx, name, fields }: { ctx: ImportCtx; name: string; fields: ImportField[] }) {
   const changes = fields.filter((f) => f.change);
   const editable = fields.filter((f) => !f.change && !f.lockedBy);
-  const exact = fields.filter(ctx.bulkable);
+  const exact = fields.filter(ctx.takeable);
   const key = `param:${name}:${fields[0]?.id ?? ""}`;
   const editingRow = ctx.editing?.key === key;
   const allDecided = fields.filter((f) => !f.change && (f.value !== "" || ctx.decisions[f.id] !== undefined)).every((f) => ctx.decisions[f.id] !== undefined) && changes.every((f) => ctx.decisions[f.id] !== undefined);

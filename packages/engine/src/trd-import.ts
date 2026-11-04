@@ -111,7 +111,7 @@ export function stepRefs(d: TrdDocument): Map<string, string> {
   return new Map(d.steps.map((s) => [s.id, s.key && count.get(s.key) === 1 ? s.key : s.id]));
 }
 
-const partId = (ref: string, key: string, part: string) => `trd.step.${ref}.param.${key}.${part}`;
+export const partId = (ref: string, key: string, part: string) => `trd.step.${ref}.param.${key}.${part}`;
 const PART_ID = /^trd\.step\.([^.]+)\.param\.([^.]+)\.(set|nor_low|nor_high|par_low|par_high|unit|cell_set|cell_nor|cell_par|cell_unit)$/;
 export const parseFieldId = (id: string): { ref: string; key: string; part: string } | undefined => {
   const m = PART_ID.exec(id);
@@ -391,13 +391,19 @@ export function cellToParts(column: CellColumn, text: string): Partial<Record<Tr
 
 /** The document as read, for the left pane. */
 export type ViewBlock =
-  | { kind: "heading"; level: number; text: string }
-  | { kind: "para"; text: string }
-  | { kind: "table"; rows: ViewCell[][] };
+  | { kind: "heading"; level: number; text: string; page?: number }
+  | { kind: "para"; text: string; page?: number }
+  | { kind: "table"; rows: ViewCell[][]; page?: number };
 export interface ViewCell {
   text: string;
   /** The field id of the content control in this cell (the form). */
   controlId?: string;
+  /** A merged cell: how many columns it spans (Word gridSpan). Absent = 1. */
+  colSpan?: number;
+  /** The first cell of a vertical merge: how many rows it spans. */
+  rowSpan?: number;
+  /** The continuation of a vertical merge (Word vMerge): it has no text of its own; the cell above covers it. */
+  vContinue?: boolean;
 }
 
 /** What the file reader hands over. It knows Word; the review model below knows the TRD. */
@@ -409,6 +415,10 @@ export interface UploadRead {
   controls: Record<string, { text: string; placeholder: boolean }>;
   dataKind?: "trd-data" | "trd-form";
   dataJson?: string;
+  /** Level 3: what kind of file the blocks were read from. */
+  format?: "docx" | "pdf";
+  /** A PDF with no text layer (a picture of text): nothing was read. */
+  noText?: boolean;
 }
 
 export type Confidence = "exact" | "matched" | "not_found" | "changed";
@@ -433,10 +443,12 @@ export interface ImportField {
   lockedBy?: string;
   /** Parts a changed cell stands for. */
   parts?: TrdPart[];
+  /** Level 3: the table of the document (index in the view blocks) the value was matched from, for "Accept all matched in this table". */
+  table?: number;
 }
 
 export interface ImportSession {
-  level: 1 | 2;
+  level: 1 | 2 | 3;
   fileName: string;
   fields: ImportField[];
   /** Cell positions in the view blocks ("block:row:col") and the fields they feed. */
@@ -447,9 +459,11 @@ export interface ImportSession {
   notUsed: string[];
   /** What the file is, in words, for the screen. */
   readAs: string;
-  /** Level 1: the record. Level 2: the form. */
+  /** Level 1: the record. Level 2: the form. Level 3: the blank form (it names the steps and parameters the matches can fill). */
   record?: TrdDataEnvelope;
   form?: TrdFormSpec;
+  /** Level 3: the tables of the document that gave at least one match, in document order (for "Accept all matched in this table"). */
+  matchedTables?: { block: number; label: string }[];
 }
 
 const FILLED = (c: { text: string; placeholder: boolean } | undefined): string => {
@@ -643,6 +657,9 @@ export function resolvedValues(s: ImportSession, decisions: ImportDecisions): Ma
 export interface ImportCounts {
   taken: number;
   open: number;
+  /** Open fields the reader found nothing for. For a foreign document (level 3) most catalogue fields are like this, and
+   * counting them as "still open" next to a handful of found values reads as if the upload failed. */
+  notFound: number;
   changed: number;
 }
 
@@ -651,17 +668,24 @@ export function importCounts(s: ImportSession, decisions: ImportDecisions): Impo
   const r = resolvedValues(s, decisions);
   let taken = 0;
   let open = 0;
+  let notFound = 0;
   for (const f of s.fields) {
     if (f.change) continue;
     const v = r.get(f.id);
     if (v !== undefined && v !== "") taken++;
-    else open++;
+    else {
+      open++;
+      if (f.confidence === "not_found") notFound++;
+    }
   }
-  return { taken, open, changed: s.fields.filter((f) => f.change).length };
+  return { taken, open, notFound, changed: s.fields.filter((f) => f.change).length };
 }
 
-export function importSummaryText(c: ImportCounts, level: 1 | 2): string {
+export function importSummaryText(c: ImportCounts, level: 1 | 2 | 3): string {
   const n = (x: number, one: string, many: string) => `${x} ${x === 1 ? one : many}`;
+  // Our own files (levels 1-2) carry every field, so "still open" is the honest count. A document in another layout
+  // (level 3) only mentions some steps: split what was found and waits for a decision from what the document never had.
+  if (level === 3) return [`${n(c.taken, "value", "values")} taken`, `${c.open - c.notFound} found and waiting for you`, `${c.notFound} not in this document (left open)`].join(", ");
   return [`${n(c.taken, "value", "values")} taken`, `${c.open} still open`, ...(level === 1 ? [`${c.changed} changed in Word`] : [])].join(", ");
 }
 
@@ -1001,5 +1025,5 @@ export function classifyUpload(name: string, size: number): UploadKind {
   return { ok: false, message: "This file type is not read. Upload a .docx (Word) or a PDF." };
 }
 
-/** The plain message for a file that is not one of ours: reading other layouts comes later, and the blank form is the way in now. */
-export const OTHER_LAYOUT_MESSAGE = "Reading other layouts is coming. For now, fill in the blank TRD form (Word) with the values from your document, then upload it here.";
+/** A PDF without a text layer: it is a picture of text, and reading pictures (OCR) is not part of the site. */
+export const SCANNED_PDF_MESSAGE = "This PDF is a picture of text; save it from the original file as .docx or a text PDF.";

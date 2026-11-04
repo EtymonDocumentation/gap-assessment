@@ -26,3 +26,4 @@ export { buildTrdFormDocx, FORM_INTRO, FORM_PLACEHOLDER } from "./trd-form";
 export { readTrdUpload } from "./trd-read";
 export { readDataPart, writeDataPart } from "./trd-data";
 export type { DataPart } from "./trd-data";
+export { readTrdPdf } from "./trd-read-pdf";

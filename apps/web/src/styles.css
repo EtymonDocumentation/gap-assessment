@@ -5072,3 +5072,24 @@ fieldset.stage-options {
   text-align: left;
   white-space: normal;
 }
+
+/* Level 3 upload review: the "Not used yet" list can be long and its lines quote the document, so the lines wrap and the summary is a clear button. */
+.import-not-used > summary {
+  cursor: pointer;
+}
+.import-not-used .plain-list {
+  margin-top: 8px;
+  display: grid;
+  gap: 6px;
+}
+.import-not-used li {
+  overflow-wrap: anywhere;
+}
+.import-table-list {
+  display: grid;
+  gap: 8px;
+}
+.import-table-list li {
+  align-items: center;
+  gap: 8px;
+}

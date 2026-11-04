@@ -57,3 +57,6 @@ export * from "./mbr-process-view";
 export * from "./saved-answers";
 export * from "./project-ops";
 export * from "./trd-import";
+export * from "./trd-value";
+export * from "./trd-synonyms";
+export * from "./trd-match";

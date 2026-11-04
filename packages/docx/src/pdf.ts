@@ -9,22 +9,24 @@ interface OutlineNode {
   items?: OutlineNode[];
 }
 
-interface PdfTextItem {
+export interface PdfTextItem {
   str?: string;
   transform?: number[];
+  width?: number;
+  height?: number;
 }
 
-interface PdfPage {
+export interface PdfPage {
   getTextContent(): Promise<{ items: PdfTextItem[] }>;
 }
 
-interface PdfDoc {
+export interface PdfDoc {
   numPages: number;
   getOutline(): Promise<OutlineNode[] | null>;
   getPage(n: number): Promise<PdfPage>;
 }
 
-interface PdfLoadingTask {
+export interface PdfLoadingTask {
   promise: Promise<PdfDoc>;
   destroy(): Promise<void>;
 }
@@ -108,23 +110,27 @@ function fromNumberedLines(lines: string[], out: OutlineHeading[]): void {
   }
 }
 
-/**
- * Headings of a PDF: the bookmark outline when there is one, otherwise the numbered lines of text.
- * A PDF has no text of its own that the tool can keep, so `hasBody` is always false.
- */
-export async function readOutlineFromPdf(bytes: Uint8Array): Promise<OutlineHeading[]> {
+/** Opens a PDF with pdf.js. Errors are plain sentences; the caller destroys the task when it is done. */
+export async function openPdf(bytes: Uint8Array): Promise<{ doc: PdfDoc; task: PdfLoadingTask }> {
   const pdfjs = await loadPdfjs();
-  let doc: PdfDoc;
   // pdf.js takes ownership of the buffer it is given, so it gets a copy.
   const task = pdfjs.getDocument({ data: bytes.slice(), isEvalSupported: false, useSystemFonts: false, disableFontFace: true, verbosity: 0 });
   try {
-    doc = await task.promise;
+    return { doc: await task.promise, task };
   } catch (e) {
     await task.destroy().catch(() => undefined);
     const name = (e as { name?: string }).name ?? "";
     if (name === "PasswordException") throw new TemplateError("The PDF is password protected. Remove the password in your PDF program, save it again, and upload that copy.");
     throw new TemplateError("The PDF could not be read. It may be damaged. Open it in a PDF viewer, save or print it to a new PDF, and upload that copy.");
   }
+}
+
+/**
+ * Headings of a PDF: the bookmark outline when there is one, otherwise the numbered lines of text.
+ * A PDF has no text of its own that the tool can keep, so `hasBody` is always false.
+ */
+export async function readOutlineFromPdf(bytes: Uint8Array): Promise<OutlineHeading[]> {
+  const { doc, task } = await openPdf(bytes);
   try {
     const out: OutlineHeading[] = [];
     const outline = await doc.getOutline().catch(() => null);

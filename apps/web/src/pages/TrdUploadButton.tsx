@@ -1,4 +1,5 @@
-import { buildBlankFormSpec, buildTrdFormSpec, classifyUpload, OTHER_LAYOUT_MESSAGE, sessionFromData, sessionFromForm, TrdImportError } from "@gap/engine";
+import { trdImportSynonyms } from "@gap/content";
+import { buildBlankFormSpec, buildTrdFormSpec, classifyUpload, SCANNED_PDF_MESSAGE, sessionFromData, sessionFromForm, sessionFromOther, TrdImportError, type UploadRead } from "@gap/engine";
 import type { TrdDocument } from "@gap/process-model";
 import { useRef, useState } from "react";
 import { loadDocx } from "../docx-loader";
@@ -42,8 +43,9 @@ export function TrdFormButton({ d, className = "btn", testId }: { d?: TrdDocumen
 }
 
 /**
- * "Upload a TRD": the one button for every kind of file. The site finds out by itself what the file is. A file it cannot read exactly
- * gets a plain message and the blank form as the way in (reading other layouts is a later step).
+ * "Upload a TRD": the one button for every kind of file. The site finds out by itself what the file is: our own export and our
+ * fill-in form are read exactly (levels 1 and 2); any other Word or PDF is read by fixed rules and every match is a suggestion
+ * (level 3). A file that cannot be read at all gets a plain message, with the blank form as a second way in.
  */
 export function TrdUploadButton({ className = "btn primary", testId = "trd-upload" }: { className?: string; testId?: string }) {
   const input = useRef<HTMLInputElement>(null);
@@ -55,13 +57,14 @@ export function TrdUploadButton({ className = "btn primary", testId = "trd-uploa
     if (!f) return;
     const kind = classifyUpload(f.name, f.size);
     if (!kind.ok) return setMessage({ text: kind.message, offerForm: false });
-    if (kind.kind === "pdf") return setMessage({ text: OTHER_LAYOUT_MESSAGE, offerForm: true });
     setBusy(true);
     try {
       const m = await loadDocx();
-      const read = m.readTrdUpload(new Uint8Array(await f.arrayBuffer()), f.name);
-      if (!read.dataKind) return setMessage({ text: OTHER_LAYOUT_MESSAGE, offerForm: true });
-      const session = read.dataKind === "trd-data" ? sessionFromData(read) : sessionFromForm(read);
+      const bytes = new Uint8Array(await f.arrayBuffer());
+      const read: UploadRead = kind.kind === "pdf" ? await m.readTrdPdf(bytes, f.name) : m.readTrdUpload(bytes, f.name);
+      if (read.noText) return setMessage({ text: SCANNED_PDF_MESSAGE, offerForm: true });
+      if (!read.dataKind && read.blocks.length === 0) return setMessage({ text: "No text could be read from this file. Check that it is the right file, or fill in the blank TRD form (Word) with the values from your document.", offerForm: true });
+      const session = !read.dataKind ? sessionFromOther(read, content.catalog, trdImportSynonyms) : read.dataKind === "trd-data" ? sessionFromData(read) : sessionFromForm(read);
       holdImport({ session, file: f });
       navigate("/trd/import");
     } catch (e) {

@@ -1,5 +1,5 @@
 import type { DesignLoadouts, FailureModeSuggestions, MbrLibraryBlock, RiskLoadouts, TrdLibraryWriteup } from "@gap/process-model";
-import { buildContent, parseFailureModes, parseGuidance, parseMbrLibrary, parseTrdWriteupLibrary, parseDesignLoadouts, parseRiskLoadouts, parseSamplingSuggestions, type ContentBundle, type GuidanceLibrary, type RawContent, type SamplingSuggestions } from "@gap/engine";
+import { buildContent, parseFailureModes, parseGuidance, parseMbrLibrary, parseTrdWriteupLibrary, parseDesignLoadouts, parseRiskLoadouts, parseSamplingSuggestions, parseTrdSynonyms, type TrdSynonyms, type ContentBundle, type GuidanceLibrary, type RawContent, type SamplingSuggestions } from "@gap/engine";
 import { catalog } from "@gap/process-model/catalog";
 import catalogOverlay from "./catalog/gap-overlay.yaml";
 import demoArx217 from "./demo/arx-217.yaml";
@@ -30,6 +30,7 @@ import rules from "./rules/rules.yaml";
 import designLoadoutsRaw from "./sampling/design-loadouts.yaml";
 import ppqSuggestionsRaw from "./sampling/ppq-suggestions.yaml";
 import templates from "./templates/gap-assessment.yaml";
+import trdImportSynonymsRaw from "./trd-import/synonyms.yaml";
 import trdWriteupsRaw from "./trd-writeups/writeups.yaml";
 
 /** Raw parsed YAML, keyed by file name so validation errors name the file. */
@@ -121,6 +122,16 @@ export const trdWriteups: TrdLibraryWriteup[] = parseTrdWriteupLibrary(
   trdWriteupsRaw,
   content.catalog.unitOperations.map((u) => u.key),
 ).writeups;
+
+/**
+ * The words the fixed-rule reader recognises in a TRD written by somebody else (upload, level 3). Words to recognise, never answers.
+ * Checked here against the catalog, so a misspelt step or parameter key stops the build.
+ */
+export const trdImportSynonyms: TrdSynonyms = parseTrdSynonyms(
+  trdImportSynonymsRaw,
+  content.catalog.unitOperations.flatMap((u) => u.items.filter((i) => i.coll === "param").map((i) => ({ uo: u.key, key: i.key }))),
+  content.catalog.unitOperations.map((u) => u.key),
+);
 
 /** The short guided tour of each main page (see apps/web/src/tour.tsx). Text only: each step names the data-tour anchor it points at. */
 export const tours = parseTours(toursRaw);

@@ -1,0 +1,115 @@
+# Words the fixed-rule reader recognises when a TRD was written by somebody else (Word or PDF in another layout).
+# These are WORDS TO RECOGNISE, never answers: a match is only a suggestion on the review screen, and a person accepts it.
+# The parameter names of the catalog are used automatically; this file adds the other ways documents write them.
+# Add words freely; nothing here supplies a value. A word that fits two steps (for example "hold time") is not matched by itself:
+# the reader needs the step to be clear from the heading, a step column or a sub-heading row.
+catalog:
+  id: trd-import-synonyms
+  version: 1.0.0
+
+# Heading words -> the TRD text field that the paragraphs under the heading are suggested for.
+sections:
+  - field: trd.purpose
+    words: [purpose, objective, objectives, aim, aims, purpose of this document, background and purpose]
+  - field: trd.scopeNote
+    words: [scope, scope of this document, scope and applicability, applicability, field of application]
+
+# "Label: value" lines and two-column tables -> document and product fields.
+labels:
+  - { field: trd.title, words: [title, document title, report title] }
+  - { field: trd.docRef, words: [document number, document no, document id, document reference, document ref, doc no, doc number, reference number] }
+  - { field: trd.version, words: [version, revision, rev, document version] }
+  - { field: trd.detail.program, words: [program, programme, project, project name, program name] }
+  - { field: trd.detail.modality, words: [modality, product type, molecule type] }
+  - { field: trd.detail.dosageForm, words: [dosage form, dose form, pharmaceutical form] }
+  - { field: trd.detail.presentation, words: [presentation, container, container closure, primary container, primary packaging] }
+  - { field: trd.detail.site, words: [receiving site, receiving unit, site, facility, manufacturing site, fill site] }
+  - { field: trd.detail.line, words: [filling line, line, line name, fill line] }
+
+# Table header words -> parameter columns.
+# "limit", "hold" and "time" are known words but do not say whether a value is a NOR or a PAR value, so a column that only says
+# that is listed under "Not used yet" and the person picks the cell (Pick from document).
+columns:
+  - { kind: name, words: [parameter, parameters, process parameter, parameter name, name, item, attribute, description, critical process parameter, cpp] }
+  - { kind: step, words: [step, process step, unit operation, operation, stage, process stage] }
+  - { kind: set, words: [set point, setpoint, target, set value, setting, nominal, nominal value, target value] }
+  - { kind: nor, words: [nor, normal operating range, normal operating ranges, operating range, normal range] }
+  - { kind: par, words: [par, proven acceptable range, proven acceptable ranges, acceptable range, proven range] }
+  - { kind: unit, words: [unit, units, uom, unit of measure, unit of measurement] }
+  - { kind: low, words: [min, minimum, low, lower, lower limit, from, lo] }
+  - { kind: high, words: [max, maximum, high, upper, upper limit, to, hi] }
+  - { kind: limit, words: [limit, limits, acceptance limit, specification, spec] }
+  - { kind: hold, words: [hold, hold time, holding time] }
+  - { kind: time, words: [time, duration] }
+
+# Other ways documents name a process step (the catalog's own step names are used as well).
+steps:
+  - { uo: ds_shipping_inbound, words: [drug substance shipping, inbound shipping, ds shipping, shipping of drug substance] }
+  - { uo: ds_receipt_thaw, words: [drug substance receipt, thaw, thawing, ds thaw, receipt and thaw] }
+  - { uo: buffer_prep, words: [buffer preparation, buffer, buffer preparation and hold] }
+  - { uo: compounding, words: [compounding, pooling, dilution, formulation, formulation and compounding] }
+  - { uo: bbr_filtration, words: [bioburden reduction, bbr, bioburden reduction filtration, prefiltration, pre-filtration] }
+  - { uo: sterile_filtration, words: [sterile filtration, sterilizing filtration, sterilising filtration, final filtration] }
+  - { uo: aseptic_filling, words: [aseptic filling, filling, fill, filling and stoppering, fill and finish] }
+  - { uo: stoppering, words: [stoppering, stoppering stand-alone] }
+  - { uo: lyophilization, words: [lyophilization, lyophilisation, freeze drying, freeze-drying, lyo] }
+  - { uo: capping, words: [capping, crimping, capping and crimping, sealing] }
+  - { uo: visual_inspection, words: [visual inspection, inspection] }
+  - { uo: bulk_packaging, words: [bulk packaging, bulk pack, bulk packing] }
+  - { uo: labeling_packaging, words: [labeling, labelling, labeling and packaging, packaging, secondary packaging] }
+  - { uo: storage_shipping, words: [storage, shipping, storage and shipping, distribution, shipping from the fill site] }
+
+# Units by kind. Used for the rows whose meaning depends on the unit, and to tell a unit in brackets from other bracketed words.
+unitKinds:
+  volume: [mL, L, µL, uL, cc]
+  mass: [g, kg, mg, µg, ug]
+  time: [s, sec, min, h, hr, hrs, hour, hours, day, days, d, minute, minutes, second, seconds, week, weeks]
+  temperature: [°C, C, °F, F, K]
+  pressure: [bar, mbar, Pa, kPa, psi, mmHg, Torr, mTorr, µbar]
+  speed: [rpm]
+  rate: [vials/min, mL/min, L/min, units/min, m/min, containers/min]
+  length: [mm, cm, m, µm]
+
+# Extra names of catalog parameters (the catalog's own parameter names are used automatically).
+parameters:
+  - uo: aseptic_filling
+    key: fill_volume
+    words: [filling volume, dose volume, target fill volume, nominal fill volume, fill vol]
+    # A fill WEIGHT is a fill volume only when the document gives the amount as a volume.
+    onlyWithUnit:
+      - { kind: volume, words: [fill weight, fill amount, target fill, target fill amount, nominal fill] }
+  - { uo: aseptic_filling, key: line_speed, words: [line speed, filling speed, filling rate, fill speed] }
+  - { uo: aseptic_filling, key: max_fill_duration, words: [fill duration, filling time, fill time, maximum filling time] }
+  - { uo: aseptic_filling, key: max_filtered_hold, words: [filtered bulk hold, sterile bulk hold, filtered hold time, sterile hold time] }
+  - { uo: aseptic_filling, key: max_interventions, words: [number of interventions, maximum interventions, interventions per batch] }
+  - { uo: aseptic_filling, key: stopper_position, words: [stopper depth, stopper position, stoppering depth] }
+  - { uo: aseptic_filling, key: max_headspace, words: [headspace, air bubble, bubble size, headspace size] }
+  - { uo: stoppering, key: max_open_time, words: [open time, time partially stoppered, maximum open time] }
+  - { uo: sterile_filtration, key: differential_pressure, words: [filtration pressure, differential pressure, delta p, dp] }
+  - { uo: sterile_filtration, key: max_filtration_time, words: [filtration time, maximum filtration time, filtration duration] }
+  - { uo: bbr_filtration, key: differential_pressure, words: [filtration pressure, differential pressure, delta p, dp] }
+  - { uo: bbr_filtration, key: max_filtration_time, words: [filtration time, maximum filtration time, filtration duration] }
+  - { uo: bbr_filtration, key: max_cold_hold, words: [bioburden reduced bulk hold, bbr hold, cold hold] }
+  - { uo: ds_receipt_thaw, key: thaw_temperature, words: [thawing temperature, thaw temp] }
+  - { uo: ds_receipt_thaw, key: thaw_duration, words: [thawing time, thaw time, thawing duration] }
+  - { uo: ds_receipt_thaw, key: max_cold_hold, words: [thawed hold, thawed drug substance hold, cold hold] }
+  - { uo: ds_receipt_thaw, key: max_ambient_time, words: [ambient hold, time at ambient, ambient time] }
+  - { uo: ds_receipt_thaw, key: storage_temperature, words: [ds storage temperature, drug substance storage] }
+  - { uo: ds_shipping_inbound, key: transport_temperature, words: [shipping temperature, transport temp] }
+  - { uo: ds_shipping_inbound, key: max_transit_time, words: [transit time, maximum transit time, shipping time] }
+  - { uo: storage_shipping, key: max_transit_time, words: [transit time, shipping time] }
+  - { uo: buffer_prep, key: mixing_speed, words: [mixing rate, stirring speed, agitation speed] }
+  - { uo: buffer_prep, key: mixing_time, words: [mixing duration, stirring time] }
+  - { uo: buffer_prep, key: batch_volume, words: [buffer volume, batch size] }
+  - { uo: compounding, key: mixing_speed, words: [mixing rate, stirring speed, agitation speed] }
+  - { uo: compounding, key: mixing_time, words: [mixing duration, stirring time] }
+  - { uo: compounding, key: batch_size, words: [batch volume, formulated bulk volume] }
+  - { uo: compounding, key: target_concentration, words: [concentration, protein concentration] }
+  - { uo: lyophilization, key: freeze_shelf_temp, words: [freezing temperature, freezing shelf temp] }
+  - { uo: lyophilization, key: primary_shelf_temp, words: [primary drying temperature, primary drying shelf temp] }
+  - { uo: lyophilization, key: primary_pressure, words: [primary drying pressure, chamber pressure] }
+  - { uo: lyophilization, key: secondary_shelf_temp, words: [secondary drying temperature, secondary drying shelf temp] }
+  - { uo: lyophilization, key: secondary_time, words: [secondary drying duration, secondary drying time] }
+  - { uo: lyophilization, key: total_cycle_time, words: [cycle time, total cycle duration] }
+  - { uo: capping, key: rsf, words: [seal force, residual seal force rsf] }
+  - { uo: visual_inspection, key: inspection_rate, words: [inspection speed, inspection throughput] }

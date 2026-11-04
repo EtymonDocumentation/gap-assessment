@@ -178,12 +178,12 @@ test("an unfilled form gives no values at all: every field stays open", async ({
   await expect(page.getByTestId("import-accept-exact")).toContainText("(0)");
 });
 
-test("file rules: old Word formats and other layouts get a plain message", async ({ page }) => {
+test("file rules: old Word formats and unreadable files get a plain message", async ({ page }) => {
   await openTrdList(page);
   await upload(page, "trd-upload", "old.doc", Buffer.from("x"), "application/msword");
   await expect(page.getByTestId("trd-upload-message")).toHaveText("Save it as .docx or PDF first.");
   await upload(page, "trd-upload", "other.pdf", Buffer.from("%PDF-1.4"), "application/pdf");
-  await expect(page.getByTestId("trd-upload-message")).toContainText("Reading other layouts is coming");
+  await expect(page.getByTestId("trd-upload-message")).toContainText("The PDF could not be read. It may be damaged.");
   await expect(page.getByTestId("trd-upload-blank-form")).toBeVisible();
   await upload(page, "trd-upload", "broken.docx", Buffer.from("not a zip"));
   await expect(page.getByTestId("trd-upload-message")).toContainText("not a valid Word document");

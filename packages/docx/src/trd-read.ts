@@ -9,8 +9,9 @@ import { attrByLocal, childElements, localName, parseXml } from "./xml";
  * content controls by tag (the fill-in form), the printed parameter tables (to compare with the data stored in an export), and the data
  * part itself. Nothing is evaluated and nothing leaves the browser.
  *
- * Only what Word itself shows is read as text; the hidden data part is read separately. Level 3 (any other layout) is a later job: a file
- * without our data part comes back with `dataKind` undefined.
+ * Only what Word itself shows is read as text; the hidden data part is read separately. A file without our data part comes back with
+ * `dataKind` undefined and is read by the fixed rules of level 3 (trd-match in the engine). Merged cells are kept: gridSpan as `colSpan`,
+ * vMerge as `rowSpan` on the first cell and `vContinue` on the cells below.
  */
 
 /** Text of a paragraph: runs, tabs and line breaks. Deleted tracked text is not read; inserted text is. */
@@ -107,12 +108,29 @@ export function readTrdUpload(bytes: Uint8Array, fileName: string): UploadRead {
           blocks.push(level ? { kind: "heading", level, text } : { kind: "para", text });
         } else if (name === "tbl") {
           const rows: ViewCell[][] = [];
+          // Merged cells: a cell can span columns (gridSpan) and start or continue a vertical merge (vMerge). The grid column of each
+          // cell is kept so a continuation cell can be tied to the cell that started the merge (which then gets its rowSpan).
+          const starts = new Map<number, ViewCell>();
           for (const tr of childElements(el).filter((x) => localName(x) === "tr")) {
             const row: ViewCell[] = [];
+            let gridCol = 0;
             for (const tc of childElements(tr).filter((x) => localName(x) === "tc")) {
               const sdt = firstSdt(tc);
               const info = sdt ? sdtInfo(sdt) : undefined;
-              row.push({ text: blockText(tc).trim(), ...(info?.tag ? { controlId: info.tag } : {}) });
+              const tcPr = childElements(tc).find((x) => localName(x) === "tcPr");
+              const prop = (name: string) => (tcPr ? childElements(tcPr).find((x) => localName(x) === name) : undefined);
+              const spanEl = prop("gridSpan");
+              const span = Math.max(1, Number(spanEl ? attrByLocal(spanEl, "val") : "1") || 1);
+              const vm = prop("vMerge");
+              const cont = Boolean(vm) && (attrByLocal(vm!, "val") ?? "continue") === "continue";
+              const cell: ViewCell = { text: cont ? "" : blockText(tc).trim(), ...(info?.tag ? { controlId: info.tag } : {}), ...(span > 1 ? { colSpan: span } : {}), ...(cont ? { vContinue: true } : {}) };
+              if (cont) {
+                const top = starts.get(gridCol);
+                if (top) top.rowSpan = (top.rowSpan ?? 1) + 1;
+              } else if (vm) starts.set(gridCol, cell);
+              else starts.delete(gridCol);
+              row.push(cell);
+              gridCol += span;
             }
             rows.push(row);
           }
@@ -127,5 +145,5 @@ export function readTrdUpload(bytes: Uint8Array, fileName: string): UploadRead {
     visit(body);
   }
   const data = readDataPart(pkg);
-  return { fileName, blocks, tables, controls, ...(data ? { dataKind: data.kind, dataJson: data.json } : {}) };
+  return { fileName, blocks, tables, controls, format: "docx" as const, ...(data ? { dataKind: data.kind, dataJson: data.json } : {}) };
 }
