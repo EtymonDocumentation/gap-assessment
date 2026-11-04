@@ -124,7 +124,7 @@ test("both stages answered in a new project show on Home and Compare, and the ba
   await expect(page.getByTestId("stage-line")).toContainText("Sending-site stage: Engineering / development runs. Project stage: Clinical batches (GMP, not process-validated)");
 
   await go(page, "#/");
-  const card = page.locator("section.card", { hasText: "Open project" });
+  const card = page.getByTestId("open-project");
   await expect(card).toContainText("Sending-site stage");
   await expect(card).toContainText("Project stage");
   await expectNotice(page);

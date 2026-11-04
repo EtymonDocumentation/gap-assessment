@@ -33,7 +33,7 @@ async function startProject(page: Page) {
 
 test("home with no project explains the tool, what you need and how to start, with no next-step card", async ({ page }) => {
   await page.goto("./");
-  await expect(page.getByRole("heading", { level: 2, name: "What this tool does" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Welcome to Cascade" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Start a new project" })).toBeVisible();
   await expect(page.getByTestId("next-step")).toHaveCount(0);
   // The "what you need" list is open on a first visit.
@@ -41,7 +41,10 @@ test("home with no project explains the tool, what you need and how to start, wi
   // The two demos sit next to "Start a new project" (the start options), not in a card further down.
   await expect(page.getByTestId("start-options").getByRole("button", { name: /^Open demo: / })).toHaveCount(2);
   await expect(page.getByText("Both demos are fictional.")).toBeVisible();
-  await expect(page.getByTestId("getting-started")).toContainText("Answer the interview");
+  // One card per document; the gap assessment can be read now, the rest say they need an open project.
+  await expect(page.getByTestId("doc-card-gap").getByRole("link", { name: "Start Gap assessment" })).toHaveAttribute("href", "#/gap");
+  await expect(page.getByTestId("doc-card-state-trd")).toHaveText("Needs an open project.");
+  await expect(page.getByTestId("doc-card-open-trd")).toHaveCount(0);
   // Without a project there is no gap assessment to open, so the top link is left out instead of looking dead (it comes back with a project).
   await expect(mainNav(page).getByRole("link", { name: "Gap assessment", exact: true })).toHaveCount(0);
   await expectNoSidewaysScroll(page, "home, no project");
@@ -52,6 +55,7 @@ test("a new project is offered the scope first, and the checklist shows no tick 
   await startProject(page);
   await page.goto("./#/");
   await expect(page.getByTestId("next-step")).toContainText("Choose the scope");
+  await page.goto("./#/gap");
   const list = page.getByTestId("getting-started");
   await expect(list).toContainText("Create a project");
   await expect(list.locator("li.is-done")).toHaveCount(1);
@@ -75,8 +79,8 @@ test("home with the demo open leads with the next step; demo cards say what they
   await expectAccessible(page, "home with demo");
 });
 
-test("getting started can be hidden, stays hidden after a reload, and can be shown again", async ({ page }) => {
-  await page.goto("./");
+test("getting started (on the gap assessment page) can be hidden, stays hidden after a reload, and can be shown again", async ({ page }) => {
+  await page.goto("./#/gap");
   await expect(page.getByTestId("getting-started")).toBeVisible();
   await page.getByRole("button", { name: "Hide" }).click();
   await expect(page.getByTestId("getting-started")).toHaveCount(0);
@@ -99,7 +103,7 @@ test("the Documents and Library drop-downs open on click, move with the arrow ke
   await documents.click();
   await expect(documents).toHaveAttribute("aria-expanded", "true");
   // Chain order, each entry with a line saying what it is for; the gap assessment lists its six steps; risk and the TBD list sit alongside.
-  for (const name of ["Scope", "Interview", "Side by side", "Gap register", "Validation", "Document", "TRD", "Sampling plan", "Batch record", "Risk assessment", "Open items"]) {
+  for (const name of ["Getting started", "Scope", "Interview", "Side by side", "Gap register", "Validation", "Document", "TRD", "Sampling plan", "Batch record", "Risk assessment", "Open items"]) {
     await expect(nav.getByRole("link", { name, exact: true })).toBeVisible();
   }
   await expect(nav.getByRole("link", { name: "TRD seed" })).toHaveCount(0);
@@ -107,6 +111,7 @@ test("the Documents and Library drop-downs open on click, move with the arrow ke
   await expect(nav.getByRole("link", { name: "TRD", exact: true })).toHaveAccessibleDescription(/Technical requirements/);
   const order = await nav.locator(".nav-panel a").allInnerTexts();
   const at = (t: string) => order.findIndex((x) => x.includes(t));
+  expect(at("Getting started")).toBeLessThan(at("Scope"));
   expect(at("Scope")).toBeLessThan(at("TRD"));
   expect(at("TRD")).toBeLessThan(at("Sampling plan"));
   expect(at("Sampling plan")).toBeLessThan(at("Batch record"));
@@ -117,6 +122,8 @@ test("the Documents and Library drop-downs open on click, move with the arrow ke
   // The keyboard: Enter opens, the arrow keys move through the entries.
   await page.keyboard.press("Enter");
   await expect(documents).toHaveAttribute("aria-expanded", "true");
+  await page.keyboard.press("ArrowDown");
+  await expect(nav.getByRole("link", { name: "Getting started", exact: true })).toBeFocused();
   await page.keyboard.press("ArrowDown");
   await expect(nav.getByRole("link", { name: "Scope", exact: true })).toBeFocused();
   await page.keyboard.press("ArrowDown");

@@ -32,21 +32,22 @@ test("on a phone the first screen shows the page title and the first action", as
   await page.screenshot({ path: join(tmpdir(), "fix4-phone-home-after-spec.png") });
 });
 
-test("the chain strip lists the risk assessment after the gap assessment, and the TRD button opens the TRD once one exists", async ({ page }) => {
+test("the document cards list the risk assessment after the gap assessment, and the TRD card opens the TRD once one exists", async ({ page }) => {
   await page.goto("./");
   await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
   await page.goto("./#/");
-  const items = page.getByTestId("home-chain").getByRole("link");
-  const names = await items.allInnerTexts();
-  const gap = names.findIndex((t) => /Gap assessment/.test(t));
-  const risk = names.findIndex((t) => /Risk assessment/.test(t));
-  const trd = names.findIndex((t) => /TRD/.test(t) && !/Gap/.test(t));
+  // The cards follow the chain order: the risk assessment sits beside the chain, straight after the gap assessment.
+  const names = await page.getByTestId("home-chain").getByRole("heading", { level: 3 }).allInnerTexts();
+  const gap = names.indexOf("Gap assessment");
+  const risk = names.indexOf("Risk assessment");
+  const trd = names.indexOf("TRD");
   expect(gap).toBeGreaterThanOrEqual(0);
-  expect(risk).toBe(gap + 1);
-  expect(trd).toBe(risk + 1);
-  await expect(page.getByTestId("home-start-trd")).toContainText(/Open the TRD/);
-  await expect(page.getByTestId("home-start-trd")).not.toContainText("Start from a TRD");
+  expect(trd).toBeGreaterThan(gap);
+  expect(risk).toBeGreaterThan(gap);
+  // Once the project has a TRD its card says Open (it used to say Start from a TRD, which hid the way back to it).
+  await expect(page.getByTestId("doc-card-open-trd")).toHaveText("Open");
+  await expect(page.getByTestId("doc-card-open-trd")).toHaveAttribute("href", /#\/trd\?trd=/);
   // The strip on a document page carries the risk entry too and still passes axe.
   await goTo(page, "TRD");
   // (A phone shows one line, "Chain 2 of 5 · TRD", which leaves the unnumbered Risk assessment out; Home lists it on a phone too.)
@@ -58,7 +59,8 @@ test("the chain strip lists the risk assessment after the gap assessment, and th
 test("a new project offers 'Start from a TRD'; a plan with no points says so; a reload keeps the plan and its tab", async ({ page }) => {
   await newProject(page);
   await page.goto("./#/");
-  await expect(page.getByTestId("home-start-trd")).toContainText("Start from a TRD");
+  await expect(page.getByTestId("doc-card-state-trd")).toHaveText("Not started");
+  await expect(page.getByTestId("doc-card-open-trd")).toHaveText("Start");
   await goTo(page, "Sampling plan");
   await page.getByTestId("plan-title-input").fill("Empty plan (fictional)");
   await page.getByTestId("plan-create").click();
@@ -80,6 +82,8 @@ test("a 'to be decided' answer counts as open: the count says so and the step is
   await page.screenshot({ path: join(tmpdir(), "fix4-interview-count.png"), fullPage: true });
   await page.goto("./#/");
   await expect(page.locator("dt", { hasText: "Questions answered" }).locator("+ dd")).toContainText(/still open \(1 to be decided\)/);
+  // The checklist moved to the gap assessment's own page.
+  await page.goto("./#/gap");
   const started = page.getByTestId("getting-started");
   await expect(started.locator("li", { hasText: "Answer the interview" })).not.toContainText("(done)");
   await expect(started.locator("li", { hasText: "Review the gap register" })).not.toContainText("(done)");

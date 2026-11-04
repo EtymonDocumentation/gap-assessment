@@ -39,8 +39,8 @@ test("the product is Cascade: page title, mark and name in the header, the line 
   await expect(mark).toHaveAttribute("viewBox", "0 0 32 32");
   await expect(mark).toHaveAttribute("aria-hidden", "true");
   await expect(mark.locator("rect")).toHaveCount(3);
-  // Home keeps its title and says what the product is for above it.
-  await expect(page.getByRole("heading", { level: 1, name: "Gap assessment for technology transfer" })).toBeVisible();
+  // Home is Cascade's own start page: it welcomes the person by the product's name and says what the product is for above the title.
+  await expect(page.getByRole("heading", { level: 1, name: `Welcome to ${PRODUCT_NAME}` })).toBeVisible();
   await expect(page.locator("main .eyebrow")).toHaveText(`${PRODUCT_NAME} · ${PRODUCT_SUBTITLE}`);
   await expect(page.getByTestId("about-poc")).toContainText(`About ${PRODUCT_NAME}`);
   // The tab icon is an SVG file served by the site itself.

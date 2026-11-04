@@ -282,3 +282,10 @@ export async function expectNoHorizontalScrollOnceSettled(page: Page, label: str
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), { message: `${label}: page scrolls sideways`, timeout: 5_000 })
     .toBeLessThanOrEqual(1);
 }
+
+/** Rename / Copy / Delete sit in a row's "..." menu (job H1): open the menu in the My projects list, then pick the item. */
+export async function projectAction(page: import("@playwright/test").Page, title: string, action: "Rename" | "Copy" | "Delete"): Promise<void> {
+  const list = page.getByRole("list", { name: "My projects" });
+  await list.getByRole("button", { name: `More actions for ${title}`, exact: true }).click();
+  await list.getByRole("menuitem", { name: `${action} ${title}`, exact: true }).click();
+}

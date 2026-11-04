@@ -10,11 +10,11 @@ version: 1
 tours:
   - id: home
     path: /
-    title: Tour of the project page
+    title: Tour of the Home page
     steps:
       - anchor: home-start
         title: Start here
-        text: Start a new project, or open one of the two fictional demos to see a finished example first. A new project begins empty. Nothing is filled in for you.
+        text: Start a new project, open one of the two fictional demos to see a finished example first, or upload a document you already have. A new project begins empty. Nothing is filled in for you.
       - anchor: stage-chip
         title: Project stage
         text: Which batches the receiving site will make next (Engineering, Clinical, PPQ or Commercial). It changes the wording of your documents and adds reminders. Nothing is hidden or blocked, and your own text is never changed.
@@ -23,10 +23,24 @@ tours:
         text: The tool suggests what to do next. Every document is optional, so you can skip a step and come back to it later.
       - anchor: home-chain
         title: Your documents
-        text: The documents run in a chain, gap assessment, TRD, sampling plan, batch record. Each can use the one before it, but none is required.
-      - anchor: home-started
+        text: One card for each document, with its state and a button to open or start it. The documents run in a chain, gap assessment, TRD, sampling plan, batch record. Each can use the one before it, but none is required.
+      - anchor: home-projects
+        title: Your projects
+        text: Your saved projects, newest first. Open one with its Open button; Rename, Copy and Delete are under the three dots beside it.
+
+  - id: gap
+    path: /gap
+    title: Tour of the gap assessment
+    steps:
+      - anchor: gap-intro
+        title: What it does
+        text: The gap assessment compares the sending and the receiving unit and lists every difference. Anything not yet known is marked TBD and stays visible as an open item.
+      - anchor: gap-next
+        title: Where to go next
+        text: This button takes you to the next thing to do in your project. Without a project it takes you to Home, where you start or open one.
+      - anchor: gap-started
         title: Getting started
-        text: The steps in order. Each one ticks itself when your project gets there, so there is nothing to tick by hand. Anything still unknown stays visible as an open item.
+        text: The steps in order. Each one ticks itself when your project gets there, so there is nothing to tick by hand. Every step after the document is optional.
 
   - id: interview
     path: /interview

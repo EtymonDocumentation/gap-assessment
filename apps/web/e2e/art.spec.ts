@@ -1,4 +1,4 @@
-// Website art. The Home hero and the small "start" picture of a module with no records stay on their pages; every other page keeps
+// Website art. The gap assessment page hero and the small "start" picture of a module with no records stay on their pages; every other page keeps
 // its picture behind "About this page" (one panel with the explanation, closed on every visit). Also: unit-operation pictures and
 // close-ups in the interview, pictures load, no sideways scroll, accessibility, title contrast over the hero, print. Runs on the
 // desktop, tablet and phone projects.
@@ -141,26 +141,26 @@ for (const p of PAGES) {
   });
 }
 
-test("Home: the hero banner loads, its title is readable over the picture in light and dark, nothing scrolls sideways", async ({ page }, info) => {
+test("Gap assessment page: the hero banner loads, its title is readable over the picture in light and dark, nothing scrolls sideways", async ({ page }, info) => {
   test.setTimeout(90_000);
   await loadDemo(page);
-  await go(page, "#/");
+  await go(page, "#/gap");
   const hero = page.locator('.art-banner[data-art="page-home-hero"]');
   await expect(hero).toBeVisible();
-  await expectLoaded(hero.locator("img"), "Home hero");
+  await expectLoaded(hero.locator("img"), "Gap hero");
   await expect(hero.locator("img")).toHaveAttribute("alt", "");
   await expect(hero.locator(".art-banner-img")).toHaveAttribute("aria-hidden", "true");
   if (info.project.name === "phone") expect((await hero.boundingBox())!.height, "hero on a phone").toBeLessThanOrEqual(241);
   for (const scheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme: scheme });
-    await expectNoHorizontalScroll(page, `Home, ${scheme}`);
-    await expectAccessible(page, `Home, ${scheme}`);
-    expect(await worstTitleContrast(page, hero), `Home, ${scheme}: title contrast over the picture`).toBeGreaterThanOrEqual(4.5);
+    await expectNoHorizontalScroll(page, `Gap page, ${scheme}`);
+    await expectAccessible(page, `Gap page, ${scheme}`);
+    expect(await worstTitleContrast(page, hero), `Gap page, ${scheme}: title contrast over the picture`).toBeGreaterThanOrEqual(4.5);
   }
 });
 
-test("the home hero is larger than the other pictures and loads first", async ({ page }, info) => {
-  await page.goto("./");
+test("the gap assessment page's hero is larger than the other pictures and loads first", async ({ page }, info) => {
+  await page.goto("./#/gap");
   const hero = page.locator('.art-banner[data-art="page-home-hero"]');
   await expect(hero).toBeVisible();
   const img = hero.locator("img");
@@ -287,7 +287,7 @@ test("builder: unit-operation sections carry their small picture", async ({ page
 
 test("print hides every banner and picture", async ({ page }) => {
   await loadDemo(page);
-  await go(page, "#/");
+  await go(page, "#/gap");
   await expect(page.locator(".art-banner")).toBeVisible();
   await page.emulateMedia({ media: "print" });
   await expect(page.locator(".art-banner")).toBeHidden();

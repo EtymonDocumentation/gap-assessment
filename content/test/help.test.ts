@@ -21,7 +21,7 @@ const anchorInSource = (id: string) => new RegExp(String.raw`\btour\w*\s*[=:]\s*
 
 describe("tours (content/help/tours.yaml)", () => {
   it("has a tour for each main page, with 3 to 5 steps", () => {
-    expect(tours.map((t) => t.path).sort()).toEqual(["/", "/interview", "/mbr", "/risk", "/sampling", "/trd"]);
+    expect(tours.map((t) => t.path).sort()).toEqual(["/", "/gap", "/interview", "/mbr", "/risk", "/sampling", "/trd"]);
     for (const t of tours) {
       expect(t.steps.length, t.id).toBeGreaterThanOrEqual(3);
       expect(t.steps.length, t.id).toBeLessThanOrEqual(5);

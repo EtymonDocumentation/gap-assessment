@@ -1,5 +1,5 @@
 import { copyProject, PRODUCT_NAME, ProjectNameError, renameProject, sourceLabel } from "@gap/engine";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { PageBanner } from "../art";
 import { CascadeMark, ProductEyebrow } from "../brand";
 import { InlineRename, Modal, NoticeFooter, NoticeStrip } from "../components";
@@ -525,6 +525,111 @@ export function ConflictDialog() {
 
 // ------------------------------------------------------------------ Project page: my projects
 
+/** How many projects the list shows before "Show all". */
+const PROJECTS_SHOWN = 5;
+
+/**
+ * The "..." button of a project row, with Rename, Copy and Delete under it, so a row is one Open button and one small button instead of
+ * four. An ARIA menu like the Export menu on the module pages: arrow keys move, Escape closes and puts focus back on the button, choosing an
+ * item closes it. Each item's name carries the project's title, so a screen reader list of controls says which project it acts on.
+ */
+function ProjectRowMenu({
+  id,
+  title,
+  busy,
+  renaming,
+  onRename,
+  onCopy,
+  onDelete,
+}: {
+  id: string;
+  title: string;
+  busy: boolean;
+  renaming: boolean;
+  onRename: () => void;
+  onCopy: () => void;
+  onDelete: () => void;
+}) {
+  const { open, setOpen, id: menuId, wrap, button, onKeyDown: onEscape, onBlur } = useDisclosure();
+  const list = useRef<HTMLUListElement>(null);
+  const focusOnOpen = useRef(false);
+  const entries = () => [...(list.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? [])];
+
+  useEffect(() => {
+    if (open && focusOnOpen.current) entries()[0]?.focus();
+    focusOnOpen.current = false;
+  }, [open]);
+
+  const onMenuKey = (e: KeyboardEvent<HTMLUListElement>) => {
+    const all = entries();
+    const at = all.indexOf(document.activeElement as HTMLButtonElement);
+    let next = -1;
+    if (e.key === "ArrowDown") next = (at + 1) % all.length;
+    else if (e.key === "ArrowUp") next = (at - 1 + all.length) % all.length;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = all.length - 1;
+    if (next < 0) return;
+    e.preventDefault();
+    all[next]?.focus();
+  };
+
+  const choose = (action: () => void) => () => {
+    setOpen(false);
+    button.current?.focus();
+    action();
+  };
+
+  return (
+    <div className="row-menu" ref={wrap} onKeyDown={onEscape} onBlur={onBlur}>
+      <button
+        ref={button}
+        type="button"
+        id={`more-${id}`}
+        className="btn small row-menu-btn"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={menuId}
+        aria-label={`More actions for ${title}`}
+        disabled={renaming}
+        data-testid={`project-more-${id}`}
+        onKeyDown={(e) => {
+          if (e.key !== "ArrowDown") return;
+          e.preventDefault();
+          focusOnOpen.current = true;
+          if (open) entries()[0]?.focus();
+          else setOpen(true);
+        }}
+        onClick={(e) => {
+          // A click made with the keyboard (Enter or Space) has no pointer position; it lands on the first item, as a menu button should.
+          if (!open && e.detail === 0) focusOnOpen.current = true;
+          setOpen(!open);
+        }}
+      >
+        <span aria-hidden="true">...</span>
+      </button>
+      {open && (
+        <ul ref={list} id={menuId} role="menu" aria-label={`Actions for ${title}`} className="row-menu-list" onKeyDown={onMenuKey}>
+          <li role="none">
+            <button type="button" role="menuitem" tabIndex={-1} className="export-menu-item" aria-label={`Rename ${title}`} onClick={choose(onRename)}>
+              Rename
+            </button>
+          </li>
+          <li role="none">
+            <button type="button" role="menuitem" tabIndex={-1} className="export-menu-item" aria-label={`Copy ${title}`} disabled={busy} onClick={choose(onCopy)}>
+              Copy
+            </button>
+          </li>
+          <li role="none">
+            <button type="button" role="menuitem" tabIndex={-1} className="export-menu-item row-menu-danger" aria-label={`Delete ${title}`} onClick={choose(onDelete)}>
+              Delete
+            </button>
+          </li>
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export function ProjectListCard() {
   const list = useSync((s) => s.list);
   const state = useSync((s) => s.listState);
@@ -536,6 +641,7 @@ export function ProjectListCard() {
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState("");
   const [renaming, setRenaming] = useState("");
+  const [showAll, setShowAll] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
@@ -585,8 +691,11 @@ export function ProjectListCard() {
       .finally(() => setBusyId(""));
   };
 
+  // The open project and a project just copied or imported are always listed, wherever they sit in a long list: the person is looking for them.
+  const shown = showAll ? list : list.filter((p, i) => i < PROJECTS_SHOWN || p.id === currentId || p.id === note?.newId);
+
   return (
-    <section className="card stack" aria-labelledby="mine-h">
+    <section className="card stack project-card" aria-labelledby="mine-h">
       <h2 id="mine-h" ref={headingRef} tabIndex={-1}>
         My projects
       </h2>
@@ -609,10 +718,10 @@ export function ProjectListCard() {
           {error}
         </p>
       )}
-      {state === "ready" && list.length === 0 && <p className="empty">You have no saved projects yet. Start one below.</p>}
+      {state === "ready" && list.length === 0 && <p className="empty">You have no saved projects yet. Start a new project or open a demo.</p>}
       {list.length > 0 && (
         <ul className="project-list" aria-label="My projects" ref={listRef}>
-          {list.map((p) => {
+          {shown.map((p) => {
             const title = titleOf(p);
             const isNew = note?.newId === p.id;
             return (
@@ -625,62 +734,71 @@ export function ProjectListCard() {
                       save={(t) => rename(p, t)}
                       onClose={() => {
                         setRenaming("");
-                        // The form was in place of the title, so focus goes back to the button that opened it.
-                        window.setTimeout(() => document.getElementById(`rename-${p.id}`)?.focus(), 0);
+                        // The form was in place of the title, so focus goes back to the "..." button that led to it.
+                        window.setTimeout(() => document.getElementById(`more-${p.id}`)?.focus(), 0);
                       }}
                     />
                   ) : (
                     <>
-                      <strong>{title}</strong>
-                      {p.id === currentId && <span className="tag">Open now</span>}
-                      {/* The tinted row is not the only cue: the tag says it too. */}
-                      {isNew && <span className="tag">New</span>}
+                      {/* One line with an ellipsis so a long name never makes the row tall; the full name is in the tooltip and in the buttons' names. */}
+                      <strong className="project-name" title={title}>
+                        {title}
+                      </strong>
+                      {(p.id === currentId || isNew) && (
+                        <div className="project-tags">
+                          {p.id === currentId && <span className="tag">Open now</span>}
+                          {/* The tinted row is not the only cue: the tag says it too. */}
+                          {isNew && <span className="tag">New</span>}
+                        </div>
+                      )}
                     </>
                   )}
                   <div className="small muted">Last saved {dateTime(p.updatedAt)}</div>
                 </div>
-                <div className="row wrap">
-                  <button
-                    type="button"
-                    className="btn small"
-                    aria-label={`Open ${title}`}
-                    disabled={busyId === p.id || p.id === currentId}
-                    onClick={() => {
-                      setBusyId(p.id);
-                      setError("");
-                      say("");
-                      openProject(p.id)
-                        .catch((x) => setError(`${title} could not be opened. ${(x as Error).message}`))
-                        .finally(() => setBusyId(""));
-                    }}
-                  >
-                    Open
-                  </button>
-                  <button
-                    type="button"
-                    className="btn small"
-                    id={`rename-${p.id}`}
-                    aria-label={`Rename ${title}`}
-                    disabled={renaming === p.id}
-                    onClick={() => {
+                <div className="project-row-actions">
+                  {/* The open project has the "Open now" tag, so a greyed Open button beside it only looked broken; the menu stays. */}
+                  {p.id !== currentId && (
+                    <button
+                      type="button"
+                      className="btn small"
+                      aria-label={`Open ${title}`}
+                      disabled={busyId === p.id}
+                      onClick={() => {
+                        setBusyId(p.id);
+                        setError("");
+                        say("");
+                        openProject(p.id)
+                          .catch((x) => setError(`${title} could not be opened. ${(x as Error).message}`))
+                          .finally(() => setBusyId(""));
+                      }}
+                    >
+                      Open
+                    </button>
+                  )}
+                  <ProjectRowMenu
+                    id={p.id}
+                    title={title}
+                    busy={busyId === p.id}
+                    renaming={renaming === p.id}
+                    onRename={() => {
                       setError("");
                       say("");
                       setRenaming(p.id);
                     }}
-                  >
-                    Rename
-                  </button>
-                  <button type="button" className="btn small" aria-label={`Copy ${title}`} disabled={busyId === p.id} onClick={() => copy(p)}>
-                    Copy
-                  </button>
-                  <button type="button" className="btn small danger" aria-label={`Delete ${title}`} onClick={() => setConfirm({ id: p.id, title })}>
-                    Delete
-                  </button>
+                    onCopy={() => copy(p)}
+                    onDelete={() => setConfirm({ id: p.id, title })}
+                  />
                 </div>
               </li>
             );
           })}
         </ul>
+      )}
+      {/* Only the newest few are listed at first, so a long list does not push the rest of the page down. */}
+      {list.length > PROJECTS_SHOWN && (
+        <button type="button" className="btn small" aria-expanded={showAll} onClick={() => setShowAll((v) => !v)} data-testid="projects-show-all">
+          {showAll ? "Show fewer" : `Show all ${list.length} projects`}
+        </button>
       )}
       {confirm && (
         <Modal

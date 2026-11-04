@@ -30,6 +30,17 @@ export function copyTitle(title: string, taken: readonly string[]): string {
   return withSuffix(title, "copy", taken);
 }
 
+/**
+ * The name of a demo opened again: unchanged the first time, "<title> (2)", "(3)" ... when the person's list already has one. Opening the same
+ * demo twice is a fair thing to do (to start over, or to show it twice), and two rows with one name could not be told apart or addressed by
+ * name, so the later one is numbered.
+ */
+export function demoTitle(title: string, taken: readonly string[]): string {
+  let candidate = title;
+  for (let n = 2; titleTaken(candidate, taken); n++) candidate = `${title} (${n})`;
+  return candidate;
+}
+
 /** The name of an imported project: unchanged, unless a listed project already has it. */
 export function importedTitle(title: string, taken: readonly string[]): string {
   return titleTaken(title, taken) ? withSuffix(title, "imported", taken) : title;

@@ -72,7 +72,8 @@ test("project page, account menu and the password and delete dialogs", async ({ 
   const opener = isPhone(page) ? page.getByRole("navigation", { name: "Main" }).getByRole("button", { name: "Menu" }) : page.getByRole("button", { name: /, account: / });
   await expect(opener).toBeFocused();
 
-  await page.getByRole("button", { name: /^Delete / }).first().click();
+  await page.getByRole("button", { name: /^More actions for / }).first().click();
+  await page.getByRole("menuitem", { name: /^Delete / }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await checkBoth(page, "delete project dialog");
   await page.keyboard.press("Escape");

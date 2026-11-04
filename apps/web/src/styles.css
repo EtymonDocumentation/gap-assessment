@@ -5234,3 +5234,180 @@ fieldset.stage-options {
     padding: 4px 6px;
   }
 }
+
+/* ---------------------------------------------------------------- Home as the Cascade start page (job H1) */
+
+/* On a screen wider than the page column (main is 1280 px) the header's contents line up with that column instead of hugging the two edges of the
+   window, so the menu, the page and the project button read as one centred block at 1920 and 2000 px. The dark bar itself still spans the window. */
+@media (min-width: 1313px) {
+  .app-header {
+    padding-inline: calc((100% - 1280px) / 2 + 16px);
+  }
+}
+
+/* Main column, and (server storage) the projects list beside it. One column below 1000 px, so the list is under everything the person came to do. */
+.home-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-stack-lg, 24px);
+  align-items: start;
+}
+.home-main {
+  min-width: 0;
+}
+.home-side {
+  min-width: 0;
+}
+@media (min-width: 1000px) {
+  .home-layout.has-side {
+    grid-template-columns: minmax(0, 1fr) 21rem;
+  }
+}
+.home-welcome h1 {
+  margin: 0;
+}
+
+/* The start choices: three boxes (a new project, a demo, an upload). The demo box has two demos, so it is the widest. */
+.start-grid {
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+.start-option-title {
+  margin: 0;
+  font-size: 1rem;
+}
+.start-sub {
+  margin: 0;
+  font-size: 0.9375rem;
+}
+.start-demos .start-demo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.start-demos .start-demo p {
+  margin: 0;
+}
+.start-upload > .stack {
+  width: 100%;
+}
+@media (min-width: 1000px) {
+  .start-demos {
+    grid-column: span 2;
+  }
+}
+
+/* One card per document. The button sits at the foot of every card, so a row of cards lines up whatever the text above it. */
+.doc-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 12px;
+}
+.doc-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.doc-card h3 {
+  margin: 0;
+  font-size: 1.0625rem;
+}
+.doc-card p {
+  margin: 0;
+}
+.doc-card-state {
+  font-weight: 600;
+}
+.doc-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin-top: auto;
+  padding-top: 6px;
+}
+
+/* My projects as a compact list: the name on one line with an ellipsis, Open, and a "..." menu. */
+.project-card {
+  padding: 12px;
+}
+.project-card h2 {
+  font-size: 1.0625rem;
+}
+.project-list > li {
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+.project-info {
+  flex: 1 1 0;
+}
+.project-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.project-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.project-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+.row-menu {
+  position: relative;
+  display: inline-flex;
+}
+.row-menu-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 40;
+  min-width: 11rem;
+  max-width: 85vw;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 20%);
+}
+.row-menu-danger {
+  color: var(--danger);
+  font-weight: 600;
+}
+.row-menu-btn {
+  min-width: 2.25rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+/* The box that replaces a project page when no project is open. */
+.needs-project h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+/* Home with a project open: "Start something else" comes after the documents, as a section that can be folded away (job H1 follow-up). */
+.start-else > summary {
+  cursor: pointer;
+}
+.start-else > summary h2 {
+  display: inline;
+}
+.start-else[open] > summary {
+  margin-bottom: var(--space-stack-lg, 1rem);
+}

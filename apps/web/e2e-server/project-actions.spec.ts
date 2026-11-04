@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DEMO_NAMES } from "../e2e/nav-helper";
-import { expect, expectAccessibleInBothThemes, go, newAccount, serverRevision, signUp, startProject, test } from "./helpers";
+import { expect, expectAccessibleInBothThemes, go, newAccount, projectAction, serverRevision, signUp, startProject, test } from "./helpers";
 
 type Page = import("@playwright/test").Page;
 
@@ -27,7 +27,7 @@ test("Rename is inline with Save and Cancel, refuses a name another project has,
 
   // Rename: the title turns into a field with Save and Cancel; Escape and Cancel put it back and return focus to the button.
   let row = rowOf(page, title);
-  await row.getByRole("button", { name: `Rename ${title}` }).click();
+  await projectAction(page, title, "Rename");
   const field = page.getByRole("textbox", { name: `New name for ${title}` });
   await expect(field).toBeFocused();
   await expect(page.getByRole("button", { name: "Save", exact: true })).toBeVisible();
@@ -36,14 +36,14 @@ test("Rename is inline with Save and Cancel, refuses a name another project has,
   await expect(field).toHaveCount(0);
   await expect(rowOf(page, title)).toHaveCount(1);
   // (The open project's own card on Home has a Rename button with the same name: this one is the list's.)
-  const listRename = projectList(page).getByRole("button", { name: `Rename ${title}` });
-  await expect(listRename).toBeFocused();
-  await listRename.click();
+  // After a rename closes, focus returns to the row's "..." button (the Rename item went with the closed menu).
+  await expect(projectList(page).getByRole("button", { name: `More actions for ${title}` })).toBeFocused();
+  await projectAction(page, title, "Rename");
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(field).toHaveCount(0);
 
   // Copy: "<name> (copy)", a line that says what was made, and a row marked New (a tag, not only a tint).
-  await page.getByRole("button", { name: `Copy ${title}` }).click();
+  await projectAction(page, title, "Copy");
   const copyTitle = `${title} (copy)`;
   await expect(note(page)).toHaveText(`Copied: ${title}. The copy is called ${copyTitle}.`);
   const copyRow = rowOf(page, copyTitle);
@@ -53,7 +53,7 @@ test("Rename is inline with Save and Cancel, refuses a name another project has,
   await expect.poll(async () => (await listedOnServer(page)).map((p) => p.title), { message: "the copy is saved on the server" }).toContain(copyTitle);
 
   // A name another project already has is refused, with the reason beside the field, and an empty one too.
-  await page.getByRole("button", { name: `Rename ${copyTitle}` }).click();
+  await projectAction(page, copyTitle, "Rename");
   const copyField = page.getByRole("textbox", { name: `New name for ${copyTitle}` });
   await copyField.fill(title);
   await page.getByRole("button", { name: "Save", exact: true }).click();
@@ -76,7 +76,7 @@ test("Rename is inline with Save and Cancel, refuses a name another project has,
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(note(page)).toHaveText(`Renamed: ${copyTitle} is now called ${renamed}.`);
   await expect(rowOf(page, renamed)).toHaveCount(1);
-  await expect(page.getByRole("button", { name: `Rename ${renamed}` })).toBeFocused();
+  await expect(projectList(page).getByRole("button", { name: `More actions for ${renamed}` })).toBeFocused();
   await expect.poll(async () => (await listedOnServer(page)).map((p) => p.title), { message: "the new name is saved on the server" }).toContain(renamed);
   row = rowOf(page, title);
   await expect(row).toHaveCount(1);

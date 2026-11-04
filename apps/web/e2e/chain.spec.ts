@@ -27,33 +27,32 @@ async function openSyringe(page: Page) {
 
 const hash = (page: Page, h: string) => page.evaluate((x) => (window.location.hash = x), h);
 
-test("the syringe example opens on Home with the whole chain in view, each stage a link with a short status", async ({ page }) => {
+test("the syringe example opens on Home with one card per document, each with a short state and a button", async ({ page }) => {
   await openSyringe(page);
-  await expect(page.getByRole("heading", { level: 1, name: "Gap assessment for technology transfer" })).toBeVisible();
-  const chain = page.getByRole("navigation", { name: "Document chain" });
-  await expect(chain.getByRole("link")).toHaveCount(6);
+  await expect(page.getByRole("heading", { level: 1, name: "Welcome to Cascade" })).toBeVisible();
   for (const [id, name, status] of [
     ["gap", "Gap assessment", /difference/],
     ["risk", "Risk assessment", /./],
     ["trd", "TRD", /TRD-001/],
     ["sampling", "Sampling plan", /SPL-001/],
     ["mbr", "Batch record", /MBR-001/],
-    ["view", "Process view", /Opens from a batch record/],
   ] as const) {
-    const l = chain.getByTestId(`chain-${id}`);
-    await expect(l).toContainText(name);
-    await expect(l).toContainText(status);
-    // Home shows the chain as a map: no stage is "current".
-    await expect(l).not.toHaveAttribute("aria-current", "step");
+    const card = page.getByTestId(`doc-card-${id}`);
+    await expect(card.getByRole("heading", { level: 3, name })).toBeVisible();
+    await expect(page.getByTestId(`doc-card-state-${id}`)).toContainText(status);
+    await expect(card.getByTestId(`doc-card-open-${id}`)).toBeVisible();
   }
-  // Getting started covers the whole chain, the later items marked optional.
+  // Getting started lives on the gap assessment's own page and covers the whole chain, the later items marked optional.
+  await expect(page.getByTestId("getting-started")).toHaveCount(0);
+  await hash(page, "#/gap");
   const list = page.getByTestId("getting-started");
   for (const t of ["Start the TRD (optional)", "Make a sampling plan (optional)", "Write the batch record (optional)", "See the Process view (optional)", "Assess risk (optional)"]) {
     await expect(list.getByRole("link", { name: t })).toBeVisible();
   }
+  await hash(page, "#/");
   // The next step knows the chain: all documents exist in this example, so it points on to the Process view.
   await expect(page.getByTestId("then-step")).toContainText("Open the Process view");
-  await page.getByTestId("home-start-trd").click();
+  await page.getByTestId("doc-card-open-trd").click();
   await expect(page.getByRole("heading", { level: 1, name: "TRD" })).toBeVisible();
   await hash(page, "#/");
   await page.getByTestId("chain-view").click();
@@ -74,10 +73,14 @@ test("a project with no documents says 'Not started', proposes the TRD after the
   await dialog.getByLabel("Responder name").fill("Test Person (fictional)");
   await dialog.getByRole("button", { name: "Create project" }).click();
   await hash(page, "#/");
-  for (const id of ["trd", "sampling", "mbr"]) await expect(page.getByTestId(`chain-${id}`)).toContainText("Not started");
-  await expect(page.getByTestId("chain-view")).toContainText("Needs a batch record to show");
+  for (const id of ["trd", "sampling", "mbr"]) {
+    await expect(page.getByTestId(`doc-card-state-${id}`)).toHaveText("Not started");
+    await expect(page.getByTestId(`doc-card-open-${id}`)).toHaveText("Start");
+  }
+  // No batch record yet, so there is no Process view to offer.
+  await expect(page.getByTestId("chain-view")).toHaveCount(0);
   // Nothing is enforced: the batch record page opens straight away, and its Next bar says what the Process view needs.
-  await page.getByTestId("chain-mbr").click();
+  await page.getByTestId("doc-card-open-mbr").click();
   await expect(page.getByRole("heading", { level: 1, name: "Batch record" })).toBeVisible();
   await expect(page.getByTestId("chain-mbr")).toHaveAttribute("aria-current", "step");
   await expect(page.getByTestId("doc-chain-bar")).toContainText("Process view opens from a batch record");

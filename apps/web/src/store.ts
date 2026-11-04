@@ -2,6 +2,7 @@ import {
   assess,
   demoSamplingTables,
   demoSubsectionLibrary,
+  demoTitle,
   effectiveContent,
   importedTitle,
   programStage,
@@ -64,9 +65,10 @@ interface State {
   /**
    * Opens a fictional demo project; the id picks the script from content/demo. The build takes seconds, so it runs off the page (demo-run.ts) after
    * the "Building the demo" line has painted. A second call while one demo is being built is ignored, so a double click makes ONE project.
+   * `listedTitles` are the names already in My projects: a demo opened again is numbered "(2)" so the list never shows two rows with one name.
    * Resolves true once the demo is open.
    */
-  openDemo(id: DemoId): Promise<boolean>;
+  openDemo(id: DemoId, listedTitles?: readonly string[]): Promise<boolean>;
   newProject(title: string, responder: { name: string; role?: string }): void;
   /**
    * Opens a project from an exported JSON file as a new project. `listedTitles` are the names already in My projects: when one is the file's name,
@@ -135,7 +137,7 @@ export const useStore = create<State>((setState, getState) => ({
     }
   },
 
-  async openDemo(id) {
+  async openDemo(id, listedTitles = []) {
     // The guard is a plain variable set before the first await: two clicks in the same frame both run this function before React has
     // re-rendered the buttons as disabled, and the second must find the first already in flight.
     if (demoInFlight) return false;
@@ -152,6 +154,8 @@ export const useStore = create<State>((setState, getState) => ({
       // The batch record is built from the TRD, so it goes with the TRD; an account without the batch record module gets the demo without it.
       let shown = trdOn ? demo : { ...demo, trd: { documents: [] }, changeLog: demo.changeLog.filter((e) => !(e.path ?? "").startsWith("trd.")) };
       if (!trdOn || !mbrOn) shown = { ...shown, mbr: { records: [] }, changeLog: shown.changeLog.filter((e) => !(e.path ?? "").startsWith("mbr.")) };
+      const title = demoTitle(shown.meta.title, listedTitles);
+      if (title !== shown.meta.title) shown = renameProject(shown, title, actorOf(shown), { detail: "Renamed on opening: a project with this name was already listed" });
       getState().setProject(shown, `Demo opened: ${name}`, true);
       setState({ homeFlash: `Demo opened: ${name}` });
       // The demo plan uses a fictional company table. Offer it in the library too, so the plan does not say its table has gone.

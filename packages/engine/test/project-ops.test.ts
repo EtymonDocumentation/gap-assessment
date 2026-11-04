@@ -1,7 +1,7 @@
 // Renaming, copying and importing a whole project (the "My projects" list). Tester D rows 17 and 18. All names are fictional.
 import { describe, expect, it } from "vitest";
 import { emptyProject, parseProject, type Actor } from "@gap/process-model";
-import { changeLogView, copyProject, copyTitle, importedTitle, ProjectNameError, renameProject, titleTaken } from "@gap/engine";
+import { changeLogView, copyProject, copyTitle, demoTitle, importedTitle, ProjectNameError, renameProject, titleTaken } from "@gap/engine";
 import { content } from "./helpers";
 
 const ACTOR: Actor = { name: "Pat Placeholder (fictional)", at: "2026-10-06T09:00:00.000Z" };
@@ -87,5 +87,13 @@ describe("copyProject", () => {
     c.scope["x"] = { id: "x", ref: "scope.x", status: "tbd" } as never;
     expect(p.scope["x"]).toBeUndefined();
     expect(() => parseProject(JSON.parse(JSON.stringify(copyProject(p, ACTOR, []))))).not.toThrow();
+  });
+});
+
+describe("demo names", () => {
+  it("keeps the demo's name the first time and numbers a demo opened again", () => {
+    expect(demoTitle("Demo (fictional)", ["Other"])).toBe("Demo (fictional)");
+    expect(demoTitle("Demo (fictional)", ["Demo (fictional)"])).toBe("Demo (fictional) (2)");
+    expect(demoTitle("Demo (fictional)", ["Demo (fictional)", "demo (fictional) (2)"])).toBe("Demo (fictional) (3)");
   });
 });

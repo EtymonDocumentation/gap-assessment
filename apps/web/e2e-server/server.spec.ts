@@ -23,6 +23,7 @@ import {
   newAccount,
   openAccountMenu,
   otherComputer,
+  projectAction,
   serverRevision,
   signIn,
   signInFresh,
@@ -167,12 +168,12 @@ test("a project saves as you work, and a fresh browser shows it after signing in
   // Closing a project returns to the list; deleting asks first and names the project.
   await page.getByRole("button", { name: "Close project" }).click();
   await expect(page.getByText("Open now")).toHaveCount(0);
-  await page.getByRole("button", { name: `Delete ${title}` }).click();
+  await projectAction(page, title, "Delete");
   const confirm = page.getByRole("dialog", { name: `Delete ${title}?` });
   await expect(confirm).toContainText("trash folder");
   await confirm.getByRole("button", { name: "Cancel" }).click();
   await expect(page.getByRole("list", { name: "My projects" })).toContainText(title);
-  await page.getByRole("button", { name: `Delete ${title}` }).click();
+  await projectAction(page, title, "Delete");
   await page.getByRole("dialog").getByRole("button", { name: "Delete project" }).click();
   await expect(page.getByRole("list", { name: "My projects" }).getByRole("listitem")).toHaveCount(1);
   await expect(page.getByRole("list", { name: "My projects" })).not.toContainText(title);
