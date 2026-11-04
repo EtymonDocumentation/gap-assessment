@@ -21,6 +21,7 @@ import { useStore } from "../store";
 import { StageChangeButton, useProjectStage } from "../stage-ui";
 import { holdImport, useHeldImport } from "../trd-import-store";
 import { useTrdWriteupLibrary } from "../trd-writeups-store";
+import { ImportDocPane } from "./ImportDocPane";
 import { isParamGroup, ParamTable, SimpleTable, type Editing, type ImportCtx } from "./TrdImportFields";
 import { TrdUploadButton } from "./TrdUploadButton";
 
@@ -394,84 +395,17 @@ function Review({ session, file }: { session: ImportSession; file: File }) {
           })}
         </section>
 
-        <section className="import-doc" aria-labelledby="import-doc-h" ref={docPane} data-testid="import-doc">
-          <h2 id="import-doc-h">Your document as read</h2>
-          <button type="button" className="btn small import-doc-toggle" aria-expanded={docOpen} aria-controls="import-doc-body" onClick={() => setDocOpen((o) => !o)} data-testid="import-doc-toggle">
-            {docOpen ? "Hide the document" : "Show the document"}
-          </button>
-          {picking && (
-            <div className="notice stack" role="status" data-testid="import-picking">
-              <p>
-                Picking a value for <strong>{[byId.get(picking)?.sub, byId.get(picking)?.label].filter(Boolean).join(", ")}</strong>. Press a cell below, or select text in the document and press "Use selected text".
-              </p>
-              <div className="row wrap">
-                <button
-                  type="button"
-                  className="btn small"
-                  onClick={() => takeText(window.getSelection()?.toString() ?? "")}
-                  data-testid="import-use-selection"
-                >
-                  Use selected text
-                </button>
-                <button type="button" className="btn small ghost" onClick={() => setPicking(null)}>
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
-          <div id="import-doc-body" className={`import-doc-body stack${docOpen ? "" : " collapsed"}`}>
-            {session.blocks.length === 0 && <Empty>The file has no readable text.</Empty>}
-            {session.blocks.map((b, bi) => {
-              if (b.kind === "heading") return <p key={bi} className="import-doc-heading">{b.text}</p>;
-              if (b.kind === "para") return <p key={bi} className="small">{b.text}</p>;
-              const tableNo = session.blocks.slice(0, bi + 1).filter((x) => x.kind === "table").length;
-              return (
-                <div key={bi} id={`imp-table-${bi}`} className="table-scroll" role="region" aria-label={`Table ${tableNo} of the document${b.page ? `, page ${b.page}` : ""}`} tabIndex={0}>
-                  <table className="data import-doc-table">
-                    <tbody>
-                      {b.rows.map((r, ri) => (
-                        <tr key={ri}>
-                          {r.map((c, ci) => {
-                            // The continuation of a vertical merge is covered by the cell above (its rowSpan).
-                            if (c.vContinue) return null;
-                            const key = `${bi}:${ri}:${ci}`;
-                            const used = session.cellFields[key] ?? [];
-                            const fields = used.map((id) => byId.get(id)).filter(Boolean) as ImportField[];
-                            const changed = fields.some((f) => f.change);
-                            const cell = ri === 0 ? "th" : "td";
-                            const content = (
-                              <>
-                                {c.text || <span className="muted">(empty)</span>}
-                                {changed && <span className="tag status-partial status"> Changed in Word</span>}
-                                {!changed && fields.length > 0 && <span className="tag"> used</span>}
-                              </>
-                            );
-                            const props = { id: `imp-cell-${key.replace(/:/g, "-")}`, tabIndex: -1, ...(c.colSpan ? { colSpan: c.colSpan } : {}), ...(c.rowSpan ? { rowSpan: c.rowSpan } : {}) };
-                            return cell === "th" ? (
-                              <th key={ci} scope="col" {...props}>
-                                {content}
-                              </th>
-                            ) : (
-                              <td key={ci} {...props}>
-                                {picking && c.text && !c.controlId ? (
-                                  <button type="button" className="btn small ghost" onClick={() => takeText(c.text)}>
-                                    {content}
-                                  </button>
-                                ) : (
-                                  content
-                                )}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              );
-            })}
-          </div>
-        </section>
+        <ImportDocPane
+          blocks={session.blocks}
+          cellFields={session.cellFields}
+          anyChanged={(ids) => ids.some((id) => byId.get(id)?.change)}
+          picking={picking ? [byId.get(picking)?.sub, byId.get(picking)?.label].filter(Boolean).join(", ") : null}
+          onTake={takeText}
+          onCancelPick={() => setPicking(null)}
+          open={docOpen}
+          setOpen={setDocOpen}
+          innerRef={docPane}
+        />
       </div>
 
       <section className="card stack" aria-labelledby="import-make-h" data-testid="import-make">

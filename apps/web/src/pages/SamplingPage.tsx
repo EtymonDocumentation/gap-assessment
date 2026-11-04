@@ -41,6 +41,7 @@ import { SubsectionsEditor } from "./SamplingSubsections";
 import { SamplingContents } from "./SamplingContents";
 import { DesignReviewLine, SamplingReview } from "./SamplingReview";
 import { HelpTip } from "../HelpTip";
+import { SamplingFormButton, SamplingUploadButton } from "./SamplingUploadButton";
 
 type Tab = "overview" | "interview" | "review" | "subsections";
 const TAB_LABEL: Record<Tab, string> = { overview: "Overview", interview: "Interview", review: "Design review", subsections: "Plan subsections" };
@@ -86,6 +87,12 @@ function PlanList({ missing }: { missing?: string | undefined }) {
     <div className="stack-lg">
       <PageHeader
         title="Sampling plan"
+        actions={
+          <>
+            <SamplingFormButton testId="sampling-blank-form" />
+            <SamplingUploadButton testId="sampling-upload" />
+          </>
+        }
         purpose="A plan lists which samples are pulled from which process steps during the PPQ (process performance qualification) batches, and how many."
         about={{
           art: "page-document",
@@ -115,7 +122,7 @@ function PlanList({ missing }: { missing?: string | undefined }) {
       <section className="card stack" aria-labelledby="sp-plans">
         <h2 id="sp-plans">Plans in this project</h2>
         {plans.length === 0 ? (
-          <Empty>No sampling plan yet. Create one below.</Empty>
+          <Empty>No sampling plan yet. Create one below, or upload a plan you already have (the "Upload a sampling plan" button at the top).</Empty>
         ) : (
           <div className="table-scroll" role="region" aria-label="Sampling plans table" tabIndex={0}>
             <table className="data" data-testid="plan-list">
@@ -267,6 +274,7 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
       <PageHeader
         title={`${plan.id}: ${plan.title}`}
         crumb={plan.id}
+        actions={<SamplingFormButton plan={plan} testId="sampling-form-so-far" />}
         purpose={`Which samples are taken from which process steps during ${stageWording.during}, how many, and by what method.`}
         pills={pills}
         meta={`Last changed ${dateTime(plan.updatedAt)}`}

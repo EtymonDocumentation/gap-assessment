@@ -14,6 +14,7 @@ import { SERVER_MODE } from "../server/mode";
 import { ensureSaved, loadList, useSync } from "../server/sync";
 import { StageCheckNotice, StageRow } from "../stage-ui";
 import { TrdFormButton, TrdUploadButton } from "./TrdUploadButton";
+import { SamplingFormButton, SamplingUploadButton } from "./SamplingUploadButton";
 import { content, useAssessment, useContent, useStageWording, useStore } from "../store";
 
 const HIDE_KEY = "gap-getting-started-hidden";
@@ -296,6 +297,16 @@ export function HomePage({ notice }: { notice?: string }) {
                   <span className="muted small">Opens the TRD page, where you choose how it starts: from this project, from a seed file, or blank.</span>
                 </>
               )}
+            </div>
+          )}
+          {allowed.sampling && (
+            <div className="stack" data-testid="home-start-from-sampling-document">
+              <h3>Start a sampling plan from a document you have</h3>
+              <p className="muted small">Upload a sampling plan Word file that this tool made, a fill-in form, or a plan in another layout (Word or PDF). You check every value before it is used.</p>
+              <div className="row wrap">
+                <SamplingUploadButton className="btn" testId="home-upload-sampling" />
+                <SamplingFormButton testId="home-sampling-blank-form" />
+              </div>
             </div>
           )}
           {allowed.trd && (

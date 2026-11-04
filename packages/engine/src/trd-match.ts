@@ -2,6 +2,10 @@ import type { Catalog } from "@gap/process-model";
 import { buildBlankFormSpec, formControls, partId, type ImportField, type ImportSession, type UploadRead, type ViewBlock, type ViewCell } from "./trd-import";
 import type { ColumnKind, TrdSynonyms } from "./trd-synonyms";
 import { readValue, type ReadValue } from "./trd-value";
+import { clip, containsSeq, headerKindsOf, important, norm, sameSeq, tableGrid, toks, type GridCell } from "./import-shared";
+
+// Shared with the sampling plan upload; re-exported so existing imports keep working.
+export { tableGrid } from "./import-shared";
 
 /**
  * Upload a finished TRD, level 3 (job I2): ANY OTHER WORD OR PDF. The file is already split into headings, paragraphs and tables
@@ -19,29 +23,6 @@ import { readValue, type ReadValue } from "./trd-value";
  */
 
 // ------------------------------------------------------------------ words
-
-const norm = (s: string | undefined) => (s ?? "").replace(/[\s ]+/g, " ").trim();
-/** Lower-case word tokens. "Set-point (°C)" -> ["set", "point", "°c"]. Units keep their symbols. */
-const toks = (s: string): string[] =>
-  norm(s)
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}µμ°%/]+/gu, " ")
-    .trim()
-    .split(" ")
-    .filter(Boolean);
-
-function containsSeq(hay: readonly string[], needle: readonly string[]): boolean {
-  if (needle.length === 0 || needle.length > hay.length) return false;
-  for (let i = 0; i + needle.length <= hay.length; i++) if (needle.every((w, j) => hay[i + j] === w)) return true;
-  return false;
-}
-const sameSeq = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((w, i) => w === b[i]);
-
-/** Text that looks important and must not vanish silently: a number with a unit, or the words of a requirement. */
-const UNIT_NUMBER = /\d\s*(?:%|°\s?[CF]\b|(?:ml|µl|ul|l|g|kg|mg|µg|h|hr|hrs|hours?|min|mins|minutes?|s|sec|seconds?|days?|weeks?|rpm|bar|mbar|psi|pa|kpa|mmhg|torr|vials?|µm|mm|cm|m)\b)/i;
-const REQUIREMENT = /\b(?:shall|must|limits?|not more than|not less than|nmt|nlt|maximum|minimum|required|at least|no more than)\b/i;
-const important = (t: string) => UNIT_NUMBER.test(t) || REQUIREMENT.test(t);
-const clip = (t: string, n = 140) => (norm(t).length > n ? `${norm(t).slice(0, n - 1)}…` : norm(t));
 
 // ------------------------------------------------------------------ the word index
 
@@ -132,10 +113,7 @@ function splitHint(ix: Index, raw: string): { text: string; hint?: string } {
 
 /** The column kinds a header text names. "Lower limit" is a low end, not "limit"; "hold time" is not "time". */
 function headerKinds(ix: Index, text: string): Set<ColumnKind> {
-  const t = toks(text);
-  const hits = ix.columns.filter((c) => containsSeq(t, c.toks));
-  const kept = hits.filter((h) => !hits.some((o) => o.kind !== h.kind && o.toks.length > h.toks.length && containsSeq(o.toks, h.toks)));
-  return new Set(kept.map((h) => h.kind));
+  return headerKindsOf(ix.columns, text);
 }
 
 type ColSpec =
@@ -168,31 +146,6 @@ function resolveColumn(kinds: Set<ColumnKind>, label: string): ColSpec {
 }
 
 // ------------------------------------------------------------------ the table as a grid
-
-interface GridCell {
-  text: string;
-  /** The cell in the document that the text really belongs to (merged cells point at their first cell). */
-  r: number;
-  c: number;
-}
-
-/** Rectangular view of a table with merged cells: a cell spanning columns or rows appears in every grid position it covers. */
-export function tableGrid(rows: readonly (readonly ViewCell[])[]): GridCell[][] {
-  const out: GridCell[][] = [];
-  rows.forEach((row, r) => {
-    const line: GridCell[] = [];
-    row.forEach((cell, c) => {
-      const span = Math.max(1, cell.colSpan ?? 1);
-      for (let i = 0; i < span; i++) {
-        const above = out[r - 1]?.[line.length];
-        if (cell.vContinue && above) line.push({ ...above });
-        else line.push({ text: norm(cell.text), r, c });
-      }
-    });
-    out.push(line);
-  });
-  return out;
-}
 
 const sameOrigin = (a: GridCell, b: GridCell) => a.r === b.r && a.c === b.c;
 const cellKey = (b: number, r: number, c: number) => `${b}:${r}:${c}`;

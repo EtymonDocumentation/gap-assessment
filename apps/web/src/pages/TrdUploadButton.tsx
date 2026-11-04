@@ -1,8 +1,9 @@
 import { trdImportSynonyms } from "@gap/content";
-import { buildBlankFormSpec, buildTrdFormSpec, classifyUpload, SCANNED_PDF_MESSAGE, sessionFromData, sessionFromForm, sessionFromOther, TrdImportError, type UploadRead } from "@gap/engine";
+import { buildBlankFormSpec, buildTrdFormSpec, sessionFromData, sessionFromForm, sessionFromOther, TrdImportError, type UploadRead } from "@gap/engine";
 import type { TrdDocument } from "@gap/process-model";
 import { useRef, useState } from "react";
 import { loadDocx } from "../docx-loader";
+import { readUploadFile } from "../import-file";
 import { download } from "../lib";
 import { navigate } from "../router";
 import { content } from "../store";
@@ -55,15 +56,12 @@ export function TrdUploadButton({ className = "btn primary", testId = "trd-uploa
   async function onFile(f: File | undefined) {
     setMessage(null);
     if (!f) return;
-    const kind = classifyUpload(f.name, f.size);
-    if (!kind.ok) return setMessage({ text: kind.message, offerForm: false });
     setBusy(true);
     try {
-      const m = await loadDocx();
-      const bytes = new Uint8Array(await f.arrayBuffer());
-      const read: UploadRead = kind.kind === "pdf" ? await m.readTrdPdf(bytes, f.name) : m.readTrdUpload(bytes, f.name);
-      if (read.noText) return setMessage({ text: SCANNED_PDF_MESSAGE, offerForm: true });
-      if (!read.dataKind && read.blocks.length === 0) return setMessage({ text: "No text could be read from this file. Check that it is the right file, or fill in the blank TRD form (Word) with the values from your document.", offerForm: true });
+      const r = await readUploadFile(f, "fill in the blank TRD form (Word) with the values from your document.");
+      if (!r.ok) return setMessage({ text: r.message, offerForm: r.offerForm });
+      const read: UploadRead = r.read;
+      if (read.dataKind?.startsWith("sampling")) return setMessage({ text: "This file is a sampling plan made by this tool. Upload it on the Sampling plan page instead.", offerForm: false });
       const session = !read.dataKind ? sessionFromOther(read, content.catalog, trdImportSynonyms) : read.dataKind === "trd-data" ? sessionFromData(read) : sessionFromForm(read);
       holdImport({ session, file: f });
       navigate("/trd/import");

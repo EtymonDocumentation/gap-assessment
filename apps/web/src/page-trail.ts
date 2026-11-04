@@ -43,6 +43,7 @@ const TRAILS: Record<string, Trail> = {
   "/sampling": t(true, DOCS, "Sampling plan"),
   "/sampling/tables": t(false, DOCS, sampling, "Sampling tables"),
   "/sampling/subsections": t(false, DOCS, sampling, "Plan subsections"),
+  "/sampling/import": t(true, DOCS, sampling, "Upload a sampling plan"),
   "/mbr": t(true, DOCS, "Batch record"),
   "/mbr/view": t(true, DOCS, mbr),
   "/mbr/library": t(false, DOCS, mbr, "Step blocks"),

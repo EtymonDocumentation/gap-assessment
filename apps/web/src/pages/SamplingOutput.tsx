@@ -1,4 +1,4 @@
-import { buildCmoInstructionsDocument, buildSamplingPlanDocument, CMO_INSTRUCTIONS_TITLE, documentFingerprint, projectLabel, recordExport, samplingBasisText } from "@gap/engine";
+import { buildCmoInstructionsDocument, buildSamplingData, buildSamplingPlanDocument, CMO_INSTRUCTIONS_TITLE, documentFingerprint, projectLabel, recordExport, samplingBasisText } from "@gap/engine";
 import { PROCESS_MODEL_VERSION, SAMPLING_PLAN_FORMAT_VERSION, type DocumentExport, type SamplingPlan, type TemplateRecord } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlBody } from "@gap/renderers";
 import { FIGURE_STYLE_LABEL, FIGURE_STYLES, SAMPLING_STATS_VERSION, type FigureStyle } from "@gap/sampling";
@@ -138,6 +138,7 @@ function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "
         onExported={(template) => record(`${kindPrefix}docx` as DocumentExport["format"], template)}
         modes={GENERIC_MODES}
         tagData={(m) => m.buildSamplingTagData(doc, project, plan)}
+        {...(cmo ? {} : { dataPart: () => ({ kind: "sampling-data" as const, json: buildSamplingData(content, project, plan, doc) }) })}
         testIdPrefix={p}
         idPrefix={`${p}-word`}
         title={cmo ? "Word document: reporting instructions" : "Word document: sampling plan"}

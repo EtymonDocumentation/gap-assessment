@@ -1,5 +1,5 @@
 import type { ImportSession } from "@gap/engine";
-import { useSyncExternalStore } from "react";
+import { createHeldStore } from "./held-store";
 
 /**
  * The file that was just read for "Upload a TRD", held in memory between the button and the review screen. It is never written to
@@ -11,20 +11,6 @@ export interface HeldImport {
   file: File;
 }
 
-let held: HeldImport | null = null;
-const listeners = new Set<() => void>();
-
-export function holdImport(next: HeldImport | null): void {
-  held = next;
-  listeners.forEach((l) => l());
-}
-
-export function useHeldImport(): HeldImport | null {
-  return useSyncExternalStore(
-    (cb) => {
-      listeners.add(cb);
-      return () => listeners.delete(cb);
-    },
-    () => held,
-  );
-}
+const store = createHeldStore<HeldImport>();
+export const holdImport = store.hold;
+export const useHeldImport = store.useHeld;

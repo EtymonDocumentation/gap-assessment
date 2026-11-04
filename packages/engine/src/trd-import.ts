@@ -20,6 +20,11 @@ import { createTrd, effectiveField, nextTrdDocumentId, nextTrdStepId } from "./t
 import { rangeText, setPointText } from "./trd-check";
 import { trdVisibleTables, TRD_TABLE_COLUMNS, type TrdVariant, type TrdVisibleTable } from "./trd-document";
 import type { TrdLibraryWriteup } from "@gap/process-model";
+import { importSummaryText, norm, type Confidence, type ImportCounts, type UploadRead, type ViewBlock, type ViewCell, type WordTable } from "./import-shared";
+
+// The reader's types and the upload rules are shared with the other upload features (the sampling plan); re-exported so imports of this module keep working.
+export { CONFIDENCE_LABEL, classifyUpload, importSummaryText, SCANNED_PDF_MESSAGE, UPLOAD_MAX_BYTES } from "./import-shared";
+export type { Confidence, ImportCounts, UploadKind, UploadRead, ViewBlock, ViewCell, WordTable } from "./import-shared";
 
 /**
  * Upload a finished TRD (job I1: levels 1 and 2).
@@ -50,7 +55,6 @@ export const TRD_PARTS = ["set", "nor_low", "nor_high", "par_low", "par_high", "
 export type TrdPart = (typeof TRD_PARTS)[number];
 export const TRD_PART_LABEL: Record<TrdPart, string> = { set: "Set point", nor_low: "NOR low", nor_high: "NOR high", par_low: "PAR low", par_high: "PAR high", unit: "Unit" };
 
-const norm = (s: string | undefined) => (s ?? "").replace(/[\s ]+/g, " ").trim();
 const PLACEHOLDER = "not established";
 
 // ------------------------------------------------------------------ reading values
@@ -288,13 +292,6 @@ export function parseTrdFormSpec(json: string): TrdFormSpec {
 
 // ------------------------------------------------------------------ comparing the printed tables
 
-export interface WordTable {
-  /** Index of the table in the view blocks. */
-  blockIndex: number;
-  /** Rows of cell text; the first row is the header. */
-  rows: string[][];
-}
-
 export type CellColumn = "Set point" | "NOR" | "PAR" | "Unit";
 const COLUMN_PART: Record<CellColumn, "cell_set" | "cell_nor" | "cell_par" | "cell_unit"> = { "Set point": "cell_set", NOR: "cell_nor", PAR: "cell_par", Unit: "cell_unit" };
 
@@ -388,41 +385,6 @@ export function cellToParts(column: CellColumn, text: string): Partial<Record<Tr
 }
 
 // ------------------------------------------------------------------ the review model
-
-/** The document as read, for the left pane. */
-export type ViewBlock =
-  | { kind: "heading"; level: number; text: string; page?: number }
-  | { kind: "para"; text: string; page?: number }
-  | { kind: "table"; rows: ViewCell[][]; page?: number };
-export interface ViewCell {
-  text: string;
-  /** The field id of the content control in this cell (the form). */
-  controlId?: string;
-  /** A merged cell: how many columns it spans (Word gridSpan). Absent = 1. */
-  colSpan?: number;
-  /** The first cell of a vertical merge: how many rows it spans. */
-  rowSpan?: number;
-  /** The continuation of a vertical merge (Word vMerge): it has no text of its own; the cell above covers it. */
-  vContinue?: boolean;
-}
-
-/** What the file reader hands over. It knows Word; the review model below knows the TRD. */
-export interface UploadRead {
-  fileName: string;
-  blocks: ViewBlock[];
-  tables: WordTable[];
-  /** Content controls by tag: their text, and whether it is still the placeholder. */
-  controls: Record<string, { text: string; placeholder: boolean }>;
-  dataKind?: "trd-data" | "trd-form";
-  dataJson?: string;
-  /** Level 3: what kind of file the blocks were read from. */
-  format?: "docx" | "pdf";
-  /** A PDF with no text layer (a picture of text): nothing was read. */
-  noText?: boolean;
-}
-
-export type Confidence = "exact" | "matched" | "not_found" | "changed";
-export const CONFIDENCE_LABEL: Record<Confidence, string> = { exact: "Exact", matched: "Matched", not_found: "Not found", changed: "Changed in Word" };
 
 export interface ImportField {
   id: string;
@@ -654,16 +616,7 @@ export function resolvedValues(s: ImportSession, decisions: ImportDecisions): Ma
   return out;
 }
 
-export interface ImportCounts {
-  taken: number;
-  open: number;
-  /** Open fields the reader found nothing for. For a foreign document (level 3) most catalogue fields are like this, and
-   * counting them as "still open" next to a handful of found values reads as if the upload failed. */
-  notFound: number;
-  changed: number;
-}
-
-/** "38 values taken, 12 still open, 5 changed in Word". A value is open until it is accepted; a blank cell is open. */
+/** "38 values taken, 12 still open, 5 changed in Word" is the sentence (importSummaryText); this counts it. */
 export function importCounts(s: ImportSession, decisions: ImportDecisions): ImportCounts {
   const r = resolvedValues(s, decisions);
   let taken = 0;
@@ -679,14 +632,6 @@ export function importCounts(s: ImportSession, decisions: ImportDecisions): Impo
     }
   }
   return { taken, open, notFound, changed: s.fields.filter((f) => f.change).length };
-}
-
-export function importSummaryText(c: ImportCounts, level: 1 | 2 | 3): string {
-  const n = (x: number, one: string, many: string) => `${x} ${x === 1 ? one : many}`;
-  // Our own files (levels 1-2) carry every field, so "still open" is the honest count. A document in another layout
-  // (level 3) only mentions some steps: split what was found and waits for a decision from what the document never had.
-  if (level === 3) return [`${n(c.taken, "value", "values")} taken`, `${c.open - c.notFound} found and waiting for you`, `${c.notFound} not in this document (left open)`].join(", ");
-  return [`${n(c.taken, "value", "values")} taken`, `${c.open} still open`, ...(level === 1 ? [`${c.changed} changed in Word`] : [])].join(", ");
 }
 
 /** Whether a cell text can stand in for the cell of a changed row (so Accept is allowed). */
@@ -1008,22 +953,3 @@ function adoptRecord(project: Project, env: TrdDataEnvelope, title: string, acto
   return { project: next, trdId: id };
 }
 
-// ------------------------------------------------------------------ which files are accepted
-
-/** 25 MB, the limit for every document the site reads in the browser. */
-export const UPLOAD_MAX_BYTES = 25 * 1024 * 1024;
-
-export type UploadKind = { ok: true; kind: "docx" | "pdf" } | { ok: false; message: string };
-
-/** The file rules in plain words: .docx and .docm are read as Word, .pdf is accepted, older formats get a clear next step. */
-export function classifyUpload(name: string, size: number): UploadKind {
-  const ext = /\.([A-Za-z0-9]+)$/.exec(name.trim())?.[1]?.toLowerCase() ?? "";
-  if (size > UPLOAD_MAX_BYTES) return { ok: false, message: `This file is larger than ${UPLOAD_MAX_BYTES / 1024 / 1024} MB. Save a smaller copy (for example without large pictures) and try again.` };
-  if (ext === "docx" || ext === "docm") return { ok: true, kind: "docx" };
-  if (ext === "pdf") return { ok: true, kind: "pdf" };
-  if (ext === "doc" || ext === "rtf" || ext === "odt") return { ok: false, message: "Save it as .docx or PDF first." };
-  return { ok: false, message: "This file type is not read. Upload a .docx (Word) or a PDF." };
-}
-
-/** A PDF without a text layer: it is a picture of text, and reading pictures (OCR) is not part of the site. */
-export const SCANNED_PDF_MESSAGE = "This PDF is a picture of text; save it from the original file as .docx or a text PDF.";

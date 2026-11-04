@@ -109,7 +109,7 @@ export function acceptanceText(p: SamplingPoint): string {
 }
 
 /** Labels of the process steps (catalog and the project's own), plus the two special values a point can have. */
-function unitOpLabels(content: ContentBundle, project: Project): Map<string, string> {
+export function unitOpLabels(content: ContentBundle, project: Project): Map<string, string> {
   const eff = effectiveContent(content, project);
   const m = new Map(eff.catalog.unitOperations.map((u) => [u.key, u.label]));
   m.set(UNIT_OP_FINISHED_PRODUCT, "Finished product");

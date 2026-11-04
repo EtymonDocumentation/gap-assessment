@@ -10,18 +10,18 @@ import PizZip from "pizzip";
  * Used by the unit tests and by the browser tests (apps/web/e2e/i2-import.spec.ts).
  */
 
-type Cell = string | { text: string; span?: number; vmerge?: "restart" | "continue" };
+export type Cell = string | { text: string; span?: number; vmerge?: "restart" | "continue" };
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-const p = (text: string, style?: string) => `<w:p>${style ? `<w:pPr><w:pStyle w:val="${style}"/></w:pPr>` : ""}<w:r><w:t xml:space="preserve">${esc(text)}</w:t></w:r></w:p>`;
+export const p = (text: string, style?: string) => `<w:p>${style ? `<w:pPr><w:pStyle w:val="${style}"/></w:pPr>` : ""}<w:r><w:t xml:space="preserve">${esc(text)}</w:t></w:r></w:p>`;
 
 function tc(cell: Cell): string {
   const c = typeof cell === "string" ? { text: cell } : cell;
   const pr = `${c.span && c.span > 1 ? `<w:gridSpan w:val="${c.span}"/>` : ""}${c.vmerge === "restart" ? '<w:vMerge w:val="restart"/>' : c.vmerge === "continue" ? "<w:vMerge/>" : ""}`;
   return `<w:tc>${pr ? `<w:tcPr>${pr}</w:tcPr>` : ""}${p(c.text)}</w:tc>`;
 }
-const table = (rows: Cell[][]) => `<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/></w:tblPr>${rows.map((r) => `<w:tr>${r.map(tc).join("")}</w:tr>`).join("")}</w:tbl>`;
+export const table = (rows: Cell[][]) => `<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/></w:tblPr>${rows.map((r) => `<w:tr>${r.map(tc).join("")}</w:tr>`).join("")}</w:tbl>`;
 
 export const FOREIGN_TITLE_LINE = "Process Transfer Summary (fictional)";
 

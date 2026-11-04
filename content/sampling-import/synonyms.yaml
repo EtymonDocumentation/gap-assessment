@@ -1,0 +1,42 @@
+# Words the fixed-rule reader recognises when a sampling plan was written by somebody else (Word or PDF in another layout).
+# These are WORDS TO RECOGNISE, never answers: a match is only a suggestion on the review screen, and a person accepts it.
+# The process step names of the catalog are used automatically; this file adds the other ways documents write them.
+# Add words freely; nothing here supplies a value. A header that fits two columns (for example "test method" is both a test and
+# a method) is read by its longest phrase; a header that is still unclear is listed under "Not used yet".
+catalog:
+  id: sampling-import-synonyms
+  version: 1.0.0
+
+# Points-table header words -> the column of a sampling point.
+columns:
+  - { kind: step, words: [step, process step, stage, process stage, unit operation, operation, sampling location, sample location, location, sampling point location] }
+  - { kind: attribute, words: [attribute, attributes, quality attribute, quality attributes, test parameter, parameter, characteristic, critical quality attribute, cqa, analyte, property] }
+  - { kind: test, words: [test, tests, test name, method, test method, assay, analytical method, analysis, analytical test, testing] }
+  - { kind: amount, words: [amount, sample amount, volume, sample volume, quantity, sample quantity, sample size, size of sample, amount per sample] }
+  - { kind: timing, words: [timing, when, time point, time points, timepoint, moment, sampling time, sampling frequency, frequency, sample timing, time] }
+  - { kind: type, words: [type, sample type, study type, purpose, sampling purpose, category, release, ipc, in-process, in process, characterisation, characterization, study] }
+
+# Words in a type cell -> the study type of the tool.
+types:
+  - { type: ipc, words: [ipc, in-process, in process, in-process control, in process control, in-process test, process control] }
+  - { type: release, words: [release, lot release, batch release, release test, release testing, qc release, finished product release] }
+  - { type: ppq_enhanced, words: [ppq, enhanced, enhanced sampling, ppq enhanced, ppq sampling, extra sampling] }
+  - { type: mixing_homogeneity, words: [mixing, homogeneity, mixing study, blend uniformity, uniformity, mixing homogeneity] }
+  - { type: hold_time, words: [hold, hold time, hold time study, holding time, hold study] }
+  - { type: filter_study, words: [filter study, filter, filtration study, filter validation] }
+  - { type: stability, words: [stability, stability study, stability pull] }
+  - { type: retain_reserve, words: [retain, reserve, retain sample, reserve sample, retention sample, retain reserve] }
+  - { type: characterization, words: [characterisation, characterization, characterisation study, characterization study, extended characterisation, extended characterization] }
+  - { type: supporting_study, words: [supporting study, supporting, support study, additional study] }
+  - { type: regulatory_commitment, words: [regulatory commitment, commitment, regulatory] }
+  - { type: other, words: [other, misc, miscellaneous] }
+
+# Extra names of process steps. The catalog step names themselves ("Sterile filtration") are recognised without being listed here.
+steps: []
+
+# Words in a timing cell that stand for a position in the run. A timing cell made only of these words becomes the plan's
+# options (beginning, middle, end of the run); any other timing text is kept word for word as "Other".
+timing:
+  - { option: beginning, words: [beginning, start, at start, start of run, beginning of run, begin, initial] }
+  - { option: middle, words: [middle, mid, mid run, middle of run, midpoint] }
+  - { option: end, words: [end, at end, end of run, finish, final] }

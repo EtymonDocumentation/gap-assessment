@@ -5093,3 +5093,144 @@ fieldset.stage-options {
   align-items: center;
   gap: 8px;
 }
+
+/* Upload a sampling plan: one row per sampling point, six values in it. On a wide screen it is a table; under 1100px of screen width
+   (a phone, or the document beside it) each row becomes one short block with a label over every value, so nothing needs sideways
+   scrolling. States are always written out (Exact, Matched, Not found, Changed in Word, Accepted), never colour alone. */
+.sp-import-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.sp-import-table th,
+.sp-import-table td {
+  padding: 6px;
+  text-align: left;
+  vertical-align: top;
+  border-top: 1px solid var(--border);
+}
+.sp-import-table thead th {
+  border-top: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.sp-import-cell {
+  min-width: 9rem;
+  overflow-wrap: anywhere;
+}
+.sp-import-cell input,
+.sp-import-cell select {
+  width: 100%;
+  max-width: 100%;
+}
+.sp-import-point {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.sp-import-table .import-changed {
+  border: 2px dashed var(--warn-border);
+  background: var(--warn-bg);
+  display: table-cell;
+}
+@media (max-width: 1099px) {
+  .sp-import-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .sp-import-table,
+  .sp-import-table tbody,
+  .sp-import-table tr,
+  .sp-import-table th,
+  .sp-import-table td {
+    display: block;
+    width: 100%;
+  }
+  .sp-import-table tr {
+    border-top: 2px solid var(--border);
+    padding: 6px 0;
+  }
+  .sp-import-table th,
+  .sp-import-table td {
+    border-top: 0;
+    padding: 3px 0;
+  }
+  .sp-import-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  .sp-import-table .import-changed {
+    display: block;
+    padding: 6px;
+  }
+  .sp-import-cell {
+    min-width: 0;
+  }
+}
+
+/* Upload a sampling plan, layout: the points list takes the full width (all six values must be visible without sideways scrolling), and
+   the document the points were read from sits below it, always with a Show / Hide button. */
+.import-panes.sp-import-panes {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: none;
+}
+.sp-import-panes .import-fields,
+.sp-import-panes .import-doc {
+  grid-area: auto;
+  position: static;
+  max-height: none;
+  overflow: visible;
+}
+.sp-import-panes .import-doc-toggle {
+  display: inline-block;
+}
+.sp-import-panes .import-doc-body.collapsed {
+  display: none;
+}
+/* Compact cells: the value and its word on one line, the small buttons on one line under it. */
+.sp-import-cell {
+  min-width: 6rem;
+}
+.sp-import-cell .import-value,
+.sp-import-cell .import-word {
+  display: inline;
+}
+.sp-import-cell .import-word {
+  margin-left: 4px;
+}
+.sp-import-cell .import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 4px;
+  margin-top: 4px;
+}
+.sp-import-cell .import-actions .btn.small {
+  min-height: 24px;
+  padding: 1px 8px;
+}
+.sp-import-cell .import-cell-state {
+  display: block;
+  margin-top: 2px;
+}
+.sp-import-where {
+  display: block;
+  font-weight: 400;
+}
+@media (min-width: 1100px) {
+  /* On a wide screen the point column is just "Row n"; where it came from is read out to screen readers and shown on hover. */
+  .sp-import-where {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .sp-import-table th,
+  .sp-import-table td {
+    padding: 4px 6px;
+  }
+}
