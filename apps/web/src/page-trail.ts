@@ -37,6 +37,7 @@ const TRAILS: Record<string, Trail> = {
   "/validation": t(true, DOCS, gap, "Validation"),
   "/document": t(true, DOCS, gap, "Document"),
   "/trd": t(true, DOCS, "TRD"),
+  "/gap/import": t(false, DOCS, { label: "Gap assessment", path: "/gap" }, "Upload a gap assessment"),
   "/trd-seed": t(true, DOCS, trd, "TRD seed"),
   "/trd/import": t(true, DOCS, trd, "Upload a TRD"),
   "/trd/writeups": t(false, DOCS, trd, "Process descriptions"),

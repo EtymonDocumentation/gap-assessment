@@ -1,0 +1,27 @@
+# Words the fixed-rule reader recognises when a gap assessment was written by somebody else (Word or PDF in another layout).
+# These are WORDS TO RECOGNISE, never answers: a match is only a suggestion on the review screen, and a person accepts it.
+# The question texts and section titles of the catalogue are used automatically; this file adds other ways documents write them.
+# Add words freely; nothing here supplies a value.
+catalog:
+  id: gap-import-synonyms
+  version: 1.0.0
+
+# Table header words -> the column. "answer" is ONE answer column that does not say which site it is about.
+columns:
+  - { kind: question, words: [question, questions, topic, attribute, scoping attribute, item, parameter, requirement, assessment item, gap assessment question] }
+  - { kind: source, words: [sending unit, su, sending site, sending unit su, sending, source, source site, transferring site, transferring unit, donor site, donor, current site, site a] }
+  - { kind: target, words: [receiving unit, ru, receiving site, receiving unit ru, receiving, target, target site, recipient site, recipient, new site, site b] }
+  - { kind: answer, words: [answer, answers, response, responses, current state, state, value, description, information] }
+
+# Other ways a question of the catalogue is written. The prompt and the short label of every question are recognised without being listed.
+questions: []
+
+# Words that mean yes / no in an answer cell.
+yesNo:
+  yes: ["yes", applicable, present, in place, available]
+  no: ["no", none, absent, not in place, not available]
+
+# Other words for a section heading (the catalogue's own section titles are recognised without being listed here).
+sections:
+  - { id: scoping, words: [scope, scope of transfer, scoping questions, transfer scope] }
+  - { id: site, words: [site, facility, site and facility, facility and site, site information] }

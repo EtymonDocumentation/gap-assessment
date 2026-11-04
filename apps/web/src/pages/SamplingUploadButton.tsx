@@ -63,6 +63,7 @@ export function SamplingUploadButton({ className = "btn primary", testId = "samp
       const r = await readUploadFile(f, "fill in the blank sampling plan form (Word) with the values from your document.");
       if (!r.ok) return setMessage({ text: r.message, offerForm: r.offerForm });
       const read = r.read;
+      if (read.dataKind?.startsWith("gap")) return setMessage({ text: "This file is a gap assessment made by this tool. Upload it on the Gap assessment page instead.", offerForm: false });
       if (read.dataKind?.startsWith("trd")) return setMessage({ text: "This file is a TRD made by this tool. Upload it on the TRD page instead.", offerForm: false });
       const session = !read.dataKind
         ? samplingSessionFromOther(read, { syn: samplingImportSynonyms, steps: content.catalog.unitOperations.map((u) => ({ key: u.key, label: u.label })), tests: samplingSuggestions.candidates })

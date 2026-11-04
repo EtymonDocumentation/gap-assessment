@@ -1,10 +1,8 @@
 import { TYPE_LABEL } from "@gap/sampling";
-import { clip, containsSeq, headerKindsOf, important, norm, sameSeq, SCANNED_PDF_MESSAGE, tableGrid, toks, type GridCell, type UploadRead, type ViewBlock } from "./import-shared";
+import { cellKey, clip, containsSeq, headerKindsOf, important, linkCells, norm, sameSeq, SCANNED_PDF_MESSAGE, tableGrid, toks, type GridCell, type UploadRead, type ViewBlock } from "./import-shared";
 import {
-  cellKey,
   checkSamplingValue,
   emptyField,
-  linkCells,
   resolveSamplingType,
   SAMPLING_COLUMN_LABEL,
   type SamplingColumn,

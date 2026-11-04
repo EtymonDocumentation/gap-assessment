@@ -42,8 +42,8 @@ export interface UploadRead {
   tables: WordTable[];
   /** Content controls by tag: their text, and whether it is still the placeholder. */
   controls: Record<string, { text: string; placeholder: boolean }>;
-  /** What the hidden data part of the file says it is ("trd-data", "trd-form", "sampling-data", "sampling-form"). */
-  dataKind?: "trd-data" | "trd-form" | "sampling-data" | "sampling-form";
+  /** What the hidden data part of the file says it is ("trd-data", "trd-form", "sampling-data", "sampling-form", "gap-data", "gap-form"). */
+  dataKind?: "trd-data" | "trd-form" | "sampling-data" | "sampling-form" | "gap-data" | "gap-form";
   dataJson?: string;
   /** Level 3: what kind of file the blocks were read from. */
   format?: "docx" | "pdf";
@@ -154,4 +154,24 @@ export function tableGrid(rows: readonly (readonly ViewCell[])[]): GridCell[][] 
     out.push(line);
   });
   return out;
+}
+
+// ------------------------------------------------------------------ pieces every document type's review model needs
+
+/** The first number of a version string: a data part or form of another major version is refused by every reader. */
+export const majorVersion = (v: string) => v.split(".")[0];
+
+/** What a person left in a form control: nothing when it still shows the placeholder or says "Not established". Unfilled is never a value. */
+export const filledControl = (c: { text: string; placeholder: boolean } | undefined): string => {
+  if (!c || c.placeholder) return "";
+  const t = c.text.trim();
+  return !t || t.toLowerCase() === "not established" ? "" : t;
+};
+
+/** Cell position in the view blocks, "block:row:col": the key that links a table cell of the document to the fields it fed. */
+export const cellKey = (b: number, r: number, c: number) => `${b}:${r}:${c}`;
+
+export function linkCells(s: { cellFields: Record<string, string[]>; fieldCells: Record<string, string[]> }, id: string, key: string): void {
+  (s.cellFields[key] ??= []).push(id);
+  (s.fieldCells[id] ??= []).push(key);
 }

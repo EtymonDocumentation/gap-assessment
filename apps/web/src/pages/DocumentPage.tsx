@@ -1,4 +1,4 @@
-import { buildDocument, documentFingerprint, omittedSectionIds, openItemsText, recordExport, verificationSummary } from "@gap/engine";
+import { buildDocument, buildGapData, documentFingerprint, omittedSectionIds, openItemsText, recordExport, verificationSummary } from "@gap/engine";
 import type { DocumentExport, TemplateRecord } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlBody, renderMarkdown } from "@gap/renderers";
 import { useMemo, useRef, useState } from "react";
@@ -56,7 +56,7 @@ export function DocumentPage() {
       "Download recorded in the export history",
     );
 
-  const word = useWordExport({ choice, doc, content, project, assessment: a, generatedAt, fileBase: base, guard, onExported: (template) => recordDownload("docx", template) });
+  const word = useWordExport({ choice, doc, content, project, assessment: a, generatedAt, fileBase: base, guard, onExported: (template) => recordDownload("docx", template), dataPart: () => ({ kind: "gap-data" as const, json: buildGapData(content, project, doc) }) });
   const downloadMarkdown = () =>
     guard(() => {
       download(`${base}.md`, renderMarkdown(doc), "text/markdown;charset=utf-8");

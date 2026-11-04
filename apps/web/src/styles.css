@@ -5411,3 +5411,35 @@ fieldset.stage-options {
 .start-else[open] > summary {
   margin-bottom: var(--space-stack-lg, 1rem);
 }
+
+/* Upload a gap assessment: the questions are grouped by section, so each section is a closed or open block of its own rows. A question is a
+   sentence, so its cell may wrap (the sampling review keeps its short "Row n" labels on one line). */
+.gap-import-section {
+  border-top: 1px solid var(--border);
+  padding: 6px 0;
+}
+.gap-import-section > summary {
+  cursor: pointer;
+  padding: 4px 0;
+}
+.gap-import-section-bar {
+  margin: 4px 0;
+}
+.sp-import-point.gap-import-q {
+  white-space: normal;
+  min-width: 12rem;
+  max-width: 24rem;
+  font-weight: 500;
+}
+@media (max-width: 1099px) {
+  .sp-import-point.gap-import-q {
+    max-width: none;
+    font-weight: 600;
+  }
+}
+
+.import-both { display: block; }
+@media (max-width: 1099px) {
+  /* The stacked layout already prints "Both units" as the cell's own label. */
+  .import-both { display: none; }
+}

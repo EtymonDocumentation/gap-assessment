@@ -82,13 +82,15 @@ export async function otherComputer(browser: Browser, info: TestInfo, problems: 
 
 // ------------------------------------------------------------------ the admin tool
 
-let taken = 0;
+// One count per pool: the server and client servers each made their own codes, so taking a client code must not use up a
+// server code. With one shared count, a worker that ran many server tests ran out of client codes it had never touched.
+const taken = { server: 0, client: 0 };
 
 /** The next unused invite code. They were made with the admin tool before the server started (see global-setup.ts). */
 export function makeInvite(which: "server" | "client" = "server"): string {
   const pool = JSON.parse((which === "client" ? process.env.GAP_E2E_INVITES_CLIENT : process.env.GAP_E2E_INVITES_SERVER) ?? "[]") as string[];
-  if (taken >= INVITES_PER_WORKER) throw new Error("This test worker has used all its invite codes.");
-  const code = pool[test.info().workerIndex * INVITES_PER_WORKER + taken++];
+  if (taken[which] >= INVITES_PER_WORKER) throw new Error(`This test worker has used all its ${which} invite codes.`);
+  const code = pool[test.info().workerIndex * INVITES_PER_WORKER + taken[which]++];
   if (!code) throw new Error("There are no invite codes left: too many test workers were started.");
   return code;
 }

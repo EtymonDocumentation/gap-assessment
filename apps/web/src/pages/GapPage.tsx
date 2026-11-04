@@ -6,6 +6,7 @@ import { useChainAllowed } from "../DocChain";
 import { documentDownloadedNote, nextStep, stepDone } from "../next-step";
 import { href } from "../router";
 import { useAssessment, useStore } from "../store";
+import { GapFormButton, GapUploadButton } from "./GapUploadButton";
 
 const HIDE_KEY = "gap-getting-started-hidden";
 
@@ -113,6 +114,19 @@ export function GapPage() {
             </a>
           )}
         </p>
+      </section>
+
+      <section className="card stack" aria-labelledby="gap-upload-h" data-testid="gap-upload-card">
+        <h2 id="gap-upload-h">Already have a gap assessment?</h2>
+        <p className="muted">
+          Upload a finished gap assessment (the Word file this tool made, a fill-in form, or one written elsewhere as Word or PDF). You check every answer before it is used; nothing is
+          filled in for you.
+        </p>
+        <div className="row wrap">
+          <GapUploadButton className="btn" testId="gap-upload" />
+          <GapFormButton testId="gap-blank-form" />
+          {project && <GapFormButton prefilled testId="gap-prefilled-form" />}
+        </div>
       </section>
 
       {hidden ? (

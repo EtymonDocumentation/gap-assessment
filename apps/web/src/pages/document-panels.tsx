@@ -123,7 +123,7 @@ export interface WordExportInput {
   /** Tag data for a document other than the gap assessment. Default: the gap assessment's tags. */
   tagData?: (m: DocxModule) => TagData | DocumentTagData | SamplingTagData;
   /** Data that travels inside the Word file (the TRD export carries its record, so the file can be uploaded again). Made at download time. */
-  dataPart?: () => { kind: "trd-data" | "trd-form" | "sampling-data" | "sampling-form"; json: string };
+  dataPart?: () => { kind: "trd-data" | "trd-form" | "sampling-data" | "sampling-form" | "gap-data" | "gap-form"; json: string };
 }
 
 /** The words on every Word download button while the file is being made (the same on every page). */

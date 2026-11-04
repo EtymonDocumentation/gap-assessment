@@ -32,6 +32,7 @@ export const ACTION_LABELS: Record<string, string> = {
   project_rename: "Project renamed",
   project_copy: "Project copied",
   apply_saved_answers: "Saved answers applied",
+  gap_import: "Gap assessment imported",
   set_entry_sequence: "Entry order changed",
   custom_uo_add: "Custom unit operation added",
   custom_uo_rename: "Custom unit operation renamed",

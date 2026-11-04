@@ -1,5 +1,5 @@
 import type { DesignLoadouts, FailureModeSuggestions, MbrLibraryBlock, RiskLoadouts, TrdLibraryWriteup } from "@gap/process-model";
-import { buildContent, parseFailureModes, parseGuidance, parseMbrLibrary, parseTrdWriteupLibrary, parseDesignLoadouts, parseRiskLoadouts, parseSamplingSuggestions, parseSamplingImportSynonyms, parseTrdSynonyms, type SamplingImportSynonyms, type TrdSynonyms, type ContentBundle, type GuidanceLibrary, type RawContent, type SamplingSuggestions } from "@gap/engine";
+import { buildContent, parseFailureModes, parseGuidance, parseMbrLibrary, parseTrdWriteupLibrary, parseDesignLoadouts, parseRiskLoadouts, parseSamplingSuggestions, parseSamplingImportSynonyms, parseGapImportSynonyms, parseTrdSynonyms, type GapImportSynonyms, type SamplingImportSynonyms, type TrdSynonyms, type ContentBundle, type GuidanceLibrary, type RawContent, type SamplingSuggestions } from "@gap/engine";
 import { catalog } from "@gap/process-model/catalog";
 import catalogOverlay from "./catalog/gap-overlay.yaml";
 import demoArx217 from "./demo/arx-217.yaml";
@@ -31,6 +31,7 @@ import designLoadoutsRaw from "./sampling/design-loadouts.yaml";
 import ppqSuggestionsRaw from "./sampling/ppq-suggestions.yaml";
 import templates from "./templates/gap-assessment.yaml";
 import trdImportSynonymsRaw from "./trd-import/synonyms.yaml";
+import gapImportSynonymsRaw from "./gap-import/synonyms.yaml";
 import samplingImportSynonymsRaw from "./sampling-import/synonyms.yaml";
 import trdWriteupsRaw from "./trd-writeups/writeups.yaml";
 
@@ -149,4 +150,10 @@ export type { GlossaryTerm, Tour, TourStep } from "./help";
 export const samplingImportSynonyms: SamplingImportSynonyms = parseSamplingImportSynonyms(
   samplingImportSynonymsRaw,
   content.catalog.unitOperations.map((u) => u.key),
+);
+
+/** The words the fixed-rule reader recognises in a gap assessment written by somebody else (upload, level 3). Words to recognise, never answers. */
+export const gapImportSynonyms: GapImportSynonyms = parseGapImportSynonyms(
+  gapImportSynonymsRaw,
+  { questions: content.questions.map((q) => q.id), sections: content.sections.map((x) => x.id) },
 );

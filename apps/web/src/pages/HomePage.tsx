@@ -10,6 +10,7 @@ import { CloseProjectButton, ProjectListCard, useIsRemote } from "../server/Serv
 import { SERVER_MODE } from "../server/mode";
 import { ensureSaved, loadList, useSync } from "../server/sync";
 import { StageCheckNotice, StageRow } from "../stage-ui";
+import { GapFormButton, GapUploadButton } from "./GapUploadButton";
 import { SamplingFormButton, SamplingUploadButton } from "./SamplingUploadButton";
 import { StartChoices } from "./StartChoices";
 import { TrdFormButton, TrdUploadButton } from "./TrdUploadButton";
@@ -90,7 +91,7 @@ export function HomePage() {
   };
 
   // The upload choice is left out when a project is open and the account can upload nothing: a card that only says "nothing here" is noise.
-  const canUpload = !project || allowed.trd || allowed.sampling;
+  const canUpload = true;
   const startChoices = (
     <StartChoices compact={!!project}>
               {/* The third choice. An upload is read into the open project (the review page needs one), so without a project it says what to do first. */}
@@ -99,6 +100,14 @@ export function HomePage() {
                 <h3 id="start-upload-h" className="start-option-title">
                   Upload a document you have
                 </h3>
+                <div className="stack" data-testid="home-start-from-gap">
+                  <h4 className="start-sub">Start from a gap assessment you have</h4>
+                  <p className="muted small">Upload a gap assessment Word file that this tool made, a fill-in form, or one in another layout (Word or PDF). It makes a new project, or updates the open one. You check every answer before it is used.</p>
+                  <div className="row wrap">
+                    <GapUploadButton className="btn" testId="home-upload-gap" />
+                    <GapFormButton testId="home-gap-blank-form" />
+                  </div>
+                </div>
                 {project ? (
                   <>
                     {allowed.trd && (

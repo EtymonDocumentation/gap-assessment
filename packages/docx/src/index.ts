@@ -24,6 +24,7 @@ export { readOutlineFromPdf } from "./pdf";
 export { FIXTURE_FILES } from "./fixtures";
 export { buildTrdFormDocx, FORM_INTRO, FORM_PLACEHOLDER } from "./trd-form";
 export { buildSamplingFormDocx, SAMPLING_FORM_INTRO } from "./sampling-form";
+export { buildGapFormDocx, GAP_FORM_INTRO } from "./gap-form";
 export { readTrdUpload } from "./trd-read";
 export { readTrdUpload as readUpload } from "./trd-read";
 export { readDataPart, writeDataPart } from "./trd-data";

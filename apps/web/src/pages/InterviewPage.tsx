@@ -37,6 +37,7 @@ import { href, navigate } from "../router";
 import { useAssessment, useContent, useStageWording, useStore } from "../store";
 import { interviewCounts, interviewCountsText } from "../next-step";
 import { AnsweringBar, type CiteNotice } from "./AnsweringBar";
+import { GapUploadButton } from "./GapUploadButton";
 import { TailorButton } from "./TailorDialog";
 import { HelpTip } from "../HelpTip";
 import { ApplyAnswersDialog, SaveAnswersDialog } from "./SavedAnswersDialogs";
@@ -324,6 +325,16 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
             </>
           )}
         </div>
+        {answeredCount === 0 && (
+          <div className="card tight" data-testid="interview-upload-card">
+            <p className="small">
+              <strong>Already have a gap assessment?</strong> Upload it and check the answers instead of typing them.
+            </p>
+            <div className="row wrap">
+              <GapUploadButton className="btn small" testId="interview-upload-gap" />
+            </div>
+          </div>
+        )}
         <div className="card tight" data-testid="saved-answers-card">
           <p className="small">
             <strong>Saved answers</strong> <HelpTip label="saved answers" text="Keep this project's answers as a named set, or offer a set you saved earlier to this project. You review every answer and untick what you do not want; nothing is applied on its own." />

@@ -61,6 +61,7 @@ export function TrdUploadButton({ className = "btn primary", testId = "trd-uploa
       const r = await readUploadFile(f, "fill in the blank TRD form (Word) with the values from your document.");
       if (!r.ok) return setMessage({ text: r.message, offerForm: r.offerForm });
       const read: UploadRead = r.read;
+      if (read.dataKind?.startsWith("gap")) return setMessage({ text: "This file is a gap assessment made by this tool. Upload it on the Gap assessment page instead.", offerForm: false });
       if (read.dataKind?.startsWith("sampling")) return setMessage({ text: "This file is a sampling plan made by this tool. Upload it on the Sampling plan page instead.", offerForm: false });
       const session = !read.dataKind ? sessionFromOther(read, content.catalog, trdImportSynonyms) : read.dataKind === "trd-data" ? sessionFromData(read) : sessionFromForm(read);
       holdImport({ session, file: f });

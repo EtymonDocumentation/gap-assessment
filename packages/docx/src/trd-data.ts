@@ -19,7 +19,7 @@ const CT_CUSTOM_PROPS = "application/vnd.openxmlformats-officedocument.customXml
 
 export interface DataPart {
   /** "trd-data" for an export, "trd-form" for a fill-in form. */
-  kind: "trd-data" | "trd-form" | "sampling-data" | "sampling-form";
+  kind: "trd-data" | "trd-form" | "sampling-data" | "sampling-form" | "gap-data" | "gap-form";
   json: string;
 }
 
@@ -53,7 +53,7 @@ export function readDataPart(pkg: Pkg): DataPart | undefined {
       const root = parseXml(text, name).documentElement;
       if (localName(root) !== "cascade" || root.namespaceURI !== TRD_DATA_NAMESPACE) continue;
       const kind = root.getAttribute("kind");
-      if (kind !== "trd-data" && kind !== "trd-form" && kind !== "sampling-data" && kind !== "sampling-form") continue;
+      if (kind !== "trd-data" && kind !== "trd-form" && kind !== "sampling-data" && kind !== "sampling-form" && kind !== "gap-data" && kind !== "gap-form") continue;
       const json = childElements(root).length ? "" : textOf(root);
       if (json) return { kind, json };
     } catch {

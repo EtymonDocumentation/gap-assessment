@@ -17,7 +17,7 @@ import {
 import { stepOf, TIMING_LABEL, timingText, TYPE_LABEL } from "@gap/sampling";
 import type { ContentBundle } from "./content";
 import type { DocModel } from "./document";
-import { norm, sameSeq, toks, type Confidence, type ImportCounts, type UploadRead, type ViewBlock, type WordTable } from "./import-shared";
+import { cellKey, filledControl, linkCells, majorVersion, norm, sameSeq, toks, type Confidence, type ImportCounts, type UploadRead, type ViewBlock, type WordTable } from "./import-shared";
 import { documentFingerprint } from "./review";
 import { addPoint, addStep, catalogInsertIndex, createPlan, projectScopeSteps, SamplingError, updatePoint, type PointPatch } from "./sampling";
 import { unitOpLabels } from "./sampling-document";
@@ -200,7 +200,7 @@ export function buildSamplingData(content: ContentBundle, project: Project, plan
   return JSON.stringify(env);
 }
 
-const majorOf = (v: string) => v.split(".")[0];
+const majorOf = majorVersion;
 
 export function parseSamplingData(json: string): SamplingDataEnvelope {
   let raw: unknown;
@@ -333,18 +333,7 @@ export const emptyField = (row: number, column: SamplingColumn | "title", label:
   source,
 });
 
-export const cellKey = (b: number, r: number, c: number) => `${b}:${r}:${c}`;
-
-export function linkCells(s: Pick<SamplingImportSession, "cellFields" | "fieldCells">, id: string, key: string): void {
-  (s.cellFields[key] ??= []).push(id);
-  (s.fieldCells[id] ??= []).push(key);
-}
-
-const FILLED = (c: { text: string; placeholder: boolean } | undefined): string => {
-  if (!c || c.placeholder) return "";
-  const t = c.text.trim();
-  return !t || t.toLowerCase() === "not established" ? "" : t;
-};
+const FILLED = filledControl;
 
 /** Level 2: the form. Every control the person left in the file belongs to a row; a row with nothing in it is not a point. */
 export function samplingSessionFromForm(read: UploadRead, syn?: SamplingImportSynonyms): SamplingImportSession {

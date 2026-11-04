@@ -27,6 +27,7 @@ import { TrdLibraryPage } from "./pages/TrdLibraryPage";
 import { MbrPage } from "./pages/MbrPage";
 import { MbrProcessViewPage } from "./pages/MbrProcessView";
 import { TrdImportPage } from "./pages/TrdImportPage";
+import { GapImportPage } from "./pages/GapImportPage";
 import { SamplingImportPage } from "./pages/SamplingImportPage";
 import { TrdPage } from "./pages/TrdPage";
 import { TrdSeedPage } from "./pages/TrdSeedPage";
@@ -137,7 +138,7 @@ function AppShell() {
 
   // The template library belongs to the browser, not to a project, so it opens without one. So does the guidance library,
   // which is reference material and has nothing to do with the open project.
-  const needsProject = route.path !== "/" && route.path !== "/gap" && route.path !== "/templates" && route.path !== "/guidance" && route.path !== "/saved-answers" && route.path !== "/sampling/tables" && route.path !== "/sampling/subsections" && route.path !== "/risk/methods" && route.path !== "/mbr/library" && route.path !== "/trd/writeups" && route.path !== "/myfiles" && route.path !== "/about" && route.path !== "/glossary";
+  const needsProject = route.path !== "/" && route.path !== "/gap" && route.path !== "/gap/import" && route.path !== "/templates" && route.path !== "/guidance" && route.path !== "/saved-answers" && route.path !== "/sampling/tables" && route.path !== "/sampling/subsections" && route.path !== "/risk/methods" && route.path !== "/mbr/library" && route.path !== "/trd/writeups" && route.path !== "/myfiles" && route.path !== "/about" && route.path !== "/glossary";
   const mappingId = /^\/templates\/([^/]+)\/mapping$/.exec(route.path)?.[1];
   // Documents run in chain order (gap assessment, TRD, sampling plan, batch record), each with a line saying what it is for. They are all
   // optional: the order is a suggestion about which document feeds the next, never a rule. Risk and the TBD list sit alongside the chain.
@@ -153,7 +154,7 @@ function AppShell() {
           plain: true,
           desc: "Compare the sending and receiving unit and list the gaps.",
           // The gap assessment's own page (what it does, and the Getting started checklist) comes first in its list, before the six steps.
-          covers: ["/gap", ...GAP_STEPS.map((s) => s.path)],
+          covers: ["/gap", "/gap/import", ...GAP_STEPS.map((s) => s.path)],
           children: [{ path: "/gap", label: "Getting started" }, ...GAP_STEPS.map((s) => ({ path: s.path, label: s.label }))],
         },
         ...(trdAllowed ? [{ path: "/trd", label: "TRD", num: 2, desc: "Technical requirements. Start from this project or blank." }] : []),
@@ -186,6 +187,7 @@ function AppShell() {
   // names the page that was asked for and offers the ways to open a project right there.
   else if (needsProject && !project) page = <NeedsProject path={route.path} />;
   else if (route.path === "/gap") page = <GapPage />;
+  else if (route.path === "/gap/import") page = <GapImportPage />;
   else if (route.path === "/about") page = <AboutPage />;
   else if (route.path === "/glossary") page = <GlossaryPage params={route.params} />;
   else if (SERVER_MODE && route.path === "/myfiles") page = <MyFilesPage params={route.params} />;
