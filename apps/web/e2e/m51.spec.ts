@@ -2,6 +2,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { expectNotice, openDemo } from "./nav-helper";
+import { chooseStage } from "./stage-helper";
 
 
 test.beforeEach(async ({ page }) => {
@@ -54,10 +55,11 @@ test("a new project asks the program stage for each side, with no preselected op
   await go(page, "#/interview?q=site.stage%40source");
   const prompt = page.locator("#q-prompt");
   await expect(prompt).toHaveText("Which batches does each site make or plan to make?");
-  // SU and RU are on one card, each with the four options and none preselected.
-  await expect(page.locator(".question-card .choice-chip")).toHaveCount(8);
+  // SU has the four options, none preselected. RU shows the project stage read-only (it is changed with the stage dialog).
+  await expect(page.locator(".question-card .choice-chip")).toHaveCount(4);
   await expect(page.locator(".question-card input[type=radio]:checked")).toHaveCount(0);
-  for (const side of ["source", "target"] as const) {
+  await expect(page.getByTestId("interview-stage")).toContainText("Not set");
+  for (const side of ["source"] as const) {
     await expect(page.locator(`fieldset.side-panel[data-side="${side}"] .choice-chip`)).toHaveCount(4);
     for (const label of ["Commercial batches (process validated)", "PPQ batches (process performance qualification)", "Clinical batches (GMP, not process-validated)", "Engineering / development runs"]) {
       await expect(page.locator(`fieldset.side-panel[data-side="${side}"] .choice-chip`, { hasText: label })).toBeVisible();
@@ -116,9 +118,8 @@ test("both stages answered in a new project show on Home and Compare, and the ba
   await newProject(page);
   await go(page, "#/interview?q=site.stage%40source");
   await answerChoice(page, "source", "Engineering / development runs");
-  await go(page, "#/interview?q=site.stage%40target");
-  await expect(page.locator("#q-prompt")).toHaveText("Which batches does each site make or plan to make?");
-  await answerChoice(page, "target", "Clinical batches (GMP, not process-validated)");
+  await chooseStage(page, "clinical", "Fictional: first batches planned");
+  await page.getByTestId("stage-summary").getByRole("button", { name: /^(Later|Close)$/ }).click();
 
   await go(page, "#/compare");
   await expect(page.getByTestId("stage-line")).toContainText("Sending-site stage: Engineering / development runs. Project stage: Clinical batches (GMP, not process-validated)");

@@ -216,9 +216,10 @@ describe("changeProjectStage", () => {
 });
 
 describe("setProjectStage stays inside the engine", () => {
-  // Every editor must go through changeProjectStage (reason, version, review). These web callers still call the inner function until
-  // screen job S2 replaces them; the allow-list is temporary and shrinks to nothing.
-  const ALLOWED = new Set(["packages/engine/src/project-stage.ts", "apps/web/src/stage-ui.tsx" /* S2 removes these */]);
+  // Every editor (the header chip, Home, the interview and the TRD form) goes through changeProjectStage: a reason, a version and a stage
+  // review. The only file that may name the inner function is the one that defines it and calls it as its first step; nothing in the web
+  // app or the server may call it.
+  const ALLOWED = new Set(["packages/engine/src/project-stage.ts"]);
   const walk = (dir: string, out: string[] = []): string[] => {
     for (const e of readdirSync(dir, { withFileTypes: true })) {
       if (["node_modules", "dist", "e2e", "test"].includes(e.name)) continue;

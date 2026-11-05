@@ -341,7 +341,7 @@ function Details({ d, run }: { d: TrdDocument; run: Run }) {
         <p className="muted small">These come from the project. Override one when the TRD should say something else; the project value stays beside it.</p>
         <p className="trd-project-stage" data-testid="trd-project-stage">
           <strong>Project stage:</strong> <StageRow />
-          <span className="small muted"> One value for the whole project; the TRD, sampling plan and batch record follow it.</span>
+          <span className="small muted"> One value for the whole project; the TRD, sampling plan and batch record follow it. Changing it asks why and saves a new version.</span>
         </p>
         <ul className="plain-list trd-fields" aria-label="Product and site values">
           {d.details.map((f) => (

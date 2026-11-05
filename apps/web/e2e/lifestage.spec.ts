@@ -7,6 +7,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expectNotice, goTo, isPhone, openDemo } from "./nav-helper";
+import { chooseStage, dismissSummary, pickAndSave } from "./stage-helper";
 
 const SHOTS = tmpdir();
 const LABEL = {
@@ -57,11 +58,7 @@ async function newProject(page: Page) {
 }
 
 async function choose(page: Page, stage: keyof typeof LABEL) {
-  await chip(page).click();
-  const dialog = page.getByRole("dialog", { name: "Project stage" });
-  await dialog.getByRole("radio", { name: new RegExp(LABEL[stage].replace(/[()/]/g, "\\$&")) }).check();
-  await dialog.getByRole("button", { name: "Set project stage" }).click();
-  await expect(page.getByTestId("stage-summary")).toBeVisible();
+  await chooseStage(page, stage);
 }
 
 test("a new project: the chip says not set, the chooser preselects nothing and asks for a choice", async ({ page }) => {
@@ -82,7 +79,7 @@ test("a new project: the chip says not set, the chooser preselects nothing and a
   await axeClean(page, "chooser");
 
   // No choice: it says so instead of picking one.
-  await dialog.getByRole("button", { name: "Set project stage" }).click();
+  await dialog.getByRole("button", { name: "Next" }).click();
   await expect(dialog.getByRole("alert")).toContainText("Choose one of the four stages");
   await expect(chip(page)).toHaveText("Project stage: not set");
 
@@ -91,12 +88,13 @@ test("a new project: the chip says not set, the chooser preselects nothing and a
   await expect(dialog).toHaveCount(0);
   await expect(chip(page)).toHaveText("Project stage: not set");
 
-  // The receiving-site question in the interview has the same four options, none selected, and the plain question text.
+  // The receiving-site question in the interview shows the project stage read-only (not set) with a button; the sending site keeps its four options.
   await go(page, "#/interview?q=site.stage%40target");
   await expect(page.locator("#q-prompt")).toHaveText("Which batches does each site make or plan to make?");
-  const ru = page.locator('fieldset.side-panel[data-side="target"]');
-  await expect(ru).toContainText("What will the receiving site's next batches be?");
-  await expect(ru.locator(".choice-chip")).toHaveCount(4);
+  const ru = page.getByTestId("interview-stage");
+  await expect(ru).toContainText("Not set");
+  await expect(ru.getByRole("button", { name: /Change project stage/ })).toBeVisible();
+  await expect(ru.getByRole("radio")).toHaveCount(0);
   await expect(page.locator(".question-card input[type=radio]:checked")).toHaveCount(0);
 });
 
@@ -104,16 +102,16 @@ test("one value: set it from the chip, see it in the interview, on Home and in a
   await newProject(page);
   await choose(page, "clinical");
   const summary = page.getByTestId("stage-summary");
-  await expect(summary).toContainText("The project stage is now Clinical.");
+  await expect(summary).toContainText("Project stage is now Clinical.");
   await expect(summary).toContainText("Your own text is not changed or deleted.");
   await shot(page, "summary");
   await axeClean(page, "summary");
-  await summary.getByRole("button", { name: "Close" }).click();
+  await dismissSummary(page);
   await expect(chip(page)).toHaveText("Project stage: Clinical");
   await shot(page, "chip-desktop");
 
   await go(page, "#/interview?q=site.stage%40target");
-  await expect(page.locator('fieldset.side-panel[data-side="target"] .choice-chip.checked')).toContainText(LABEL.clinical);
+  await expect(page.getByTestId("interview-stage")).toContainText(LABEL.clinical);
 
   await go(page, "#/");
   const row = page.getByTestId("stage-row").first();
@@ -130,9 +128,11 @@ test("one value: set it from the chip, see it in the interview, on Home and in a
   const exported = JSON.parse(readFileSync((await download.path()) as string, "utf8")) as { processes: { target: { site: { fields: { programStage: { value: string } } } } } };
   expect(exported.processes.target.site.fields.programStage.value).toBe("clinical");
 
-  // Choosing the same stage again says nothing changed.
-  await choose(page, "clinical");
-  await expect(page.getByTestId("stage-summary")).toContainText("Nothing changed.");
+  // The current stage cannot be chosen again: its option is off and marked Current (no empty version).
+  await chip(page).click();
+  const again = page.getByRole("dialog", { name: "Project stage" });
+  await expect(again.getByRole("radio", { name: /Clinical batches/ })).toBeDisabled();
+  await again.getByRole("button", { name: "Cancel" }).click();
 });
 
 test("the demo runs PPQ with no check; the TRD form and Home change the same value", async ({ page }) => {
@@ -152,11 +152,9 @@ test("the demo runs PPQ with no check; the TRD form and Home change the same val
   await expect(trdRow).toContainText(LABEL.ppq);
   await expect(page.getByTestId("trd-field-details-programStage")).toHaveCount(0);
   await shot(page, "trd-form");
-  await trdRow.getByRole("button", { name: /Change the project stage/ }).click();
-  const dialog = page.getByRole("dialog", { name: "Project stage" });
-  await dialog.getByRole("radio", { name: /Commercial batches/ }).check();
-  await dialog.getByRole("button", { name: "Set project stage" }).click();
-  await page.getByTestId("stage-summary").getByRole("button", { name: "Close" }).click();
+  await trdRow.getByRole("button", { name: /Change project stage/ }).click();
+  await pickAndSave(page, "commercial", "Fictional: process validated");
+  await dismissSummary(page);
   await expect(trdRow).toContainText(LABEL.commercial);
   await expect(chip(page)).toHaveText("Project stage: Commercial");
   await axeClean(page, "TRD form");
@@ -197,8 +195,12 @@ test("a saved Commercial project gets a stage check; choosing the stage again cl
 
   // Confirming Commercial clears the check; the dot and the notice go.
   await go(page, "#/");
-  await choose(page, "commercial");
-  await page.getByTestId("stage-summary").getByRole("button", { name: "Close" }).click();
+  await chip(page).click();
+  const confirmDialog = page.getByRole("dialog", { name: "Project stage" });
+  await confirmDialog.getByRole("radio", { name: /Commercial batches/ }).check();
+  await confirmDialog.getByRole("button", { name: "Confirm Commercial" }).click();
+  await expect(page.getByTestId("stage-summary")).toContainText("The check is cleared");
+  await dismissSummary(page);
   await expect(page.getByTestId("stage-dot")).toHaveCount(0);
   await expect(page.getByTestId("stage-check-notice")).toHaveCount(0);
 });

@@ -56,6 +56,8 @@ const TRAILS: Record<string, Trail> = {
   "/sources": t(true, LIB, "Sources"),
   "/builder": t(true, LIB, "Builder"),
   "/changes": t(true, LIB, "Change log"),
+  "/versions": t(true, LIB, "Version history"),
+  "/stage-review": t(true, LIB, { label: "Version history", path: "/versions" }, "Stage review"),
 };
 
 /** The trail of a route, or undefined for a route that has none (Home, the account pages). */

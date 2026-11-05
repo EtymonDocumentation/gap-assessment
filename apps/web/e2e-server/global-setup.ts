@@ -11,7 +11,8 @@ const SERVER_DIST = join(WEB, "..", "server", "dist");
 export const SERVER_PORT = 8788;
 export const CLIENT_PORT = 8789;
 /** How many invite codes are made up front. Each test worker takes its own block of INVITES_PER_WORKER. */
-export const INVITES_PER_WORKER = 24;
+// 24 ran out once the version-history specs (S2) added more sign-ups: a worker that picks up many sign-up tests in a row used them all.
+export const INVITES_PER_WORKER = 40;
 // Six tests per project sign up with the sampling module and a worker takes them as it becomes free, so a worker can end up with more
 // than its even share when other tests run long; four codes were enough only while the timing happened to be even.
 export const SAMPLING_INVITES_PER_WORKER = 8;

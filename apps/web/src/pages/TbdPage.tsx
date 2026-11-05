@@ -1,8 +1,9 @@
-import { isOverdue, localDate, TBD_DEFINITION, tbdItems, tbdSummary, tbdSummaryText } from "@gap/engine";
+import { isOverdue, localDate, openReviewItems, TBD_DEFINITION, tbdItems, tbdSummary, tbdSummaryText } from "@gap/engine";
 import { useMemo } from "react";
 import { Empty } from "../components";
 import { href } from "../router";
 import { useAssessment, useContent, useStore } from "../store";
+import { DOC_NAME, stageName, useRealProject } from "../version-ui";
 
 /**
  * Every value recorded as TBD (to be decided), with its best guess, owner, due date and note. A TBD is a commitment to find
@@ -16,6 +17,10 @@ export function TbdPage() {
   // Today's date is read when the page is drawn: overdue is a statement about now, so it is never stored.
   const today = localDate();
   const summary = tbdSummary(items, today);
+  // Stage-review items are open items too: they stay here until each one is ticked. They live in the real project's history, which a saved
+  // version being viewed does not carry, so this reads the real project.
+  const real = useRealProject();
+  const review = useMemo(() => (real ? openReviewItems(real) : []), [real]);
 
   return (
     <div className="stack-lg">
@@ -29,6 +34,26 @@ export function TbdPage() {
           <strong>{tbdSummaryText(summary)}</strong>
         </p>
       </div>
+      {review.length > 0 && (
+        <section className="card stack" aria-labelledby="tbd-review-h" data-testid="tbd-stage-review">
+          <h2 id="tbd-review-h">Stage review</h2>
+          <p role="status" className="tbd-summary">
+            <strong>
+              {review.length} {review.length === 1 ? "item is" : "items are"} still to be reviewed after a change of the project stage.
+            </strong>
+          </p>
+          <ul className="plain-list">
+            {review.map(({ review: r, item }) => (
+              <li key={`${r.id}-${item.key}`}>
+                {DOC_NAME[item.doc]}: {item.title} <span className="muted">(after {r.fromStage ? `the change from ${stageName(r.fromStage)} to ${stageName(r.toStage)}` : `the stage was set to ${stageName(r.toStage)}`}, {r.versionLabel})</span>
+              </li>
+            ))}
+          </ul>
+          <p>
+            <a href={href("/stage-review")}>Go to the stage review</a>
+          </p>
+        </section>
+      )}
       {items.length === 0 ? (
         <Empty>No value is recorded as TBD.</Empty>
       ) : (

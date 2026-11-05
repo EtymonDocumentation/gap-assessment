@@ -15,6 +15,8 @@ import { ChangesPage } from "./pages/ChangesPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { SourcesPage } from "./pages/SourcesPage";
 import { TbdPage } from "./pages/TbdPage";
+import { VersionsPage } from "./pages/VersionsPage";
+import { StageReviewPage } from "./pages/StageReviewPage";
 import { MyFilesPage } from "./pages/MyFilesPage";
 import { RiskMethodsPage } from "./pages/RiskMethodsPage";
 import { RiskPage } from "./pages/RiskPage";
@@ -48,6 +50,7 @@ import { SERVER_MODE } from "./server/mode";
 import { useSession } from "./server/session-store";
 import { useMbrAllowed, useRiskAllowed, useTrdAllowed } from "./risk-module";
 import { useStore } from "./store";
+import { VersionBanner } from "./version-ui";
 
 /** Shown instead of the sampling pages on an account without the sampling module. */
 function SamplingNotIncluded() {
@@ -177,6 +180,7 @@ function AppShell() {
         { path: "/saved-answers", label: "Saved answers", desc: "Your own sets of interview answers, to offer to another project." },
         { path: "/sources", label: "Sources", desc: "Where each answer came from." },
         { path: "/builder", label: "Builder", desc: "Advanced view; the Interview is easier." },
+        { path: "/versions", label: "Version history", desc: "Saved copies of the project, compare them and see stage changes." },
         { path: "/changes", label: "Change log", desc: "Every change to the project, newest first." },
       ],
     },
@@ -214,6 +218,8 @@ function AppShell() {
   else if (route.path === "/sources") page = <SourcesPage />;
   else if (route.path === "/tbd") page = <TbdPage />;
   else if (route.path === "/changes") page = <ChangesPage />;
+  else if (route.path === "/versions") page = <VersionsPage />;
+  else if (route.path === "/stage-review") page = <StageReviewPage />;
   else if (route.path === "/templates") page = <TemplatesPage />;
   else if (route.path === "/guidance") page = <GuidancePage />;
   else if (route.path === "/saved-answers") page = <SavedAnswersPage />;
@@ -227,6 +233,7 @@ function AppShell() {
       </a>
       <NoticeStrip storage={remote ? STORAGE_PHRASE_SERVER : STORAGE_PHRASE_BROWSER} />
       <AppHeader routePath={route.path} groups={groups} />
+      {ready && project && <VersionBanner />}
       {error && (
         <div className="alert" role="alert">
           <span>{error}</span>

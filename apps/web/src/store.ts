@@ -1,5 +1,6 @@
 import {
   assess,
+  changeProjectStage,
   demoSamplingTables,
   demoSubsectionLibrary,
   demoTitle,
@@ -8,15 +9,22 @@ import {
   importedTitle,
   programStage,
   projectStage,
+  readVersion,
+  removeVersion,
   renameProject,
+  saveVersion,
   sourceValidated,
   stagedContent,
+  stageShort,
   stageWordingFor,
+  versionById,
   type Assessment,
   type ContentBundle,
+  type ProgramStage,
+  type StageChangeResult,
   type StageWording,
 } from "@gap/engine";
-import { emptyProject, parseProject, type Actor, type Project } from "@gap/process-model";
+import { emptyProject, parseProject, type Actor, type Project, type VersionEntry } from "@gap/process-model";
 import { del, get, set } from "idb-keyval";
 import { useMemo } from "react";
 import { create } from "zustand";
@@ -38,8 +46,28 @@ let demoInFlight = false;
 /** What an import did: the name it ended up with, and the name in the file (they differ when the file's name was already listed). */
 export type ImportResult = { error: string } | { error: null; title: string; fileTitle: string };
 
+/** A saved version that is open for looking at (read-only). The frozen project itself is `State.project` while this is set. */
+export interface Viewing {
+  entryId: string;
+  label: string;
+  kind: VersionEntry["kind"];
+  at: string;
+  by: string;
+  stage?: string;
+  fromStage?: string;
+}
+
+/** What every refused write says while a saved version is open. */
+export const READ_ONLY_MESSAGE = "This is a saved version and cannot be changed. Go back to the working copy to make changes.";
+
 interface State {
+  /**
+   * The project the pages show. While a saved version is open (`viewing`) this is the frozen copy, so every page renders it unchanged and
+   * nothing can be edited; the real project waits in `working`. Autosave and the server sync read the real one (see realProject).
+   */
   project: Project | null;
+  working: Project | null;
+  viewing: Viewing | null;
   ready: boolean;
   /** Last persistence or validation problem, shown to the user. */
   error: string | null;
@@ -54,6 +82,20 @@ interface State {
   setProject(p: Project | null, status?: string, fresh?: boolean): void;
   /** Applies an engine function. Returns an error message instead of throwing. */
   update(fn: (p: Project, actor: Actor) => Project, status?: string): string | null;
+  /**
+   * Changes the project stage with its reason, major version and stage review (changeProjectStage). Async because a version is compressed.
+   * The result is applied in ONE setProject so autosave sees one change. If the project changed while the version was being made, the work
+   * is redone on the newer project instead of saving over it.
+   */
+  changeStage(to: ProgramStage, reason: string): Promise<{ error: string } | { error: null; result: StageChangeResult }>;
+  /** "Save a version": a minor version of the project as it is, with an optional note. */
+  saveVersionNow(note: string): Promise<{ error: string } | { error: null; label: string }>;
+  /** Removes a saved version (any), with the reason; written to the change log. Returns an error message, or null. */
+  removeVersionNow(entryId: string, reason: string): string | null;
+  /** Opens a saved version read-only. Returns an error message, or null. */
+  openVersion(entryId: string): Promise<string | null>;
+  /** Leaves the read-only version and shows the working copy again. */
+  closeVersion(): void;
   /** Name of the demo being built, or null. The Home page shows "Building the demo" from it and keeps every demo button off until it is open. */
   demoBuilding: string | null;
   /** The line Home shows once a demo is open ("Demo opened: <name>"). The app clears it when the user leaves Home. */
@@ -94,7 +136,7 @@ export function actorOf(p: Project): Actor {
 async function addStartVersion(): Promise<void> {
   for (let attempt = 0; attempt < 3; attempt++) {
     const p = useStore.getState().project;
-    if (!p) return;
+    if (!p || useStore.getState().viewing) return;
     let next: Project;
     try {
       next = await ensureStartVersion(p, actorOf(p));
@@ -107,6 +149,11 @@ async function addStartVersion(): Promise<void> {
   }
 }
 
+/** The real project: the working copy while a saved version is open, otherwise the project shown. Autosave and the sync read this one. */
+export function realProject(s: Pick<State, "project" | "working">): Project | null {
+  return s.working ?? s.project;
+}
+
 function persist(p: Project | null): Promise<void> {
   // Server mode with server storage: the server holds the project; this browser keeps an offline copy (see server/sync.ts).
   if (SERVER_MODE && remoteStorage()) return sync.onLocalChange(p);
@@ -115,6 +162,8 @@ function persist(p: Project | null): Promise<void> {
 
 export const useStore = create<State>((setState, getState) => ({
   project: null,
+  working: null,
+  viewing: null,
   ready: false,
   error: null,
   status: "",
@@ -146,12 +195,22 @@ export const useStore = create<State>((setState, getState) => ({
   },
 
   setProject(p, status = "Saved", fresh = false) {
+    if (getState().viewing) {
+      // A saved version cannot be changed. Replacing the whole project (a new one, a demo, an import, closing or deleting it) is a different
+      // thing from editing: it leaves the version first. Anything else is refused and said so.
+      if (!fresh && p !== null) {
+        setState({ error: READ_ONLY_MESSAGE });
+        return;
+      }
+      setState({ working: null, viewing: null });
+    }
     if (SERVER_MODE && fresh && remoteStorage()) sync.beginNew();
     setState({ project: p, status });
     persist(p).catch((e: Error) => setState({ error: `Browser storage failed: ${e.message}. Export your project as JSON to keep it.` }));
   },
 
   update(fn, status) {
+    if (getState().viewing) return READ_ONLY_MESSAGE;
     const p = getState().project;
     if (!p) return "No project is open";
     try {
@@ -160,6 +219,74 @@ export const useStore = create<State>((setState, getState) => ({
     } catch (e) {
       return (e as Error).message;
     }
+  },
+
+  async changeStage(to, reason) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const p = getState().project;
+      if (getState().viewing) return { error: READ_ONLY_MESSAGE };
+      if (!p) return { error: "No project is open" };
+      let result: StageChangeResult;
+      try {
+        result = await changeProjectStage(p, effectiveContent(content, p), to, actorOf(p), reason);
+      } catch (e) {
+        return { error: (e as Error).message };
+      }
+      // Edits made while the version was being compressed would be lost by saving over them: do it again on the newer project.
+      if (getState().project !== p || getState().viewing) continue;
+      if (result.project !== p) getState().setProject(result.project, `Project stage: ${stageShort(to)}`);
+      return { error: null, result };
+    }
+    return { error: "The project changed while the version was being saved. Please try again." };
+  },
+
+  async saveVersionNow(note) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const p = getState().project;
+      if (getState().viewing) return { error: READ_ONLY_MESSAGE };
+      if (!p) return { error: "No project is open" };
+      let saved: Awaited<ReturnType<typeof saveVersion>>;
+      try {
+        saved = await saveVersion(p, actorOf(p), note);
+      } catch (e) {
+        return { error: (e as Error).message };
+      }
+      if (getState().project !== p || getState().viewing) continue;
+      getState().setProject(saved.project, `Version ${saved.entry.label} saved`);
+      return { error: null, label: saved.entry.label };
+    }
+    return { error: "The project changed while the version was being saved. Please try again." };
+  },
+
+  removeVersionNow(entryId, reason) {
+    return getState().update((p, actor) => removeVersion(p, entryId, actor, reason), "Version removed");
+  },
+
+  async openVersion(entryId) {
+    const real = realProject(getState());
+    const entry = real ? versionById(real, entryId) : undefined;
+    if (!real || !entry) return "That version is not in the history.";
+    let frozen: Project;
+    try {
+      frozen = await readVersion(entry);
+    } catch (e) {
+      return `${entry.label} could not be opened: ${(e as Error).message}`;
+    }
+    const now = realProject(getState());
+    if (!now) return "No project is open";
+    setState({
+      working: now,
+      project: frozen,
+      viewing: { entryId, label: entry.label, kind: entry.kind, at: entry.at, by: entry.by, ...(entry.stage ? { stage: entry.stage } : {}), ...(entry.fromStage ? { fromStage: entry.fromStage } : {}) },
+      status: `${entry.label} is open to look at. Nothing can be changed here.`,
+    });
+    return null;
+  },
+
+  closeVersion() {
+    const { working } = getState();
+    if (!working) return;
+    setState({ project: working, working: null, viewing: null, status: "Back to the working copy" });
   },
 
   async openDemo(id, listedTitles = []) {
@@ -226,13 +353,14 @@ export const useStore = create<State>((setState, getState) => ({
 
 if (SERVER_MODE) {
   sync.connect({
-    getProject: () => useStore.getState().project,
-    replace: (project, status) => useStore.setState({ project, ...(status ? { status } : {}) }),
+    // Autosave must never write the frozen copy of a saved version over the real project.
+    getProject: () => realProject(useStore.getState()),
+    replace: (project, status) => useStore.setState({ project, working: null, viewing: null, ...(status ? { status } : {}) }),
     fail: (error) => useStore.setState({ error }),
   });
   // Signed out (or the session ended): nothing of the account stays in memory. The browser's offline copy is kept.
   afterSessionEnds(() => {
-    useStore.setState({ project: null, ready: false, error: null, status: "" });
+    useStore.setState({ project: null, working: null, viewing: null, ready: false, error: null, status: "" });
     resetFiles();
   });
 }

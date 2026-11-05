@@ -9,7 +9,8 @@ import { href } from "../router";
 import { CloseProjectButton, ProjectListCard, useIsRemote } from "../server/ServerUi";
 import { SERVER_MODE } from "../server/mode";
 import { ensureSaved, loadList, useSync } from "../server/sync";
-import { StageCheckNotice, StageRow } from "../stage-ui";
+import { StageCheckNotice, StageReviewNotice, StageRow } from "../stage-ui";
+import { HomeVersion } from "../version-ui";
 import { GapFormButton, GapUploadButton } from "./GapUploadButton";
 import { SamplingFormButton, SamplingUploadButton } from "./SamplingUploadButton";
 import { StartChoices } from "./StartChoices";
@@ -193,6 +194,7 @@ export function HomePage() {
                 )}
               </div>
               <StageCheckNotice />
+              <StageReviewNotice />
               <div className="next-step" data-testid="next-step" data-tour="home-next">
                 <p className="next-step-label">Next step</p>
                 <div className="row wrap">
@@ -228,6 +230,12 @@ export function HomePage() {
                   <dt>Project stage</dt>
                   <dd>
                     <StageRow />
+                  </dd>
+                </div>
+                <div>
+                  <dt>Version</dt>
+                  <dd>
+                    <HomeVersion />
                   </dd>
                 </div>
                 <div>

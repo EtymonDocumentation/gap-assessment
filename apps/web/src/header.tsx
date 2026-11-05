@@ -7,7 +7,7 @@ import { GAP_STEPS } from "./next-step";
 import { href } from "./router";
 import { AccountMenu, ChangePasswordDialog, PhoneAccount, SaveProblem, SaveStatus, useIsRemote } from "./server/ServerUi";
 import { SERVER_MODE } from "./server/mode";
-import { StageChip } from "./stage-ui";
+import { StageChips } from "./stage-ui";
 import { useStore } from "./store";
 import { ThemeMenu } from "./theme-menu";
 import { PHONE_WIDTH, useNarrow } from "./viewport";
@@ -96,7 +96,7 @@ export function AppHeader({ routePath, groups }: { routePath: string; groups: Na
             <div className="header-tools">
               {remote && <SaveStatus />}
               {title !== undefined && <ProjectLink title={title} />}
-              {title !== undefined && !stageBelow && <StageChip />}
+              {title !== undefined && !stageBelow && <StageChips />}
               <HelpMenu routePath={routePath} />
               <ThemeMenu />
               {SERVER_MODE && <AccountMenu onChangePassword={() => setPasswordOpen(true)} />}
@@ -107,7 +107,7 @@ export function AppHeader({ routePath, groups }: { routePath: string; groups: Na
       {narrow && remote && <SaveProblem />}
       {stageBelow && title !== undefined && (
         <div className="stage-strip">
-          <StageChip />
+          <StageChips short={narrow} />
         </div>
       )}
       {SERVER_MODE && passwordOpen && (

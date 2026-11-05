@@ -4686,6 +4686,133 @@ fieldset.stage-options {
   margin: 0;
 }
 
+/* ---------------------------------------------------------------- versions, stage review, read-only banner */
+
+/* The stage-review dot is a ring (hollow) so it differs from the stage-check dot by shape as well as by name. */
+.stage-dot-review {
+  background: transparent;
+  border-color: var(--header-focus);
+}
+.stage-option.locked {
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+.stage-option .tag {
+  margin-left: 8px;
+}
+.stage-preview p {
+  margin: 0;
+}
+.version-chip {
+  text-decoration: none;
+}
+.stage-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+/* 44 px targets on the new pages and in their dialogs (the stage chip and the version chip too, where they are touched). */
+.version-page .btn,
+.stage-review-page .btn,
+.version-banner .btn,
+.dialog .btn {
+  min-height: 44px;
+}
+.version-chip,
+.stage-strip .stage-chip {
+  min-height: 44px;
+}
+.version-banner {
+  padding: 12px 16px;
+  background: var(--accent-soft);
+  color: var(--text);
+  border-bottom: 2px solid var(--accent);
+}
+.version-banner p {
+  margin: 0 0 8px;
+}
+.version-banner .row {
+  gap: 8px;
+}
+.review-ba {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.review-label {
+  margin: 0 0 2px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.review-text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border-radius: 6px;
+}
+.review-list {
+  list-style: none;
+  padding-left: 0;
+  display: grid;
+  gap: 12px;
+}
+.review-item h4 {
+  margin: 0;
+}
+.review-box {
+  width: 24px;
+  height: 24px;
+  margin: 0;
+}
+.review-tick label {
+  min-height: 24px;
+}
+.review-tick .row {
+  align-items: center;
+  gap: 8px;
+}
+@media (max-width: 700px) {
+  .review-ba {
+    grid-template-columns: 1fr;
+  }
+  /* The history table becomes a list of cards: one block per version, each cell labelled by its column. */
+  .history-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .history-table,
+  .history-table tbody,
+  .history-table tr,
+  .history-table th,
+  .history-table td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .history-table tr {
+    margin-bottom: 12px;
+    padding: 8px 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .history-table th[data-label],
+  .history-table td[data-label] {
+    border: 0;
+    padding: 4px 12px;
+  }
+  .history-table td::before {
+    content: attr(data-label) ": ";
+    font-weight: 600;
+    color: var(--muted);
+  }
+}
+
 /* ---------------------------------------------------------------- Help (?) menu, guided tour, glossary */
 
 .help-popover {

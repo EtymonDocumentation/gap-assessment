@@ -7,6 +7,7 @@ import { mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { goTo, isPhone, openDemo } from "./nav-helper";
+import { chooseStage, dismissSummary } from "./stage-helper";
 
 const SHOTS = tmpdir();
 const LABEL = {
@@ -39,12 +40,8 @@ async function shot(page: Page, name: string, only: "desktop" | "phone" = "deskt
 }
 
 async function choose(page: Page, stage: keyof typeof LABEL) {
-  await page.getByTestId("stage-chip").click();
-  const dialog = page.getByRole("dialog", { name: "Project stage" });
-  await dialog.getByRole("radio", { name: new RegExp(LABEL[stage].replace(/[()/]/g, "\\$&")) }).check();
-  await dialog.getByRole("button", { name: "Set project stage" }).click();
-  await expect(page.getByTestId("stage-summary")).toBeVisible();
-  await page.getByRole("dialog", { name: "Project stage" }).getByRole("button", { name: /Close|Done|OK/ }).first().click();
+  await chooseStage(page, stage);
+  await dismissSummary(page);
 }
 
 async function openRecord(page: Page) {
@@ -113,8 +110,7 @@ test("TRD: the write-up states what the ranges mean at the project stage", async
   await openDemo(page, "syr");
   await goTo(page, "TRD");
   await page.getByRole("region", { name: "TRDs table" }).getByRole("link").first().click();
-  // The stage is chosen first, then the document tab and preview are opened, so the page is not re-rendered between the steps.
-  await choose(page, "ppq");
+  // The demo is already at PPQ (its option is off in the dialog, so there is nothing to choose first).
   await showPreview(page);
   await expect(page.getByText(/Project stage: PPQ\./).first()).toBeVisible();
   await shot(page, "trd-range-ppq");

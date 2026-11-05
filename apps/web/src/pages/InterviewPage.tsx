@@ -21,6 +21,7 @@ import {
   questionLabel,
   setEntrySequence,
   setResponder,
+  STAGE_QUESTION_ID,
   visibleInstances,
   type AnswerInput,
   type InstanceSide,
@@ -41,6 +42,7 @@ import { GapUploadButton } from "./GapUploadButton";
 import { TailorButton } from "./TailorDialog";
 import { HelpTip } from "../HelpTip";
 import { ApplyAnswersDialog, SaveAnswersDialog } from "./SavedAnswersDialogs";
+import { StageRow } from "../stage-ui";
 import { QuestionInput, formTouched, initialForm, initialTbd, sameForm, toAnswer, toTbdAnswer, type FormState, type TbdMeta } from "./question-inputs";
 
 /** One answer to record: the instance, what was entered, and any cited documents. */
@@ -584,7 +586,9 @@ function QuestionCard({
   ];
 
   // Which sides the primary button saves: those with input that is new or changed; if nothing changed, those that hold an answer.
-  const hasInput = (i: QuestionInstance) => formTouched(q, st(i).form);
+  // The receiving site's stage is shown as a value with a "Change project stage" button, never saved from here: a stage change needs its reason,
+  // its version and its review (see the stage dialog), which a plain answer save would skip.
+  const hasInput = (i: QuestionInstance) => !isStageTarget(i) && formTouched(q, st(i).form);
   const changed = (i: QuestionInstance) => !answeredHere(i) || !sameForm(st(i).form, initialForm(content, project, i));
   const changedInput = group.filter((i) => hasInput(i) && changed(i));
   const toSave = changedInput.length ? changedInput : group.filter(hasInput);
@@ -661,7 +665,7 @@ function QuestionCard({
     const title = insts.length > 1 ? "Clear both answers?" : who ? `Clear ${who} answer?` : "Clear answer?";
     setClearing(clearRequest(project, insts, title, [["Question", questionLabel(q)], ["Side", who || "SU and RU (one answer for both)"]]));
   };
-  const clearable = (i: QuestionInstance) => clearableRefs(project, [i]).length > 0;
+  const clearable = (i: QuestionInstance) => !isStageTarget(i) && clearableRefs(project, [i]).length > 0;
   // The cleared sides are rebuilt from the new project, so the form shows TBD; unsaved input on the other side stays.
   const afterClear = (insts: QuestionInstance[]) => {
     const np = useStore.getState().project!;
@@ -732,9 +736,17 @@ function QuestionCard({
         ) : (
           panel(
             group[0]!,
-            <button type="submit" className="btn primary">
-              {primaryLabel}
-            </button>,
+            isStageTarget(group[0]!) ? (
+              next ? (
+                <a href={href("/interview", { q: next.key })} className="btn primary" onClick={() => markHeadingFocus(next.key)}>
+                  Continue →
+                </a>
+              ) : null
+            ) : (
+              <button type="submit" className="btn primary">
+                {primaryLabel}
+              </button>
+            ),
           )
         )}
 
@@ -791,6 +803,9 @@ function QuestionCard({
     </article>
   );
 }
+
+/** The receiving site's answer to the stage question. It is changed only through the stage dialog (reason, version, review). */
+const isStageTarget = (i: QuestionInstance): boolean => i.question.id === STAGE_QUESTION_ID && i.side === "target";
 
 function SideBanner({ side, text }: { side: UnitSide; text: string }) {
   return (
@@ -875,8 +890,9 @@ function SidePanel({
   const fromSet = savedSetOf(project, inst);
   const paramQuestion = q.input.type === "parameter" && side !== "shared";
   const secondPassNote = combined && mode === "sequential" && side === "target" && !answered;
+  const stageTarget = isStageTarget(inst);
 
-  const body = (
+  const fullBody = (
     <>
       {combined && sideLabel && (
         <p id={textId} className="side-question">
@@ -1035,6 +1051,26 @@ function SidePanel({
         </div>
       )}
     </>
+  );
+
+  // The receiving site's stage is a value with a button, not an input: a stage change needs its reason, version and review (stage dialog).
+  const body = stageTarget ? (
+    <>
+      {combined && sideLabel && (
+        <p id={textId} className="side-question">
+          {sideLabel}
+        </p>
+      )}
+      <div className="stack" data-testid="interview-stage">
+        <p>
+          <strong>Project stage:</strong> <StageRow />
+        </p>
+        <p className="small muted">The project stage is changed with its own button. It asks why, saves a new version and lists what to review.</p>
+        {primary}
+      </div>
+    </>
+  ) : (
+    fullBody
   );
 
   if (!combined) {

@@ -313,6 +313,16 @@ export async function copyStoredProject(id: string, make: (source: Project) => P
   return { id: r.id, title: copy.meta.title };
 }
 
+/**
+ * Saves a ready-made project as a new project on the server and returns its id and name; it is not opened. Used for "Copy this version as a
+ * new project": the copy is made from the frozen version, which is not the open project, so copyStoredProject cannot be used.
+ */
+export async function saveNewProject(copy: Project): Promise<{ id: string; title: string }> {
+  const r = await api.createProject(copy);
+  upsertListEntry({ id: r.id, title: copy.meta.title, updatedAt: r.updatedAt, revision: r.revision, schemaVersion: copy.schemaVersion });
+  return { id: r.id, title: copy.meta.title };
+}
+
 // ------------------------------------------------------------------ conflict
 
 /** Takes the server's newer version. `saveBackup` is given the local, unsaved project first (the app downloads it as a JSON file). */

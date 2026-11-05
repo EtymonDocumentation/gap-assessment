@@ -176,3 +176,18 @@ terms:
     term: TRD (technical requirements document)
     short: The written statement of the process. It lists the steps, the parameters (set point, NOR and PAR) and the process descriptions, each with a source. It starts from the project, a seed file or blank.
     see: [set-point, nor, par, batch-record]
+
+  - id: stage-review
+    term: Stage review
+    short: The list of things to look at after the project stage changes, one set for each document you have. Each item shows the wording before and after, and stays open until you tick it as reviewed. Nothing is ticked for you.
+    see: [project-stage, version, open-item]
+
+  - id: version
+    term: Version
+    short: A saved copy of the whole project, such as v2 or v2.1, with its date, who saved it and why. A change of the project stage saves a new main version (v2). Save a version saves a smaller step (v2.1). You can open a version to look at it, but nothing in it can be changed.
+    see: [working-copy, stage-review, project-stage]
+
+  - id: working-copy
+    term: Working copy
+    short: The project you are editing now, as opposed to a saved version. It is shown as Working copy after v2.1, with the words unsaved changes when it has moved on from that version.
+    see: [version]

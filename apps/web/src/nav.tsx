@@ -36,6 +36,8 @@ export function isCurrentPath(itemPath: string, routePath: string): boolean {
   if (itemPath === "/risk") return routePath === "/risk/methods";
   if (itemPath === "/mbr") return routePath === "/mbr/library" || routePath === "/mbr/view";
   if (itemPath === "/trd") return routePath === "/trd/writeups" || routePath === "/trd/import";
+  // The stage review is reached from the version history, and the comparison of two versions belongs to it as well.
+  if (itemPath === "/versions") return routePath === "/stage-review" || routePath === "/versions/compare";
   return false;
 }
 

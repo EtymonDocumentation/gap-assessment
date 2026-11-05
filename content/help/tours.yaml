@@ -17,7 +17,7 @@ tours:
         text: Start a new project, open one of the two fictional demos to see a finished example first, or upload a document you already have. A new project begins empty. Nothing is filled in for you.
       - anchor: stage-chip
         title: Project stage
-        text: Which batches the receiving site will make next (Engineering, Clinical, PPQ or Commercial). It changes the wording of your documents and adds reminders. Nothing is hidden or blocked, and your own text is never changed.
+        text: Which batches the receiving site will make next (Engineering, Clinical, PPQ or Commercial). It changes the wording of your documents, and each change is saved as a version (the chip beside it, such as v2, opens the version history). Your own text is never changed.
       - anchor: home-next
         title: Next step
         text: The tool suggests what to do next. Every document is optional, so you can skip a step and come back to it later.
