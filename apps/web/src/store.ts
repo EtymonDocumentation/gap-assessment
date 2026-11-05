@@ -4,6 +4,7 @@ import {
   demoSubsectionLibrary,
   demoTitle,
   effectiveContent,
+  ensureStartVersion,
   importedTitle,
   programStage,
   projectStage,
@@ -83,6 +84,29 @@ export function actorOf(p: Project): Actor {
   return { name: r?.name ?? "Unnamed user", ...(r?.role ? { role: r.role } : {}), at: new Date().toISOString() };
 }
 
+/**
+ * Makes the START version (v1) of the open project when its version history is empty: the project as it was when history began. The
+ * schema migration that adds the history cannot do it (it must be synchronous and a version is compressed), so every way a project
+ * arrives here ends with this call: first open, a new project, a demo, an import. The page is never held up: the project is shown first
+ * and the version follows a moment later. If the person edited in between, the version is made from the newer state instead, so no edit
+ * is lost and none is saved over.
+ */
+async function addStartVersion(): Promise<void> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const p = useStore.getState().project;
+    if (!p) return;
+    let next: Project;
+    try {
+      next = await ensureStartVersion(p, actorOf(p));
+    } catch {
+      return; // a browser that cannot compress: the project works without it and the version is made on a later open
+    }
+    if (useStore.getState().project !== p) continue;
+    if (next !== p) useStore.getState().setProject(next, useStore.getState().status);
+    return;
+  }
+}
+
 function persist(p: Project | null): Promise<void> {
   // Server mode with server storage: the server holds the project; this browser keeps an offline copy (see server/sync.ts).
   if (SERVER_MODE && remoteStorage()) return sync.onLocalChange(p);
@@ -112,9 +136,10 @@ export const useStore = create<State>((setState, getState) => ({
       const raw = await get(STORAGE_KEY);
       const project = raw ? parseProject(raw) : null;
       setState({ project, ready: true });
+      await addStartVersion();
       // An older project was migrated on load (for example "Unknown" became TBD, with change-log records). Save the converted copy so those records
       // keep the time they were written instead of being made again, with a new time, on every start.
-      if (project && (raw as { schemaVersion?: unknown }).schemaVersion !== project.schemaVersion) await persist(project).catch(() => undefined);
+      if (project && (raw as { schemaVersion?: unknown }).schemaVersion !== project.schemaVersion) await persist(useStore.getState().project ?? project).catch(() => undefined);
     } catch (e) {
       setState({ ready: true, error: `The saved project could not be loaded: ${(e as Error).message}` });
     }
@@ -158,6 +183,7 @@ export const useStore = create<State>((setState, getState) => ({
       if (title !== shown.meta.title) shown = renameProject(shown, title, actorOf(shown), { detail: "Renamed on opening: a project with this name was already listed" });
       getState().setProject(shown, `Demo opened: ${name}`, true);
       setState({ homeFlash: `Demo opened: ${name}` });
+      await addStartVersion();
       // The demo plan uses a fictional company table. Offer it in the library too, so the plan does not say its table has gone.
       void useSamplingTables.getState().ensure(demoSamplingTables(demos[id]));
       void useSubsectionLibrary.getState().ensure(demoSubsectionLibrary(demos[id]));
@@ -176,6 +202,7 @@ export const useStore = create<State>((setState, getState) => ({
     const p = emptyProject({ title, actor: { name: responder.name, at }, contentRefs: content.versions });
     p.interview.responder = responder;
     getState().setProject(p, "New project created", true);
+    void addStartVersion();
   },
 
   importJson(text, listedTitles = []) {
@@ -185,6 +212,7 @@ export const useStore = create<State>((setState, getState) => ({
       const title = importedTitle(fileTitle, listedTitles);
       const p = title === fileTitle ? parsed : renameProject(parsed, title, actorOf(parsed), { detail: "Renamed on import: a project with this name was already listed" });
       getState().setProject(p, `Imported: ${fileTitle}`, true);
+      void addStartVersion();
       return { error: null, title, fileTitle };
     } catch (e) {
       return { error: e instanceof SyntaxError ? "The file is not valid JSON." : (e as Error).message };

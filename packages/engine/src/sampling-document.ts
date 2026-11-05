@@ -677,7 +677,7 @@ export function buildSamplingPlanDocument(
 
   // Open items
   add("open-items", "Open items", [
-    ...stageOpenItems(project).map((text): Block => ({ type: "note", text: `Open item: ${text}` })),
+    ...stageOpenItems(project, { doc: "sampling" }).map((text): Block => ({ type: "note", text: `Open item: ${text}` })),
     {
       type: "paragraph",
       text: open.length

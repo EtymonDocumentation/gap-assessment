@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TRD_SEED_FORMAT, TRD_SEED_VERSION, addSource, attachSource, parseTrdSeed, verifyEntry, type Project, type SeedField, type TrdSeed } from "@gap/process-model";
+import { PROCESS_MODEL_VERSION, TRD_SEED_FORMAT, TRD_SEED_VERSION, addSource, attachSource, parseTrdSeed, verifyEntry, type Project, type SeedField, type TrdSeed } from "@gap/process-model";
 import { addCustomItem, addCustomUnitOperation, assess, buildDemoProject, buildDocument, buildTrdSeed, effectiveContent, excludeStep, excludeTopic, recordExport, trdSeedFingerprint } from "@gap/engine";
 import { ACTOR, DOC_A, OTHER_ACTOR, content, kit, q, rng } from "./helpers";
 import { demos } from "../../../content/index";
@@ -19,7 +19,7 @@ describe("buildTrdSeed", () => {
     const seed = seedOf(p);
     const back = parseTrdSeed(JSON.stringify(seed));
     expect(back).toEqual(JSON.parse(JSON.stringify(seed)));
-    expect(back.meta).toMatchObject({ format: TRD_SEED_FORMAT, formatVersion: TRD_SEED_VERSION, exportedAt: AT, generator: { version: "9.9.9" }, processModelVersion: "1.15.0" });
+    expect(back.meta).toMatchObject({ format: TRD_SEED_FORMAT, formatVersion: TRD_SEED_VERSION, exportedAt: AT, generator: { version: "9.9.9" }, processModelVersion: PROCESS_MODEL_VERSION });
     expect(back.meta.product.program).toMatchObject({ status: "established", value: "ARX-217" });
     expect(back.unitOperations.length).toBeGreaterThan(5);
     expect(back.meta.gapAssessment.revision).toBeUndefined();

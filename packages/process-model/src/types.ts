@@ -473,6 +473,12 @@ export interface Project {
   answers: AnswerRecord[];
   gapOverlays: GapOverlay[];
   changeLog: ChangeEvent[];
+  /**
+   * Saved versions of the project and the stage reviews (schema 1.30.0). Optional: a project from before 1.30.0 gets an empty one when it is
+   * opened. The history lives INSIDE the project record on purpose: it then travels with every existing path (export, import, copy, server
+   * save, conflict check, offline cache) and cannot drift from the project it describes.
+   */
+  versionHistory?: VersionHistory;
 }
 
 /** Who is acting and when. Passed explicitly so engine functions stay pure and testable. */
@@ -480,4 +486,97 @@ export interface Actor {
   name: string;
   role?: string;
   at: string;
+}
+
+// ------------------------------------------------------------------ version history (schema 1.30.0)
+
+/**
+ * Why a version was saved. "start" = the project as it was when version history began; "stage-change" = the major version a change of the
+ * project stage always saves; "manual" = "Save a version"; "before-change" = saved automatically before a stage change so no edit is missing.
+ */
+export type VersionKind = "start" | "stage-change" | "manual" | "before-change";
+
+/** The whole project as JSON WITHOUT its version history, gzip-compressed and base64-coded. A saved version is never edited. */
+export interface VersionSnapshot {
+  encoding: "gzip-base64";
+  data: string;
+}
+
+export interface VersionEntry {
+  id: string;
+  major: number;
+  minor: number;
+  /** "v2", "v2.1". Never repeated, even after a version was removed. */
+  label: string;
+  kind: VersionKind;
+  at: string;
+  /** The person's name, free text (as in the change log). */
+  by: string;
+  /** The project stage then; undefined = not set. */
+  stage?: string;
+  /** For a stage change: the stage before it; undefined = it was not set. */
+  fromStage?: string;
+  reason: string;
+  /** Hash of the canonical JSON of the project without its history; equal fingerprints = nothing changed since. */
+  fingerprint: string;
+  /** What this version takes up in the project record (the length of snapshot.data). */
+  bytes: number;
+  snapshot: VersionSnapshot;
+}
+
+/** The trace a removed version leaves, so numbers never repeat and the gap is visible. */
+export interface VersionRemoval {
+  label: string;
+  major: number;
+  minor: number;
+  kind: VersionKind;
+  stage?: string;
+  /** When the removed version had been saved. */
+  savedAt: string;
+  /** When and by whom it was removed, and why. */
+  at: string;
+  by: string;
+  reason: string;
+}
+
+export type ReviewDoc = "gap" | "trd" | "sampling" | "mbr" | "risk";
+
+/** One thing to look at after a stage change. The texts are frozen when the stage changes: a later edit does not rewrite the review. */
+export interface ReviewItem {
+  /** Same key = same question in a later review (see carried). Per document: "T1@TRD-001". */
+  key: string;
+  doc: ReviewDoc;
+  title: string;
+  before: string;
+  after: string;
+  check: string;
+  /** The app page where the item can be looked at. */
+  link: string;
+  /** Ticked: who, when, and an optional note. Absent = open. */
+  reviewed?: { by: string; at: string; note?: string };
+  /** The item was still open in an earlier review and was carried into this one as one item. */
+  carried?: { fromReviewId: string; sinceStage?: string; sinceLabel: string };
+  /** A later review took this open item over; it no longer counts as open here. */
+  replaced?: { byReviewId: string; at: string };
+}
+
+export interface StageReview {
+  id: string;
+  versionId: string;
+  versionLabel: string;
+  fromStage?: string;
+  toStage: string;
+  direction: "forward" | "back" | "first-set";
+  reason: string;
+  at: string;
+  by: string;
+  items: ReviewItem[];
+}
+
+export interface VersionHistory {
+  /** Oldest first. */
+  entries: VersionEntry[];
+  reviews: StageReview[];
+  /** Removed versions, oldest removal first. Absent = none were removed. */
+  removed?: VersionRemoval[];
 }

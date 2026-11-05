@@ -214,6 +214,69 @@ export const documentStateSchema = z.object({
     .optional(),
 });
 
+const versionKind = z.enum(["start", "stage-change", "manual", "before-change"]);
+const reviewItemSchema = z.object({
+  key: z.string(),
+  doc: z.enum(["gap", "trd", "sampling", "mbr", "risk"]),
+  title: z.string(),
+  before: z.string(),
+  after: z.string(),
+  check: z.string(),
+  link: z.string(),
+  reviewed: z.object({ by: z.string(), at: z.string(), note: z.string().optional() }).optional(),
+  carried: z.object({ fromReviewId: z.string(), sinceStage: z.string().optional(), sinceLabel: z.string() }).optional(),
+  replaced: z.object({ byReviewId: z.string(), at: z.string() }).optional(),
+});
+/** Schema 1.30.0. The snapshot is deliberately not opened here: parseProject reads (and migrates) it when a version is opened. */
+const versionHistorySchema = z.object({
+  entries: z.array(
+    z.object({
+      id: z.string(),
+      major: z.number().int().nonnegative(),
+      minor: z.number().int().nonnegative(),
+      label: z.string(),
+      kind: versionKind,
+      at: z.string(),
+      by: z.string(),
+      stage: z.string().optional(),
+      fromStage: z.string().optional(),
+      reason: z.string(),
+      fingerprint: z.string(),
+      bytes: z.number().int().nonnegative(),
+      snapshot: z.object({ encoding: z.literal("gzip-base64"), data: z.string() }),
+    }),
+  ),
+  reviews: z.array(
+    z.object({
+      id: z.string(),
+      versionId: z.string(),
+      versionLabel: z.string(),
+      fromStage: z.string().optional(),
+      toStage: z.string(),
+      direction: z.enum(["forward", "back", "first-set"]),
+      reason: z.string(),
+      at: z.string(),
+      by: z.string(),
+      items: z.array(reviewItemSchema),
+    }),
+  ),
+  removed: z
+    .array(
+      z.object({
+        label: z.string(),
+        major: z.number().int().nonnegative(),
+        minor: z.number().int().nonnegative(),
+        kind: versionKind,
+        stage: z.string().optional(),
+        savedAt: z.string(),
+        at: z.string(),
+        by: z.string(),
+        reason: z.string(),
+      }),
+    )
+    .optional(),
+});
+
 export const projectSchema = z.object({
   schemaVersion: z.string(),
   meta: z.object({
@@ -293,6 +356,7 @@ export const projectSchema = z.object({
       updatedAt: z.string().optional(),
     }),
   ),
+  versionHistory: versionHistorySchema.optional(),
   changeLog: z.array(
     z.object({
       at: z.string(),
@@ -564,6 +628,14 @@ const MIGRATIONS: { from: string; to: string; migrate: Migrate }[] = [
     from: "1.28.0",
     to: "1.29.0",
     migrate: (raw, now) => migrateTo1290(raw, now),
+  },
+  // 1.29.0 -> 1.30.0: version history (Cascade 1.30). The project gets an empty history; nothing else changes. The START version (v1) is
+  // NOT made here: saving a version compresses the project, which is asynchronous, and a migration must be pure and synchronous. The
+  // project store makes v1 the first time it opens a project whose history is empty. Running it again changes nothing.
+  {
+    from: "1.29.0",
+    to: "1.30.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.30.0", versionHistory: raw.versionHistory ?? { entries: [], reviews: [] } }),
   },
 ];
 

@@ -28,8 +28,8 @@ const ARX = build("arx-217");
 const planOf = (p: Project) => p.sampling.plans[0]!;
 
 describe("versions and migration", () => {
-  it("is schema 1.29.0 and plan format 1.8.0", () => {
-    expect(SCHEMA_VERSION).toBe("1.29.0");
+  it("is schema 1.30.0 and plan format 1.8.0", () => {
+    expect(SCHEMA_VERSION).toBe("1.30.0");
     expect(SAMPLING_PLAN_FORMAT_VERSION).toBe("1.8.0");
   });
 
@@ -39,7 +39,7 @@ describe("versions and migration", () => {
     // Parsing the same data at the current version is the baseline: the old version must add nothing else.
     const current = parseProject(JSON.parse(JSON.stringify(SYR)));
     const p = parseProject(old);
-    expect(p.schemaVersion).toBe("1.29.0");
+    expect(p.schemaVersion).toBe(SCHEMA_VERSION);
     expect(p.sampling).toEqual(current.sampling);
     expect(planOf(p).designReview).toBeUndefined();
   });

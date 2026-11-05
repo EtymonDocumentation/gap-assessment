@@ -1,4 +1,4 @@
-import { resolveEntry, type Project, type Side, type StageCheck } from "@gap/process-model";
+import { resolveEntry, type Project, type ReviewDoc, type ReviewItem, type Side, type StageCheck } from "@gap/process-model";
 import type { ContentBundle } from "./content";
 import { genericActivityStageNote } from "./stage-chain";
 
@@ -123,17 +123,39 @@ export function stageCheckOf(project: Project): StageCheck | undefined {
   return projectStage(project) ? project.meta.stageCheck : undefined;
 }
 
+/** A review item that nobody ticked and that no later review took over: it is still to be looked at. */
+export const isOpenReviewItem = (item: ReviewItem): boolean => !item.reviewed && !item.replaced;
+
 /**
- * Open items every document lists about the project stage: not set (so wording that depends on it shows the wider version) and the
- * stage check. The gap assessment lists the unanswered question itself, so it only adds the check.
+ * One line per stage review that still has open items for this document ("Stage review: 3 items for this document are still to be
+ * reviewed after the change from Clinical to PPQ (v2)."). The same sentence is printed in the document's Word and screen open items.
  */
-export function stageOpenItems(project: Project, opts: { withNotSet?: boolean } = {}): string[] {
+export function stageReviewOpenLines(project: Project, doc: ReviewDoc): string[] {
+  const short = (key: string) => (isProgramStage(key) ? STAGE_SHORT[key] : key);
+  const out: string[] = [];
+  for (const r of project.versionHistory?.reviews ?? []) {
+    const n = r.items.filter((i) => i.doc === doc && isOpenReviewItem(i)).length;
+    if (!n) continue;
+    const what = n === 1 ? "1 item for this document is" : `${n} items for this document are`;
+    const change = r.fromStage ? `the change from ${short(r.fromStage)} to ${short(r.toStage)}` : `the project stage was set to ${short(r.toStage)}`;
+    out.push(`Stage review: ${what} still to be reviewed after ${change} (${r.versionLabel}).`);
+  }
+  return out;
+}
+
+/**
+ * Open items every document lists about the project stage: not set (so wording that depends on it shows the wider version), the stage
+ * check and, when `doc` is given, the items of the stage review that are still to be reviewed for that document. The gap assessment
+ * lists the unanswered question itself, so it only adds the check.
+ */
+export function stageOpenItems(project: Project, opts: { withNotSet?: boolean; doc?: ReviewDoc } = {}): string[] {
   const out: string[] = [];
   if (!projectStage(project) && opts.withNotSet !== false) {
     out.push("Project stage not set. Wording and reminders that depend on the stage show the wider version until it is set.");
   }
   const check = stageCheckOf(project);
   if (check) out.push(STAGE_CHECK_TEXT[check]);
+  if (opts.doc) out.push(...stageReviewOpenLines(project, opts.doc));
   return out;
 }
 

@@ -1,6 +1,7 @@
 /// <reference types="node" />
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { SCHEMA_VERSION } from "@gap/process-model";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { sampleProject, signedInClient, startEnv, type TestEnv } from "./helpers";
 
@@ -65,7 +66,7 @@ describe("a project stored by a 1.9.0 build", () => {
     const put = await c.put(`/api/projects/${PROJECT_ID}`, { project: oldStoredFile().project, baseRevision: 1 });
     expect(put.status).toBe(200);
     const saved = (await c.get(`/api/projects/${PROJECT_ID}`)).json.project;
-    expect(saved.schemaVersion).toBe("1.29.0");
+    expect(saved.schemaVersion).toBe(SCHEMA_VERSION);
     expect(saved.stepScope).toEqual({ excluded: [] });
     expect(saved.document.revisions).toBeUndefined();
     expect(saved.document.comments).toBeUndefined();
@@ -79,7 +80,7 @@ describe("a project stored by a 1.9.0 build", () => {
     const made = await c.post("/api/projects", { project: oldStoredFile().project });
     expect(made.status).toBe(201);
     const saved = (await c.get(`/api/projects/${made.json.id}`)).json.project;
-    expect(saved.schemaVersion).toBe("1.29.0");
+    expect(saved.schemaVersion).toBe(SCHEMA_VERSION);
     expect(saved.document.archivedReview.comments).toEqual([COMMENT]);
   });
 });

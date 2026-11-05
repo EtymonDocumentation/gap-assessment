@@ -21,8 +21,8 @@ const plan = (parties: unknown[]) => ({
 });
 
 describe("plan parties with a department and a memo line", () => {
-  it("is schema 1.29.0 and plan format 1.8.0 (a later minor of the memo-party shapes)", () => {
-    expect(SCHEMA_VERSION).toBe("1.29.0");
+  it("is schema 1.30.0 and plan format 1.8.0 (a later minor of the memo-party shapes)", () => {
+    expect(SCHEMA_VERSION).toBe("1.30.0");
     expect(SAMPLING_PLAN_FORMAT_VERSION).toBe("1.8.0");
   });
 
@@ -56,7 +56,7 @@ describe("plan parties with a department and a memo line", () => {
     old.sampling = { plans: [plan(parties)] };
     const before = old.changeLog.length;
     const p = parseProject(old);
-    expect(p.schemaVersion).toBe("1.29.0");
+    expect(p.schemaVersion).toBe(SCHEMA_VERSION);
     expect(p.sampling.plans[0]!.parties).toEqual(parties);
     expect(p.changeLog.length).toBe(before);
   });

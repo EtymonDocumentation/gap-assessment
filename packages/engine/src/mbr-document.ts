@@ -314,7 +314,7 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
   }
 
   appendix("open-items", "Open items", [
-    ...stageOpenItems(project).map((text): Block => ({ type: "note", text: `Open item: ${text}` })),
+    ...stageOpenItems(project, { doc: "mbr" }).map((text): Block => ({ type: "note", text: `Open item: ${text}` })),
     { type: "paragraph", text: open.length ? "Choices not yet made, a missing purpose or steps, values still to be entered, and TRD requirements that have no step. Nothing has been decided on behalf of the team. The draft is not complete while these remain." : "No open items. This does not mean the batch record is complete or correct; that is for the CMO and quality assurance to judge." },
     ...(open.length ? ([{ type: "table", columns: ["Where", "Open item"], rows: open.map((o) => [o.where, o.text]) }] as Block[]) : []),
   ]);

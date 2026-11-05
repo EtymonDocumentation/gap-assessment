@@ -1,3 +1,4 @@
+import { ensureStartVersion } from "@gap/engine";
 import { parseProject, type Project } from "@gap/process-model";
 import { del, get, set } from "idb-keyval";
 import { create } from "zustand";
@@ -225,6 +226,20 @@ export async function loadList(): Promise<void> {
   }
 }
 
+/**
+ * Makes the start version (v1) for a project that arrives with an empty history (see addStartVersion in the project store). Returns the same
+ * project when nothing was needed, so the caller can tell by identity whether it must save the result.
+ */
+async function withStartVersion(p: Project): Promise<Project> {
+  const r = p.interview.responder;
+  try {
+    return await ensureStartVersion(p, { name: r?.name ?? "Unnamed user", ...(r?.role ? { role: r.role } : {}), at: new Date().toISOString() });
+  } catch {
+    // A browser that cannot compress still opens the project; the version is made on a later open.
+    return p;
+  }
+}
+
 async function settle(): Promise<void> {
   await flush();
   const s = useSync.getState();
@@ -242,8 +257,9 @@ const wasMigrated = (raw: unknown, parsed: Project): boolean => (raw as { schema
 export async function openProject(id: string): Promise<void> {
   if (H().getProject()) await settle();
   const r = await api.getProject(id);
-  const project = parseProject(r.project);
-  const migrated = wasMigrated(r.project, project);
+  const parsed = parseProject(r.project);
+  const project = await withStartVersion(parsed);
+  const migrated = wasMigrated(r.project, parsed) || project !== parsed;
   reset();
   patch({ projectId: r.id, revision: r.revision, phase: migrated ? "dirty" : "saved" });
   H().replace(project, "Project opened");
@@ -348,6 +364,8 @@ export async function restore(): Promise<void> {
   }
   reset();
   if (cache.projectId === null) {
+    // Never saved to the server, so it is dirty anyway: give it its start version before it is first saved.
+    local = await withStartVersion(local);
     patch({ phase: "dirty" });
     H().replace(local, "Unsaved project restored from this browser");
     schedule(0);
@@ -376,8 +394,9 @@ export async function restore(): Promise<void> {
     return;
   }
   if (!cache.dirty) {
-    const fresh = parseProject(remote.project);
-    const migrated = wasMigrated(remote.project, fresh);
+    const parsed = parseProject(remote.project);
+    const fresh = await withStartVersion(parsed);
+    const migrated = wasMigrated(remote.project, parsed) || fresh !== parsed;
     patch({ projectId: remote.id, revision: remote.revision, phase: migrated ? "dirty" : "saved" });
     H().replace(fresh, "");
     await writeCache(fresh, migrated).catch(() => undefined);

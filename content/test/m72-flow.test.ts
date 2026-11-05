@@ -17,7 +17,7 @@ import {
   suggestPoints,
   updatePoint,
 } from "@gap/engine";
-import { parseProject, type Actor, type Project, type SamplingPlan } from "@gap/process-model";
+import { parseProject, SCHEMA_VERSION, type Actor, type Project, type SamplingPlan } from "@gap/process-model";
 import { NOT_ON_DIAGRAM, pointsAt, tableOrder, trayPoints, unitOpForStep } from "@gap/sampling";
 import { describe, expect, it } from "vitest";
 import { content, demos, samplingSuggestions } from "../index";
@@ -62,7 +62,7 @@ describe("migration 1.12.0 -> 1.13.0", () => {
     }
     const before = old.changeLog.length;
     const migrated = parseProject(old);
-    expect(migrated.schemaVersion).toBe("1.29.0");
+    expect(migrated.schemaVersion).toBe(SCHEMA_VERSION);
     const pl = migrated.sampling.plans.find((x) => x.id === withPlan.planId)!;
     expect(pl.steps.map((s) => s.unitOp)).toEqual(["compounding", "aseptic_filling"]);
     expect(pl.points.map((p) => p.flow?.stepId !== undefined)).toEqual([true, true, false, true]);

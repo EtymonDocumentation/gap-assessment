@@ -428,7 +428,7 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
         }
       : { type: "paragraph", text: "No open items." },
     // The unanswered stage question is already a row above; only the stage check (a saved answer that may not mean what it now means) is added.
-    ...stageOpenItems(project, { withNotSet: false }).map((text): Block => ({ type: "note", text: `Open item: ${text}` })),
+    ...stageOpenItems(project, { withNotSet: false, doc: "gap" }).map((text): Block => ({ type: "note", text: `Open item: ${text}` })),
   ]);
 
   const ranked = riskRanked(a.gaps);

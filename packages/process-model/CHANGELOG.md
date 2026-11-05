@@ -2,6 +2,15 @@
 
 All notable changes to `@gap/process-model`. Versions follow semver; see README.md for what counts as breaking.
 
+## 1.16.0
+
+Project schema 1.30.0 (was 1.29.0), catalog and questions unchanged. Additive: the project gains `versionHistory`.
+
+### Added
+- `Project.versionHistory` (`entries`, `reviews`, optional `removed`): saved versions of the project (compressed copies) and the stage reviews. Types: `VersionHistory`,
+  `VersionEntry`, `VersionRemoval`, `VersionKind`, `StageReview`, `ReviewItem`, `ReviewDoc`.
+- Migration 1.29.0 to 1.30.0 adds an empty history. It cannot compress (it is synchronous), so the first version (v1) is made by the project store when the project is opened.
+
 ## 1.13.0
 
 Project schema 1.22.0 (unchanged), catalog 1.9.0 (unchanged), questions 1.8.0 (unchanged). Additive: the step-blocks library file (not the project) gains one optional field.

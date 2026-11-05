@@ -10,6 +10,8 @@ export * from "./builder";
 export * from "./stage";
 export * from "./stage-chain";
 export * from "./project-stage";
+export * from "./version-history";
+export * from "./stage-review";
 export * from "./format";
 export * from "./compare";
 export * from "./overlays";

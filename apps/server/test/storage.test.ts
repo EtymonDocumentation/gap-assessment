@@ -2,7 +2,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import { join, sep } from "node:path";
-import { parseProject } from "@gap/process-model";
+import { parseProject, SCHEMA_VERSION } from "@gap/process-model";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Store } from "../src/store";
 import { Client, sampleProject, signedInClient, startEnv, type TestEnv } from "./helpers";
@@ -39,7 +39,7 @@ describe("projects", () => {
     const list = await c.get("/api/projects");
     expect(list.status).toBe(200);
     expect(list.json.projects.map((p: { title: string }) => p.title)).toEqual(["Second", "First"]);
-    expect(list.json.projects[0]).toEqual({ id: second.json.id, title: "Second", updatedAt: second.json.updatedAt, revision: 1, schemaVersion: "1.29.0" });
+    expect(list.json.projects[0]).toEqual({ id: second.json.id, title: "Second", updatedAt: second.json.updatedAt, revision: 1, schemaVersion: SCHEMA_VERSION });
 
     const got = await c.get(`/api/projects/${first.json.id}`);
     expect(got.json).toEqual({

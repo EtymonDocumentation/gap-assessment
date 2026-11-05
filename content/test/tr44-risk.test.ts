@@ -16,7 +16,7 @@ import {
   updateAssessment,
   updateItem,
 } from "@gap/engine";
-import { parseProject, type Actor, type RiskConfig } from "@gap/process-model";
+import { parseProject, SCHEMA_VERSION, type Actor, type RiskConfig } from "@gap/process-model";
 import { aboveThreshold, interventionTally, isTr44, severityConfidenceText, TR44_DETECTION_TEXT, TR44_GUIDANCE, TR44_THRESHOLD_HINT } from "@gap/risk";
 import { describe, expect, it, vi } from "vitest";
 import { expectNoPrivateTerms } from "../../test-support/private-terms";
@@ -165,7 +165,7 @@ describe("old files migrate with only a version change", () => {
     const old = structuredClone(base) as unknown as Record<string, unknown>;
     old.schemaVersion = "1.23.0";
     const p = parseProject(old);
-    expect(p.schemaVersion).toBe("1.29.0");
+    expect(p.schemaVersion).toBe(SCHEMA_VERSION);
     expect(p.risk.assessments).toEqual(base.risk.assessments);
   });
 });

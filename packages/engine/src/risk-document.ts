@@ -251,7 +251,7 @@ export function buildRiskAssessmentDocument(
 
   // 5. Open items (always in the document)
   add("open-items", "Open items", [
-    ...stageOpenItems(project).map((text): Block => ({ type: "note", text: `Open item: ${text}` })),
+    ...stageOpenItems(project, { doc: "risk" }).map((text): Block => ({ type: "note", text: `Open item: ${text}` })),
     {
       type: "paragraph",
       text: open.length

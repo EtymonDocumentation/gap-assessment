@@ -335,7 +335,7 @@ export function buildTrdDocument(project: Project, d: TrdDocument, opts: TrdDocu
 
   // Open items (always in the document)
   add("open-items", "Open items", [
-    ...stageOpenItems(project).map((text): Block => ({ type: "note", text: `Open item: ${text}` })),
+    ...stageOpenItems(project, { doc: "trd" }).map((text): Block => ({ type: "note", text: `Open item: ${text}` })),
     { type: "paragraph", text: open.length ? "Entries still missing, to be decided, or provisional, and the findings of the PAR/NOR check. Nothing has been filled in on behalf of the team. The document cannot be approved while these remain." : "No open items. This does not mean the TRD is complete or correct; that is for the team and quality assurance to judge." },
     ...(open.length ? ([{ type: "table", columns: ["Where", "Open item"], rows: openLines(open) }] as Block[]) : []),
     // A sentence, not a note: it is a statement of how changes are handled. The tool names no filing category; the only wording is this one.
