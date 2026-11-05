@@ -1,4 +1,4 @@
-import { buildRiskAssessmentDocument, documentFingerprint, projectLabel, recordExport, riskBasisText, RISK_OPTIONAL_SECTIONS, updateAssessment, type RiskOptionalSection } from "@gap/engine";
+import { buildRiskAssessmentDocument, documentFingerprint, projectLabel, recordExport, RISK_OPTIONAL_SECTIONS, riskBasisText, type RiskOptionalSection, stampDocument, updateAssessment } from "@gap/engine";
 import { failureModes } from "@gap/content";
 import { PROCESS_MODEL_VERSION, RISK_FORMAT_VERSION, type DocumentExport, type RiskApproval, type RiskAssessment, type TemplateRecord } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlBody } from "@gap/renderers";
@@ -7,6 +7,7 @@ import { useMemo, useRef, useState } from "react";
 import { Modal } from "../components";
 import { APP_VERSION, download, projectFileStem, today } from "../lib";
 import { useContent, useStore } from "../store";
+import { useVersionStamp } from "../version-ui";
 import { BUILTIN_RECORD, ExportHistory, GENERIC_MODES, useWordChoice, WordPanel } from "./document-panels";
 import type { Run } from "./SamplingFlow";
 
@@ -27,7 +28,8 @@ export function RiskOutput({ a, run }: { a: RiskAssessment; run: Run }) {
   const [omit, setOmit] = useState<RiskOptionalSection[]>([]);
 
   const choice = useWordChoice();
-  const doc = useMemo(() => buildRiskAssessmentDocument(content, project, a, failureModes, { generatedAt, appVersion: APP_VERSION, omit }), [content, project, a, generatedAt, omit]);
+  const versionStamp = useVersionStamp();
+  const doc = useMemo(() => stampDocument(buildRiskAssessmentDocument(content, project, a, failureModes, { generatedAt, appVersion: APP_VERSION, omit }), versionStamp), [content, project, a, generatedAt, omit, versionStamp]);
   const body = useMemo(() => (showPreview ? renderHtmlBody(doc) : ""), [doc, showPreview]);
   const stamp = `${projectFileStem(project.meta)}-${a.id}-${today()}`;
   const tbd = doc.tbdCount ?? 0;

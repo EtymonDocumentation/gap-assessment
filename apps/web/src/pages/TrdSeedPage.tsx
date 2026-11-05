@@ -1,4 +1,4 @@
-import { NO_VALUE_YET, buildTrdOutline, buildTrdSeed, recordExport, trdSeedCounts, trdSeedFingerprint } from "@gap/engine";
+import { NO_VALUE_YET, stampDocument, buildTrdOutline, buildTrdSeed, recordExport, trdSeedCounts, trdSeedFingerprint } from "@gap/engine";
 import { PROCESS_MODEL_VERSION, TRD_SEED_VERSION, parseTrdSeed, type DocumentExport, type TemplateRecord } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlBody } from "@gap/renderers";
 import { useMemo, useRef, useState } from "react";
@@ -9,6 +9,7 @@ import { APP_VERSION, download, projectFileStem, today } from "../lib";
 import { href } from "../router";
 import { useTrdAllowed } from "../risk-module";
 import { useContent, useStore } from "../store";
+import { useVersionStamp } from "../version-ui";
 import { BUILTIN_RECORD, ExportHistory, WORD_BUILDING_LABEL } from "./document-panels";
 
 const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -39,7 +40,8 @@ export function TrdSeedPage() {
     }
   }, [content, project, generatedAt]);
   const seed = built.seed;
-  const outline = useMemo(() => (seed ? buildTrdOutline(seed, { traceability }) : null), [seed, traceability]);
+  const versionStamp = useVersionStamp();
+  const outline = useMemo(() => (seed ? stampDocument(buildTrdOutline(seed, { traceability }), versionStamp) : null), [seed, traceability, versionStamp]);
   const body = useMemo(() => (outline ? renderHtmlBody(outline) : ""), [outline]);
   const counts = useMemo(() => (seed ? trdSeedCounts(seed) : null), [seed]);
 

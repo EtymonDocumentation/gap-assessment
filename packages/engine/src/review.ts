@@ -1,5 +1,6 @@
 import { stableStringify, type DocumentExport, type Project, type TemplateRecord } from "@gap/process-model";
 import type { DocModel } from "./document";
+import { workingCopyStamp } from "./version-stamp";
 
 /**
  * Optional document sections and the export record.
@@ -206,8 +207,12 @@ export function recordExport(project: Project, record: DocumentExport): Project 
   // The same holds for the sampling plan.
   const previous = [...project.document.exports].reverse().find((e) => exportFamily(e.format) === family);
   const changedSincePrevious = given ?? (previous ? previous.fingerprint !== record.fingerprint : undefined);
+  // The record names the version the file was made from, the same words the document states on its cover. Only a working copy gets here:
+  // a saved version is never changed, so a download made from one is not recorded (its file carries its own label).
+  const version = rest.version ?? workingCopyStamp(project).label;
   next.document.exports.push({
     ...rest,
+    ...(version ? { version } : {}),
     template: cleanTemplate(record.template),
     ...(changedSincePrevious !== undefined ? { changedSincePrevious } : {}),
     ...(left.length ? { omittedSections: left } : {}),

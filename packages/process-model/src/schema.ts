@@ -201,6 +201,7 @@ export const documentStateSchema = z.object({
       fingerprint: z.string(),
       changedSinceRevision: z.boolean().optional(),
       changedSincePrevious: z.boolean().optional(),
+      version: z.string().optional(),
       omittedSections: z.array(z.string()).optional(),
       tbdCount: z.number().int().nonnegative().optional(),
       versions: z.object({ processModel: z.string(), catalog: z.string(), format: z.string(), stats: z.string().optional(), suggestions: z.string().optional() }).optional(),

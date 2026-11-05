@@ -354,6 +354,11 @@ export interface DocumentExport {
    * records made before schema 1.10.0. This replaced "changed since revision": the tool no longer issues revisions.
    */
   changedSincePrevious?: boolean;
+  /**
+   * The version the download was made from, as the document states it ("Working copy after v2.1"). Optional, so no schema change is needed:
+   * a record from before version history has none. A download of a saved version is not recorded at all, so this is always a working copy.
+   */
+  version?: string;
   /** Ids of the optional sections left out of this export (added in schema 1.5.0). Absent means none were left out. */
   omittedSections?: string[];
   /** How many TBD values the exported document listed (added in schema 1.7.0). */

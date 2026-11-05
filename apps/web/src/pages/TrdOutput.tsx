@@ -1,4 +1,4 @@
-import { buildTrdData, buildTrdDocument, documentFingerprint, projectLabel, recordExport, trdBasisText, TRD_OPTIONAL_SECTIONS, updateTrd, type TrdOptionalSection } from "@gap/engine";
+import { buildTrdData, buildTrdDocument, documentFingerprint, projectLabel, recordExport, stampDocument, TRD_OPTIONAL_SECTIONS, trdBasisText, type TrdOptionalSection, updateTrd } from "@gap/engine";
 import type { DocModel } from "@gap/engine";
 import { PROCESS_MODEL_VERSION, TRD_FORMAT_VERSION, type DocumentExport, type TemplateRecord, type TrdApproval, type TrdDocument } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlBody } from "@gap/renderers";
@@ -6,6 +6,7 @@ import { useMemo, useRef, useState } from "react";
 import { Modal } from "../components";
 import { APP_VERSION, download, projectFileStem, today } from "../lib";
 import { useContent, useStore } from "../store";
+import { useVersionStamp } from "../version-ui";
 import { BUILTIN_RECORD, ExportHistory, GENERIC_MODES, useWordChoice, WordPanel } from "./document-panels";
 import type { Run } from "./SamplingFlow";
 import { TrdFormButton } from "./TrdUploadButton";
@@ -29,8 +30,9 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
   const choice = useWordChoice();
   const evidenceChoice = useWordChoice();
   // Two documents from the same record: the short standard TRD for approval, and the evidence record for audit and inspection.
-  const doc = useMemo(() => buildTrdDocument(project, d, { generatedAt, appVersion: APP_VERSION, catalogVersion: content.versions.catalog, omit, content }), [project, d, content, generatedAt, omit]);
-  const evidenceDoc = useMemo(() => buildTrdDocument(project, d, { generatedAt, appVersion: APP_VERSION, catalogVersion: content.versions.catalog, omit: omitEvidence, content, variant: "evidence" }), [project, d, content, generatedAt, omitEvidence]);
+  const versionStamp = useVersionStamp();
+  const doc = useMemo(() => stampDocument(buildTrdDocument(project, d, { generatedAt, appVersion: APP_VERSION, catalogVersion: content.versions.catalog, omit, content }), versionStamp), [project, d, content, generatedAt, omit, versionStamp]);
+  const evidenceDoc = useMemo(() => stampDocument(buildTrdDocument(project, d, { generatedAt, appVersion: APP_VERSION, catalogVersion: content.versions.catalog, omit: omitEvidence, content, variant: "evidence" }), versionStamp), [project, d, content, generatedAt, omitEvidence, versionStamp]);
   const body = useMemo(() => (showPreview ? renderHtmlBody(doc) : ""), [doc, showPreview]);
   const stamp = `${projectFileStem(project.meta)}-${d.id}-${today()}`;
   const tbd = doc.tbdCount ?? 0;

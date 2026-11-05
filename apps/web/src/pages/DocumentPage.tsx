@@ -1,4 +1,4 @@
-import { buildDocument, buildGapData, documentFingerprint, omittedSectionIds, openItemsText, recordExport, verificationSummary } from "@gap/engine";
+import { buildDocument, buildGapData, documentFingerprint, omittedSectionIds, openItemsText, recordExport, stampDocument, verificationSummary } from "@gap/engine";
 import type { DocumentExport, TemplateRecord } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlBody, renderMarkdown } from "@gap/renderers";
 import { useMemo, useRef, useState } from "react";
@@ -8,6 +8,7 @@ import { PageHeader } from "../PageHeader";
 import { download, projectFileStem, sideText, today } from "../lib";
 import { href } from "../router";
 import { useAssessment, useContent, useStageWording, useStore } from "../store";
+import { useVersionStamp } from "../version-ui";
 import { BUILTIN_RECORD, ExportHistory, useWordChoice, useWordExport, WORD_BUILDING_LABEL, WORD_EXPORT_HELP, WordPanelView } from "./document-panels";
 import { DocumentSectionsBlock, ProcessStepsBlock, useScopeSummary } from "./ScopeEditor";
 
@@ -18,7 +19,8 @@ export function DocumentPage() {
   const a = useAssessment()!;
   // Generation time is fixed when the page opens so the preview and downloads match.
   const [generatedAt] = useState(() => new Date().toISOString());
-  const doc = useMemo(() => buildDocument(content, project, a, generatedAt), [project, a, generatedAt]);
+  const versionStamp = useVersionStamp();
+  const doc = useMemo(() => stampDocument(buildDocument(content, project, a, generatedAt), versionStamp), [project, a, generatedAt, versionStamp]);
   const body = useMemo(() => renderHtmlBody(doc), [doc]);
   const vs = useMemo(() => verificationSummary(content, project), [content, project]);
   const base = `${projectFileStem(project.meta)}-gap-assessment-${today()}`;

@@ -163,7 +163,8 @@ export function renderHtmlBody(doc: DocModel): string {
 <div class="banner" role="note">${escapeHtml(doc.banner)}</div>
 <h1>${escapeHtml(doc.title)}</h1>
 <div class="status">${escapeHtml(doc.status)}</div>
-<div class="stage-line">${escapeHtml(`${doc.title} · Project stage: ${doc.cover.stageShort}`)}</div>
+<div class="stage-line" data-testid="header-line">${escapeHtml(`${doc.title} · Project stage: ${doc.cover.stageShort}${doc.cover.version?.label ? ` · ${doc.cover.version.label}` : ""}`)}</div>${doc.cover.version ? `
+<div class="stage-line" data-testid="version-line">${escapeHtml(`Version: ${doc.cover.version.row}`)}</div>` : ""}
 <dl class="meta">${meta}</dl>
 ${sections}
 <div class="footer">${escapeHtml(doc.banner)}</div>

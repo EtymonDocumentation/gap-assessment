@@ -1,5 +1,5 @@
 import type { DocModel } from "@gap/engine";
-import { documentFingerprint, PRODUCT_NAME } from "@gap/engine";
+import { documentFingerprint, NO_VERSION_HISTORY, PRODUCT_NAME } from "@gap/engine";
 import type { DocPackage } from "./docpkg";
 import { CT, REL, resolveTarget } from "./package";
 import type { TemplateMode } from "./types";
@@ -106,6 +106,9 @@ export function writeDocProps(dp: DocPackage, input: FinaliseInput): void {
     ["templateSha256", input.templateSha256 ?? "not applicable (built-in template)"],
     ["documentFingerprint", documentFingerprint(doc)],
     ["contentVersions", contentVersionsText(doc)],
+    // Read by a document control system: which saved copy of the project the file was made from, and the day that copy was saved.
+    ["cascadeVersion", doc.cover.version?.label || NO_VERSION_HISTORY],
+    ["cascadeVersionSaved", doc.cover.version?.saved || "not saved as a version"],
   ];
   const corePart = rootPartFor(dp, REL.coreProps, "docProps/core.xml");
   const extPart = rootPartFor(dp, REL.extProps, "docProps/app.xml");

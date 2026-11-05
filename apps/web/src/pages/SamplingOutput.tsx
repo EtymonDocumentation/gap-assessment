@@ -1,4 +1,4 @@
-import { buildCmoInstructionsDocument, buildSamplingData, buildSamplingPlanDocument, CMO_INSTRUCTIONS_TITLE, documentFingerprint, projectLabel, recordExport, samplingBasisText } from "@gap/engine";
+import { buildCmoInstructionsDocument, buildSamplingData, buildSamplingPlanDocument, CMO_INSTRUCTIONS_TITLE, documentFingerprint, projectLabel, recordExport, samplingBasisText, stampDocument } from "@gap/engine";
 import { PROCESS_MODEL_VERSION, SAMPLING_PLAN_FORMAT_VERSION, type DocumentExport, type SamplingPlan, type TemplateRecord } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlBody } from "@gap/renderers";
 import { FIGURE_STYLE_LABEL, FIGURE_STYLES, SAMPLING_STATS_VERSION, type FigureStyle } from "@gap/sampling";
@@ -7,6 +7,7 @@ import { useMemo, useRef, useState } from "react";
 import { Modal } from "../components";
 import { APP_VERSION, download, projectFileStem, today } from "../lib";
 import { useContent, useStore } from "../store";
+import { useVersionStamp } from "../version-ui";
 import { BUILTIN_RECORD, ExportHistory, GENERIC_MODES, useWordChoice, WordPanel } from "./document-panels";
 
 /**
@@ -43,7 +44,8 @@ function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "
   // One figure style per export (Word and HTML alike); it is an export choice, not stored in the plan.
   const [figureStyle, setFigureStyle] = useState<FigureStyle>("time_scale");
 
-  const doc = useMemo(() => (cmo ? buildCmoInstructionsDocument : buildSamplingPlanDocument)(content, project, plan, samplingSuggestions, { generatedAt, appVersion: APP_VERSION, ...(cmo ? {} : { figureStyle }) }), [content, project, plan, generatedAt, cmo, figureStyle]);
+  const versionStamp = useVersionStamp();
+  const doc = useMemo(() => stampDocument((cmo ? buildCmoInstructionsDocument : buildSamplingPlanDocument)(content, project, plan, samplingSuggestions, { generatedAt, appVersion: APP_VERSION, ...(cmo ? {} : { figureStyle }) }), versionStamp), [content, project, plan, generatedAt, cmo, figureStyle, versionStamp]);
   const body = useMemo(() => (showPreview ? renderHtmlBody(doc) : ""), [doc, showPreview]);
   const stamp = `${projectFileStem(project.meta)}-${plan.id}-${today()}`;
   const tbd = doc.tbdCount ?? 0;

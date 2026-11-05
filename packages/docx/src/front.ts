@@ -1,4 +1,4 @@
-import type { DocModel } from "@gap/engine";
+import { NO_VERSION_HISTORY, type DocModel } from "@gap/engine";
 import { field } from "./builtin";
 import { ACCENT, BANNER_COLOR, BANNER_FILL, BORDER_COLOR, LABEL_FILL } from "./palette";
 import { WriterCtx, headingPara, para, tableXml, textRuns } from "./writer";
@@ -89,6 +89,9 @@ export function coverXml(ctx: WriterCtx): string {
     ...su,
     [COVER_LABELS.ruSite, c.targetSite],
     [COVER_LABELS.ruStage, c.targetStage],
+    // Always there: a printed cover must say which saved copy of the project it was made from (or that no history exists), so it is never
+    // mistaken for another version. The existing Project stage row stays; this row adds the version.
+    ["Version", c.version?.row ?? NO_VERSION_HISTORY],
     ["Status", d.status],
     ["Generated", metaValue(d, "Generated") || NOT_RECORDED],
   ];

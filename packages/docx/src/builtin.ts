@@ -1,4 +1,4 @@
-import type { DocModel } from "@gap/engine";
+import { documentHeaderLine, type DocModel } from "@gap/engine";
 import { DocPackage } from "./docpkg";
 import { CT, REL } from "./package";
 import { BUILTIN_STYLE_ID, StyleTable, builtinStylesXml, withBulletList } from "./styles";
@@ -58,12 +58,12 @@ export interface BuiltinParts {
 }
 
 /**
- * The line under the banner on pages 2 onwards: the document title and the project stage ("Title · Project stage: PPQ"). The stage is in
+ * The line under the banner on pages 2 onwards: the document title and the project stage ("Title · Project stage: PPQ · v2"). The stage and the version are in
  * the page header, not only on the cover, so a printed page picked up on its own still says which batches the document is written for.
  * Page 1 has no header; its cover carries the stage.
  */
 export function headerTitleLine(doc: DocModel): string {
-  return doc.cover.stageShort ? `${doc.title} · Project stage: ${doc.cover.stageShort}` : doc.title;
+  return documentHeaderLine(doc);
 }
 
 /**

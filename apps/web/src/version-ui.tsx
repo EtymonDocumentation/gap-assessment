@@ -6,13 +6,18 @@ import {
   historyUsage,
   lastVersion,
   limitMessage,
+  NO_VERSION_HISTORY,
   nextVersionNumber,
   REASON_MAX,
+  savedVersionStamp,
   STAGE_SHORT,
   versionLabelOf,
+  WORKING_COPY_LABEL,
+  workingCopyStamp,
+  type VersionStamp,
 } from "@gap/engine";
 import type { Project, ReviewDoc, ReviewItem } from "@gap/process-model";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Modal } from "./components";
 import { download, projectFileStem, today } from "./lib";
 import { href } from "./router";
@@ -55,6 +60,23 @@ export const dayOf = (iso: string): string => iso.slice(0, 10);
 export function useRealProject(): Project | null {
   return useStore((s) => s.working ?? s.project);
 }
+
+/**
+ * What a document made now says about its version. A saved version that is open says its own label and day (it exports its own data);
+ * otherwise it is the working copy. Worked out together with the document, not after a delay, so an export clicked straight after a
+ * change never claims "no changes since it was saved".
+ */
+export function useVersionStamp(): VersionStamp {
+  const viewing = useStore((s) => s.viewing);
+  const real = useRealProject();
+  return useMemo(
+    () => (viewing ? savedVersionStamp(viewing) : real ? workingCopyStamp(real) : { row: NO_VERSION_HISTORY, label: "", saved: "" }),
+    [viewing, real],
+  );
+}
+
+/** The address of the compare page for two sides (a version label such as "v2", or "Working copy"). */
+export const compareHref = (a: string, b: string): string => href("/versions/compare", { a, b });
 
 const unsavedCache = new WeakMap<Project, boolean>();
 
@@ -175,6 +197,9 @@ export function VersionBanner() {
         <button type="button" className="btn primary" onClick={closeVersion}>
           Back to the working copy
         </button>
+        <a className="btn" href={compareHref(viewing.label, WORKING_COPY_LABEL)} data-testid="banner-compare">
+          Compare with the working copy
+        </a>
         <button type="button" className="btn" disabled={busy} onClick={() => void copy()}>
           {busy ? "Copying…" : "Copy this version as a new project"}
         </button>

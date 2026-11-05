@@ -1,4 +1,4 @@
-import { DOCUMENT_SECTION_IDS, NOTICE_DOCUMENT, activityLabel, categoryLabel, formatResolved, partyTags, stageWording, stagedFor, type Assessment, type ContentBundle, type DocModel, type PartyTag, type PartyTags } from "@gap/engine";
+import { DOCUMENT_SECTION_IDS, NO_VERSION_HISTORY, NOTICE_DOCUMENT, activityLabel, categoryLabel, formatResolved, partyTags, stageWording, stagedFor, type Assessment, type ContentBundle, type DocModel, type PartyTag, type PartyTags } from "@gap/engine";
 import { resolveEntry, type Project, type SamplingPlan } from "@gap/process-model";
 
 // ------------------------------------------------------------------ the data a template can use
@@ -38,6 +38,10 @@ export interface TagData {
   /** The project stage (the receiving site's next batches). `targetStage` is the older name for the same value. */
   projectStage: string;
   targetStage: string;
+  /** Which version of the project the document was made from, as the cover states it ("v2 (saved 2026-11-04), project stage Clinical"). */
+  version: string;
+  /** The short form for a header: "v2" or "Working copy after v2.1" (empty when the project has no history). */
+  versionLabel: string;
   generated: string;
   regulatoryStatement: string;
   verificationStatement: string;
@@ -191,6 +195,8 @@ export function buildTagData(rawContent: ContentBundle, project: Project, a: Ass
     sourceStage: stages.sourceLabel,
     projectStage: doc.cover.targetStage,
     targetStage: doc.cover.targetStage,
+    version: doc.cover.version?.row ?? NO_VERSION_HISTORY,
+    versionLabel: doc.cover.version?.label ?? "",
     generated: metaValue(doc, "Generated"),
     regulatoryStatement: noteIn(doc, "gap-table"),
     verificationStatement: metaValue(doc, "Verification"),
@@ -236,7 +242,7 @@ export function buildTagData(rawContent: ContentBundle, project: Project, a: Ass
  * they read "[not available]" or repeat nothing, so a template never shows a gap value inside a risk document. The whole content is
  * still reachable with {@body} and the section tags (see RISK_SECTION_IDS).
  */
-export type DocumentTagData = Pick<TagData, "title" | "banner" | "status" | "generated" | "meta" | "sections" | "gaps" | "openItems" | "activities" | "equipment" | "risks" | "sources" | "approvals" | "parties" | "fromParties" | "toParties" | "ccParties">;
+export type DocumentTagData = Pick<TagData, "title" | "banner" | "status" | "generated" | "version" | "versionLabel" | "meta" | "sections" | "gaps" | "openItems" | "activities" | "equipment" | "risks" | "sources" | "approvals" | "parties" | "fromParties" | "toParties" | "ccParties">;
 
 /**
  * What a placeholder-tag template can use for the sampling plan and the CMO reporting instructions: the document tags plus the plan's
@@ -255,6 +261,8 @@ export function buildDocumentTagData(doc: DocModel): DocumentTagData {
     banner: doc.banner,
     status: doc.status,
     generated: metaValue(doc, "Generated"),
+    version: doc.cover.version?.row ?? NO_VERSION_HISTORY,
+    versionLabel: doc.cover.version?.label ?? "",
     meta: doc.meta.map(([label, value]) => ({ label, value })),
     sections: doc.sections.map((s) => ({ number: s.appendix ? `Appendix ${s.number}` : s.number, title: s.title })),
     // The gap loops are present but empty: a loop over a missing value would print one "[not available]" row, an empty list prints nothing.
@@ -315,6 +323,8 @@ const TEXT_TAGS: [string, string, boolean?][] = [
   ["sourceStage", "Sending-site stage: Engineering / development runs, Clinical batches, PPQ batches, Commercial batches, or [TBD]."],
   ["projectStage", "Project stage (what the receiving site's next batches are): Engineering / development runs, Clinical batches, PPQ batches, Commercial batches, or [not established]."],
   ["targetStage", "The older name of projectStage; same value."],
+  ["version", "Which version of the project the document was made from, for example \"v2 (saved 2026-11-04), project stage Clinical\" or \"Working copy after v2.1 (changes since not saved as a version)\"."],
+  ["versionLabel", "The short form of the version for a header or footer: \"v2\" or \"Working copy after v2.1\". Empty when the project has no version history."],
   ["generated", "Date and time the document was generated (UTC)."],
   ["sendingUnit", "Sending unit's site (name and line), for example for the From line of a memo. Filled for the gap assessment and the sampling plan documents; other documents show [not available]."],
   ["receivingSite", "Receiving site (name and line), for example for the To line of a memo. Filled for the gap assessment and the sampling plan documents; other documents show [not available]."],

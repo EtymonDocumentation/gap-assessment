@@ -1,11 +1,11 @@
-import { historyOf, historyUsage, limitMessage, removalLine, REASON_MAX, REASON_MIN, reviewProgress } from "@gap/engine";
+import { historyOf, historyUsage, WORKING_COPY_LABEL, limitMessage, removalLine, REASON_MAX, REASON_MIN, reviewProgress } from "@gap/engine";
 import type { VersionEntry } from "@gap/process-model";
 import { useId, useRef, useState } from "react";
 import { PageHeader } from "../PageHeader";
 import { Modal } from "../components";
 import { href, navigate } from "../router";
 import { READ_ONLY_MESSAGE, useStore } from "../store";
-import { dayOf, SaveVersionButton, stageName, stageWords, useRealProject, useUnsaved, workingCopyText } from "../version-ui";
+import { compareHref, dayOf, SaveVersionButton, stageName, stageWords, useRealProject, useUnsaved, workingCopyText } from "../version-ui";
 
 const mb = (n: number) => `${(n / (1024 * 1024)).toFixed(1)} MB`;
 
@@ -182,6 +182,9 @@ export function VersionsPage() {
                               Open read-only<span className="visually-hidden"> {e.label}</span>
                             </button>
                           )}
+                          <a className="btn small" href={compareHref(e.label, WORKING_COPY_LABEL)} data-testid={`compare-${e.label}`}>
+                            Compare<span className="visually-hidden"> {e.label} with the working copy</span>
+                          </a>
                           <button
                             type="button"
                             className="btn small danger"

@@ -448,6 +448,12 @@ export function ExportHistory({ exports, idPrefix = "export-history", title = "E
                     <details className="export-details" data-testid="export-details">
                       <summary>Details</summary>
                       <dl className="facts">
+                        {r.version && (
+                          <>
+                            <dt>Version of the project</dt>
+                            <dd data-testid="export-version">{r.version}</dd>
+                          </>
+                        )}
                         <dt>Fingerprint</dt>
                         <dd>
                           <code title={r.fingerprint}>{r.fingerprint}</code>

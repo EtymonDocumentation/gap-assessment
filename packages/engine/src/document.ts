@@ -120,6 +120,21 @@ export interface DocCover {
   targetStage: string;
   /** The project stage in its short form ("PPQ", or "not set"): the Word page header and the screen preview repeat it. */
   stageShort: string;
+  /**
+   * Which version of the project the document was made from (see version-stamp.ts). Optional: the builders do not know it (the page adds it
+   * with stampDocument), and a document without it prints "[no version history]" on the cover.
+   */
+  version?: VersionStamp;
+}
+
+/** The version a document states about itself: the cover row, the short label for page headers and tags, and the day it was saved. */
+export interface VersionStamp {
+  /** The cover row, e.g. "v2 (saved 2026-11-04), project stage Clinical". */
+  row: string;
+  /** The page-header label, e.g. "v2" or "Working copy after v2.1"; empty when the project has no history. */
+  label: string;
+  /** The day the version was saved (YYYY-MM-DD); empty for a working copy with unsaved changes or no history. */
+  saved: string;
 }
 
 export interface DocModel {

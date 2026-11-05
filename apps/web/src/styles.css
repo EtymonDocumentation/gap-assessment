@@ -5570,3 +5570,13 @@ fieldset.stage-options {
   /* The stacked layout already prints "Both units" as the cell's own label. */
   .import-both { display: none; }
 }
+
+/* Compare versions: the table becomes cards on a phone through .history-table; the text cells wrap instead of widening the page. */
+.compare-table th[scope="row"],
+.compare-table td {
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+.compare-table .tag {
+  white-space: nowrap;
+}

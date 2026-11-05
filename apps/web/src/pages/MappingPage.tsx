@@ -1,4 +1,4 @@
-import { buildDocument } from "@gap/engine";
+import { buildDocument, stampDocument } from "@gap/engine";
 import type { HeadingMapping, OutlineHeading, TemplateMapping } from "@gap/docx";
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "../PageHeader";
@@ -6,6 +6,7 @@ import { Empty } from "../components";
 import { useDocx } from "../docx-loader";
 import { href } from "../router";
 import { useAssessment, useContent, useStore } from "../store";
+import { useVersionStamp } from "../version-ui";
 import { useTemplates, type StoredTemplate } from "../templates-store";
 
 /** One row per heading, no content assigned yet: the customer's own text stays as it is. */
@@ -66,7 +67,8 @@ function Editor({ t }: { t: StoredTemplate }) {
   const a = useAssessment()!;
   const { docx, error: docxError } = useDocx();
   const [generatedAt] = useState(() => new Date().toISOString());
-  const doc = useMemo(() => buildDocument(content, project, a, generatedAt), [content, project, a, generatedAt]);
+  const versionStamp = useVersionStamp();
+  const doc = useMemo(() => stampDocument(buildDocument(content, project, a, generatedAt), versionStamp), [content, project, a, generatedAt, versionStamp]);
 
   const outline = t.analysis.outline;
   const [draft, setDraft] = useState<TemplateMapping>(() => completeMapping(outline, t.mapping));

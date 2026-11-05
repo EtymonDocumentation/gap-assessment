@@ -1,4 +1,4 @@
-import { buildMbrDocument, documentFingerprint, mbrBasisText, projectLabel, recordExport } from "@gap/engine";
+import { buildMbrDocument, documentFingerprint, mbrBasisText, projectLabel, recordExport, stampDocument } from "@gap/engine";
 import { MBR_FORMAT_VERSION, PROCESS_MODEL_VERSION, type DocumentExport, type MbrRecord, type TemplateRecord } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlBody } from "@gap/renderers";
 import { useMemo, useRef, useState } from "react";
@@ -6,6 +6,7 @@ import { Modal } from "../components";
 import { HelpTip } from "../HelpTip";
 import { APP_VERSION, download, projectFileStem, today } from "../lib";
 import { useContent, useStore } from "../store";
+import { useVersionStamp } from "../version-ui";
 import { BUILTIN_RECORD, ExportHistory, GENERIC_MODES, useWordChoice, WordPanel } from "./document-panels";
 
 /**
@@ -27,7 +28,8 @@ export function MbrOutput({ rec }: { rec: MbrRecord }) {
   // unsplit record, and a split one nobody chose a part for, come out exactly as before.
   const [partChoice, setPartChoice] = useState<"whole" | "1" | "2">("whole");
   const part = rec.split && partChoice !== "whole" ? (Number(partChoice) as 1 | 2) : undefined;
-  const doc = useMemo(() => buildMbrDocument(project, rec, { generatedAt, appVersion: APP_VERSION, catalogVersion: content.versions.catalog, part }), [project, rec, content, generatedAt, part]);
+  const versionStamp = useVersionStamp();
+  const doc = useMemo(() => stampDocument(buildMbrDocument(project, rec, { generatedAt, appVersion: APP_VERSION, catalogVersion: content.versions.catalog, part }), versionStamp), [project, rec, content, generatedAt, part, versionStamp]);
   const body = useMemo(() => (showPreview ? renderHtmlBody(doc) : ""), [doc, showPreview]);
   const stamp = `${projectFileStem(project.meta)}-${rec.id}${part ? `-part${part}` : ""}-${today()}`;
   const tbd = doc.tbdCount ?? 0;

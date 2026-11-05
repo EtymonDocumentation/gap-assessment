@@ -74,7 +74,7 @@ describe("built-in look: cover page", () => {
     const facts = factsOf(res, "Program");
     const c = model.doc.cover;
     const meta = (k: string) => model.doc.meta.find(([x]) => x === k)![1];
-    expect([...facts.keys()]).toEqual(["Program", "Product", COVER_LABELS.suSite, COVER_LABELS.suStage, COVER_LABELS.ruSite, COVER_LABELS.ruStage, "Status", "Generated"]);
+    expect([...facts.keys()]).toEqual(["Program", "Product", COVER_LABELS.suSite, COVER_LABELS.suStage, COVER_LABELS.ruSite, COVER_LABELS.ruStage, "Version", "Status", "Generated"]);
     expect(facts.get("Program")).toBe(c.program);
     expect(facts.get("Product")).toBe(c.product);
     expect(facts.get("Sending unit (SU) site")).toBe(c.sourceSite);
@@ -326,10 +326,10 @@ describe("built-in look: colours", () => {
 
 describe("built-in look: versioning and the other modes", () => {
   it("bumps the built-in template version", async () => {
-    expect(BUILTIN_TEMPLATE_VERSION).toBe("1.3.0");
+    expect(BUILTIN_TEMPLATE_VERSION).toBe("1.4.0");
     const out = await renderDocx({ doc: model.doc, tagData: model.tagData, mode: "builtin", generatedAt: GENERATED_AT });
-    expect(out.templateRecord).toEqual({ mode: "builtin", name: "Built-in default", version: "1.3.0" });
-    expect(customProps(strictDocx(out.bytes)).templateVersion).toBe("1.3.0");
+    expect(out.templateRecord).toEqual({ mode: "builtin", name: "Built-in default", version: "1.4.0" });
+    expect(customProps(strictDocx(out.bytes)).templateVersion).toBe("1.4.0");
   });
 
   async function other(mode: RenderDocxInput["mode"], file: string, mapped: boolean): Promise<StrictResult> {

@@ -17,6 +17,7 @@ import { SourcesPage } from "./pages/SourcesPage";
 import { TbdPage } from "./pages/TbdPage";
 import { VersionsPage } from "./pages/VersionsPage";
 import { StageReviewPage } from "./pages/StageReviewPage";
+import { VersionComparePage } from "./pages/VersionComparePage";
 import { MyFilesPage } from "./pages/MyFilesPage";
 import { RiskMethodsPage } from "./pages/RiskMethodsPage";
 import { RiskPage } from "./pages/RiskPage";
@@ -218,6 +219,7 @@ function AppShell() {
   else if (route.path === "/sources") page = <SourcesPage />;
   else if (route.path === "/tbd") page = <TbdPage />;
   else if (route.path === "/changes") page = <ChangesPage />;
+  else if (route.path === "/versions/compare") page = <VersionComparePage params={route.params} />;
   else if (route.path === "/versions") page = <VersionsPage />;
   else if (route.path === "/stage-review") page = <StageReviewPage />;
   else if (route.path === "/templates") page = <TemplatesPage />;
