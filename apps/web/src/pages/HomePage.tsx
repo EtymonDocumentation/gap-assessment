@@ -1,6 +1,7 @@
 import { localDate, openItemsText, PRODUCT_NAME, PRODUCT_SUBTITLE, renameProject, tbdItems, tbdSummary } from "@gap/engine";
 import { useMemo, useRef, useState } from "react";
 import { thenStep, chainStages } from "../chain";
+import { useEffectiveSuggestions } from "../expected-studies-store";
 import { useChainAllowed } from "../DocChain";
 import { InlineRename, Modal } from "../components";
 import { download, projectFileStem, today } from "../lib";
@@ -57,7 +58,8 @@ export function HomePage() {
   const firstRecord = project?.mbr.records[0];
 
   // The state line of each card is the one the chain strip shows on the document pages, so Home and the pages never disagree.
-  const stages = useMemo(() => (project ? chainStages(project, a, allowed) : []), [project, a, allowed]);
+  const expectedList = useEffectiveSuggestions();
+  const stages = useMemo(() => (project ? chainStages(project, a, allowed) : []), [project, a, allowed, expectedList]);
   const statusOf = (id: DocCardSpec["id"]) => stages.find((s) => s.id === id)?.status;
   const cards: DocCardSpec[] = [
     { id: "gap", name: "Gap assessment", purpose: CARD_PURPOSE.gap, path: "/gap" },

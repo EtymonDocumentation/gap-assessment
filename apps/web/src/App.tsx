@@ -22,6 +22,7 @@ import { MyFilesPage } from "./pages/MyFilesPage";
 import { RiskMethodsPage } from "./pages/RiskMethodsPage";
 import { RiskPage } from "./pages/RiskPage";
 import { SamplingPage } from "./pages/SamplingPage";
+import { ExpectedStudiesPage } from "./pages/ExpectedStudiesPage";
 import { SamplingSubsectionsPage } from "./pages/SamplingSubsectionsPage";
 import { SamplingTablesPage } from "./pages/SamplingTablesPage";
 import { MbrLibraryPage } from "./pages/MbrLibraryPage";
@@ -142,7 +143,7 @@ function AppShell() {
 
   // The template library belongs to the browser, not to a project, so it opens without one. So does the guidance library,
   // which is reference material and has nothing to do with the open project.
-  const needsProject = route.path !== "/" && route.path !== "/gap" && route.path !== "/gap/import" && route.path !== "/templates" && route.path !== "/guidance" && route.path !== "/saved-answers" && route.path !== "/sampling/tables" && route.path !== "/sampling/subsections" && route.path !== "/risk/methods" && route.path !== "/mbr/library" && route.path !== "/trd/writeups" && route.path !== "/myfiles" && route.path !== "/about" && route.path !== "/glossary";
+  const needsProject = route.path !== "/" && route.path !== "/gap" && route.path !== "/gap/import" && route.path !== "/templates" && route.path !== "/guidance" && route.path !== "/saved-answers" && route.path !== "/sampling/tables" && route.path !== "/sampling/subsections" && route.path !== "/sampling/expected" && route.path !== "/risk/methods" && route.path !== "/mbr/library" && route.path !== "/trd/writeups" && route.path !== "/myfiles" && route.path !== "/about" && route.path !== "/glossary";
   const mappingId = /^\/templates\/([^/]+)\/mapping$/.exec(route.path)?.[1];
   // Documents run in chain order (gap assessment, TRD, sampling plan, batch record), each with a line saying what it is for. They are all
   // optional: the order is a suggestion about which document feeds the next, never a rule. Risk and the TBD list sit alongside the chain.
@@ -205,6 +206,7 @@ function AppShell() {
   else if (route.path === "/trd-seed") page = <TrdSeedPage />;
   else if (route.path === "/sampling/tables") page = samplingAllowed ? <SamplingTablesPage /> : <SamplingNotIncluded />;
   else if (route.path === "/sampling/subsections") page = samplingAllowed ? <SamplingSubsectionsPage /> : <SamplingNotIncluded />;
+  else if (route.path === "/sampling/expected") page = samplingAllowed ? <ExpectedStudiesPage /> : <SamplingNotIncluded />;
   else if (route.path === "/sampling/import") page = samplingAllowed ? <SamplingImportPage /> : <SamplingNotIncluded />;
   else if (route.path === "/sampling") page = samplingAllowed ? <SamplingPage params={route.params} /> : <SamplingNotIncluded />;
   else if (route.path === "/risk/methods") page = riskAllowed ? <RiskMethodsPage /> : <RiskNotIncluded />;

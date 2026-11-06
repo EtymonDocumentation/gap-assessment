@@ -4,6 +4,7 @@ import type { ContentBundle } from "./content";
 import { projectStage } from "./stage";
 import { projectScopeSteps } from "./sampling";
 import type { SamplingSuggestions } from "./sampling-seed";
+import type { EffectiveSuggestions } from "./expected-list";
 
 /** The catalog entries marked `expected` (a typical fill/finish PPQ covers them), in the shape the review reads. Shared with the Process view's Coverage group. */
 export function expectedStudies(suggestions?: SamplingSuggestions) {
@@ -15,7 +16,7 @@ export function expectedStudies(suggestions?: SamplingSuggestions) {
  * Scope's included unit operations, the failure modes of the risk assessments and the catalog entries marked `expected`. Each part is
  * left out when the project has none of it, and a check that needs it then stays silent: nothing is guessed.
  */
-export function reviewContext(content: ContentBundle, project: Project, suggestions?: SamplingSuggestions): ReviewContext {
+export function reviewContext(content: ContentBundle, project: Project, suggestions?: EffectiveSuggestions): ReviewContext {
   const trd = project.trd.documents.find((d) => d.steps.length > 0);
   const scope = projectScopeSteps(content, project);
   const riskItems = project.risk.assessments.flatMap((a) =>
@@ -30,11 +31,13 @@ export function reviewContext(content: ContentBundle, project: Project, suggesti
     ...(scope.length ? { scopeSteps: scope.map((s) => ({ ...(s.unitOp ? { unitOp: s.unitOp } : {}), label: s.label })) } : {}),
     ...(riskItems.length ? { riskItems } : {}),
     ...(expected.length ? { expected } : {}),
+    // Only when the account changed the list: it joins D2's facts so answered questions say "look again" (see expected-list.ts).
+    ...(suggestions?.expectedListId ? { expectedListId: suggestions.expectedListId } : {}),
     ...(projectStage(project) ? { stage: projectStage(project)! } : {}),
   };
 }
 
 /** The plan's design review with the project's facts and the team's stored answers. */
-export function planDesignReview(content: ContentBundle, project: Project, plan: SamplingPlan, suggestions?: SamplingSuggestions): DesignReviewView {
+export function planDesignReview(content: ContentBundle, project: Project, plan: SamplingPlan, suggestions?: EffectiveSuggestions): DesignReviewView {
   return designReviewView(plan, reviewContext(content, project, suggestions));
 }

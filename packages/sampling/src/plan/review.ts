@@ -107,6 +107,8 @@ export interface ReviewContext {
   scopeSteps?: ReviewProcessStep[];
   riskItems?: ReviewRiskItem[];
   expected?: ReviewExpectedStudy[];
+  /** Set only when the account's expected list differs from the shipped marks; part of D2's facts, so a changed list says "look again". */
+  expectedListId?: string;
   /** The project stage key. Outside PPQ (and when it is not set, PPQ stays) the questions say "these batches" instead of PPQ. */
   stage?: string;
 }
@@ -710,7 +712,7 @@ function expectedMissing(plan: SamplingPlan, ctx: ReviewContext | undefined): Re
           : `The list of expected studies has "${e.attribute}" for ${stepLabel}, and no sample of the plan covers it.`,
         why: recorded ? "A filter is only shown to have worked if its integrity was tested around the use, and that test is a step of the batch record." : "A typical fill/finish PPQ covers this, and a plan written without a procedure can omit it without anyone noticing.",
         question: recorded ? `Is "${e.attribute}" a step of the batch record for ${stepLabel}?` : `Should "${e.attribute}" be added to the plan, or is there a reason it is not needed?`,
-        facts: [e.key, e.uo, e.type, e.attribute, true],
+        facts: ctx?.expectedListId ? [e.key, e.uo, e.type, e.attribute, true, ctx.expectedListId] : [e.key, e.uo, e.type, e.attribute, true],
       }),
     );
   }

@@ -1,4 +1,4 @@
-import { samplingSuggestions } from "@gap/content";
+import { useEffectiveSuggestions } from "../expected-studies-store";
 import { branchStatusAt, buildProcessView, expectedStudies, CLOCK_STATUS_TEXT, clockLabel, clockStatusAt, describeMoment, type ProcessView, type Severity, type ViewClock, type ViewEquipment, type ViewSample } from "@gap/engine";
 import { SAMPLE_ACCESS, type MbrRecord, type SampleAccess } from "@gap/process-model";
 import { useMemo, useState } from "react";
@@ -72,7 +72,8 @@ export function MbrProcessViewPage({ params }: { params: URLSearchParams }) {
 
 export function MbrProcessView({ rec }: { rec: MbrRecord }) {
   const project = useStore((s) => s.project)!;
-  const view = useMemo(() => buildProcessView(project, rec, { expected: expectedStudies(samplingSuggestions) }), [project, rec]);
+  const suggestions = useEffectiveSuggestions();
+  const view = useMemo(() => buildProcessView(project, rec, { expected: expectedStudies(suggestions) }), [project, rec, suggestions]);
   const [index, setIndex] = useState(0);
   const last = view.moments.length - 1;
   const at = Math.min(index, last);

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { chainBar, chainStages, type ChainAllowed, type ChainLink, type ChainRoute } from "./chain";
 import { useMbrAllowed, useRiskAllowed, useSamplingAllowed, useTrdAllowed } from "./risk-module";
+import { useEffectiveSuggestions } from "./expected-studies-store";
 import { href } from "./router";
 import { useAssessment, useStore } from "./store";
 import { PHONE_WIDTH, useNarrow } from "./viewport";
@@ -30,7 +31,9 @@ export function DocChainStrip({ route, heading = true }: { route?: ChainRoute; h
   const a = useAssessment();
   const allowed = useChainAllowed();
   const narrow = useNarrow(PHONE_WIDTH);
-  const stages = useMemo(() => (project ? chainStages(project, a, allowed, route) : []), [project, a, allowed, route]);
+  // The sampling stage's open-question count reads the account's expected studies list, so the strip follows it.
+  const expectedList = useEffectiveSuggestions();
+  const stages = useMemo(() => (project ? chainStages(project, a, allowed, route) : []), [project, a, allowed, route, expectedList]);
   if (!project) return null;
   const numbered = stages.filter((s) => s.id !== "risk");
   const at = numbered.findIndex((s) => s.current);
@@ -152,6 +155,7 @@ const LIBRARIES: { module: string; test: (p: string) => boolean; links: { label:
     links: [
       { label: "Sampling tables", path: "/sampling/tables" },
       { label: "Plan subsections", path: "/sampling/subsections" },
+      { label: "Expected studies", path: "/sampling/expected" },
     ],
   },
   { module: "Batch record", test: (p) => p === "/mbr", links: [{ label: "Step blocks", path: "/mbr/library" }] },

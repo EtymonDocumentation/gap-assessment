@@ -37,6 +37,7 @@ import { trdWriteupRoutes } from "./routes/trd-writeups";
 import { riskMethodRoutes } from "./routes/risk-methods";
 import { savedAnswerRoutes } from "./routes/saved-answers";
 import { samplingTableRoutes } from "./routes/sampling-tables";
+import { expectedStudiesRoutes } from "./routes/expected-studies";
 import { subsectionRoutes } from "./routes/subsections";
 import { templateRoutes } from "./routes/templates";
 import { sweepExpired } from "./myfiles";
@@ -77,7 +78,7 @@ export interface RunningServer {
   close(): Promise<void>;
 }
 
-const routes: Route[] = [...authRoutes, ...projectRoutes, ...templateRoutes, ...samplingTableRoutes, ...riskMethodRoutes, ...savedAnswerRoutes, ...mbrBlockRoutes, ...trdWriteupRoutes, ...subsectionRoutes, ...fileRoutes, ...myFilesRoutes];
+const routes: Route[] = [...authRoutes, ...projectRoutes, ...templateRoutes, ...samplingTableRoutes, ...riskMethodRoutes, ...savedAnswerRoutes, ...mbrBlockRoutes, ...trdWriteupRoutes, ...subsectionRoutes, ...expectedStudiesRoutes, ...fileRoutes, ...myFilesRoutes];
 const HOUR_MS = 60 * 60 * 1000;
 const MINUTE_MS = 60 * 1000;
 const WINDOW_15_MIN = 15 * 60 * 1000;

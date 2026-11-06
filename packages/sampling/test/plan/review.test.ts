@@ -268,3 +268,13 @@ describe("design review: answers, fingerprints, switching off", () => {
     }
   });
 });
+
+describe("design review: the account expected list in D2 facts", () => {
+  const p = planOf([], [step(1, "compounding")]);
+  const exp = [{ key: "k", uo: "compounding", type: "mixing_homogeneity" as const, attribute: "One" }];
+  it("a changed list (expectedListId) changes the fingerprint; an unchanged list leaves it as it was", () => {
+    const shipped = designReview(p, { expected: exp })[0]!.factsFingerprint;
+    expect(designReview(p, { expected: exp, expectedListId: "k,other" })[0]!.factsFingerprint).not.toBe(shipped);
+    expect(designReview(p, { expected: exp })[0]!.factsFingerprint).toBe(shipped);
+  });
+});

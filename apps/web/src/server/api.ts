@@ -211,6 +211,10 @@ export const createSamplingTable = (table: unknown) => json<{ id: string }>("POS
 export const putSamplingTable = (id: string, table: unknown) => json<{ table: unknown }>("PUT", `/api/sampling-tables/${enc(id)}`, { json: { table } });
 export const deleteSamplingTable = (id: string) => call("DELETE", `/api/sampling-tables/${enc(id)}`).then(() => undefined);
 
+// ------------------------------------------------------------------ Expected studies list (module "sampling")
+export const getExpectedStudies = () => json<{ doc: unknown }>("GET", "/api/expected-studies").then((r) => r.doc);
+export const putExpectedStudies = (doc: unknown) => json<{ doc: unknown }>("PUT", "/api/expected-studies", { json: { doc } });
+
 // ------------------------------------------------------------------ Plan subsections library (module "sampling")
 export const listSubsections = () => json<{ items: unknown[] }>("GET", "/api/subsections").then((r) => r.items);
 export const createSubsection = (item: unknown) => json<{ id: string }>("POST", "/api/subsections", { json: { item } });

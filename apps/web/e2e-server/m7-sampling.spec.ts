@@ -15,6 +15,27 @@ test("server build: an account without the sampling module has no menu entry and
   expect((await page.request.get("/api/subsections")).status()).toBe(403);
   await go(page, "#/sampling/subsections");
   await expect(page.getByTestId("sampling-not-included")).toBeVisible();
+  // So is the Expected studies list.
+  expect((await page.request.get("/api/expected-studies")).status()).toBe(403);
+  await go(page, "#/sampling/expected");
+  await expect(page.getByTestId("sampling-not-included")).toBeVisible();
+});
+
+test("server build: the Expected studies list is saved per account on the server and survives a reload", async ({ page }) => {
+  test.setTimeout(150_000);
+  await signUp(page, newAccount("sampexp"), makeSamplingInvite());
+  await loadDemo(page);
+  await go(page, "#/sampling/expected");
+  await expect(page.getByRole("heading", { level: 1, name: "Expected studies" })).toBeVisible();
+  await expect(page.getByTestId("exp-current")).toContainText("the shipped list");
+  await page.locator('[data-testid^="exp-tick-"]:not(:checked)').first().check();
+  await page.getByTestId("exp-reason").fill("Server test (fictional)");
+  await page.getByTestId("exp-save").click();
+  await expect(page.getByTestId("exp-current")).toContainText("version 1");
+  const body = (await (await page.request.get("/api/expected-studies")).json()) as { doc: { versions: { reason: string }[] } };
+  expect(body.doc.versions[0]!.reason).toBe("Server test (fictional)");
+  await page.reload();
+  await expect(page.getByTestId("exp-current")).toContainText("version 1");
 });
 
 test("server build: with the module the plan opens and a company table is stored on the server", async ({ page }) => {

@@ -1,4 +1,5 @@
-import { content, samplingSuggestions } from "@gap/content";
+import { content } from "@gap/content";
+import { effectiveSuggestions } from "./expected-studies-store";
 import { isAnswered, planDesignReview, trdOpenItems, type Assessment } from "@gap/engine";
 import { designReviewLine, type DesignReviewView } from "@gap/sampling";
 import type { Project } from "@gap/process-model";
@@ -100,7 +101,7 @@ function samplingStatus(project: Project): string {
   const base = countStatus(project.sampling.plans.map((p) => p.id), "plans");
   const total = { questions: 0, unanswered: 0, lookAgain: 0 };
   for (const plan of project.sampling.plans) {
-    const v = planDesignReview(content, project, plan, samplingSuggestions);
+    const v = planDesignReview(content, project, plan, effectiveSuggestions());
     total.questions += v.questions;
     total.unanswered += v.unanswered;
     total.lookAgain += v.lookAgain;

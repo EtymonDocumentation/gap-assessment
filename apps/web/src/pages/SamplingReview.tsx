@@ -9,9 +9,10 @@ import {
 } from "@gap/engine";
 import { REVIEW_RESPONSES, REVIEW_RESPONSE_LABEL, type ReviewResponse, type SamplingPlan, type StudyEquipment, type StudyEquipmentItem } from "@gap/process-model";
 import { designReviewLine, type ReviewItem } from "@gap/sampling";
-import { samplingSuggestions } from "@gap/content";
+import { useEffectiveSuggestions } from "../expected-studies-store";
 import { useId, useMemo, useState } from "react";
 import { dateTime } from "../lib";
+import { href } from "../router";
 import { useContent, useStore } from "../store";
 import type { Run } from "./SamplingFlow";
 
@@ -25,7 +26,8 @@ import type { Run } from "./SamplingFlow";
 export function useDesignReview(plan: SamplingPlan) {
   const project = useStore((s) => s.project)!;
   const content = useContent();
-  return useMemo(() => planDesignReview(content, project, plan, samplingSuggestions), [content, project, plan]);
+  const suggestions = useEffectiveSuggestions();
+  return useMemo(() => planDesignReview(content, project, plan, suggestions), [content, project, plan, suggestions]);
 }
 
 export function DesignReviewLine({ plan, onOpen }: { plan: SamplingPlan; onOpen: () => void }) {
@@ -146,9 +148,16 @@ function ReviewCard({ plan, item, run, onOpenPoint, onOpenStep }: { plan: Sampli
           )}
         </p>
       )}
+      {f.checkId === "D2" && (
+        <p className="small">
+          <a href={href("/sampling/expected")} data-testid={`review-expected-link-${f.key}`}>
+            Change the expected studies list
+          </a>
+        </p>
+      )}
       {item.state === "look_again" && (
         <p className="notice" role="note" data-testid={`review-lookagain-${f.key}`}>
-          Look again: the plan changed in the part this question reads since it was answered ({item.answer ? `${REVIEW_RESPONSE_LABEL[item.answer.response]}, ${item.answer.by ?? "unknown"}, ${dateTime(item.answer.at)}` : "earlier"}). Please confirm the answer still holds.
+          Look again: {f.checkId === "D2" ? "the plan or the list of expected studies changed" : "the plan changed in the part this question reads"} since it was answered ({item.answer ? `${REVIEW_RESPONSE_LABEL[item.answer.response]}, ${item.answer.by ?? "unknown"}, ${dateTime(item.answer.at)}` : "earlier"}). Please confirm the answer still holds.
         </p>
       )}
       {item.state === "answered" && item.answer && (

@@ -70,8 +70,8 @@ import type { ContentBundle } from "./content";
 import { effectiveContent } from "./custom";
 import type { Block, DocModel, DocSection } from "./document";
 import { documentSourceRefs } from "./document";
-import type { SamplingSuggestions } from "./sampling-seed";
 import { planDesignReview } from "./sampling-review";
+import type { EffectiveSuggestions } from "./expected-list";
 import { buildTrdSeed } from "./trd-seed";
 
 /**
@@ -163,7 +163,7 @@ export function buildSamplingPlanDocument(
   content: ContentBundle,
   project: Project,
   plan: SamplingPlan,
-  library: SamplingSuggestions,
+  library: EffectiveSuggestions,
   opts: SamplingDocumentOptions = {},
 ): DocModel {
   const generatedAt = opts.generatedAt ?? new Date().toISOString();
