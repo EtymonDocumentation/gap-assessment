@@ -494,6 +494,40 @@ export function addTrdItem(project: Project, id: string, stepId: string, input: 
   return { project: next, ref };
 }
 
+/**
+ * Adds an item of the catalog under its own catalog key (custom: false), not a typed "x_trd_n" one. The interview uses it when an
+ * answer is about a catalog parameter, material or test the TRD does not list yet, so the TRD keeps the catalog's name for it and the
+ * `uo.*` blanks of the write-ups find it. The caller checks that the item is in the catalog; the item starts with no value.
+ */
+export function addCatalogTrdItem(project: Project, id: string, stepId: string, input: { collection: SeedCollection; key: string; label: string }, actor: Actor): { project: Project; ref: ItemRef } {
+  const next = structuredClone(project);
+  const d = docOf(next, id);
+  const s = stepOf(d, stepId);
+  if (s.items.some((i) => i.collection === input.collection && i.key === input.key)) throw new TrdError(`${input.label} is already in ${s.label}`);
+  const item: TrdItem = { collection: input.collection, key: input.key, label: text(input.label), custom: false, entered: true, fields: enteredFields(input.collection) };
+  s.items.push(item);
+  assertValid(d);
+  d.updatedAt = actor.at;
+  const ref = { stepId, collection: input.collection, key: item.key };
+  log(next, actor, { action: "trd_item_add", path: itemPath(id, ref), detail: `${s.label}: ${item.label} added to ${id}`, after: item });
+  return { project: next, ref };
+}
+
+/** Where a field lives: the details, a step, or an item. */
+export type FieldHome = { part: "details" } | { part: "step"; stepId: string } | ({ part: "item" } & ItemRef);
+
+/**
+ * Adds an empty field (no project value, no entry) so an answer can be entered over it; setOverride refuses a field that is not there.
+ * It logs nothing by itself: the entry that follows is the recorded change, and the interview calls this only right before it.
+ */
+export function addEmptyTrdField(project: Project, id: string, home: FieldHome, field: { key: string; label: string }): Project {
+  const next = structuredClone(project);
+  const d = docOf(next, id);
+  const { list } = fieldList(d, { ...home, field: field.key } as FieldAddr);
+  if (!list.some((f) => f.key === field.key)) list.push({ key: field.key, label: field.label });
+  return next;
+}
+
 export function renameTrdItem(project: Project, id: string, ref: ItemRef, label: string, actor: Actor): Project {
   const next = structuredClone(project);
   const d = docOf(next, id);

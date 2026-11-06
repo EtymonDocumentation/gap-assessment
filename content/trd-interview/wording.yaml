@@ -1,0 +1,898 @@
+# Wording of the TRD interview (the "Answer questions" tab): one plain question per thing the TRD text reads.
+#
+# Conventions
+#  - The key is the question key the engine derives: doc:<field>, detail:<key>, step:<unit op>.presence, limits:<unit op>.<coll>.<item>,
+#    field:<unit op>.<coll>.<item>.<field>, blank:<write-up blank key>. A key with no entry gets a generated sentence
+#    ("What is the <label> for <item>?") and counts as "wording not written yet"; the content test lists those.
+#  - prompt: a question a process engineer can answer from memory, at most 140 characters. why: one sentence on the GMP reason, at most 220.
+#    hint: how to find or read the answer; glossary: term ids of content/help/glossary.yaml (the page links them).
+#  - {{@stage development, clinical: text ;; ppq: text ;; else: text}} changes a phrase by project stage (never a rule, only wording).
+#  - input / units / choices are given only where the gap-assessment question of the same path does not already supply them
+#    (the engine reuses its choices and units, never its wording).
+#  - The interview never says an answer is wrong or enough, and never names a filing category. No client, product or supplier names.
+version: 1.0.0
+changelog:
+  - version: 1.0.0
+    note: First wording. Every Essentials question (document fields, details, step presence, limits, fields and typed sentences of the write-ups) has its own sentence; More detail questions use the generated sentence until they are written.
+questions:
+  "doc:title":
+    prompt: "What is the title of this transfer document?"
+    why: "The title is how everyone finds and quotes this document, and it appears on the cover and in every export."
+  "doc:docRef":
+    prompt: "What is the document number or reference, if it has one?"
+    why: "The reference ties this draft to the controlled document it will become, so reviewers can match versions."
+    hint: "Your document system assigns it. Leave it open until you have one."
+  "doc:purpose":
+    prompt: "In a sentence or two, why is this transfer being done?"
+    why: "A reader needs the purpose first to judge the rest of the document, and QA checks that the stated scope matches it."
+    hint: "For example: to move filling of this product to the receiving unit. {{@stage development, clinical: For early batches, name the batches this document supports. ;; ppq: For the validation runs, name the PPQ lots this document supports. ;; else: For routine production, name the process this document describes.}}"
+    glossary: [trd, project-stage]
+  "doc:version":
+    prompt: "Which version label should this draft carry?"
+    why: "A version label lets reviewers and approvers be sure they discuss the same text."
+    glossary: [version]
+  "doc:scopeNote":
+    prompt: "Is there anything about the scope a reader should know up front?"
+    why: "Limits on what the document covers are easy to miss, and a short note in the front prevents wrong assumptions later."
+    hint: "For example: a step that stays at the sending unit, or a presentation that is not part of this transfer."
+  "detail:program":
+    prompt: "What is the program or product called?"
+    why: "The name is how every document and record links back to this product."
+  "detail:modality":
+    prompt: "What kind of product is it (modality)?"
+    why: "The modality shapes handling, hold times and which filters and materials can be used."
+  "detail:dosageForm":
+    prompt: "What is the dosage form of the finished product?"
+    why: "The dosage form decides which process steps apply, for example a freeze-dried product has a freeze-drying step."
+  "detail:presentation":
+    prompt: "How is the product presented (vial, syringe, cartridge or similar)?"
+    why: "The container drives the filling, stoppering and inspection steps and which sections of the TRD apply."
+  "detail:site":
+    prompt: "At which site will the product be made (the receiving site)?"
+    why: "The TRD describes the process at this site, so every limit and control is read as belonging to it."
+    glossary: [receiving-unit]
+  "detail:line":
+    prompt: "Which filling line or area will be used?"
+    why: "Equipment and limits can differ from line to line, so the TRD names the line they were set for."
+  "step:ds_shipping_inbound.presence":
+    prompt: "Is the drug substance shipped to the receiving site as part of this process?"
+    why: "The TRD describes only the steps that are done. A step marked not performed is left out instead of being left blank."
+    glossary: [receiving-unit]
+  "step:ds_receipt_thaw.presence":
+    prompt: "Is drug substance received and thawed (or otherwise taken in) at the receiving site?"
+    why: "Receipt and thaw set the first time-out-of-storage clock, so the TRD records whether the step exists."
+  "step:buffer_prep.presence":
+    prompt: "Is a buffer or diluent prepared, thawed or taken in as part of this process?"
+    why: "Buffer is a product-contact material with its own hold times, so the TRD says whether it plays a role here."
+  "step:compounding.presence":
+    prompt: "Is the drug substance compounded (mixed, pooled or diluted) before filling?"
+    why: "Compounding fixes the batch size and the mixing limits that every later step builds on."
+  "step:bbr_filtration.presence":
+    prompt: "Is the bulk passed through a bioburden-reduction filter before sterile filtration?"
+    why: "A bioburden-reduction step changes what the sterilizing filter sees, so the TRD shows whether it is there."
+    glossary: [bioburden]
+  "step:sterile_filtration.presence":
+    prompt: "Is the bulk sterile filtered before filling?"
+    why: "Sterile filtration is a main control for a product that cannot be sterilized in its final container."
+  "step:aseptic_filling.presence":
+    prompt: "Is the product filled aseptically at the receiving site?"
+    why: "Filling is the core of this transfer, and its limits are read directly into the batch record."
+  "step:stoppering.presence":
+    prompt: "Is there a separate stoppering step (apart from filling)?"
+    why: "Stoppering closes the container; the time vials stay open is a contamination risk the TRD has to bound."
+  "step:lyophilization.presence":
+    prompt: "Is the product freeze-dried (lyophilized)?"
+    why: "A freeze-drying cycle adds many critical settings, so the TRD records whether the step applies."
+  "step:capping.presence":
+    prompt: "Are the containers capped (crimped) after filling?"
+    why: "The seal is part of container closure integrity, so the TRD records where and how it is applied."
+    glossary: [cci]
+  "step:visual_inspection.presence":
+    prompt: "Is the filled product visually inspected at the receiving site?"
+    why: "Inspection finds particles and defects before release, so the TRD records who does it and how."
+  "step:bulk_packaging.presence":
+    prompt: "Is the inspected product packed into bulk containers for holding or shipping?"
+    why: "Bulk packing can be a time-out-of-refrigeration step, so the TRD records whether it is done."
+  "step:labeling_packaging.presence":
+    prompt: "Is the product labelled or packed into secondary packaging at the receiving site?"
+    why: "Labelling controls what reaches the patient, so the TRD records where it is done."
+  "step:storage_shipping.presence":
+    prompt: "Is the finished product stored and shipped from the receiving site?"
+    why: "Storage and shipping conditions protect the product after release, so the TRD records what is done at this site."
+  "blank:site.sendingName":
+    prompt: "What is the name of the sending unit (where the process runs today)?"
+    why: "The TRD names both sides of the transfer, so reviewers know which process the limits were taken from."
+    glossary: [sending-unit]
+  "blank:trd.sendingSiteName":
+    prompt: "Which site is the sending site?"
+    why: "The TRD names both sides of the transfer, so reviewers know which process the limits were taken from."
+    glossary: [sending-unit]
+  "blank:trd.sendingSiteLocation":
+    prompt: "Where is the sending unit located (city and country)?"
+    why: "The location tells reviewers which regulations and shipping lane apply to the starting material."
+    glossary: [sending-unit]
+  "blank:trd.receivingSiteLocation":
+    prompt: "Where is the receiving unit located (city and country)?"
+    why: "The location tells reviewers which regulations and shipping lane apply to the finished product."
+    glossary: [receiving-unit]
+  "blank:trd.batchSize.drugSubstanceLotMixingStatement":
+    prompt: "May drug substance lots be combined in one batch, and how?"
+    why: "Combining lots changes the traceability of the batch, so the TRD states the rule once for everyone."
+  "blank:trd.generalAttributes.sourceDocument":
+    prompt: "Which document lists the general attributes of the product?"
+    why: "Pointing to the controlling document keeps the TRD from repeating, and drifting from, the specification."
+  "blank:trd.formulationPrecautions.lightProtection":
+    prompt: "Does the material need protection from light during storage? Say yes or no, and how."
+    why: "Light can damage some products, so handling and storage conditions are set from the answer."
+  "blank:trd.lightExposure.assessmentReference":
+    prompt: "Which document assesses how much light the product may be exposed to?"
+    why: "The assessment is the evidence behind the light-protection steps, so reviewers can follow the trail."
+  "blank:trd.formulationPrecautions.additional":
+    prompt: "Are there any other handling precautions for the formulation?"
+    why: "Precautions that are not written down are lost in a transfer, so they are written into the TRD."
+  "blank:trd.formulationPrecautions.manufacturingTemperature":
+    prompt: "At what temperature should the product be handled during manufacturing?"
+    why: "Temperature affects stability and viscosity, so the receiving unit needs the range the product was handled at."
+    hint: "A range, controlled room temperature, or temperature-controlled, whichever applies."
+  "blank:trd.processParameters.bioburdenSpecificationReference":
+    prompt: "Which specification sets the bioburden limits?"
+    why: "The bioburden limits come from a controlled specification, so the TRD points to it instead of copying it."
+    glossary: [bioburden]
+  "blank:trd.processParameters.endotoxinSampleHoldTime":
+    prompt: "How long may an endotoxin sample wait before it is tested?"
+    why: "Endotoxin results are only meaningful when the sample is tested within a defined time."
+  "blank:trd.processParameters.endotoxinFallbackHours":
+    prompt: "What is the maximum number of hours from the sample reaching the laboratory until it is tested?"
+    why: "When no hold time is established, a fixed limit from laboratory receipt keeps the result reliable."
+  "blank:trd.processParameters.endotoxinFallbackReference":
+    prompt: "Which document sets this endotoxin sample time?"
+    why: "A reviewer can only accept the time if they can see which controlled document it comes from."
+  "blank:trd.processParameters.filterFlushMedium":
+    prompt: "What fluid is used to flush the filters?"
+    why: "The flush fluid touches the product path, so it has to be a known, approved material."
+  "blank:trd.contactSurfaces.list":
+    prompt: "Which materials are approved for contact with the product?"
+    why: "Only materials that were tested with the product are approved, and the list prevents a later swap by mistake."
+  "blank:trd.fillingTechnology.studySite":
+    prompt: "At which site were the filling studies done?"
+    why: "A study applies to the equipment it was done on, so reviewers need to know where it ran."
+  "blank:trd.fillingTechnology.excludedTechnology":
+    prompt: "Which filling technology should not be used for this product?"
+    why: "Development data can rule a technology out, and the receiving unit has to hear this before it chooses equipment."
+  "blank:trd.fillingTechnology.excludedBasis":
+    prompt: "Which study or report supports leaving that technology out?"
+    why: "A restriction is only credible when it points to its evidence."
+  "blank:trd.fillWeights.density":
+    prompt: "What is the product density, with its unit (for example g/mL)?"
+    why: "Fill weights are converted to volumes using the density, so a wrong density gives wrong fill volumes."
+  "blank:trd.samplingPlan.endotoxinTestingLocation":
+    prompt: "Where are the in-process endotoxin samples tested?"
+    why: "The place decides the sample transport and hold time, so the TRD states it."
+    hint: "Write the receiving unit, the sending unit, or the name of another laboratory."
+  "blank:trd.samplingPlan.additional":
+    prompt: "Is there anything else to say about the samples or the sampling?"
+    why: "Sampling details that are not written down are easily lost between the sites."
+  "blank:trd.scope.withdrawableVolume":
+    prompt: "What volume can be withdrawn or expelled from one container?"
+    why: "The withdrawable volume is what the patient or user can actually take, and the fill volume is set to deliver it."
+  "blank:trd.scope.dsItemNumber":
+    prompt: "What is the item number of the drug substance?"
+    why: "The item number links the TRD to the material in the quality and supply systems."
+  "blank:trd.scope.dpItemNumber":
+    prompt: "What is the item number of the drug product?"
+    why: "The item number links the TRD to the product in the quality and supply systems."
+  "blank:trd.dilutionBuffer.assessmentProcedure":
+    prompt: "Which procedure or agreement governs the assessment of the dilution buffer?"
+    why: "The assessment follows a controlled procedure, and reviewers check that the right one was used."
+  "blank:trd.dilutionBuffer.assessmentDocument":
+    prompt: "What is the reference of the excipient assessment document?"
+    why: "The excipient assessment is the evidence that the dilution buffer is suitable."
+  "blank:trd.dilutionBuffer.preDilutionNeeded":
+    prompt: "Will the receiving unit need to prepare a solution of excipients before the buffer?"
+    why: "A pre-dilution adds a preparation step with its own hold time, so the TRD says clearly whether it exists."
+    input: choice
+    choices:
+      - { value: "will", label: "Yes, a solution has to be prepared" }
+      - { value: "will not", label: "No, it does not" }
+  "blank:trd.dilutionBuffer.additionTolerance":
+    prompt: "What tolerance applies when the excipients are added?"
+    why: "A tolerance tells the operator how far the amount may differ from the target before the batch needs a review."
+  "blank:trd.stopper_position.vacuumStatement":
+    prompt: "Is vacuum-assisted stoppering used? If so, say why."
+    why: "Vacuum stoppering changes the headspace and the stopper position, so the TRD states it with its reason."
+  "blank:trd.stopper_position.tolerance":
+    prompt: "What tolerance applies to the stopper position, with its unit (for example mm)?"
+    why: "The tolerance is the range in which the closure is still tight, and the inspection uses it."
+  "blank:trd.stopper_position.comment":
+    prompt: "Is there anything else to say about the stopper position?"
+    why: "Notes about the stopper position help the receiving unit set up the equipment the same way."
+  "blank:trd.tacitKnowledge.summary":
+    prompt: "What does the sending team know about this process that is not written down anywhere?"
+    why: "Unwritten know-how is the most common reason a transferred process behaves differently, so it is captured here."
+  "blank:trd.processHistory.summary":
+    prompt: "What should the receiving team know about the history of this process (past batches, changes, problems)?"
+    why: "Past problems and changes explain why some limits are set as they are, and they are easy to lose in a handover."
+  "blank:trd.ds_receipt_thaw.storeWithinHoursOfReceipt":
+    prompt: "Within how many hours of receipt is the material put into storage?"
+    why: "The material warms up while it waits, so the TRD bounds the time between receipt and storage."
+  "blank:trd.ds_receipt_thaw.damageReportRecipient":
+    prompt: "Which role or function is told when a shipment arrives damaged?"
+    why: "A damaged shipment needs a quick decision, so the TRD names who receives the report."
+  "blank:trd.ds_receipt_thaw.storeAfterUnpackHours":
+    prompt: "Within how many hours of leaving the shipping container is the material stored?"
+    why: "The clock on the material starts when it leaves its protective container."
+  "blank:trd.ds_receipt_thaw.monitoringDataRecipient":
+    prompt: "Who receives the temperature data recorded during shipment?"
+    why: "Someone has to judge the data before the material is used, so the TRD names who."
+  "blank:trd.ds_receipt_thaw.monitoringDataBusinessDays":
+    prompt: "Within how many business days is the shipment temperature data sent?"
+    why: "A due time means the data is available when the batch decision is made."
+  "blank:trd.ds_receipt_thaw.sideSampleLaboratory":
+    prompt: "Which laboratory tests the side samples?"
+    why: "The laboratory that tests the side samples decides how they are shipped and when results come back."
+  "blank:trd.ds_receipt_thaw.sideSampleBusinessDays":
+    prompt: "Within how many business days are the side sample results reported?"
+    why: "A due time means the results are available when the batch decision is made."
+  "blank:trd.ds_receipt_thaw.firstThawCheckHours":
+    prompt: "After how many hours of thawing is the first check made?"
+    why: "Checking the thaw at a set time keeps the material from being thawed longer than it was shown to tolerate."
+  "blank:trd.ds_receipt_thaw.holdTemperature":
+    prompt: "At what temperature is the thawed material held before pooling?"
+    why: "Hold temperature and hold time go together, and a hold time is only shown for the temperature it was tested at."
+    glossary: [hold-time]
+  "blank:trd.openManipulations.airQuality":
+    prompt: "What air quality (grade) applies to open manipulations?"
+    why: "Open manipulations expose the product, so the air around them has to be clean enough for the product and the step."
+  "blank:trd.openManipulations.higherGradeNote":
+    prompt: "Do some steps need a cleaner grade than that? Which ones?"
+    why: "Some steps are more sensitive than others, and the receiving unit needs to know which."
+  "blank:trd.compounding.poolingMethod":
+    prompt: "How is drug substance pooled (for example sterile tubing, J-tube or dip tube)?"
+    why: "The pooling method decides how much air and foam the product sees, and so how gently it is mixed."
+  "blank:trd.compounding.bottomTubeUsed":
+    prompt: "Is tubing that reaches the bottom of the vessel used when pooling?"
+    why: "Bottom tubing limits foaming and splashing, which can harm some products."
+    input: choice
+    choices:
+      - { value: "is", label: "Yes, bottom tubing is used" }
+      - { value: "is not", label: "No, it is not" }
+  "blank:trd.compounding.inversions":
+    prompt: "How many container inversions (or what other mixing) are done before pooling?"
+    why: "Frozen material can be uneven after thaw, so mixing before pooling makes sure the pool is uniform."
+  "blank:trd.compounding.inversionsRequired":
+    prompt: "Is the mixing before pooling one action or several?"
+    why: "The sentence in the TRD needs to read correctly for the number of actions."
+    input: choice
+    choices:
+      - { value: "is", label: "One action (a single number or step)" }
+      - { value: "are", label: "Several actions (a list or a count)" }
+  "blank:trd.bbr_filtration.productTemperature":
+    prompt: "At what temperature is the product when it is filtered through the bioburden-reduction filter?"
+    why: "Temperature changes viscosity and so the filtration time and pressure."
+  "blank:trd.bbr_filtration.postTestFlushVolume":
+    prompt: "How much fluid is used to flush the filter after the integrity test (volume or weight)?"
+    why: "The flush clears test fluid from the filter before it touches the product."
+  "blank:trd.bbr_filtration.filterTypeMembrane":
+    prompt: "What type of filter and membrane is used for the bioburden-reduction filtration?"
+    why: "The filter and membrane were chosen with the product, and a different one can behave differently."
+  "blank:trd.bbr_filtration.poreSize":
+    prompt: "What is the pore size of the bioburden-reduction filter?"
+    why: "The pore size decides what the filter holds back."
+  "blank:trd.bbr_filtration.effectiveArea":
+    prompt: "What is the effective filtration area of the filter?"
+    why: "Area and flux together decide the filtration time, so the receiving unit needs it to scale correctly."
+  "blank:trd.bbr_filtration.fluxScale":
+    prompt: "At what scale was the filter flux shown to work?"
+    why: "A flux shown at small scale may not carry to full scale, and the TRD should say which it is."
+  "blank:trd.bbr_filtration.maxFiltrationTimeLimit":
+    prompt: "What is the longest time the filtration may take?"
+    why: "A longer contact time can load the filter with bioburden, so the time is limited."
+    glossary: [time-limit]
+  "blank:trd.bbr_filtration.maxDifferentialPressure":
+    prompt: "What is the highest differential pressure across the filter?"
+    why: "Too much pressure can damage the membrane or push organisms through it."
+  "blank:trd.bbr_filtration.filtrationTemperatureRange":
+    prompt: "In which temperature range is the filtration done?"
+    why: "The filtration was shown to work in this range, and outside it flux and retention can change."
+  "blank:trd.bbr_filtration.flushPrimingVolume":
+    prompt: "How much fluid is used to flush or prime the filter before use?"
+    why: "Flushing removes extractables and wets the membrane evenly."
+  "blank:trd.bbr_filtration.retentionValidationReference":
+    prompt: "Which report shows that the filter holds back bacteria with this product?"
+    why: "The retention study is the evidence that the filter does its job with this product."
+  "blank:trd.sterile_filtration.productTemperature":
+    prompt: "At what temperature is the product when it is sterile filtered?"
+    why: "Temperature changes viscosity and so the filtration time and pressure."
+  "blank:trd.sterile_filtration.pupsitAlternativeReference":
+    prompt: "Which risk assessment or document justifies not testing the filter before use (PUPSIT)?"
+    why: "Skipping the pre-use test is acceptable only when there is a documented reason."
+  "blank:trd.sterile_filtration.pressureMonitoringAlternativeReference":
+    prompt: "Which risk assessment or document justifies the alternative to continuous pressure monitoring?"
+    why: "Where continuous monitoring is not possible, the alternative needs a documented reason."
+  "blank:trd.sterile_filtration.flushEachFilter":
+    prompt: "How much fluid is flushed through each filter?"
+    why: "Flushing clears the filter before it sees the product."
+  "blank:trd.sterile_filtration.flushTotal":
+    prompt: "What is the total flush volume?"
+    why: "The total volume sets how much flush fluid has to be ready for the batch."
+  "blank:trd.sterile_filtration.filterTypeMembrane":
+    prompt: "What type of filter and membrane is used for sterile filtration?"
+    why: "The filter and membrane were chosen with the product, and a different one can behave differently."
+  "blank:trd.sterile_filtration.poreSize":
+    prompt: "What is the pore size of the sterilizing filter?"
+    why: "A sterilizing-grade pore size is what makes the filter a sterility control."
+  "blank:trd.sterile_filtration.effectiveArea":
+    prompt: "What is the effective filtration area of the sterilizing filter?"
+    why: "Area and flux together decide the filtration time, so the receiving unit needs it to scale correctly."
+  "blank:trd.sterile_filtration.fluxScale":
+    prompt: "At what scale was the filter flux shown to work?"
+    why: "A flux shown at small scale may not carry to full scale, and the TRD should say which it is."
+  "blank:trd.sterile_filtration.maxFiltrationTimeLimit":
+    prompt: "What is the longest time the sterile filtration may take?"
+    why: "A long contact time loads the filter, so the time is limited."
+    glossary: [time-limit]
+  "blank:trd.sterile_filtration.maxDifferentialPressure":
+    prompt: "What is the highest differential pressure across the sterilizing filter?"
+    why: "Too much pressure can damage the membrane and the integrity of the filter."
+  "blank:trd.sterile_filtration.filtrationTemperatureRange":
+    prompt: "In which temperature range is the sterile filtration done?"
+    why: "The filtration was shown to work in this range, and outside it flux and retention can change."
+  "blank:trd.sterile_filtration.flushPrimingVolume":
+    prompt: "How much fluid is used to flush or prime the sterilizing filter before use?"
+    why: "Flushing removes extractables and wets the membrane evenly."
+  "blank:trd.sterile_filtration.retentionValidationReference":
+    prompt: "Which report shows that the sterilizing filter holds back bacteria with this product?"
+    why: "The bacterial retention study is the evidence that the filter is sterilizing grade for this product."
+  "blank:site.barrier":
+    prompt: "What barrier technology is used in the filling area?"
+    why: "The barrier decides how the operators are separated from the product, which is key to aseptic control."
+  "blank:site.backgroundGrade":
+    prompt: "What is the grade of the area around the filling zone?"
+    why: "The background grade sets the cleanliness of the area the aseptic zone sits in."
+  "blank:trd.rtuComponents.sterilizationMethod":
+    prompt: "How are the ready-to-use components sterilized?"
+    why: "Components that touch the product have to be sterile, and the method decides the controls on arrival."
+  "blank:trd.aseptic_filling.fillStopperSequence":
+    prompt: "How do filling and stoppering follow each other (one after the other, or together)?"
+    why: "The gap between filling and stoppering is the time the product is exposed, so the TRD states it."
+  "blank:trd.aseptic_filling.productViscosity":
+    prompt: "What is the product viscosity?"
+    why: "Viscosity affects the fill accuracy and the pump or needle that works best."
+  "blank:trd.aseptic_filling.clogDelayHours":
+    prompt: "After how many hours of delay is needle clogging a concern?"
+    why: "A long stop can dry or settle the product in the needle, and the TRD says from when this matters."
+  "blank:trd.aseptic_filling.clogLikelihood":
+    prompt: "Is clogging after such a delay likely?"
+    why: "The sentence in the TRD needs to say what the development data showed."
+    input: choice
+    choices:
+      - { value: "likely", label: "Likely" }
+      - { value: "not likely", label: "Not likely" }
+  "blank:trd.aseptic_filling.oxygenSensitive":
+    prompt: "Is the product sensitive to oxygen?"
+    why: "An oxygen-sensitive product needs an inert gas overlay, and the TRD records that decision."
+    input: choice
+    choices:
+      - { value: "is", label: "Yes, it is oxygen sensitive" }
+      - { value: "is not", label: "No, it is not" }
+  "blank:trd.aseptic_filling.overlayRequired":
+    prompt: "Is an inert gas overlay used?"
+    why: "The overlay protects the product from oxygen, and the gas and timing are then part of the process."
+    input: choice
+    choices:
+      - { value: "is", label: "Yes, an overlay is used" }
+      - { value: "is not", label: "No, none is used" }
+  "blank:trd.aseptic_filling.overlayGas":
+    prompt: "Which gas is used for the overlay? Write none if there is no overlay."
+    why: "The gas is a product-contact material, so it has to be named and controlled."
+  "blank:trd.visual_inspection.artifactReference":
+    prompt: "Which document summarises the known harmless artefacts in the inspection?"
+    why: "Inspectors need to tell harmless marks from real defects, and a shared reference keeps their decisions consistent."
+  "blank:site.labellingLocation":
+    prompt: "Where is labelling done?"
+    why: "If labelling happens elsewhere, the product travels again, and the TRD has to cover that step."
+  "blank:site.labellingSite":
+    prompt: "Which site does the labelling?"
+    why: "The labelling site needs its own controls and its own place in the supply chain."
+  "field:ds_shipping_inbound.equip.shipper.operatingPrinciple":
+    prompt: "How is the drug substance shipped (what kind of shipper)?"
+    why: "The shipper decides how well the temperature is held in transit, so the receiving unit needs to know what is used."
+  "field:ds_shipping_inbound.equip.shipper.qualificationStatus":
+    prompt: "Has this shipper been qualified?"
+    why: "A qualified shipper has been shown to hold the temperature over the planned transit time."
+  "limits:ds_shipping_inbound.param.transport_temperature":
+    prompt: "At what temperature is the drug substance shipped?"
+    why: "The transport temperature keeps the material stable on the way, and a reading outside it triggers a review."
+    hint: &limhint "The set point is the target. The NOR is the range you normally run in and the PAR is the range proven acceptable. Fill in what you have and leave the rest."
+    glossary: [set-point, nor, par]
+  "field:ds_shipping_inbound.param.max_transit_time.max":
+    prompt: "What is the longest transit time allowed?"
+    why: "Every extra hour in transit is an hour out of controlled storage, so the transit time is capped."
+  "field:ds_shipping_inbound.ipc.transport_monitoring.tests":
+    prompt: "How is the temperature watched while the material is in transit?"
+    why: "The recorded temperature is the evidence that the material stayed in range."
+  "field:ds_shipping_inbound.doc.shipping_lane.name":
+    prompt: "What is the shipping lane (from where to where)?"
+    why: "A lane is qualified as a whole, so the TRD names the one the material travels."
+  "field:ds_shipping_inbound.study.lane_qualification.status":
+    prompt: "Has the shipping lane been qualified?"
+    why: "A qualified lane has been shown to hold the temperature on the real route."
+  "field:ds_shipping_inbound.ipc.custody.tests":
+    prompt: "How is the chain of custody kept during shipping?"
+    why: "The chain of custody shows who held the material and when, which a review of any deviation relies on."
+  "field:ds_shipping_inbound.param.excursion_allowance.max":
+    prompt: "How long may the temperature be outside the range before the material is no longer used as planned?"
+    why: "A short excursion may be harmless, and the allowance says where the line is so nobody has to guess."
+  "field:ds_shipping_inbound.doc.excursion_handling.approach":
+    prompt: "What happens when the temperature leaves the range during shipping?"
+    why: "Agreeing the response in advance means an excursion is handled the same way every time."
+  "field:ds_receipt_thaw.equip.thaw_unit.operatingPrinciple":
+    prompt: "How is the drug substance thawed?"
+    why: "The thaw method decides the thaw speed and how evenly the product warms up."
+  "limits:ds_receipt_thaw.param.thaw_temperature":
+    prompt: "At what temperature is the drug substance thawed?"
+    why: "Thawing too warm can harm the product, and too cold makes the thaw slower than shown."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "limits:ds_receipt_thaw.param.thaw_duration":
+    prompt: "How long does the thaw take?"
+    why: "The thaw time is part of the time the material is out of frozen storage."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:ds_receipt_thaw.equip.thaw_mixer.operatingPrinciple":
+    prompt: "How is the drug substance mixed after thawing?"
+    why: "Thawed material can be uneven, and the mixing method decides how gently and how well it is made uniform."
+  "field:ds_receipt_thaw.param.max_ambient_time.max":
+    prompt: "How long may the thawed material stay at ambient temperature?"
+    why: "Time at ambient is the riskiest exposure after thaw, so it is capped."
+    glossary: [hold-time]
+  "field:ds_receipt_thaw.param.max_cold_hold.max":
+    prompt: "How long may the thawed material be held cold before pooling?"
+    why: "The cold hold time was shown to be safe up to a limit, and beyond it the product is not covered by the data."
+    glossary: [hold-time]
+  "field:buffer_prep.mat.buffer.supplyRoute":
+    prompt: "How does the buffer reach the site (made on site, received liquid, or received frozen)?"
+    why: "The supply route decides which of the buffer questions apply, such as thawing or preparation."
+  "field:buffer_prep.equip.dispensing.operatingPrinciple":
+    prompt: "How are the raw materials for the buffer dispensed?"
+    why: "The way raw materials are dispensed affects the accuracy of the buffer."
+  "field:buffer_prep.equip.prep_vessel.type":
+    prompt: "What type of vessel is the buffer prepared in?"
+    why: "The vessel decides the mixing and the cleaning or single-use controls."
+  "field:buffer_prep.equip.prep_vessel.capacity":
+    prompt: "What is the capacity of the buffer preparation vessel?"
+    why: "The capacity sets the largest buffer batch that can be made in one go."
+  "limits:buffer_prep.param.batch_volume":
+    prompt: "What volume of buffer is prepared per batch?"
+    why: "The buffer volume has to be large enough for the process and small enough for the vessel."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:buffer_prep.equip.prep_mixer.operatingPrinciple":
+    prompt: "How is the buffer mixed?"
+    why: "The mixer decides how fast and how evenly the buffer comes to its final composition."
+  "limits:buffer_prep.param.mixing_speed":
+    prompt: "At what speed is the buffer mixed?"
+    why: "Mixing speed affects how evenly solids dissolve and how much foam forms."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "limits:buffer_prep.param.mixing_time":
+    prompt: "How long is the buffer mixed?"
+    why: "The mixing time makes sure everything is dissolved before the buffer is used."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:buffer_prep.ipc.panel.tests":
+    prompt: "Which in-process tests are done on the buffer?"
+    why: "In-process tests show that the buffer is right before it is used with the product."
+    glossary: [in-process-control]
+  "field:buffer_prep.param.max_hold_time.max":
+    prompt: "How long may the buffer be held after it is made?"
+    why: "A held buffer can grow bioburden or change, so the hold time is capped."
+    glossary: [hold-time]
+  "limits:buffer_prep.param.storage_temperature":
+    prompt: "At what temperature is the frozen buffer stored?"
+    why: "The storage temperature keeps the buffer stable until it is thawed."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:buffer_prep.equip.thaw_unit.operatingPrinciple":
+    prompt: "How is the frozen buffer thawed?"
+    why: "The thaw method decides the thaw speed and how evenly the buffer warms up."
+  "limits:buffer_prep.param.thaw_temperature":
+    prompt: "At what temperature is the buffer thawed?"
+    why: "Thawing too warm can change the buffer, and too cold makes the thaw slower than shown."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "limits:buffer_prep.param.thaw_duration":
+    prompt: "How long does the buffer thaw take?"
+    why: "The thaw time is part of the time the buffer is out of frozen storage."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:buffer_prep.equip.thaw_mixer.operatingPrinciple":
+    prompt: "How is the buffer mixed after thawing?"
+    why: "Thawed buffer can have a gradient, and mixing makes it uniform before use."
+  "field:buffer_prep.mat.buffer.supplier":
+    prompt: "Who supplies the ready-to-use buffer?"
+    why: "The supplier is part of the material control, and a change of supplier needs a review."
+  "field:buffer_prep.mat.buffer.supplierQualification":
+    prompt: "Has the buffer supplier been qualified?"
+    why: "A qualified supplier has been audited or assessed, which is the basis for trusting the incoming material."
+  "field:buffer_prep.mat.buffer.storageCondition":
+    prompt: "How is the received buffer stored?"
+    why: "The storage condition keeps the buffer within its shelf life."
+  "field:buffer_prep.mat.buffer.shelfLife":
+    prompt: "How long can the received buffer be used (use-by period)?"
+    why: "A buffer past its use-by period is no longer covered by the supplier data."
+  "field:buffer_prep.mat.buffer_bbr_filter.poreRating":
+    prompt: "What pore rating does the buffer bioburden-reduction filter have?"
+    why: "The pore rating decides what the filter holds back from the buffer."
+  "field:buffer_prep.mat.buffer_bbr_filter.materialOfConstruction":
+    prompt: "What membrane does the buffer bioburden-reduction filter have?"
+    why: "The membrane material touches the buffer, so it has to be a known material."
+  "field:buffer_prep.ipc.bioburden.limit":
+    prompt: "What bioburden limit applies to the buffer before it is filtered?"
+    why: "The limit tells operators when the buffer is too contaminated for the filter to protect the next step."
+    glossary: [bioburden]
+  "field:buffer_prep.ipc.integrity.approach":
+    prompt: "How is the integrity of the buffer filter tested?"
+    why: "An integrity test shows the filter works, and the approach says when it is done."
+  "limits:compounding.param.batch_size":
+    prompt: "What is the batch size (mass, volume or number of units, with the unit)?"
+    why: "The batch size sets the scale of everything after it, so the limits are only valid for that scale or the range shown."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:compounding.mat.diluent.description":
+    prompt: "Which buffer or diluent is used to dilute the product?"
+    why: "The diluent becomes part of the formulation, so it is named exactly."
+  "limits:compounding.param.target_concentration":
+    prompt: "What concentration is targeted after dilution?"
+    why: "The target concentration decides the dose in each container."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:compounding.param.max_hold_time.max":
+    prompt: "How long may the formulated bulk be held?"
+    why: "Held bulk can change or pick up bioburden, so the hold time is capped by what was shown."
+    glossary: [hold-time]
+  "field:compounding.equip.mixer.operatingPrinciple":
+    prompt: "How is the formulated bulk mixed?"
+    why: "The mixer decides how gently and how evenly the bulk is made uniform."
+  "field:compounding.equip.vessel.type":
+    prompt: "What type of vessel is used for compounding?"
+    why: "The vessel decides the mixing and the cleaning or single-use controls."
+  "limits:compounding.param.mixing_speed":
+    prompt: "At what speed is the bulk mixed?"
+    why: "Mixing speed affects uniformity and, for some products, foaming or shear."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "limits:compounding.param.mixing_time":
+    prompt: "How long is the bulk mixed?"
+    why: "The mixing time makes sure the bulk is uniform before it moves on."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:compounding.ipc.panel.tests":
+    prompt: "Which in-process tests are done on the compounded bulk?"
+    why: "In-process tests show that the bulk is right before it goes to filtration."
+    glossary: [in-process-control]
+  "field:bbr_filtration.mat.bbr_filter.poreRating":
+    prompt: "What pore rating does the bioburden-reduction filter have?"
+    why: "The pore rating decides what the filter holds back."
+  "field:bbr_filtration.mat.bbr_filter.materialOfConstruction":
+    prompt: "What membrane does the bioburden-reduction filter have?"
+    why: "The membrane material touches the product, so it has to be a known material."
+  "field:bbr_filtration.ipc.integrity.approach":
+    prompt: "How is the integrity of this filter tested?"
+    why: "An integrity test shows the filter works, and the approach says when it is done."
+  "field:bbr_filtration.mat.bbr_filter.supplier":
+    prompt: "Who supplies the bioburden-reduction filter?"
+    why: "The supplier is part of the material control, and a change of supplier needs a review."
+  "field:bbr_filtration.mat.bbr_filter.partNumber":
+    prompt: "What is the part number of the bioburden-reduction filter?"
+    why: "The part number makes sure the same filter is ordered every time."
+  "limits:bbr_filtration.param.differential_pressure":
+    prompt: "What differential pressure is used for the bioburden-reduction filtration?"
+    why: "The pressure drives the flow and is kept below what the membrane was shown to take."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "limits:bbr_filtration.param.max_filtration_time":
+    prompt: "How long does the bioburden-reduction filtration take?"
+    why: "A longer contact with the filter loads it, so the filtration time is limited."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:bbr_filtration.ipc.bioburden.limit":
+    prompt: "What bioburden limit applies to the bulk before this filter?"
+    why: "The limit tells operators when the bulk is too contaminated for the filter to protect the next step."
+    glossary: [bioburden]
+  "field:bbr_filtration.param.max_cold_hold.max":
+    prompt: "How long may the filtered bulk be held at 2 to 8 degrees before sterile filtration?"
+    why: "A held bulk can grow bioburden again, so the hold time is capped."
+    glossary: [hold-time]
+  "field:sterile_filtration.mat.sterilizing_filter.poreRating":
+    prompt: "What pore rating does the sterilizing filter have?"
+    why: "A sterilizing-grade pore rating is what makes the filter a sterility control."
+  "field:sterile_filtration.mat.sterilizing_filter.materialOfConstruction":
+    prompt: "What membrane does the sterilizing filter have?"
+    why: "The membrane material touches the product, so it has to be a known material."
+  "field:sterile_filtration.mat.redundant_filter.present":
+    prompt: "Is a second, redundant sterilizing filter used in series?"
+    why: "A second filter adds protection and changes the integrity testing, so the TRD states whether it is there."
+  "limits:sterile_filtration.param.differential_pressure":
+    prompt: "What differential pressure is used for the sterile filtration?"
+    why: "The pressure drives the flow and is kept below what the membrane was shown to take."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:sterile_filtration.param.max_filtration_time.max":
+    prompt: "What is the longest the sterile filtration may take?"
+    why: "A long contact time loads the filter, so the filtration time is limited."
+    glossary: [time-limit]
+  "field:sterile_filtration.ipc.bioburden.limit":
+    prompt: "What bioburden limit applies to the bulk before the sterilizing filter?"
+    why: "The sterilizing filter is shown to work up to a bioburden level, so the limit protects that claim."
+    glossary: [bioburden]
+  "field:sterile_filtration.ipc.integrity.tests":
+    prompt: "Which integrity tests are done on the sterilizing filter?"
+    why: "The tests show the filter was intact before and after use, which is the evidence behind a sterile filtrate."
+  "field:sterile_filtration.ipc.pupsit.method":
+    prompt: "Which method is used for the pre-use post-sterilization integrity test (PUPSIT)?"
+    why: "The method decides how the test is run and what result counts as a pass."
+  "field:sterile_filtration.ipc.pupsit.wettingFluid":
+    prompt: "Which fluid wets the filter for the PUPSIT?"
+    why: "The wetting fluid affects the test result, so it has to be the one the limits were set with."
+  "field:sterile_filtration.ipc.pupsit.downstreamProtection":
+    prompt: "How is the sterile side protected when the PUPSIT is done?"
+    why: "Testing the filter before use opens the downstream path, and this protects the sterile side."
+  "field:sterile_filtration.ipc.pupsit.justificationBasis":
+    prompt: "What is the basis for not doing the PUPSIT?"
+    why: "Skipping the test is acceptable only when the reason is written down."
+  "field:aseptic_filling.param.max_fill_duration.max":
+    prompt: "How long may filling take, counted as time out of refrigeration?"
+    why: "The product warms up while it is filled, so the filling time is capped by what was shown to be safe."
+    glossary: [time-limit]
+  "field:aseptic_filling.equip.filler.operatingPrinciple":
+    prompt: "Which filling technology is used (for example peristaltic pump or rotary piston)?"
+    why: "The filling technology decides the fill accuracy, the shear on the product and the product-contact parts."
+  "field:aseptic_filling.mat.container.format":
+    prompt: "What container format or size is the product filled into?"
+    why: "The container sets the fill volume, the stopper and the inspection, so the TRD states it."
+  "field:aseptic_filling.mat.stopper.partNumber":
+    prompt: "Which stopper is used (description or part number)?"
+    why: "The stopper is part of the container closure, and a different stopper needs its own checks."
+  "limits:aseptic_filling.param.stopper_position":
+    prompt: "At what depth is the stopper placed?"
+    why: "The stopper depth decides whether the container is sealed tightly and whether the headspace is right."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:aseptic_filling.ipc.fill_check.frequency":
+    prompt: "How are fill weights or volumes checked during filling?"
+    why: "A fill check shows that each container gets the right dose, so the approach is part of the process."
+    glossary: [in-process-control]
+  "limits:aseptic_filling.param.fill_volume":
+    prompt: "What is the target fill volume per container?"
+    why: "The fill volume is the dose the patient receives, so every other limit is built around it."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "limits:aseptic_filling.param.line_speed":
+    prompt: "At what speed does the filling line run?"
+    why: "The line speed sets how long the product is exposed and how well the checks keep up."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:aseptic_filling.equip.stopper_placement_unit.operatingPrinciple":
+    prompt: "How is the stopper placed (for example by plunger or by vacuum)?"
+    why: "The placement method affects the headspace and the closure tightness."
+  "field:aseptic_filling.ipc.stopper_position_check.tests":
+    prompt: "How is the stopper position checked?"
+    why: "The check shows that each stopper sits where it was shown to seal."
+    glossary: [in-process-control]
+  "field:aseptic_filling.param.max_filtered_hold.max":
+    prompt: "How long may the sterile filtered bulk be held before or during filling?"
+    why: "A held sterile bulk is exposed to the line, so the hold time is capped by what was shown."
+    glossary: [hold-time]
+  "field:aseptic_filling.param.max_interventions.max":
+    prompt: "How many interventions are allowed per batch?"
+    why: "Every intervention in the aseptic zone is a contamination risk, so the number is limited."
+  "field:aseptic_filling.param.max_headspace.max":
+    prompt: "What is the largest headspace or air bubble size allowed?"
+    why: "A large headspace can mean a wrong fill or a poor seal, so the size is capped."
+  "field:stoppering.equip.stoppering_unit.type":
+    prompt: "Is the stopper put in partly or fully at this step?"
+    why: "A partly inserted stopper leaves the container open to the next step, and a full one seals it."
+  "field:stoppering.equip.stoppering_unit.operatingPrinciple":
+    prompt: "How are the stoppers placed at this step?"
+    why: "The placement method affects the headspace and the closure tightness."
+  "field:stoppering.mat.stopper.type":
+    prompt: "How are the stoppers prepared (for example ready to sterilize or ready to use)?"
+    why: "The preparation decides how the stoppers are sterilized and checked on arrival."
+  "field:stoppering.mat.stopper.siliconization":
+    prompt: "Are the stoppers siliconized?"
+    why: "Silicone on the stopper can end up in the product, and it also helps the stopper slide in."
+  "field:stoppering.param.max_open_time.max":
+    prompt: "How long may the vials stay partly stoppered?"
+    why: "Open vials are exposed to the environment, so the time is capped by what was shown."
+    glossary: [time-limit]
+  "field:stoppering.ipc.placement_check.tests":
+    prompt: "How is the stopper placement checked?"
+    why: "The check shows that each stopper sits where it was shown to seal."
+    glossary: [in-process-control]
+  "field:lyophilization.equip.loading_system.operatingPrinciple":
+    prompt: "How are the vials loaded into the freeze dryer?"
+    why: "The loading method affects the exposure of the vials and the contamination risk."
+  "limits:lyophilization.param.freeze_shelf_temp":
+    prompt: "At what temperature is the shelf during freezing?"
+    why: "The freezing temperature sets the ice structure, which in turn affects drying and the cake."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:lyophilization.equip.lyophilizer.nucleation":
+    prompt: "How is freezing started (nucleation)?"
+    why: "How ice forms changes the cake structure and the drying time, so the method is part of the cycle."
+  "limits:lyophilization.param.primary_shelf_temp":
+    prompt: "At what temperature is the shelf during primary drying?"
+    why: "The shelf temperature in primary drying has to stay below the product collapse temperature."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "limits:lyophilization.param.primary_pressure":
+    prompt: "What chamber pressure is used during primary drying?"
+    why: "The pressure drives the drying speed and the product temperature."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "limits:lyophilization.param.secondary_shelf_temp":
+    prompt: "At what temperature is the shelf during secondary drying?"
+    why: "The secondary drying temperature sets how much residual moisture is left."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "limits:lyophilization.param.secondary_time":
+    prompt: "How long does secondary drying take?"
+    why: "The secondary drying time is what brings the moisture down to its target."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:lyophilization.param.total_cycle_time.max":
+    prompt: "What is the longest the whole freeze-drying cycle may take?"
+    why: "The total cycle time sets how long the vials are in the chamber and how the batch is scheduled."
+  "field:lyophilization.equip.lyophilizer.closure":
+    prompt: "How are the vials closed in the freeze dryer?"
+    why: "Closing under vacuum or gas sets the headspace and the seal."
+  "field:lyophilization.mat.backfill_gas.type":
+    prompt: "Which gas is used to fill the chamber at the end of the cycle?"
+    why: "The backfill gas stays in the vial headspace, so it has to be a known, controlled material."
+  "field:lyophilization.ipc.residual_moisture.tests":
+    prompt: "How is the residual moisture measured?"
+    why: "The method decides how reliable the moisture result is, and moisture affects the shelf life."
+  "field:lyophilization.ipc.residual_moisture.limit":
+    prompt: "What residual moisture limit applies?"
+    why: "Too much moisture reduces stability, so the limit is tied to the shelf life."
+  "field:lyophilization.ipc.cycle_monitoring.tests":
+    prompt: "How is the freeze-drying cycle monitored?"
+    why: "Monitoring shows that the cycle ran as set and supports the batch decision."
+    glossary: [in-process-control]
+  "field:capping.mat.seal.partNumber":
+    prompt: "Which seal is used (description or part number)?"
+    why: "The seal is part of the container closure, and a different seal needs its own checks."
+  "field:capping.equip.capper.operatingPrinciple":
+    prompt: "How are the seals put on (capping principle)?"
+    why: "The capping principle decides the seal force and the particle risk."
+  "field:capping.equip.capper.type":
+    prompt: "In which environment is capping done?"
+    why: "Capping can generate particles, so the environment it runs in is part of the control."
+  "limits:capping.param.rsf":
+    prompt: "What residual seal force is the target?"
+    why: "The residual seal force shows the seal is tight enough to protect the container."
+    hint: *limhint
+    glossary: [set-point, nor, par, cci]
+  "field:capping.ipc.panel.tests":
+    prompt: "Which in-process checks are done on the cap?"
+    why: "Checks on the cap show that the closure is tight before the batch moves on."
+    glossary: [in-process-control]
+  "field:visual_inspection.param.max_time_out_of_refrigeration.max":
+    prompt: "How long may the product be out of refrigeration during inspection?"
+    why: "The product warms up on the inspection table, so the time is capped by what was shown."
+    glossary: [time-limit]
+  "field:visual_inspection.equip.inspection.operatingPrinciple":
+    prompt: "How is the product inspected (manual, semi-automatic or automatic)?"
+    why: "The inspection method decides how reliably defects are found."
+  "field:visual_inspection.ipc.defects.tests":
+    prompt: "Which classes of defects does the inspection look for?"
+    why: "The defect classes tell inspectors what to reject and what to accept."
+  "field:visual_inspection.ipc.aql.frequency":
+    prompt: "Which sampling plan is used for the AQL check after inspection?"
+    why: "The sampling plan decides how many units are checked and how many defects are acceptable."
+  "limits:visual_inspection.param.inspection_rate":
+    prompt: "At what rate are the containers inspected?"
+    why: "A rate that is too fast lowers how many defects are caught."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:visual_inspection.ipc.reject_rate.limit":
+    prompt: "What reject rate triggers a review?"
+    why: "An unusual reject rate can show that something upstream has changed."
+  "field:visual_inspection.mat.defect_library.type":
+    prompt: "What kind of defect library or kit do the inspectors use?"
+    why: "A defect library trains and checks inspectors against the same examples."
+  "field:bulk_packaging.param.max_time_out_of_refrigeration.max":
+    prompt: "How long may the product be out of refrigeration during bulk packing?"
+    why: "The product warms up while it is packed, so the time is capped by what was shown."
+    glossary: [time-limit]
+  "field:bulk_packaging.mat.bulk_container.type":
+    prompt: "What type of bulk container is used?"
+    why: "The bulk container protects the product during holding and shipping."
+  "field:bulk_packaging.mat.bulk_container.unitsPerContainer":
+    prompt: "How many units go into one bulk container?"
+    why: "The count per container is what the reconciliation and the shipping documents check against."
+  "field:bulk_packaging.mat.bulk_container.seal":
+    prompt: "How is the bulk container closed?"
+    why: "A closure that shows tampering protects the product on its way."
+  "field:bulk_packaging.mat.bulk_product.storageCondition":
+    prompt: "How is the packed bulk stored?"
+    why: "The storage condition keeps the bulk within what its stability data cover."
+  "field:bulk_packaging.param.max_hold_time.max":
+    prompt: "How long may the packed bulk be held?"
+    why: "The hold time is capped by what the stability data support."
+    glossary: [hold-time]
+  "field:bulk_packaging.ipc.bulk_identity.tests":
+    prompt: "How is the identity of the bulk containers labelled?"
+    why: "The label is how everyone downstream knows what is inside, so mix-ups are caught early."
+  "field:bulk_packaging.ipc.bulk_reconciliation.description":
+    prompt: "How are inspected and packed units reconciled?"
+    why: "Reconciliation shows that no unit was lost or added between inspection and packing."
+  "field:bulk_packaging.ipc.container_integrity.tests":
+    prompt: "How is the integrity of the bulk containers checked?"
+    why: "A damaged container can lose the product or let it be contaminated."
+  "field:bulk_packaging.ipc.bulk_aql.frequency":
+    prompt: "Which sampling plan is used to check the packed bulk?"
+    why: "The sampling plan decides how many units are checked and how many defects are acceptable."
+  "field:labeling_packaging.param.max_time_out_of_refrigeration.max":
+    prompt: "How long may the product be out of refrigeration during labelling and packing?"
+    why: "The product warms up while it is labelled, so the time is capped by what was shown."
+    glossary: [time-limit]
+  "field:labeling_packaging.equip.labeler.operatingPrinciple":
+    prompt: "How are the labels applied?"
+    why: "The labelling method affects the label position and the risk of damage to the container."
+  "limits:labeling_packaging.param.labeling_speed":
+    prompt: "At what speed does the labelling line run?"
+    why: "The speed affects how well the labels sit and how well the checks keep up."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:labeling_packaging.equip.serialization.type":
+    prompt: "What level of serialization is used?"
+    why: "Serialization lets each unit or pack be traced, and the level decides what is recorded."
+  "field:labeling_packaging.mat.secondary_pack.format":
+    prompt: "What is the secondary pack configuration?"
+    why: "The pack configuration decides how the product is protected and how it is labelled."
+  "field:labeling_packaging.ipc.label_reconciliation.frequency":
+    prompt: "How often are labels reconciled?"
+    why: "Reconciling labels shows that none went missing, which prevents a wrong label reaching a pack."
+  "field:labeling_packaging.ipc.label_checks.tests":
+    prompt: "Which checks are done on the labels and their print?"
+    why: "These checks protect against a wrong or unreadable label, which is a patient safety risk."
+    glossary: [in-process-control]
+  "field:storage_shipping.param.max_total_time_out_of_refrigeration.max":
+    prompt: "What is the total time out of refrigeration allowed over all the steps?"
+    why: "The product keeps warming through every step, and the total limit keeps the sum within what was shown."
+    glossary: [time-limit]
+  "field:storage_shipping.mat.drug_product.storageCondition":
+    prompt: "How is the finished product stored?"
+    why: "The storage condition keeps the product within its stability data."
+  "field:storage_shipping.equip.storage_unit.operatingPrinciple":
+    prompt: "What kind of storage equipment holds the finished product?"
+    why: "The storage equipment decides how stable and monitored the temperature is."
+  "field:storage_shipping.ipc.storage_monitoring.tests":
+    prompt: "How is the storage temperature monitored?"
+    why: "The record shows that the product stayed in range, and it supports the release decision."
+  "field:storage_shipping.mat.shipped_product.form":
+    prompt: "What form of the product is shipped?"
+    why: "The shipped form decides the packaging and the temperature control."
+  "field:storage_shipping.doc.shipping_lane.destination":
+    prompt: "Where is the product shipped to?"
+    why: "The destination decides the shipping lane and the rules that apply."
+  "field:storage_shipping.doc.shipping_lane.name":
+    prompt: "What is the shipping lane (from where to where)?"
+    why: "A lane is qualified as a whole, so the TRD names the one the product travels."
+  "field:storage_shipping.doc.shipping_lane.modes":
+    prompt: "By which transport modes is the product shipped?"
+    why: "Each transport mode has its own temperature and handling risks."
+  "field:storage_shipping.equip.shipper.operatingPrinciple":
+    prompt: "How is the product shipped (what kind of shipper)?"
+    why: "The shipper decides how well the temperature is held in transit."
+  "field:storage_shipping.param.max_transit_time.max":
+    prompt: "What is the longest transit time allowed?"
+    why: "Every extra hour in transit is an hour out of controlled storage, so the transit time is capped."
+  "field:storage_shipping.param.excursion_allowance.max":
+    prompt: "How long may the temperature be outside the range before the product needs a review?"
+    why: "A short excursion may be harmless, and the allowance says where the line is so nobody has to guess."
+  "field:storage_shipping.ipc.shipping_monitoring.tests":
+    prompt: "How is the temperature watched while the product is shipped?"
+    why: "The recorded temperature is the evidence that the product stayed in range."
