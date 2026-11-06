@@ -6,8 +6,9 @@ import { applyAnswer, type AnswerInput, type FieldAnswer } from "./interview";
 import { setGapOverlay } from "./overlays";
 import { addAction, addItem, addReview, createAssessment, pointRef, setMethod, updateAssessment, updateItem } from "./risk";
 import { addItemFromGap, addItemFromSuggestion, gapSeeds, suggestFailureModes } from "./risk-seed";
-import { acceptSuggestion, addAgencyRequest, addBatch, addFigureItem, addPoint, addStep, addSubsection, applyDesignLoadout, createPlan, projectScopeSteps, setParties, setPointFlow, setReadiness, setTimeZero, updatePlan, updatePlanDesign, updatePoint, updateStep, type PointPatch } from "./sampling";
+import { answerReview, setStudyEquipment, acceptSuggestion, addAgencyRequest, addBatch, addFigureItem, addPoint, addStep, addSubsection, applyDesignLoadout, createPlan, projectScopeSteps, setParties, setPointFlow, setReadiness, setTimeZero, updatePlan, updatePlanDesign, updatePoint, updateStep, type PointPatch } from "./sampling";
 import { suggestPoints, type SamplingSuggestions } from "./sampling-seed";
+import { planDesignReview } from "./sampling-review";
 import { addMbrStep, addParamRow, addPlanPointToSection, addTarget, createMbr, setParam, splitMbr, stepRefToken, updateMbrStep, updateSplit } from "./mbr";
 import { createTrd, setControl, setLimits, setOverride, updateTrd, updateTrdStep } from "./trd";
 import { buildTrdSeed } from "./trd-seed";
@@ -63,6 +64,17 @@ const samplingDemoSchema = z.object({
       title: z.string(),
       notes: z.string().optional(),
       batchRationale: z.string(),
+      /**
+       * Design review demo data (M11): the fictional team's equipment used only for sampling (A5; `step` is a step `ref`, `points` are 1-based
+       * point numbers) and its answers to some findings. An answer names its finding key ("A6:SP-018"); it is stored through answerReview with the
+       * finding's own fingerprint, so it reads "answered". `lookAgain` stores an older fingerprint instead, to show that state too.
+       */
+      studyEquipment: z
+        .object({
+          items: z.array(z.object({ what: z.string(), step: z.string().optional(), points: z.array(z.number().int()).optional(), inCommercialProcess: z.boolean().optional(), qualified: z.boolean().optional(), removedAfter: z.boolean().optional() })),
+        })
+        .optional(),
+      reviewAnswers: z.array(z.object({ key: z.string(), response: z.enum(["confirmed", "changed", "not_applicable"]), reason: z.string().optional(), by: z.string().optional(), at: z.string().optional(), role: z.string().optional(), lookAgain: z.boolean().default(false) })).default([]),
       /** PPQ design decisions and the readiness checklist (plan format 1.5.0). A readiness item left out of the list stays unknown. */
       design: z.object({ bracketing: z.string().optional(), rework: z.string().optional(), engineeringBatch: z.object({ decision: z.enum(["planned", "not_planned"]).optional(), note: z.string().optional() }).optional(), freezeRule: z.string().optional(), postPpq: z.string().optional() }).optional(),
       readiness: z.array(z.object({ key: z.string(), status: z.enum(["complete", "open", "not_applicable"]).optional(), note: z.string().optional() })).default([]),
@@ -388,6 +400,8 @@ export function buildDemoProject(content: ContentBundle, raw: unknown, suggestio
   if (demo.risk && risk) project = applyRiskDemo(project, content, demo.risk, risk.loadouts, risk.failureModes);
   // The TRD starts from the project's own seed, so it needs nothing but the content.
   if (demo.trd) project = applyTrdDemo(project, content, demo.trd, trd?.writeups);
+  // The design review's answers need the finished project (the questions read the TRD, the risk assessment and the catalog).
+  if (demo.sampling && suggestions) project = applyReviewAnswersDemo(project, content, demo.sampling, suggestions);
   // The batch record takes its values from the TRD and its sample rows from the plan, so it comes last and needs the step-blocks library.
   if (demo.mbr && mbr && project.trd.documents.length > 0) project = applyMbrDemo(project, content, demo.mbr, mbr.library);
   return project;
@@ -401,6 +415,22 @@ export function demoSubsectionLibrary(raw: unknown): SubsectionLibraryItem[] {
 /** The fictional company tables of a demo script, for the tables library. */
 export function demoSamplingTables(raw: unknown): CompanyTableSnapshot[] {
   return demoSchema.parse(raw).sampling?.tables ?? [];
+}
+
+/** Stores the demo team answers to design review findings through answerReview. A finding that does not arise (some need the risk assessment, which a caller may not load) is skipped; the demo tests check every key arises in the full build. */
+function applyReviewAnswersDemo(project: Project, content: ContentBundle, s: z.infer<typeof samplingDemoSchema>, suggestions: SamplingSuggestions): Project {
+  s.plans.forEach((pl, i) => {
+    const planId = project.sampling.plans[i]?.id;
+    if (!planId) return;
+    for (const a of pl.reviewAnswers) {
+      const plan = project.sampling.plans.find((p) => p.id === planId)!;
+      const finding = planDesignReview(content, project, plan, suggestions).items.find((x) => x.finding.key === a.key)?.finding;
+      if (!finding) continue;
+      const who: Actor = { name: a.by ?? s.by, at: a.at ?? s.at, ...((a.role ?? s.role) ? { role: (a.role ?? s.role)! } : {}) };
+      project = answerReview(project, planId, a.key, { response: a.response, ...(a.reason ? { reason: a.reason } : {}), factsFingerprint: a.lookAgain ? "demo-earlier-facts" : finding.factsFingerprint }, who);
+    }
+  });
+  return project;
 }
 
 function applySamplingDemo(project: Project, content: ContentBundle, s: z.infer<typeof samplingDemoSchema>, suggestions: SamplingSuggestions, loadouts?: DesignLoadouts): Project {
@@ -528,6 +558,19 @@ function applySamplingDemo(project: Project, content: ContentBundle, s: z.infer<
       }
     }
     for (const m of methods) project = updatePoint(project, created.planId, m.id, { method: m.method as PointPatch["method"] }, who);
+    if (pl.studyEquipment) {
+      const items = pl.studyEquipment.items.map((it, i) => {
+        const stepId = it.step ? stepIds.get(it.step) : undefined;
+        if (it.step && !stepId) throw new Error(`Demo sampling: unknown process step ${it.step} for study equipment`);
+        const pts = (it.points ?? []).map((n) => {
+          const id = pointIds[n - 1];
+          if (!id) throw new Error(`Demo sampling: study equipment names point ${n}, which does not exist`);
+          return id;
+        });
+        return { id: `EQ-${String(i + 1).padStart(2, "0")}`, what: it.what, ...(stepId ? { stepId } : {}), ...(pts.length ? { pointIds: pts } : {}), ...(it.inCommercialProcess !== undefined ? { inCommercialProcess: it.inCommercialProcess } : {}), ...(it.qualified !== undefined ? { qualified: it.qualified } : {}), ...(it.removedAfter !== undefined ? { removedAfter: it.removedAfter } : {}) };
+      });
+      project = setStudyEquipment(project, created.planId, { used: true, items }, who);
+    }
     for (const sub of pl.subsections) {
       const lib = sub.library ? s.subsectionLibrary.find((x) => x.id === sub.library) : undefined;
       if (sub.library && !lib) throw new Error(`Demo sampling: unknown library subsection ${sub.library}`);

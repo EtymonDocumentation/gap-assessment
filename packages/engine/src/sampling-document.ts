@@ -1,5 +1,6 @@
 import {
   MEMO_LINE_LABEL,
+  REVIEW_RESPONSE_LABEL,
   PROCESS_MODEL_VERSION,
   POINT_AFTER_PPQ_LABEL,
   PPQ_READINESS_ITEMS,
@@ -62,6 +63,8 @@ import {
   methodDocumentLines,
   planMethodReminders,
   designReviewLine,
+  studyEquipmentTable,
+  type DesignReviewView,
 } from "@gap/sampling";
 import type { ContentBundle } from "./content";
 import { effectiveContent } from "./custom";
@@ -355,6 +358,8 @@ export function buildSamplingPlanDocument(
       : { type: "paragraph", text: plan.points.length === 0 ? "No sample points yet." : "Every sampling point is placed on a process step." },
     ...subsAfter("process-flow"),
   ]);
+  const equipment = studyEquipmentBlocks(plan);
+  if (equipment.length) add("study-equipment", "Equipment used only for sampling", equipment);
 
   // 4. Statistical bases used, one sub-section per method used
   const used = [...new Set(plan.points.flatMap((p) => (p.sampleSize.method ? [p.sampleSize.method] : [])))];
@@ -454,7 +459,7 @@ export function buildSamplingPlanDocument(
       ["Responsible", p.responsible ? `${RESPONSIBLE_LABEL[p.responsible.party]}${p.responsible.name?.trim() ? `, ${p.responsible.name.trim()}` : ""}` : NOT_GIVEN],
       ["Applies to", p.appliesTo === "all" ? "All batches" : p.appliesTo.map(batchLabel).join(", ")],
       ["Container", p.container],
-      ["How the sample is taken", methodDocumentLines(p, plan).map((l) => l.text).join(" ") || undefined],
+      ["How the sample is taken", methodDocumentLines(p, plan, projectStage(project)).map((l) => l.text).join(" ") || undefined],
       ["Closure", p.closure],
       ["Quantity per sample", p.quantity ? `${p.quantity.value} ${p.quantity.unit}` : undefined],
       ["Containers per sample", p.containerUnitsPerSample !== undefined ? String(p.containerUnitsPerSample) : undefined],
@@ -760,6 +765,9 @@ export function buildSamplingPlanDocument(
   const appendixSubs = subsectionsAt(plan, "appendix");
   if (appendixSubs.length) appendix("plan-subsections", "Additional subsections", subBlocks(appendixSubs));
 
+  // Appendix: the design review (evidence: the questions, the team's answers and reasons, the checks switched off)
+  appendix("design-review", "Design review", designReviewAppendixBlocks(review));
+
   // Appendix: versions
   appendix("versions", "Versions", [
     {
@@ -856,4 +864,56 @@ export function partyTags(plan: SamplingPlan): PartyTags {
   const text = (list: PartyTag[]) => (list.length ? list.map((x) => x.line).join("; ") : "[none chosen]");
   const [from, to, cc] = [on("from"), on("to"), on("cc")];
   return { parties: all, fromParties: from, toParties: to, ccParties: cc, fromText: text(from), toText: text(to), ccText: text(cc), cmoName: names("cmo", "[no CMO named]"), sponsorName: names("sponsor", "[no sponsor named]") };
+}
+
+/**
+ * Equipment used only to take the samples (design review A5) as blocks: for the plan body and the CMO instructions, so the two never differ.
+ * Nothing when no equipment is listed. What the plan does not state shows "Not stated"; nothing is filled in.
+ */
+export function studyEquipmentBlocks(plan: SamplingPlan): Block[] {
+  const t = studyEquipmentTable(plan);
+  if (!t) return [];
+  return [
+    { type: "paragraph", text: "Equipment used only to take samples, as listed by the team. It is not part of the commercial process unless the table says so, and each item is shown with what the plan states about it." },
+    { type: "table", columns: t.columns, rows: t.rows, caption: "Equipment used only for sampling", weights: [0.8, 2, 1.5, 1.2, 1.2, 1, 1.2] },
+  ];
+}
+
+const reviewWhen = (at: string) => `${at.replace("T", " ").slice(0, 16)} UTC`;
+
+/**
+ * Appendix "Design review": the review's questions with the team's answers as evidence, then the checks switched off with their reasons.
+ * The answers stay in the plan and its documents; they do not go into a batch record. Wording is the review's own (never a second text).
+ */
+export function designReviewAppendixBlocks(view: DesignReviewView): Block[] {
+  const out: Block[] = [
+    { type: "paragraph", text: "Questions the design review raised for this plan, and the answers the team gave. A question asks; it does not judge the design. An answer is the team's own, with its reason, and is review evidence only: it is not part of a batch record and it does not say what a change means for a filing." },
+  ];
+  if (view.questions === 0) out.push({ type: "paragraph", text: "The design review raised no questions for the plan as it stands." });
+  else {
+    out.push({ type: "paragraph", text: `${designReviewLine(view)}.` });
+    out.push({
+      type: "table",
+      columns: ["Check", "Subject", "What the plan states", "Question", "Answer", "Reason", "By and date", "Look again"],
+      rows: view.items.map((i) => [
+        `${i.finding.checkId}: ${i.finding.title}`,
+        i.finding.subjects.join(", ") || "The plan",
+        i.finding.states,
+        i.finding.question,
+        i.answer ? REVIEW_RESPONSE_LABEL[i.answer.response] : "Not answered yet",
+        i.answer ? i.answer.reason?.trim() || "No reason recorded" : "",
+        i.answer ? `${i.answer.by?.trim() || "Not recorded"}, ${reviewWhen(i.answer.at)}` : "",
+        i.state === "look_again" ? "Yes: the plan changed in the part this question reads since it was answered" : "",
+      ]),
+      caption: "Design review questions and answers",
+      weights: [1.3, 1, 3, 3, 1.3, 1.6, 1.4, 1.4],
+    });
+  }
+  out.push({ type: "heading", text: "Checks switched off for this plan" });
+  out.push(
+    view.off.length
+      ? { type: "table", columns: ["Check", "Reason"], rows: view.off.map((o) => [`${o.checkId}: ${o.title}`, o.reason || "No reason given"]), caption: "Design review checks switched off" }
+      : { type: "paragraph", text: "No check is switched off." },
+  );
+  return out;
 }

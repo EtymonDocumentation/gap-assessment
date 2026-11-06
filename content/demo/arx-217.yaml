@@ -683,6 +683,11 @@ sampling:
     - title: ARX-217 PPQ sampling plan, Site South Line 4 (fictional)
       notes: Fictional demonstration plan.
       batchRationale: "Three consecutive batches, as the fictional Site South validation master plan VMP-217 (fictional) requires for a transferred process."
+      # Design review demo data (fictional): the team's answers to some of the questions; the others stay open on purpose.
+      reviewAnswers:
+        - {key: "A4:SP-002", response: confirmed, reason: "The Y-connector is part of the single-use assembly drawing and is covered by its qualification (fictional).", by: Alex Example (fictional), at: "2026-10-16T10:30:00.000Z"}
+        - {key: "B1:SP-010", response: not_applicable, reason: "A filter integrity test draws no liquid; it is a test on the filter itself (fictional).", by: Alex Example (fictional), at: "2026-10-16T10:40:00.000Z"}
+        - {key: "D1:buffer_prep", response: changed, reason: "A buffer preparation step is added to the plan in the next revision (fictional).", by: Alex Example (fictional), at: "2026-10-16T11:00:00.000Z"}
       parties:
         - { party: sponsor, name: Alex Example (fictional), role: Technology transfer lead, department: Process Validation (fictional), memoLine: from }
         - { party: sponsor, name: Sam Sample (fictional), role: Validation engineer, department: Process Validation (fictional), memoLine: from }

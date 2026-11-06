@@ -292,6 +292,7 @@ describe("the sampling plan document", () => {
       "Agency requests and commitments",
       "Traceability",
       "Source register",
+      "Design review",
       "Versions",
     ]);
   });

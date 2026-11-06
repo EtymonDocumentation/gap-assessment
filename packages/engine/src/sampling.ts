@@ -254,6 +254,7 @@ function tidyReview(plan: SamplingPlan): void {
   if (!r) return;
   if (r.answers && !Object.keys(r.answers).length) delete r.answers;
   if (r.off && !Object.keys(r.off).length) delete r.off;
+  if (r.volumeFlagPercent === undefined) delete r.volumeFlagPercent;
   if (r.studyEquipment && r.studyEquipment.used === undefined && !r.studyEquipment.items.length) delete r.studyEquipment;
   if (!Object.keys(r).length) delete plan.designReview;
 }
@@ -347,6 +348,25 @@ export function setStudyEquipment(project: Project, planId: string, value: Study
   assertValid(plan);
   plan.updatedAt = actor.at;
   log(next, actor, { action: "sampling_plan_update", path: `sampling.${planId}.designReview.studyEquipment`, detail: `Equipment used only for sampling in ${planId} edited`, before: { studyEquipment: cur ?? null }, after: { studyEquipment: cleaned ?? null } });
+  return next;
+}
+
+/**
+ * "Flag when sampling takes more than __ %" of a batch (check C1). A number above 0, or undefined for blank: with no number the finding only
+ * shows the volumes once to confirm. No default percent exists. The change is logged like every other plan edit.
+ */
+export function setVolumeFlagPercent(project: Project, planId: string, percent: number | undefined, actor: Actor): Project {
+  if (percent !== undefined && !(Number.isFinite(percent) && percent > 0)) throw new SamplingError("The percentage must be a number above 0, or left blank");
+  const next = structuredClone(project);
+  const plan = planOf(next, planId);
+  const cur = plan.designReview?.volumeFlagPercent;
+  if (cur === percent) return project;
+  plan.designReview = { ...plan.designReview };
+  if (percent === undefined) delete plan.designReview.volumeFlagPercent;
+  else plan.designReview.volumeFlagPercent = percent;
+  tidyReview(plan);
+  plan.updatedAt = actor.at;
+  log(next, actor, { action: "sampling_plan_update", path: `sampling.${planId}.designReview.volumeFlagPercent`, detail: `Volume flag of ${planId} ${percent === undefined ? "cleared (no threshold)" : `set to ${percent} %`}`, before: { volumeFlagPercent: cur ?? null }, after: { volumeFlagPercent: percent ?? null } });
   return next;
 }
 

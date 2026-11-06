@@ -5,6 +5,7 @@ import {
   planDesignReview,
   setReviewCheckOff,
   setStudyEquipment,
+  setVolumeFlagPercent,
 } from "@gap/engine";
 import { REVIEW_RESPONSES, REVIEW_RESPONSE_LABEL, type ReviewResponse, type SamplingPlan, type StudyEquipment, type StudyEquipmentItem } from "@gap/process-model";
 import { designReviewLine, type ReviewItem } from "@gap/sampling";
@@ -72,6 +73,14 @@ export function SamplingReview({ plan, run, onOpenPoint }: { plan: SamplingPlan;
           )}
         </div>
       ))}
+      {/* The C1 card carries the threshold field; when the percent is set and sampling stays below it, no card is raised, so the field stays here
+          where it can still be changed or cleared (no settings screen, nothing that disappears with its card). */}
+      {plan.designReview?.volumeFlagPercent !== undefined && !view.items.some((i) => i.finding.checkId === "C1") && (
+        <div className="review-card" data-testid="review-volume-idle">
+          <p className="small">Sampling does not take more than the percentage set below, so the volume question is not raised.</p>
+          <VolumeFlagField plan={plan} run={run} />
+        </div>
+      )}
       {view.off.length > 0 && (
         <details data-testid="review-off">
           <summary>Checks switched off for this plan ({view.off.length})</summary>
@@ -122,6 +131,7 @@ function ReviewCard({ plan, item, run, onOpenPoint, onOpenStep }: { plan: Sampli
       <p>
         <strong>{f.question}</strong>
       </p>
+      {f.checkId === "C1" && <VolumeFlagField plan={plan} run={run} />}
       {(points.length > 0 || hasStep) && (
         <p className="small row wrap">
           {points.map((id) => (
@@ -194,6 +204,39 @@ function ReviewCard({ plan, item, run, onOpenPoint, onOpenStep }: { plan: Sampli
         </div>
       )}
     </article>
+  );
+}
+
+// ------------------------------------------------------------------ C1: the optional "flag above __ %" field
+
+/** Blank = no threshold (the question then shows the volumes once to confirm). Nothing is pre-filled; a change is logged. */
+function VolumeFlagField({ plan, run }: { plan: SamplingPlan; run: Run }) {
+  const cur = plan.designReview?.volumeFlagPercent;
+  const [text, setText] = useState(cur === undefined ? "" : String(cur));
+  const [bad, setBad] = useState(false);
+  const id = useId();
+  const commit = () => {
+    const t = text.trim().replace(",", ".");
+    if (t === "") {
+      setBad(false);
+      if (cur !== undefined) run((p, actor) => setVolumeFlagPercent(p, plan.id, undefined, actor), "Volume flag cleared");
+      return;
+    }
+    const n = Number(t);
+    if (!Number.isFinite(n) || n <= 0) return setBad(true);
+    setBad(false);
+    if (n !== cur) run((p, actor) => setVolumeFlagPercent(p, plan.id, n, actor), "Volume flag saved");
+  };
+  return (
+    <div className="field">
+      <label htmlFor={id}>Flag when sampling takes more than __ % of a batch (optional; blank = just show the volumes)</label>
+      <input id={id} inputMode="decimal" size={6} style={{ maxWidth: "8rem" }} value={text} onChange={(e) => setText(e.target.value)} onBlur={commit} aria-invalid={bad} aria-describedby={bad ? `${id}-err` : undefined} data-testid="review-volume-percent" />
+      {bad && (
+        <p id={`${id}-err`} className="small" role="alert">
+          Write a number above 0, for example 5, or leave it blank.
+        </p>
+      )}
+    </div>
   );
 }
 

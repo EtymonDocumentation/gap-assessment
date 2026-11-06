@@ -5,6 +5,11 @@ import { projectStage } from "./stage";
 import { projectScopeSteps } from "./sampling";
 import type { SamplingSuggestions } from "./sampling-seed";
 
+/** The catalog entries marked `expected` (a typical fill/finish PPQ covers them), in the shape the review reads. Shared with the Process view's Coverage group. */
+export function expectedStudies(suggestions?: SamplingSuggestions) {
+  return (suggestions?.candidates ?? []).filter((c) => c.expected).map((c) => ({ key: c.key, uo: c.uo, type: c.type, attribute: c.attribute }));
+}
+
 /**
  * The project facts the sampling design review reads besides the plan itself (see review.ts in @gap/sampling): the TRD steps, the
  * Scope's included unit operations, the failure modes of the risk assessments and the catalog entries marked `expected`. Each part is
@@ -19,7 +24,7 @@ export function reviewContext(content: ContentBundle, project: Project, suggesti
       return step ? [{ id: `${a.id}/${it.id}`, failureMode: it.failureMode, ...(step.unitOp ? { unitOp: step.unitOp } : {}), label: step.label, pointIds: it.samplingPointIds }] : [];
     }),
   );
-  const expected = (suggestions?.candidates ?? []).filter((c) => c.expected).map((c) => ({ key: c.key, uo: c.uo, type: c.type, attribute: c.attribute }));
+  const expected = expectedStudies(suggestions);
   return {
     ...(trd ? { trdSteps: trd.steps.map((s) => ({ ...(s.key ? { unitOp: s.key } : {}), label: s.label })) } : {}),
     ...(scope.length ? { scopeSteps: scope.map((s) => ({ ...(s.unitOp ? { unitOp: s.unitOp } : {}), label: s.label })) } : {}),

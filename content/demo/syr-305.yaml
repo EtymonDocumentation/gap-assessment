@@ -862,6 +862,19 @@ sampling:
     - title: SYR-305 PPQ sampling plan (fictional)
       notes: Fictional demonstration plan. Drafting aid output, not validated.
       batchRationale: "Three PPQ batches bracket the widest range the 100 L single-use mixing bag allows: 9 L (the smallest volume that fully covers the impeller), 50 L (the middle, the TRD target) and 100 L (the bag maximum). The PPQ sets the proven acceptable range, so the values proven here become the TRD limits (fictional). Three batches follow from the risk to the patient (a sterile injectable with a moderate process complexity) and from prior knowledge: two development batches and an engineering batch at the receiving unit showed the same behaviour, so three PPQ batches are enough to show the process repeats, and none is chosen as a fixed rule (fictional)."
+      # Design review demo data (fictional): equipment used only to take samples, and the team's answers to some of the questions. Other questions
+      # stay open on purpose, so the Design review tab and the plan appendix show every state (open, answered, look again).
+      studyEquipment:
+        items:
+          - {what: "Single-use tubing set with sterile bottles for the draw at the PPQ Y-connector (fictional)", points: [21], inCommercialProcess: false, qualified: true, removedAfter: true}
+          - {what: "Small peristaltic pump to draw the samples through the PPQ Y-connector (fictional)", points: [21], inCommercialProcess: false}
+      reviewAnswers:
+        - {key: "A4:SP-021", response: confirmed, reason: "The Y-connector is a single-use sterile part from the same supplier family as the assembly; its extractables are covered by the supplier file and it is removed after the last sample (fictional).", by: Alex Example (fictional), at: "2026-10-16T10:30:00.000Z"}
+        - {key: "A6:SP-018", response: confirmed, reason: "Drawn in the Grade A isolator, the same as routine practice at this step (fictional).", by: Alex Example (fictional), at: "2026-10-16T10:40:00.000Z"}
+        - {key: "C1:plan", response: confirmed, reason: "Sampling and flushes take under 8 % of the 9 L batch and the fill still reaches the planned units (fictional).", by: Sam Sample (fictional), role: QA reviewer, at: "2026-10-16T11:00:00.000Z"}
+        - {key: "B3:plan", response: not_applicable, reason: "The steps without samples are covered by the filled-unit release testing (fictional).", by: Sam Sample (fictional), role: QA reviewer, at: "2026-10-16T11:10:00.000Z"}
+        - {key: "D1:ds_shipping_inbound", response: changed, reason: "Inbound shipping is added to the plan as a step in the next revision (fictional).", by: Alex Example (fictional), at: "2026-10-16T11:20:00.000Z"}
+        - {key: "B5:ST-004", response: confirmed, reason: "Bioburden risk is detected by the bioburden sample before the filter (fictional).", by: Alex Example (fictional), at: "2026-10-16T11:30:00.000Z", lookAgain: true}
       design:
         bracketing: "Only the batch size is bracketed (9 L, 50 L and 100 L). Every hold and every time limit is run in every one of the three batches, at the same target in each, because a shorter hold in one batch would leave that hold unproven for the others (fictional)."
         rework: "No rework and no reprocessing are allowed in PPQ. A batch that needs either is stopped and reported as a deviation to the quality unit (fictional)."

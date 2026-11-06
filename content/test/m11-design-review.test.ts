@@ -23,8 +23,12 @@ vi.setConfig({ testTimeout: 60000 });
 const T0 = "2026-11-02T09:00:00.000Z";
 const actor: Actor = { name: "Alex Example (fictional)", at: T0 };
 const build = (id: "syr-305" | "arx-217") => buildDemoProject(content, demos[id], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes }, { library: mbrLibrary });
-const SYR = build("syr-305");
-const ARX = build("arx-217");
+const blank = (p: Project): Project => ({ ...p, sampling: { ...p.sampling, plans: p.sampling.plans.map(({ designReview: _drop, ...rest }) => rest) } });
+// The demos now carry fictional review answers (M11 job 2); these tests start from the same demo with no stored review.
+const SYR_DEMO = build("syr-305");
+const SYR = blank(SYR_DEMO);
+const ARX_DEMO = build("arx-217");
+const ARX = blank(ARX_DEMO);
 const planOf = (p: Project) => p.sampling.plans[0]!;
 
 describe("versions and migration", () => {

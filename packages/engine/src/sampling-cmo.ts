@@ -2,10 +2,11 @@ import { UNIT_OP_FINISHED_PRODUCT, UNIT_OP_NONE, type Project, type SamplingPlan
 import { agencyCoverage, methodDocumentLines, CMO_INTRO, placementText, renderSubsection, reportingInstructions, requestLine, stepOf, tokenContext, typeText } from "@gap/sampling";
 import type { ContentBundle } from "./content";
 import { effectiveContent } from "./custom";
+import { projectStage } from "./stage";
 import type { Block, DocModel, DocSection } from "./document";
 import { TBD_MARKER } from "./product";
 import { documentFingerprint } from "./review";
-import { buildSamplingPlanDocument, samplingOpenItems, SAMPLING_BANNER, type SamplingDocumentOptions } from "./sampling-document";
+import { buildSamplingPlanDocument, samplingOpenItems, SAMPLING_BANNER, studyEquipmentBlocks, type SamplingDocumentOptions } from "./sampling-document";
 import type { SamplingSuggestions } from "./sampling-seed";
 import { buildTrdSeed } from "./trd-seed";
 
@@ -49,12 +50,16 @@ export function buildCmoInstructionsDocument(content: ContentBundle, project: Pr
       : []),
   ]);
 
+  // Equipment used only to take the samples (design review A5): the CMO has to know what is fitted only for the study.
+  const equipment = studyEquipmentBlocks(plan);
+  if (equipment.length) add("cmo-equipment", "Equipment used only for sampling", equipment);
+
   const blocks: Block[] = plan.points.length ? [] : [{ type: "paragraph", text: "There are no sampling points yet, so there are no reporting instructions." }];
   for (const p of plan.points) {
     const ri = reportingInstructions(plan, p, { unitOpLabel });
     blocks.push({ type: "heading", text: `${ri.heading}: ${p.attribute.trim() || "(no test)"} (${typeText(p)}${stepOf(plan, p) ? `; ${placementText(plan, p)}` : ""})` });
     for (const text of ri.paragraphs) blocks.push({ type: "paragraph", text });
-    const how = methodDocumentLines(p, plan);
+    const how = methodDocumentLines(p, plan, projectStage(project));
     if (how.length) {
       blocks.push({ type: "paragraph", text: "How the sample is taken:" });
       blocks.push({ type: "list", items: how.map((l) => l.text) });

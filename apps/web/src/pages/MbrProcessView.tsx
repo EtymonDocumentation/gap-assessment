@@ -1,4 +1,5 @@
-import { branchStatusAt, buildProcessView, CLOCK_STATUS_TEXT, clockLabel, clockStatusAt, describeMoment, type ProcessView, type Severity, type ViewClock, type ViewEquipment, type ViewSample } from "@gap/engine";
+import { samplingSuggestions } from "@gap/content";
+import { branchStatusAt, buildProcessView, expectedStudies, CLOCK_STATUS_TEXT, clockLabel, clockStatusAt, describeMoment, type ProcessView, type Severity, type ViewClock, type ViewEquipment, type ViewSample } from "@gap/engine";
 import { SAMPLE_ACCESS, type MbrRecord, type SampleAccess } from "@gap/process-model";
 import { useMemo, useState } from "react";
 import { href } from "../router";
@@ -71,7 +72,7 @@ export function MbrProcessViewPage({ params }: { params: URLSearchParams }) {
 
 export function MbrProcessView({ rec }: { rec: MbrRecord }) {
   const project = useStore((s) => s.project)!;
-  const view = useMemo(() => buildProcessView(project, rec), [project, rec]);
+  const view = useMemo(() => buildProcessView(project, rec, { expected: expectedStudies(samplingSuggestions) }), [project, rec]);
   const [index, setIndex] = useState(0);
   const last = view.moments.length - 1;
   const at = Math.min(index, last);

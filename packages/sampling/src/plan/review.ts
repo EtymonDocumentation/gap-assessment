@@ -1,6 +1,7 @@
 import type { PlanStep, ReviewAnswer, SamplingPlan, SamplingPoint, SamplingType, StudyEquipmentItem } from "@gap/process-model";
 import { placementText, stepOf } from "./flow.js";
 import { isBagSample, isPortLikeAccess, sampleMethodView } from "./method.js";
+import { mlText, volumeTakenPerBatch } from "./volume.js";
 
 /**
  * The sampling plan's DESIGN REVIEW (M11): findings worded as QUESTIONS the team answers while the plan is still a draft.
@@ -17,7 +18,7 @@ import { isBagSample, isPortLikeAccess, sampleMethodView } from "./method.js";
  *    stores a fingerprint of the facts it was based on; if the facts change later the answer is kept and shown "look again".
  *  - Free-text matching (bioburden and similar words) is CASE-INSENSITIVE and only a fallback to the study type and catalog key.
  *
- * Group C (volume and draw order) is a later job; its ids are reserved here so the answers keep one shape.
+ * Group C (volume taken and draw order on a shared port) reads the same volume arithmetic as the batch record's Process view (volume.ts).
  */
 
 export type ReviewGroup = "A" | "B" | "C" | "D";
@@ -26,7 +27,7 @@ export type ReviewGroup = "A" | "B" | "C" | "D";
 export const REVIEW_GROUP_TITLE: Record<ReviewGroup, string> = {
   A: "How the samples are taken",
   B: "Where the samples sit",
-  C: "Volume and draw order",
+  C: "How much is taken, and in what order",
   D: "What the plan may have left out",
 };
 
@@ -45,6 +46,8 @@ export const REVIEW_CHECKS = [
   { id: "B3", group: "B", title: "Process steps without samples" },
   { id: "B4", group: "B", title: "Samples not placed on the diagram" },
   { id: "B5", group: "B", title: "Risk failure modes without a linked sample" },
+  { id: "C1", group: "C", title: "Volume taken from each batch" },
+  { id: "C2", group: "C", title: "Draw order on a shared port" },
   { id: "D1", group: "D", title: "Process step not in the plan" },
   { id: "D2", group: "D", title: "Expected study missing" },
 ] as const satisfies readonly { id: string; group: ReviewGroup; title: string }[];
@@ -372,6 +375,14 @@ function unknownOf(item: StudyEquipmentItem): string[] {
 
 // ------------------------------------------------------------------ group B: where the samples sit
 
+/**
+ * Where the sterile filtration sits in a list of unit operations (plan steps or the sections of a batch record), -1 when there is none.
+ * The plan's B1 reads the last such step (the final filter), the batch record's check S5 the first section: one place knows the key.
+ */
+export function sterileFilterIndex(unitOps: readonly (string | undefined)[], which: "first" | "last"): number {
+  return which === "first" ? unitOps.indexOf(SF) : unitOps.lastIndexOf(SF);
+}
+
 const stepIndex = (plan: SamplingPlan, step: PlanStep | undefined) => (step ? plan.steps.findIndex((s) => s.id === step.id) : -1);
 
 /**
@@ -380,10 +391,7 @@ const stepIndex = (plan: SamplingPlan, step: PlanStep | undefined) => (step ? pl
  * facts are found here once. Steps are recognised by their catalog key ("sterile_filtration", "aseptic_filling"); a custom step is not.
  */
 export function samplesAfterSterileFilter(plan: SamplingPlan): SamplingPoint[] {
-  let sf = -1;
-  plan.steps.forEach((s, i) => {
-    if (s.unitOp === SF) sf = i;
-  });
+  const sf = sterileFilterIndex(plan.steps.map((s) => s.unitOp), "last");
   if (sf < 0) return [];
   const filling = plan.steps.findIndex((s, i) => i > sf && s.unitOp === FILLING);
   const end = filling < 0 ? sf : filling - 1;
@@ -522,6 +530,104 @@ function riskWithoutSample(plan: SamplingPlan, ctx: ReviewContext | undefined): 
   return out;
 }
 
+// ------------------------------------------------------------------ group C: how much is taken, and in what order
+
+const pct = (n: number) => `${Math.round(n * 10) / 10} %`;
+
+/**
+ * C1: the liquid the plan takes from each batch (samples plus flushed liquid), smallest batch first. Samples are small next to a commercial
+ * batch but not next to a small bracketed PPQ batch, and flushed liquid is lost as well. The numbers come from volumeTakenPerBatch, the
+ * same arithmetic as the batch record's volume tracker. With no "flag above __ %" set the finding shows the numbers once to confirm; with it
+ * set the finding is raised only above it, or when something is missing so the comparison cannot be made (never a guess).
+ */
+function volumeTaken(plan: SamplingPlan): ReviewFinding[] {
+  const rows = volumeTakenPerBatch(plan);
+  if (!rows.some((r) => r.sampleMl + r.flushMl > 0)) return [];
+  const limit = plan.designReview?.volumeFlagPercent;
+  const total = (r: (typeof rows)[number]) => r.sampleMl + r.flushMl;
+  const noSize = (r: (typeof rows)[number]) => r.percent === undefined;
+  const missing = [...new Set(rows.flatMap((r) => r.missing))];
+  const over = rows.filter((r) => limit !== undefined && r.percent !== undefined && r.percent > limit);
+  if (limit !== undefined && over.length === 0 && !rows.some(noSize) && missing.length === 0) return [];
+  const line = (r: (typeof rows)[number]) => {
+    const size = r.batchSizeMl !== undefined ? `, batch size ${r.batchSizeText}` : r.batchSizeText ? `, batch size ${r.batchSizeText} (not in litres, so not compared)` : ", no batch size stated";
+    const flush = r.flushMl > 0 ? ` and ${mlText(r.flushMl)} flushed` : "";
+    return `${r.label}${size}: ${mlText(r.sampleMl)} of samples${flush}, ${mlText(total(r))} in all${r.percent !== undefined ? ` (${pct(r.percent)} of the batch)` : ""}`;
+  };
+  const flagged = limit !== undefined ? ` The plan asks to be flagged above ${limit} %.` : "";
+  return [
+    finding({
+      key: "C1:plan",
+      checkId: "C1",
+      subjects: [...new Set(rows.flatMap((r) => r.pointIds))],
+      states: `Per batch the plan takes ${rows.map(line).join("; ")}.${flagged}${missing.length ? ` Not counted because not stated: ${list(missing)}, so these are lower figures.` : ""}`,
+      why: "Liquid drawn as samples and flushed away leaves the batch, and a small PPQ batch may have little to spare for filling.",
+      question: limit !== undefined && over.length ? `Is it acceptable that sampling takes more than ${limit} % of ${list(over.map((r) => r.label))}?` : "Is this much liquid taken from each batch acceptable, and is enough left to fill the batch as planned?",
+      facts: [limit, rows.map((r) => [r.batchId, r.batchSizeMl, r.sampleMl, r.flushMl, r.pointIds]), missing],
+    }),
+  ];
+}
+
+/** A sample that reports microbial quality (bioburden, endotoxin, sterility, "micro..."). Case-insensitive, like the other word matches. */
+const MICROBIAL = /bio[\s-]?burden|\bcfu\b|endotoxin|sterility|\bmicro/i;
+export const isMicrobialPoint = (p: SamplingPoint): boolean => MICROBIAL.test(pointText(p));
+
+/** The groups of points that draw from one shared port: the shared lists joined up, so A-names-B and B-names-C are one port. Single points are dropped. */
+function sharedPortGroups(plan: SamplingPlan): SamplingPoint[][] {
+  const byId = new Map(plan.points.map((p) => [p.id, p]));
+  const parent = new Map<string, string>();
+  const root = (x: string): string => (parent.get(x) === undefined || parent.get(x) === x ? x : root(parent.get(x)!));
+  for (const p of plan.points) {
+    if (p.method?.access !== "shared_port") continue;
+    parent.set(p.id, parent.get(p.id) ?? p.id);
+    for (const o of p.method.shared?.pointIds ?? []) {
+      if (!byId.has(o)) continue;
+      parent.set(o, parent.get(o) ?? o);
+      parent.set(root(o), root(p.id));
+    }
+  }
+  const groups = new Map<string, SamplingPoint[]>();
+  for (const id of parent.keys()) groups.set(root(id), [...(groups.get(root(id)) ?? []), byId.get(id)!]);
+  return [...groups.values()].filter((g) => g.length > 1).map((g) => g.sort((a, b) => a.id.localeCompare(b.id)));
+}
+
+/** Where a point is named in the typed order: its id, or for a microbial sample also the microbial word. Undefined when it is not named. */
+function orderPosition(order: string, p: SamplingPoint): number | undefined {
+  const at = [order.indexOf(p.id)];
+  if (isMicrobialPoint(p)) at.push(order.search(MICROBIAL));
+  const found = at.filter((n) => n >= 0);
+  return found.length ? Math.min(...found) : undefined;
+}
+
+/**
+ * C2: on a shared port a microbial sample drawn after other samples can pick up what they leave in the port. The order is the typed text of
+ * the samples on the port ("SP-003, then SP-001"); it is read by the sample ids, or the microbial word for the microbial sample. If no
+ * order is written, or it names no microbial sample, the finding says the order cannot be read: it does not guess.
+ */
+function drawOrder(plan: SamplingPlan): ReviewFinding[] {
+  const out: ReviewFinding[] = [];
+  for (const group of sharedPortGroups(plan)) {
+    const micro = group.filter(isMicrobialPoint);
+    if (micro.length === 0) continue;
+    const ids = group.map((p) => p.id);
+    const order = group.map((p) => trim(p.method?.shared?.order)).filter(Boolean);
+    const text = order.join(" ; ");
+    const positions = group.map((p) => ({ p, at: orderPosition(text, p) })).filter((x): x is { p: SamplingPoint; at: number } => x.at !== undefined);
+    const firstOne = positions.sort((a, b) => a.at - b.at)[0];
+    const readable = firstOne !== undefined && positions.some((x) => isMicrobialPoint(x.p));
+    if (readable && isMicrobialPoint(firstOne.p)) continue;
+    const common = { key: `C2:${ids.join("+")}`, checkId: "C2" as const, subjects: ids, why: "A port that has drawn other samples can carry liquid into the next one, and a microbial result is the one that carry-over spoils most.", facts: [ids, order] };
+    out.push(
+      finding(
+        readable
+          ? { ...common, states: `${list(ids)} are drawn from one shared port. The order written is "${order.join("; ")}", which puts ${nameOf(firstOne.p)} before the microbial sample ${list(micro.map(nameOf))}.`, question: "Is the microbial sample drawn first on this port, or do the order and the flushing protect its result?" }
+          : { ...common, states: `${list(ids)} are drawn from one shared port, and ${list(micro.map(nameOf))} ${micro.length === 1 ? "is a microbial sample" : "are microbial samples"}. ${order.length ? `The order written is "${order.join("; ")}", which does not name ${micro.length === 1 ? "it" : "them"}` : "No order is written"}, so the draw order cannot be read.`, question: "In what order are these samples drawn, and is the microbial sample drawn first or protected by the flushing?" },
+      ),
+    );
+  }
+  return out;
+}
+
 // ------------------------------------------------------------------ group D: what the plan may have left out
 
 /** The process the plan is compared with: the project's TRD steps, else the Scope's included unit operations. */
@@ -621,7 +727,7 @@ const ORDER = new Map<string, number>(REVIEW_CHECKS.map((c, i) => [c.id, i]));
  */
 export function designReview(plan: SamplingPlan, ctx?: ReviewContext): ReviewFinding[] {
   const off = plan.designReview?.off ?? {};
-  const all = [...studyEquipment(plan), ...methodChecks(plan), ...methodUnstated(plan), ...afterSterileFilter(plan), ...filterBioburden(plan), ...stepsWithoutSamples(plan), ...notPlaced(plan), ...riskWithoutSample(plan, ctx), ...stepNotInPlan(plan, ctx), ...expectedMissing(plan, ctx)];
+  const all = [...studyEquipment(plan), ...methodChecks(plan), ...methodUnstated(plan), ...afterSterileFilter(plan), ...filterBioburden(plan), ...stepsWithoutSamples(plan), ...notPlaced(plan), ...riskWithoutSample(plan, ctx), ...volumeTaken(plan), ...drawOrder(plan), ...stepNotInPlan(plan, ctx), ...expectedMissing(plan, ctx)];
   return all
     .filter((f) => !(f.checkId in off))
     .map((f, i) => ({ f, i }))

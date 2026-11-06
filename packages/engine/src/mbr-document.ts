@@ -169,7 +169,7 @@ function holdEntrySection(project: Project, rec: MbrRecord, info: HoldEntryInfo,
       rows: entry.samples.map((x) => [x.pointId, x.test, x.quantity ?? "", x.container ?? "", x.storage ?? "", x.hour ?? "", CMO_PLACEHOLDER]),
       caption: `Samples at the ${start ? "start" : "end"} of the hold (from the sampling plan${plan ? ` ${plan.id}` : ""})`,
     });
-    const hrows = plan ? entry.samples.flatMap((x) => { const pt = plan.points.find((p) => p.id === x.pointId); return pt ? methodDocumentLines(pt, plan).map((l) => [x.pointId, l.text]) : []; }) : [];
+    const hrows = plan ? entry.samples.flatMap((x) => { const pt = plan.points.find((p) => p.id === x.pointId); return pt ? methodDocumentLines(pt, plan, projectStage(project)).map((l) => [x.pointId, l.text]) : []; }) : [];
     if (hrows.length) blocks.push({ type: "table", columns: ["Sample", "How the sample is taken"], rows: hrows, caption: "How each sample is taken (from the sampling plan)" });
   } else if (hold) {
     blocks.push({ type: "paragraph", text: `The sampling plan has no sample at the ${start ? "start" : "end"} of this hold.` });
@@ -227,7 +227,7 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
           return ids
             .map((id) => {
               const pt = mplan.points.find((p) => p.id === id);
-              const lines = pt ? methodDocumentLines(pt, mplan).map((l) => l.text) : [];
+              const lines = pt ? methodDocumentLines(pt, mplan, projectStage(project)).map((l) => l.text) : [];
               return lines.length ? `${id}: ${lines.join(" ")}` : "";
             })
             .filter(Boolean)
@@ -281,7 +281,7 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
         });
         // How each sample is taken, for samples that no placed step names (a placed step already carries it).
         const placedIds = new Set(rec.sections.flatMap((ss) => ss.blocks.flatMap((bb) => bb.steps.flatMap((st) => sampleIdsTakenAt(st)))));
-        const mrows = plan ? sampleRows.filter((x) => !placedIds.has(x.pointId)).flatMap((x) => { const pt = plan.points.find((p) => p.id === x.pointId); return pt ? methodDocumentLines(pt, plan).map((l) => [x.pointId, l.text]) : []; }) : [];
+        const mrows = plan ? sampleRows.filter((x) => !placedIds.has(x.pointId)).flatMap((x) => { const pt = plan.points.find((p) => p.id === x.pointId); return pt ? methodDocumentLines(pt, plan, projectStage(project)).map((l) => [x.pointId, l.text]) : []; }) : [];
         if (mrows.length) blocks.push({ type: "table", columns: ["Sample", "How the sample is taken"], rows: mrows, caption: "How each sample is taken (from the sampling plan)" });
       }
       if (b.cmoFields.length) {

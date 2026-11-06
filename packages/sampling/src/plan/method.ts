@@ -1,4 +1,4 @@
-import { SAMPLE_ACCESS_LABEL, type SampleAccess, type SampleFlushPractice, type SampleMethod, type SamplingPlan, type SamplingPoint } from "@gap/process-model";
+import { SAMPLE_ACCESS_LABEL, type SampleAccess, type SampleFlushPractice, type SampleMethod, type SamplingPlan, type SamplingPoint, type StudyEquipmentItem } from "@gap/process-model";
 
 /**
  * How each sample is physically taken (plan format 1.6.0), turned into plain instruction lines and reminders.
@@ -163,9 +163,52 @@ export function methodInstructionLines(p: SamplingPoint): string[] {
   return out;
 }
 
-/** The lines for a batch record or an instruction document: the instruction lines, then one "not stated" blank per unanswered item. */
-export function methodDocumentLines(p: SamplingPoint, plan: SamplingPlan): { text: string; open: boolean }[] {
+// ------------------------------------------------------------------ equipment used only to take the samples (design review A5)
+
+/** What the plan states about one item, in the words of a document. A fact the plan does not state is left out, never guessed. */
+function equipmentFacts(it: StudyEquipmentItem): string[] {
+  return [
+    it.inCommercialProcess === undefined ? undefined : it.inCommercialProcess ? "also in the commercial process" : "not in the commercial process",
+    it.qualified === undefined ? undefined : it.qualified ? "qualified" : "not qualified",
+    it.removedAfter === undefined ? undefined : it.removedAfter ? "removed afterwards" : "not removed afterwards",
+  ].filter((x): x is string => x !== undefined);
+}
+
+/**
+ * The listed study-only equipment that is used for this sample: an item that names the sample, or an item that names only the step the
+ * sample sits on. An item that names neither has no place in a batch record (the review asks where it is used) and is not returned.
+ */
+export function studyEquipmentFor(plan: SamplingPlan, p: SamplingPoint): StudyEquipmentItem[] {
+  const se = plan.designReview?.studyEquipment;
+  if (!se?.used) return [];
+  return se.items.filter((it) => (it.pointIds?.length ? it.pointIds.includes(p.id) : it.stepId !== undefined && it.stepId === p.flow?.stepId));
+}
+
+/** One instruction line for a batch record: "PPQ only: sampling manifold (EQ-01) is used only to take samples; ...". */
+export function studyEquipmentLine(it: StudyEquipmentItem, tag: "PPQ only" | "study only"): string {
+  const facts = equipmentFacts(it);
+  return `${tag}: ${bare(it.what) || it.id} (${it.id}) is used only to take samples${facts.length ? `; ${facts.join("; ")}` : ""}.`;
+}
+
+/** The plan-level table of the listed equipment (plan body and CMO instructions). Undefined when no equipment is listed. */
+export function studyEquipmentTable(plan: SamplingPlan): { columns: string[]; rows: string[][] } | undefined {
+  const se = plan.designReview?.studyEquipment;
+  if (!se?.used || se.items.length === 0) return undefined;
+  const yn = (v: boolean | undefined) => (v === undefined ? "Not stated" : v ? "Yes" : "No");
+  const stepLabel = (id: string | undefined) => (id ? (plan.steps.find((s) => s.id === id)?.label ?? id) : "");
+  return {
+    columns: ["Item", "What it is", "Step", "Samples", "In the commercial process", "Qualified", "Removed afterwards"],
+    rows: se.items.map((it) => [it.id, bare(it.what) || "(not described)", stepLabel(it.stepId) || "Not stated", (it.pointIds ?? []).join(", ") || "Not stated", yn(it.inCommercialProcess), yn(it.qualified), yn(it.removedAfter)]),
+  };
+}
+
+/**
+ * The lines for a batch record or an instruction document: the instruction lines, then the "PPQ only" lines for equipment used only to take
+ * this sample, then one "not stated" blank per unanswered item. `stage` is the project stage key (it decides "PPQ only" or "study only").
+ */
+export function methodDocumentLines(p: SamplingPoint, plan: SamplingPlan, stage?: string): { text: string; open: boolean }[] {
   const lines = methodInstructionLines(p).map((text) => ({ text, open: text.includes(METHOD_BLANK) }));
+  for (const it of studyEquipmentFor(plan, p)) lines.push({ text: studyEquipmentLine(it, studyTagFor(stage, Boolean(p.type?.startsWith("ppq")))), open: false });
   for (const r of samplingMethodReminders(p, plan)) lines.push({ text: `[not stated: ${r.field}] ${METHOD_BLANK}`, open: true });
   return lines;
 }
@@ -213,7 +256,7 @@ const ACCESS_WORDS: Record<SampleAccess, string> = {
 };
 
 /** A flush volume the tracker may count: mL or L only. Any other unit is shown in words but never turned into a number. */
-function flushVolumeMl(v: { value: number; unit: string } | undefined): number | undefined {
+export function flushVolumeMl(v: { value: number; unit: string } | undefined): number | undefined {
   if (!v) return undefined;
   const u = v.unit.trim().toLowerCase();
   if (u === "ml") return v.value;

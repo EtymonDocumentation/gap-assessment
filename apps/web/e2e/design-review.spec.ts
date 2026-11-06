@@ -12,9 +12,9 @@ test.beforeEach(async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
 });
 
-async function openReview(page: Page) {
+async function openReview(page: Page, demo: "arx" | "syr" = "arx") {
   await page.goto("./");
-  await openDemo(page, "arx", "#/register");
+  await openDemo(page, demo, "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
   await goTo(page, "Sampling plan");
   await page.getByTestId("plan-list").getByRole("link").first().click();
@@ -60,10 +60,11 @@ test("a question is answered, kept with who and when, goes to 'look again' when 
   await expectAccessible(page, "design review tab");
   await expectNoHorizontalScroll(page, "design review tab");
 
-  // Answer the first card that is not the A5 plan question.
-  const card = page.locator('[data-testid^="review-card-"]:not([data-testid="review-card-A5:plan"])').first();
-  const testId = (await card.getAttribute("data-testid"))!;
+  // Answer the first unanswered card that is not the A5 plan question (the demo already carries a few fictional answers).
+  const firstOpen = page.locator('[data-testid^="review-card-"][data-state="unanswered"]:not([data-testid="review-card-A5:plan"])').first();
+  const testId = (await firstOpen.getAttribute("data-testid"))!;
   const key = testId.replace("review-card-", "");
+  const card = page.getByTestId(testId); // pinned: the unanswered filter above stops matching once it is answered
   const before = await page.getByTestId("review-summary").innerText();
   await card.getByTestId(`review-reason-${key}`).fill("Checked with the sampling lead (fictional)");
   await card.getByTestId(`review-confirmed-${key}`).click();
@@ -133,9 +134,10 @@ test("nothing in the Design review starts selected, and an answer can be taken b
   await page.getByTestId("tab-review").click();
   const review = page.getByTestId("design-review");
   await expect(review).toBeVisible();
-  // No preselected answer anywhere: no ticked radio or checkbox, no pressed answer button, and no "Not stated" radio at all.
+  // No preselected answer on an unanswered card: no ticked radio or checkbox, no pressed answer button, and no "Not stated" radio at all (answered demo cards show their own answer).
   await expect(review.locator("input:checked")).toHaveCount(0);
-  await expect(review.locator("button[aria-pressed=true]")).toHaveCount(0);
+  await expect(review.locator('[data-state="unanswered"] button[aria-pressed=true]')).toHaveCount(0);
+  await expect(review.locator('[data-state="answered"] button[aria-pressed=true]')).not.toHaveCount(0);
   await expect(review.locator("input[type=radio]")).toHaveCount(2);
   await expect(review.getByTestId("review-eq-used-unset")).toHaveCount(0);
   await page.screenshot({ path: join(SHOTS, `fix2-design-review-${test.info().project.name}.png`), fullPage: true });
@@ -179,4 +181,94 @@ test("the tab is reachable and readable at phone width in dark mode", async ({ p
   await expectNoHorizontalScroll(page, "design review at 390");
   await expectAccessible(page, "design review dark");
   await page.screenshot({ path: join(SHOTS, `m11-j1-phone-dark-${test.info().project.name}.png`), fullPage: true });
+});
+
+// ---- M11 job 2: group C, the percent field, the plan appendix, the Process view Coverage group, the "PPQ only" line.
+for (const [scheme, size, label] of [
+  ["light", { width: 1280, height: 900 }, "desktop"],
+  ["dark", { width: 1280, height: 900 }, "desktop"],
+  ["light", { width: 390, height: 844 }, "phone"],
+  ["dark", { width: 390, height: 844 }, "phone"],
+] as const) {
+  test(`group C on the SYR-305 demo shows the volume question: ${label} ${scheme}`, async ({ page }) => {
+    test.setTimeout(150000);
+    await page.emulateMedia({ colorScheme: scheme });
+    await page.setViewportSize(size);
+    await openReview(page, "syr");
+    await page.getByTestId("tab-review").click();
+    const group = page.getByTestId("review-group-C");
+    await expect(group).toContainText("How much is taken, and in what order");
+    const card = group.getByTestId("review-card-C1:plan");
+    await expect(card).toBeVisible();
+    await expect(card).toContainText("PPQ");
+    // The demo team already confirmed C1: the card shows the answer, not a preselected one on a fresh question.
+    await expect(card).toHaveAttribute("data-state", "answered");
+    await expectNoHorizontalScroll(page, `group C ${label} ${scheme}`);
+    await expectAccessible(page, `group C ${label} ${scheme}`);
+    await group.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: join(SHOTS, `m11-j2-groupC-${label}-${scheme}-${test.info().project.name}.png`), fullPage: true });
+  });
+}
+
+test("the C1 card has an optional percent field: blank shows the numbers, a value flags only above it, a bad value says why", async ({ page }) => {
+  test.setTimeout(150000);
+  await openReview(page, "syr");
+  await page.getByTestId("tab-review").click();
+  const field = page.getByTestId("review-volume-percent");
+  await expect(field).toHaveValue("");
+  await expect(page.getByTestId("review-card-C1:plan")).toBeVisible();
+  // A value that is not above 0 says why and stores nothing.
+  await field.fill("0");
+  await field.blur();
+  await expect(page.getByRole("alert").filter({ hasText: /above 0/ })).toBeVisible();
+  // 5 % is below the demo's 7.7 %: the card stays and the old answer reads "look again" because the facts changed.
+  await field.fill("5");
+  await field.blur();
+  await expect(page.getByTestId("review-card-C1:plan")).toHaveAttribute("data-state", "look_again");
+  await expect(page.getByTestId("review-card-C1:plan")).toContainText("flagged above 5 %");
+  await page.screenshot({ path: join(SHOTS, `m11-j2-c1-percent-${test.info().project.name}.png`), fullPage: true });
+  await expectAccessible(page, "C1 with a percent");
+  // 20 % is above the demo's share: the question goes quiet, and the field stays so it can be cleared.
+  await field.fill("20");
+  await field.blur();
+  await expect(page.getByTestId("review-card-C1:plan")).toHaveCount(0);
+  await expect(page.getByTestId("review-volume-percent")).toHaveValue("20");
+  await page.getByTestId("review-volume-percent").fill("");
+  await page.getByTestId("review-volume-percent").blur();
+  await expect(page.getByTestId("review-card-C1:plan")).toBeVisible();
+});
+
+test("the plan document has the Design review appendix and the study-only equipment", async ({ page }) => {
+  test.setTimeout(150000);
+  await openReview(page, "syr");
+  await page.getByTestId("sampling-preview-toggle").click();
+  const preview = page.getByTestId("sampling-preview");
+  await expect(preview).toContainText("Design review");
+  await expect(preview).toContainText("Not answered yet");
+  await expect(preview).toContainText("Checks switched off for this plan");
+  await expect(preview).toContainText("Equipment used only for sampling");
+  await expect(preview).toContainText("Single-use tubing set with sterile bottles");
+});
+
+test("the Process view shows the Coverage group, and the batch record preview carries the PPQ only line", async ({ page }) => {
+  test.setTimeout(150000);
+  await page.goto("./");
+  await openDemo(page, "syr");
+  await goTo(page, "Batch record");
+  await page.getByTestId("mbr-list-table").getByRole("link").first().click();
+  await page.getByTestId("mbr-tab-view").click();
+  await expect(page.getByTestId("pv-page")).toBeVisible();
+  const findings = page.getByTestId("pv-findings");
+  await findings.scrollIntoViewIfNeeded();
+  await expect(findings).toContainText("Coverage");
+  await expect(findings).toContainText(/Drug substance shipping/);
+  await expectAccessible(page, "process view with Coverage");
+  await expectNoHorizontalScroll(page, "process view with Coverage");
+  await findings.screenshot({ path: join(SHOTS, `m11-j2-coverage-${test.info().project.name}.png`) });
+  await page.getByTestId("mbr-tab-word").click();
+  await page.getByTestId("mbr-preview-toggle").click();
+  const preview = page.getByTestId("mbr-preview");
+  await expect(preview).toContainText("PPQ only: Small peristaltic pump");
+  await preview.getByText("PPQ only: Small peristaltic pump").first().scrollIntoViewIfNeeded();
+  await page.screenshot({ path: join(SHOTS, `m11-j2-ppq-only-${test.info().project.name}.png`) });
 });

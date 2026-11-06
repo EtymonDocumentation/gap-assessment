@@ -1,5 +1,6 @@
 import type { MbrRecord, MbrSampleRow, MbrStep, MbrTimeLimit, Project, SamplingPlan } from "@gap/process-model";
-import { sampleMethodView, samplingMethodReminders, type SampleMethodView } from "@gap/sampling";
+import { designReviewView, parseQuantity, sampleMethodView, samplingMethodReminders, sterileFilterIndex, toLitres, volumeMlOf, type ReviewExpectedStudy, type SampleMethodView } from "@gap/sampling";
+import { REVIEW_RESPONSE_LABEL } from "@gap/process-model";
 import { projectStage } from "./stage";
 import { holdEntryInfo, numberSteps, planPointsNotInRecord, sampleMomentKey, sampleNotices, splitIndex } from "./mbr";
 
@@ -183,7 +184,7 @@ export interface ViewFinding {
 
 export interface ViewCheck {
   id: string;
-  group: "Clocks" | "Samples" | "Volumes" | "Structure";
+  group: "Clocks" | "Samples" | "Volumes" | "Structure" | "Coverage";
   title: string;
   /** The data the check needs, in words. */
   needs: string;
@@ -265,26 +266,8 @@ const singleNumber = (v: string | undefined): number | undefined => {
   return m ? Number(m[1]!.replace(",", ".")) : undefined;
 };
 
-const toLitres = (n: number, unit: string | undefined): number | undefined => {
-  const u = (unit ?? "").trim().toLowerCase();
-  return u === "l" ? n : u === "ml" ? n / 1000 : undefined;
-};
-
-interface Quantity {
-  count: number;
-  each: number;
-  unit: string;
-  kind: "volume" | "units" | "mass";
-}
-
-/** "2 x 10 mL", "20 mL", "300 syringes", "2 x 4 syringes". Anything else is not read (the sample then has no stated quantity). */
-export function parseQuantity(q: string | undefined): Quantity | undefined {
-  const m = /^\s*(?:(\d+(?:[.,]\d+)?)\s*[×x]\s*)?(\d+(?:[.,]\d+)?)\s*(ml|l|g|kg|mg|syringes?|units?|vials?)\b/i.exec(q ?? "");
-  if (!m) return undefined;
-  const unit = m[3]!.toLowerCase();
-  const kind = unit === "ml" || unit === "l" ? "volume" : unit === "g" || unit === "kg" || unit === "mg" ? "mass" : "units";
-  return { count: m[1] ? Number(m[1].replace(",", ".")) : 1, each: Number(m[2]!.replace(",", ".")), unit, kind };
-}
+// parseQuantity, toLitres and the mL arithmetic live in @gap/sampling (volume.ts): the sampling plan's design review (C1) counts volume the same way.
+export { parseQuantity };
 
 const STOP = new Set(["maximum", "minimum", "time", "study", "point", "all", "ppq", "batches", "the", "and", "for", "from", "with", "per", "hour", "hours", "range", "expected"]);
 /** Words of a label cut to four letters, so "filter" and "filtration", "hold" and "holding" count as one word. */
@@ -314,7 +297,7 @@ export const sampleMethodOf = sampleMethodView; // (point, project stage): the s
 
 // ------------------------------------------------------------------ the view
 
-export function buildProcessView(project: Project, rec: MbrRecord): ProcessView {
+export function buildProcessView(project: Project, rec: MbrRecord, opts?: { expected?: ReviewExpectedStudy[] }): ProcessView {
   const nums = numberSteps(rec);
   const cut = splitIndex(rec);
   const plan: SamplingPlan | undefined = rec.planId ? project.sampling.plans.find((p) => p.id === rec.planId) : undefined;
@@ -395,7 +378,7 @@ export function buildProcessView(project: Project, rec: MbrRecord): ProcessView 
       pointId: row.pointId,
       test: row.test,
       ...(row.quantity ? { quantityText: row.quantity } : {}),
-      ...(q?.kind === "volume" ? { volumeMl: q.count * q.each * (q.unit === "l" ? 1000 : 1) } : {}),
+      ...(q?.kind === "volume" ? { volumeMl: volumeMlOf(q.count, q.each, q.unit) } : {}),
       ...(q?.kind === "units" ? { units: q.count * q.each } : {}),
       kind,
       sectionNumber: si + 1,
@@ -735,7 +718,7 @@ export function buildProcessView(project: Project, rec: MbrRecord): ProcessView 
     return { status: found.length ? "finding" : "ok", summary: found.length ? `${found.length} of ${compared} disagree.` : `${compared} sample steps agree with their rows.`, found };
   });
   check("S5", "Samples", "No volume sample is drawn after the sterilizing filter without a review", "A sterile-filtration section and volume samples in later sections", () => {
-    const sf = rec.sections.findIndex((s) => s.unitOp === "sterile_filtration");
+    const sf = sterileFilterIndex(rec.sections.map((s) => s.unitOp), "first");
     if (sf < 0) return { status: "na", summary: "The record has no sterile-filtration section." };
     const late = samples.filter((x) => x.volumeMl !== undefined && x.sectionNumber - 1 > sf);
     if (late.length === 0) return { status: "ok", summary: "No volume sample is taken in a section after the sterile filtration." };
@@ -789,6 +772,37 @@ export function buildProcessView(project: Project, rec: MbrRecord): ProcessView 
     const ok = volumeBatches.filter((b) => b.status === "ok").length;
     return { status: found.length ? "finding" : ok > 0 ? "ok" : "no_data", summary: ok + over.length > 0 ? `${ok + over.length} of ${volumeBatches.length} batches compared.${holdUp ? "" : " No row states a hold-up allowance, so the part of the batch that is not filled cannot be explained."}` : "No batch could be compared.", missing, found };
   });
+
+  // D1 / D2 "Coverage": what the linked sampling plan LEFT OUT of the record's process. The questions and wording come from the plan's own
+  // design review (designReviewView), never a second wording; the process compared is the record's sections (which come from the TRD).
+  // No linked plan = no group. A check the plan switched off raises nothing; an answered question is shown with its answer.
+  if (plan) {
+    const view = designReviewView(plan, {
+      trdSteps: rec.sections.map((s) => ({ ...(s.unitOp ? { unitOp: s.unitOp } : {}), label: s.title })),
+      ...(opts?.expected?.length ? { expected: opts.expected } : {}),
+      ...(projectStage(project) ? { stage: projectStage(project)! } : {}),
+    });
+    const coverage = [
+      { id: "D1" as const, title: "Every section of the record has a step in the sampling plan", needs: "The sections of the record and the steps of the linked sampling plan", none: "Every section of the record has a step in the plan." },
+      { id: "D2" as const, title: "Every expected study of the list has a sample in the sampling plan", needs: "The list of expected studies and the samples of the linked sampling plan", none: "No expected study is missing from the plan." },
+    ];
+    for (const c of coverage) {
+      const off = plan.designReview?.off?.[c.id] !== undefined;
+      const items = view.items.filter((i) => i.finding.checkId === c.id);
+      if (c.id === "D2" && !opts?.expected?.length && !off) {
+        checks.push({ id: c.id, group: "Coverage", title: c.title, needs: c.needs, status: "no_data", summary: "No list of expected studies was given to the view.", missing: ["the list of expected studies"], findingIds: [] });
+        continue;
+      }
+      const found = items.map((i) => {
+        const a = i.answer ? ` Answered: ${REVIEW_RESPONSE_LABEL[i.answer.response]}${i.answer.reason?.trim() ? ` (${i.answer.reason.trim().replace(/\.$/, "")})` : ""}${i.state === "look_again" ? "; the facts changed since, look again" : ""}.` : " Not answered yet.";
+        // Cited at the section the question is about (a question about a plan-only step has no section: it points at the start).
+        const si = rec.sections.findIndex((s) => i.finding.subjects.includes(s.unitOp ?? "") || i.finding.subjects.includes(s.title));
+        const at = si >= 0 ? moments.find((m) => m.sectionNumber === si + 1)?.index ?? 0 : 0;
+        return addFinding(c.id, "note", i.finding.question, `${i.finding.states} ${i.finding.why}${a}`, [], [], [at]);
+      });
+      checks.push({ id: c.id, group: "Coverage", title: c.title, needs: c.needs, status: off ? "na" : found.length ? "finding" : "ok", summary: off ? "Switched off for the sampling plan." : found.length ? `${found.length} ${found.length === 1 ? "question" : "questions"} about what the plan leaves out.` : c.none, missing: [], findingIds: found.map((f) => f.id) });
+    }
+  }
 
   // ---- buffer branches. This runs AFTER the checks on purpose: where no step marks the start or the end of a buffer hold, the checks still
   // report that (C4), while the drawing needs a place for the clock. The buffer is a parallel preparation that feeds the product: its hold
