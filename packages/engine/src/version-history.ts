@@ -97,9 +97,20 @@ export function withoutHistory(project: Project): Omit<Project, "versionHistory"
   return rest;
 }
 
-/** Fingerprint of the project without its history. Equal fingerprints = the working copy is the same as that version. */
+/**
+ * Fingerprint of the project without its history. Equal fingerprints = the working copy is the same as that version.
+ * The download log (document.exports) is left out: downloading a Word file records who downloaded what, but it changes no answer, so it
+ * must not make the project show "unsaved changes". The list is emptied rather than removed, so a project that never downloaded anything
+ * gets the same fingerprint as before this rule. The frozen snapshot still keeps the log; only the comparison ignores it.
+ */
 export function projectFingerprint(project: Project | Omit<Project, "versionHistory">): string {
-  return hash64(stableStringify(withoutHistory(project as Project)));
+  const body = withoutHistory(project as Project);
+  return hash64(stableStringify({ ...body, document: { ...body.document, exports: [] } }));
+}
+
+/** The fingerprint as versions saved before the download-log rule stored it (log included). Only used to read those older entries. */
+function legacyFingerprint(project: Project): string {
+  return hash64(stableStringify(withoutHistory(project)));
 }
 
 // ------------------------------------------------------------------ reading the history
@@ -116,7 +127,11 @@ export function lastVersion(project: Project): VersionEntry | undefined {
 /** True when the working copy differs from the newest saved version (or nothing was saved). */
 export function hasUnsavedChanges(project: Project): boolean {
   const last = lastVersion(project);
-  return !last || last.fingerprint !== projectFingerprint(project);
+  if (!last) return true;
+  if (last.fingerprint === projectFingerprint(project)) return false;
+  // A version saved before the download log was left out holds the old kind of fingerprint. Matching it still means "nothing changed",
+  // so such a project does not flip to "unsaved changes" just because the rule changed. Its next download marks it once, until it is saved.
+  return last.fingerprint !== legacyFingerprint(project);
 }
 
 /** "v2", "v2.1". */

@@ -24,6 +24,7 @@ import {
   projectFingerprint,
   projectStage,
   readVersion,
+  recordExport,
   removalLine,
   removeVersion,
   riskStageLine,
@@ -42,7 +43,7 @@ import {
   withoutHistory,
   type ProgramStage,
 } from "@gap/engine";
-import { emptyProject, parseProject, SCHEMA_VERSION, type Actor, type Project } from "@gap/process-model";
+import { emptyProject, parseProject, SCHEMA_VERSION, type Actor, type DocumentExport, type Project } from "@gap/process-model";
 import { renderMarkdown } from "@gap/renderers";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -123,6 +124,13 @@ describe("numbering and snapshots", () => {
     const { project } = await saveVersion(await ensureStartVersion(small(), ACTOR), at(1));
     expect(hasUnsavedChanges(project)).toBe(false);
     expect(hasUnsavedChanges({ ...project, meta: { ...project.meta, title: "Other" } })).toBe(true);
+  });
+  it("a download (export record) is not an unsaved change; an answer edit still is", async () => {
+    const { project } = await saveVersion(await ensureStartVersion(small(), ACTOR), at(1));
+    const downloaded = recordExport(project, { at: at(2).at, by: ACTOR.name, format: "docx", template: { mode: "builtin", name: "Built-in default", version: "1" }, fingerprint: "f".repeat(16), tbdCount: 0 } satisfies DocumentExport);
+    expect(downloaded.document.exports).toHaveLength(1);
+    expect(hasUnsavedChanges(downloaded)).toBe(false);
+    expect(hasUnsavedChanges({ ...downloaded, meta: { ...downloaded.meta, title: "Other" } })).toBe(true);
   });
 });
 

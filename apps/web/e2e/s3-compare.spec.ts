@@ -155,6 +155,10 @@ test("the document says which version it was made from, in the preview and in th
   // A version opened read-only stamps its own label on the preview.
   await go(page, "#/versions");
   await versionRow(page, "PPQ to Clinical").getByRole("button", { name: /Open read-only/ }).click();
+  // Opening unpacks the saved copy first and then moves to Home. Wait for that move before going on; otherwise, on a slow machine (CI
+  // tablet run), it lands after the next navigation and the test reads Home instead of the document.
+  await expect(page.getByText("Read-only: nothing here can be changed.")).toBeVisible();
+  await expect(page).toHaveURL(/#\/?$/);
   await go(page, "#/document");
   await expect(page.getByTestId("version-line")).toContainText(/Version: v[\d.]+ \(saved \d{4}-\d{2}-\d{2}\), project stage/);
   await expect(page.getByTestId("header-line")).not.toContainText("Working copy");
