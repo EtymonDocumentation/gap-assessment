@@ -191,6 +191,9 @@ function Review({ session, file }: { session: ImportSession; file: File }) {
             <button type="button" className="btn primary" onClick={() => navigate("/mbr", { trd: done.trdId })} data-testid="import-start-mbr">
               Start the batch record from this TRD
             </button>
+            <a className="btn" href={href("/trd", { trd: done.trdId, tab: "interview", show: "open" })} data-testid="import-answer-open">
+              Answer the questions that are still open
+            </a>
             <a className="btn" href={href("/trd", { trd: done.trdId })} data-testid="import-open-trd">
               Open the TRD
             </a>

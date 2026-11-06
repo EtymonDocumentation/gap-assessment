@@ -8,18 +8,27 @@ import { countOf, dateTime } from "../lib";
 import { href, navigate } from "../router";
 import { StageRow } from "../stage-ui";
 import { useContent, useStore } from "../store";
+import { placeInterviewTab, trdIsEmpty } from "../trd-interview-lib";
 import type { Run } from "./SamplingFlow";
 import { FieldRow } from "./TrdFieldRow";
+import { TrdInterview, type InterviewShow } from "./TrdInterview";
 import { TrdOutput } from "./TrdOutput";
 import { TrdSteps } from "./TrdSteps";
 import { TrdUpdate, useProjectDifferences } from "./TrdUpdate";
 import { TrdWriteups } from "./TrdWriteups";
 
-export type TrdTab = "details" | "process" | "writeups" | "open" | "output";
-const TAB_LABEL: Record<TrdTab, string> = { details: "1. Details", process: "2. Process", writeups: "3. Descriptions", open: "4. Open items", output: "5. Document" };
+export type TrdTab = "interview" | "details" | "process" | "writeups" | "open" | "output";
+const TAB_LABEL: Record<TrdTab, string> = { interview: "Interview", details: "1. Details", process: "2. Process", writeups: "3. Descriptions", open: "4. Open items", output: "5. Document" };
 export const TRD_TABS = Object.keys(TAB_LABEL) as TrdTab[];
 /** The five existing steps become tabs unchanged (same order and test ids); each gets a one-line purpose and a longer "?" help. */
 const TAB_INFO: Omit<TabDef<TrdTab>, "label">[] = [
+  {
+    id: "interview",
+    testId: "trd-tab-interview",
+    tour: "trd-interview",
+    purpose: "Answer plain questions and the TRD fills itself in. Anything you don't know stays open.",
+    help: "The same TRD as the other tabs, filled by answering one question at a time or from a list. Every answer is written into the TRD, so the form, the descriptions, the open items and the document all show it at once. You can also print the blank form.",
+  },
   {
     id: "details",
     testId: "trd-tab-details",
@@ -65,7 +74,7 @@ const KIND_TEXT: Record<TrdOpenItem["kind"], string> = {
   limit_note: "Note",
 };
 
-export function TrdEditor({ d, initialTab }: { d: TrdDocument; initialTab: TrdTab }) {
+export function TrdEditor({ d, initialTab, initialShow }: { d: TrdDocument; initialTab: TrdTab; initialShow?: InterviewShow }) {
   const update = useStore((s) => s.update);
   const [tab, setTab] = useState<TrdTab>(initialTab);
   // A link to another tab of the TRD that is already open (same page, new address) switches the tab.
@@ -85,7 +94,11 @@ export function TrdEditor({ d, initialTab }: { d: TrdDocument; initialTab: TrdTa
     setTab(t);
     window.history.replaceState(null, "", href("/trd", { trd: d.id, tab: t }));
   };
-  const tabDefs = TAB_INFO.map((t) => ({ ...t, label: `${TAB_LABEL[t.id]}${t.id === "open" ? ` (${open.length})` : ""}` }));
+  // The Interview tab is first for a TRD with nothing in it and otherwise right after "1. Details". Decided once when the page opens, so the tabs do
+  // not move under the person while they answer.
+  const [emptyAtOpen] = useState(() => trdIsEmpty(d));
+  const order = placeInterviewTab(TAB_INFO.filter((t) => t.id !== "interview").map((t) => t.id), "interview" as TrdTab, emptyAtOpen);
+  const tabDefs = order.map((id) => TAB_INFO.find((t) => t.id === id)!).map((t) => ({ ...t, label: `${TAB_LABEL[t.id]}${t.id === "open" ? ` (${open.length})` : ""}` }));
 
   // Facts the page already knows. "Differences from the project" is the same count the review in the Details tab lists.
   const differences = useProjectDifferences(d);
@@ -153,6 +166,7 @@ export function TrdEditor({ d, initialTab }: { d: TrdDocument; initialTab: TrdTa
       )}
 
       <Tabs label="TRD steps" tabs={tabDefs} selected={tab} onSelect={select} testId="trd-tabs" tour="trd-tabs">
+        {tab === "interview" && <TrdInterview d={d} {...(initialShow ? { initialShow } : {})} />}
         {tab === "details" && <Details d={d} run={run} />}
         {/* The update (a newer seed file, or the differences from the project) sits under the details. It stays mounted while another tab is
             open, so a file already read and a review in progress are not lost by a look at the Process tab; the page shows it only here. */}

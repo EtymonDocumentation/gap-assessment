@@ -105,12 +105,15 @@ test("TRD tabs: real tabs with a purpose line, arrow keys switch panels, tab=out
   await openSyringe(page);
   await hash(page, "#/trd?trd=TRD-001");
   const tablist = page.getByRole("tablist", { name: "TRD steps" });
-  await expect(tablist.getByRole("tab")).toHaveCount(5);
+  // Six tabs: the Interview tab sits right after "1. Details" on a TRD that already holds values.
+  await expect(tablist.getByRole("tab")).toHaveCount(6);
   const details = page.getByTestId("trd-tab-details");
   await expect(details).toHaveAttribute("aria-selected", "true");
   await expect(page.getByTestId("tab-purpose")).toContainText("Name the TRD");
   await shot(page, "trd-details-" + test.info().project.name);
   await details.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByTestId("trd-tab-interview")).toBeFocused();
   await page.keyboard.press("ArrowRight");
   await expect(page.getByTestId("trd-tab-process")).toBeFocused();
   await expect(page.getByTestId("trd-tab-process")).toHaveAttribute("aria-selected", "true");

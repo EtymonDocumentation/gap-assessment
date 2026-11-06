@@ -421,6 +421,20 @@ describe("answers", () => {
     expect(applyTrdAnswer(r2.project, trdId, questions(r2.project, trdId).find((x) => x.key === q.key)!, { kind: "limits", nor: { min: 4.5, max: 5.5, unit: "mL", basis: "Development runs (fictional)" } }, who, ctx).changed).toBe(false);
   });
 
+  it("keeps a part's own citation (sources and places) from the card, and an existing one when the answer names none", () => {
+    const q = byKey(qs, "limits:aseptic_filling.param.fill_volume");
+    const cited = { sourceIds: ["src-fict-1"], locations: { "src-fict-1": { section: "4.2", page: "7" } } };
+    const r = applyTrdAnswer(p0, trdId, q, { kind: "limits", nor: { min: 4.5, max: 5.5, unit: "mL", ...cited } }, who, ctx);
+    const get = (p: Project) => doc(p, trdId).steps.find((s) => s.key === "aseptic_filling")!.items.find((i) => i.key === "fill_volume")!.limits!;
+    expect(r.error).toBeUndefined();
+    expect(get(r.project).nor).toMatchObject(cited);
+    expect(events(p0, r.project).at(-1)!.action).toBe("trd_limits_update");
+    // A later answer for another part, with no citation of its own, leaves the first part's citation alone.
+    const q2 = questions(r.project, trdId).find((x) => x.key === q.key)!;
+    const r2 = applyTrdAnswer(r.project, trdId, q2, { kind: "limits", setPoint: { value: 5, unit: "mL" } }, who, ctx);
+    expect(get(r2.project).nor).toMatchObject(cited);
+  });
+
   it("returns the engine's own message when it refuses, and nothing is written", () => {
     const q = byKey(qs, "limits:aseptic_filling.param.fill_volume");
     const r = applyTrdAnswer(p0, trdId, q, { kind: "limits", setPoint: { value: Number.NaN } }, who, ctx);

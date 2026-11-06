@@ -520,13 +520,25 @@ export function trdInterviewProgress(qs: readonly InterviewQuestion[], kept: Rea
 
 // ------------------------------------------------------------------ answers
 
+/** Where one limit is from: source register ids and the section / page of each. A part that names none keeps the citation it has. */
+export interface LimitCitation {
+  sourceIds?: string[];
+  locations?: Record<string, { section?: string; page?: string }>;
+}
+
+/** The citation a limit is written with: its own when the answer names sources (the person changed them), else the one it already has. */
+function citationOf(own: LimitCitation, have: { sourceIds: string[]; locations?: LimitCitation["locations"] } | undefined, fallback: string[]): { sourceIds: string[]; locations?: NonNullable<LimitCitation["locations"]> } {
+  if (own.sourceIds) return { sourceIds: own.sourceIds, ...(own.locations ? { locations: own.locations } : {}) };
+  return { sourceIds: have?.sourceIds ?? fallback, ...(have?.locations ? { locations: have.locations } : {}) };
+}
+
 export type InterviewAnswer =
   /** A typed or chosen value. `values` for a multi-choice question. */
   | { kind: "value"; value?: string; values?: string[]; unit?: string; reason?: string }
   | { kind: "range"; min?: number; max?: number; unit?: string; reason?: string }
   | { kind: "presence"; performed: boolean; reason?: string }
   /** `null` removes a part; leaving a part out keeps it. */
-  | { kind: "limits"; setPoint?: { value: number; unit?: string } | null; nor?: { min?: number; max?: number; unit?: string; basis?: string; note?: string } | null; par?: { min?: number; max?: number; unit?: string; basis?: string; note?: string } | null; sourceIds?: string[] }
+  | { kind: "limits"; setPoint?: ({ value: number; unit?: string } & LimitCitation) | null; nor?: ({ min?: number; max?: number; unit?: string; basis?: string; note?: string } & LimitCitation) | null; par?: ({ min?: number; max?: number; unit?: string; basis?: string; note?: string } & LimitCitation) | null; sourceIds?: string[] }
   | { kind: "control"; control: TrdControl }
   /** Writes nothing at all. The question stays open. */
   | { kind: "dont_know" }
@@ -756,7 +768,7 @@ function writeLimits(project: Project, trdId: string, q: InterviewQuestion, t: E
   const next: TrdLimits = { ...(item.limits ? structuredClone(item.limits) : {}) };
   const sources = ans.sourceIds ?? [];
   if (ans.setPoint === null) delete next.setPoint;
-  else if (ans.setPoint) next.setPoint = { value: num(ans.setPoint.value, "the set point"), ...(text(ans.setPoint.unit) ? { unit: text(ans.setPoint.unit) } : {}), sourceIds: item.limits?.setPoint?.sourceIds ?? sources, ...(item.limits?.setPoint?.locations ? { locations: item.limits.setPoint.locations } : {}) };
+  else if (ans.setPoint) next.setPoint = { value: num(ans.setPoint.value, "the set point"), ...(text(ans.setPoint.unit) ? { unit: text(ans.setPoint.unit) } : {}), ...citationOf(ans.setPoint, item.limits?.setPoint, sources) };
   for (const part of ["nor", "par"] as const) {
     const r = ans[part];
     if (r === null) delete next[part];
@@ -766,8 +778,7 @@ function writeLimits(project: Project, trdId: string, q: InterviewQuestion, t: E
         ...(r.min !== undefined ? { min: num(r.min, "the lowest value") } : {}),
         ...(r.max !== undefined ? { max: num(r.max, "the highest value") } : {}),
         ...(text(r.unit) ? { unit: text(r.unit) } : {}),
-        sourceIds: item.limits?.[part]?.sourceIds ?? sources,
-        ...(item.limits?.[part]?.locations ? { locations: item.limits[part]!.locations } : {}),
+        ...citationOf(r, item.limits?.[part], sources),
         ...(text(r.basis) ? { basis: text(r.basis) } : {}),
         ...(text(r.note) ? { note: text(r.note) } : {}),
       };

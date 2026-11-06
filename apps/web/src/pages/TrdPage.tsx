@@ -9,10 +9,11 @@ import { href, navigate } from "../router";
 import { useStore } from "../store";
 import { useTrdWriteupLibrary } from "../trd-writeups-store";
 import { TRD_SCOPE_TEXT, TRD_TABS, TrdEditor, type TrdTab } from "./TrdEditor";
+import type { InterviewShow } from "./TrdInterview";
 import { TrdFormButton, TrdUploadButton } from "./TrdUploadButton";
 import { useProjectSeed } from "./TrdUpdate";
 
-type StartKind = "project" | "seed-import" | "blank";
+type StartKind = "project" | "seed-import" | "blank" | "interview";
 const ORIGIN_TEXT = { project: "This project", "seed-import": "A seed file", blank: "Blank" } as const;
 
 /** The TRD list and the "New TRD" form (no `trd` parameter) or the editor of one TRD. */
@@ -21,7 +22,8 @@ export function TrdPage({ params }: { params: URLSearchParams }) {
   const id = params.get("trd");
   const d = id ? project.trd.documents.find((x) => x.id === id) : undefined;
   const tab = params.get("tab");
-  return d ? <TrdEditor d={d} initialTab={TRD_TABS.includes(tab as TrdTab) ? (tab as TrdTab) : "details"} /> : <List missing={id ?? undefined} preselect={params.get("start")} />;
+  const show = params.get("show");
+  return d ? <TrdEditor d={d} initialTab={TRD_TABS.includes(tab as TrdTab) ? (tab as TrdTab) : "details"} {...(show === "open" || show === "all" || show === "confirm" ? { initialShow: show as InterviewShow } : {})} /> : <List missing={id ?? undefined} preselect={params.get("start")} />;
 }
 
 function List({ missing, preselect }: { missing?: string | undefined; preselect: string | null }) {
@@ -31,7 +33,7 @@ function List({ missing, preselect }: { missing?: string | undefined; preselect:
   const library = useTrdWriteupLibrary();
   const [title, setTitle] = useState("");
   const [docRef, setDocRef] = useState("");
-  const [kind, setKind] = useState<StartKind | "">(preselect === "project" ? "project" : "");
+  const [kind, setKind] = useState<StartKind | "">(preselect === "project" ? "project" : preselect === "interview" ? "interview" : "");
   const [file, setFile] = useState<{ seed: TrdSeed; name: string } | null>(null);
   const [fileError, setFileError] = useState("");
   const [error, setError] = useState("");
@@ -59,7 +61,7 @@ function List({ missing, preselect }: { missing?: string | undefined; preselect:
     } else if (kind === "seed-import") {
       if (!file) return setError("Choose a TRD seed file first.");
       start = { kind: "seed-import", seed: file.seed };
-    } else start = { kind: "blank" };
+    } else start = { kind: "blank" }; // "Answer questions" is a blank TRD that opens on the Interview tab
     let newId = "";
     const err = update((p, actor) => {
       const r = createTrd(p, { title: title.trim(), ...(docRef.trim() ? { docRef: docRef.trim() } : {}), start, library }, actor);
@@ -70,7 +72,7 @@ function List({ missing, preselect }: { missing?: string | undefined; preselect:
     setTitle("");
     setDocRef("");
     setError("");
-    navigate("/trd", { trd: newId });
+    navigate("/trd", kind === "interview" ? { trd: newId, tab: "interview" } : { trd: newId });
   }
 
   return (
@@ -136,6 +138,27 @@ function List({ missing, preselect }: { missing?: string | undefined; preselect:
           <a className="btn" href={href("/trd-seed")}>
             See the TRD seed
           </a>
+        </div>
+      </section>
+
+      <section className="card stack" aria-labelledby="trd-interview-start" data-testid="trd-interview-start">
+        <h2 id="trd-interview-start">Start by answering questions</h2>
+        <p className="small">No gap assessment and no document needed. You answer plain questions, one at a time or from a list, and the TRD fills itself in. Anything you don't know stays open.</p>
+        <div className="row wrap">
+          <button
+            type="button"
+            className="btn primary"
+            data-testid="trd-interview-btn"
+            onClick={() => {
+              // Only chooses the start and moves to the New TRD form; the title is still yours to write, and nothing is created.
+              setKind("interview");
+              const title = document.querySelector<HTMLInputElement>('[data-testid="trd-title-input"]');
+              title?.scrollIntoView({ block: "center" });
+              title?.focus();
+            }}
+          >
+            Answer questions
+          </button>
         </div>
       </section>
 
@@ -210,6 +233,13 @@ function List({ missing, preselect }: { missing?: string | undefined; preselect:
               <span>
                 <strong>From a TRD seed file (JSON)</strong>
                 <span className="block muted small">A file made with "Download TRD seed" on the TRD seed page, from this or another project.</span>
+              </span>
+            </label>
+            <label className="check top">
+              <input type="radio" name="trd-start" checked={kind === "interview"} onChange={() => setKind("interview")} data-testid="trd-start-interview" />
+              <span>
+                <strong>Answer questions</strong>
+                <span className="block muted small">Starts a blank TRD and opens the Interview tab. You answer plain questions and the TRD fills itself in; what you don't know stays open.</span>
               </span>
             </label>
             <label className="check top">
