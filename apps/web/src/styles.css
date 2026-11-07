@@ -5583,6 +5583,9 @@ fieldset.stage-options {
 
 /* TRD interview (Interview tab of the TRD): question cards with the reason beside them, the limits card, one-question-at-a-time mode. Tokens only,
    so light and dark both follow. Status is always words plus a symbol; nothing rests on colour. */
+/* The Show options (radio group): one option per line with the normal stack gap, instead of running together in one line; each target is at least 38 px high (WCAG 2.5.8 asks 24). */
+.iv-filters > .check { display: flex; }
+.iv-filters > .check span { overflow-wrap: anywhere; }
 .iv-banner { margin: 0; }
 .iv-bar { width: 100%; height: 10px; accent-color: var(--accent); }
 .iv-cards { gap: 0.9rem; }

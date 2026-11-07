@@ -29,7 +29,7 @@ interface DocCardSpec {
 
 const CARD_PURPOSE: Record<DocCardSpec["id"], string> = {
   gap: "Compare the sending and receiving unit and list every difference.",
-  trd: "The technical requirements: what the receiving site has to meet. Start from a project, a document you have, or blank.",
+  trd: "The technical requirements: what the receiving site has to meet. Start from a project, a document you have, by answering questions, or blank.",
   sampling: "Where and when samples are taken in the PPQ (process performance qualification) batches.",
   mbr: "The step-by-step instruction for making one batch.",
   risk: "Rate what could go wrong with a method you choose.",

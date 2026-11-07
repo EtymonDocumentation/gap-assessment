@@ -52,6 +52,11 @@ terms:
     short: Ongoing checking of routine commercial batches after PPQ, to confirm the process stays in control. The sampling plan has a place to note what you decide about sampling after PPQ.
     see: [commercial-production, ppq]
 
+  - id: cqa
+    term: CQA (critical quality attribute)
+    short: A property of the product, such as purity, potency or sterility, that has to stay within a limit so the product is safe and works. A process parameter matters because it can change a CQA.
+    see: [par, set-point]
+
   - id: design-review
     term: Design review
     short: A tab of the sampling plan with questions about how the samples are taken and where they sit. Each question is answered, left open, or marked to look at again.
@@ -181,6 +186,16 @@ terms:
     term: Stage review
     short: The list of things to look at after the project stage changes, one set for each document you have. Each item shows the wording before and after, and stays open until you tick it as reviewed. Nothing is ticked for you.
     see: [project-stage, version, open-item]
+
+  - id: unit-operation
+    term: Unit operation
+    short: One step of the process with its own equipment and purpose, for example thawing, mixing or sterile filtration. The TRD and the interview group their questions by unit operation.
+    see: [trd, set-point]
+
+  - id: write-up
+    term: Write-up
+    short: A short piece of text in the TRD that describes a step or a topic in words, such as how a bag is thawed. It reads the values you enter, and a sentence with a gap in it stays open until you fill the gap. They are on the Descriptions tab.
+    see: [trd, open-item]
 
   - id: version
     term: Version

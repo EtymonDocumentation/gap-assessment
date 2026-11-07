@@ -66,6 +66,8 @@ describe("glossary (content/help/glossary.yaml)", () => {
       "trd", "nor", "par", "set point", "hold time", "time limit", "ppq", "cpv", "engineering run", "clinical batch", "commercial", "project stage",
       "sending unit", "receiving unit", "cmo", "batch record", "sampling point", "study point", "ppq-only item", "include anyway", "bracketing",
       "in-process control", "release testing", "cci", "bioburden", "design review", "open item", "gap", "risk rating", "drafting aid",
+      // The terms the TRD interview hints link to.
+      "tbd", "cqa", "unit operation", "write-up",
     ]) expect(text, w).toContain(w);
   });
 

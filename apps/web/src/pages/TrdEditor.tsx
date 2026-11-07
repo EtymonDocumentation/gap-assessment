@@ -27,7 +27,7 @@ const TAB_INFO: Omit<TabDef<TrdTab>, "label">[] = [
     testId: "trd-tab-interview",
     tour: "trd-interview",
     purpose: "Answer plain questions and the TRD fills itself in. Anything you don't know stays open.",
-    help: "The same TRD as the other tabs, filled by answering one question at a time or from a list. Every answer is written into the TRD, so the form, the descriptions, the open items and the document all show it at once. You can also print the blank form.",
+    help: "The same TRD as the other tabs. Answer from a list, or switch on Show one question at a time. Every answer is written into the TRD, so the form, the descriptions, the open items and the document show it at once. Don't know yet leaves the question open. Not applicable here is an answer. Mark as to be decided (TBD) records that the value is still to be decided. A value from the gap assessment shows beside its question: choose Keep this or Change it. The Show filter lists everything, only what is still open, or only what came from the project. You can also print the blank form.",
   },
   {
     id: "details",

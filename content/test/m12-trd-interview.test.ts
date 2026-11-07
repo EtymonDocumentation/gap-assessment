@@ -324,17 +324,11 @@ describe("wording coverage", () => {
     expect(orphans).toEqual([]);
   });
 
-  it("lists the More detail questions that still use the generated sentence, without failing", () => {
-    const generated = withWording.filter((q) => !q.wordingWritten);
-    expect(generated.every((q) => !q.essential)).toBe(true);
-    for (const q of generated) {
-      expect(q.prompt.length).toBeLessThanOrEqual(140);
-      expect(q.why).toMatch(/^Needed for the TRD section /);
-    }
-    const stepLabel = (key: string) => content.catalog.unitOperations.find((u) => u.key === key)?.label ?? key;
-    // eslint-disable-next-line no-console
-    console.log(`wording not written yet: ${generated.length} More detail question(s) of ${withWording.length}`);
-    expect(stepLabel("capping")).toBeTruthy();
+  it("has written wording for every More detail question too, so none falls back to the generated sentence", () => {
+    // M12 job 3 wrote them all: the generated sentence stays in the engine only as a safety net for a catalog item added later.
+    const generated = withWording.filter((q) => !q.wordingWritten).map((q) => q.key);
+    expect(generated).toEqual([]);
+    for (const q of withWording) expect(q.why, q.key).not.toMatch(/^Needed for the TRD section /);
   });
 
   it("gives every question a prompt and a reason, written or generated", () => {

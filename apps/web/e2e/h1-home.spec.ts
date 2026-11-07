@@ -104,7 +104,7 @@ test("Home is the Cascade start page: welcome, the three start choices and one c
   const start = page.getByRole("heading", { level: 2, name: "Start", exact: true });
   await expect(start).toBeVisible();
   const options = page.getByTestId("start-options");
-  await expect(options.getByRole("heading", { level: 3 })).toHaveText(["Start fresh", "Open a demo", "Upload a document you have"]);
+  await expect(options.getByRole("heading", { level: 3 })).toHaveText(["Start fresh", "Start with one document", "Open a demo", "Upload a document you have"]);
   // An upload is read into a project, so with none open the choice says what to do first (no dead buttons).
   await expect(page.getByTestId("upload-needs-project")).toBeVisible();
   await expect(page.getByTestId("home-upload-trd")).toHaveCount(0);

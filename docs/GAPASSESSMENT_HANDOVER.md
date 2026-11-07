@@ -14,10 +14,12 @@ section 1 rather than appending to it.
   likely design errors and left-out studies, a Process view "Coverage" group, a Word/HTML appendix, and an
   account-editable "Expected studies" list (`/sampling/expected`).
 - Current versions: project schema 1.30.0. Check `packages/process-model/src` for the other format versions.
-- **NEXT:** M12, a TRD interview: fill the same TRD by interview inside the TRD stage (no new module; works with no
-  gap assessment). Then check that the Home page's "where do you start" text covers the four starting points (gap
-  assessment, TRD alone, sampling plan alone, batch record from a TRD with or without a plan). Later: excipient
-  assessment; AI features are deliberately the very last step.
+- **M12 (TRD interview) is built** (jobs 1 to 3): an Interview tab inside the TRD stage, no new module, no schema change. Starts: TRD page
+  and Home ("Answer questions"), also Home starts for a sampling plan and a batch record on their own. Files: engine
+  `packages/engine/src/trd-interview.ts`, wording `content/trd-interview/wording.yaml` (all questions hand-worded), tab
+  `apps/web/src/pages/TrdInterview.tsx` + `TrdInterviewCard.tsx`, helpers `apps/web/src/trd-interview-lib.ts`, tests
+  `content/test/m12-trd-interview.test.ts`, `apps/web/e2e/m12-interview.spec.ts`, `m12-job3.spec.ts`. Spec: docsGAPASSESSMENT_M12-SPEC.md.
+- **NEXT:** excipient assessment; AI features are deliberately the very last step.
 
 ## 2. Milestones done
 | Milestone | Commit | What it added |

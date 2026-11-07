@@ -1,6 +1,6 @@
 import { createTrd, trdOpenItems, trdOverrides, type TrdStart } from "@gap/engine";
 import { parseTrdSeed, type TrdSeed } from "@gap/process-model";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { StartArt } from "../art";
 import { Empty } from "../components";
 import { PageHeader } from "../PageHeader";
@@ -38,6 +38,14 @@ function List({ missing, preselect }: { missing?: string | undefined; preselect:
   const [fileError, setFileError] = useState("");
   const [error, setError] = useState("");
   const list = project.trd.documents;
+  // Arriving from Home with "Answer questions" is the same start as pressing it on this page: the choice is made and the title box is ready.
+  // Nothing is created until the person writes a title and presses Create.
+  useEffect(() => {
+    if (preselect !== "interview") return;
+    const title = document.querySelector<HTMLInputElement>('[data-testid="trd-title-input"]');
+    title?.scrollIntoView({ block: "center" });
+    title?.focus();
+  }, [preselect]);
 
   async function onFile(f: File | undefined) {
     setFileError("");

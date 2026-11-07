@@ -57,8 +57,9 @@ test("the Building line shows within 100 ms, buttons go off, a second click is i
   }, DEMO_NAMES.arx);
   expect(shown.ms).toBeLessThan(100);
   expect(shown.text).toContain(`Building the demo: ${DEMO_NAMES.arx}`);
-  // Start, ARX and SYR are all off while the demo builds.
-  expect(shown.disabled).toBe(3);
+  // Start, the three "Start with one document" buttons (TRD, sampling plan, batch record), ARX and SYR are all off
+  // while the demo builds: any of them would replace the project the demo is writing.
+  expect(shown.disabled).toBe(6);
   await expect(page.getByTestId("demo-opened")).toHaveText(`Demo opened: ${DEMO_NAMES.arx}`, { timeout: 90_000 });
   await expect(page.getByTestId("demo-status")).toHaveText("");
   await expect(page.getByRole("button", { name: `Open demo: ${DEMO_NAMES.syr}` })).toBeEnabled();

@@ -3,17 +3,19 @@
 # Conventions
 #  - The key is the question key the engine derives: doc:<field>, detail:<key>, step:<unit op>.presence, limits:<unit op>.<coll>.<item>,
 #    field:<unit op>.<coll>.<item>.<field>, blank:<write-up blank key>. A key with no entry gets a generated sentence
-#    ("What is the <label> for <item>?") and counts as "wording not written yet"; the content test lists those.
+#    ("What is the <label> for <item>?") as a safety net only; the content test fails until every key has its own wording.
 #  - prompt: a question a process engineer can answer from memory, at most 140 characters. why: one sentence on the GMP reason, at most 220.
 #    hint: how to find or read the answer; glossary: term ids of content/help/glossary.yaml (the page links them).
 #  - {{@stage development, clinical: text ;; ppq: text ;; else: text}} changes a phrase by project stage (never a rule, only wording).
 #  - input / units / choices are given only where the gap-assessment question of the same path does not already supply them
 #    (the engine reuses its choices and units, never its wording).
 #  - The interview never says an answer is wrong or enough, and never names a filing category. No client, product or supplier names.
-version: 1.0.0
+version: 1.1.0
 changelog:
   - version: 1.0.0
     note: First wording. Every Essentials question (document fields, details, step presence, limits, fields and typed sentences of the write-ups) has its own sentence; More detail questions use the generated sentence until they are written.
+  - version: 1.1.0
+    note: Wording for the More detail questions (limits, classification, control, status, qualification, study and material fields). No question uses the generated sentence any more.
 questions:
   "doc:title":
     prompt: "What is the title of this transfer document?"
@@ -896,3 +898,1089 @@ questions:
   "field:storage_shipping.ipc.shipping_monitoring.tests":
     prompt: "How is the temperature watched while the product is shipped?"
     why: "The recorded temperature is the evidence that the product stayed in range."
+  "limits:ds_shipping_inbound.param.max_transit_time":
+    prompt: "What limits apply to the maximum transit time?"
+    why: "The limits give the batch record and the sampling plan a clear target and a clear range for the maximum transit time."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:ds_shipping_inbound.param.max_transit_time.classification":
+    prompt: "How is the maximum transit time classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:ds_shipping_inbound.param.max_transit_time":
+    prompt: "How is the maximum transit time controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:ds_shipping_inbound.param.transport_temperature.classification":
+    prompt: "How is the transport temperature classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:ds_shipping_inbound.param.transport_temperature":
+    prompt: "How is the transport temperature controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "limits:ds_shipping_inbound.param.excursion_allowance":
+    prompt: "What limits apply to the temperature excursion allowance?"
+    why: "The limits give the batch record and the sampling plan a clear target and a clear range for the temperature excursion allowance."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:ds_shipping_inbound.param.excursion_allowance.classification":
+    prompt: "How is the temperature excursion allowance classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:ds_shipping_inbound.param.excursion_allowance":
+    prompt: "How is the temperature excursion allowance controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:ds_shipping_inbound.doc.procedures.status":
+    prompt: "What is the state of the drug substance shipping procedures?"
+    why: "The TRD says whether the document exists, needs an update or still has to be written, so the transfer plan can include that work."
+    hint: "Choose the closest answer. It describes the receiving unit's document for this unit operation."
+    glossary: [unit-operation]
+  "limits:ds_receipt_thaw.param.storage_temperature":
+    prompt: "What limits apply to the drug substance storage temperature?"
+    why: "The limits give the batch record and the sampling plan a clear target and a clear range for the drug substance storage temperature."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:ds_receipt_thaw.param.storage_temperature.classification":
+    prompt: "How is the drug substance storage temperature classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:ds_receipt_thaw.param.storage_temperature":
+    prompt: "How is the drug substance storage temperature controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:ds_receipt_thaw.param.thaw_temperature.classification":
+    prompt: "How is the thaw temperature classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:ds_receipt_thaw.param.thaw_temperature":
+    prompt: "How is the thaw temperature controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:ds_receipt_thaw.param.thaw_duration.classification":
+    prompt: "How is the thaw duration classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:ds_receipt_thaw.param.thaw_duration":
+    prompt: "How is the thaw duration controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "limits:ds_receipt_thaw.param.max_ambient_time":
+    prompt: "What limits apply to the maximum time at ambient temperature after thaw?"
+    why: "The limits give the batch record and the sampling plan a clear target and a clear range for the maximum time at ambient temperature after thaw."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:ds_receipt_thaw.param.max_ambient_time.classification":
+    prompt: "How is the maximum time at ambient temperature after thaw classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:ds_receipt_thaw.param.max_ambient_time":
+    prompt: "How is the maximum time at ambient temperature after thaw controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "limits:ds_receipt_thaw.param.max_cold_hold":
+    prompt: "What limits apply to the thawed drug substance hold at 2 to 8 °C?"
+    why: "The limits give the batch record and the sampling plan a clear target and a clear range for the thawed drug substance hold at 2 to 8 °C."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:ds_receipt_thaw.param.max_cold_hold.classification":
+    prompt: "How is the thawed drug substance hold at 2 to 8 °C classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:ds_receipt_thaw.param.max_cold_hold":
+    prompt: "How is the thawed drug substance hold at 2 to 8 °C controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:ds_receipt_thaw.equip.thaw_unit.capacity":
+    prompt: "What is the capacity or scale of the thaw system?"
+    why: "The capacity decides which batch sizes the equipment can handle, so it is compared with the planned batch size."
+    hint: "Give the working capacity, not the largest the equipment could hold."
+  "field:ds_receipt_thaw.equip.thaw_unit.qualificationStatus":
+    prompt: "How far has the thaw system been qualified?"
+    why: "Qualification shows that the equipment does what the process needs, so the TRD states how far it has got."
+    hint: "Choose the last stage completed. A requalification that is due has its own choice."
+  "field:ds_receipt_thaw.equip.thaw_unit.qualifiedRange":
+    prompt: "Over what range is the thaw system qualified?"
+    why: "The qualified range is the range the equipment has been shown to work over, so the process settings are compared with it."
+    hint: "Give the lowest and the highest value, with the unit."
+  "field:ds_receipt_thaw.equip.ds_storage.qualificationStatus":
+    prompt: "How far has the drug substance storage unit been qualified?"
+    why: "Qualification shows that the equipment does what the process needs, so the TRD states how far it has got."
+    hint: "Choose the last stage completed. A requalification that is due has its own choice."
+  "field:ds_receipt_thaw.mat.ds_container.type":
+    prompt: "What type of drug substance container is used?"
+    why: "The type decides how the material is held and what it touches, so the TRD names it."
+    hint: "Choose the closest answer."
+  "field:ds_receipt_thaw.mat.transfer_bag.present":
+    prompt: "Is the single-use transfer bag used?"
+    why: "Only the parts that are used are described, so the TRD records whether this one is there."
+    hint: "Choose Yes or No. Choose Don't know yet if it is not decided."
+  "field:ds_receipt_thaw.study.freeze_thaw.status":
+    prompt: "Where does the freeze-thaw and thaw study stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:ds_receipt_thaw.study.thaw_homogeneity.status":
+    prompt: "Where does the post-thaw homogeneity study stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:ds_receipt_thaw.doc.procedures.status":
+    prompt: "What is the state of the receipt and thaw procedures?"
+    why: "The TRD says whether the document exists, needs an update or still has to be written, so the transfer plan can include that work."
+    hint: "Choose the closest answer. It describes the receiving unit's document for this unit operation."
+    glossary: [unit-operation]
+  "field:buffer_prep.param.batch_volume.classification":
+    prompt: "How is the buffer batch volume classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:buffer_prep.param.batch_volume":
+    prompt: "How is the buffer batch volume controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:buffer_prep.param.mixing_speed.classification":
+    prompt: "How is the buffer mixing speed classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:buffer_prep.param.mixing_speed":
+    prompt: "How is the buffer mixing speed controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:buffer_prep.param.mixing_time.classification":
+    prompt: "How is the buffer mixing time classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:buffer_prep.param.mixing_time":
+    prompt: "How is the buffer mixing time controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "limits:buffer_prep.param.max_hold_time":
+    prompt: "What limits apply to the buffer hold time?"
+    why: "The limits give the batch record and the sampling plan a clear target and a clear range for the buffer hold time."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:buffer_prep.param.max_hold_time.classification":
+    prompt: "How is the buffer hold time classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:buffer_prep.param.max_hold_time":
+    prompt: "How is the buffer hold time controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:buffer_prep.param.storage_temperature.classification":
+    prompt: "How is the buffer storage temperature classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:buffer_prep.param.storage_temperature":
+    prompt: "How is the buffer storage temperature controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:buffer_prep.param.thaw_temperature.classification":
+    prompt: "How is the buffer thaw temperature classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:buffer_prep.param.thaw_temperature":
+    prompt: "How is the buffer thaw temperature controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:buffer_prep.param.thaw_duration.classification":
+    prompt: "How is the buffer thaw duration classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:buffer_prep.param.thaw_duration":
+    prompt: "How is the buffer thaw duration controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:buffer_prep.equip.prep_vessel.qualificationStatus":
+    prompt: "How far has the buffer preparation vessel been qualified?"
+    why: "Qualification shows that the equipment does what the process needs, so the TRD states how far it has got."
+    hint: "Choose the last stage completed. A requalification that is due has its own choice."
+  "field:buffer_prep.equip.prep_vessel.qualifiedRange":
+    prompt: "Over what range is the buffer preparation vessel qualified?"
+    why: "The qualified range is the range the equipment has been shown to work over, so the process settings are compared with it."
+    hint: "Give the lowest and the highest value, with the unit."
+  "field:buffer_prep.equip.prep_mixer.qualificationStatus":
+    prompt: "How far has the buffer mixer been qualified?"
+    why: "Qualification shows that the equipment does what the process needs, so the TRD states how far it has got."
+    hint: "Choose the last stage completed. A requalification that is due has its own choice."
+  "field:buffer_prep.equip.prep_mixer.qualifiedRange":
+    prompt: "Over what range is the buffer mixer qualified?"
+    why: "The qualified range is the range the equipment has been shown to work over, so the process settings are compared with it."
+    hint: "Give the lowest and the highest value, with the unit."
+  "field:buffer_prep.equip.thaw_unit.qualificationStatus":
+    prompt: "How far has the buffer thaw system been qualified?"
+    why: "Qualification shows that the equipment does what the process needs, so the TRD states how far it has got."
+    hint: "Choose the last stage completed. A requalification that is due has its own choice."
+  "field:buffer_prep.equip.thaw_unit.qualifiedRange":
+    prompt: "Over what range is the buffer thaw system qualified?"
+    why: "The qualified range is the range the equipment has been shown to work over, so the process settings are compared with it."
+    hint: "Give the lowest and the highest value, with the unit."
+  "field:buffer_prep.mat.buffer_bbr_filter.present":
+    prompt: "Is the buffer bioburden-reduction filter used?"
+    why: "Only the parts that are used are described, so the TRD records whether this one is there."
+    hint: "Choose Yes or No. Choose Don't know yet if it is not decided."
+  "field:buffer_prep.study.hold_time.coverage":
+    prompt: "What range does the buffer hold time study cover?"
+    why: "A study supports only the range it covered, so the TRD says how far it reaches."
+    hint: "Give the longest value tested, with the unit."
+    glossary: [hold-time]
+  "field:buffer_prep.study.hold_time.basis":
+    prompt: "What kind of evidence supports the buffer hold time study?"
+    why: "A time limit stands on evidence, so the TRD says what kind it is."
+    hint: "Choose the closest answer."
+    glossary: [hold-time]
+  "field:buffer_prep.study.cleaning.status":
+    prompt: "Where does the cleaning validation (buffer preparation equipment) stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:buffer_prep.doc.procedures.status":
+    prompt: "What is the state of the buffer preparation procedures?"
+    why: "The TRD says whether the document exists, needs an update or still has to be written, so the transfer plan can include that work."
+    hint: "Choose the closest answer. It describes the receiving unit's document for this unit operation."
+    glossary: [unit-operation]
+  "field:compounding.param.batch_size.classification":
+    prompt: "How is the batch size (formulated bulk) classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:compounding.param.batch_size":
+    prompt: "How is the batch size (formulated bulk) controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:compounding.param.mixing_speed.classification":
+    prompt: "How is the mixing speed classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:compounding.param.mixing_speed":
+    prompt: "How is the mixing speed controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:compounding.param.mixing_time.classification":
+    prompt: "How is the mixing time classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:compounding.param.mixing_time":
+    prompt: "How is the mixing time controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "limits:compounding.param.temperature":
+    prompt: "What limits apply to the compounding temperature?"
+    why: "The limits give the batch record and the sampling plan a clear target and a clear range for the compounding temperature."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:compounding.param.temperature.classification":
+    prompt: "How is the compounding temperature classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:compounding.param.temperature":
+    prompt: "How is the compounding temperature controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "limits:compounding.param.max_hold_time":
+    prompt: "What limits apply to the formulated bulk hold time?"
+    why: "The limits give the batch record and the sampling plan a clear target and a clear range for the formulated bulk hold time."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:compounding.param.max_hold_time.classification":
+    prompt: "How is the formulated bulk hold time classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:compounding.param.max_hold_time":
+    prompt: "How is the formulated bulk hold time controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:compounding.param.target_concentration.classification":
+    prompt: "How is the target protein concentration after dilution classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:compounding.param.target_concentration":
+    prompt: "How is the target protein concentration after dilution controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:compounding.equip.vessel.capacity":
+    prompt: "What is the capacity or scale of the compounding vessel?"
+    why: "The capacity decides which batch sizes the equipment can handle, so it is compared with the planned batch size."
+    hint: "Give the working capacity, not the largest the equipment could hold."
+  "field:compounding.equip.vessel.qualificationStatus":
+    prompt: "How far has the compounding vessel been qualified?"
+    why: "Qualification shows that the equipment does what the process needs, so the TRD states how far it has got."
+    hint: "Choose the last stage completed. A requalification that is due has its own choice."
+  "field:compounding.equip.vessel.qualifiedRange":
+    prompt: "Over what range is the compounding vessel qualified?"
+    why: "The qualified range is the range the equipment has been shown to work over, so the process settings are compared with it."
+    hint: "Give the lowest and the highest value, with the unit."
+  "field:compounding.equip.mixer.qualificationStatus":
+    prompt: "How far has the mixer been qualified?"
+    why: "Qualification shows that the equipment does what the process needs, so the TRD states how far it has got."
+    hint: "Choose the last stage completed. A requalification that is due has its own choice."
+  "field:compounding.equip.mixer.qualifiedRange":
+    prompt: "Over what range is the mixer qualified?"
+    why: "The qualified range is the range the equipment has been shown to work over, so the process settings are compared with it."
+    hint: "Give the lowest and the highest value, with the unit."
+  "field:compounding.mat.diluent.volume":
+    prompt: "What volume of buffer or diluent is used?"
+    why: "The volume sets the dilution and the vessel size, so the TRD names it."
+    hint: "Give the volume per batch, with the unit."
+  "field:compounding.study.mixing.coverage":
+    prompt: "What range does the mixing study cover?"
+    why: "A study supports only the range it covered, so the TRD says how far it reaches."
+    hint: "Give the longest value tested, with the unit."
+  "field:compounding.study.mixing.status":
+    prompt: "Where does the mixing study stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:compounding.study.hold_time.coverage":
+    prompt: "What range does the formulated bulk hold time study cover?"
+    why: "A study supports only the range it covered, so the TRD says how far it reaches."
+    hint: "Give the longest value tested, with the unit."
+    glossary: [hold-time]
+  "field:compounding.study.hold_time.basis":
+    prompt: "What kind of evidence supports the formulated bulk hold time study?"
+    why: "A time limit stands on evidence, so the TRD says what kind it is."
+    hint: "Choose the closest answer."
+    glossary: [hold-time]
+  "field:compounding.study.cleaning.status":
+    prompt: "Where does the cleaning validation (compounding equipment) stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:compounding.doc.procedures.status":
+    prompt: "What is the state of the compounding procedures?"
+    why: "The TRD says whether the document exists, needs an update or still has to be written, so the transfer plan can include that work."
+    hint: "Choose the closest answer. It describes the receiving unit's document for this unit operation."
+    glossary: [unit-operation]
+  "field:bbr_filtration.param.differential_pressure.classification":
+    prompt: "How is the BBR filtration differential pressure classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:bbr_filtration.param.differential_pressure":
+    prompt: "How is the BBR filtration differential pressure controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:bbr_filtration.param.max_filtration_time.classification":
+    prompt: "How is the BBR filtration duration classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:bbr_filtration.param.max_filtration_time":
+    prompt: "How is the BBR filtration duration controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "limits:bbr_filtration.param.max_cold_hold":
+    prompt: "What limits apply to the bioburden-reduced bulk hold at 2 to 8 °C?"
+    why: "The limits give the batch record and the sampling plan a clear target and a clear range for the bioburden-reduced bulk hold at 2 to 8 °C."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:bbr_filtration.param.max_cold_hold.classification":
+    prompt: "How is the bioburden-reduced bulk hold at 2 to 8 °C classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:bbr_filtration.param.max_cold_hold":
+    prompt: "How is the bioburden-reduced bulk hold at 2 to 8 °C controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:bbr_filtration.mat.bbr_filter.area":
+    prompt: "What is the effective area of the bioburden-reduction filter?"
+    why: "The filter area decides how much product it can pass before it clogs, so it is compared with the batch size."
+    hint: "Use the effective filtration area from the supplier's data, with the unit."
+  "field:bbr_filtration.study.bbr_validation.status":
+    prompt: "Where does the BBR filter validation stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:bbr_filtration.doc.procedures.status":
+    prompt: "What is the state of the BBR filtration procedures?"
+    why: "The TRD says whether the document exists, needs an update or still has to be written, so the transfer plan can include that work."
+    hint: "Choose the closest answer. It describes the receiving unit's document for this unit operation."
+    glossary: [unit-operation]
+  "field:sterile_filtration.param.differential_pressure.classification":
+    prompt: "How is the filtration differential pressure classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:sterile_filtration.param.differential_pressure":
+    prompt: "How is the filtration differential pressure controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "limits:sterile_filtration.param.max_filtration_time":
+    prompt: "What limits apply to the filtration duration?"
+    why: "The limits give the batch record and the sampling plan a clear target and a clear range for the filtration duration."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:sterile_filtration.param.max_filtration_time.classification":
+    prompt: "How is the filtration duration classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:sterile_filtration.param.max_filtration_time":
+    prompt: "How is the filtration duration controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:sterile_filtration.mat.sterilizing_filter.supplier":
+    prompt: "Who supplies the sterilizing-grade filter?"
+    why: "Supplier and part number identify the exact item, so a later change can be traced."
+    hint: "Give the company name as it is on the order."
+  "field:sterile_filtration.mat.sterilizing_filter.partNumber":
+    prompt: "What is the part number of the sterilizing-grade filter?"
+    why: "Supplier and part number identify the exact item, so a later change can be traced."
+    hint: "Give the part number as it is on the order."
+  "field:sterile_filtration.mat.sterilizing_filter.area":
+    prompt: "What is the effective area of the sterilizing-grade filter?"
+    why: "The filter area decides how much product it can pass before it clogs, so it is compared with the batch size."
+    hint: "Use the effective filtration area from the supplier's data, with the unit."
+  "field:sterile_filtration.mat.sua.present":
+    prompt: "Is the single-use filtration assembly used?"
+    why: "Only the parts that are used are described, so the TRD records whether this one is there."
+    hint: "Choose Yes or No. Choose Don't know yet if it is not decided."
+  "field:sterile_filtration.mat.sua.supplier":
+    prompt: "Who supplies the single-use filtration assembly?"
+    why: "Supplier and part number identify the exact item, so a later change can be traced."
+    hint: "Give the company name as it is on the order."
+  "field:sterile_filtration.equip.integrity_tester.qualificationStatus":
+    prompt: "How far has the filter integrity tester been qualified?"
+    why: "Qualification shows that the equipment does what the process needs, so the TRD states how far it has got."
+    hint: "Choose the last stage completed. A requalification that is due has its own choice."
+  "field:sterile_filtration.ipc.integrity.method":
+    prompt: "Which method is used to test the integrity of the filter?"
+    why: "The method decides what a pass means and how the result is read, so the TRD names it."
+    hint: "Choose the closest answer."
+  "field:sterile_filtration.ipc.pupsit.status":
+    prompt: "What is the status of the pre-use post-sterilization integrity test (PUPSIT)?"
+    why: "The status shows whether the pre-use post-sterilization integrity test (PUPSIT) is done, planned or still open, so the reader knows how much to rely on it."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:sterile_filtration.ipc.pupsit.flushVolume":
+    prompt: "How is the flush or wetting volume set for the pre-use post-sterilization integrity test (PUPSIT)?"
+    why: "The flush liquid can reach the product, so the TRD says whether the volume is defined and whether its effect was looked at."
+    hint: "Choose the closest answer."
+  "field:sterile_filtration.study.bacterial_retention.conditions":
+    prompt: "Do the tested conditions cover this process for the bacterial retention validation?"
+    why: "A retention study supports only the conditions it tested, so the TRD says how far they match this process."
+    hint: "Compare the study conditions with the planned product, pressure and time. Choose the closest answer."
+  "field:sterile_filtration.study.bacterial_retention.status":
+    prompt: "Where does the bacterial retention validation stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:sterile_filtration.study.filter_compatibility.status":
+    prompt: "Where does the filter compatibility stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:sterile_filtration.study.filter_extractables.status":
+    prompt: "Where does the filter extractables stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:sterile_filtration.study.sua_el.status":
+    prompt: "Where does the single-use assembly E&L stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:sterile_filtration.study.sua_el.dataSource":
+    prompt: "Where does the data for the single-use assembly E&L come from?"
+    why: "The source shows how strong the evidence is, so the TRD says where it comes from."
+    hint: "Choose the closest answer."
+  "field:sterile_filtration.study.sua_el.riskOutcome":
+    prompt: "What was the outcome of the risk assessment for the single-use assembly E&L?"
+    why: "The outcome tells the reader whether anything that leaches out is above the level that matters."
+    hint: "Choose the closest answer. Choose Not assessed if no assessment has been done."
+  "field:sterile_filtration.study.filter_sizing.status":
+    prompt: "Where does the filter sizing stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:sterile_filtration.study.integrity_validation.status":
+    prompt: "Where does the integrity test validation (product-wet specification) stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:sterile_filtration.study.pupsit_assembly.status":
+    prompt: "Where does the PUPSIT assembly qualification stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:sterile_filtration.doc.pupsit_risk_assessment.status":
+    prompt: "What is the state of the PUPSIT risk assessment?"
+    why: "The TRD says whether the document exists, needs an update or still has to be written, so the transfer plan can include that work."
+    hint: "Choose the closest answer. It describes the receiving unit's document for this unit operation."
+    glossary: [unit-operation]
+  "field:sterile_filtration.doc.procedures.status":
+    prompt: "What is the state of the filtration procedures?"
+    why: "The TRD says whether the document exists, needs an update or still has to be written, so the transfer plan can include that work."
+    hint: "Choose the closest answer. It describes the receiving unit's document for this unit operation."
+    glossary: [unit-operation]
+  "field:aseptic_filling.param.fill_volume.classification":
+    prompt: "How is the fill volume classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:aseptic_filling.param.fill_volume":
+    prompt: "How is the fill volume controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:aseptic_filling.param.line_speed.classification":
+    prompt: "How is the filling line speed classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:aseptic_filling.param.line_speed":
+    prompt: "How is the filling line speed controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "limits:aseptic_filling.param.max_fill_duration":
+    prompt: "What limits apply to the filling duration?"
+    why: "The limits give the batch record and the sampling plan a clear target and a clear range for the filling duration."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:aseptic_filling.param.max_fill_duration.classification":
+    prompt: "How is the filling duration classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:aseptic_filling.param.max_fill_duration":
+    prompt: "How is the filling duration controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "limits:aseptic_filling.param.max_filtered_hold":
+    prompt: "What limits apply to the filtered (sterile) bulk hold time?"
+    why: "The limits give the batch record and the sampling plan a clear target and a clear range for the filtered (sterile) bulk hold time."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:aseptic_filling.param.max_filtered_hold.classification":
+    prompt: "How is the filtered (sterile) bulk hold time classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:aseptic_filling.param.max_filtered_hold":
+    prompt: "How is the filtered (sterile) bulk hold time controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "limits:aseptic_filling.param.max_interventions":
+    prompt: "What limits apply to the interventions?"
+    why: "The limits give the batch record and the sampling plan a clear target and a clear range for the interventions."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:aseptic_filling.param.max_interventions.classification":
+    prompt: "How is the interventions classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:aseptic_filling.param.max_interventions":
+    prompt: "How is the interventions controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:aseptic_filling.param.stopper_position.classification":
+    prompt: "How is the plunger stopper position (depth from the reference) classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:aseptic_filling.param.stopper_position":
+    prompt: "How is the plunger stopper position (depth from the reference) controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "limits:aseptic_filling.param.max_headspace":
+    prompt: "What limits apply to the headspace or air bubble size?"
+    why: "The limits give the batch record and the sampling plan a clear target and a clear range for the headspace or air bubble size."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:aseptic_filling.param.max_headspace.classification":
+    prompt: "How is the headspace or air bubble size classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:aseptic_filling.param.max_headspace":
+    prompt: "How is the headspace or air bubble size controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:aseptic_filling.equip.filler.qualificationStatus":
+    prompt: "How far has the filling machine been qualified?"
+    why: "Qualification shows that the equipment does what the process needs, so the TRD states how far it has got."
+    hint: "Choose the last stage completed. A requalification that is due has its own choice."
+  "field:aseptic_filling.equip.filler.qualifiedRange_speed":
+    prompt: "Over what speed range is the filling machine qualified?"
+    why: "The qualified range is the range the equipment has been shown to work over, so the process settings are compared with it."
+    hint: "Give the lowest and the highest value, with the unit."
+  "field:aseptic_filling.equip.filler.qualifiedRange_volume":
+    prompt: "Over what volume range is the filling machine qualified?"
+    why: "The qualified range is the range the equipment has been shown to work over, so the process settings are compared with it."
+    hint: "Give the lowest and the highest value, with the unit."
+  "field:aseptic_filling.equip.bulk_vessel.type":
+    prompt: "What type of sterile bulk holding vessel is used?"
+    why: "The type decides how the material is held and what it touches, so the TRD names it."
+    hint: "Choose the closest answer."
+  "field:aseptic_filling.equip.bulk_vessel.qualificationStatus":
+    prompt: "How far has the sterile bulk holding vessel been qualified?"
+    why: "Qualification shows that the equipment does what the process needs, so the TRD states how far it has got."
+    hint: "Choose the last stage completed. A requalification that is due has its own choice."
+  "field:aseptic_filling.mat.container.supplier":
+    prompt: "Who supplies the primary container?"
+    why: "Supplier and part number identify the exact item, so a later change can be traced."
+    hint: "Give the company name as it is on the order."
+  "field:aseptic_filling.ipc.stopper_position_check.description":
+    prompt: "How is the plunger stopper position check done?"
+    why: "A short description shows what is checked, how often and what is done with the result."
+    hint: "A few plain sentences are enough. The text of a write-up can use them later."
+    glossary: [write-up]
+  "field:aseptic_filling.study.fill_accuracy.status":
+    prompt: "Where does the fill accuracy study stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:aseptic_filling.study.pump_product_impact.status":
+    prompt: "Where does the pump product-quality impact assessment stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:aseptic_filling.study.ppq.strategy":
+    prompt: "What is the strategy for the process performance qualification?"
+    why: "The strategy says whether new batches are made at the receiving unit or earlier data is used, which sets the amount of work."
+    hint: "Choose the closest answer."
+    glossary: [ppq]
+  "field:aseptic_filling.study.ppq.status":
+    prompt: "Where does the process performance qualification stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+    glossary: [ppq]
+  "field:aseptic_filling.study.ppq.batches":
+    prompt: "How many batches are planned for the process performance qualification?"
+    why: "The number of batches sets the amount of material and time the plan needs."
+    hint: "Give a whole number, or choose Don't know yet."
+    glossary: [ppq]
+  "field:aseptic_filling.study.aps.initialRuns":
+    prompt: "How many initial runs are planned for the aseptic process simulation (media fill)?"
+    why: "The initial runs show that the process stays sterile before routine production starts."
+    hint: "Give a whole number, or choose Don't know yet."
+  "field:aseptic_filling.study.aps.status":
+    prompt: "Where does the aseptic process simulation (media fill) stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:aseptic_filling.study.aps.coverage":
+    prompt: "What range does the aseptic process simulation (media fill) cover?"
+    why: "A study supports only the range it covered, so the TRD says how far it reaches."
+    hint: "Give the longest value tested, with the unit."
+  "field:aseptic_filling.study.filtered_hold.coverage":
+    prompt: "What range does the filtered bulk hold time study cover?"
+    why: "A study supports only the range it covered, so the TRD says how far it reaches."
+    hint: "Give the longest value tested, with the unit."
+  "field:aseptic_filling.study.cleaning.status":
+    prompt: "Where does the cleaning validation (filling equipment) stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:aseptic_filling.study.cleaning.worstCase":
+    prompt: "How was the worst case chosen for the cleaning validation (filling equipment)?"
+    why: "Cleaning is shown for the hardest case, so the reader sees how that case was picked."
+    hint: "Choose the closest answer."
+  "field:aseptic_filling.study.cleaning.carryover":
+    prompt: "What carryover limits are set for the cleaning validation (filling equipment)?"
+    why: "The limits say how much residue may remain, which is what makes the cleaning result meaningful."
+    hint: "Choose the closest answer."
+  "field:aseptic_filling.study.container_el.status":
+    prompt: "Where does the container closure E&L stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:aseptic_filling.study.stopper_position_study.status":
+    prompt: "Where does the plunger stopper position capability and device fit study stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:aseptic_filling.doc.procedures.status":
+    prompt: "What is the state of the filling procedures?"
+    why: "The TRD says whether the document exists, needs an update or still has to be written, so the transfer plan can include that work."
+    hint: "Choose the closest answer. It describes the receiving unit's document for this unit operation."
+    glossary: [unit-operation]
+  "limits:stoppering.param.max_open_time":
+    prompt: "What limits apply to the maximum time vials remain partially stoppered?"
+    why: "The limits give the batch record and the sampling plan a clear target and a clear range for the maximum time vials remain partially stoppered."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:stoppering.param.max_open_time.classification":
+    prompt: "How is the maximum time vials remain partially stoppered classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:stoppering.param.max_open_time":
+    prompt: "How is the maximum time vials remain partially stoppered controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:stoppering.equip.stoppering_unit.qualificationStatus":
+    prompt: "How far has the stoppering unit been qualified?"
+    why: "Qualification shows that the equipment does what the process needs, so the TRD states how far it has got."
+    hint: "Choose the last stage completed. A requalification that is due has its own choice."
+  "field:stoppering.ipc.placement_check.description":
+    prompt: "How is the stopper placement check done?"
+    why: "A short description shows what is checked, how often and what is done with the result."
+    hint: "A few plain sentences are enough. The text of a write-up can use them later."
+    glossary: [write-up]
+  "field:stoppering.study.aps.coverage":
+    prompt: "What range does the aseptic process simulation (media fill) cover?"
+    why: "A study supports only the range it covered, so the TRD says how far it reaches."
+    hint: "Give the longest value tested, with the unit."
+  "field:stoppering.study.stopper_machinability.status":
+    prompt: "Where does the stopper machinability and compatibility stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:stoppering.doc.procedures.status":
+    prompt: "What is the state of the stoppering procedures?"
+    why: "The TRD says whether the document exists, needs an update or still has to be written, so the transfer plan can include that work."
+    hint: "Choose the closest answer. It describes the receiving unit's document for this unit operation."
+    glossary: [unit-operation]
+  "field:lyophilization.param.freeze_shelf_temp.classification":
+    prompt: "How is the freezing shelf temperature classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:lyophilization.param.freeze_shelf_temp":
+    prompt: "How is the freezing shelf temperature controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:lyophilization.param.primary_shelf_temp.classification":
+    prompt: "How is the primary drying shelf temperature classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:lyophilization.param.primary_shelf_temp":
+    prompt: "How is the primary drying shelf temperature controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:lyophilization.param.primary_pressure.classification":
+    prompt: "How is the primary drying chamber pressure classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:lyophilization.param.primary_pressure":
+    prompt: "How is the primary drying chamber pressure controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:lyophilization.param.secondary_shelf_temp.classification":
+    prompt: "How is the secondary drying shelf temperature classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:lyophilization.param.secondary_shelf_temp":
+    prompt: "How is the secondary drying shelf temperature controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:lyophilization.param.secondary_time.classification":
+    prompt: "How is the secondary drying time classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:lyophilization.param.secondary_time":
+    prompt: "How is the secondary drying time controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "limits:lyophilization.param.total_cycle_time":
+    prompt: "What limits apply to the total cycle time?"
+    why: "The limits give the batch record and the sampling plan a clear target and a clear range for the total cycle time."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:lyophilization.param.total_cycle_time.classification":
+    prompt: "How is the total cycle time classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:lyophilization.param.total_cycle_time":
+    prompt: "How is the total cycle time controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:lyophilization.equip.lyophilizer.capacity":
+    prompt: "What is the capacity or scale of the lyophilizer?"
+    why: "The capacity decides which batch sizes the equipment can handle, so it is compared with the planned batch size."
+    hint: "Give the working capacity, not the largest the equipment could hold."
+  "field:lyophilization.equip.lyophilizer.qualificationStatus":
+    prompt: "How far has the lyophilizer been qualified?"
+    why: "Qualification shows that the equipment does what the process needs, so the TRD states how far it has got."
+    hint: "Choose the last stage completed. A requalification that is due has its own choice."
+  "field:lyophilization.equip.lyophilizer.qualifiedRange_shelf_temp":
+    prompt: "Over what shelf temperature range is the lyophilizer qualified?"
+    why: "The qualified range is the range the equipment has been shown to work over, so the process settings are compared with it."
+    hint: "Give the lowest and the highest value, with the unit."
+  "field:lyophilization.equip.lyophilizer.qualifiedRange_pressure":
+    prompt: "Over what pressure range is the lyophilizer qualified?"
+    why: "The qualified range is the range the equipment has been shown to work over, so the process settings are compared with it."
+    hint: "Give the lowest and the highest value, with the unit."
+  "field:lyophilization.equip.loading_system.qualificationStatus":
+    prompt: "How far has the loading system been qualified?"
+    why: "Qualification shows that the equipment does what the process needs, so the TRD states how far it has got."
+    hint: "Choose the last stage completed. A requalification that is due has its own choice."
+  "field:lyophilization.study.cycle_verification.status":
+    prompt: "Where does the lyophilization cycle verification stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:lyophilization.study.aps_loading.status":
+    prompt: "Where does the APS coverage of lyophilizer loading stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:lyophilization.doc.procedures.status":
+    prompt: "What is the state of the lyophilization procedures?"
+    why: "The TRD says whether the document exists, needs an update or still has to be written, so the transfer plan can include that work."
+    hint: "Choose the closest answer. It describes the receiving unit's document for this unit operation."
+    glossary: [unit-operation]
+  "field:capping.param.rsf.classification":
+    prompt: "How is the residual seal force classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:capping.param.rsf":
+    prompt: "How is the residual seal force controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:capping.equip.capper.qualificationStatus":
+    prompt: "How far has the capping machine been qualified?"
+    why: "Qualification shows that the equipment does what the process needs, so the TRD states how far it has got."
+    hint: "Choose the last stage completed. A requalification that is due has its own choice."
+  "field:capping.study.cci.method":
+    prompt: "Which method is used for the container closure integrity?"
+    why: "The method decides what a pass means and how the result is read, so the TRD names it."
+    hint: "Choose the closest answer."
+  "field:capping.study.cci.sensitivity":
+    prompt: "What is the smallest leak the container closure integrity test can detect?"
+    why: "A leak test is only useful if it finds leaks smaller than the product can tolerate."
+    hint: "Give the detection limit of the method, with the unit."
+    glossary: [cci]
+  "field:capping.study.cci.lifecycle":
+    prompt: "Is the container closure integrity test available for this product?"
+    why: "The test has to be usable from release through the shelf life, so the TRD says when it is available."
+    hint: "Choose the closest answer."
+    glossary: [cci]
+  "field:capping.study.cci.status":
+    prompt: "Where does the container closure integrity stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+    glossary: [cci]
+  "field:capping.study.rsf_cci_correlation.status":
+    prompt: "Where does the RSF–CCI correlation stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+    glossary: [cci]
+  "field:capping.study.cci_method_validation.status":
+    prompt: "Where does the CCI test method validation stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+    glossary: [cci]
+  "field:capping.doc.procedures.status":
+    prompt: "What is the state of the capping procedures?"
+    why: "The TRD says whether the document exists, needs an update or still has to be written, so the transfer plan can include that work."
+    hint: "Choose the closest answer. It describes the receiving unit's document for this unit operation."
+    glossary: [unit-operation]
+  "field:visual_inspection.param.inspection_rate.classification":
+    prompt: "How is the inspection rate classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:visual_inspection.param.inspection_rate":
+    prompt: "How is the inspection rate controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "limits:visual_inspection.param.max_time_out_of_refrigeration":
+    prompt: "What limits apply to the maximum time out of refrigeration during inspection?"
+    why: "The limits give the batch record and the sampling plan a clear target and a clear range for the maximum time out of refrigeration during inspection."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:visual_inspection.param.max_time_out_of_refrigeration.classification":
+    prompt: "How is the maximum time out of refrigeration during inspection classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:visual_inspection.param.max_time_out_of_refrigeration":
+    prompt: "How is the maximum time out of refrigeration during inspection controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:visual_inspection.equip.inspection.qualificationStatus":
+    prompt: "How far has the inspection method been qualified?"
+    why: "Qualification shows that the equipment does what the process needs, so the TRD states how far it has got."
+    hint: "Choose the last stage completed. A requalification that is due has its own choice."
+  "field:visual_inspection.equip.inspection.qualifiedRange":
+    prompt: "Over what range is the inspection method qualified?"
+    why: "The qualified range is the range the equipment has been shown to work over, so the process settings are compared with it."
+    hint: "Give the lowest and the highest value, with the unit."
+  "field:visual_inspection.study.avi_qualification.status":
+    prompt: "Where does the automated inspection qualification stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:visual_inspection.study.inspector_qualification.status":
+    prompt: "Where does the inspector qualification stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:visual_inspection.doc.procedures.status":
+    prompt: "What is the state of the inspection procedures?"
+    why: "The TRD says whether the document exists, needs an update or still has to be written, so the transfer plan can include that work."
+    hint: "Choose the closest answer. It describes the receiving unit's document for this unit operation."
+    glossary: [unit-operation]
+  "limits:bulk_packaging.param.max_hold_time":
+    prompt: "What limits apply to the bulk hold time?"
+    why: "The limits give the batch record and the sampling plan a clear target and a clear range for the bulk hold time."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:bulk_packaging.param.max_hold_time.classification":
+    prompt: "How is the bulk hold time classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:bulk_packaging.param.max_hold_time":
+    prompt: "How is the bulk hold time controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "limits:bulk_packaging.param.max_time_out_of_refrigeration":
+    prompt: "What limits apply to the maximum time out of refrigeration during bulk packing?"
+    why: "The limits give the batch record and the sampling plan a clear target and a clear range for the maximum time out of refrigeration during bulk packing."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:bulk_packaging.param.max_time_out_of_refrigeration.classification":
+    prompt: "How is the maximum time out of refrigeration during bulk packing classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:bulk_packaging.param.max_time_out_of_refrigeration":
+    prompt: "How is the maximum time out of refrigeration during bulk packing controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:bulk_packaging.study.pack_verification.status":
+    prompt: "Where does the bulk pack verification stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:bulk_packaging.study.hold_time.status":
+    prompt: "Where does the bulk hold time evidence stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:bulk_packaging.study.tor_stability.status":
+    prompt: "Where does the time-out-of-refrigeration evidence (bulk packing) stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:bulk_packaging.doc.procedures.status":
+    prompt: "What is the state of the bulk packaging procedures?"
+    why: "The TRD says whether the document exists, needs an update or still has to be written, so the transfer plan can include that work."
+    hint: "Choose the closest answer. It describes the receiving unit's document for this unit operation."
+    glossary: [unit-operation]
+  "field:labeling_packaging.param.labeling_speed.classification":
+    prompt: "How is the labelling speed classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:labeling_packaging.param.labeling_speed":
+    prompt: "How is the labelling speed controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "limits:labeling_packaging.param.max_time_out_of_refrigeration":
+    prompt: "What limits apply to the maximum time out of refrigeration during packaging?"
+    why: "The limits give the batch record and the sampling plan a clear target and a clear range for the maximum time out of refrigeration during packaging."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:labeling_packaging.param.max_time_out_of_refrigeration.classification":
+    prompt: "How is the maximum time out of refrigeration during packaging classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:labeling_packaging.param.max_time_out_of_refrigeration":
+    prompt: "How is the maximum time out of refrigeration during packaging controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:labeling_packaging.equip.labeler.qualificationStatus":
+    prompt: "How far has the labelling machine been qualified?"
+    why: "Qualification shows that the equipment does what the process needs, so the TRD states how far it has got."
+    hint: "Choose the last stage completed. A requalification that is due has its own choice."
+  "field:labeling_packaging.equip.labeler.qualifiedRange":
+    prompt: "Over what range is the labelling machine qualified?"
+    why: "The qualified range is the range the equipment has been shown to work over, so the process settings are compared with it."
+    hint: "Give the lowest and the highest value, with the unit."
+  "field:labeling_packaging.equip.serialization.qualificationStatus":
+    prompt: "How far has the serialization and aggregation been qualified?"
+    why: "Qualification shows that the equipment does what the process needs, so the TRD states how far it has got."
+    hint: "Choose the last stage completed. A requalification that is due has its own choice."
+  "field:labeling_packaging.study.serialization_verification.status":
+    prompt: "Where does the serialization verification stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:labeling_packaging.study.tor_stability.status":
+    prompt: "Where does the time-out-of-refrigeration evidence stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:labeling_packaging.doc.procedures.status":
+    prompt: "What is the state of the labelling and packaging procedures?"
+    why: "The TRD says whether the document exists, needs an update or still has to be written, so the transfer plan can include that work."
+    hint: "Choose the closest answer. It describes the receiving unit's document for this unit operation."
+    glossary: [unit-operation]
+  "limits:storage_shipping.param.max_transit_time":
+    prompt: "What limits apply to the maximum transit time?"
+    why: "The limits give the batch record and the sampling plan a clear target and a clear range for the maximum transit time."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:storage_shipping.param.max_transit_time.classification":
+    prompt: "How is the maximum transit time classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:storage_shipping.param.max_transit_time":
+    prompt: "How is the maximum transit time controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "limits:storage_shipping.param.excursion_allowance":
+    prompt: "What limits apply to the temperature excursion allowance?"
+    why: "The limits give the batch record and the sampling plan a clear target and a clear range for the temperature excursion allowance."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:storage_shipping.param.excursion_allowance.classification":
+    prompt: "How is the temperature excursion allowance classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:storage_shipping.param.excursion_allowance":
+    prompt: "How is the temperature excursion allowance controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "limits:storage_shipping.param.max_total_time_out_of_refrigeration":
+    prompt: "What limits apply to the total time out of refrigeration?"
+    why: "The limits give the batch record and the sampling plan a clear target and a clear range for the total time out of refrigeration."
+    hint: *limhint
+    glossary: [set-point, nor, par]
+  "field:storage_shipping.param.max_total_time_out_of_refrigeration.classification":
+    prompt: "How is the total time out of refrigeration classified, for example as critical, key or other?"
+    why: "The class shows how much the parameter can change the quality of the product, and so how closely it is watched."
+    hint: "Use your company's own classes. If the parameter has not been assessed yet, say so or choose Don't know yet."
+    glossary: [cqa]
+  "control:storage_shipping.param.max_total_time_out_of_refrigeration":
+    prompt: "How is the total time out of refrigeration controlled, and where is it recorded?"
+    why: "The TRD says how each parameter is held in control, so the batch record can carry the same instruction."
+    hint: "For example the control system, the procedure or the batch record step that holds it. Leave it open if you do not know."
+  "field:storage_shipping.equip.storage_unit.qualificationStatus":
+    prompt: "How far has the storage equipment been qualified?"
+    why: "Qualification shows that the equipment does what the process needs, so the TRD states how far it has got."
+    hint: "Choose the last stage completed. A requalification that is due has its own choice."
+  "field:storage_shipping.equip.shipper.qualificationStatus":
+    prompt: "How far has the shipping configuration been qualified?"
+    why: "Qualification shows that the equipment does what the process needs, so the TRD states how far it has got."
+    hint: "Choose the last stage completed. A requalification that is due has its own choice."
+  "field:storage_shipping.equip.shipper.qualifiedRange":
+    prompt: "Over what range is the shipping configuration qualified?"
+    why: "The qualified range is the range the equipment has been shown to work over, so the process settings are compared with it."
+    hint: "Give the lowest and the highest value, with the unit."
+  "field:storage_shipping.study.shipping_validation.scope":
+    prompt: "What does the shipping lane qualification cover?"
+    why: "A qualified lane covers only what was tested, so the TRD says how far the testing went."
+    hint: "Choose the closest answer."
+  "field:storage_shipping.study.shipping_validation.profiles":
+    prompt: "Which seasonal profiles does the shipping lane qualification cover?"
+    why: "Outside temperatures change with the season, so the TRD says which seasons were tested."
+    hint: "Choose the closest answer."
+  "field:storage_shipping.study.shipping_validation.status":
+    prompt: "Where does the shipping lane qualification stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:storage_shipping.study.stability_support.status":
+    prompt: "Where does the stability support for storage condition stand?"
+    why: "A study that is done, planned or missing tells the reader how much evidence stands behind this step."
+    hint: "Choose the closest answer. Choose Don't know yet if you have not looked."
+  "field:storage_shipping.doc.procedures.status":
+    prompt: "What is the state of the storage and shipping procedures?"
+    why: "The TRD says whether the document exists, needs an update or still has to be written, so the transfer plan can include that work."
+    hint: "Choose the closest answer. It describes the receiving unit's document for this unit operation."
+    glossary: [unit-operation]
