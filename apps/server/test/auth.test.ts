@@ -2,7 +2,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { MIN_PASSWORD, PRODUCTION_SCRYPT, RateLimiter, hashInviteCode, hashPassword, newInviteCode, sha256Hex, verifyPassword } from "../src/auth";
+import { LoginSlowdown, MIN_PASSWORD, PRODUCTION_SCRYPT, RateLimiter, hashInviteCode, hashPassword, newInviteCode, sha256Hex, verifyPassword } from "../src/auth";
 import { clientIp } from "../src/http";
 import { Client, GOOD_PASSWORD, admin, newInvite, rawRequest, signedInClient, startEnv, type TestEnv } from "./helpers";
 
@@ -173,18 +173,61 @@ describe("login, session and cookie", () => {
     expect(disabled.json).toEqual(unknown.json);
   });
 
-  it("locks a user name after 5 failures in 15 minutes (429 with retryAfterSeconds), even for the right password", async () => {
-    await signedInClient(env, "locked.user");
-    const attacker = new Client(env.port);
-    for (let i = 0; i < 5; i++) expect((await attacker.post("/api/auth/login", { username: "locked.user", password: "wrong wrong wrong" })).status).toBe(401);
-    const blocked = await new Client(env.port).post("/api/auth/login", { username: "locked.user", password: GOOD_PASSWORD });
-    expect(blocked.status).toBe(429);
-    expect(blocked.json).toMatchObject({ error: "rate-limited" });
-    expect(blocked.json.retryAfterSeconds).toBeGreaterThan(0);
-    expect(blocked.json.retryAfterSeconds).toBeLessThanOrEqual(900);
-    // unknown names are counted too, so the lock does not reveal which names exist
-    for (let i = 0; i < 5; i++) await attacker.post("/api/auth/login", { username: "ghost.user", password: "wrong wrong wrong" });
-    expect((await attacker.post("/api/auth/login", { username: "ghost.user", password: "x" })).status).toBe(429);
+  it("slows repeated wrong passwords for one user name from one address, and never locks the owner out", async () => {
+    await signedInClient(env, "slowed.user");
+    const guesser = { "X-Forwarded-For": "203.0.113.60" };
+    // Three slips cost nothing; the fourth wrong try is still answered, and the next one has to wait.
+    for (let i = 0; i < 4; i++) expect((await new Client(env.port).post("/api/auth/login", { username: "slowed.user", password: "wrong wrong wrong" }, guesser)).status).toBe(401);
+    const waiting = await new Client(env.port).post("/api/auth/login", { username: "slowed.user", password: "wrong wrong wrong" }, guesser);
+    expect(waiting.status).toBe(429);
+    expect(waiting.json).toMatchObject({ error: "rate-limited" });
+    expect(waiting.json.retryAfterSeconds).toBeGreaterThan(0);
+    expect(waiting.json.retryAfterSeconds).toBeLessThanOrEqual(300);
+    // Even the right password waits from that address, but only that address.
+    expect((await new Client(env.port).post("/api/auth/login", { username: "slowed.user", password: GOOD_PASSWORD }, guesser)).status).toBe(429);
+    const owner = await new Client(env.port).post("/api/auth/login", { username: "slowed.user", password: GOOD_PASSWORD }, { "X-Forwarded-For": "203.0.113.61" });
+    expect(owner.status).toBe(200);
+    // The same address trying another name is not held up by this name.
+    const other = await new Client(env.port).post("/api/auth/login", { username: "other.name", password: "x" }, guesser);
+    expect(other.status).toBe(401);
+    // Unknown names are slowed in the same way, so the wait does not show which names exist.
+    for (let i = 0; i < 4; i++) await new Client(env.port).post("/api/auth/login", { username: "ghost.user", password: "wrong wrong wrong" }, guesser);
+    expect((await new Client(env.port).post("/api/auth/login", { username: "ghost.user", password: "x" }, guesser)).status).toBe(429);
+  });
+
+  it("makes each further wrong try wait twice as long, up to a ceiling, and forgets a pair that stops", () => {
+    const slow = new LoginSlowdown();
+    const key = "someone|203.0.113.70";
+    const t0 = 1_000_000;
+    for (let i = 1; i <= 3; i++) {
+      expect(slow.failed(key, t0)).toBe(i);
+      expect(slow.retryAfterSeconds(key, t0)).toBe(0);
+    }
+    expect(slow.isFirstSlowedTry(slow.failed(key, t0))).toBe(true);
+    expect(slow.retryAfterSeconds(key, t0)).toBe(2);
+    slow.failed(key, t0);
+    expect(slow.retryAfterSeconds(key, t0)).toBe(4);
+    slow.failed(key, t0);
+    expect(slow.retryAfterSeconds(key, t0)).toBe(8);
+    expect(slow.retryAfterSeconds(key, t0 + 3_000)).toBe(5);
+    expect(slow.retryAfterSeconds(key, t0 + 8_000)).toBe(0);
+    for (let i = 0; i < 30; i++) slow.failed(key, t0);
+    expect(slow.retryAfterSeconds(key, t0)).toBe(300);
+    // another address, or another name, starts fresh
+    expect(slow.retryAfterSeconds("someone|203.0.113.71", t0)).toBe(0);
+    expect(slow.retryAfterSeconds("someone.else|203.0.113.70", t0)).toBe(0);
+    // a pair left alone for 30 minutes is forgotten, and a right password clears it
+    expect(slow.retryAfterSeconds(key, t0 + 31 * 60_000)).toBe(0);
+    expect(slow.failed(key, t0 + 31 * 60_000)).toBe(1);
+    slow.succeeded(key);
+    expect(slow.failed(key, t0 + 31 * 60_000)).toBe(1);
+  });
+
+  it("keeps the memory for the slowdown bounded", () => {
+    const slow = new LoginSlowdown(3, 2, 300, 30 * 60_000, 50);
+    for (let i = 0; i < 500; i++) slow.failed(`name${i}|203.0.113.80`, 1_000);
+    // the newest pairs are still counted
+    expect(slow.failed("name499|203.0.113.80", 1_000)).toBe(2);
   });
 
   it("limits failures to 20 per client address, using X-Forwarded-For because the peer is this machine", async () => {
@@ -199,13 +242,19 @@ describe("login, session and cookie", () => {
     expect(other.status).toBe(401);
   });
 
-  it("uses only the first X-Forwarded-For entry, and only when the peer is this machine", () => {
-    expect(clientIp("127.0.0.1", "198.51.100.1, 10.0.0.2")).toBe("198.51.100.1");
+  it("uses only the last X-Forwarded-For entry (the one our own proxy added), and only when the peer is this machine", () => {
+    // The proxy adds the address it saw at the right-hand end; anything to the left came from the caller and may be made up.
+    expect(clientIp("127.0.0.1", "198.51.100.1, 10.0.0.2")).toBe("10.0.0.2");
+    expect(clientIp("127.0.0.1", "203.0.113.9, 198.51.100.7")).toBe("198.51.100.7");
+    expect(clientIp("127.0.0.1", "198.51.100.1 ,   10.0.0.2  ")).toBe("10.0.0.2");
     expect(clientIp("::1", "198.51.100.1")).toBe("198.51.100.1");
     expect(clientIp("::ffff:127.0.0.1", "2001:db8::1")).toBe("2001:db8::1");
     expect(clientIp("192.0.2.9", "198.51.100.1")).toBe("192.0.2.9");
+    expect(clientIp("192.0.2.9", "198.51.100.1, 10.0.0.2")).toBe("192.0.2.9");
     expect(clientIp("127.0.0.1", undefined)).toBe("127.0.0.1");
     expect(clientIp("127.0.0.1", "not an address <script>")).toBe("127.0.0.1");
+    expect(clientIp("127.0.0.1", "198.51.100.1, not an address")).toBe("127.0.0.1");
+    expect(clientIp("127.0.0.1", "198.51.100.1,")).toBe("127.0.0.1");
   });
 
   it("signs out a disabled user at once, and lets them back after enable", async () => {

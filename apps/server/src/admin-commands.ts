@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { UsageError, parseArgs, type ParsedArgs } from "./args";
 import { deleteSessions, hashInviteCode, hashPassword, invitesFile, loadUsers, newInviteCode, sessionsFile, usersFile } from "./auth";
 import { ConfigError, configPath, loadConfig, type ServerConfig } from "./config";
-import { usageOf } from "./myfiles";
+import { DEFAULT_FILES_QUOTA_MB, accountUsage } from "./limits";
 import { Store } from "./store";
 import { DEFAULT_MODULES, parseModuleList, type InviteRecord, type UserRecord } from "./types";
 
@@ -20,8 +20,8 @@ export const USAGE = `Gap Assessment admin. Usage: admin <command> --data <dir> 
   reset-password <username>                                    give an account a new random password (shown once)
   set-plan <username> <planId>                                 change the plan (e.g. trial-free)
   set-modules <username> <comma list>                          change the modules an account may use (e.g. gap)
-  files-usage                                                  My files: files and megabytes per account (and each quota)
-  set-files-quota <username> <MB|none>                         the most My files may hold for an account (none = no quota)`;
+  files-usage                                                  stored files and megabytes per account (My files and project files), with each limit
+  set-files-quota <username> <MB|default>                      the most stored files may hold for an account (default = back to ${DEFAULT_FILES_QUOTA_MB} MB)`;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -228,11 +228,11 @@ async function filesUsage(args: ParsedArgs, io: AdminIo): Promise<void> {
   let totalFiles = 0;
   let totalBytes = 0;
   for (const u of all) {
-    const { count, bytes } = await usageOf(store, u.id);
+    const { files: count, bytes } = await accountUsage(store, u.id);
     totalFiles += count;
     totalBytes += bytes;
-    // No silent default: an account without a quota says so, and only the per-file limit applies to it.
-    const quota = u.filesQuotaMB === undefined ? "no quota set" : `quota ${u.filesQuotaMB} MB`;
+    // Every account has a limit; one nobody changed shows the default, so it is clear which number applies.
+    const quota = u.filesQuotaMB === undefined ? `default limit ${DEFAULT_FILES_QUOTA_MB} MB` : `limit ${u.filesQuotaMB} MB`;
     io.out(`${u.username}  ${count} file${count === 1 ? "" : "s"}  ${mbText(bytes)}  (${quota})`);
   }
   io.out(`Total  ${totalFiles} file${totalFiles === 1 ? "" : "s"}  ${mbText(totalBytes)}`);
@@ -242,11 +242,12 @@ async function setFilesQuota(args: ParsedArgs, io: AdminIo): Promise<void> {
   const { store } = await openStore(args);
   const user = await findUser(store, args.positional[1]);
   const value = args.positional[2];
-  if (value === undefined) throw new UsageError("Give the quota in whole megabytes (1 to 1048576), or none.");
+  if (value === undefined) throw new UsageError("Give the limit in whole megabytes (1 to 1048576), or default.");
   let mb: number | undefined;
-  if (value.toLowerCase() !== "none") {
+  // "none" used to mean no limit at all. Nobody is unlimited any more, so it now means the same as "default".
+  if (value.toLowerCase() !== "none" && value.toLowerCase() !== "default") {
     mb = Number(value);
-    if (!/^\d{1,7}$/.test(value) || mb < 1 || mb > 1_048_576) throw new UsageError("Give the quota as a whole number of megabytes from 1 to 1048576, or none.");
+    if (!/^\d{1,7}$/.test(value) || mb < 1 || mb > 1_048_576) throw new UsageError("Give the limit as a whole number of megabytes from 1 to 1048576, or default.");
   }
   await store.update<UserRecord[]>(usersFile(store), [], (all) =>
     all.map((u) => {
@@ -255,8 +256,8 @@ async function setFilesQuota(args: ParsedArgs, io: AdminIo): Promise<void> {
       return mb === undefined ? rest : { ...rest, filesQuotaMB: mb };
     }),
   );
-  await store.audit("files-quota-set", { userId: user.id, username: user.username, quotaMB: mb ?? "none", actor: "admin-cli" });
-  io.out(mb === undefined ? `${user.username} has no My files quota now (only the per-file limit applies).` : `${user.username} may keep up to ${mb} MB in My files.`);
+  await store.audit("files-quota-set", { userId: user.id, username: user.username, quotaMB: mb ?? "default", actor: "admin-cli" });
+  io.out(mb === undefined ? `${user.username} is back to the default limit of ${DEFAULT_FILES_QUOTA_MB} MB for stored files.` : `${user.username} may keep up to ${mb} MB of stored files.`);
 }
 
 /** Runs one admin command and returns the exit code (0 = fine). Output goes through `io`. */

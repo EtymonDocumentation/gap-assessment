@@ -10,7 +10,7 @@ export const SCRYPT_R = 8;
 export const SCRYPT_P = 1;
 const KEY_LEN = 64;
 const SALT_LEN = 16;
-export const MIN_PASSWORD = 7;
+export const MIN_PASSWORD = 12;
 export const MAX_PASSWORD = 256;
 
 export interface ScryptParams {
@@ -50,11 +50,37 @@ export async function verifyPassword(password: string, stored: string): Promise<
   return timingSafeEqual(actual, expected);
 }
 
-/** Checks a new password against the written rules; returns the problem or null. */
-export function passwordProblem(password: unknown): string | null {
-  if (typeof password !== "string") return "The password must be text.";
-  if (password.length < MIN_PASSWORD) return `The password must be at least ${MIN_PASSWORD} characters long.`;
-  if (password.length > MAX_PASSWORD) return `The password must be at most ${MAX_PASSWORD} characters long.`;
+/**
+ * Passwords people reach for first. Compared after lower-casing and dropping everything but letters and digits, and again with
+ * trailing digits removed ("welcome12345" is "welcome"). With a 12-character minimum most of these are the base words that
+ * get a number stuck on the end; the full strings are the ones that already reach 12 on their own.
+ */
+const COMMON_PASSWORDS = new Set([
+  "password", "passw0rd", "letmein", "welcome", "qwerty", "qwertyuiop", "iloveyou", "administrator", "changeme", "trustno1",
+  "football", "baseball", "dragon", "monkey", "sunshine", "princess", "master", "abc", "admin", "login", "starwars", "whatever",
+  "freedom", "shadow", "superman", "secret", "cascade", "gapassessment", "gmp", "temp", "default", "guest", "test", "testing",
+  "qwertyuiopasdf", "qwertyuiopas", "asdfghjklzxc", "zxcvbnmasdfg", "asdfghjkl", "zxcvbnm", "abcdefghijkl", "abcdefghijklmnop",
+  "passwordpassword", "correcthorsebatterystaple", "1q2w3e4r5t6y", "1qaz2wsx3edc", "qazwsxedcrfv",
+  "123456789012", "1234567890123", "12345678901234", "111111111111", "000000000000", "123123123123", "121212121212",
+]);
+
+const lettersAndDigits = (text: string): string => text.normalize("NFKC").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+
+/**
+ * Checks a new password against the written rules; returns the problem in plain words, or null. The rules are about length and
+ * guessability only: no demand for capitals, digits or symbols, because a few unrelated words are stronger than "Summer#2026".
+ * Passwords made before these rules keep working (sign-in does not check them); the rules apply when one is chosen or changed.
+ */
+export function passwordProblem(password: unknown, username?: string): string | null {
+  if (typeof password !== "string") return "Please choose a password.";
+  if (password.length < MIN_PASSWORD) return `Please use at least ${MIN_PASSWORD} characters. A few unrelated words in a row make a good password.`;
+  if (password.length > MAX_PASSWORD) return `That password is too long. Please use ${MAX_PASSWORD} characters or fewer.`;
+  const name = (username ?? "").trim().toLowerCase();
+  if (name && password.toLowerCase().includes(name)) return "Please leave your user name out of your password.";
+  const plain = lettersAndDigits(password);
+  if (COMMON_PASSWORDS.has(plain) || COMMON_PASSWORDS.has(plain.replace(/\d+$/, "")) || /^(.)\1+$/u.test(plain)) {
+    return "That password is very common, so it is easy to guess. Please choose a few unrelated words instead.";
+  }
   return null;
 }
 
@@ -97,11 +123,18 @@ const withModules = (u: StoredUser): UserRecord =>
  * the first time such an account is seen (under the lock, from a fresh read).
  */
 export async function loadUsers(store: Store): Promise<UserRecord[]> {
-  const raw = await store.readJson<StoredUser[]>(usersFile(store), []);
+  // The result is shared between requests: read it, never change it (changes go through store.update).
+  const raw = await store.readJsonShared<StoredUser[]>(usersFile(store), []);
   if (raw.every(hasModules)) return raw as UserRecord[];
   await store.update<StoredUser[]>(usersFile(store), [], (all) => all.map(withModules)).catch(() => undefined);
   return raw.map(withModules);
 }
+
+/**
+ * Most sessions one person can have open at once (a laptop, a phone, a few browsers). Signing in on an eleventh ends the oldest.
+ * Without a cap the session list, which every request reads, could grow by one entry per sign-in for two weeks.
+ */
+export const MAX_SESSIONS_PER_USER = 10;
 
 /** Creates a session and returns the token. Only its hash is stored. */
 export async function createSession(store: Store, userId: string): Promise<string> {
@@ -114,7 +147,13 @@ export async function createSession(store: Store, userId: string): Promise<strin
     expiresAt: new Date(now + SESSION_SECONDS * 1000).toISOString(),
     lastSeenAt: new Date(now).toISOString(),
   };
-  await store.update<SessionRecord[]>(sessionsFile(store), [], (all) => [...all.filter((s) => Date.parse(s.expiresAt) > now), record]);
+  await store.update<SessionRecord[]>(sessionsFile(store), [], (all) => {
+    const live = all.filter((s) => Date.parse(s.expiresAt) > now);
+    // Oldest first among this person's sessions; the newest MAX-1 stay, so with the new one there are MAX.
+    const mine = live.filter((s) => s.userId === userId).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    const ended = new Set(mine.slice(0, Math.max(0, mine.length - (MAX_SESSIONS_PER_USER - 1))).map((s) => s.tokenHash));
+    return [...live.filter((s) => !ended.has(s.tokenHash)), record];
+  });
   return token;
 }
 
@@ -140,7 +179,8 @@ export async function findSession(
 ): Promise<{ user: UserRecord; session: SessionRecord } | null> {
   if (!token || token.length > 128) return null;
   const hash = sha256Hex(token);
-  const session = (await store.readJson<SessionRecord[]>(sessionsFile(store), [])).find((s) => s.tokenHash === hash);
+  // Every request comes through here, so the two files are parsed again only when they changed on disk (see Store.readJsonShared).
+  const session = (await store.readJsonShared<SessionRecord[]>(sessionsFile(store), [])).find((s) => s.tokenHash === hash);
   if (!session || Date.parse(session.expiresAt) <= Date.now()) return null;
   const user = (await loadUsers(store)).find((u) => u.id === session.userId);
   if (!user || user.disabled) return null;
@@ -223,5 +263,70 @@ export class RateLimiter {
         if (this.hits.size <= this.maxKeys * 0.9) break;
       }
     }
+  }
+}
+
+/**
+ * Slows down repeated wrong passwords instead of locking anyone out. Failures are counted per user name AND caller address
+ * together, so a stranger guessing at someone's user name only slows down their own address; the person who owns the account,
+ * signing in from elsewhere, is not held up. The first few wrong tries cost nothing; after that each further wrong try doubles
+ * the wait, up to a ceiling. A pair that stops failing for a while is forgotten, and a right password clears it.
+ */
+export class LoginSlowdown {
+  private pairs = new Map<string, { failures: number; last: number }>();
+
+  constructor(
+    /** Wrong tries that cost nothing (typing slips). */
+    private readonly freeTries = 3,
+    private readonly firstWaitSeconds = 2,
+    private readonly ceilingSeconds = 5 * 60,
+    /** After this long without a new wrong try the count starts over. */
+    private readonly forgetAfterMs = 30 * 60 * 1000,
+    private readonly maxKeys = 10_000,
+  ) {}
+
+  private waitFor(failures: number): number {
+    if (failures <= this.freeTries) return 0;
+    return Math.min(this.ceilingSeconds, this.firstWaitSeconds * 2 ** (failures - this.freeTries - 1));
+  }
+
+  private current(key: string, now: number): { failures: number; last: number } | undefined {
+    const entry = this.pairs.get(key);
+    if (entry && now - entry.last > this.forgetAfterMs) {
+      this.pairs.delete(key);
+      return undefined;
+    }
+    return entry;
+  }
+
+  /** Seconds to wait before this pair may try again, or 0. */
+  retryAfterSeconds(key: string, now = Date.now()): number {
+    const entry = this.current(key, now);
+    if (!entry) return 0;
+    const left = entry.last + this.waitFor(entry.failures) * 1000 - now;
+    return left > 0 ? Math.ceil(left / 1000) : 0;
+  }
+
+  /** Records a wrong try and returns how many in a row this pair now has. */
+  failed(key: string, now = Date.now()): number {
+    const failures = (this.current(key, now)?.failures ?? 0) + 1;
+    this.pairs.set(key, { failures, last: now });
+    // Bound memory when someone sprays many different pairs: drop the oldest entries first.
+    if (this.pairs.size > this.maxKeys) {
+      for (const k of this.pairs.keys()) {
+        this.pairs.delete(k);
+        if (this.pairs.size <= this.maxKeys * 0.9) break;
+      }
+    }
+    return failures;
+  }
+
+  /** The first wrong try that is no longer free: the moment worth telling the admin about. */
+  isFirstSlowedTry(failures: number): boolean {
+    return failures === this.freeTries + 1;
+  }
+
+  succeeded(key: string): void {
+    this.pairs.delete(key);
   }
 }

@@ -277,7 +277,7 @@ export function TemplatesPage() {
           open
           onOpenChange={(o) => !o && setDialog(null)}
           title={`Delete ${dialog.t.name}?`}
-          description={`The template is removed from ${remote ? "your library on the server" : "this browser only"}. Word documents already created from it are not affected, and the export history keeps its name and checksum.`}
+          description={`The template is removed from ${remote ? "your library on the server. It stays in the server's trash folder for 30 days, then the server removes it for good" : "this browser only"}. Word documents already created from it are not affected, and the export history keeps its name and checksum.`}
           restoreFocus={restoreFocus}
         >
           <div className="row end">

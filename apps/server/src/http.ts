@@ -18,18 +18,26 @@ export class HttpError extends Error {
   drainLimit?: number;
 }
 
+/** The most a project or a Word template may weigh when saved (pictures are the only thing that makes a project big). */
 export const MAX_JSON_BYTES = 25 * 1024 * 1024;
+/** Every other JSON body (library items, settings, folders...) is plain text and far smaller. */
+export const MAX_SMALL_JSON_BYTES = 10 * 1024 * 1024;
 /** Sign-in, sign-up and password bodies are tiny; a small cap stops anonymous callers from sending big ones. */
 export const MAX_AUTH_BODY_BYTES = 16 * 1024;
 
+// The page rules below match the meta tag of the built site (apps/web/vite.config.ts, PAGE_CSP); this header adds
+// frame-ancestors, which a meta tag cannot carry. Keep the two in step.
 export const SECURITY_HEADERS: Record<string, string> = {
   "Content-Security-Policy":
-    "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; " +
-    "connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
+    "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:; " +
+    "connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "no-referrer",
   "X-Frame-Options": "DENY",
   "Strict-Transport-Security": "max-age=31536000",
+  // The app uses none of these browser features, so no page (or anything injected into one) can ask for them.
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+  "Cross-Origin-Resource-Policy": "same-origin",
 };
 
 /* ---------- who is calling ---------- */
@@ -41,13 +49,14 @@ export function isLoopback(address: string | undefined): boolean {
 }
 
 /**
- * The caller's address for rate limits. The X-Forwarded-For header is believed only when the TCP peer is this
- * machine (Tailscale serve); from anywhere else a caller could forge it.
+ * The caller's address for rate limits and the audit log. The X-Forwarded-For header is believed only when the TCP peer is this
+ * machine (Tailscale serve), and then only its LAST entry: the proxy adds the address it saw at the right-hand end, while anything
+ * to the left of it was sent by the caller and can be made up. From any other peer the header is ignored and the socket address is used.
  */
 export function clientIp(peer: string | undefined, forwardedFor: string | undefined): string {
   if (isLoopback(peer) && forwardedFor) {
-    const first = forwardedFor.split(",")[0]?.trim() ?? "";
-    if (first && first.length <= 64 && /^[0-9a-fA-F:.]+$/.test(first)) return first;
+    const last = forwardedFor.split(",").pop()?.trim() ?? "";
+    if (last && last.length <= 64 && /^[0-9a-fA-F:.]+$/.test(last)) return last;
   }
   return peer ?? "unknown";
 }
@@ -135,6 +144,43 @@ function endUpload(res: ServerResponse, drainLimit: number): void {
   req.resume();
 }
 
+/* ---------- how long a body may take to arrive ---------- */
+
+const BODY_BASE_MS = 20_000;
+const BODY_UNKNOWN_LENGTH_MS = 60_000;
+const BODY_MAX_MS = 5 * 60_000;
+/** Slowest sending speed that is still accepted for a normal request: 100 KB per second (about 0.8 Mbit/s). */
+const BODY_BYTES_PER_MS = 100;
+/** A file upload may take as long as the server's own ceiling (server.requestTimeout). */
+export const UPLOAD_BODY_MS = 10 * 60_000;
+
+/**
+ * How long a request body may take to arrive before the connection is dropped. Sign-in, a saved project and a library item are
+ * a few KB to a few MB, so they get seconds, plus time for a big body at a modest speed. Only a file upload gets minutes. Without
+ * this, a caller could open many connections and send a byte now and then, holding each one for ten minutes.
+ */
+export function bodyTimeMs(upload: boolean, contentLength: number | undefined): number {
+  if (upload) return UPLOAD_BODY_MS;
+  if (contentLength === undefined || !Number.isFinite(contentLength)) return BODY_UNKNOWN_LENGTH_MS;
+  return Math.min(BODY_MAX_MS, BODY_BASE_MS + Math.ceil(contentLength / BODY_BYTES_PER_MS));
+}
+
+/** Answers 408 and closes the connection if the request body has not fully arrived after `ms`. Does nothing for a request without a body. */
+export function limitBodyTime(req: IncomingMessage, res: ServerResponse, ms: number): void {
+  if (req.complete) return;
+  const timer = setTimeout(() => {
+    if (!res.headersSent) {
+      sendJson(res, 408, { error: "too-slow", message: "That took too long to send, so the connection was closed. Please try again." }, { Connection: "close" });
+    }
+    setTimeout(() => req.socket.destroy(), 1_000).unref();
+  }, ms);
+  timer.unref();
+  const stop = () => clearTimeout(timer);
+  req.once("end", stop);
+  req.once("close", stop);
+  res.once("close", stop);
+}
+
 /* ---------- reading bodies ---------- */
 
 /** Reads the body, giving up as soon as it goes over `limit` (never holds more than limit + one chunk). */
@@ -217,6 +263,14 @@ export interface Route {
   auth?: boolean;
   /** Answers 403 `client-storage` when the server is configured with storage "client". */
   storage?: boolean;
+  /**
+   * Whether the route stores new content on the disk. Left out, every change on a storage route (anything but a read or a
+   * delete) counts. Set false on the changes that only free space (delete several, delete a folder), so a full disk can
+   * always be emptied.
+   */
+  saves?: boolean;
+  /** A file upload: the one kind of request allowed to take minutes to arrive. */
+  upload?: boolean;
   handler(ctx: Ctx): Promise<void>;
 }
 

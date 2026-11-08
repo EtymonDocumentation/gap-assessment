@@ -152,17 +152,17 @@ function AboutBody({ copy }: { copy: Copy }) {
           <ul className="plain-list stack">
             <li>
               <strong>A project:</strong> choose Delete next to it in My projects, on the Home page. It leaves your list and is moved to a trash folder on the server that only the site owner
-              can open.
+              can open. After 30 days the server removes it for good.
             </li>
             <li>
               <strong>A file:</strong> choose Delete next to it in My files. The stored file is erased from the server. A file with an auto-delete date is erased soon after that date (the
               server checks every hour).
             </li>
             <li>
-              <strong>A template, saved answers or another library item:</strong> choose Delete on its own page. It goes to the same trash folder as a project.
+              <strong>A template, saved answers or another library item:</strong> choose Delete on its own page. It goes to the same trash folder as a project, and is removed for good after 30 days.
             </li>
             <li>
-              <strong>Your whole account, or anything in the trash you want erased for good:</strong> ask the site owner.
+              <strong>Your whole account, or anything in the trash you want erased before the 30 days are up:</strong> ask the site owner.
             </li>
           </ul>
         )}

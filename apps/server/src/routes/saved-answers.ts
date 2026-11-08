@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { savedAnswerSetSchema } from "@gap/process-model";
 import { z } from "zod";
 import { HttpError, sendJson, sendNoContent, type Ctx, type Route } from "../http";
+import { MAX_LIBRARY_BODY_BYTES, MAX_LIBRARY_ITEMS, requireRoomForItem } from "../limits";
 import { isId } from "../names";
 import { idParam, notFound, parseBody, userPath } from "./util";
 
@@ -53,9 +54,10 @@ export const savedAnswerRoutes: Route[] = [
     storage: true,
     async handler(ctx) {
       requireModule(ctx);
-      const body = parseBody(bodySchema, await ctx.json());
+      const body = parseBody(bodySchema, await ctx.json(MAX_LIBRARY_BODY_BYTES));
       const { store } = ctx.app;
       const id = await store.withLock(`saved-answers:${ctx.user.id}`, async () => {
+        await requireRoomForItem(ctx, "saved-answers", null, MAX_LIBRARY_ITEMS, "saved answer sets");
         // Keep the id the browser used when it is a valid, unused one; otherwise hand out a new one.
         const wanted = body.set.id;
         const chosen = isId(wanted) && !(await store.exists(userPath(ctx, "saved-answers", `${wanted}.json`))) ? wanted : randomUUID();
@@ -75,7 +77,7 @@ export const savedAnswerRoutes: Route[] = [
     async handler(ctx) {
       requireModule(ctx);
       const id = idParam(ctx);
-      const body = parseBody(bodySchema, await ctx.json());
+      const body = parseBody(bodySchema, await ctx.json(MAX_LIBRARY_BODY_BYTES));
       const { store } = ctx.app;
       const saved = await store.update<Stored | null>(userPath(ctx, "saved-answers", `${id}.json`), null, (current) => {
         if (!current) throw notFound("saved answer set");

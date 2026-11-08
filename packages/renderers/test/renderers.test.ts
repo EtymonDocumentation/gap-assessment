@@ -2,7 +2,7 @@ import type { Project } from "@gap/process-model";
 import { NOTICE_DOCUMENT, adaptText, assess, buildDemoProject, buildDocument, CSV_COLUMNS, excludeStep, gapsToCsv, type DocModel, type Gap } from "@gap/engine";
 import { describe, expect, it } from "vitest";
 import { content, demos } from "../../../content/index";
-import { DOCUMENT_CSS, escapeHtml, renderHtml, renderHtmlBody, renderMarkdown } from "../src/index";
+import { DOCUMENT_CSS, EXPORT_HTML_CSP, escapeHtml, renderHtml, renderHtmlBody, renderMarkdown } from "../src/index";
 
 const project = buildDemoProject(content, demos["arx-217"]);
 const assessment = assess(content, project);
@@ -156,6 +156,18 @@ describe("renderHtml", () => {
     expect(html).toContain('<meta name="viewport"');
     expect(html.trimEnd().endsWith("</html>")).toBe(true);
     expect(html).toContain(`<title>${escapeHtml(doc.title)}</title>`);
+  });
+
+  it("carries its own strict content policy: no script, no network, pictures only from the file", () => {
+    expect(html).toContain(`<meta http-equiv="Content-Security-Policy" content="${EXPORT_HTML_CSP}">`);
+    expect(EXPORT_HTML_CSP).toContain("default-src 'none'");
+    expect(EXPORT_HTML_CSP).toContain("img-src data:");
+    expect(EXPORT_HTML_CSP).not.toMatch(/script-src|connect-src|https?:/);
+    // The policy sits in the head, before the style block and the body it protects.
+    expect(html.indexOf("Content-Security-Policy")).toBeLessThan(html.indexOf("<style>"));
+    expect(html.indexOf("Content-Security-Policy")).toBeLessThan(html.indexOf("<body>"));
+    // The page itself has no script element (the policy is a second barrier, not the first).
+    expect(html).not.toMatch(/<script/i);
   });
 
   it("puts the banner first in the body, then the title", () => {

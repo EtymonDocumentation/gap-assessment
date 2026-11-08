@@ -6,7 +6,7 @@ import { INVITES_PER_WORKER, SAMPLING_INVITES_PER_WORKER } from "./global-setup"
 
 // The notice wording and its check are shared with the static suite (e2e/nav-helper.ts), which reads them from the app's own source module.
 export { expectNotice, isPhone, NOTICE_DOCUMENT };
-export const PASSWORD = "correct horse battery staple";
+export const PASSWORD = "maple lantern harbour stone";
 export const SERVER_URL = "http://localhost:8788/";
 export const CLIENT_URL = "http://localhost:8789/";
 

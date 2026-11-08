@@ -39,6 +39,41 @@ function precompress(outDir: string) {
   };
 }
 
+/**
+ * The content policy of the built page, written into index.html as a meta tag (GitHub Pages cannot send headers). It is a
+ * second barrier: nothing in the app builds markup from untrusted text without escaping it, but if that ever slipped, scripts
+ * from anywhere but this site's own files would still not run. What the app really needs is listed here:
+ *  - script and worker files come from the site itself (the demo and the PDF reader run in module workers built as files);
+ *  - styles: the site's stylesheet plus inline style attributes (React sets some, the figures use them);
+ *  - pictures: the site, data: (pasted pictures, exported figures) and blob: (a figure drawn to a canvas before download);
+ *  - fonts: the bundled files (small ones are inlined as data:);
+ *  - no plug-ins, no <base>, forms only to the site itself.
+ * The laptop server sends the same rules as a header (apps/server/src/http.ts) and adds frame-ancestors, which a meta tag cannot carry.
+ * Keep the two in step. Not applied to `vite dev` (its hot-reload code is an inline script).
+ */
+export const PAGE_CSP = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "font-src 'self' data:",
+  "connect-src 'self'",
+  "worker-src 'self'",
+  "object-src 'none'",
+  "base-uri 'none'",
+  "form-action 'self'",
+].join("; ");
+
+function contentPolicy() {
+  return {
+    name: "gap-content-policy",
+    apply: "build" as const,
+    transformIndexHtml() {
+      return [{ tag: "meta", attrs: { "http-equiv": "Content-Security-Policy", content: PAGE_CSP }, injectTo: "head-prepend" as const }];
+    },
+  };
+}
+
 // Two builds:
 //  - `vite build` is the static demo (Pages): no server code, no network calls. Output: dist.
 //  - `vite build --mode server` (npm run build:server) is the server-mode build for the laptop server. It sets
@@ -47,7 +82,7 @@ export default defineConfig(({ mode }) => {
   const serverMode = mode === "server" || process.env.VITE_SERVER_MODE === "1";
   return {
     base: "./",
-    plugins: [react(), yaml(), ...(serverMode ? [precompress("dist-server")] : [])],
+    plugins: [react(), yaml(), contentPolicy(), ...(serverMode ? [precompress("dist-server")] : [])],
     // The demo is built in a module Web Worker (src/demo-worker.ts), which imports the YAML content too, so it needs the same plugin.
     worker: { format: "es" as const, plugins: () => [yaml()] },
     // A literal replacement, so the static build folds every `import.meta.env.VITE_SERVER_MODE` check away

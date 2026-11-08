@@ -1,5 +1,6 @@
 import { DocPackage } from "./docpkg";
 import { CT, REL, parseRels, relsPathFor, relsXml, resolveTarget, type Rel } from "./package";
+import { decodeXml } from "./xml";
 
 /** Parts that carry macros, toolbars or embedded objects. They are removed, never run. */
 const REMOVE_PARTS: { re: RegExp; label: string }[] = [
@@ -18,7 +19,143 @@ const REMOVE_TYPES = /vbaProject|vbaData|activeX|attachedToolbars|customizations
 const COMMENT_TYPES = /wordprocessingml\.comments|ms-word\.comments|ms-word\.people|wordprocessingml\.people/i;
 const REL_REMOVE_TYPE = /\/(attachedTemplate|oleObject|package|frame|subDocument|mailMergeSource|vbaProject|vbaProjectSignature|activeXControlBinary|attachedToolbars|customizations|keyMapCustomizations)$|ms-office\/2006\/relationships\/(vbaProject|vbaData|activeXControlBinary|attachedToolbars|keyMapCustomizations|customizations)/i;
 const SAFE_LINK = /^(https?:|mailto:|tel:|#)/i;
-const DANGEROUS_FIELD = /^\s*(DDE|DDEAUTO|INCLUDETEXT|INCLUDEPICTURE|LINK|IMPORT|MACROBUTTON|AUTOTEXT|AUTOTEXTLIST|DATABASE|RD|ADDIN)\b/i;
+const DANGEROUS_FIELD = /^\s*(DDE|DDEAUTO|INCLUDETEXT|INCLUDEPICTURE|LINK|EMBED|IMPORT|MACROBUTTON|AUTOTEXT|AUTOTEXTLIST|DATABASE|RD|ADDIN)\b/i;
+
+/* ---------- fields ----------
+ *
+ * A Word field is a short instruction ("fetch this file", "run this macro") that Word carries out when the document is opened or
+ * updated. The instruction is not always in one piece or in one spelling: a complex field is written as a begin mark, any number of
+ * instruction pieces (often split between runs) and an end mark; the same XML name can carry another prefix; attribute values may
+ * use either kind of quote; and the first word may be wrapped in quotes or hidden behind characters with no width. So the check
+ * reads the whole instruction of each field, tidies it, and only then looks at its first word. Nothing is evaluated or run.
+ */
+
+/** An XML name's optional prefix ("w:" or any other prefix that the file maps to the Word namespace). */
+const ANY_PREFIX = "(?:[\\w.-]+:)?";
+/** One piece of a start tag's attributes: a quoted value (either quote kind, may contain ">") or any other character. */
+const ATTR_TEXT = `"[^"]*"|'[^']*'|[^>"']`;
+const INVISIBLE = new RegExp("[\u00ad\u200b-\u200f\u2028-\u202e\u2060-\u2064\ufeff]", "g");
+
+/** The instruction as plain text: character references decoded, CDATA unwrapped, invisible characters removed, odd spaces made plain. */
+function plainInstruction(raw: string): string {
+  return decodeXml(raw.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1"))
+    .replace(INVISIBLE, "")
+    .replace(new RegExp("[\u00a0\u2000-\u200a\u202f\u205f\u3000]", "g"), " ");
+}
+
+/** What follows a field's keyword, split into its words: quoted text (either quote kind) counts as one word. */
+function instructionWords(rest: string): { text: string; quoted: boolean }[] {
+  const words: { text: string; quoted: boolean }[] = [];
+  const re = /"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'|(\S+)/g;
+  for (let m = re.exec(rest); m; m = re.exec(rest)) {
+    const quoted = m[3] === undefined;
+    const text = m[1] ?? m[2] ?? m[3] ?? "";
+    words.push({ text: quoted ? text.replace(/\\(.)/g, "$1") : text, quoted });
+  }
+  return words;
+}
+
+/**
+ * A link field is kept only when it points to a web address, a mail or phone link, or a place inside the same document. A link to
+ * a file, a network share or anything else is the kind of thing Word fetches or opens, so it is not kept.
+ */
+function linkFieldIsUnsafe(afterKeyword: string): boolean {
+  const words = instructionWords(afterKeyword);
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i]!;
+    // A switch such as \l (a place in this document), \o (tool tip) or \t (frame): the three that take a value skip it.
+    if (!w.quoted && /^\\[A-Za-z]$/.test(w.text)) {
+      if (/^\\[loptLOPT]$/.test(w.text)) i++;
+      continue;
+    }
+    return !SAFE_LINK.test(w.text.trim());
+  }
+  return false; // no target at all: nothing to fetch
+}
+
+/** True when a field instruction could fetch outside content, open a file or run a macro. */
+export function fieldIsUnsafe(instruction: string): boolean {
+  const text = plainInstruction(instruction).replace(new RegExp("^[\\s\"'\u2018-\u201f]+"), "");
+  if (DANGEROUS_FIELD.test(text)) return true;
+  const keyword = /^([A-Za-z]+)/.exec(text)?.[1];
+  return keyword !== undefined && keyword.toUpperCase() === "HYPERLINK" && linkFieldIsUnsafe(text.slice(keyword.length));
+}
+
+const FIELD_PIECES = new RegExp(
+  // a begin / separate / end mark
+  `<${ANY_PREFIX}fldChar\\b((?:${ATTR_TEXT})*)>` +
+    // or one piece of instruction text (also the kind kept inside a tracked deletion)
+    `|(<${ANY_PREFIX}(?:del)?instrText\\b(?:${ATTR_TEXT})*>)((?:<!\\[CDATA\\[[\\s\\S]*?\\]\\]>|[^<])*)(</${ANY_PREFIX}(?:del)?instrText\\s*>)`,
+  "g",
+);
+const SIMPLE_FIELD = new RegExp(`<${ANY_PREFIX}fldSimple\\b(?:${ATTR_TEXT})*>`, "g");
+/** One attribute of a start tag, read as a whole so that text inside one value is never mistaken for another attribute. */
+const ATTRIBUTE = /(\s)([\w.-]+:)?([\w.-]+)(\s*=\s*)("[^"]*"|'[^']*')/g;
+
+/** The value of the attribute with this local name (whatever its prefix or quote kind), or undefined. */
+function attributeValue(attrs: string, local: string): string | undefined {
+  for (const m of attrs.matchAll(ATTRIBUTE)) if (m[3] === local) return m[5]!.slice(1, -1);
+  return undefined;
+}
+
+interface Piece {
+  start: number;
+  end: number;
+  open: string;
+  text: string;
+  close: string;
+}
+
+/**
+ * Replaces the instruction of every unsafe field with an empty QUOTE field, so the field is still there (the visible text and the
+ * structure stay) but no longer points anywhere. Returns the new XML and how many fields were changed.
+ */
+export function neutraliseFields(xml: string): { xml: string; count: number } {
+  let count = 0;
+
+  // Complex fields: collect the instruction pieces of each field (nested fields keep their own), then judge the pieces together.
+  const edits: Piece[] = [];
+  const stack: { pieces: Piece[]; inResult: boolean }[] = [];
+  const settle = (pieces: Piece[]) => {
+    if (pieces.length === 0 || !fieldIsUnsafe(pieces.map((p) => p.text).join(""))) return;
+    count++;
+    pieces.forEach((p, i) => edits.push({ ...p, text: i === 0 ? ' QUOTE "" ' : "" }));
+  };
+  FIELD_PIECES.lastIndex = 0;
+  for (let m = FIELD_PIECES.exec(xml); m; m = FIELD_PIECES.exec(xml)) {
+    if (m[1] !== undefined) {
+      const kind = attributeValue(m[1], "fldCharType");
+      if (kind === "begin") stack.push({ pieces: [], inResult: false });
+      else if (kind === "separate") {
+        const top = stack[stack.length - 1];
+        if (top) top.inResult = true;
+      } else if (kind === "end") {
+        const done = stack.pop();
+        if (done) settle(done.pieces);
+      }
+      continue;
+    }
+    const piece: Piece = { start: m.index, end: m.index + m[0].length, open: m[2]!, text: m[3]!, close: m[4]! };
+    const top = stack[stack.length - 1];
+    if (!top) settle([piece]); // instruction text with no field around it is judged on its own
+    else if (!top.inResult) top.pieces.push(piece);
+  }
+  // A field that was never closed is still judged.
+  while (stack.length) settle(stack.pop()!.pieces);
+
+  let out = xml;
+  for (const e of edits.sort((a, b) => b.start - a.start)) out = out.slice(0, e.start) + e.open + e.text + e.close + out.slice(e.end);
+
+  // Simple fields keep their instruction in an attribute.
+  out = out.replace(SIMPLE_FIELD, (tag: string) =>
+    tag.replace(ATTRIBUTE, (whole: string, space: string, prefix: string | undefined, local: string, equals: string, value: string) => {
+      if (local !== "instr" || !fieldIsUnsafe(value.slice(1, -1))) return whole;
+      count++;
+      return `${space}${prefix ?? ""}${local}${equals}"QUOTE &quot;&quot;"`;
+    }),
+  );
+  return { xml: out, count };
+}
 
 function isXmlPart(name: string): boolean {
   return /^word\/[^/]+\.xml$/i.test(name);
@@ -137,17 +274,10 @@ export function sanitizePackage(dp: DocPackage): string[] {
       });
     }
     xml = xml.replace(/<w:comment(?:RangeStart|RangeEnd|Reference)\b[^>]*\/>/g, "");
-    xml = xml.replace(/(<w:instrText\b[^>]*>)([^<]*)(<\/w:instrText>)/g, (m, a: string, code: string, b: string) => {
-      if (!DANGEROUS_FIELD.test(code)) return m;
-      fields++;
-      return `${a} QUOTE "" ${b}`;
-    });
-    xml = xml.replace(/(<w:fldSimple\b[^>]*\sw:instr=")([^"]*)(")/g, (m, a: string, code: string, b: string) => {
-      if (!DANGEROUS_FIELD.test(code)) return m;
-      fields++;
-      return `${a} QUOTE &quot;&quot; ${b}`;
-    });
-    xml = xml.replace(/<w:altChunk\b[^>]*\/>/g, () => {
+    const neutralised = neutraliseFields(xml);
+    xml = neutralised.xml;
+    fields += neutralised.count;
+    xml = xml.replace(new RegExp(`<${ANY_PREFIX}altChunk\\b(?:${ATTR_TEXT})*?(?:/>|>[\\s\\S]*?</${ANY_PREFIX}altChunk\\s*>)`, "g"), () => {
       altChunks++;
       return "";
     });

@@ -11,8 +11,10 @@ export function isSourceId(value: unknown): value is string {
   return typeof value === "string" && SOURCE_ID_RE.test(value);
 }
 
-// Windows device names are reserved even with an extension ("con.txt"), and a trailing dot or space is dropped.
-const RESERVED = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
+// Windows device names are reserved even with an extension ("con.txt"), in any letter case, and a trailing dot or space is
+// dropped before the check. That covers the console handles (conin$, conout$) and the numbered ports with the superscript
+// digits Windows also treats as device names (com¹, lpt³).
+const RESERVED = /^(con|prn|aux|nul|conin\$|conout\$|clock\$|com[0-9¹²³]|lpt[0-9¹²³])$/i;
 // Also zero-width and right-to-left override characters, which can make "evil‮fdp.exe" look like a PDF.
 // eslint-disable-next-line no-control-regex
 const BAD_CHARS = /[\u0000-\u001f\u007f-\u009f<>:"/\\|?*​-‏‪-‮⁦-⁩﻿]/g;
@@ -34,7 +36,8 @@ export function safeName(input: string): string {
   const ext = dot > 0 ? name.slice(dot + 1).replace(/[^\p{L}\p{N}]/gu, "").slice(0, 16) : "";
   base = base.replace(/[. ]+$/, "");
   if (!base) base = "file";
-  if (RESERVED.test(base.split(".")[0] ?? "")) base = `_${base}`;
+  // The part before the first dot decides ("con.tar.gz" is still the console); spaces or dots left at its end do not hide it.
+  if (RESERVED.test((base.split(".")[0] ?? "").replace(/[. ]+$/, ""))) base = `_${base}`;
   const extPart = ext ? `.${ext}` : "";
   if (base.length + extPart.length > MAX_NAME) base = base.slice(0, MAX_NAME - extPart.length).replace(/[. ]+$/, "") || "file";
   name = base + extPart;

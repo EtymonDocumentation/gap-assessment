@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { HttpError, sendJson, type Ctx, type Route } from "../http";
+import { MAX_LIBRARY_BODY_BYTES } from "../limits";
 import { SAMPLING_MODULE } from "./sampling-tables";
 import { parseBody, userPath } from "./util";
 
@@ -48,7 +49,7 @@ export const expectedStudiesRoutes: Route[] = [
     storage: true,
     async handler(ctx) {
       requireSamplingModule(ctx);
-      const body = parseBody(bodySchema, await ctx.json());
+      const body = parseBody(bodySchema, await ctx.json(MAX_LIBRARY_BODY_BYTES));
       const { store } = ctx.app;
       await store.withLock(`expected-studies:${ctx.user.id}`, async () => {
         await store.writeJson(userPath(ctx, FILE), body.doc);

@@ -2,7 +2,8 @@
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { z } from "zod";
-import { HttpError, sendJson, sendNoContent, type Route } from "../http";
+import { HttpError, MAX_JSON_BYTES, sendJson, sendNoContent, type Route } from "../http";
+import { MAX_TEMPLATES, requireRoomForItem } from "../limits";
 import { isId } from "../names";
 import { idParam, notFound, parseBody, userPath } from "./util";
 
@@ -55,11 +56,13 @@ export const templateRoutes: Route[] = [
     auth: true,
     storage: true,
     async handler(ctx) {
-      const body = parseBody(createSchema, await ctx.json());
+      // The template file travels inside the body as text, so this is the large limit.
+      const body = parseBody(createSchema, await ctx.json(MAX_JSON_BYTES));
       const bytes = Buffer.from(body.bytesBase64, "base64");
       if (bytes.length === 0) throw new HttpError(400, "invalid", "The template file is empty.");
       const { store } = ctx.app;
       const id = await store.withLock(`templates:${ctx.user.id}`, async () => {
+        await requireRoomForItem(ctx, "templates", null, MAX_TEMPLATES, "templates");
         // Keep the id the browser used when it is a valid, unused one; otherwise hand out a new one.
         const wanted = body.meta.id;
         const chosen = isId(wanted) && !(await store.exists(userPath(ctx, "templates", `${wanted}.json`))) ? wanted : randomUUID();

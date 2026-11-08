@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { emptyProject, type Project } from "@gap/process-model";
 import { vi } from "vitest";
-import { startServer, type RunningServer } from "../src/app";
+import { startServer, type RunningServer, type ServerOptions } from "../src/app";
 import { runAdmin } from "../src/admin-commands";
 
 // Real disk and real sockets: on a busy machine (all test files run in parallel) 5 s is too tight.
@@ -37,7 +37,9 @@ export async function initData(dataDir: string, storage: "server" | "client" = "
 }
 
 /** A temp folder with <root>/data (initialised), <root>/web (a tiny site) and a running server on a free port. */
-export async function startEnv(opts: { storage?: "server" | "client"; maxUploadMB?: number; productionScrypt?: boolean } = {}): Promise<TestEnv> {
+export async function startEnv(
+  opts: { storage?: "server" | "client"; maxUploadMB?: number; productionScrypt?: boolean; serverOptions?: Partial<ServerOptions> } = {},
+): Promise<TestEnv> {
   const root = await mkdtemp(join(tmpdir(), "gap-server-test-"));
   const dataDir = join(root, "data");
   const webDir = join(root, "web");
@@ -51,6 +53,9 @@ export async function startEnv(opts: { storage?: "server" | "client"; maxUploadM
     webDir,
     port: 0,
     ...(opts.productionScrypt ? {} : { scrypt: FAST_SCRYPT }),
+    // The tests must not depend on how much room this machine happens to have; one test sets a floor on purpose.
+    minFreeDiskBytes: 0,
+    ...opts.serverOptions,
   });
   return {
     root,

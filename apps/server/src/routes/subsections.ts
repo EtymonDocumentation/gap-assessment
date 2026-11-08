@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { subsectionLibraryItemSchema } from "@gap/process-model";
 import { z } from "zod";
 import { HttpError, sendJson, sendNoContent, type Ctx, type Route } from "../http";
+import { MAX_LIBRARY_BODY_BYTES, MAX_LIBRARY_ITEMS, requireRoomForItem } from "../limits";
 import { isId } from "../names";
 import { SAMPLING_MODULE } from "./sampling-tables";
 import { idParam, notFound, parseBody, userPath } from "./util";
@@ -59,9 +60,10 @@ export const subsectionRoutes: Route[] = [
     storage: true,
     async handler(ctx) {
       requireSamplingModule(ctx);
-      const body = parseBody(bodySchema, await ctx.json());
+      const body = parseBody(bodySchema, await ctx.json(MAX_LIBRARY_BODY_BYTES));
       const { store } = ctx.app;
       const id = await store.withLock(`subsections:${ctx.user.id}`, async () => {
+        await requireRoomForItem(ctx, "subsections", null, MAX_LIBRARY_ITEMS, "subsections");
         // Keep the id the browser used when it is a valid, unused one; otherwise hand out a new one.
         const wanted = body.item.id;
         const chosen = isId(wanted) && !(await store.exists(userPath(ctx, "subsections", `${wanted}.json`))) ? wanted : randomUUID();
@@ -81,7 +83,7 @@ export const subsectionRoutes: Route[] = [
     async handler(ctx) {
       requireSamplingModule(ctx);
       const id = idParam(ctx);
-      const body = parseBody(bodySchema, await ctx.json());
+      const body = parseBody(bodySchema, await ctx.json(MAX_LIBRARY_BODY_BYTES));
       const { store } = ctx.app;
       const saved = await store.update<Stored | null>(userPath(ctx, "subsections", `${id}.json`), null, (current) => {
         if (!current) throw notFound("subsection");

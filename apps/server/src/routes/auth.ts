@@ -17,7 +17,6 @@ import {
 } from "../auth";
 import { HttpError, MAX_AUTH_BODY_BYTES, sendJson, sendNoContent, type Ctx, type Route } from "../http";
 import { DEFAULT_MODULES, DEFAULT_PLAN_ID, type InviteRecord, type UserRecord } from "../types";
-import { VERSION } from "../version";
 import { parseBody } from "./util";
 
 const USERNAME_RE = /^[a-z0-9._-]{3,40}$/i;
@@ -50,10 +49,17 @@ function throttle(retryAfterSeconds: number): never {
   throw new HttpError(429, "rate-limited", "Too many attempts. Please wait and try again.", { retryAfterSeconds });
 }
 
-/** Failed attempts are counted per user name (even unknown ones) and per caller address. */
+/** The name as typed, folded to the form accounts are stored in. */
 function loginKey(username: string): string {
   return username.trim().toLowerCase().slice(0, 80);
 }
+
+/**
+ * Wrong passwords are slowed down per user name AND caller address together (unknown user names too, so the answer does not
+ * reveal which names exist). Someone guessing at a name only slows down their own address; the owner of the account, signing
+ * in from somewhere else, is never held up by it.
+ */
+const slowdownKey = (username: string, ip: string): string => `${loginKey(username)}|${ip}`;
 
 /** A tried user name goes to the audit log only if it looks like one; people sometimes type a password there. */
 function loggableName(username: string): string {
@@ -71,7 +77,8 @@ export const authRoutes: Route[] = [
     method: "GET",
     path: "/api/health",
     async handler({ res, app }) {
-      sendJson(res, 200, { ok: true, storage: app.config.storage, version: VERSION });
+      // No program version: the page does not need it, and it only tells a stranger which release to look up.
+      sendJson(res, 200, { ok: true, storage: app.config.storage });
     },
   },
 
@@ -85,7 +92,7 @@ export const authRoutes: Route[] = [
       app.signupByIp.hit(ctx.ip);
 
       const body = parseBody(signupSchema, await ctx.json(MAX_AUTH_BODY_BYTES));
-      const problem = passwordProblem(body.password);
+      const problem = passwordProblem(body.password, body.username.toLowerCase());
       if (problem) throw new HttpError(400, "invalid", problem);
 
       const codeHash = hashInviteCode(body.inviteCode);
@@ -144,18 +151,24 @@ export const authRoutes: Route[] = [
       const { app } = ctx;
       const body = parseBody(loginSchema, await ctx.json(MAX_AUTH_BODY_BYTES));
       const key = loginKey(body.username);
-      const retry = Math.max(app.loginByUser.retryAfterSeconds(key), app.loginByIp.retryAfterSeconds(ctx.ip));
+      const pair = slowdownKey(body.username, ctx.ip);
+      const retry = Math.max(app.loginSlowdown.retryAfterSeconds(pair), app.loginByIp.retryAfterSeconds(ctx.ip));
       if (retry > 0) throttle(retry);
 
       const user = (await loadUsers(app.store)).find((u) => u.username === key);
       // An unknown user is checked against a dummy hash, so the answer takes as long as for a real one.
       const passwordOk = await verifyPassword(body.password, user?.passwordHash ?? app.dummyHash);
       if (!user || user.disabled || !passwordOk) {
-        app.loginByUser.hit(key);
+        const failures = app.loginSlowdown.failed(pair);
         app.loginByIp.hit(ctx.ip);
         await app.store.audit("login-failed", { username: loggableName(body.username), ip: ctx.ip });
+        // Once, when the waiting starts: the person who runs the server can see it in the audit log.
+        if (app.loginSlowdown.isFirstSlowedTry(failures)) {
+          await app.store.audit("login-slowed", { username: loggableName(body.username), ip: ctx.ip });
+        }
         throw INVALID_LOGIN;
       }
+      app.loginSlowdown.succeeded(pair);
       await app.store.audit("login", { userId: user.id, username: user.username, ip: ctx.ip });
       await startSession(ctx, user, 200);
     },
@@ -189,13 +202,15 @@ export const authRoutes: Route[] = [
       const { app, user } = ctx;
       const body = parseBody(passwordSchema, await ctx.json(MAX_AUTH_BODY_BYTES));
       // A stolen session must not be a free way to guess the password, so wrong guesses count like failed logins.
-      const retry = app.loginByUser.retryAfterSeconds(user.username);
+      const pair = slowdownKey(user.username, ctx.ip);
+      const retry = app.loginSlowdown.retryAfterSeconds(pair);
       if (retry > 0) throttle(retry);
       if (!(await verifyPassword(body.currentPassword, user.passwordHash))) {
-        app.loginByUser.hit(user.username);
+        app.loginSlowdown.failed(pair);
         throw new HttpError(403, "wrong-password", "The current password is not right.");
       }
-      const problem = passwordProblem(body.newPassword);
+      app.loginSlowdown.succeeded(pair);
+      const problem = passwordProblem(body.newPassword, user.username);
       if (problem) throw new HttpError(400, "invalid", problem);
 
       const passwordHash = await hashPassword(body.newPassword, app.scrypt);

@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { mbrLibraryBlockSchema } from "@gap/process-model";
 import { z } from "zod";
 import { HttpError, sendJson, sendNoContent, type Ctx, type Route } from "../http";
+import { MAX_LIBRARY_BODY_BYTES, MAX_LIBRARY_ITEMS, requireRoomForItem } from "../limits";
 import { notFound, parseBody, userPath } from "./util";
 
 /** The module key an account needs to keep batch-record step blocks (the MBR library) on the server. */
@@ -61,10 +62,11 @@ export const mbrBlockRoutes: Route[] = [
     async handler(ctx) {
       requireMbrModule(ctx);
       const id = blockIdParam(ctx);
-      const body = parseBody(bodySchema, await ctx.json());
+      const body = parseBody(bodySchema, await ctx.json(MAX_LIBRARY_BODY_BYTES));
       if (body.block.id !== id) throw new HttpError(400, "invalid", "The block id in the address and in the block differ.");
       const { store } = ctx.app;
       await store.withLock(`mbr-blocks:${ctx.user.id}`, async () => {
+        await requireRoomForItem(ctx, "mbr-blocks", `${id}.json`, MAX_LIBRARY_ITEMS, "batch record blocks");
         await store.writeJson(userPath(ctx, "mbr-blocks", `${id}.json`), body.block);
       });
       await store.audit("mbr-block-save", { userId: ctx.user.id, blockId: id, ip: ctx.ip });

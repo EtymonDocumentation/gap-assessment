@@ -103,7 +103,7 @@ describe("upload, list, download", () => {
 
     const list = await c.get("/api/myfiles");
     expect(list.json.files.map((x: { id: string }) => x.id)).toEqual([f.id]);
-    expect(list.json.usage).toEqual({ usedBytes: 5000, quotaBytes: null, fileCount: 1 });
+    expect(list.json.usage).toEqual({ usedBytes: 5000, quotaBytes: 2 * 1024 * 1024 * 1024, fileCount: 1 });
     expect(list.json.settings).toEqual({ autoDeleteDays: null });
     expect(list.json.maxFileBytes).toBe(20 * 1024 * 1024);
   });
@@ -271,12 +271,12 @@ describe("limits", () => {
     expect((await c.get("/api/myfiles")).json.files).toEqual([]);
   });
 
-  it("enforces the account quota on the server, shows it, and has no default", async () => {
+  it("enforces the account quota on the server, shows it, and starts every account at 2 GB", async () => {
     const c = await signedInClient(env);
-    // no quota set: no limit but the per-file one
-    expect((await c.get("/api/myfiles")).json.usage.quotaBytes).toBeNull();
+    // nothing set by the admin: the default of 2 GB applies, and the listing says so
+    expect((await c.get("/api/myfiles")).json.usage.quotaBytes).toBe(2 * 1024 * 1024 * 1024);
     const usage = await admin(env.dataDir, "files-usage");
-    expect(usage.out).toContain(`${c.username}  0 files  0.0 MB  (no quota set)`);
+    expect(usage.out).toContain(`${c.username}  0 files  0.0 MB  (default limit 2048 MB)`);
 
     expect((await admin(env.dataDir, "set-files-quota", c.username, "1")).code).toBe(0);
     expect((await c.get("/api/myfiles")).json.usage.quotaBytes).toBe(1024 * 1024);
@@ -290,14 +290,19 @@ describe("limits", () => {
     const chunked = await c.call("POST", "/api/myfiles/upload", undefined, { "X-File-Name": "c.bin" }, randomBytes(700 * 1024));
     expect(chunked.status).toBe(413);
     expect(chunked.json.error).toBe("quota-exceeded");
-    expect((await admin(env.dataDir, "files-usage")).out).toContain(`${c.username}  1 file  0.7 MB  (quota 1 MB)`);
+    expect((await admin(env.dataDir, "files-usage")).out).toContain(`${c.username}  1 file  0.7 MB  (limit 1 MB)`);
 
     // deleting frees room
     await c.del(`/api/myfiles/files/${first.json.file.id}`);
     expect((await c.uploadMy("b.bin", randomBytes(700 * 1024))).status).toBe(201);
 
-    expect((await admin(env.dataDir, "set-files-quota", c.username, "none")).code).toBe(0);
-    expect((await c.get("/api/myfiles")).json.usage.quotaBytes).toBeNull();
+    // "none" used to mean unlimited; nobody is unlimited now, so it and "default" both go back to the 2 GB default
+    for (const word of ["none", "default"]) {
+      await admin(env.dataDir, "set-files-quota", c.username, "1");
+      expect((await admin(env.dataDir, "set-files-quota", c.username, word)).code).toBe(0);
+      expect((await c.get("/api/myfiles")).json.usage.quotaBytes).toBe(2 * 1024 * 1024 * 1024);
+    }
+    expect((await admin(env.dataDir, "files-usage")).out).toContain(`${c.username}  1 file  0.7 MB  (default limit 2048 MB)`);
     expect((await admin(env.dataDir, "set-files-quota", c.username, "0")).code).toBe(1);
     expect((await admin(env.dataDir, "set-files-quota", c.username, "abc")).code).toBe(1);
     expect((await admin(env.dataDir, "set-files-quota", "nobody", "5")).code).toBe(1);

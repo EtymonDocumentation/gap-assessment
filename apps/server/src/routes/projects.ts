@@ -3,7 +3,8 @@ import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { ImportError, parseProject, type Project } from "@gap/process-model";
 import { z } from "zod";
-import { HttpError, sendJson, sendNoContent, type Ctx, type Route } from "../http";
+import { HttpError, MAX_JSON_BYTES, sendJson, sendNoContent, type Ctx, type Route } from "../http";
+import { MAX_PROJECTS, requireRoomForItem } from "../limits";
 import { isId } from "../names";
 import { MBR_MODULE } from "./mbr-blocks";
 import { idParam, notFound, parseBody, userPath } from "./util";
@@ -85,12 +86,17 @@ export const projectRoutes: Route[] = [
     auth: true,
     storage: true,
     async handler(ctx) {
-      const body = parseBody(createSchema, await ctx.json());
+      // A project can be large (figures and attached documents), so it gets the large body limit; everything else gets the small one.
+      const body = parseBody(createSchema, await ctx.json(MAX_JSON_BYTES));
       const project = checkProject(body.project);
       requireTrdModuleForProject(ctx, project);
       const id = randomUUID();
       const file: ProjectFile = { id, revision: 1, updatedAt: new Date().toISOString(), project };
-      await ctx.app.store.writeJson(userPath(ctx, "projects", `${id}.json`), file);
+      // The count and the write happen together, so two quick requests cannot both take the last place.
+      await ctx.app.store.withLock(`projects:${ctx.user.id}`, async () => {
+        await requireRoomForItem(ctx, "projects", null, MAX_PROJECTS, "projects");
+        await ctx.app.store.writeJson(userPath(ctx, "projects", `${id}.json`), file);
+      });
       sendJson(ctx.res, 201, { id, revision: file.revision, updatedAt: file.updatedAt });
     },
   },
@@ -115,7 +121,7 @@ export const projectRoutes: Route[] = [
     storage: true,
     async handler(ctx) {
       const id = idParam(ctx);
-      const body = parseBody(updateSchema, await ctx.json());
+      const body = parseBody(updateSchema, await ctx.json(MAX_JSON_BYTES));
       const project = checkProject(body.project);
       requireTrdModuleForProject(ctx, project);
       let saved: ProjectFile | undefined;

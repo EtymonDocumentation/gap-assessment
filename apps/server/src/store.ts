@@ -116,10 +116,22 @@ export async function withFileLock<T>(dir: string, fn: () => Promise<T>): Promis
   }
 }
 
+/** How long deleted items stay in the trash before the server removes them for good. */
+export const TRASH_DAYS = 30;
+
+/** When a trash entry was made, from the date `toTrash` puts at the start of its name ("2026-11-08T12-30-00-123Z-..."), or undefined. */
+export function trashedAt(entry: string): number | undefined {
+  const m = /^(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})-(\d{3})Z-/.exec(entry);
+  if (!m) return undefined;
+  const t = Date.parse(`${m[1]}T${m[2]}:${m[3]}:${m[4]}.${m[5]}Z`);
+  return Number.isFinite(t) ? t : undefined;
+}
+
 /** The data folder: every disk access of the server goes through here. */
 export class Store {
   readonly dir: string;
   private tails = new Map<string, Promise<unknown>>();
+  private shared = new Map<string, { key: string; value: unknown }>();
 
   constructor(dataDir: string) {
     this.dir = resolve(dataDir);
@@ -164,6 +176,24 @@ export class Store {
     }
   }
 
+  /**
+   * Like readJson, for files that every request reads (accounts and sessions). The parsed copy is kept in memory and used again
+   * as long as the file on disk is the same one (same size, change time and file number; every save replaces the file, so a
+   * change always shows). The admin tool changes these files from another process, which this check also notices. The result
+   * is shared: callers must only read it.
+   */
+  async readJsonShared<T>(file: string, fallback: T): Promise<T> {
+    const info = await stat(file).catch(() => null);
+    if (!info) return this.readJson(file, fallback);
+    const key = `${info.size}:${info.mtimeMs}:${info.ctimeMs}:${info.ino}`;
+    const hit = this.shared.get(file);
+    if (hit && hit.key === key) return hit.value as T;
+    // The file is read after it was measured, so the copy is never older than its key; a change in between only costs a re-read.
+    const value = await this.readJson(file, fallback);
+    this.shared.set(file, { key, value });
+    return value;
+  }
+
   async readBytes(file: string): Promise<Buffer | null> {
     try {
       return await readFile(file);
@@ -190,6 +220,7 @@ export class Store {
     const step = async () => {
       const next = await fn(await this.readJson(file, fallback));
       await atomicWrite(file, JSON.stringify(next, null, 2), true);
+      this.shared.delete(file); // our own change is seen at once (the disk check alone would also notice it)
       return next;
     };
     const shared = dirname(resolve(file)) === this.dir && SHARED_FILES.has(basename(file));
@@ -216,6 +247,36 @@ export class Store {
     const dest = this.path("trash", userId, kind, `${new Date().toISOString().replace(/[:.]/g, "-")}-${randomUUID().slice(0, 8)}-${name}`);
     await mkdir(dirname(dest), { recursive: true, mode: DIR_MODE });
     await renameWithRetry(from, dest);
+  }
+
+  /**
+   * Empties the trash of everything older than `days` days (default 30): deleted items stay recoverable for a month, then the
+   * disk gets the space back. Without this the trash only grows, and so does the disk use of anyone who deletes and re-creates
+   * things. Each removal is written to the audit log. The age is read from the date in the entry's own name; an entry whose name
+   * has no date falls back to the file's change time.
+   */
+  async sweepTrash(now = new Date(), days = TRASH_DAYS): Promise<number> {
+    const root = this.path("trash");
+    const limit = days * 24 * 60 * 60 * 1000;
+    let removed = 0;
+    for (const user of await this.list(root)) {
+      for (const kind of await this.list(join(root, user))) {
+        const dir = join(root, user, kind);
+        for (const entry of await this.list(dir)) {
+          const path = join(dir, entry);
+          const when = trashedAt(entry) ?? (await stat(path).catch(() => null))?.mtimeMs;
+          if (when === undefined || now.getTime() - when <= limit) continue;
+          try {
+            await rm(path, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+          } catch {
+            continue; // in use right now; the next hourly sweep tries again
+          }
+          await this.audit("trash-expired", { userId: user, kind, item: entry, days });
+          removed++;
+        }
+      }
+    }
+    return removed;
   }
 
   /** One JSON line per event. Callers must never pass passwords, tokens or invite codes. */

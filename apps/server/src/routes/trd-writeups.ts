@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { trdLibraryWriteupSchema } from "@gap/process-model";
 import { z } from "zod";
 import { HttpError, sendJson, sendNoContent, type Ctx, type Route } from "../http";
+import { MAX_LIBRARY_BODY_BYTES, MAX_LIBRARY_ITEMS, requireRoomForItem } from "../limits";
 import { notFound, parseBody, userPath } from "./util";
 
 /** The module key an account needs to keep TRD process-description write-ups (the write-up library) on the server. */
@@ -61,10 +62,11 @@ export const trdWriteupRoutes: Route[] = [
     async handler(ctx) {
       requireTrdModule(ctx);
       const id = writeupIdParam(ctx);
-      const body = parseBody(bodySchema, await ctx.json());
+      const body = parseBody(bodySchema, await ctx.json(MAX_LIBRARY_BODY_BYTES));
       if (body.writeup.id !== id) throw new HttpError(400, "invalid", "The write-up id in the address and in the write-up differ.");
       const { store } = ctx.app;
       await store.withLock(`trd-writeups:${ctx.user.id}`, async () => {
+        await requireRoomForItem(ctx, "trd-writeups", `${id}.json`, MAX_LIBRARY_ITEMS, "write-ups");
         await store.writeJson(userPath(ctx, "trd-writeups", `${id}.json`), body.writeup);
       });
       await store.audit("trd-writeup-save", { userId: ctx.user.id, writeupId: id, ip: ctx.ip });

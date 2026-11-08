@@ -40,7 +40,8 @@ describe("security headers", () => {
   it("are on API answers (with no-store), errors, and static files", async () => {
     const health = await rawRequest(env.port, { path: "/api/health" });
     expect(health.status).toBe(200);
-    expect(health.json).toMatchObject({ ok: true, storage: "server", version: expect.any(String) });
+    expect(health.json).toMatchObject({ ok: true, storage: "server" });
+    expect(health.json).not.toHaveProperty("version");
     expectHeaders(health.headers);
     expect(health.headers["cache-control"]).toBe("no-store");
 

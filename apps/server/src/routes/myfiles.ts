@@ -35,6 +35,7 @@ import {
   type MyFile,
   type MyFilesIndex,
 } from "../myfiles";
+import { attachedUsage, quotaBytesOf, storageFullMessage } from "../limits";
 import { cleanLabel, isId, safeContentType, safeName } from "../names";
 import { idParam, notFound, parseBody } from "./util";
 
@@ -46,7 +47,7 @@ function publicFile(f: MyFile) {
   return { ...rest, previewable: isPreviewable(f.contentType) };
 }
 
-function throttle(limiter: RateLimiter, ctx: Ctx): void {
+export function throttle(limiter: RateLimiter, ctx: Ctx): void {
   const retryAfterSeconds = limiter.retryAfterSeconds(ctx.user.id);
   if (retryAfterSeconds > 0) throw new HttpError(429, "rate-limited", "Too many requests. Please wait a moment and try again.", { retryAfterSeconds });
   limiter.hit(ctx.user.id);
@@ -54,13 +55,10 @@ function throttle(limiter: RateLimiter, ctx: Ctx): void {
 
 const header = (v: string | string[] | undefined): string | undefined => (Array.isArray(v) ? v[0] : v);
 
-function quotaBytes(ctx: Ctx): number | null {
-  const mb = ctx.user.filesQuotaMB;
-  return typeof mb === "number" ? mb * MB : null;
-}
+/** Every account has a limit: the administrator's number if one was set, otherwise the default (see limits.ts). */
+const quotaBytes = (ctx: Ctx): number => quotaBytesOf(ctx.user.filesQuotaMB);
 
-const quotaError = (ctx: Ctx, used: number): HttpError =>
-  new HttpError(413, "quota-exceeded", `Your My files space is full (${formatBytes(used)} of ${formatBytes(quotaBytes(ctx) ?? 0)} used). Delete some files and try again.`);
+const quotaError = (ctx: Ctx, used: number): HttpError => new HttpError(413, "quota-exceeded", storageFullMessage(used, quotaBytes(ctx)));
 
 const badFolder = () => new HttpError(400, "invalid-folder", `That folder name is not valid (names use letters, digits and spaces; at most ${MAX_FOLDER_DEPTH} levels deep).`);
 const folderMissing = () => new HttpError(404, "folder-not-found", "That folder was not found.");
@@ -88,7 +86,7 @@ async function change<T>(ctx: Ctx, fn: (index: MyFilesIndex) => T): Promise<T> {
 
 /* ---------- streaming an upload to disk ---------- */
 
-interface Received {
+export interface Received {
   size: number;
   sha256: string;
   head: Buffer;
@@ -99,7 +97,7 @@ interface Received {
  * `limit` the upload is stopped at once: the request is paused (so the 413 handler can drain the rest, see http.ts), the
  * half file is deleted, and the caller gets `tooBig`. A connection that drops half way also removes the half file.
  */
-function receiveToDisk(ctx: Ctx, tmp: string, limit: number, tooBig: () => HttpError): Promise<Received> {
+export function receiveToDisk(ctx: Ctx, tmp: string, limit: number, tooBig: () => HttpError): Promise<Received> {
   const { req } = ctx;
   return new Promise((resolve, reject) => {
     const out = createWriteStream(tmp, { flags: "wx", mode: 0o600 });
@@ -233,6 +231,7 @@ export const myFilesRoutes: Route[] = [
     async handler(ctx) {
       throttle(ctx.app.myFilesReads, ctx);
       const index = await readIndex(ctx.app.store, ctx.user.id);
+      const attached = await attachedUsage(ctx.app.store, ctx.user.id);
       const folder = folderOrThrow(index, ctx.url.searchParams.get("folder") ?? "");
       const count = (path: string) => ({
         files: index.files.filter((f) => isInside(f.folder, path)).length,
@@ -246,7 +245,8 @@ export const myFilesRoutes: Route[] = [
         allFolders: [...index.folders].sort((a, b) => a.localeCompare(b)),
         files: index.files.filter((f) => f.folder === folder).map(publicFile),
         settings: { autoDeleteDays: index.settings.autoDeleteDays ?? null },
-        usage: { usedBytes: usedBytes(index), quotaBytes: quotaBytes(ctx), fileCount: index.files.length },
+        // The limit covers "My files" and the files attached to projects together, so "used" counts both.
+        usage: { usedBytes: usedBytes(index) + attached.bytes, quotaBytes: quotaBytes(ctx), fileCount: index.files.length },
         maxFileBytes: ctx.app.config.maxUploadMB * MB,
       });
     },
@@ -257,6 +257,7 @@ export const myFilesRoutes: Route[] = [
     path: "/api/myfiles/upload",
     auth: true,
     storage: true,
+    upload: true,
     async handler(ctx) {
       const { req } = ctx;
       const { store, config } = ctx.app;
@@ -291,23 +292,24 @@ export const myFilesRoutes: Route[] = [
       if (before.files.length >= MAX_FILES_PER_ACCOUNT) throw new HttpError(400, "too-many", "There are too many files in this account. Delete some first.");
       const quota = quotaBytes(ctx);
       const reservedNow = ctx.app.myFilesReserved.get(ctx.user.id) ?? 0;
+      // Files attached to projects count against the same limit, so the two upload routes cannot add up to more than it.
+      const attachedBytes = (await attachedUsage(store, ctx.user.id)).bytes;
+      const usedBefore = usedBytes(before) + attachedBytes;
       let limit = perFile;
       let overQuota = false;
-      if (quota !== null) {
-        const room = Math.max(0, quota - usedBytes(before) - reservedNow);
-        if (known && declared > room) {
-          const err = quotaError(ctx, usedBytes(before));
-          err.drainLimit = drainLimitFor(perFile);
-          throw err;
-        }
-        if (room < limit) {
-          limit = room;
-          overQuota = true;
-        }
+      const room = Math.max(0, quota - usedBefore - reservedNow);
+      if (known && declared > room) {
+        const err = quotaError(ctx, usedBefore);
+        err.drainLimit = drainLimitFor(perFile);
+        throw err;
+      }
+      if (room < limit) {
+        limit = room;
+        overQuota = true;
       }
       const limitError = () => {
         if (!overQuota) return tooBig();
-        const err = quotaError(ctx, usedBytes(before));
+        const err = quotaError(ctx, usedBefore);
         err.drainLimit = drainLimitFor(perFile);
         return err;
       };
@@ -336,7 +338,7 @@ export const myFilesRoutes: Route[] = [
         const claimed = safeContentType(header(req.headers["content-type"]));
         const meta = await change(ctx, (index) => {
           // Checked again on fresh data: the figure read before the upload may be out of date by now.
-          if (quota !== null && usedBytes(index) + got.size > quota) throw quotaError(ctx, usedBytes(index));
+          if (usedBytes(index) + attachedBytes + got.size > quota) throw quotaError(ctx, usedBytes(index) + attachedBytes);
           if (index.files.length >= MAX_FILES_PER_ACCOUNT) throw new HttpError(400, "too-many", "There are too many files in this account. Delete some first.");
           const where = ensureFolder(index, folder);
           const file: MyFile = {
@@ -440,6 +442,7 @@ export const myFilesRoutes: Route[] = [
     path: "/api/myfiles/bulk",
     auth: true,
     storage: true,
+    saves: false, // only deletes or moves files that are already stored, so it works even when the disk is nearly full
     async handler(ctx) {
       throttle(ctx.app.myFilesChanges, ctx);
       const body = parseBody(bulkBody, await ctx.json());
@@ -539,6 +542,7 @@ export const myFilesRoutes: Route[] = [
     path: "/api/myfiles/folders/delete",
     auth: true,
     storage: true,
+    saves: false, // frees space, so it works even when the disk is nearly full
     async handler(ctx) {
       throttle(ctx.app.myFilesChanges, ctx);
       const body = parseBody(deleteFolderBody, await ctx.json());

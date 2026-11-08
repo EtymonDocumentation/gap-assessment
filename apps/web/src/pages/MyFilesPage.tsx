@@ -166,7 +166,7 @@ function MyFilesView({ folder }: { folder: string }) {
         let error = "";
         // The server checks everything again; these checks only save sending a file that cannot be accepted.
         if (listing && file.size > listing.maxFileBytes) error = `That is larger than the ${formatLimitMB(listing.maxFileBytes)} allowed for one file.`;
-        else if (listing?.usage.quotaBytes != null && file.size > listing.usage.quotaBytes - listing.usage.usedBytes) error = "There is not enough space left in your My files quota.";
+        else if (listing && file.size > listing.usage.quotaBytes - listing.usage.usedBytes) error = "There is not enough space left in your file space.";
         return { id: nextId.current++, file, folder: target, state: error ? "error" : "queued", fraction: 0, error };
       });
       setQueue((q) => [...q, ...added]);
@@ -339,7 +339,7 @@ function MyFilesView({ folder }: { folder: string }) {
           </button>
         </div>
         <p className="small muted">
-          {listing ? `Largest single file: ${formatLimitMB(listing.maxFileBytes)}. ` : ""}
+          {listing ? `Largest single file: ${formatLimitMB(listing.maxFileBytes)}. Space used: ${formatBytes(listing.usage.usedBytes)} of ${formatLimitMB(listing.usage.quotaBytes)}. ` : ""}
           Uploading to {folder ? `“${folder}”` : "the top level"}.
         </p>
         <input ref={fileInput} type="file" multiple className="visually-hidden" tabIndex={-1} aria-label="Files to upload" onChange={onPicked} />
@@ -907,9 +907,7 @@ function SettingsPanel({ listing, onSaved, onError }: { listing: MyListing; onSa
     <section className="card stack" aria-labelledby="mf-settings-h">
       <h2 id="mf-settings-h">Settings</h2>
       <p>
-        {quotaBytes === null
-          ? `Space used: ${formatBytes(usedBytes)} in ${plural(listing.usage.fileCount, "file")} (no quota set, only the single-file limit applies).`
-          : `Space used: ${formatBytes(usedBytes)} of ${formatBytes(quotaBytes)} in ${plural(listing.usage.fileCount, "file")}.`}
+        {`Space used: ${formatBytes(usedBytes)} of ${formatLimitMB(quotaBytes)}, counting files attached to projects. You have ${plural(listing.usage.fileCount, "file")} in My files.`}
       </p>
       <p>{current === null ? "Auto-delete is off: files stay until you delete them." : `Auto-delete is on: new files are deleted ${plural(current, "day")} after upload.`}</p>
       <form

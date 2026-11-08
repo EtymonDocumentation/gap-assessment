@@ -17,7 +17,7 @@ export interface UserRecord {
   createdAt: string;
   disabled?: true;
   plan: Plan;
-  /** Most data "My files" may hold for this account, in MB. Absent = no quota set (only the per-file limit applies). */
+  /** Most data this account may keep as stored files (My files and project files together), in MB. Absent = the default (2048 MB, see limits.ts). */
   filesQuotaMB?: number;
 }
 

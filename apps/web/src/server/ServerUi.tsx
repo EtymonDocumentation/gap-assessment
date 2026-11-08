@@ -114,7 +114,7 @@ function messageOf(e: unknown): string {
   return err.message || "Something went wrong. Try again.";
 }
 
-const PASSWORD_RULES = "Use at least 7 characters. Do not use a password from another site.";
+const PASSWORD_RULES = "Use at least 12 characters. A few unrelated words in a row make a good password. Do not use a password from another site.";
 
 function SignInPage() {
   const storage = useSession((s) => s.storage);
@@ -216,7 +216,7 @@ function CreateAccountForm() {
         if (!invite.trim()) return setError("Enter your invite code.");
         if (!/^[a-z0-9._-]{3,40}$/i.test(username.trim())) return setError("The username must be 3 to 40 characters: letters, numbers, dots, dashes or underscores.");
         if (!displayName.trim()) return setError("Enter the name to show next to your account.");
-        if (password.length < 7) return setError("The password must be at least 7 characters.");
+        if (password.length < 12) return setError("Please use at least 12 characters in your password. A few unrelated words in a row make a good password.");
         if (password !== confirm) return setError("The two passwords are not the same.");
         setBusy(true);
         setError("");
@@ -421,7 +421,7 @@ export function ChangePasswordDialog({ onClose, restoreFocus }: { onClose: () =>
           onSubmit={(e) => {
             e.preventDefault();
             if (!current) return setError("Enter your current password.");
-            if (next.length < 7) return setError("The new password must be at least 7 characters.");
+            if (next.length < 12) return setError("Please use at least 12 characters in your new password. A few unrelated words in a row make a good password.");
             if (next !== confirm) return setError("The two new passwords are not the same.");
             setBusy(true);
             setError("");
@@ -805,7 +805,7 @@ export function ProjectListCard() {
           open
           onOpenChange={(o) => !o && setConfirm(null)}
           title={`Delete ${confirm.title}?`}
-          description="The project is removed from your list on the server. It is moved to the server's trash folder, which only the server administrator can reach."
+          description="The project is removed from your list on the server. It is moved to the server's trash folder, which only the server administrator can reach. After 30 days the server removes it for good."
           restoreFocus={() => headingRef.current}
         >
           <div className="row end">
@@ -988,7 +988,7 @@ function UploadState({ slot }: { slot: string }) {
 function RemoveFileDialog({ file, onClose, restoreFocus }: { file: FileMeta; onClose: () => void; restoreFocus: () => HTMLElement | null }) {
   const [error, setError] = useState("");
   return (
-    <Modal open onOpenChange={(o) => !o && onClose()} title={`Remove ${file.fileName}?`} description="The file is removed from this project. It is moved to the server's trash folder, which only the server administrator can reach." restoreFocus={restoreFocus}>
+    <Modal open onOpenChange={(o) => !o && onClose()} title={`Remove ${file.fileName}?`} description="The file is removed from this project. It is moved to the server's trash folder, which only the server administrator can reach. After 30 days the server removes it for good." restoreFocus={restoreFocus}>
       <div className="stack">
         {error && (
           <p className="error" role="alert">

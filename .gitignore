@@ -23,3 +23,21 @@ gap-admin-test-*/
 gap-lock-test-*/
 apps/web/test-results-server/
 apps/web/playwright-report-server/
+# Secrets and private data: keys, certificates, environment files, registry tokens, backups and server data folders.
+# A pattern here only stops an accidental "git add"; the real rule is that none of these ever live in the repository.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+.npmrc
+*.zip
+/server/
+/data/
+/server-data/
+/users.json
+/sessions.json
+/invites.json
+/audit.log

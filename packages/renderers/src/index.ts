@@ -171,12 +171,20 @@ ${sections}
 </article>`;
 }
 
+/**
+ * The policy written into every exported HTML file. The file is opened from a disk or a mail attachment by people who never
+ * saw the app, so it gets its own strict rules: no script of any kind, no network, pictures only from the file itself
+ * (data: addresses) and the one inline style block. A slip in the text escaping would then still not run code.
+ */
+export const EXPORT_HTML_CSP = "default-src 'none'; img-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'";
+
 /** Self-contained, print-ready HTML file (PDF via the browser's print dialog). */
 export function renderHtml(doc: DocModel): string {
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="${EXPORT_HTML_CSP}">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(doc.title)}</title>
 <style>body{margin:16px;background:#fff;}${DOCUMENT_CSS}</style>

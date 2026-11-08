@@ -33,7 +33,6 @@ export interface UserInfo {
 export interface Health {
   ok: boolean;
   storage: "server" | "client";
-  version: string;
 }
 export interface ProjectSummary {
   id: string;
@@ -268,7 +267,7 @@ export interface MyListing {
   allFolders: string[];
   files: MyFile[];
   settings: { autoDeleteDays: number | null };
-  usage: { usedBytes: number; quotaBytes: number | null; fileCount: number };
+  usage: { usedBytes: number; quotaBytes: number; fileCount: number };
   maxFileBytes: number;
 }
 
