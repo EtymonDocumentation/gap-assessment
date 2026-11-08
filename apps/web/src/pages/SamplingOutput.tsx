@@ -25,7 +25,7 @@ export function SamplingOutput({ plan }: { plan: SamplingPlan }) {
 }
 
 const SAMPLING_WORD_NOTE =
-  `"A template's headings" is offered for the gap assessment document only: a saved mapping names the gap document's sections. For a tagged template, {title}, {banner}, {status}, {generated}, {meta} and {sections} are filled, and {@body} brings in the document in your template's styles. The parties from "Who does what" are available as {#parties}, {#fromParties}, {#toParties} and {#ccParties} (name, role, department), and as {sendingUnit}, {receivingSite}, {cmoName} and {sponsorName}; the Templates page lists every tag.`;
+  `"A template's headings" is offered for the gap assessment document only: a saved mapping names the gap document's sections. For a tagged template, {title}, {banner}, {status}, {generated}, {meta}, {sections} and the project tags ({program}, {modality}, {sourceSite}, {targetSite} and the like) are filled, and {@body} brings in the document in your template's styles. The parties from "Who does what" are available as {#parties}, {#fromParties}, {#toParties} and {#ccParties} (name, role, department), and as {sendingUnit}, {receivingSite}, {cmoName} and {sponsorName}; the Templates page lists every tag.`;
 
 /** One document card. The CMO reporting instructions are a second output of the same plan, with their own export-history kinds. */
 function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "cmo" }) {
@@ -48,7 +48,8 @@ function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "
   const samplingSuggestions = useEffectiveSuggestions();
   const doc = useMemo(() => stampDocument((cmo ? buildCmoInstructionsDocument : buildSamplingPlanDocument)(content, project, plan, samplingSuggestions, { generatedAt, appVersion: APP_VERSION, ...(cmo ? {} : { figureStyle }) }), versionStamp), [content, project, plan, samplingSuggestions, generatedAt, cmo, figureStyle, versionStamp]);
   const body = useMemo(() => (showPreview ? renderHtmlBody(doc) : ""), [doc, showPreview]);
-  const stamp = `${projectFileStem(project.meta)}-${plan.id}-${today()}`;
+  // The plan can be downloaded with each flow figure style; the style is in the name so the three files do not overwrite one another.
+  const stamp = `${projectFileStem(project.meta)}-${plan.id}${cmo ? "" : `-${figureStyle.replace(/_/g, "-")}`}-${today()}`;
   const tbd = doc.tbdCount ?? 0;
 
   const [pending, setPending] = useState<(() => void) | null>(null);
@@ -75,7 +76,8 @@ function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "
       "Download recorded in the export history",
     );
 
-  const saved = (file: string) => setDone(`Saved ${file}. The download is recorded in the export history below.`);
+  // "Recorded" is only said when the history really took the entry; a problem is shown in its place.
+  const saved = (file: string, problem?: string | null) => setDone(problem ? `Saved ${file}. This download is not in the export history. ${problem}` : `Saved ${file}. The download is recorded in the export history below.`);
 
   const exports = project.document.exports.filter((x) => x.format.startsWith(kindPrefix));
 
@@ -111,8 +113,7 @@ function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "
               guard(() => {
                 const file = `${filePrefix}-${stamp}.html`;
                 download(file, renderHtml(doc), "text/html;charset=utf-8");
-                record(`${kindPrefix}html` as DocumentExport["format"], BUILTIN_RECORD);
-                saved(file);
+                saved(file, record(`${kindPrefix}html` as DocumentExport["format"], BUILTIN_RECORD));
               })
             }
           >
@@ -140,7 +141,7 @@ function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "
         guard={guard}
         onExported={(template) => record(`${kindPrefix}docx` as DocumentExport["format"], template)}
         modes={GENERIC_MODES}
-        tagData={(m) => m.buildSamplingTagData(doc, project, plan)}
+        tagData={(m) => m.buildSamplingTagData(doc, project, plan, content)}
         {...(cmo ? {} : { dataPart: () => ({ kind: "sampling-data" as const, json: buildSamplingData(content, project, plan, doc) }) })}
         testIdPrefix={p}
         idPrefix={`${p}-word`}

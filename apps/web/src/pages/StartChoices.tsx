@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { DEMO_NAMES, type DemoId } from "../demo-build";
+import { DEMO_NAMES, demoProjectTitle, type DemoId } from "../demo-build";
 import { Modal, ResponderForm } from "../components";
 import { href, navigate } from "../router";
 import { useIsRemote } from "../server/ServerUi";
 import { SERVER_MODE } from "../server/mode";
-import { loadList, useSync } from "../server/sync";
+import { loadList, openProject, useSync } from "../server/sync";
 import { useStore } from "../store";
 import { useMbrAllowed, useSamplingAllowed, useTrdAllowed } from "../risk-module";
 
@@ -43,8 +43,27 @@ export function StartChoices({ stay, compact, children }: { stay?: boolean; comp
   const startDemo = async (id: DemoId) => {
     if (demoBuilding || !confirmReplace()) return;
     const where = window.location.hash;
-    // The names already in My projects decide whether a demo opened again needs a number (the list is only read in server mode).
-    if (remote && useSync.getState().listState !== "ready") await loadList();
+    // The projects already in My projects decide whether the demo is opened again (the list is only read in server mode).
+    // Read fresh every time: a list read before the first click would not yet hold the demo that click just made.
+    if (remote) await loadList();
+    // A demo already in My projects is opened again instead of adding another copy next to it (and nothing the person typed into it is lost).
+    // A numbered copy from an earlier version of the site ("<name> (2)") counts too; the list is newest first, so the latest one is taken.
+    // Someone who wants a clean one deletes or copies the old one from My projects first.
+    const own = demoProjectTitle(id);
+    const isThisDemo = (title: string) => title === own || (title.startsWith(`${own} (`) && /^\(\d+\)$/.test(title.slice(own.length + 1)));
+    const existing = remote ? useSync.getState().list.find((x) => isThisDemo(x.title)) : undefined;
+    if (existing) {
+      try {
+        await openProject(existing.id);
+      } catch (e) {
+        useStore.setState({ error: `${existing.title} could not be opened. ${(e as Error).message}` });
+        return;
+      }
+      useStore.setState({ homeFlash: `Demo opened: ${DEMO_NAMES[id]}. This is the copy you already had, with your changes.` });
+      if (stay) useStore.setState({ homeFlash: "" });
+      else if (window.location.hash === where) navigate("/");
+      return;
+    }
     const opened = await openDemo(id, remote ? useSync.getState().list.map((x) => x.title) : []);
     if (!opened) return;
     if (stay) {

@@ -234,7 +234,7 @@ test("Word and HTML downloads carry the banner, the method, the register, the op
   await page.getByTestId("risk-preview-toggle").click();
   const preview = page.getByTestId("risk-preview");
   await expect(preview).toContainText("Risk assessment — draft");
-  await expect(preview).toContainText("No bands defined by the user");
+  await expect(preview).toContainText("Bands defined by the user");
   await expect(preview).toContainText("Not scored");
 
   const word = await download(page, "risk-download-word");

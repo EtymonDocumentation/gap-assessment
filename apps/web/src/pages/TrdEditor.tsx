@@ -352,7 +352,14 @@ function Details({ d, run }: { d: TrdDocument; run: Run }) {
 
       <section className="card stack" aria-labelledby="trd-product-h">
         <h2 id="trd-product-h">Product and site</h2>
-        <p className="muted small">These come from the project. Override one when the TRD should say something else; the project value stays beside it.</p>
+        {/* Say where the values come from only when that is true: a blank TRD has none until someone types them. */}
+        <p className="muted small" data-testid="trd-product-note">
+          {d.origin.kind === "project"
+            ? "These come from the project. Override one when the TRD should say something else; the project value stays beside it."
+            : d.origin.kind === "seed-import"
+              ? "These come from the TRD seed file. Override one when the TRD should say something else; the file's value stays beside it."
+              : "Type the values here. Each one is yours; nothing is filled in for you."}
+        </p>
         <p className="trd-project-stage" data-testid="trd-project-stage">
           <strong>Project stage:</strong> <StageRow />
           <span className="small muted"> One value for the whole project; the TRD, sampling plan and batch record follow it. Changing it asks why and saves a new version.</span>

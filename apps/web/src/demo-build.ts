@@ -9,6 +9,11 @@ export const DEMO_NAMES: Record<DemoId, string> = {
   "syr-305": "SYR-305 syringe",
 };
 
+/** The title the demo project carries in My projects (the button name above is not the project title). */
+export function demoProjectTitle(id: DemoId): string {
+  return (demos[id] as { demo: { title: string } }).demo.title;
+}
+
 /**
  * Builds a whole demo project (gap assessment, TRD, sampling plan, batch record, risk assessment). This takes several seconds, which is why the page
  * asks for it through demo-run.ts: the same function runs in a Web Worker there, so the page stays alive while it works.

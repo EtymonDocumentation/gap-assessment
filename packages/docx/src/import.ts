@@ -11,7 +11,8 @@ import { inspectTags } from "./templater";
 import type { ImportedTemplate, TemplateAnalysis, TemplateMode } from "./types";
 import { parseXml } from "./xml";
 
-const HOW_TO_DOCX = "Open it in Word and choose File > Save As > Word Document (.docx), or in LibreOffice choose File > Save As > Word 2007-365 (.docx). Then upload the .docx copy.";
+/** The one set of save-as-.docx steps: used in every "cannot read this file" message and promised by the upload hint on the Templates page. */
+export const HOW_TO_DOCX = "Open it in Word and choose File > Save As > Word Document (.docx), or in LibreOffice choose File > Save As > Word 2007-365 (.docx). Then upload the .docx copy.";
 
 type Kind = "pdf" | "zip" | "ole" | "rtf" | "unknown";
 
@@ -50,7 +51,7 @@ function nonWordZip(pkg: Pkg, fileName: string): TemplateError | undefined {
   const n = nameWith(fileName);
   const mimetype = pkg.text("mimetype") ?? "";
   if (mimetype.startsWith("application/vnd.oasis.opendocument")) {
-    return new TemplateError(`"${n}" is an OpenDocument file (.odt). In LibreOffice Writer choose File > Save As > Word 2007-365 (.docx), then upload the .docx copy.`);
+    return new TemplateError(`"${n}" is an OpenDocument file (.odt). ${HOW_TO_DOCX}`);
   }
   if (names.some((x) => /^Index(\.zip|\/)/.test(x)) || names.includes("buildVersionHistory.plist")) {
     return new TemplateError(`"${n}" is an Apple Pages file. In Pages choose File > Export To > Word, then upload the .docx copy.`);
@@ -163,7 +164,7 @@ export async function importTemplateFile(fileName: string, bytes: Uint8Array): P
   }
   if (kind === "rtf") throw new TemplateError(`"${n}" is a Rich Text Format file (.rtf). ${HOW_TO_DOCX}`);
   if (kind !== "zip") {
-    throw new TemplateError(`"${n}" is not a file the tool can read as a template. Upload a Word file (.docx, .dotx or .docm) or a PDF. Other formats (for example .odt or .pages) need to be saved as .docx first.`);
+    throw new TemplateError(`"${n}" is not a file the tool can read as a template. Upload a Word file (.docx, .dotx or .docm) or a PDF. ${HOW_TO_DOCX}`);
   }
 
   const pkg = Pkg.fromBytes(bytes);

@@ -119,7 +119,8 @@ export interface WordExportInput {
   fileBase: string;
   /** Runs the download, after the TBD warning when the document still lists TBD values. */
   guard: (run: () => void) => void;
-  onExported: (template: TemplateRecord) => void;
+  /** Writes the download to the export history. Returns the problem in plain words when it could not be written (the page then says so instead of "recorded"). */
+  onExported: (template: TemplateRecord) => string | null | void;
   /** Tag data for a document other than the gap assessment. Default: the gap assessment's tags. */
   tagData?: (m: DocxModule) => TagData | DocumentTagData | SamplingTagData;
   /** Data that travels inside the Word file (the TRD export carries its record, so the file can be uploaded again). Made at download time. */
@@ -138,7 +139,7 @@ export interface WordExporter {
   /** "This one takes about N s" while busy, once an earlier download of this document took longer than 5 s; otherwise "". */
   slowNote: string;
   error: string;
-  result: { file: string; template: TemplateRecord; warnings: string[]; omitted: string[] } | null;
+  result: { file: string; template: TemplateRecord; warnings: string[]; omitted: string[]; historyProblem?: string } | null;
   /** True while a blocker (or the template check still running) means the download cannot be made. */
   blocked: boolean;
   /** The download itself: the TBD warning first when the document still lists TBD values, then the .docx. */
@@ -176,8 +177,8 @@ export function useWordExport({ choice, doc, content, project, assessment, gener
         });
         const file = `${fileBase}.docx`;
         download(file, res.bytes, DOCX_MIME);
-        onExported(res.templateRecord);
-        setResult({ file, template: res.templateRecord, warnings: res.warnings, omitted: res.omittedBlocks });
+        const historyProblem = onExported(res.templateRecord);
+        setResult({ file, template: res.templateRecord, warnings: res.warnings, omitted: res.omittedBlocks, ...(historyProblem ? { historyProblem } : {}) });
       } catch (e) {
         setError(e instanceof m.TemplateError ? e.message : `The Word document could not be created: ${(e as Error).message}`);
       }
@@ -375,6 +376,7 @@ export function WordPanelView({
             <p>
               Downloaded <strong>{result.file}</strong> using {MODE_LABEL[result.template.mode]}: {templateText(result.template)}.
             </p>
+            {result.historyProblem && <p>The file is saved, but this download is not in the export history. {result.historyProblem}</p>}
             {result.omitted.length > 0 && <p className="small">Left out by choice: {result.omitted.join("; ")}.</p>}
             {result.warnings.length > 0 && (
               <div>

@@ -1,6 +1,7 @@
 /// <reference types="node" />
 import PizZip from "pizzip";
 import { describe, expect, it } from "vitest";
+import { HOW_TO_DOCX } from "../src/import";
 import { importTemplateFile } from "../src/index";
 import { fixture } from "./fixtures";
 import { checkPackage, strictDocx } from "./strict";
@@ -119,6 +120,19 @@ describe("rejecting files that cannot be used", () => {
     await expect(importTemplateFile("a.odt", odt.generate({ type: "uint8array" }))).rejects.toThrow(/OpenDocument|odt/i);
     await expect(importTemplateFile("x.docx", new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9]))).rejects.toThrow();
     await expect(importTemplateFile("empty.docx", new Uint8Array(0))).rejects.toThrow();
+  });
+
+  it("gives the same save-as-.docx steps for every file it cannot read", async () => {
+    // The Templates page hint promises these steps, so each message must carry them (one shared wording).
+    const odt = new PizZip();
+    odt.file("mimetype", "application/vnd.oasis.opendocument.text");
+    odt.file("content.xml", "<office:document-content/>");
+    const messages = await Promise.all([
+      importTemplateFile("a.rtf", enc("{\rtf1\ansi Hello}")).catch((e: Error) => e.message),
+      importTemplateFile("a.odt", odt.generate({ type: "uint8array" })).catch((e: Error) => e.message),
+      importTemplateFile("x.bin", new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9])).catch((e: Error) => e.message),
+    ]);
+    for (const m of messages) expect(m).toContain(HOW_TO_DOCX);
   });
 
   it("rejects a zip that is not a Word document", async () => {

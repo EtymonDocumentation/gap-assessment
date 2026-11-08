@@ -197,13 +197,10 @@ test("an assessment keeps its copy; the library's newer version is announced and
   await expect(page.getByTestId("risk-method-libref")).toContainText("version 1");
   await expect(page.getByTestId("risk-method-newer")).toHaveCount(0);
 
-  // Version 2 in the library: bands that give the demo's scores a label.
+  // Version 2 in the library: the demo's first band gets another label.
   await openLibrary(page);
   await page.getByRole("button", { name: "Edit QRM-METH-020 (fictional)" }).click();
-  await page.getByTestId("band-add").click();
   await page.getByTestId("band-label-0").fill("Reviewed first (fictional wording)");
-  await page.getByTestId("band-min-0").fill("1");
-  await page.getByTestId("band-max-0").fill("1000");
   await page.getByTestId("method-version").fill("2");
   await page.getByTestId("method-save").click();
   await expect(page.getByTestId("methods-message")).toContainText("version 2");
@@ -213,7 +210,7 @@ test("an assessment keeps its copy; the library's newer version is announced and
   await page.getByTestId("risk-list").getByRole("link").first().click();
   await page.getByTestId("risk-tab-method").click();
   await expect(page.getByTestId("risk-method-newer")).toContainText("Library has v2; this assessment uses v1");
-  await expect(page.getByTestId("risk-method-summary")).toContainText("No bands defined by you");
+  await expect(page.getByTestId("risk-method-summary")).toContainText("Low (fictional wording)");
 
   // Nothing changes until the person confirms; the dialog lists what would read differently.
   await page.getByTestId("risk-method-update").click();
@@ -331,10 +328,8 @@ for (const scheme of ["light", "dark"] as const) {
     await expect(page.getByTestId("risk-library-msg")).toBeVisible();
     await openLibrary(page);
     await page.getByRole("button", { name: "Edit Linked method (fictional)" }).click();
-    await page.getByTestId("band-add").click();
+    // The demo method already has its own bands; version 2 only renames the first.
     await page.getByTestId("band-label-0").fill("Reviewed first (fictional wording)");
-    await page.getByTestId("band-min-0").fill("1");
-    await page.getByTestId("band-max-0").fill("1000");
     await page.getByTestId("method-version").fill("2");
     await page.getByTestId("method-save").click();
     await expect(page.getByTestId("methods-message")).toContainText("version 2");

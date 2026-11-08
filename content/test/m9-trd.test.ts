@@ -98,7 +98,7 @@ describe("starting a TRD", () => {
   it("refuses a blank title and refuses what is not a seed", () => {
     expect(() => createTrd(base, { title: "  ", start: { kind: "blank" } }, who)).toThrow(TrdError);
     expect(() => parseTrdSeed("not json")).toThrow("The file is not valid JSON.");
-    expect(() => parseTrdSeed({ meta: { format: "something-else" } })).toThrow(/Not a TRD seed/);
+    expect(() => parseTrdSeed({ meta: { format: "something-else" } })).toThrow("This file is not a TRD seed. Choose a file made with Download TRD seed.");
     const other = clone(seed0);
     other.meta.formatVersion = "2.0.0";
     expect(() => parseTrdSeed(JSON.stringify(other))).toThrow("This reader supports TRD seed format 1.x; the file is 2.0.0.");
@@ -131,6 +131,23 @@ describe("overrides", () => {
     expect(ev).toMatchObject({ action: "trd_override_set", before: null, after: { display: "21", unit: "°C", by: who.name } });
     expect(ev.detail).toContain("overridden (project: 20 °C)");
     expect(trdOverrides(doc(p2, id))).toMatchObject([{ projectValue: "20 °C", trdValue: "21 °C", reason: "Engineering run (fictional)", overridesProject: true }]);
+  });
+
+  it("a bare number takes the project value's unit when it is saved, and keeps it if the project unit changes later", () => {
+    const { project, id } = started();
+    const r = ref(doc(project, id), "compounding", "param.temperature");
+    const addr = { part: "item", ...r, field: "setPoint" } as const;
+    const fieldOf = (p: Project) => doc(p, id).steps.find((s) => s.key === "compounding")!.items.find((i) => i.key === "temperature")!.fields.find((x) => x.key === "setPoint")!;
+    const p2 = setOverride(project, id, addr, { status: "established", display: "21" }, who);
+    expect(fieldOf(p2).override).toMatchObject({ display: "21", unit: "°C" });
+    expect(effectiveField(fieldOf(p2)).text).toBe("21 °C");
+    // The project's unit changes afterwards: the team's value stays as it was saved.
+    const p3 = structuredClone(p2);
+    fieldOf(p3).pulled = { ...fieldOf(p3).pulled!, display: "293 K", unit: "K" };
+    expect(effectiveField(fieldOf(p3)).text).toBe("21 °C");
+    // A unit the person typed, and text that is not a plain number, are kept exactly as typed.
+    expect(effectiveField(fieldOf(setOverride(project, id, addr, { status: "established", display: "21", unit: "K" }, who))).text).toBe("21 K");
+    expect(fieldOf(setOverride(project, id, addr, { status: "established", display: "about 21" }, who)).override).not.toHaveProperty("unit");
   });
 
   it("shows 'No reason recorded' when no reason is given, and changes nothing when the same value is entered again", () => {

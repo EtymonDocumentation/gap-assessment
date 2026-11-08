@@ -145,6 +145,49 @@ export function Modal({
   );
 }
 
+/** What to ask before something is deleted: a plain title ("Delete SP-018?"), one sentence, and the name of the button that goes ahead. */
+export interface RemoveRequest {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  onConfirm: () => void;
+}
+
+/**
+ * The question before a removal, the same one the project and plan deletes use: a dialog with Cancel focused (the safe answer) and one
+ * button to confirm. Nothing becomes undeletable; the question only stops a stray click. The change log keeps what the item said.
+ */
+export function useConfirmRemove(): { ask: (request: RemoveRequest) => void; dialog: ReactNode } {
+  const [pending, setPending] = useState<RemoveRequest | null>(null);
+  const opener = useRef<HTMLElement | null>(null);
+  const ask = (request: RemoveRequest) => {
+    opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setPending(request);
+  };
+  const dialog = pending ? (
+    <Modal open onOpenChange={(o) => !o && setPending(null)} title={pending.title} description={pending.description} restoreFocus={() => opener.current}>
+      <div className="row end">
+        <button type="button" className="btn" autoFocus data-testid="remove-cancel" onClick={() => setPending(null)}>
+          Cancel
+        </button>
+        <button
+          type="button"
+          className="btn danger"
+          data-testid="remove-confirm"
+          onClick={() => {
+            const go = pending.onConfirm;
+            setPending(null);
+            go();
+          }}
+        >
+          {pending.confirmLabel}
+        </button>
+      </div>
+    </Modal>
+  ) : null;
+  return { ask, dialog };
+}
+
 /** Asks for the responder's name and role. Free text; not a login and not attributable in a GMP sense. */
 export function ResponderForm({
   initial,

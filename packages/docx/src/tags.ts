@@ -163,6 +163,29 @@ function siteText(project: Project, side: "source" | "target"): string {
   return line.status === "established" ? `${n}, ${String(line.value)}` : n;
 }
 
+/** The tags that come from the project itself, not from any one document: the scoping answers and the two sites. */
+export type ProjectTags = Pick<TagData, "program" | "modality" | "dosageForm" | "presentation" | "transferType" | "markets" | "sourceSite" | "targetSite" | "sendingUnit" | "receivingSite">;
+
+/**
+ * The project's own tags. Every document belongs to a project, so every document type (gap, TRD, batch record, risk, sampling) gets the
+ * same values. A value the project has not established reads the site's usual unknown wording ("[TBD]", "[site TBD]"), never a guess.
+ */
+export function projectTags(rawContent: ContentBundle, project: Project): ProjectTags {
+  const content = stagedFor(rawContent, project);
+  return {
+    program: scopeText(content, project, "program"),
+    modality: scopeText(content, project, "modality"),
+    dosageForm: scopeText(content, project, "dosage_form"),
+    presentation: scopeText(content, project, "presentation"),
+    transferType: scopeText(content, project, "transfer_type"),
+    markets: scopeText(content, project, "markets"),
+    sourceSite: siteText(project, "source"),
+    targetSite: siteText(project, "target"),
+    sendingUnit: siteText(project, "source"),
+    receivingSite: siteText(project, "target"),
+  };
+}
+
 /**
  * Tags of the retired review workflow (schema 1.10.0). Customer templates written for earlier versions may still contain
  * {revision}, {#revisions} or {#comments}; such a template must keep working, so these tags are accepted and render as
@@ -184,14 +207,7 @@ export function buildTagData(rawContent: ContentBundle, project: Project, a: Ass
     banner: doc.banner,
     status: doc.status,
     ...RETIRED_TAG_DATA,
-    program: scopeText(content, project, "program"),
-    modality: scopeText(content, project, "modality"),
-    dosageForm: scopeText(content, project, "dosage_form"),
-    presentation: scopeText(content, project, "presentation"),
-    transferType: scopeText(content, project, "transfer_type"),
-    markets: scopeText(content, project, "markets"),
-    sourceSite: siteText(project, "source"),
-    targetSite: siteText(project, "target"),
+    ...projectTags(content, project),
     sourceStage: stages.sourceLabel,
     projectStage: doc.cover.targetStage,
     targetStage: doc.cover.targetStage,
@@ -229,34 +245,36 @@ export function buildTagData(rawContent: ContentBundle, project: Project, a: Ass
     sources: rowsAs(doc, "source-register", { id: "ID", type: "Type", identifier: "Identifier, title, version", responder: "Responder", date: "Date", state: "State", citedBy: "Cited by" }),
     approvals: rowsAs(doc, "approval", { role: "Role", name: "Name", signature: "Signature", date: "Date" }),
     ...NO_PARTIES,
-    sendingUnit: siteText(project, "source"),
-    receivingSite: siteText(project, "target"),
     meta: doc.meta.map(([label, value]) => ({ label, value })),
     sections: doc.sections.map((s) => ({ number: s.appendix ? `Appendix ${s.number}` : s.number, title: s.title })),
   };
 }
 
 /**
- * What a placeholder-tag template can use when the document is NOT the gap assessment (the risk assessment): the text tags every
- * document has, the document-details lines and the section list. The gap-only tags ({program}, {#gaps}, ...) are left out on purpose:
- * they read "[not available]" or repeat nothing, so a template never shows a gap value inside a risk document. The whole content is
- * still reachable with {@body} and the section tags (see RISK_SECTION_IDS).
+ * What a placeholder-tag template can use when the document is NOT the gap assessment (TRD, batch record, risk assessment, sampling
+ * plan): the text tags every document has, the document-details lines, the section list and, when the project is given, the project's
+ * own tags ({program}, {modality}, the sites, ...): every document belongs to a project, so they are filled for every document type.
+ * The gap-only tags ({#gaps}, {differencesCount}, ...) are left out on purpose: they read "[not available]" or repeat nothing, so a
+ * template never shows a gap value inside another document. The whole content is still reachable with {@body} and the section tags
+ * (see RISK_SECTION_IDS).
  */
-export type DocumentTagData = Pick<TagData, "title" | "banner" | "status" | "generated" | "version" | "versionLabel" | "meta" | "sections" | "gaps" | "openItems" | "activities" | "equipment" | "risks" | "sources" | "approvals" | "parties" | "fromParties" | "toParties" | "ccParties">;
+export type DocumentTagData = Pick<TagData, "title" | "banner" | "status" | "generated" | "version" | "versionLabel" | "meta" | "sections" | "gaps" | "openItems" | "activities" | "equipment" | "risks" | "sources" | "approvals" | "parties" | "fromParties" | "toParties" | "ccParties"> & Partial<ProjectTags>;
 
 /**
  * What a placeholder-tag template can use for the sampling plan and the CMO reporting instructions: the document tags plus the plan's
  * parties (all of them, and the From / To / Cc lists the person chose), the CMO and sponsor names, and the sending unit and receiving
  * site taken from the project's two sites.
  */
-export type SamplingTagData = DocumentTagData & PartyTags & { sendingUnit: string; receivingSite: string };
+export type SamplingTagData = DocumentTagData & PartyTags & ProjectTags;
 
-export function buildSamplingTagData(doc: DocModel, project: Project, plan: SamplingPlan): SamplingTagData {
-  return { ...buildDocumentTagData(doc), ...partyTags(plan), sendingUnit: siteText(project, "source"), receivingSite: siteText(project, "target") };
+export function buildSamplingTagData(doc: DocModel, project: Project, plan: SamplingPlan, content: ContentBundle): SamplingTagData {
+  return { ...buildDocumentTagData(doc, content, project), ...partyTags(plan), ...projectTags(content, project) };
 }
 
-export function buildDocumentTagData(doc: DocModel): DocumentTagData {
+/** `content` and `project` are the project the document was made from; without them the project's tags are not filled (they read [not available]). */
+export function buildDocumentTagData(doc: DocModel, content?: ContentBundle, project?: Project): DocumentTagData {
   return {
+    ...(content && project ? projectTags(content, project) : {}),
     title: doc.title,
     banner: doc.banner,
     status: doc.status,
@@ -312,22 +330,22 @@ const TEXT_TAGS: [string, string, boolean?][] = [
   ["banner", `The drafting-aid notice: "${NOTICE_DOCUMENT}" The notice is always added to the document, even when the template has no banner tag.`, true],
   ["title", "Document title.", true],
   ["status", "Document status (DRAFT)."],
-  ["program", "Program name from the scoping answers.", true],
-  ["modality", "Modality."],
+  ["program", "Program name from the project's scoping answers. Filled in every document; \"[TBD]\" when the project has not established it.", true],
+  ["modality", "Modality (from the project; filled in every document)."],
   ["dosageForm", "Dosage form."],
   ["presentation", "Presentation."],
   ["transferType", "Type of transfer."],
   ["markets", "Markets."],
-  ["sourceSite", "Sending unit (SU) site (name and line)."],
-  ["targetSite", "Receiving unit (RU) site (name and line)."],
+  ["sourceSite", "Sending unit (SU) site (name and line), from the project. Filled in every document."],
+  ["targetSite", "Receiving unit (RU) site (name and line), from the project. Filled in every document."],
   ["sourceStage", "Sending-site stage: Engineering / development runs, Clinical batches, PPQ batches, Commercial batches, or [TBD]."],
   ["projectStage", "Project stage (what the receiving site's next batches are): Engineering / development runs, Clinical batches, PPQ batches, Commercial batches, or [not established]."],
   ["targetStage", "The older name of projectStage; same value."],
   ["version", "Which version of the project the document was made from, for example \"v2 (saved 2026-11-04), project stage Clinical\" or \"Working copy after v2.1 (changes since not saved as a version)\"."],
   ["versionLabel", "The short form of the version for a header or footer: \"v2\" or \"Working copy after v2.1\". Empty when the project has no version history."],
   ["generated", "Date and time the document was generated (UTC)."],
-  ["sendingUnit", "Sending unit's site (name and line), for example for the From line of a memo. Filled for the gap assessment and the sampling plan documents; other documents show [not available]."],
-  ["receivingSite", "Receiving site (name and line), for example for the To line of a memo. Filled for the gap assessment and the sampling plan documents; other documents show [not available]."],
+  ["sendingUnit", "Sending unit's site (name and line), for example for the From line of a memo. Filled in every document."],
+  ["receivingSite", "Receiving site (name and line), for example for the To line of a memo. Filled in every document."],
   ["cmoName", "Sampling plan and CMO instructions only: the names of the parties of kind CMO, joined with \", \", or \"[no CMO named]\"."],
   ["sponsorName", "Sampling plan and CMO instructions only: the names of the parties of kind Sponsor, joined with \", \", or \"[no sponsor named]\"."],
   ["fromText", "Sampling plan and CMO instructions only: the parties you put on the From line (name, role, department), joined with \"; \" on one line, or \"[none chosen]\"."],

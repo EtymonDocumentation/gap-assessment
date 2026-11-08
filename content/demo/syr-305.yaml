@@ -1408,6 +1408,12 @@ risk:
   scopeNote: "Risks to sterility and to product quality from thaw and pooling to stoppering at the receiving unit, scored for the transfer of SYR-305 (fictional)."
   context: Prepared by the fictional transfer team from the engineering run, the filter validation and the media fill summary. Fictional example to show the PDA TR 44 layout.
   loadout: fmea-pda-tr44
+  # The fictional team's own bands over the risk priority number (S x O x D, 1 to 1000): every score falls in exactly one band. The tool
+  # only shows the label next to the score; it does not say whether any score is acceptable.
+  bands:
+    - { label: Low (fictional wording), minRpn: 1, maxRpn: 49, note: Reviewed at the periodic review (fictional) }
+    - { label: Medium (fictional wording), minRpn: 50, maxRpn: 99, note: Reviewed by the team and the receiving unit QA (fictional) }
+    - { label: High (fictional wording), minRpn: 100, maxRpn: 1000, note: An action is agreed before the PPQ batches (fictional) }
   actionThreshold: 100
   reviewTriggers: [investigation, new_risk, change_control, process_change, periodic]
   nextReview: "2027-04-15"

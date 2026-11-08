@@ -57,7 +57,8 @@ export function MbrOutput({ rec }: { rec: MbrRecord }) {
         }),
       "Download recorded in the export history",
     );
-  const saved = (file: string) => setDone(`Saved ${file}. The download is recorded in the export history below.`);
+  // "Recorded" is only said when the history really took the entry; a problem is shown in its place.
+  const saved = (file: string, problem?: string | null) => setDone(problem ? `Saved ${file}. This download is not in the export history. ${problem}` : `Saved ${file}. The download is recorded in the export history below.`);
   const exports = project.document.exports.filter((x) => x.format === "mbr-docx" || x.format === "mbr-html");
 
   return (
@@ -89,8 +90,7 @@ export function MbrOutput({ rec }: { rec: MbrRecord }) {
               guard(() => {
                 const file = `mbr-${stamp}.html`;
                 download(file, renderHtml(doc), "text/html;charset=utf-8");
-                record("mbr-html", BUILTIN_RECORD);
-                saved(file);
+                saved(file, record("mbr-html", BUILTIN_RECORD));
               })
             }
           >
@@ -120,10 +120,10 @@ export function MbrOutput({ rec }: { rec: MbrRecord }) {
         guard={guard}
         onExported={(template) => record("mbr-docx", template)}
         modes={GENERIC_MODES}
-        tagData={(m) => m.buildDocumentTagData(doc)}
+        tagData={(m) => m.buildDocumentTagData(doc, content, project)}
         testIdPrefix="mbr"
         buttonLabel="Download batch record (Word)"
-        note={'"A template\'s headings" is offered for the gap assessment document only. For a tagged template, {title}, {banner}, {status}, {generated}, {meta} and {sections} are filled, and {@body} or a section tag such as {@section_basis} brings in the batch record in your template\'s styles. The sections of each unit operation have their own tags, for example {@section_section_SC_01}.'}
+        note={'"A template\'s headings" is offered for the gap assessment document only. For a tagged template, {title}, {banner}, {status}, {generated}, {meta}, {sections} and the project tags ({program}, {modality}, {sourceSite}, {targetSite} and the like) are filled, and {@body} or a section tag such as {@section_basis} brings in the batch record in your template\'s styles. The sections of each unit operation have their own tags, for example {@section_section_SC_01}.'}
       />
 
       <ExportHistory exports={exports} idPrefix="mbr-export-history" title="Export history" />

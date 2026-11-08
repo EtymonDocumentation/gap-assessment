@@ -2597,15 +2597,20 @@ fieldset.fs > legend {
 }
 .batch-summary dl > div {
   display: flex;
-  gap: 0.375rem;
+  flex-wrap: wrap;
+  gap: 0 0.375rem;
   min-width: 0;
 }
+/* The label keeps its words together; a long answer wraps under it instead of squeezing the label to one word per line. */
 .batch-summary dt {
   color: var(--muted);
+  flex: 0 0 auto;
+  max-width: 100%;
 }
 .batch-summary dd {
   margin: 0;
   min-width: 0;
+  flex: 1 1 12rem;
   overflow-wrap: anywhere;
 }
 .batch-summary .batch-actions {
@@ -4156,6 +4161,10 @@ table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
   display: inline-block;
   vertical-align: middle;
   margin-left: 4px;
+}
+/* The "?" belongs to the words before it ("What this step is for?"), so it sits right against them rather than a word-space away. */
+.gap-step-help .help-tip {
+  margin-left: 2px;
 }
 .help-tip-btn {
   font: inherit;

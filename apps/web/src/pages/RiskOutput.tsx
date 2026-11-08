@@ -57,7 +57,8 @@ export function RiskOutput({ a, run }: { a: RiskAssessment; run: Run }) {
         }),
       "Download recorded in the export history",
     );
-  const saved = (file: string) => setDone(`Saved ${file}. The download is recorded in the export history below.`);
+  // "Recorded" is only said when the history really took the entry; a problem is shown in its place.
+  const saved = (file: string, problem?: string | null) => setDone(problem ? `Saved ${file}. This download is not in the export history. ${problem}` : `Saved ${file}. The download is recorded in the export history below.`);
 
   const exports = project.document.exports.filter((x) => x.format.startsWith("risk-assessment-"));
 
@@ -87,8 +88,7 @@ export function RiskOutput({ a, run }: { a: RiskAssessment; run: Run }) {
               guard(() => {
                 const file = `risk-assessment-${stamp}.html`;
                 download(file, renderHtml(doc), "text/html;charset=utf-8");
-                record("risk-assessment-html", BUILTIN_RECORD);
-                saved(file);
+                saved(file, record("risk-assessment-html", BUILTIN_RECORD));
               })
             }
           >
@@ -116,10 +116,10 @@ export function RiskOutput({ a, run }: { a: RiskAssessment; run: Run }) {
         guard={guard}
         onExported={(template) => record("risk-assessment-docx", template)}
         modes={GENERIC_MODES}
-        tagData={(m) => m.buildDocumentTagData(doc)}
+        tagData={(m) => m.buildDocumentTagData(doc, content, project)}
         testIdPrefix="risk"
         buttonLabel="Download risk assessment (Word)"
-        note={'"A template\'s headings" is offered for the gap assessment document only: a saved mapping names the gap document\'s sections. For a tagged template, {title}, {banner}, {status}, {generated}, {meta} and {sections} are filled, and {@body} or a section tag such as {@section_register} brings in the risk assessment in your template\'s styles.'}
+        note={'"A template\'s headings" is offered for the gap assessment document only: a saved mapping names the gap document\'s sections. For a tagged template, {title}, {banner}, {status}, {generated}, {meta}, {sections} and the project tags ({program}, {modality}, {sourceSite}, {targetSite} and the like) are filled, and {@body} or a section tag such as {@section_register} brings in the risk assessment in your template\'s styles.'}
       />
 
       <ExportHistory exports={exports} idPrefix="risk-export-history" title="Export history" />

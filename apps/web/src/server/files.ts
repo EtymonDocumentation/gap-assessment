@@ -87,6 +87,16 @@ export function resetFiles(): void {
 }
 
 
+/**
+ * The per-file limit in whole megabytes, the way the admin typed it (--max-upload-mb 50 reads "50 MB").
+ * The server counts a megabyte as 1024 x 1024 bytes, so dividing the same way keeps this text and the server's own
+ * refusal wording identical; formatBytes would call 50 MB "52 MB".
+ */
+export function formatLimitMB(bytes: number): string {
+  const mb = bytes / (1024 * 1024);
+  return `${Number.isInteger(mb) ? mb : Math.round(mb * 10) / 10} MB`;
+}
+
 /** "1.4 MB", "820 KB", "12 bytes". */
 export function formatBytes(n: number): string {
   if (n < 1000) return `${n} ${n === 1 ? "byte" : "bytes"}`;

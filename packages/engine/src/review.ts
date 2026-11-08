@@ -160,7 +160,7 @@ function cleanTemplate(t: TemplateRecord): TemplateRecord {
 
 // ------------------------------------------------------------------ exports
 
-const EXPORT_FORMATS: readonly DocumentExport["format"][] = ["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html", "sampling-plan-docx", "sampling-plan-html", "sampling-cmo-instructions-docx", "sampling-cmo-instructions-html", "risk-assessment-docx", "risk-assessment-html", "trd-docx", "trd-html", "trd-evidence-docx", "trd-evidence-html"];
+const EXPORT_FORMATS: readonly DocumentExport["format"][] = ["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html", "sampling-plan-docx", "sampling-plan-html", "sampling-cmo-instructions-docx", "sampling-cmo-instructions-html", "risk-assessment-docx", "risk-assessment-html", "trd-docx", "trd-html", "trd-evidence-docx", "trd-evidence-html", "mbr-docx", "mbr-html"];
 
 /** True for the three TRD seed outputs (the seed JSON and its Word and HTML outlines). The TRD module's own document is not one of them. */
 export function isTrdFormat(format: DocumentExport["format"]): boolean {
@@ -170,6 +170,16 @@ export function isTrdFormat(format: DocumentExport["format"]): boolean {
 /** True for the outputs of the TRD module's editable document: the standard TRD and the evidence record, each in Word and HTML. */
 export function isTrdDocumentFormat(format: DocumentExport["format"]): boolean {
   return format === "trd-docx" || format === "trd-html" || format === "trd-evidence-docx" || format === "trd-evidence-html";
+}
+
+/** True for the two evidence record outputs (Word and HTML). */
+export function isTrdEvidenceFormat(format: DocumentExport["format"]): boolean {
+  return format === "trd-evidence-docx" || format === "trd-evidence-html";
+}
+
+/** True for the two batch record (MBR) outputs (Word and HTML). */
+export function isMbrFormat(format: DocumentExport["format"]): boolean {
+  return format.startsWith("mbr-");
 }
 
 /** True for the two sampling plan outputs (Word and HTML). */
@@ -182,9 +192,11 @@ export function isRiskFormat(format: DocumentExport["format"]): boolean {
   return format.startsWith("risk-assessment-");
 }
 
-/** Which document an output belongs to: the gap assessment, the TRD outputs, the sampling plan or the risk assessment. Each is compared with its own previous download. */
-function exportFamily(format: DocumentExport["format"]): "gap" | "trd" | "trd-document" | "sampling" | "risk" {
-  return isTrdFormat(format) ? "trd" : isTrdDocumentFormat(format) ? "trd-document" : isSamplingFormat(format) ? "sampling" : isRiskFormat(format) ? "risk" : "gap";
+/** Which document an output belongs to: the gap assessment, the TRD outputs, the sampling plan, the risk assessment, the batch record or the evidence record. Each is compared with its own previous download. */
+function exportFamily(format: DocumentExport["format"]): "gap" | "trd" | "trd-document" | "trd-evidence" | "mbr" | "sampling" | "risk" {
+  // The evidence record is its own family: it is a different document from the standard TRD, so its first download has nothing to
+  // compare with ("changed since previous" stays unset) instead of being compared with a TRD download.
+  return isTrdFormat(format) ? "trd" : isTrdEvidenceFormat(format) ? "trd-evidence" : isTrdDocumentFormat(format) ? "trd-document" : isMbrFormat(format) ? "mbr" : isSamplingFormat(format) ? "sampling" : isRiskFormat(format) ? "risk" : "gap";
 }
 
 /** Appends an export record. No change-log entry: downloading the document does not change the project. */

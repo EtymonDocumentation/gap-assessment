@@ -967,7 +967,7 @@ sampling:
 # Milestone 8: a fictional risk assessment for the receiving unit, using the "FMEA 1-10 (S, O, D)" load-out. It is replayed through
 # the same editing functions a person uses. Items are seeded from demo gaps (`gap`), from the failure-mode catalog (`suggestion`) or
 # written by hand; `points` link to the demo sampling plan's points by number. The scores are the fictional team's own judgement.
-# No bands are defined, so the tool shows the RPN and makes no judgement. One item is left unscored on purpose so the open items show.
+# The method carries the fictional team's own three bands, so every scored item shows a band label. One item is left unscored on purpose so the open items show.
 risk:
   at: "2026-10-06T09:00:00.000Z"
   by: Alex Example (fictional)
@@ -976,6 +976,12 @@ risk:
   scopeNote: Aseptic fill-finish of ARX-217 at the receiving unit, from drug substance receipt to storage and shipping (fictional).
   context: Prepared for the technology transfer of ARX-217 to the receiving unit. Fictional example to show the module.
   loadout: fmea-1-10
+  # The fictional team's own bands over the risk priority number (S x O x D, 1 to 1000): every score falls in exactly one band. The tool
+  # only shows the label next to the score; it does not say whether any score is acceptable.
+  bands:
+    - { label: Low (fictional wording), minRpn: 1, maxRpn: 49, note: Reviewed at the periodic review (fictional) }
+    - { label: Medium (fictional wording), minRpn: 50, maxRpn: 99, note: Reviewed by the team and the receiving unit QA (fictional) }
+    - { label: High (fictional wording), minRpn: 100, maxRpn: 1000, note: An action is agreed before the PPQ batches (fictional) }
   items:
     - suggestion: sterile_filter_integrity
       points: [10, 2]

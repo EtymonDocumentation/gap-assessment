@@ -60,7 +60,8 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
         }),
       "Download recorded in the export history",
     );
-  const saved = (file: string) => setDone(`Saved ${file}. The download is recorded in the export history below.`);
+  // "Recorded" is only said when the history really took the entry; a problem is shown in its place.
+  const saved = (file: string, problem?: string | null) => setDone(problem ? `Saved ${file}. This download is not in the export history. ${problem}` : `Saved ${file}. The download is recorded in the export history below.`);
 
   const exports = project.document.exports.filter((x) => x.format === "trd-docx" || x.format === "trd-html" || x.format === "trd-evidence-docx" || x.format === "trd-evidence-html");
   const standardOptions = TRD_OPTIONAL_SECTIONS.filter((s) => s.id === "overview");
@@ -92,8 +93,7 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
               guard(() => {
                 const file = `trd-${stamp}.html`;
                 download(file, renderHtml(doc), "text/html;charset=utf-8");
-                record("trd-html", BUILTIN_RECORD);
-                saved(file);
+                saved(file, record("trd-html", BUILTIN_RECORD));
               })
             }
           >
@@ -121,11 +121,11 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
         guard={guard}
         onExported={(template) => record("trd-docx", template)}
         modes={GENERIC_MODES}
-        tagData={(m) => m.buildDocumentTagData(doc)}
+        tagData={(m) => m.buildDocumentTagData(doc, content, project)}
         testIdPrefix="trd"
         dataPart={() => ({ kind: "trd-data", json: buildTrdData(project, d, doc, "standard") })}
         buttonLabel="Download TRD (Word)"
-        note={'"A template\'s headings" is offered for the gap assessment document only: a saved mapping names the gap document\'s sections. For a tagged template, {title}, {banner}, {status}, {generated}, {meta} and {sections} are filled, and {@body} or a section tag such as {@section_par_nor} brings in the TRD in your template\'s styles. The sections of each process step have their own tags, for example {@section_step_TS_01}.'}
+        note={'"A template\'s headings" is offered for the gap assessment document only: a saved mapping names the gap document\'s sections. For a tagged template, {title}, {banner}, {status}, {generated}, {meta}, {sections} and the project tags ({program}, {modality}, {sourceSite}, {targetSite} and the like) are filled, and {@body} or a section tag such as {@section_par_nor} brings in the TRD in your template\'s styles. The sections of each process step have their own tags, for example {@section_step_TS_01}.'}
       />
 
       <section className="card stack no-print" aria-labelledby="trd-evidence" data-testid="trd-evidence-output">
@@ -150,8 +150,7 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
               guard(() => {
                 const file = `trd-evidence-${stamp}.html`;
                 download(file, renderHtml(evidenceDoc), "text/html;charset=utf-8");
-                record("trd-evidence-html", BUILTIN_RECORD, evidenceDoc);
-                saved(file);
+                saved(file, record("trd-evidence-html", BUILTIN_RECORD, evidenceDoc));
               })
             }
           >
@@ -178,7 +177,7 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
         guard={guard}
         onExported={(template) => record("trd-evidence-docx", template, evidenceDoc)}
         modes={GENERIC_MODES}
-        tagData={(m) => m.buildDocumentTagData(evidenceDoc)}
+        tagData={(m) => m.buildDocumentTagData(evidenceDoc, content, project)}
         testIdPrefix="trd-evidence"
         dataPart={() => ({ kind: "trd-data", json: buildTrdData(project, d, evidenceDoc, "evidence") })}
         idPrefix="trd-evidence-word"

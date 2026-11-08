@@ -12,6 +12,8 @@ test("server build: an account without the batch record module has no menu entry
   await expectNoMenuEntry(page, "Batch record");
   await go(page, "#/mbr");
   await expect(page.getByTestId("mbr-not-included")).toBeVisible();
+  // Walk-through: a page that says "not included" must not offer links into that module's library.
+  await expect(page.getByTestId("module-library")).toHaveCount(0);
   await go(page, "#/mbr/library");
   await expect(page.getByTestId("mbr-not-included")).toBeVisible();
   // The project the demo loaded holds no batch record, so saving it is allowed.

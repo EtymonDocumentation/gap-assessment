@@ -2,6 +2,7 @@ import { addStep, catalogInsertIndex, copyStepsFromScope, moveStep, projectScope
 import type { SamplingPlan } from "@gap/process-model";
 import { pointsOnStep } from "@gap/sampling";
 import { useState } from "react";
+import { useConfirmRemove } from "../components";
 import { useContent, useStore } from "../store";
 import type { Run } from "./SamplingFlow";
 import { StepFigureDetails, useFigureTextSuggestions } from "./SamplingFigureData";
@@ -34,7 +35,18 @@ export function ProcessStepsCard({ plan, run }: { plan: SamplingPlan; run: Run }
   const remove = (stepId: string, withPoints: boolean) => {
     if (run((p, actor) => removeStep(p, plan.id, stepId, actor, withPoints ? { movePointsToTray: true } : {}), "Process step removed")) setPendingRemove(null);
   };
-  const askRemove = (stepId: string) => (pointsOnStep(plan, stepId).length ? setPendingRemove(stepId) : remove(stepId, false));
+  const confirm = useConfirmRemove();
+  // A step that holds samples has its own question (it says where the samples go); an empty step gets the plain "Delete?" question.
+  const askRemove = (stepId: string) => {
+    if (pointsOnStep(plan, stepId).length) return setPendingRemove(stepId);
+    const label = plan.steps.find((s) => s.id === stepId)?.label ?? stepId;
+    confirm.ask({
+      title: `Delete ${label}?`,
+      description: "The step is taken out of this plan only; the project scope does not change. The change log keeps what it said.",
+      confirmLabel: `Delete ${label}`,
+      onConfirm: () => remove(stepId, false),
+    });
+  };
   const pending = plan.steps.find((s) => s.id === pendingRemove);
 
   return (
@@ -76,6 +88,7 @@ export function ProcessStepsCard({ plan, run }: { plan: SamplingPlan; run: Run }
         </ol>
       )}
 
+      {confirm.dialog}
       {pending && (
         <div className="notice" role="alertdialog" aria-label={`Remove ${pending.label}`} data-testid="step-remove-confirm">
           <p>

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { addSource, readTrdImage, companyTableSnapshotSchema, emptyProject, subsectionBlockSchema, subsectionLibraryItemSchema, verifyEntry, type Actor, type CompanyTableSnapshot, type DesignLoadouts, type DocRef, type FailureModeSuggestions, type MbrLibraryBlock, type TrdLibraryWriteup, type RiskLoadouts, type Project, type SubsectionLibraryItem } from "@gap/process-model";
+import { addSource, readTrdImage, companyTableSnapshotSchema, emptyProject, riskBandSchema, subsectionBlockSchema, subsectionLibraryItemSchema, verifyEntry, type Actor, type CompanyTableSnapshot, type DesignLoadouts, type DocRef, type FailureModeSuggestions, type MbrLibraryBlock, type TrdLibraryWriteup, type RiskLoadouts, type Project, type SubsectionLibraryItem } from "@gap/process-model";
 import type { ContentBundle } from "./content";
 import { PARAMETER_FIELDS, type ParameterField } from "./content-schema";
 import { applyAnswer, type AnswerInput, type FieldAnswer } from "./interview";
@@ -143,6 +143,8 @@ const riskDemoSchema = z.object({
   scopeNote: z.string().optional(),
   context: z.string().optional(),
   loadout: z.string(),
+  /** The fictional team's own bands over the score (the load-out supplies none). Every demo score must fall in exactly one of them. */
+  bands: z.array(riskBandSchema).optional(),
   /** PDA TR 44 layout: the action threshold, review triggers, next review date and review history the fictional team entered. */
   actionThreshold: z.number().optional(),
   reviewTriggers: z.array(z.enum(["investigation", "new_risk", "change_control", "process_change", "periodic"])).optional(),
@@ -826,7 +828,9 @@ function applyRiskDemo(project: Project, content: ContentBundle, r: z.infer<type
   const id = created.assessmentId;
   const lo = loadouts.loadouts.find((l) => l.id === r.loadout);
   if (!lo) throw new Error(`Demo risk: unknown method load-out ${r.loadout}`);
-  project = setMethod(created.project, id, structuredClone(lo.config), who);
+  const config = structuredClone(lo.config);
+  if (r.bands) (config as { bands?: unknown }).bands = structuredClone(r.bands);
+  project = setMethod(created.project, id, config, who);
   const plan = project.sampling.plans[0];
   const asm = () => project.risk.assessments.find((a) => a.id === id)!;
   for (const it of r.items) {

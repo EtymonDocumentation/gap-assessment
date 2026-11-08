@@ -15,6 +15,7 @@ import {
   type TrdSeed,
   type TrdApproval,
   type TrdDocument,
+  printableUnit,
   type TrdField,
   type TrdItem,
   type TrdLibraryWriteup,
@@ -358,10 +359,15 @@ export function setOverride(project: Project, id: string, addr: FieldAddr, input
   const { list, path, where } = fieldList(d, addr);
   const f = list.find((x) => x.key === addr.field);
   if (!f) throw new TrdError(`Field ${addr.field} is not in ${where}`);
+  // A bare number typed over a project value that has a unit takes that unit ("5" beside the project's "4 h" is saved as 5 h).
+  // The unit is written into the override NOW, not looked up when the TRD is read: otherwise a later change of the project's unit
+  // (h -> min) would silently turn the team's "5 h" into "5 min" with no edit and no log entry. Anything that is not a plain number,
+  // or that has a unit of its own, is kept exactly as typed.
+  const unit = text(input.unit) || (/^[-+]?\d+([.,]\d+)?$/.test(text(input.display)) ? printableUnit(text(f.pulled?.unit)) : "");
   const o: TrdOverride = {
     status: input.status,
     ...(text(input.display) ? { display: text(input.display) } : {}),
-    ...(text(input.unit) ? { unit: text(input.unit) } : {}),
+    ...(unit ? { unit } : {}),
     ...(text(input.reason) ? { reason: text(input.reason) } : {}),
     by: actor.name,
     at: actor.at,

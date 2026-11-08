@@ -1,10 +1,11 @@
-import { pointStageReminder, removePoint, updatePoint } from "@gap/engine";
+import { pointStageReminder, updatePoint } from "@gap/engine";
 import { FLOW_POSITIONS, SAMPLING_TYPES, reportOnlyAllowed, type FlowPosition, type SamplingPlan, type SamplingPoint, type SamplingType } from "@gap/process-model";
 import { METHOD_LABEL, NOT_ON_DIAGRAM, POSITION_NOT_SET, STATUS_TEXT, SLOT_LABEL, TYPE_LABEL, checkPoint, methodInputsText, tableOrder, typeCode, unitsPerBatch, usesSampleSizeMethod, stepOf } from "@gap/sampling";
 import { useMemo } from "react";
 import { useProjectStage } from "../stage-ui";
 import { PointRiskLinks } from "./RiskLinks";
-import { movePoint, targetOf, type OpenAdd, type Run } from "./SamplingFlow";
+import { movePoint, removePointRequest, targetOf, type OpenAdd, type Run } from "./SamplingFlow";
+import { useConfirmRemove } from "../components";
 
 /*
  * The points table under the process flow diagram.
@@ -40,6 +41,8 @@ export function PointsTable({
   openAdd: OpenAdd;
 }) {
   const rows = useMemo(() => tableOrder(plan), [plan]);
+  // The question lives here, not in a row: a click inside a row's dialog would otherwise reach the row and change the selection.
+  const confirm = useConfirmRemove();
   return (
     <>
       {rows.length === 0 ? (
@@ -64,7 +67,7 @@ export function PointsTable({
             </thead>
             <tbody>
               {rows.map((p) => (
-                <PointRow key={p.id} plan={plan} point={p} selected={selectedId === p.id} highlighted={highlightId === p.id} onHighlight={onHighlight} onSelect={onSelect} run={run} onEdit={() => onEdit(p.id)} />
+                <PointRow key={p.id} plan={plan} point={p} selected={selectedId === p.id} highlighted={highlightId === p.id} onHighlight={onHighlight} onSelect={onSelect} run={run} onEdit={() => onEdit(p.id)} onRemove={() => confirm.ask(removePointRequest(plan, p, run))} />
               ))}
             </tbody>
           </table>
@@ -75,11 +78,12 @@ export function PointsTable({
           Add a sample
         </button>
       </div>
+      {confirm.dialog}
     </>
   );
 }
 
-function PointRow({ plan, point, selected, highlighted, onHighlight, onSelect, run, onEdit }: { plan: SamplingPlan; point: SamplingPoint; selected: boolean; highlighted?: boolean; onHighlight?: (id: string | null) => void; onSelect: (id: string | null) => void; run: Run; onEdit: () => void }) {
+function PointRow({ plan, point, selected, highlighted, onHighlight, onSelect, run, onEdit, onRemove }: { plan: SamplingPlan; point: SamplingPoint; selected: boolean; highlighted?: boolean; onHighlight?: (id: string | null) => void; onSelect: (id: string | null) => void; run: Run; onEdit: () => void; onRemove: () => void }) {
   const check = useMemo(() => checkPoint(plan, point), [plan, point]);
   const units = useMemo(() => unitsPerBatch(plan, point), [plan, point]);
   const { stage } = useProjectStage();
@@ -210,7 +214,7 @@ function PointRow({ plan, point, selected, highlighted, onHighlight, onSelect, r
             className="btn small danger"
             aria-label={`Remove point ${point.id}`}
             data-testid={`remove-${point.id}`}
-            onClick={() => run((p, actor) => removePoint(p, plan.id, point.id, actor), `Point ${point.id} removed`)}
+            onClick={onRemove}
           >
             Remove
           </button>

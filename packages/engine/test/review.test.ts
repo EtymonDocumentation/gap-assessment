@@ -161,6 +161,29 @@ describe("recordExport", () => {
     expect(p.document.exports[2]!.changedSincePrevious).toBe(true);
   });
 
+  it("records batch record downloads in their own family, compared only with earlier batch record downloads", () => {
+    let p = recordExport(project(), rec({ format: "mbr-docx", template: BUILTIN }));
+    expect(p.document.exports[0]!.format).toBe("mbr-docx");
+    expect(p.document.exports[0]!.changedSincePrevious).toBeUndefined();
+    // A gap download in between says nothing about the batch record.
+    p = recordExport(p, rec({ fingerprint: "ffffffffffffffff" }));
+    p = recordExport(p, rec({ format: "mbr-html", template: BUILTIN }));
+    expect(p.document.exports[2]!.changedSincePrevious).toBe(false);
+    p = recordExport(p, rec({ format: "mbr-html", template: BUILTIN, fingerprint: "aaaaaaaaaaaaaaaa" }));
+    expect(p.document.exports[3]!.changedSincePrevious).toBe(true);
+  });
+
+  it("compares the first evidence record download with nothing, not with a TRD download", () => {
+    let p = recordExport(project(), rec({ format: "trd-docx", template: BUILTIN }));
+    p = recordExport(p, rec({ format: "trd-evidence-docx", template: BUILTIN, fingerprint: "ffffffffffffffff" }));
+    expect(p.document.exports[1]!.changedSincePrevious).toBeUndefined();
+    p = recordExport(p, rec({ format: "trd-evidence-html", template: BUILTIN, fingerprint: "ffffffffffffffff" }));
+    expect(p.document.exports[2]!.changedSincePrevious).toBe(false);
+    // The TRD itself is still compared with the earlier TRD download only.
+    p = recordExport(p, rec({ format: "trd-html", template: BUILTIN }));
+    expect(p.document.exports[3]!.changedSincePrevious).toBe(false);
+  });
+
   it("keeps the sections left out at download time, taken from the project when the record does not say", () => {
     const p0 = setOmittedSections(project(), ["risk", "references"]);
     expect(recordExport(p0, rec()).document.exports[0]!.omittedSections).toEqual(["risk", "references"]);

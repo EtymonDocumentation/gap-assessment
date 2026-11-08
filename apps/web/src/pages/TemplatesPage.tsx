@@ -646,7 +646,7 @@ function TagReference() {
       <h2 id="tags-title">Tag reference</h2>
       <p className="muted">
         For the "Placeholder tags" option. Type a tag in your Word template where the value should appear, for example <code>{"{program}"}</code>. A loop repeats what is between its start and
-        end tags, for example one table row per gap. No expressions are evaluated: a tag is only looked up by name. The starter template above uses the main tags.
+        end tags, for example one table row per gap. No expressions are evaluated: a tag is only looked up by name. The starter template above uses the main tags. The project tags, such as {"{program}"}, {"{modality}"} and the two sites, are filled in every document from the project; the gap tags (the loops of gaps, activities and so on) belong to the gap assessment only.
       </p>
       {!docx ? (
         <p className="muted">Loading…</p>

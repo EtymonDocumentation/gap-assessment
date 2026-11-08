@@ -5,7 +5,7 @@ import { href } from "../router";
 import * as api from "../server/api";
 import type { MyFile, MyFolder, MyListing, MyUpload } from "../server/api";
 import { HelpTip } from "../HelpTip";
-import { formatBytes } from "../server/files";
+import { formatBytes, formatLimitMB } from "../server/files";
 import { useIsRemote } from "../server/ServerUi";
 
 /**
@@ -165,7 +165,7 @@ function MyFilesView({ folder }: { folder: string }) {
         const target = joinFolder(folder, dir);
         let error = "";
         // The server checks everything again; these checks only save sending a file that cannot be accepted.
-        if (listing && file.size > listing.maxFileBytes) error = `That is larger than the ${formatBytes(listing.maxFileBytes)} allowed for one file.`;
+        if (listing && file.size > listing.maxFileBytes) error = `That is larger than the ${formatLimitMB(listing.maxFileBytes)} allowed for one file.`;
         else if (listing?.usage.quotaBytes != null && file.size > listing.usage.quotaBytes - listing.usage.usedBytes) error = "There is not enough space left in your My files quota.";
         return { id: nextId.current++, file, folder: target, state: error ? "error" : "queued", fraction: 0, error };
       });
@@ -339,7 +339,7 @@ function MyFilesView({ folder }: { folder: string }) {
           </button>
         </div>
         <p className="small muted">
-          {listing ? `Largest single file: ${formatBytes(listing.maxFileBytes)}. ` : ""}
+          {listing ? `Largest single file: ${formatLimitMB(listing.maxFileBytes)}. ` : ""}
           Uploading to {folder ? `“${folder}”` : "the top level"}.
         </p>
         <input ref={fileInput} type="file" multiple className="visually-hidden" tabIndex={-1} aria-label="Files to upload" onChange={onPicked} />

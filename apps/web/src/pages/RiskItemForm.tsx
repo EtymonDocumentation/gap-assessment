@@ -282,7 +282,6 @@ export function RiskItemForm({ a, item, run, onDone, onCancel }: { a: RiskAssess
             <button
               type="button"
               className="btn danger"
-              autoFocus
               data-testid="item-delete-yes"
               onClick={() => {
                 if (run((p, actor) => removeItem(p, a.id, item.id, actor), `${item.id} deleted`)) onDone();
@@ -291,7 +290,8 @@ export function RiskItemForm({ a, item, run, onDone, onCancel }: { a: RiskAssess
             >
               Delete {item.id}
             </button>
-            <button type="button" className="btn" onClick={() => setConfirmDelete(false)}>
+            {/* The safe answer has focus, as in every other delete question. */}
+            <button type="button" className="btn" autoFocus onClick={() => setConfirmDelete(false)}>
               Keep it
             </button>
           </div>

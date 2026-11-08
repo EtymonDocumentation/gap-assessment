@@ -1,4 +1,4 @@
-import { setPointFlow } from "@gap/engine";
+import { removePoint, setPointFlow } from "@gap/engine";
 import type { FlowPosition, PointFlow, SamplingPlan, SamplingPoint, SamplingType } from "@gap/process-model";
 import {
   NOT_ON_DIAGRAM,
@@ -18,6 +18,7 @@ import {
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { useStore } from "../store";
 import { countOf } from "../lib";
+import type { RemoveRequest } from "../components";
 
 /*
  * The process flow diagram of a sampling plan.
@@ -71,6 +72,16 @@ export function movePoint(run: Run, plan: SamplingPlan, pointId: string, target:
  * decides what it opens: the short form or the step-by-step wizard (SamplingAdd.tsx). Every field of the target is only a starting
  * value for the form; `unitOp` is the catalog step an interview section stands for, used when the sample is not put on the diagram.
  */
+/** The question before a sample is removed from the plan (one wording for the table, the cards and the selected sample). */
+export function removePointRequest(plan: SamplingPlan, point: SamplingPoint, run: Run): RemoveRequest {
+  return {
+    title: `Delete ${point.id}?`,
+    description: `${point.id}${point.attribute.trim() ? `: ${point.attribute.trim()}` : ""} is taken out of the plan. The change log keeps what it said.`,
+    confirmLabel: `Delete ${point.id}`,
+    onConfirm: () => void run((p, actor) => removePoint(p, plan.id, point.id, actor), `Point ${point.id} removed`),
+  };
+}
+
 export type OpenAdd = (target: { stepId?: string; at?: FlowPosition; unitOp?: string; type?: SamplingType }) => void;
 
 // ------------------------------------------------------------------ layout (pure)

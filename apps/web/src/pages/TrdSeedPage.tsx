@@ -60,8 +60,8 @@ export function TrdSeedPage() {
 
   /** All three outputs are written to the export history with the versions behind them and the fingerprint of the seed. */
   const record = (format: DocumentExport["format"], template: TemplateRecord) => {
-    if (!seed) return;
-    update(
+    if (!seed) return null;
+    return update(
       (p, actor) =>
         recordExport(p, {
           at: new Date().toISOString(),
@@ -76,15 +76,15 @@ export function TrdSeedPage() {
     );
   };
 
-  const saved = (file: string) => setDone(`Saved ${file}. The download is recorded in the export history below.`);
+  // "Recorded" is only said when the history really took the entry; a problem is shown in its place.
+  const saved = (file: string, problem?: string | null) => setDone(problem ? `Saved ${file}. This download is not in the export history. ${problem}` : `Saved ${file}. The download is recorded in the export history below.`);
 
   // The same three downloads are in the Export menu at the top and in the Download section below (which also holds the Traceability choice).
   const downloadSeedJson = () =>
     guard(() => {
       const file = `trd-seed-${stamp}.json`;
       download(file, `${JSON.stringify(seed, null, 2)}\n`, "application/json;charset=utf-8");
-      record("trd-seed-json", BUILTIN_RECORD);
-      saved(file);
+      saved(file, record("trd-seed-json", BUILTIN_RECORD));
     });
   const downloadOutlineWord = () => {
     if (!busy) guard(() => void exportWord());
@@ -94,8 +94,7 @@ export function TrdSeedPage() {
       if (!outline) return;
       const file = `trd-outline-${stamp}.html`;
       download(file, renderHtml(outline), "text/html;charset=utf-8");
-      record("trd-outline-html", BUILTIN_RECORD);
-      saved(file);
+      saved(file, record("trd-outline-html", BUILTIN_RECORD));
     });
   const exportItems =
     seed && outline
@@ -117,8 +116,7 @@ export function TrdSeedPage() {
         const res = await m.renderDocx({ doc: outline, mode: "builtin", generatedAt });
         const file = `trd-outline-${stamp}.docx`;
         download(file, res.bytes, DOCX_MIME);
-        record("trd-outline-docx", res.templateRecord);
-        saved(file);
+        saved(file, record("trd-outline-docx", res.templateRecord));
       } catch (e) {
         setError(`The Word document could not be created: ${(e as Error).message}`);
       }

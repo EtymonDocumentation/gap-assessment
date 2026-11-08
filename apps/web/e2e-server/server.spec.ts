@@ -188,7 +188,8 @@ test("a project saves as you work, and a fresh browser shows it after signing in
   await page.getByLabel("Project JSON file to import").setInputFiles({ name: "imported.json", mimeType: "application/json", buffer: file });
   // An import says what it made and stays on My projects instead of opening the Interview (Tester D row 18); the new project is a row of its own.
   await expect(page.getByTestId("projects-note")).toContainText("Imported:");
-  await expect(page.getByRole("list", { name: "My projects" }).getByRole("listitem")).toHaveCount(3);
+  // Two rows: the demo (opening it again reopens the same copy, it does not add one) and the imported project.
+  await expect(page.getByRole("list", { name: "My projects" }).getByRole("listitem")).toHaveCount(2);
   await other.context().close();
 });
 

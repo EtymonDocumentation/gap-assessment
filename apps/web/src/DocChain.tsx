@@ -3,6 +3,8 @@ import { chainBar, chainStages, type ChainAllowed, type ChainLink, type ChainRou
 import { useMbrAllowed, useRiskAllowed, useSamplingAllowed, useTrdAllowed } from "./risk-module";
 import { useEffectiveSuggestions } from "./expected-studies-store";
 import { href } from "./router";
+import { SERVER_MODE } from "./server/mode";
+import { useSession } from "./server/session-store";
 import { useAssessment, useStore } from "./store";
 import { PHONE_WIDTH, useNarrow } from "./viewport";
 
@@ -147,10 +149,11 @@ export function DocChainBar({ route }: { route: ChainRoute }) {
 }
 
 /** The module libraries, next to the module that uses them (they used to sit in the Library menu, far from their module). */
-const LIBRARIES: { module: string; test: (p: string) => boolean; links: { label: string; path: string }[] }[] = [
-  { module: "TRD", test: (p) => p === "/trd", links: [{ label: "Process descriptions", path: "/trd/writeups" }] },
+const LIBRARIES: { module: string; id: string; test: (p: string) => boolean; links: { label: string; path: string }[] }[] = [
+  { module: "TRD", id: "trd", test: (p) => p === "/trd", links: [{ label: "Process descriptions", path: "/trd/writeups" }] },
   {
     module: "Sampling plan",
+    id: "sampling",
     test: (p) => p === "/sampling",
     links: [
       { label: "Sampling tables", path: "/sampling/tables" },
@@ -158,13 +161,15 @@ const LIBRARIES: { module: string; test: (p: string) => boolean; links: { label:
       { label: "Expected studies", path: "/sampling/expected" },
     ],
   },
-  { module: "Batch record", test: (p) => p === "/mbr", links: [{ label: "Step blocks", path: "/mbr/library" }] },
-  { module: "Risk assessment", test: (p) => p === "/risk", links: [{ label: "Risk methods", path: "/risk/methods" }] },
+  { module: "Batch record", id: "mbr", test: (p) => p === "/mbr", links: [{ label: "Step blocks", path: "/mbr/library" }] },
+  { module: "Risk assessment", id: "risk", test: (p) => p === "/risk", links: [{ label: "Risk methods", path: "/risk/methods" }] },
 ];
 
 export function ModuleLibraryLinks({ path }: { path: string }) {
+  const modules = useSession((s) => s.user?.plan.modules);
   const lib = LIBRARIES.find((l) => l.test(path));
-  if (!lib) return null;
+  // A module page that says "not included" must not point into that module's library (the library pages say the same thing).
+  if (!lib || (SERVER_MODE && !modules?.includes(lib.id))) return null;
   return (
     <div className="module-library no-print" role="group" aria-label={`${lib.module} library`} data-testid="module-library">
       <span className="muted small">Library</span>

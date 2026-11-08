@@ -113,7 +113,7 @@ export function FieldRow({ docId, f, addr, run, testId }: { docId: string; f: Tr
       </div>
       {v.overridden && !open && (
         <p className="small muted trd-field-reason" data-testid={`${testId}-reason`}>
-          Reason: {v.reason}. Entered by {v.by} on {v.at ? dateTime(v.at) : ""}.
+          {o?.reason?.trim() ? `Reason: ${v.reason}.` : `${v.reason}.`} Entered by {v.by} on {v.at ? dateTime(v.at) : ""}.
         </p>
       )}
       {open && (
@@ -148,7 +148,7 @@ export function FieldRow({ docId, f, addr, run, testId }: { docId: string; f: Tr
                   </label>
                   <label className="field">
                     <span>Unit (optional)</span>
-                    <input value={unit} onChange={(e) => setUnit(e.target.value)} data-testid={`${testId}-unit`} />
+                    <input value={unit} onChange={(e) => setUnit(e.target.value)} placeholder={f.pulled?.unit ? `${f.pulled.unit} (the project's unit)` : undefined} data-testid={`${testId}-unit`} />
                   </label>
                 </div>
               )}

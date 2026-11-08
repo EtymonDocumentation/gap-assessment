@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { projectLabel, riskBasisText, samplingBasisText } from "@gap/engine";
 import { countOf, projectFileStem } from "../src/lib";
 
 // Tester D row 28: downloaded files start with the project title (file-name safe); the id only when there is no usable title.
@@ -10,6 +11,12 @@ describe("projectFileStem", () => {
   it("falls back to the id when the title is empty or has no letters or digits", () => {
     expect(projectFileStem({ title: "", id: "P-3" })).toBe("p-3");
     expect(projectFileStem({ title: "  ... ", id: "P-3" })).toBe("p-3");
+  });
+
+  it("names the project by its title in the sampling and risk text and in the file name, never by its internal id", () => {
+    const meta = { title: "ARX-217 transfer (fictional)", id: "prj-ba7f40cf1" };
+    for (const text of [samplingBasisText(projectLabel(meta)), riskBasisText(projectLabel(meta)), projectFileStem(meta)]) expect(text).not.toContain("prj-");
+    expect(samplingBasisText(projectLabel(meta))).toContain("ARX-217 transfer (fictional)");
   });
 
   it("never returns an empty stem", () => {

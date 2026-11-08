@@ -117,7 +117,7 @@ test("the list shows the first rows, then Show all; the open project and a new r
   await expect(rows).toHaveCount(5);
 });
 
-test("copies of a demo are told apart, and a project page asked for with no project open names itself and lands there after Open", async ({ page }) => {
+test("a second click on a demo opens the demo that is already there, and a project page asked for with no project open names itself and lands there after Open", async ({ page }) => {
   test.setTimeout(240_000);
   await signUp(page, newAccount("h1box"));
   await go(page, "#/");
@@ -125,10 +125,9 @@ test("copies of a demo are told apart, and a project page asked for with no proj
   await expect(page.getByTestId("demo-opened")).toHaveText(`Demo opened: ${DEMO_NAMES.arx}`, { timeout: 90_000 });
   await page.getByRole("button", { name: "Close project" }).click();
   await page.getByRole("button", { name: `Open demo: ${DEMO_NAMES.arx}` }).click();
-  await expect(projectList(page).getByRole("listitem")).toHaveCount(2, { timeout: 90_000 });
-  // The two rows must not look the same: their titles differ.
-  const titles = await projectList(page).locator(".project-name").allInnerTexts();
-  expect(new Set(titles).size, `two different titles: ${titles.join(" | ")}`).toBe(2);
+  // Walk-through: no second copy is added. The same demo is open again and the list still has one row.
+  await expect(page.getByRole("button", { name: "Close project" })).toBeVisible({ timeout: 90_000 });
+  await expect(projectList(page).getByRole("listitem")).toHaveCount(1);
   await page.getByRole("button", { name: "Close project" }).click();
 
   // Ask for a project page with nothing open: the box names it and still lists the projects.

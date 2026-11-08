@@ -204,6 +204,11 @@ test("a new plan copies the project scope's steps once, and the two lists stay i
   expect(await boxLabels(page)).toEqual(copied);
   // Removing a step from the plan does not touch the project scope.
   await page.getByTestId("step-list").locator('[data-testid^="step-remove-"]').first().click();
+  // An empty step asks first ("Delete <step>?"); Cancel keeps it, the second try goes ahead.
+  await page.getByTestId("remove-cancel").click();
+  expect((await stepLabels(page)).length).toBe(copied.length);
+  await page.getByTestId("step-list").locator('[data-testid^="step-remove-"]').first().click();
+  await page.getByTestId("remove-confirm").click();
   expect((await stepLabels(page)).length).toBe(copied.length - 1);
   // Copy again (append) restores the missing one.
   await page.getByTestId("steps-copy-mode").selectOption("append");
@@ -216,7 +221,10 @@ test("an empty plan points to the Process steps card", async ({ page }) => {
   await breadcrumb(page).getByRole("link", { name: "Sampling plan", exact: true }).click();
   await page.getByTestId("plan-title-input").fill("Empty plan (fictional)");
   await page.getByTestId("plan-create").click();
-  while ((await page.getByTestId("step-list").count()) > 0) await page.getByTestId("step-list").locator('[data-testid^="step-remove-"]').first().click();
+  while ((await page.getByTestId("step-list").count()) > 0) {
+    await page.getByTestId("step-list").locator('[data-testid^="step-remove-"]').first().click();
+    await page.getByTestId("remove-confirm").click();
+  }
   await expect(page.getByTestId("flow-empty")).toContainText("Process steps");
   await expect(page.getByTestId("points-empty")).toBeVisible();
 });

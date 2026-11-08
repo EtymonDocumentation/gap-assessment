@@ -31,6 +31,9 @@ test("upload by choosing, by drop and by pasting a screenshot; download matches 
   await open(page);
   await expect(page.getByText("You have no files yet.")).toBeVisible();
   await page.screenshot({ path: shot(`empty-${info.project.name}`) });
+  // The limit reads as the admin set it (the server is started with --max-upload-mb 50), never "52 MB".
+  await expect(page.getByText("Largest single file: 50 MB.")).toBeVisible();
+  await page.screenshot({ path: join(tmpdir(), `wfix-myfiles-limit-${info.project.name}.png`) });
 
   // Choose
   await page.getByLabel("Files to upload").setInputFiles({ name: "notes-a.txt", mimeType: "text/plain", buffer: Buffer.from("alpha fictional notes") });

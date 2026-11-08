@@ -118,6 +118,7 @@ export const DEMO_NAMES = { arx: "ARX-217 vials", syr: "SYR-305 syringe" } as co
 export async function openDemo(page: Page, which: keyof typeof DEMO_NAMES = "arx", then?: string): Promise<void> {
   const name = DEMO_NAMES[which];
   await page.getByRole("button", { name: `Open demo: ${name}` }).click();
-  await expect(page.getByTestId("demo-opened")).toHaveText(`Demo opened: ${name}`, { timeout: 90_000 });
+  // A demo already in My projects is reopened instead of copied again; the note then adds "This is the copy you already had".
+  await expect(page.getByTestId("demo-opened")).toHaveText(new RegExp(`^Demo opened: ${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\.|$)`), { timeout: 90_000 });
   if (then) await page.evaluate((h) => (window.location.hash = h), then);
 }

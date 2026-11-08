@@ -46,6 +46,21 @@ export const useSession = /* @__PURE__ */ create<SessionState>((set, get) => ({
   async start() {
     set({ phase: "loading", problem: "" });
     api.onUnauthorized(() => get().endSession("Your session has ended. Sign in again to continue. Your unsaved work is kept in this browser."));
+    // The server refused a module the menus still show: ask for the account again so the menus match it at once (no reload).
+    let refreshing = false;
+    api.onModuleNotIncluded(() => {
+      if (refreshing || get().phase !== "ready") return;
+      refreshing = true;
+      api
+        .me()
+        .then(({ user }) => {
+          if (get().phase === "ready") set({ user });
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          refreshing = false;
+        });
+    });
     try {
       const h = await api.health();
       set({ storage: h.storage });

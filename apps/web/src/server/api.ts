@@ -61,6 +61,12 @@ export function onUnauthorized(fn: (() => void) | null): void {
   unauthorized = fn;
 }
 
+let moduleNotIncluded: (() => void) | null = null;
+/** Called when the server answers that the account does not include a module (it was taken away while the user was signed in). */
+export function onModuleNotIncluded(fn: (() => void) | null): void {
+  moduleNotIncluded = fn;
+}
+
 const NETWORK_MESSAGE = "The server could not be reached. Check your connection and try again.";
 
 async function errorOf(res: Response): Promise<ApiError> {
@@ -117,6 +123,7 @@ async function call(method: string, path: string, o: CallOptions = {}): Promise<
   if (res.ok) return res;
   const err = await errorOf(res);
   if (res.status === 401 && !o.plain401) unauthorized?.();
+  if (res.status === 403 && err.code === "module-not-included") moduleNotIncluded?.();
   throw err;
 }
 

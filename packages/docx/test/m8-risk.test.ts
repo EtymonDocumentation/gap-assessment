@@ -26,7 +26,8 @@ describe("Word and HTML risk assessment (M8)", () => {
     const text = plainText(strictDocx(out.bytes));
     expect(text).toContain(NOTICE_DOCUMENT);
     for (const h of ["Purpose and scope", "Risk method", "Risk register", "Action list", "Open items", "Traceability"]) expect(text).toContain(h);
-    expect(text).toContain("No bands defined by the user");
+    // The demo method carries its own fictional bands, so the document lists them instead of saying none were defined.
+    expect(text).toContain("Bands defined by the user");
     expect(text).not.toMatch(/filing category/i);
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "risk-assessment.docx"), out.bytes);

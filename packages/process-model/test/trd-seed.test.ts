@@ -49,7 +49,9 @@ describe("parseTrdSeed", () => {
 
   it("refuses other documents, other major versions and bad JSON", () => {
     expect(fail("{nope")).toMatch(/not valid JSON/);
-    expect(fail({ meta: { format: "something.else" } })).toMatch(/Not a TRD seed/);
+    expect(fail({ meta: { format: "something.else" } })).toBe("This file is not a TRD seed. Choose a file made with Download TRD seed.");
+    // A file with no meta at all (any other JSON) reads the same, never `format "undefined"`.
+    expect(fail({ hello: 1 })).not.toContain("undefined");
     const other = seed() as { meta: { formatVersion: string } };
     other.meta.formatVersion = "2.0.0";
     expect(fail(other)).toMatch(/supports TRD seed format 1\.x/);

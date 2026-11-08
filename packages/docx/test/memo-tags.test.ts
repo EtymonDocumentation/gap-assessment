@@ -31,7 +31,7 @@ async function renderSampling(bytes: Uint8Array, kind: "plan" | "cmo" = "plan") 
   const doc = (kind === "plan" ? buildSamplingPlanDocument : buildCmoInstructionsDocument)(content, project, plan, samplingSuggestions, opts);
   const out = await renderDocx({
     doc,
-    tagData: buildSamplingTagData(doc, project, plan),
+    tagData: buildSamplingTagData(doc, project, plan, content),
     mode: "tags",
     generatedAt: GENERATED_AT,
     template: { name: "Memo test (fictional)", version: "1", sha256: t.sha256, bytes: t.bytes, analysis: t.analysis },
@@ -77,7 +77,7 @@ describe("memo parties as template tags", () => {
 
   it("adds the sending unit and receiving site from the project's two sites", () => {
     const doc = buildSamplingPlanDocument(content, project, plan, samplingSuggestions, opts);
-    const data = buildSamplingTagData(doc, project, plan);
+    const data = buildSamplingTagData(doc, project, plan, content);
     const gap = buildModel().tagData;
     expect(data.sendingUnit).toBe(gap.sourceSite);
     expect(data.receivingSite).toBe(gap.targetSite);
@@ -152,7 +152,7 @@ describe("memo parties as template tags", () => {
     const p2 = setParties(project, plan.id, plan.parties.map(({ memoLine: _m, ...rest }) => rest), { name: "Pat Placeholder (fictional)", at: "2026-10-06T09:00:00.000Z" });
     const pl = p2.sampling.plans[0]!;
     const doc = buildSamplingPlanDocument(content, p2, pl, samplingSuggestions, opts);
-    const out = await renderDocx({ doc, tagData: buildSamplingTagData(doc, p2, pl), mode: "tags", generatedAt: GENERATED_AT, template: { name: "t", version: "1", sha256: t.sha256, bytes: t.bytes, analysis: t.analysis } });
+    const out = await renderDocx({ doc, tagData: buildSamplingTagData(doc, p2, pl, content), mode: "tags", generatedAt: GENERATED_AT, template: { name: "t", version: "1", sha256: t.sha256, bytes: t.bytes, analysis: t.analysis } });
     const text = plainText(strictDocx(out.bytes));
     expect(text).toContain("Cc: [none chosen]");
     expect(text).not.toContain("CCROW");

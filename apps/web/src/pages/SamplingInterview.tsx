@@ -1,5 +1,5 @@
 import { PointRiskLinks } from "./RiskLinks";
-import { acceptSuggestion, addAgencyRequest, removeAgencyRequest, removePoint, setParties, updateAgencyRequest, updatePlan, updatePoint, type PointSuggestion } from "@gap/engine";
+import { acceptSuggestion, addAgencyRequest, removeAgencyRequest, setParties, updateAgencyRequest, updatePlan, updatePoint, type PointSuggestion } from "@gap/engine";
 import {
   AGENCY_REQUEST_KINDS,
   AGENCY_REQUEST_STATUSES,
@@ -19,9 +19,9 @@ import {
 } from "@gap/process-model";
 import { AGENCY_KIND_LABEL, AGENCY_STATUS_LABEL, RESPONSIBLE_LABEL, STATUS_TEXT, TYPE_HELP, TYPE_LABEL, agencyCoverage, checkPoint, placementText, stepOf, typeText, type PointGroup } from "@gap/sampling";
 import { useMemo, useRef, useState } from "react";
-import { Empty } from "../components";
+import { Empty, useConfirmRemove } from "../components";
 import { useStore } from "../store";
-import type { OpenAdd } from "./SamplingFlow";
+import { removePointRequest, type OpenAdd } from "./SamplingFlow";
 import { PointForm, useStepChoices } from "./SamplingPointDialog";
 
 type Run = (fn: Parameters<ReturnType<typeof useStore.getState>["update"]>[0], status: string) => boolean;
@@ -313,7 +313,7 @@ export function PointCard({
     <article className="point-card" data-testid={`card-${point.id}`} aria-label={`Point ${point.id}`} data-selected={expanded ? "true" : undefined}>
       <div className="row wrap between">
         <div>
-          <h4>
+          <h4 tabIndex={-1} data-testid={`card-title-${point.id}`}>
             {point.id}: {point.attribute.trim() || "Not named"}
           </h4>
           <p className="small muted">
@@ -376,7 +376,8 @@ export function Interview({
   labelOf: (k: string) => string;
 }) {
   const steps = useStepChoices();
-  const remove = (p: SamplingPoint) => run((pr, actor) => removePoint(pr, plan.id, p.id, actor), `Point ${p.id} removed`);
+  const confirm = useConfirmRemove();
+  const remove = (p: SamplingPoint) => confirm.ask(removePointRequest(plan, p, run));
 
   // Steps shown: every step that has a suggestion or a point (suggestions already leave out steps outside the scope), then the two
   // fixed ones at the end.
@@ -412,6 +413,7 @@ export function Interview({
           <TypeSection plan={plan} type={null} expanded={expanded} onToggle={onToggle} openAdd={openAdd} run={run} labelOf={labelOf} onRemove={remove} />
         </>
       )}
+      {confirm.dialog}
     </div>
   );
 }

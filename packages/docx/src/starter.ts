@@ -41,6 +41,8 @@ const APPENDIX_LOOPS: Record<string, string> = { "source-register": "sources" };
 /**
  * A valid .docx in the built-in look that uses every main tag, to start a placeholder-tag template from.
  * Fill it in with the "Placeholder tags" option; edit it in Word to change the look.
+ * The project tags ({program}, {modality}, the sites) are filled in every document type; the gap loops are filled in the gap assessment only and
+ * print nothing in a TRD, batch record, risk assessment or sampling plan.
  * The appendix letters come from the document model (`doc`, after any omitted sections); without one, from a document that leaves nothing out.
  */
 export function buildStarterTemplate(doc?: Pick<DocModel, "sections">): Uint8Array {

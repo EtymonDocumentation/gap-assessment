@@ -49,8 +49,7 @@ export function GapStepBar({ path }: { path: string }) {
         ))}
       </ol>
       <p className="small muted gap-step-help">
-        What this step is for
-        <HelpTip label={`step ${at + 1}, ${GAP_STEPS[at]!.label}`} text={STEP_HELP[GAP_STEPS[at]!.id]} />
+        What this step is for<HelpTip label={`step ${at + 1}, ${GAP_STEPS[at]!.label}`} text={STEP_HELP[GAP_STEPS[at]!.id]} />
       </p>
     </nav>
   );

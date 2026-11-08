@@ -7,7 +7,6 @@ import {
   projectScopeSteps,
   projectStage,
   removeBatch,
-  removePoint,
   samplingOpenItems,
   samplingStageWording,
   suggestPoints,
@@ -21,13 +20,13 @@ import { TYPE_LABEL, planTotals } from "@gap/sampling";
 import { samplingSuggestions } from "@gap/content";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { StartArt } from "../art";
-import { Empty, Modal } from "../components";
+import { Empty, Modal, useConfirmRemove } from "../components";
 import { focusWhenReady, PageHeader, type PagePill } from "../PageHeader";
 import { countOf, dateTime } from "../lib";
 import { href, navigate } from "../router";
 import { useContent, useStore } from "../store";
 import { AddSampleDialog, type AddRequest } from "./SamplingAdd";
-import { FlowDiagram, type OpenAdd, type Run } from "./SamplingFlow";
+import { FlowDiagram, removePointRequest, type OpenAdd, type Run } from "./SamplingFlow";
 import { PointsTable } from "./SamplingPointsTable";
 import { ProcessStepsCard } from "./SamplingSteps";
 import { FigureDataCard } from "./SamplingFigureData";
@@ -231,6 +230,15 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
     setSelected(id);
     setJustAdded(null);
   };
+  /**
+   * "Open" on a point: show it in the interview. Switching tab alone keeps the old scroll position, so the point's card could be a
+   * screen or more away; bring it into view and move focus to its heading (the card is drawn a frame later, focusWhenReady waits for it).
+   */
+  const openInInterview = (id: string) => {
+    select(id);
+    setTab("interview");
+    focusWhenReady(`card-title-${id}`);
+  };
   const interviewExpanded = selected !== null && justAdded !== selected ? selected : null;
 
   /** Runs one edit. Any refusal (for example removing a batch a point depends on) is shown in words next to the controls. */
@@ -243,6 +251,7 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
   const open = useMemo(() => samplingOpenItems(content, project, plan), [content, project, plan]);
   const selectedPoint = plan.points.find((p) => p.id === selected);
   const selectedCard = useRef<HTMLDivElement>(null);
+  const removeConfirm = useConfirmRemove();
   const suggestions = useMemo(() => suggestPoints(content, project, samplingSuggestions, plan), [content, project, plan]);
   const totals = useMemo(() => planTotals(plan), [plan]);
   const labelOf = useMemo(() => {
@@ -328,8 +337,7 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
           run={run}
           onOpenPoint={(id) => {
             // The full editor of a sample is in the interview, as with the table's Open.
-            select(id);
-            setTab("interview");
+            openInInterview(id);
           }}
         />
       )}
@@ -389,8 +397,7 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
           openAdd={openAdd}
           onEdit={(id) => {
             // The full editor is in the interview too, so Open shows that point there.
-            select(id);
-            setTab("interview");
+            openInInterview(id);
           }}
         />
         <div role="status" className="visually-hidden" data-testid="add-announce">
@@ -408,7 +415,7 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
               openLabel="More details"
               onToggle={() => setOverviewOpen(overviewOpen === selectedPoint.id ? null : selectedPoint.id)}
               run={run}
-              onRemove={() => run((p, actor) => removePoint(p, plan.id, selectedPoint.id, actor), `Point ${selectedPoint.id} removed`)}
+              onRemove={() => removeConfirm.ask(removePointRequest(plan, selectedPoint, run))}
             />
           </div>
         )}
@@ -499,6 +506,7 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
         />
       )}
 
+      {removeConfirm.dialog}
       {confirmDelete && (
         <Modal open onOpenChange={(o) => !o && setConfirmDelete(false)} title="Delete this plan?" description={`${plan.id}: ${plan.title} has ${countOf(plan.points.length, "point")} and ${countOf(plan.batches.length, "batch", "batches")}.`} restoreFocus={() => opener.current}>
           <div className="row end">
@@ -750,6 +758,14 @@ function BatchRow({
   const [unit, setUnit] = useState(batch.batchSizeUnit ?? "");
   const [notes, setNotes] = useState(batch.notes ?? "");
   const rootRef = useRef<HTMLDivElement & HTMLFieldSetElement>(null);
+  const confirm = useConfirmRemove();
+  const askRemove = () =>
+    confirm.ask({
+      title: `Delete ${batch.id}?`,
+      description: `${batch.id}: ${batch.label.trim() || "no label"} is taken out of the plan. The change log keeps what it said.`,
+      confirmLabel: `Delete ${batch.id}`,
+      onConfirm: () => void run((p, actor) => removeBatch(p, plan.id, batch.id, actor), `Batch ${batch.id} removed`),
+    });
   const editing = mode !== undefined;
   const isNew = mode === "new";
   const dirty = label !== batch.label || lot !== batch.plannedLotSizeUnits || size !== batch.batchSize || unit !== (batch.batchSizeUnit ?? "") || notes !== (batch.notes ?? "");
@@ -800,11 +816,12 @@ function BatchRow({
             type="button"
             className="btn danger"
             aria-label={`Remove batch ${batch.id}`}
-            onClick={() => run((p, actor) => removeBatch(p, plan.id, batch.id, actor), `Batch ${batch.id} removed`)}
+            onClick={askRemove}
           >
             Remove batch
           </button>
         </div>
+        {confirm.dialog}
       </div>
     );
   }
@@ -852,10 +869,11 @@ function BatchRow({
             Cancel
           </button>
         )}
-        <button type="button" className="btn danger" onClick={() => run((p, actor) => removeBatch(p, plan.id, batch.id, actor), `Batch ${batch.id} removed`)}>
+        <button type="button" className="btn danger" onClick={askRemove}>
           Remove batch
         </button>
       </div>
+      {confirm.dialog}
     </fieldset>
   );
 }

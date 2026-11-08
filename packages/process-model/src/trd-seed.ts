@@ -204,7 +204,7 @@ export function parseTrdSeed(input: unknown): TrdSeed {
     }
   }
   const meta = (raw as { meta?: { format?: unknown; formatVersion?: unknown } } | null)?.meta;
-  if (meta?.format !== TRD_SEED_FORMAT) throw new TrdSeedError(`Not a TRD seed (format "${String(meta?.format)}", expected "${TRD_SEED_FORMAT}").`);
+  if (meta?.format !== TRD_SEED_FORMAT) throw new TrdSeedError("This file is not a TRD seed. Choose a file made with Download TRD seed.");
   const major = (v: unknown) => String(v).split(".")[0];
   if (major(meta.formatVersion) !== major(TRD_SEED_VERSION)) {
     throw new TrdSeedError(`This reader supports TRD seed format ${major(TRD_SEED_VERSION)}.x; the file is ${String(meta.formatVersion)}.`);

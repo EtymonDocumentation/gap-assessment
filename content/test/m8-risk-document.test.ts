@@ -27,10 +27,21 @@ describe("risk assessment document", () => {
     expect(table(doc, "open-items").rows[0]![1]).toContain("not scored");
   });
 
-  it("says plainly that no bands were defined and judges nothing", () => {
+  it("lists the demo's own bands and puts every scored demo item in one of them", () => {
     const text = JSON.stringify(doc);
+    expect(text).toContain("Bands defined by the user");
+    expect(text).not.toContain("No bands defined by the user");
+    expect(text).not.toContain("No band defined");
+    expect(text).not.toMatch(/filing category/i);
+  });
+
+  it("says plainly that no bands were defined and judges nothing, when the method has none", () => {
+    let p = createAssessment(demo, { title: "x", steps: projectScopeSteps(content, demo) }, ACTOR).project;
+    const id = p.risk.assessments.at(-1)!.id;
+    p = setMethod(p, id, cfg("fmea-1-10"), ACTOR);
+    p = addItem(p, id, { failureMode: "Leak" }, ACTOR).project;
+    const text = JSON.stringify(buildRiskAssessmentDocument(content, p, p.risk.assessments.at(-1)!, failureModes, opts));
     expect(text).toContain("No bands defined by the user");
-    expect(text).toContain("No band defined");
     expect(text).not.toMatch(/filing category/i);
   });
 

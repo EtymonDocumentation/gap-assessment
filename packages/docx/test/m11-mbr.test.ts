@@ -3,12 +3,13 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
+import { emptyProject } from "@gap/process-model";
 import { buildDemoProject, buildMbrDocument, CMO_PLACEHOLDER } from "@gap/engine";
 import { renderHtml } from "@gap/renderers";
 import { describe, expect, it, vi } from "vitest";
 import { content, demos, designLoadouts, failureModes, mbrLibrary, riskLoadouts, samplingSuggestions } from "../../../content/index";
-import { buildDocumentTagData, importTemplateFile, renderDocx } from "../src/index";
-import { BANNER, GENERATED_AT, fixture } from "./fixtures";
+import { buildDocumentTagData, buildStarterTemplate, importTemplateFile, renderDocx } from "../src/index";
+import { BANNER, GENERATED_AT, buildModel, fixture } from "./fixtures";
 import { plainText, strictDocx } from "./strict";
 
 vi.setConfig({ testTimeout: 60000 });
@@ -78,7 +79,7 @@ describe("Word and HTML master batch record (M11)", () => {
   it("their look and placeholder tags work for the batch record, including a per-section tag", async () => {
     const t = await importTemplateFile("brightwater-template.docx", fixture("brightwater-template.docx"));
     const tmpl = { name: "Brightwater sample (fictional)", version: "2.1", sha256: t.sha256, fileName: "sample", bytes: t.bytes, analysis: t.analysis };
-    const look = await renderDocx({ doc, tagData: buildDocumentTagData(doc), mode: "their_look", generatedAt: GENERATED_AT, template: tmpl });
+    const look = await renderDocx({ doc, tagData: buildDocumentTagData(doc, content, project), mode: "their_look", generatedAt: GENERATED_AT, template: tmpl });
     expect(plainText(strictDocx(look.bytes))).toContain(BANNER);
 
     const P = (text: string) => `<w:p><w:r><w:t xml:space="preserve">${text}</w:t></w:r></w:p>`;
@@ -87,9 +88,51 @@ describe("Word and HTML master batch record (M11)", () => {
     zip.file("word/document.xml", xml.replace(/<w:body>[\s\S]*?(<w:sectPr)/, `<w:body>${P("{title}")}${P("{@section_basis}")}${P("{@section_section_SC_01}")}$1`));
     const bytes = zip.generate({ type: "uint8array" });
     const tagged = await importTemplateFile("tagged.docx", bytes);
-    const out = await renderDocx({ doc, tagData: buildDocumentTagData(doc), mode: "tags", generatedAt: GENERATED_AT, template: { ...tmpl, sha256: tagged.sha256, bytes: tagged.bytes, analysis: tagged.analysis } });
+    const out = await renderDocx({ doc, tagData: buildDocumentTagData(doc, content, project), mode: "tags", generatedAt: GENERATED_AT, template: { ...tmpl, sha256: tagged.sha256, bytes: tagged.bytes, analysis: tagged.analysis } });
     const text = plainText(strictDocx(out.bytes));
     expect(text).toContain("Basis and how to read this draft");
     expect(text).toContain(BANNER);
+  });
+
+  it("fills the project's own tags ({program}, {modality}, the sites) in the batch record, not [not available]", async () => {
+    const t = await importTemplateFile("brightwater-template.docx", fixture("brightwater-template.docx"));
+    const P = (text: string) => `<w:p><w:r><w:t xml:space="preserve">${text}</w:t></w:r></w:p>`;
+    const zip = new PizZip(fixture("brightwater-template.docx"));
+    const xml = zip.file("word/document.xml")!.asText();
+    zip.file("word/document.xml", xml.replace(/<w:body>[\s\S]*?(<w:sectPr)/, `<w:body>${P("PROG={program}")}${P("MOD={modality}")}${P("SRC={sourceSite}")}${P("TGT={receivingSite}")}$1`));
+    const tagged = await importTemplateFile("tagged.docx", zip.generate({ type: "uint8array" }));
+    const tmpl = { name: "Brightwater sample (fictional)", version: "2.1", sha256: tagged.sha256, fileName: "sample", bytes: tagged.bytes, analysis: tagged.analysis };
+    const out = await renderDocx({ doc, tagData: buildDocumentTagData(doc, content, project), mode: "tags", generatedAt: GENERATED_AT, template: tmpl });
+    const text = plainText(strictDocx(out.bytes));
+    const gap = buildModel().tagData;
+    expect(gap.program).not.toBe("[TBD]");
+    expect(text).toContain(`PROG=${gap.program}`);
+    expect(text).toContain(`MOD=${gap.modality}`);
+    expect(text).toContain(`SRC=${gap.sourceSite}`);
+    expect(text).toContain(`TGT=${gap.targetSite}`);
+    expect(text).not.toContain("[not available]");
+    void t;
+  });
+
+  it("the starter placeholder-tag template gets {program} and {modality} filled in the batch record; a sample goes to the temp folder", async () => {
+    const starter = await importTemplateFile("starter-tag-template.docx", buildStarterTemplate());
+    const tmpl = { name: "Starter tags (fictional)", version: "1", sha256: starter.sha256, fileName: "starter", bytes: starter.bytes, analysis: starter.analysis };
+    const out = await renderDocx({ doc, tagData: buildDocumentTagData(doc, content, project), mode: "tags", generatedAt: GENERATED_AT, template: tmpl });
+    const wdir = join(tmpdir(), "gap-docx-samples", "wfix");
+    mkdirSync(wdir, { recursive: true });
+    writeFileSync(join(wdir, "mbr-starter-tags.docx"), out.bytes);
+    const xml = plainText(strictDocx(out.bytes));
+    const gap = buildModel().tagData;
+    expect(xml).toContain(gap.program);
+    expect(xml).toContain(gap.modality);
+    // The project's own rows are filled. The gap counts (differences, open items) stay "[not available]" outside the gap assessment, on purpose.
+    for (const row of ["Program", "Modality", "Sending unit (SU) site", "Receiving unit (RU) site"]) expect(xml.replace(/\s+/g, " "), row).not.toContain(`${row} [not available]`);
+  });
+
+  it("an unknown project value reads the usual unknown wording, never invented text", () => {
+    const blank = emptyProject({ title: "Blank (fictional)", actor: { name: "Pat Placeholder (fictional)", at: GENERATED_AT }, contentRefs: content.versions });
+    const data = buildDocumentTagData(doc, content, blank);
+    expect(data.program).toBe("[TBD]");
+    expect(data.sourceSite).toBe("[site TBD]");
   });
 });
