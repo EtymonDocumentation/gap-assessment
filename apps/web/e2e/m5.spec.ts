@@ -137,7 +137,8 @@ test("templates: samples with analysis, .doc advice, rename, export, delete and 
   await expect(card(page, "Brightwater SOP")).toContainText("Version 3");
   await expect(page.getByRole("alert")).toHaveCount(0);
 
-  // The tag reference and the starter template.
+  // The tag reference and the starter template. The tag table sits in a fold, closed at first (most people use the built-in look).
+  await page.locator("summary", { hasText: "Show the tags you can use" }).click();
   await expect(page.getByRole("table").filter({ hasText: "Recommended" }).first()).toBeVisible();
   const md = await downloadBytes(page, () => page.getByRole("button", { name: "Download tag reference (Markdown)" }).click());
   expect(md.bytes.toString("utf8")).toContain("# Placeholder tags for Word templates");
@@ -236,7 +237,7 @@ test("mapping editor: suggest, change a heading, reorder, leave out needs a tick
 
   // The library page says so too.
   await go(page, "#/templates");
-  await expect(card(page, "SOP-style template")).toContainText(/Saved: content assigned to \d+ of \d+ headings/);
+  await expect(card(page, "SOP-style template")).toContainText(/Saved: content placed under \d+ of \d+ headings/);
 });
 
 test("document: Word export in all four modes, from the saved mapping, with the export history", async ({ page }) => {

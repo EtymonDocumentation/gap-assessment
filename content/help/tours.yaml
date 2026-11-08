@@ -23,7 +23,7 @@ tours:
         text: The tool suggests what to do next. Every document is optional, so you can skip a step and come back to it later.
       - anchor: home-chain
         title: Your documents
-        text: One card for each document, with its state and a button to open or start it. The documents run in a chain, gap assessment, TRD, sampling plan, batch record. Each can use the one before it, but none is required.
+        text: One card for each document, with its state and a button to open or start it. The documents run in a chain, gap assessment, TRD, sampling plan, batch record. Each can use the one before it, but none needs it.
       - anchor: home-projects
         title: Your projects
         text: Your saved projects, newest first. Open one with its Open button; Rename, Copy and Delete are under the three dots beside it.

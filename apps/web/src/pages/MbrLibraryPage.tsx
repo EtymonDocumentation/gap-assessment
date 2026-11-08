@@ -42,7 +42,7 @@ export function MbrLibraryPage() {
     <div className="stack-lg">
       <PageHeader
         title="Ready-made steps library"
-        purpose="The ready-made steps a batch record is built from: the steps themselves, parameter rows that take a value from the technical requirements document, time limits, and what the CMO (contract manufacturing organization) completes."
+        purpose="The ready-made steps a batch record is built from: steps, rows that take a value from the TRD, time limits, and what the CMO (contract manufacturer) completes."
         about={{
           art: "page-document",
           children: (

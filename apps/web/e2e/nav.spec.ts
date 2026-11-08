@@ -42,7 +42,7 @@ test("home with no project explains the tool, what you need and how to start, wi
   await expect(page.getByTestId("start-options").getByRole("button", { name: /^Open demo: / })).toHaveCount(2);
   await expect(page.getByText("Both demos are fictional.")).toBeVisible();
   // One card per document; the gap assessment can be read now, the rest say they need an open project.
-  await expect(page.getByTestId("doc-card-gap").getByRole("link", { name: "Start Gap assessment" })).toHaveAttribute("href", "#/gap");
+  await expect(page.getByTestId("doc-card-gap").getByRole("link", { name: "Start the gap assessment" })).toHaveAttribute("href", "#/gap");
   await expect(page.getByTestId("doc-card-state-trd")).toHaveText("Needs an open project.");
   await expect(page.getByTestId("doc-card-open-trd")).toHaveCount(0);
   // Without a project there is no gap assessment to open, so the top link is left out instead of looking dead (it comes back with a project).

@@ -311,8 +311,6 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
           { label: "Download reporting instructions (HTML)", onSelect: toDownload("cmo-download-html") },
         ]}
       />
-      <PlanSourceNote made />
-
       <div role="group" aria-label="Plan sections" className="row wrap seg no-print" data-testid="plan-tabs" data-tour="plan-tabs">
         {(Object.keys(TAB_LABEL) as Tab[]).map((t) => (
           <button key={t} type="button" className={tab === t ? "btn primary" : "btn"} aria-pressed={tab === t} onClick={() => setTab(t)} data-testid={`tab-${t}`}>
@@ -352,7 +350,9 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
 
       {tab === "overview" && (
       <>
-      {/* The plan's set-up, in the order a plan is filled in. It used to sit above the tab strip and push it thousands of pixels down. */}
+      {/* The plan's set-up, in the order a plan is filled in. It used to sit above the tab strip and push it thousands of pixels down.
+          The note on where the steps came from opens it, below the tabs for the same reason (on a phone it pushed the tabs off the first screen). */}
+      <PlanSourceNote made />
       <DetailsCard plan={plan} run={run} />
       <ProcessStepsCard plan={plan} run={run} />
       <FigureDataCard plan={plan} run={run} />

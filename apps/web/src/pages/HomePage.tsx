@@ -271,7 +271,7 @@ export function HomePage() {
                   ? "Anything not yet known stays visible as an open item."
                   : "The gap assessment can be read now."
                 : project
-                  ? `Each document can use the one before it, but none is required: ${allowed.trd ? "a TRD can start blank, and you can skip" : "you can skip"} the gap assessment. Anything not yet known stays visible as an open item.`
+                  ? `Each document can use the one before it, but none needs it: ${allowed.trd ? "a TRD can start blank, and you can skip" : "you can skip"} the gap assessment. Anything not yet known stays visible as an open item.`
                   : "One card for each document. The gap assessment can be read now; the others open once a project is open."}
             </p>
             <ul className="doc-cards">
