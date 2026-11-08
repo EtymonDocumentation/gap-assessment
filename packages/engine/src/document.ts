@@ -30,8 +30,13 @@ export type Block =
   /**
    * `weights` (optional, one per column) are the preferred relative column widths of a table whose long text sits in one column. Word and
    * HTML follow them (Word still gives every column room for its longest word); renderers that cannot size columns ignore them.
+   *
+   * `cellRuns` (optional, parallel to `rows`) holds the rich runs of a cell that contains an open blank, so the HTML and Word exports can
+   * highlight it like an open blank in a paragraph. The cell's text in `rows` is the same words (the label in square brackets), so
+   * markdown and every renderer that ignores `cellRuns` still show the gap. A cell without an open blank has no entry.
+   * `emptyText` (optional) is what a table with no rows says in place of the default "None.".
    */
-  | { type: "table"; columns: string[]; rows: string[][]; caption?: string; weights?: number[] }
+  | { type: "table"; columns: string[]; rows: string[][]; caption?: string; weights?: number[]; cellRuns?: (Run[] | undefined)[][]; emptyText?: string }
   | { type: "note"; text: string }
   | FigureBlock
   | PictureBlock;

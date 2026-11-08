@@ -61,7 +61,7 @@ export function RowsEditor({
     <div className="stack" ref={root} data-testid={`${idPrefix}-editor`}>
       {rows.length === 0 ? (
         <p className="muted small" data-testid={`${idPrefix}-none`}>
-          No rows yet. The document shows the column heads and one empty row to fill in.
+          No rows yet. The document says “No rows yet.” where this table would be.
         </p>
       ) : (
         <div className="table-scroll" role="region" aria-label={`Rows of ${name}`} tabIndex={0}>

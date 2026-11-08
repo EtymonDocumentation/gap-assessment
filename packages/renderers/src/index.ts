@@ -37,7 +37,7 @@ function mdBlock(b: Block): string {
     case "list":
       return b.items.map((i) => `- ${i}`).join("\n");
     case "table": {
-      if (!b.rows.length) return "_None._";
+      if (!b.rows.length) return `_${b.emptyText ?? "None."}_`;
       const head = `| ${b.columns.map(mdCell).join(" | ")} |`;
       const sep = `| ${b.columns.map(() => "---").join(" | ")} |`;
       const rows = b.rows.map((r) => `| ${r.map(mdCell).join(" | ")} |`);
@@ -88,6 +88,9 @@ function htmlRuns(runs: Run[]): string {
     .join("");
 }
 
+/** A table cell: from its runs when it holds an open blank (so the blank is highlighted), else the plain text. */
+const htmlCell = (text: string, runs: Run[] | undefined): string => (runs?.length ? htmlRuns(runs) : escapeHtml(text));
+
 function htmlBlock(b: Block): string {
   switch (b.type) {
     case "paragraph":
@@ -103,10 +106,11 @@ function htmlBlock(b: Block): string {
     case "list":
       return `<ul>${b.items.map((i) => `<li>${escapeHtml(i)}</li>`).join("")}</ul>`;
     case "table":
-      if (!b.rows.length) return `<p class="none">None.</p>`;
-      // Focusable so keyboard users can scroll a wide table sideways.
+      if (!b.rows.length) return `<p class="none">${escapeHtml(b.emptyText ?? "None.")}</p>`;
+      // Focusable so keyboard users can scroll a wide table sideways. A cell with an open blank is drawn from its runs, so the blank is
+      // highlighted (and read as "open blank") like one in a paragraph; its words are the same as the plain cell.
       return `<div class="table-wrap" role="region" aria-label="Table" tabindex="0"><table>${tableColgroup(b.weights, b.columns.length)}<thead><tr>${b.columns.map((c) => `<th scope="col">${escapeHtml(c)}</th>`).join("")}</tr></thead><tbody>${b.rows
-        .map((r) => `<tr>${r.map((c) => `<td>${escapeHtml(c)}</td>`).join("")}</tr>`)
+        .map((r, ri) => `<tr>${r.map((c, ci) => `<td>${htmlCell(c, b.cellRuns?.[ri]?.[ci])}</td>`).join("")}</tr>`)
         .join("")}</tbody></table></div>`;
     case "picture":
       // Embedded as a data: URL so the HTML file stays one file. It never overflows the page (max-width in the CSS below).

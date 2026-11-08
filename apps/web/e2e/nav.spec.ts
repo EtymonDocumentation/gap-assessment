@@ -178,6 +178,8 @@ test("the phone folds the menu into one Menu button with no sideways scroll", as
   await menu.click();
   await expect(menu).toHaveAttribute("aria-expanded", "true");
   for (const name of ["Home", "Gap assessment", "Scope", "TRD", "Sampling plan", "Batch record", "Open items", "Templates"]) await expect(nav.getByRole("link", { name, exact: true })).toBeVisible();
+  // "Gap assessment" is listed once on a phone: the numbered Documents entry is that link, so there is no second one above it.
+  await expect(nav.getByRole("link", { name: "Gap assessment", exact: true })).toHaveCount(1);
   await expectNoSidewaysScroll(page, "phone, menu open");
   await expectAccessible(page, "phone menu open");
   await page.keyboard.press("Escape");

@@ -1,6 +1,7 @@
 import { addAction, removeAction, updateAction } from "@gap/engine";
 import { RISK_ACTION_STATUSES, type RiskAction, type RiskActionStatus, type RiskAssessment } from "@gap/process-model";
 import { useEffect, useRef, useState } from "react";
+import { useConfirmRemove } from "../components";
 import type { Run } from "./SamplingFlow";
 
 /*
@@ -152,6 +153,7 @@ function ActionEditor({ a, action, run, onClose }: { a: RiskAssessment; action: 
   const [due, setDue] = useState(action.due ?? "");
   const [status, setStatus] = useState<RiskActionStatus>(action.status);
   const first = useRef<HTMLInputElement>(null);
+  const confirm = useConfirmRemove();
   useEffect(() => first.current?.focus(), []);
   return (
     <li className="risk-item stack" data-open="true" data-testid={`action-form-${action.id}`}>
@@ -198,14 +200,22 @@ function ActionEditor({ a, action, run, onClose }: { a: RiskAssessment; action: 
             type="button"
             className="btn danger"
             data-testid="action-remove"
-            onClick={() => {
-              if (run((p, actor) => removeAction(p, a.id, action.id, actor), `${action.id} removed`)) onClose();
-            }}
+            onClick={() =>
+              confirm.ask({
+                title: `Delete ${action.id}?`,
+                description: `${action.id}: ${action.text.trim() || "no text"} is taken out of this assessment. The change log keeps what it said.`,
+                confirmLabel: `Delete ${action.id}`,
+                onConfirm: () => {
+                  if (run((p, actor) => removeAction(p, a.id, action.id, actor), `${action.id} removed`)) onClose();
+                },
+              })
+            }
           >
             Remove action
           </button>
         </div>
       </form>
+      {confirm.dialog}
     </li>
   );
 }

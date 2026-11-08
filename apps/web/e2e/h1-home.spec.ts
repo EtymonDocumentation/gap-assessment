@@ -87,7 +87,7 @@ test("the box also names pages reached by their address and the module pages tha
     ["#/mbr", "Batch record"],
     ["#/risk", "Risk assessment"],
     ["#/trd/import", "Upload a TRD"],
-    ["#/tbd", "This page"],
+    ["#/tbd", "Open items"],
   ] as const) {
     await page.goto(`./${hash}`);
     await expect(page.getByTestId("needs-project-text")).toContainText(`straight back to ${name}.`);

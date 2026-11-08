@@ -1,6 +1,7 @@
 import { isOverdue, localDate, openReviewItems, TBD_DEFINITION, tbdItems, tbdSummary, tbdSummaryText } from "@gap/engine";
 import { useMemo } from "react";
 import { Empty } from "../components";
+import { PageHeader } from "../PageHeader";
 import { href } from "../router";
 import { useAssessment, useContent, useStore } from "../store";
 import { DOC_NAME, stageName, useRealProject } from "../version-ui";
@@ -24,16 +25,24 @@ export function TbdPage() {
 
   return (
     <div className="stack-lg">
-      <div>
-        <h1>TBD (to be decided)</h1>
-        <p className="muted">
-          {TBD_DEFINITION} A best guess, when given, is compared as if it were established and every result that depends on it is labelled
-          “Provisional — based on a TBD value”. A TBD cannot be verified.
-        </p>
-        <p role="status" className="tbd-summary">
-          <strong>{tbdSummaryText(summary)}</strong>
-        </p>
-      </div>
+      {/* The same header as the other pages (breadcrumb, one purpose sentence, About this page). The page is called "Open items" in the menu
+          and on Home, so that is its title; the longer words on what a TBD is sit behind "About this page", as on the other pages. */}
+      <PageHeader
+        title="Open items"
+        purpose="Every value still to be decided, with its best guess, owner and due date."
+        about={{
+          art: "page-register",
+          children: (
+            <p>
+              {TBD_DEFINITION} A best guess, when given, is compared as if it were established and every result that depends on it is labelled
+              “Provisional — based on a TBD value”. A TBD cannot be verified.
+            </p>
+          ),
+        }}
+      />
+      <p role="status" className="tbd-summary">
+        <strong>{tbdSummaryText(summary)}</strong>
+      </p>
       {review.length > 0 && (
         <section className="card stack" aria-labelledby="tbd-review-h" data-testid="tbd-stage-review">
           <h2 id="tbd-review-h">Stage review</h2>

@@ -48,8 +48,14 @@ function itemCurrent(i: NavItem, routePath: string): boolean {
 
 const groupCurrent = (g: NavGroup, routePath: string) => [...g.items, ...(g.sub?.items ?? [])].some((i) => itemCurrent(i, routePath));
 
-function NavEntry({ item, routePath, onPick, collapse }: { item: NavItem; routePath: string; onPick: () => void; collapse?: boolean }) {
+/**
+ * `plainLink`: on a phone the Menu panel has no separate "Gap assessment" top link (it would sit two rows above this entry and read as a
+ * second, different place), so a "title only" entry is the link itself. A wide screen keeps the top link beside the drop-downs.
+ */
+function NavEntry({ item, routePath, onPick, collapse, plainLink }: { item: NavItem; routePath: string; onPick: () => void; collapse?: boolean; plainLink?: boolean }) {
   const descId = useId();
+  const asTitle = item.plain && !plainLink;
+  const linkCurrent = isCurrentPath(item.path, routePath) || (!!plainLink && !!item.covers?.includes(routePath));
   const label = (
     <>
       {item.num !== undefined && (
@@ -62,13 +68,13 @@ function NavEntry({ item, routePath, onPick, collapse }: { item: NavItem; routeP
   );
   return (
     <li className="nav-entry">
-      {item.plain ? (
+      {asTitle ? (
         <span className={`nav-item-title${itemCurrent(item, routePath) ? " is-current" : ""}`} aria-describedby={item.desc ? descId : undefined}>
           {label}
           {itemCurrent(item, routePath) && <span className="visually-hidden"> (current section)</span>}
         </span>
       ) : (
-        <a href={href(item.path)} aria-current={isCurrentPath(item.path, routePath) ? "page" : undefined} aria-describedby={item.desc ? descId : undefined} onClick={onPick}>
+        <a href={href(item.path)} aria-current={linkCurrent ? "page" : undefined} aria-describedby={item.desc ? descId : undefined} onClick={onPick}>
           {label}
         </a>
       )}
@@ -95,11 +101,11 @@ function NavEntry({ item, routePath, onPick, collapse }: { item: NavItem; routeP
   );
 }
 
-function ItemLinks({ items, routePath, onPick, collapse }: { items: NavItem[]; routePath: string; onPick: () => void; collapse?: boolean }) {
+function ItemLinks({ items, routePath, onPick, collapse, plainLink }: { items: NavItem[]; routePath: string; onPick: () => void; collapse?: boolean; plainLink?: boolean }) {
   return (
     <>
       {items.map((i) => (
-        <NavEntry key={i.path + i.label} item={i} routePath={routePath} onPick={onPick} {...(collapse ? { collapse } : {})} />
+        <NavEntry key={i.path + i.label} item={i} routePath={routePath} onPick={onPick} {...(collapse ? { collapse } : {})} {...(plainLink ? { plainLink } : {})} />
       ))}
     </>
   );
@@ -298,14 +304,14 @@ export function MainNav({
               <div ref={bodyRef}>
                 <ul className="nav-panel-list">
                   {homeLink(close)}
-                  {gapLink(close)}
+                  {/* No "Gap assessment" top link here: the Documents group below lists it first, as the link (see NavEntry). */}
                   <ItemLinks items={extra} routePath={routePath} onPick={close} />
                 </ul>
                 {groups.map((g) => (
                   <section key={g.label}>
                     <p className="nav-panel-head">{g.label}</p>
                     <ul className="nav-panel-list">
-                      <ItemLinks items={g.items} routePath={routePath} onPick={close} collapse />
+                      <ItemLinks items={g.items} routePath={routePath} onPick={close} collapse plainLink={!!gap} />
                     </ul>
                     {g.sub && g.sub.items.length > 0 && (
                       <>

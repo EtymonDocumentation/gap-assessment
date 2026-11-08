@@ -287,6 +287,41 @@ describe("a buffer preparation is a side branch that feeds the compounding step"
   });
 });
 
+describe("a buffer hold never shows its clock before the buffer is made, in any demo or hand-made record", () => {
+  it("every hold of a buffer branch in every demo has a start and an end, and is not running before the buffer is made", () => {
+    let branchHolds = 0;
+    for (const key of Object.keys(demos)) {
+      const p = buildDemoProject(content, demos[key as keyof typeof demos], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes }, { library: mbrLibrary }, { writeups: trdWriteups });
+      for (const r of p.mbr.records) {
+        const dv = buildProcessView(p, r);
+        for (const e of dv.equipment.filter((x) => x.feedsInto)) {
+          for (const c of dv.clocks.filter((x) => x.kind === "hold" && x.sectionNumber === e.number)) {
+            branchHolds++;
+            expect(c.onBranch, `${key} ${c.label}`).toBe(true);
+            expect(c.startMoment, `${key} ${c.label} start`).toBeDefined();
+            expect(c.endMoment, `${key} ${c.label} end`).toBeDefined();
+            for (let i = 0; i < e.madeMoment!; i++) expect(clockStatusAt(c, i), `${key} ${c.label} at ${i}`).not.toBe("running");
+          }
+        }
+      }
+    }
+    expect(branchHolds).toBeGreaterThan(0);
+  });
+  it("a limit written on one block of a hand-made buffer section applies at that block only, never from the first moment", () => {
+    const r = rec([
+      { id: "SC-01", unitOp: "ds_receipt_thaw", title: "Receipt and thaw", blocks: [block("BL-001", "Thaw", { steps: [step(1, "Thaw the bottles.")] })] },
+      { id: "SC-02", unitOp: "buffer_prep", title: "Buffer preparation", blocks: [block("BL-002", "Make", { steps: [step(2, "Weigh the salts.")], timeLimits: [{ id: "R-0001", label: "Buffer hold", value: "72", unit: "h", targets: [] }] }), block("BL-003", "Finish", { steps: [step(3, "Mix the buffer.")] })] },
+      { id: "SC-03", unitOp: "compounding", title: "Compounding", blocks: [block("BL-004", "Mix", { steps: [step(4, "Add the buffer.")] })] },
+    ]);
+    const v = viewOf(r);
+    const c = v.clocks.find((x) => x.id === "R-0001")!;
+    expect(c.onBranch).toBe(true);
+    expect(c.span).toBe("block");
+    expect(clockStatusAt(c, 0)).toBe("not_here");
+    expect(clockStatusAt(c, c.startMoment!)).toBe("applies_here");
+  });
+});
+
 describe("the dilution buffer hold of the syringe demo is a hold of the buffer branch", () => {
   const dv = buildProcessView(demo, demo.mbr.records[0]!);
   const buf = dv.equipment.find((e) => e.unitOp === "buffer_prep")!;

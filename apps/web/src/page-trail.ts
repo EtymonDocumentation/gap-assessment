@@ -54,6 +54,8 @@ const TRAILS: Record<string, Trail> = {
   "/templates": t(false, LIB, "Templates"),
   "/guidance": t(false, LIB, "Guidance"),
   "/saved-answers": t(false, LIB, "Saved answers"),
+  // Open items sit under Documents, "Alongside" the chain (see the menu in App.tsx).
+  "/tbd": t(true, DOCS, "Open items"),
   "/sources": t(true, LIB, "Sources"),
   "/builder": t(true, LIB, "Builder"),
   "/changes": t(true, LIB, "Change log"),

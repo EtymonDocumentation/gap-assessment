@@ -404,6 +404,8 @@ export interface TableOpts {
   widths?: number[];
   /** Preferred relative column widths from the document model (a table block's `weights`); minimums for the longest words still apply. */
   weights?: number[];
+  /** Runs of the cells that hold an open blank (a table block's `cellRuns`, parallel to the rows): drawn highlighted, like a blank in a paragraph. */
+  cellRuns?: (Run[] | undefined)[][];
 }
 
 const CELL_MARGIN = '<w:tblCellMar><w:top w:w="40" w:type="dxa"/><w:left w:w="80" w:type="dxa"/><w:bottom w:w="40" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar>';
@@ -440,12 +442,12 @@ export function tableXml(ctx: WriterCtx, columns: string[], rows: string[][], o:
   const styled = ctx.styled;
   const headFill = styled ? ACCENT : HEADER_FILL;
   const tints = styled ? cols.map(tintForColumn) : [];
-  const cell = (text: string, w: number, opts: { head?: boolean; bold?: boolean; fill?: string }) => {
+  const cell = (text: string, w: number, opts: { head?: boolean; bold?: boolean; fill?: string; runs?: Run[] | undefined }) => {
     const fill = opts.head ? headFill : opts.fill;
     const rpr = { b: opts.head || opts.bold, ...(opts.head && styled ? { color: ON_ACCENT, sz: COMPACT_TABLE_HEADER_HALF_POINTS } : {}) };
     return (
       `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${fill ? `<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/>` : ""}</w:tcPr>` +
-      para(textRuns(text, rpr), { style: textStyle, keepNext: opts.head }) +
+      para(opts.runs?.length ? richRunsXml(opts.runs, rpr) : textRuns(text, rpr), { style: textStyle, keepNext: opts.head }) +
       "</w:tc>"
     );
   };
@@ -456,7 +458,7 @@ export function tableXml(ctx: WriterCtx, columns: string[], rows: string[][], o:
     const tcs = cols.map((_, i) => {
       const text = r[i] ?? "";
       const fill = styled ? (tints[i]?.(text) ?? (ri % 2 === 1 ? ZEBRA_FILL : undefined)) : undefined;
-      return cell(text, widths[i]!, { bold: o.firstColumnBold && i === 0, fill });
+      return cell(text, widths[i]!, { bold: o.firstColumnBold && i === 0, fill, runs: o.cellRuns?.[ri]?.[i] });
     });
     trs.push(`<w:tr><w:trPr><w:cantSplit/></w:trPr>${tcs.join("")}</w:tr>`);
   });
@@ -568,8 +570,8 @@ export function blockXml(ctx: WriterCtx, b: Block, o: BlockOpts): string {
     case "list":
       return listParas(ctx, b.items);
     case "table":
-      if (!b.rows.length) return para(textRuns("None.", { i: true }));
-      return (b.caption ? para(textRuns(b.caption, { b: true }), { keepNext: true }) : "") + tableXml(ctx, b.columns, b.rows, { sectionId: o.sectionId, weights: b.weights });
+      if (!b.rows.length) return para(textRuns(b.emptyText ?? "None.", { i: true }));
+      return (b.caption ? para(textRuns(b.caption, { b: true }), { keepNext: true }) : "") + tableXml(ctx, b.columns, b.rows, { sectionId: o.sectionId, weights: b.weights, cellRuns: b.cellRuns });
     case "figure":
       return figureXml(ctx, b);
     case "picture":

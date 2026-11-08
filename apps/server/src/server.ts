@@ -6,7 +6,7 @@ import { ConfigError } from "./config";
 // Entry point of dist/server.mjs:  node dist/server.mjs --data <dir> --web <dir> --port 8787
 async function main(): Promise<void> {
   const running = await startServer(serverOptionsFromArgs(process.argv.slice(2)));
-  console.log(`Gap Assessment server (storage: ${running.app.config.storage}) listening on http://127.0.0.1:${running.port}`);
+  console.log(`Cascade server (storage: ${running.app.config.storage}) listening on http://127.0.0.1:${running.port}`);
   console.log("Only this computer can reach that address. Publish it with Tailscale serve or funnel.");
 
   const stop = () => {

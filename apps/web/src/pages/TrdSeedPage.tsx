@@ -232,7 +232,7 @@ export function TrdSeedPage() {
                     {counts.total.notEstablished} {counts.total.notEstablished === 1 ? "value has" : "values have"} no value yet. They are exported as open items without a value.{" "}
                   </>
                 )}
-                See the <a href={href("/tbd")}>TBD page</a>.
+                See the <a href={href("/tbd")}>Open items page</a>.
               </p>
             )}
           </section>

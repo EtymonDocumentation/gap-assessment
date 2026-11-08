@@ -175,7 +175,7 @@ test("the interview records a TBD with a best guess, owner and due date; the Hom
   await expect(card).toBeVisible();
   await expect(card.locator("xpath=..")).toContainText("(1 overdue)");
   await card.click();
-  await expect(page.getByRole("heading", { level: 1, name: "TBD (to be decided)" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Open items" })).toBeVisible();
   const row = page.locator("tbody tr").first();
   await expect(row).toContainText("TST-3 (fictional)");
   await expect(row).toContainText("Process lead (fictional)");

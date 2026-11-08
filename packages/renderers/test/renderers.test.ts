@@ -118,6 +118,13 @@ describe("renderMarkdown", () => {
       expect(o).toContain("| a<br>b<br>c |");
     });
 
+    it("an empty table says its own words (emptyText) when it has them, else 'None.'", () => {
+      const withText = renderMarkdown({ ...hostile, sections: [{ id: "x", number: "1", title: "T", blocks: [{ type: "table", columns: ["A"], rows: [], emptyText: "No rows yet." }] }] });
+      expect(withText).toContain("_No rows yet._");
+      const without = renderMarkdown({ ...hostile, sections: [{ id: "x", number: "1", title: "T", blocks: [{ type: "table", columns: ["A"], rows: [] }] }] });
+      expect(without).toContain("_None._");
+    });
+
     it("writes the header separator with one --- per column", () => {
       expect(out).toContain("| --- | --- |");
     });
@@ -246,6 +253,27 @@ describe("renderHtml", () => {
 
     it("keeps newlines inside cells as plain text (no markup injected)", () => {
       expect(out).toContain("<td>line1\nline2</td>");
+    });
+
+    it("an empty table can carry its own words (emptyText) instead of 'None.'", () => {
+      const o = renderHtml({ ...hostile, sections: [{ id: "x", number: "1", title: "T", blocks: [{ type: "table", columns: ["A"], rows: [], emptyText: "No rows yet." }] }] });
+      expect(o).toContain('<p class="none">No rows yet.</p>');
+      expect(o).not.toContain('<p class="none">None.</p>');
+    });
+
+    it("an open blank inside a table cell is highlighted like other open blanks, and its label stays in the words", () => {
+      const o = renderHtml({
+        ...hostile,
+        sections: [
+          {
+            id: "x",
+            number: "1",
+            title: "T",
+            blocks: [{ type: "table", columns: ["A", "B"], rows: [["filled", "[Label <b>]"]], cellRuns: [[undefined, [{ text: "[Label <b>]", open: true }]]] }],
+          },
+        ],
+      });
+      expect(o).toContain('<td>filled</td><td><span class="blank-open"><span class="visually-hidden">Open blank: </span>[Label &lt;b&gt;]</span></td>');
     });
   });
 

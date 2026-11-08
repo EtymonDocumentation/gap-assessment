@@ -18,6 +18,8 @@ import { OVERVIEW_SECTION_KEY, writeupOrder } from "./trd-writeup-order";
 
 export const OVERVIEW_KEY = OVERVIEW_SECTION_KEY;
 export const OVERVIEW_TITLE = "Manufacturing process overview";
+/** What a write-up table with no rows says in every export; the rows editor says the same words. */
+export const NO_ROWS_TEXT = "No rows yet.";
 
 export interface FilledBlank {
   writeup: TrdWriteup;
@@ -89,24 +91,39 @@ export function writeupBlocks(ctx: BlankContext, w: TrdWriteup, prefix: string, 
       continue;
     }
     flush();
-    const cell = (src: string) =>
-      plainOfSegments(
-        segmentsOf(stageText(ctx, src), (key, label) => {
-          const b = resolveBlank(ctx, w, key, label);
-          seen(b);
-          return b;
-        }),
-      );
+    const cell = (src: string): TableCell => {
+      const segs = segmentsOf(stageText(ctx, src), (key, label) => {
+        const b = resolveBlank(ctx, w, key, label);
+        seen(b);
+        return b;
+      });
+      // The runs are kept only for a cell with an open blank: that is the one the exports highlight. The words are the same as `text`.
+      return segs.some((s) => "blank" in s && !s.blank.filled) ? { text: plainOfSegments(segs), runs: cellRunsOf(segs) } : { text: plainOfSegments(segs) };
+    };
     blocks.push(...partBlocks(p, { runs, cell, figures, openFigures }, `${prefix}.${p.kind === "subsection" ? ++sub : sub}`));
   }
   flush();
   return result();
 }
 
+/** A table cell: its words, and (only when it holds an open blank) the same words as runs, the open one marked. */
+interface TableCell {
+  text: string;
+  runs?: Run[];
+}
+
+/** The runs of a table cell. Same words as `plainOfSegments`: a value, or the open blank's label in square brackets (no bold in a cell). */
+function cellRunsOf(segs: readonly TextSeg[]): Run[] {
+  return segs.map((s): Run => {
+    if (!("blank" in s)) return { text: s.text };
+    return s.blank.filled ? { text: s.blank.value! } : { text: `[${s.blank.label}]`, open: true };
+  });
+}
+
 interface PartTools {
   runs: () => Run[];
-  /** A table cell with its blanks resolved: a value, or the open blank's label in square brackets. Plain text (a cell has no rich runs). */
-  cell: (src: string) => string;
+  /** A table cell with its blanks resolved: a value, or the open blank's label in square brackets (with runs when a blank is open). */
+  cell: (src: string) => TableCell;
   figures: FigureCounter;
   openFigures: TrdPart[];
 }
@@ -153,8 +170,13 @@ function partBlocks(p: TrdPart, t: PartTools, number: string): Block[] {
       return [{ type: "heading", text: p.title ?? "", level: 2 }];
     case "table": {
       const cols = p.columns ?? [];
-      // A table with no rows yet still shows its column heads and one empty row to fill in. An empty cell stays empty.
-      return [{ type: "table", columns: cols, rows: p.rows?.length ? p.rows.map((r) => cols.map((_, i) => t.cell(r[i] ?? ""))) : [cols.map(() => "")] }];
+      // A table with no rows yet says so, in the words and the style of every other empty table. It used to print the column heads and one
+      // empty row "to fill in", which read in an approved document as a row somebody had left blank.
+      if (!p.rows?.length) return [{ type: "table", columns: cols, rows: [], emptyText: NO_ROWS_TEXT }];
+      const cells = p.rows.map((r) => cols.map((_, i) => t.cell(r[i] ?? "")));
+      // A cell that holds an open blank also carries its runs, so the HTML and Word exports highlight it like a blank in a paragraph.
+      const open = cells.some((r) => r.some((c) => c.runs));
+      return [{ type: "table", columns: cols, rows: cells.map((r) => r.map((c) => c.text)), ...(open ? { cellRuns: cells.map((r) => r.map((c) => c.runs)) } : {}) }];
     }
     default:
       return [];

@@ -160,6 +160,11 @@ test("sampling plan: a Contents list jumps to sections, also on another tab", as
   await contents.getByRole("button", { name: "Agency requests" }).click();
   await expect(page.getByTestId("tab-interview")).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#sp-agency")).toBeFocused();
+  // The Plan subsections tab is in the list too (it used to be left out), and its entries open that tab first.
+  await expect(contents.getByRole("heading", { name: "Plan subsections tab" })).toBeVisible();
+  await contents.getByRole("button", { name: "Add a subsection" }).click();
+  await expect(page.getByTestId("tab-subsections")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("#sub-add")).toBeFocused();
   await expectNoSidewaysScroll(page, "sampling contents");
   await expectAccessible(page, "sampling contents");
 });

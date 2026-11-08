@@ -11,6 +11,7 @@ import { REVIEW_RESPONSES, REVIEW_RESPONSE_LABEL, type ReviewResponse, type Samp
 import { designReviewLine, type ReviewItem } from "@gap/sampling";
 import { useEffectiveSuggestions } from "../expected-studies-store";
 import { useId, useMemo, useState } from "react";
+import { useConfirmRemove } from "../components";
 import { dateTime } from "../lib";
 import { href } from "../router";
 import { useContent, useStore } from "../store";
@@ -319,6 +320,7 @@ function StudyEquipmentCard({ plan, run }: { plan: SamplingPlan; run: Run }) {
 function EquipmentItem({ plan, item, onChange, onRemove }: { plan: SamplingPlan; item: StudyEquipmentItem; onChange: (n: StudyEquipmentItem) => void; onRemove: () => void }) {
   const [what, setWhat] = useState(item.what);
   const [pts, setPts] = useState((item.pointIds ?? []).join(", "));
+  const confirm = useConfirmRemove();
   const build = (patch: Partial<StudyEquipmentItem>): StudyEquipmentItem => {
     const next: StudyEquipmentItem = { ...item, ...patch };
     for (const k of ["stepId", "pointIds", "inCommercialProcess", "qualified", "removedAfter"] as const) if (next[k] === undefined) delete next[k];
@@ -360,10 +362,24 @@ function EquipmentItem({ plan, item, onChange, onRemove }: { plan: SamplingPlan;
         <TriSelect label="Removed after sampling?" value={item.removedAfter} onChange={(v) => onChange(build({ removedAfter: v }))} testId={`review-eq-removed-${item.id}`} />
       </div>
       <div>
-        <button type="button" className="btn danger" onClick={onRemove}>
+        {/* The same question as every other delete (components.tsx): Cancel is focused, the change log keeps what the item said. */}
+        <button
+          type="button"
+          className="btn danger"
+          data-testid={`review-eq-remove-${item.id}`}
+          onClick={() =>
+            confirm.ask({
+              title: `Delete ${item.id}?`,
+              description: `${item.id}${what.trim() ? `: ${what.trim()}` : ""} is taken out of the study equipment. The change log keeps what it said.`,
+              confirmLabel: `Delete ${item.id}`,
+              onConfirm: onRemove,
+            })
+          }
+        >
           Remove {item.id}
         </button>
       </div>
+      {confirm.dialog}
     </fieldset>
   );
 }

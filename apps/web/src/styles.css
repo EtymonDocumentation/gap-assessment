@@ -4588,6 +4588,24 @@ table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
     max-width: 360px;
   }
 }
+/* On the narrowest phones (360 and 320 px) a four-part breadcrumb ("project > area > module > page") left the project name only a
+   few letters before its ellipsis. The trail may use a second line here instead: the project name wraps and stays whole, and the
+   rest follows. It stays one line wherever it fits, and the wider phones keep the one-line trail above. */
+@media (max-width: 380px) {
+  .page-crumbs ol {
+    flex-wrap: wrap;
+    white-space: normal;
+    row-gap: 2px;
+  }
+  .page-crumbs li:first-child {
+    flex: 0 1 auto;
+  }
+  .page-crumbs li:first-child > a {
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+  }
+}
 /* A printed page shows the document, not the page's own title block (the old banner was hidden in print the same way). */
 @media print {
   .page-top,

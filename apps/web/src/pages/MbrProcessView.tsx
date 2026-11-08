@@ -384,11 +384,14 @@ function layoutMarks(marks: ViewSample[]): { items: MarkPos[]; height: number } 
   return { items, height: y };
 }
 
-/** Cell position: rows run left to right, then right to left, so the pipe between rows is a straight drop. */
-function cellAt(i: number, top = 0, cellH = CELL_H) {
+/**
+ * Cell position: rows run left to right, then right to left, so the pipe between rows is a straight drop. `rowTop` holds where each
+ * row starts below the band of side branches (rows have their own heights, see Train).
+ */
+function cellAt(i: number, top = 0, rowTop: number[] = []) {
   const row = Math.floor(i / PER_ROW);
   const col = i % PER_ROW;
-  return { x: 20 + (row % 2 === 0 ? col : PER_ROW - 1 - col) * CELL_W, y: 10 + top + row * cellH, row };
+  return { x: 20 + (row % 2 === 0 ? col : PER_ROW - 1 - col) * CELL_W, y: 10 + top + (rowTop[row] ?? row * CELL_H), row };
 }
 
 /**
@@ -410,7 +413,8 @@ function splitBranches(equipment: ViewEquipment[]): { main: ViewEquipment[]; bra
   }
 }
 
-function Train({ view, at }: { view: ProcessView; at: number }) {
+/** Exported so a unit test can draw it for a hand-made record and check the layout (branches never overlap, no empty space below). */
+export function Train({ view, at }: { view: ProcessView; at: number }) {
   const moment = view.moments[at]!;
   // Which equipment the product has been through: those first used at or before this moment (a hold counts once its start is reached).
   const firstUse = new Map<string, number>();
@@ -420,22 +424,39 @@ function Train({ view, at }: { view: ProcessView; at: number }) {
   // A sample of a buffer section is drawn under the branch, even when the step that takes it is in the compounding step.
   const ownerOf = (s: ViewSample) => branches.find((b) => b.eq.number === s.sectionNumber)?.eq.id ?? view.moments[s.momentIndex]?.equipmentId;
   const marksOf = (e: ViewEquipment) => view.samples.filter((s) => s.momentIndex >= 0 && ownerOf(s) === e.id);
-  // The band above the main train holds the branches: shape and title, status and clock lines, and their sample markers.
-  const bandH = branches.length ? 232 + Math.max(0, ...branches.map((b) => layoutMarks(marksOf(b.eq)).height)) : 0;
-  // A cell grows when its markers need more than the usual four rows (a method row is taller than a plain marker).
-  const cellH = Math.max(CELL_H, ...main.map((e) => 168 + layoutMarks(marksOf(e)).height + (marksOf(e).length > MARK_MAX ? 16 : 6)));
+  // The band above the main train holds the branches: shape and title, status and clock lines, and their sample markers. Each branch has a
+  // band row of its own, sitting straight above the step it feeds. Two preparations that feed the same step (or neighbouring steps) used
+  // to share one row and were drawn on top of each other. The branch of the later step goes in the upper row, so the arrow of an upper
+  // branch drops down on the right of every lower branch and never crosses one.
+  const bandRows = [...branches]
+    .sort((a, b) => b.target - a.target)
+    .reduce<{ eq: ViewEquipment; target: number; top: number }[]>((acc, b) => {
+      const last = acc[acc.length - 1];
+      const top = last ? last.top + 232 + layoutMarks(marksOf(last.eq)).height : 10;
+      return [...acc, { ...b, top }];
+    }, []);
+  const lastBand = bandRows[bandRows.length - 1];
+  const bandH = lastBand ? lastBand.top - 10 + 232 + layoutMarks(marksOf(lastBand.eq)).height : 0;
+  // Every row of the train has its own height: a row grows when its markers need more than the usual four rows (a method row is taller
+  // than a plain marker). The last row is only as tall as what it holds, so no empty space is left under the diagram.
   const rows = Math.ceil(main.length / PER_ROW);
+  const needOf = (e: ViewEquipment) => 168 + layoutMarks(marksOf(e)).height + (marksOf(e).length > MARK_MAX ? 16 : 6);
+  const rowH = Array.from({ length: rows }, (_, r) => {
+    const need = Math.max(...main.slice(r * PER_ROW, (r + 1) * PER_ROW).map(needOf));
+    return r === rows - 1 ? need : Math.max(CELL_H, need);
+  });
+  const rowTop = rowH.map((_, r) => rowH.slice(0, r).reduce((a, b) => a + b, 0));
   const width = 20 + Math.min(PER_ROW, main.length) * CELL_W;
-  const height = bandH + rows * cellH + 20;
+  const height = bandH + rowH.reduce((a, b) => a + b, 0) + 20;
   // Where each marker with a method sits in the whole drawing, so the thin line of a shared port can join the samples that use it.
   const anchors = new Map<string, { x: number; y: number }>();
   main.forEach((e, i) => {
-    const p = cellAt(i, bandH, cellH);
+    const p = cellAt(i, bandH, rowTop);
     for (const m of layoutMarks(marksOf(e)).items) if (m.s.method) anchors.set(m.s.pointId, { x: p.x + m.x + 81, y: p.y + 168 + m.y + 8 });
   });
-  branches.forEach(({ eq: e, target }, k) => {
-    const bx = Math.max(20, cellAt(target, bandH, cellH).x - CELL_W * (k + 1));
-    for (const m of layoutMarks(marksOf(e)).items) if (m.s.method) anchors.set(m.s.pointId, { x: bx + m.x + 81, y: 10 + 194 + m.y + 8 });
+  bandRows.forEach(({ eq: e, target, top }) => {
+    const bx = cellAt(target, bandH, rowTop).x - CELL_W;
+    for (const m of layoutMarks(marksOf(e)).items) if (m.s.method) anchors.set(m.s.pointId, { x: bx + m.x + 81, y: top + 194 + m.y + 8 });
   });
   const sharedLines = new Map<string, [{ x: number; y: number }, { x: number; y: number }]>();
   for (const s of view.samples) {
@@ -457,8 +478,8 @@ function Train({ view, at }: { view: ProcessView; at: number }) {
         </pattern>
       </defs>
       {main.slice(1).map((e, k) => {
-        const a = cellAt(k, bandH, cellH);
-        const b = cellAt(k + 1, bandH, cellH);
+        const a = cellAt(k, bandH, rowTop);
+        const b = cellAt(k + 1, bandH, rowTop);
         // Same row: a line between the two shapes. Next row: the pipe runs down the outer edge of the train (right edge after a
         // left-to-right row, left edge after a right-to-left one), so it never crosses the sample markers or the next title.
         const horiz = a.row === b.row;
@@ -479,7 +500,7 @@ function Train({ view, at }: { view: ProcessView; at: number }) {
         <path key={key} d={Math.abs(a.x - b.x) < 5 ? `M${a.x + 15} ${a.y} H${a.x + 27} V${b.y} H${b.x + 15}` : `M${a.x} ${a.y} L${b.x} ${b.y}`} className="pv-share" data-testid={`pv-share-${key}`} />
       ))}
       {main.map((e, i) => {
-        const p = cellAt(i, bandH, cellH);
+        const p = cellAt(i, bandH, rowTop);
         const state = stateOf(e);
         const marks = marksOf(e);
         return (
@@ -516,13 +537,13 @@ function Train({ view, at }: { view: ProcessView; at: number }) {
           </g>
         );
       })}
-      {branches.map(({ eq: e, target }, k) => {
+      {bandRows.map(({ eq: e, target, top }) => {
         // The arrow joins the pipe that carries the product into the step the buffer is added to (the middle of the gap before it), so it
-        // reads as "added into step N", not as a step of the line. Further branches of the same step sit one cell further left.
-        const into = cellAt(target, bandH, cellH);
+        // reads as "added into step N", not as a step of the line. The branch sits in the cell just left of that step, in its own band row.
+        const into = cellAt(target, bandH, rowTop);
         const joinX = into.x;
-        const bx = Math.max(20, joinX - CELL_W * (k + 1));
-        const by = 10;
+        const bx = joinX - CELL_W;
+        const by = top;
         const state = stateOf(e);
         const marks = marksOf(e);
         const clock = view.clocks.find((c) => c.onBranch && c.kind === "hold" && c.sectionNumber === e.number);

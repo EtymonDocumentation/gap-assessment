@@ -41,6 +41,14 @@ describe("breadcrumb trail of each page", () => {
     expect(mapping.parts[1]!.path).toBe("/templates");
   });
 
+  it("gives the Open items page the same kind of trail as the other pages, under Documents", () => {
+    // The page used to have no header; the menu lists it under Documents ("Alongside"), so the trail does too.
+    const t = pageTrail("/tbd")!;
+    expect(t.project).toBe(true);
+    expect(t.parts.map((p) => p.label)).toEqual(["Documents", "Open items"]);
+    expect(t.parts.at(-1)!.path).toBeUndefined();
+  });
+
   it("gives the old model address the Builder trail", () => {
     expect(pageTrail("/model")).toEqual(pageTrail("/builder"));
   });

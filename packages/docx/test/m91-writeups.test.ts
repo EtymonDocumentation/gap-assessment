@@ -43,6 +43,34 @@ describe("Word and HTML process descriptions (M9.1)", () => {
     writeFileSync(join(dir, "trd-writeups.txt"), text);
   });
 
+  it("an open blank inside a table cell is highlighted, and a table with no rows says 'No rows yet.'", async () => {
+    const small = {
+      ...doc,
+      sections: [
+        {
+          id: "x",
+          number: "1",
+          title: "Tables",
+          blocks: [
+            { type: "table" as const, columns: ["Item", "Amount"], rows: [["Buffer", "[Amount to be decided]"]], cellRuns: [[undefined, [{ text: "[Amount to be decided]", open: true }]]] },
+            { type: "table" as const, columns: ["Item", "Amount"], rows: [], emptyText: "No rows yet." },
+          ],
+        },
+      ],
+    };
+    const out = await renderDocx({ doc: small, mode: "builtin", generatedAt: GENERATED_AT });
+    const xml = new PizZip(out.bytes).file("word/document.xml")!.asText();
+    const text = plainText(strictDocx(out.bytes));
+    // The cell keeps its label in square brackets (colour is not the only cue) and is highlighted like other open blanks.
+    expect(text).toContain("[Amount to be decided]");
+    expect(xml).toMatch(/<w:highlight w:val="yellow"\/>[\s\S]{0,200}\[Amount to be decided\]/);
+    // The empty table is a sentence, not a table with one blank row.
+    expect(text).toContain("No rows yet.");
+    // The same document as HTML, for a look at the page.
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "table-cell-open.html"), renderHtml(small));
+  });
+
   it("works with a library template in tags mode: {@body} carries the overview", async () => {
     const t = await importTemplateFile("brightwater-template.docx", fixture("brightwater-template.docx"));
     const P = (s: string) => `<w:p><w:r><w:t xml:space="preserve">${s}</w:t></w:r></w:p>`;

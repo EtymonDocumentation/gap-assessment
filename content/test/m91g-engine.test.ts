@@ -5,6 +5,7 @@ import {
   differenceText,
   editLibraryWriteup,
   moveWriteup,
+  NO_ROWS_TEXT,
   openFigures,
   placeholderPng,
   planMove,
@@ -186,6 +187,25 @@ describe("table rows", () => {
     expect(blocks).toHaveLength(1);
     expect(blocks[0]!.rows).toEqual([["K", "", "", "[Quantity to be decided]"]]);
     expect(writeupBlanks({ project: next, doc: docOf(next), content }, byLib(next, "sec_dilution_buffer")).some((b) => b.key === "trd.none.known")).toBe(true);
+  });
+
+  it("an open blank inside a cell is marked as open in the cell's runs, with the same words as the plain text", () => {
+    const next = setTableRows(base, docOf(base).id, w.id, table.id, [["K", "plain", "", "{{trd.none.known|Quantity to be decided}}"]], who);
+    const block = exportOf(next).sections.flatMap((s) => s.blocks).find((b): b is Extract<Block, { type: "table" }> => b.type === "table" && b.columns.join() === table.columns!.join())!;
+    // Cells without a blank carry no runs; the open cell carries one open run that reads the same as its plain text.
+    expect(block.cellRuns).toBeDefined();
+    expect(block.cellRuns![0]![0]).toBeUndefined();
+    expect(block.cellRuns![0]![1]).toBeUndefined();
+    expect(block.cellRuns![0]![3]).toEqual([{ text: "[Quantity to be decided]", open: true }]);
+    expect(block.rows[0]![3]).toBe("[Quantity to be decided]");
+  });
+
+  it("a table with no rows exports no blank row; it says 'No rows yet.' like other empty tables", () => {
+    const empty = setTableRows(base, docOf(base).id, w.id, table.id, [], who);
+    const block = exportOf(empty).sections.flatMap((s) => s.blocks).find((b): b is Extract<Block, { type: "table" }> => b.type === "table" && b.columns.join() === table.columns!.join())!;
+    expect(block.rows).toEqual([]);
+    expect(block.emptyText).toBe(NO_ROWS_TEXT);
+    expect(NO_ROWS_TEXT).toBe("No rows yet.");
   });
 
   it("'Update from library' keeps rows the team typed, and the difference note names a table change", () => {

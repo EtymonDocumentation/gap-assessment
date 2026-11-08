@@ -220,6 +220,28 @@ test("actions: add one with no owner and no date; it says Not given", async ({ p
   await expect(page.getByTestId("risk-action-list").locator("> li").last()).toContainText("Owner:Not given");
 });
 
+test("actions: Remove action asks first; Cancel keeps the action, Delete takes it out", async ({ page }) => {
+  await openDemoAssessment(page, "actions");
+  const list = page.getByTestId("risk-action-list").locator("> li");
+  await page.getByTestId("action-item").selectOption("RA-005");
+  await page.getByTestId("action-text").fill("Action to remove (fictional)");
+  await page.getByTestId("action-add").click();
+  const before = await list.count();
+  await list.last().getByRole("button", { name: /^Edit / }).click();
+  await page.getByTestId("action-remove").click();
+  // The box names the action and says the change log keeps it; nothing is removed yet.
+  const box = page.getByRole("dialog");
+  await expect(box).toContainText("The change log keeps what it said.");
+  await expect(box).toContainText("Action to remove (fictional)");
+  await page.getByTestId("remove-cancel").click();
+  await expect(box).toHaveCount(0);
+  await expect(page.getByTestId("action-remove")).toBeVisible();
+  expect(await list.count()).toBe(before);
+  await page.getByTestId("action-remove").click();
+  await page.getByTestId("remove-confirm").click();
+  await expect(list).toHaveCount(before - 1);
+});
+
 test("traceability reads both ways: the gap and the sampling point name the risk item", async ({ page }) => {
   await loadDemo(page);
   await page.evaluate(() => (window.location.hash = "#/compare"));

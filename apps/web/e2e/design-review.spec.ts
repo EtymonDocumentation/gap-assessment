@@ -171,6 +171,27 @@ test("the A5 card records equipment used only for the study", async ({ page }) =
   await expect(firstInA).toHaveAttribute("data-testid", "review-equipment");
 });
 
+test("Remove on a study equipment line asks first; Cancel keeps it, Delete takes it out", async ({ page }) => {
+  test.setTimeout(120000);
+  await openReview(page);
+  await page.getByTestId("tab-review").click();
+  const eq = page.getByTestId("review-equipment");
+  await eq.getByTestId("review-eq-used-yes").check();
+  await eq.getByTestId("review-eq-add").click();
+  const item = eq.getByTestId("review-eq-EQ-01");
+  await item.getByTestId("review-eq-what-EQ-01").fill("Extra sampling manifold (fictional)");
+  await item.getByTestId("review-eq-what-EQ-01").blur();
+  await item.getByTestId("review-eq-remove-EQ-01").click();
+  const box = page.getByRole("dialog");
+  await expect(box).toContainText("Extra sampling manifold (fictional)");
+  await expect(box).toContainText("The change log keeps what it said.");
+  await page.getByTestId("remove-cancel").click();
+  await expect(item).toBeVisible();
+  await item.getByTestId("review-eq-remove-EQ-01").click();
+  await page.getByTestId("remove-confirm").click();
+  await expect(eq.getByTestId("review-eq-EQ-01")).toHaveCount(0);
+});
+
 test("the tab is reachable and readable at phone width in dark mode", async ({ page }) => {
   test.setTimeout(120000);
   await page.emulateMedia({ colorScheme: "dark" });
