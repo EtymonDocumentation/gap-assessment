@@ -16,6 +16,9 @@ export class ApiError extends Error {
   }
 }
 
+/** True when the server refused a save because the item was changed somewhere else since it was read here (409 "conflict"). */
+export const isConflict = (e: unknown): boolean => e instanceof ApiError && e.status === 409 && e.code === "conflict";
+
 export interface PlanInfo {
   id: string;
   status: string;
@@ -214,7 +217,9 @@ export const deleteFile = (id: string) => call("DELETE", `/api/files/${enc(id)}`
 // ------------------------------------------------------------------ company sampling tables (module "sampling")
 export const listSamplingTables = () => json<{ tables: unknown[] }>("GET", "/api/sampling-tables").then((r) => r.tables);
 export const createSamplingTable = (table: unknown) => json<{ id: string }>("POST", "/api/sampling-tables", { json: { table } });
-export const putSamplingTable = (id: string, table: unknown) => json<{ table: unknown }>("PUT", `/api/sampling-tables/${enc(id)}`, { json: { table } });
+// The library saves below send `baseUpdatedAt`, the item's own `updatedAt` as this browser last read or saved it. The server refuses the save
+// (409 "conflict", see isConflict) when the stored item has changed since, so a later save cannot silently replace an earlier one.
+export const putSamplingTable = (id: string, table: unknown, baseUpdatedAt?: string) => json<{ table: unknown }>("PUT", `/api/sampling-tables/${enc(id)}`, { json: { table, baseUpdatedAt } });
 export const deleteSamplingTable = (id: string) => call("DELETE", `/api/sampling-tables/${enc(id)}`).then(() => undefined);
 
 // ------------------------------------------------------------------ Expected studies list (module "sampling")
@@ -224,19 +229,19 @@ export const putExpectedStudies = (doc: unknown) => json<{ doc: unknown }>("PUT"
 // ------------------------------------------------------------------ Plan subsections library (module "sampling")
 export const listSubsections = () => json<{ items: unknown[] }>("GET", "/api/subsections").then((r) => r.items);
 export const createSubsection = (item: unknown) => json<{ id: string }>("POST", "/api/subsections", { json: { item } });
-export const putSubsection = (id: string, item: unknown) => json<{ item: unknown }>("PUT", `/api/subsections/${enc(id)}`, { json: { item } });
+export const putSubsection = (id: string, item: unknown, baseUpdatedAt?: string) => json<{ item: unknown }>("PUT", `/api/subsections/${enc(id)}`, { json: { item, baseUpdatedAt } });
 export const deleteSubsection = (id: string) => call("DELETE", `/api/subsections/${enc(id)}`).then(() => undefined);
 
 // ------------------------------------------------------------------ Risk method library (module "risk")
 export const listRiskMethods = () => json<{ methods: unknown[] }>("GET", "/api/risk-methods").then((r) => r.methods);
 export const createRiskMethod = (method: unknown) => json<{ id: string }>("POST", "/api/risk-methods", { json: { method } });
-export const putRiskMethod = (id: string, method: unknown) => json<{ method: unknown }>("PUT", `/api/risk-methods/${enc(id)}`, { json: { method } });
+export const putRiskMethod = (id: string, method: unknown, baseUpdatedAt?: string) => json<{ method: unknown }>("PUT", `/api/risk-methods/${enc(id)}`, { json: { method, baseUpdatedAt } });
 export const deleteRiskMethod = (id: string) => call("DELETE", `/api/risk-methods/${enc(id)}`).then(() => undefined);
 
 // ------------------------------------------------------------------ Saved answer sets (every account)
 export const listSavedAnswers = () => json<{ sets: unknown[] }>("GET", "/api/saved-answers").then((r) => r.sets);
 export const createSavedAnswers = (set: unknown) => json<{ id: string }>("POST", "/api/saved-answers", { json: { set } });
-export const putSavedAnswers = (id: string, set: unknown) => json<{ set: unknown }>("PUT", `/api/saved-answers/${enc(id)}`, { json: { set } });
+export const putSavedAnswers = (id: string, set: unknown, baseUpdatedAt?: string) => json<{ set: unknown }>("PUT", `/api/saved-answers/${enc(id)}`, { json: { set, baseUpdatedAt } });
 export const deleteSavedAnswers = (id: string) => call("DELETE", `/api/saved-answers/${enc(id)}`).then(() => undefined);
 
 // ------------------------------------------------------------------ My files (private file transfer between the person's computers)

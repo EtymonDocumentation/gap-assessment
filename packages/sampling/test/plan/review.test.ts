@@ -154,6 +154,32 @@ describe("design review: group B, where the samples sit", () => {
   });
 });
 
+// CR-07: with no project stage the questions used to read as PPQ, presenting an unknown stage as a known one.
+describe("design review: the project stage in the wording", () => {
+  const steps = [step(1, "compounding"), step(2, "filling")];
+  const plan = planOf([point("SP-001", { flow: { stepId: "ST-01", at: "after" } })], steps);
+  const ask = (stage?: string) => designReview(plan, { trdSteps: [{ label: "Hold (fictional)" }], ...(stage ? { stage } : {}) }).filter((f) => f.checkId === "B3" || f.checkId === "D1");
+  const words = (fs: ReturnType<typeof ask>) => fs.map((f) => `${f.states} ${f.why} ${f.question}`).join("\n");
+
+  it("uses the plain wording when the stage is not set", () => {
+    const fs = ask();
+    expect(fs.map((f) => f.checkId).sort()).toEqual(["B3", "D1"]);
+    expect(words(fs)).not.toMatch(/PPQ/);
+    expect(words(fs)).toContain("these batches");
+  });
+
+  it("uses the plain wording at any stage other than PPQ, and keeps PPQ only for PPQ", () => {
+    expect(words(ask("clinical"))).not.toMatch(/PPQ/);
+    expect(words(ask("ppq"))).toMatch(/PPQ/);
+  });
+
+  it("keeps the check, the key and the facts the same whatever the stage, so a saved answer still belongs to its question", () => {
+    const keys = (fs: ReturnType<typeof ask>) => fs.map((f) => [f.key, f.factsFingerprint]);
+    expect(keys(ask())).toEqual(keys(ask("ppq")));
+    expect(keys(ask("commercial"))).toEqual(keys(ask("ppq")));
+  });
+});
+
 describe("design review: group D, what the plan left out", () => {
   it("D2 counts a bioburden sample right before the filter as the expected bioburden study, and asks about integrity tests as batch-record steps", () => {
     const exp = [

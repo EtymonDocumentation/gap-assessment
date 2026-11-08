@@ -184,6 +184,28 @@ describe("recordExport", () => {
     expect(p.document.exports[3]!.changedSincePrevious).toBe(false);
   });
 
+  // CR-05 (a): the CMO instructions matched no family test and fell into "gap". Their first download was then recorded as "changed"
+  // against a gap download, and the next gap download was compared with the CMO file.
+  it("keeps the CMO instructions in their own family: not compared with gap downloads, and not given the gap document's omitted sections", () => {
+    const p0 = setOmittedSections(project(), ["risk", "references"]);
+    let p = recordExport(p0, rec({ template: BUILTIN }));
+    p = recordExport(p, rec({ format: "sampling-cmo-instructions-docx", template: BUILTIN, fingerprint: "ffffffffffffffff" }));
+    const cmo = p.document.exports[1]!;
+    expect(cmo.changedSincePrevious).toBeUndefined();
+    expect(cmo.omittedSections).toBeUndefined();
+    // The same gap document downloaded again is compared with the earlier gap download, not with the CMO file in between.
+    p = recordExport(p, rec({ format: "html", template: BUILTIN }));
+    expect(p.document.exports[2]!.changedSincePrevious).toBe(false);
+    // The second CMO download is compared with the first CMO download, in either format.
+    p = recordExport(p, rec({ format: "sampling-cmo-instructions-html", template: BUILTIN, fingerprint: "ffffffffffffffff" }));
+    expect(p.document.exports[3]!.changedSincePrevious).toBe(false);
+    p = recordExport(p, rec({ format: "sampling-cmo-instructions-docx", template: BUILTIN, fingerprint: "aaaaaaaaaaaaaaaa" }));
+    expect(p.document.exports[4]!.changedSincePrevious).toBe(true);
+    // The sampling plan is a family of its own too: a plan download is not the previous download of the instructions.
+    p = recordExport(p, rec({ format: "sampling-plan-docx", template: BUILTIN, fingerprint: "ffffffffffffffff" }));
+    expect(p.document.exports[5]!.changedSincePrevious).toBeUndefined();
+  });
+
   it("keeps the sections left out at download time, taken from the project when the record does not say", () => {
     const p0 = setOmittedSections(project(), ["risk", "references"]);
     expect(recordExport(p0, rec()).document.exports[0]!.omittedSections).toEqual(["risk", "references"]);

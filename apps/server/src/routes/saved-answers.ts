@@ -6,7 +6,7 @@ import { z } from "zod";
 import { HttpError, sendJson, sendNoContent, type Ctx, type Route } from "../http";
 import { MAX_LIBRARY_BODY_BYTES, MAX_LIBRARY_ITEMS, requireRoomForItem } from "../limits";
 import { isId } from "../names";
-import { idParam, notFound, parseBody, userPath } from "./util";
+import { assertNotChanged, baseUpdatedAtSchema, idParam, notFound, parseBody, userPath } from "./util";
 
 type Stored = Record<string, unknown> & { id: string };
 
@@ -21,7 +21,8 @@ function requireModule(ctx: Ctx): void {
 
 // The shared set shape (name, sides, answers ...). The id is the server's to hand out. Unknown extra fields are kept as given so a
 // newer web app does not lose data on an older server.
-const bodySchema = z.object({ set: savedAnswerSetSchema });
+// `baseUpdatedAt` is only read when a set is replaced (PUT): see assertNotChanged.
+const bodySchema = z.object({ set: savedAnswerSetSchema, baseUpdatedAt: baseUpdatedAtSchema });
 
 /**
  * Saved answer sets of one account: interview answers kept outside any project and offered to another project after the author's
@@ -81,6 +82,7 @@ export const savedAnswerRoutes: Route[] = [
       const { store } = ctx.app;
       const saved = await store.update<Stored | null>(userPath(ctx, "saved-answers", `${id}.json`), null, (current) => {
         if (!current) throw notFound("saved answer set");
+        assertNotChanged(current, body.baseUpdatedAt, "saved answer set");
         return { ...body.set, id };
       });
       await store.audit("saved-answers-update", { userId: ctx.user.id, setId: id, ip: ctx.ip });

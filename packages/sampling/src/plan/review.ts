@@ -109,7 +109,7 @@ export interface ReviewContext {
   expected?: ReviewExpectedStudy[];
   /** Set only when the account's expected list differs from the shipped marks; part of D2's facts, so a changed list says "look again". */
   expectedListId?: string;
-  /** The project stage key. Outside PPQ (and when it is not set, PPQ stays) the questions say "these batches" instead of PPQ. */
+  /** The project stage key. Outside PPQ, and when it is not set, the questions say "these batches" instead of PPQ. */
   stage?: string;
 }
 
@@ -131,7 +131,9 @@ const NOT_PPQ_WORDS: [RegExp, string][] = [
   [/A typical fill[/]finish PPQ covers this/g, "A typical fill/finish study covers this"],
 ];
 const stageWords = (s: string): string => NOT_PPQ_WORDS.reduce((t, [re, to]) => t.replace(re, to), s);
-const ppqStage = (stage: string | undefined): boolean => stage === undefined || stage === "ppq";
+// An unset stage is not PPQ: the questions then use the plain wording, as every other document does when the stage is not set.
+// (They used to read PPQ here, which presented an unknown stage as a known one.)
+const ppqStage = (stage: string | undefined): boolean => stage === "ppq";
 
 // ------------------------------------------------------------------ small helpers
 

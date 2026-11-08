@@ -118,3 +118,20 @@ describe("risk method library", () => {
     expect(found[0]).toContain("risk-methods");
   });
 });
+
+// CR-10: a save made from an out-of-date copy is refused, like a project, instead of replacing the newer one.
+describe("risk method library: two computers editing one method", () => {
+  it("refuses a save made from an out-of-date copy and keeps the newer method", async () => {
+    const c = await riskClient();
+    const [at1, at2, at3] = ["2026-11-01T10:00:00.000Z", "2026-11-01T10:05:00.000Z", "2026-11-01T10:06:00.000Z"];
+    const stamped = (name: string, updatedAt: string) => ({ method: { ...method(name).method, updatedAt } });
+    const id = (await c.post("/api/risk-methods", stamped("First (fictional)", at1))).json.id as string;
+    expect((await c.put(`/api/risk-methods/${id}`, { ...stamped("Changed on one (fictional)", at2), baseUpdatedAt: at1 })).status).toBe(200);
+    const stale = await c.put(`/api/risk-methods/${id}`, { ...stamped("Changed on two (fictional)", at3), baseUpdatedAt: at1 });
+    expect(stale.status).toBe(409);
+    expect(stale.json).toMatchObject({ error: "conflict", updatedAt: at2 });
+    expect(((await c.get("/api/risk-methods")).json.methods as { id: string; name: string }[]).find((x) => x.id === id)!.name).toBe("Changed on one (fictional)");
+    // Without a stamp (an older web app) the save is accepted as before.
+    expect((await c.put(`/api/risk-methods/${id}`, method("No stamp (fictional)"))).status).toBe(200);
+  });
+});

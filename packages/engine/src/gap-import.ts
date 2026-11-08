@@ -17,10 +17,11 @@ import type { ParameterField, Question, Section } from "./content-schema";
 import type { DocModel } from "./document";
 import { formatQuestionSide, formatValue, questionLabel } from "./format";
 import type { GapImportSynonyms } from "./gap-synonyms";
-import { cellKey, filledControl, linkCells, majorVersion, norm, sameSeq, containsSeq, toks, type Confidence, type ImportCounts, type UploadRead, type ViewBlock, type WordTable } from "./import-shared";
-import { applyAnswer, AnswerError, normalizeParamField, normalizeValue, type AnswerInput, type FieldAnswer } from "./interview";
+import { cellKey, filledControl, linkCells, majorVersion, norm, sameSeq, containsSeq, stampApplied, toks, type Confidence, type ImportCounts, type UploadRead, type ViewBlock, type WordTable } from "./import-shared";
+import { applyAnswerWritten, AnswerError, normalizeParamField, normalizeValue, type AnswerInput, type FieldAnswer } from "./interview";
 import { documentFingerprint } from "./review";
 import { instanceRefs, treeOrder, visibleInstances, type QuestionInstance } from "./sequencer";
+import { isProjectStageQuestion, PROJECT_STAGE_UPLOAD_NOTE } from "./stage";
 import { readValue } from "./trd-value";
 
 /**
@@ -42,7 +43,9 @@ import { readValue } from "./trd-value";
  *  - NO DEFAULTS: an unfilled cell is an open item; an accepted empty value never clears an answer the project already has.
  *  - UNITS ARE NEVER CONVERTED, and a number with no unit is not put in where the question asks for a quantity.
  *  - An answer that does not fit the question's choices is Not found, with the reason, and its words go to "Not used yet".
- *  - The tool never decides a filing category, and it never sets the project stage by itself (the stage is an ordinary question).
+ *  - The tool never decides a filing category, and it never sets the project stage from an upload: the stage is changed only through
+ *    changeProjectStage (a reason, a major version, a stage review). The receiving-unit side of the stage question is therefore listed
+ *    as "cannot be taken" and is not put in, even if somebody types an answer for it on the review screen.
  */
 
 export const GAP_DATA_FORMAT = "cascade.gap-data";
@@ -609,6 +612,8 @@ export const emptyGapField = (questionId: string, side: GapSide, source: string)
   value: "",
   confidence: "not_found",
   source,
+  // The project stage is changed on the Home page (reason, version, stage review), never by an upload: say so on the row.
+  ...(isProjectStageQuestion(questionId, side) ? { unreadable: PROJECT_STAGE_UPLOAD_NOTE } : {}),
 });
 
 export function newGapSession(level: 1 | 2 | 3, read: UploadRead, readAs: string): GapImportSession {
@@ -822,7 +827,8 @@ export function gapCounts(s: GapImportSession, decisions: GapDecisions): ImportC
   let open = 0;
   let notFound = 0;
   for (const f of s.fields) {
-    const v = decisions[f.id]?.value;
+    // The project stage is never taken from an upload (see the module note), so it is not counted as taken even if a value was typed for it.
+    const v = isProjectStageQuestion(f.row, f.side) ? undefined : decisions[f.id]?.value;
     if (f.change) {
       // A changed answer is its own row on the screen: it counts as taken once decided and is never "open" next to the values.
       if (v) taken++;
@@ -836,7 +842,10 @@ export function gapCounts(s: GapImportSession, decisions: GapDecisions): ImportC
   }
   // An answer typed on the review screen for a side the file gave no value for (it has no field of its own).
   const known = new Set(s.fields.map((f) => f.id));
-  for (const [id, d] of Object.entries(decisions)) if (!known.has(id) && parseGapFieldId(id) && norm(d.value)) taken++;
+  for (const [id, d] of Object.entries(decisions)) {
+    const p = parseGapFieldId(id);
+    if (!known.has(id) && p && !isProjectStageQuestion(p.questionId, p.side) && norm(d.value)) taken++;
+  }
   // Questions the file has no answer for are open items too (levels 1 and 2). In a document of another layout they are simply not in it.
   if (s.level !== 3) open += s.unfilled;
   return { taken, open, notFound, changed: s.fields.filter((f) => f.change).length };
@@ -903,6 +912,11 @@ export function applyGapImport(project: Project, s: GapImportSession, decisions:
       const v = decisions[f.id]?.value;
       // An accepted empty value never clears an answer the project already has.
       if (!f || v === undefined || norm(v) === "") continue;
+      // The project stage changes only through changeProjectStage (reason, major version, stage review). An upload would skip all three.
+      if (isProjectStageQuestion(row.questionId, side)) {
+        warnings.push(`${fieldName(s, f)} was not put in: ${PROJECT_STAGE_UPLOAD_NOTE}`);
+        continue;
+      }
       const known = f.known?.find((k) => k.text === v);
       let input: AnswerInput;
       if (known) input = known.input;
@@ -939,7 +953,9 @@ export function applyGapImport(project: Project, s: GapImportSession, decisions:
       }
       const logBefore = cur.changeLog.length;
       try {
-        cur = applyAnswer(cur, content, inst, p.input, actor);
+        const written = applyAnswerWritten(cur, content, inst, p.input, actor);
+        stampApplied(written, logBefore, { sourceNote: `imported from ${s.fileName}`, detail: `Imported from ${s.fileName}: ${p.field.source || "typed on the review screen"}` });
+        cur = written.project;
       } catch (e) {
         if (e instanceof AnswerError) {
           warnings.push(`${p.name} was not put in: ${e.message}`);
@@ -947,10 +963,6 @@ export function applyGapImport(project: Project, s: GapImportSession, decisions:
         }
         throw e;
       }
-      const rec = cur.answers[cur.answers.length - 1]!;
-      const src = cur.sources.find((x) => x.id === rec.sourceId);
-      if (src) src.label = `${src.label} (imported from ${s.fileName})`;
-      for (const ev of cur.changeLog.slice(logBefore)) ev.detail = `Imported from ${s.fileName}: ${p.field.source || "typed on the review screen"}`;
       evidence.push({ field: p.name, value: text, source: p.field.source });
       applied++;
     }

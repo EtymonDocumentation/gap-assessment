@@ -43,6 +43,17 @@ const STORAGE_KEY = "gap-assessment:project";
 /** True from the click on a demo button until that demo is open (see openDemo). */
 let demoInFlight = false;
 
+/**
+ * Why a new project, demo or import cannot take the place of the open project yet, or null. With server storage the open project is saved
+ * first, exactly as when another project is opened or this one is closed; if that save has failed (offline) or has a conflict, the person's
+ * edits would be lost by going on, so it is refused with the same words (CR-04). Without server storage nothing is saved elsewhere, and the
+ * pages already ask before replacing the project in this browser.
+ */
+async function refuseReplace(): Promise<string | null> {
+  if (!SERVER_MODE || !remoteStorage()) return null;
+  return sync.refuseNew();
+}
+
 /** What an import did: the name it ended up with, and the name in the file (they differ when the file's name was already listed). */
 export type ImportResult = { error: string } | { error: null; title: string; fileTitle: string };
 
@@ -112,12 +123,17 @@ interface State {
    * Resolves true once the demo is open.
    */
   openDemo(id: DemoId, listedTitles?: readonly string[]): Promise<boolean>;
-  newProject(title: string, responder: { name: string; role?: string }): void;
+  /**
+   * Starts an empty project. Resolves with null when it is open, or with the reason it was not started: with server storage the open project
+   * must be saved first (see refuseReplace), and while its save has failed or has a conflict nothing new takes its place.
+   */
+  newProject(title: string, responder: { name: string; role?: string }): Promise<string | null>;
   /**
    * Opens a project from an exported JSON file as a new project. `listedTitles` are the names already in My projects: when one is the file's name,
    * the project is called "<name> (imported)" (the change log says so), so the list never shows two projects with one name.
+   * Like newProject, it is refused (an `error` result) while the open project's save has failed or has a conflict.
    */
-  importJson(text: string, listedTitles?: readonly string[]): ImportResult;
+  importJson(text: string, listedTitles?: readonly string[]): Promise<ImportResult>;
   clearError(): void;
 }
 
@@ -297,6 +313,12 @@ export const useStore = create<State>((setState, getState) => ({
     const name = DEMO_NAMES[id];
     setState({ demoBuilding: name, homeFlash: "" });
     try {
+      // Asked before the build, so nothing is built for a start that is refused (the person is told at once).
+      const refused = await refuseReplace();
+      if (refused) {
+        setState({ error: refused });
+        return false;
+      }
       await nextPaint();
       const demo = await buildDemoAway(id);
       // The demo carries a TRD. An account without the TRD module could not save it (the server refuses a project holding TRD
@@ -308,6 +330,12 @@ export const useStore = create<State>((setState, getState) => ({
       if (!trdOn || !mbrOn) shown = { ...shown, mbr: { records: [] }, changeLog: shown.changeLog.filter((e) => !(e.path ?? "").startsWith("mbr.")) };
       const title = demoTitle(shown.meta.title, listedTitles);
       if (title !== shown.meta.title) shown = renameProject(shown, title, actorOf(shown), { detail: "Renamed on opening: a project with this name was already listed" });
+      // The build took seconds: the open project may have changed (or its save failed) meanwhile, so ask again right before it is replaced.
+      const refusedNow = await refuseReplace();
+      if (refusedNow) {
+        setState({ error: refusedNow });
+        return false;
+      }
       getState().setProject(shown, `Demo opened: ${name}`, true);
       setState({ homeFlash: `Demo opened: ${name}` });
       await addStartVersion();
@@ -324,15 +352,20 @@ export const useStore = create<State>((setState, getState) => ({
     }
   },
 
-  newProject(title, responder) {
+  async newProject(title, responder) {
+    const refused = await refuseReplace();
+    if (refused) return refused;
     const at = new Date().toISOString();
     const p = emptyProject({ title, actor: { name: responder.name, at }, contentRefs: content.versions });
     p.interview.responder = responder;
     getState().setProject(p, "New project created", true);
     void addStartVersion();
+    return null;
   },
 
-  importJson(text, listedTitles = []) {
+  async importJson(text, listedTitles = []) {
+    const refused = await refuseReplace();
+    if (refused) return { error: refused };
     try {
       const parsed = parseProject(JSON.parse(text));
       const fileTitle = parsed.meta.title;

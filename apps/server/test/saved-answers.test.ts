@@ -82,4 +82,41 @@ describe("saved answer sets", () => {
     expect((await c.put("/api/saved-answers/not-an-id", set())).status).toBeGreaterThanOrEqual(400);
     expect((await c.get("/api/saved-answers")).json.sets).toEqual([]);
   });
+
+  // CR-10: two tabs or two computers editing one set. The later save used to replace the earlier one without a word.
+  it("refuses a save made from an out-of-date copy and keeps the newer set", async () => {
+    const c = await signedInClient(env);
+    const [at1, at2, at3] = ["2026-11-01T10:00:00.000Z", "2026-11-01T10:05:00.000Z", "2026-11-01T10:06:00.000Z"];
+    const stamped = (name: string, updatedAt: string) => ({ set: { ...set(name).set, updatedAt } });
+    const made = await c.post("/api/saved-answers", stamped("First (fictional)", at1));
+    expect(made.status).toBe(201);
+    const id = made.json.id as string;
+
+    // Computer one saves a change from the copy stamped at1.
+    const one = await c.put(`/api/saved-answers/${id}`, { ...stamped("Changed on computer one (fictional)", at2), baseUpdatedAt: at1 });
+    expect(one.status).toBe(200);
+
+    // Computer two still holds the copy stamped at1: its save is refused with a conflict that names the stored stamp, and nothing is replaced.
+    const two = await c.put(`/api/saved-answers/${id}`, { ...stamped("Changed on computer two (fictional)", at3), baseUpdatedAt: at1 });
+    expect(two.status).toBe(409);
+    expect(two.json).toMatchObject({ error: "conflict", updatedAt: at2 });
+    expect(String(two.json.message)).toMatch(/was changed somewhere else/);
+    const kept = (await c.get("/api/saved-answers")).json.sets as { id: string; name: string }[];
+    expect(kept.find((s) => s.id === id)!.name).toBe("Changed on computer one (fictional)");
+
+    // After it reads the newer copy, the same save goes through.
+    const retry = await c.put(`/api/saved-answers/${id}`, { ...stamped("Changed on computer two (fictional)", at3), baseUpdatedAt: at2 });
+    expect(retry.status).toBe(200);
+    expect(retry.json.set).toMatchObject({ id, name: "Changed on computer two (fictional)", updatedAt: at3 });
+  });
+
+  it("still accepts a save that sends no stamp (an older web app), and a set saved before stamps existed", async () => {
+    const c = await signedInClient(env);
+    const made = await c.post("/api/saved-answers", set("Old set (fictional)"));
+    const id = made.json.id as string;
+    expect((await c.put(`/api/saved-answers/${id}`, set("No stamp (fictional)"))).status).toBe(200);
+    // A set with no stamp stored cannot be compared with one: a save that names one is refused, a save that names none is not.
+    const withBase = { ...set("With a stamp (fictional)"), baseUpdatedAt: "2026-11-01T10:00:00.000Z" };
+    expect((await c.put(`/api/saved-answers/${id}`, withBase)).status).toBe(409);
+  });
 });

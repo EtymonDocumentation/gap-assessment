@@ -48,8 +48,15 @@ const clip = (s: string) => (s.length > MAX_TEXT ? `${s.slice(0, MAX_TEXT)}…` 
 
 // ------------------------------------------------------------------ the generic walk
 
-/** Keys that identify or time-stamp a thing but are not content, or that only help to name it. */
+/**
+ * Keys that identify or time-stamp a thing but are not content, or that only help to name it. `sourceIds` and `locations` (which source
+ * backs a value, and the page or section cited) are left out on purpose: they are ids of the source register, not words a reader can
+ * compare. The compare page says so (COMPARE_LEFT_OUT) so nobody reads "no difference" as "the same citation".
+ */
 const SKIP_KEYS = new Set(["id", "name", "createdAt", "updatedAt", "sourceIds", "locations"]);
+
+/** What the comparison does not look at, in the words the compare page shows under the summary. */
+export const COMPARE_LEFT_OUT = "Not compared: which source backs a value, and the page or section cited for it. Check those in the source register.";
 
 type Json = unknown;
 const isObject = (v: Json): v is Record<string, Json> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -135,10 +142,66 @@ function walk(a: Json, b: Json, path: string[], area: string, ctx: Ctx): void {
 // ------------------------------------------------------------------ the TRD as readable values
 
 const fieldText = (f: TrdField) => effectiveField(f).text;
-const fieldsView = (list: TrdField[]): Record<string, string> => Object.fromEntries(list.map((f) => [f.label, fieldText(f)]));
+/**
+ * The fields of a list by their label. Two fields can carry one label (a step with two "Make" lines); keyed by the label alone the second
+ * would overwrite the first and a change in either would go unseen, so a repeated label is told apart by the field's own key.
+ */
+function fieldsView(list: TrdField[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const f of list) {
+    let name = f.label;
+    for (let n = 2; name in out; n++) name = `${f.label} (${f.key}${n > 2 ? `, ${n}` : ""})`;
+    out[name] = fieldText(f);
+  }
+  return out;
+}
 const rangeText = (r: TrdRange | undefined) => (r ? `${r.min ?? "…"} to ${r.max ?? "…"}${r.unit ? ` ${r.unit}` : ""}${r.provisional ? " (provisional)" : ""}` : "");
 
-/** The TRD as plain values: the shown text of every field (an override wins over the project value) and the limits in words. */
+/**
+ * One write-up (a process description or a TRD-level section) as plain values: its title, whether it is marked not applicable, each part
+ * with its text, table rows, figure caption and picture, and the values the team typed for blanks. The compare page is the decision aid
+ * for a stage change and for a restore, so a changed hold time in prose must show here as it does in a field.
+ */
+function writeupView(w: NonNullable<TrdDocument["writeups"]>[number]): Record<string, Json> {
+  return {
+    id: w.id,
+    name: `Write-up ${w.id}: ${w.title}`,
+    title: w.title,
+    // Only the switch matters to a reader; the condition and its wording are the library's text and are shown when they change.
+    "Marked not applicable": w.notApplicable ? (w.notApplicable.on ? "Yes" : "No") : "",
+    "Not applicable wording": w.notApplicable ? `${w.notApplicable.condition}: ${w.notApplicable.text}` : "",
+    parts: w.parts.map((p) => ({
+      id: p.id,
+      name: `${w.id}, ${p.title || p.kind} (${p.id})`,
+      kind: p.kind,
+      title: p.title,
+      text: p.text,
+      columns: p.columns,
+      // Rows are joined cell by cell so a moved value shows as a change, not as the same list of words.
+      rows: p.rows?.map((r) => r.join(" | ")),
+      caption: p.caption,
+      alt: p.alt,
+      // The picture is named by its file and its hash, never by its bytes.
+      Picture: p.image ? [p.image.name, p.image.sha256 ?? `${p.image.bytes} bytes`].filter(Boolean).join(", ") : "",
+      // Optional parts only: "Not chosen" is a state of its own (the stage decides), different from the author switching it off.
+      "Switched on": p.optional ? (p.included === true ? "Yes" : p.included === false ? "No" : "Not chosen") : "",
+    })),
+    // The value typed for each blank, by the blank's key. Who typed it and when are in the change log, not here.
+    "Values typed for blanks": Object.fromEntries(Object.entries(w.values ?? {}).map(([k, v]) => [k, v.value])),
+  };
+}
+
+/** The sign-off lines. They have no id of their own, so the role (counted when it repeats) is the id: a changed name or date is a change of that line. */
+function approvalsView(list: NonNullable<TrdDocument["approvals"]>): Record<string, Json>[] {
+  const seen = new Map<string, number>();
+  return list.map((a) => {
+    const n = (seen.get(a.role) ?? 0) + 1;
+    seen.set(a.role, n);
+    return { id: n > 1 ? `${a.role} (${n})` : a.role, name: `Approval, ${a.role}${n > 1 ? ` (${n})` : ""}`, Approver: a.name ?? "", Date: a.date ?? "" };
+  });
+}
+
+/** The TRD as plain values: the shown text of every field (an override wins over the project value), the limits in words, the write-ups and the approvals. */
 function trdView(d: TrdDocument): Record<string, Json> {
   return {
     id: d.id,
@@ -163,6 +226,8 @@ function trdView(d: TrdDocument): Record<string, Json> {
         control: i.control,
       })),
     })),
+    writeups: (d.writeups ?? []).map(writeupView),
+    approvals: approvalsView(d.approvals ?? []),
   };
 }
 

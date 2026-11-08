@@ -81,7 +81,7 @@ export function SaveAnswersDialog({ onClose, onSaved }: { onClose: () => void; o
               ` Left out: ${preview.skipped.tbd} TBD, ${preview.skipped.sameAsSource} "same as SU". A set holds only answers that state something.`}
           </p>
         )}
-        <p className="small muted">Questions that are still open, and the scoping answers that decide which questions a project asks, are not saved.</p>
+        <p className="small muted">Questions that are still open, and the scoping answers that decide which questions a project asks, are not saved. The project stage is not saved either: it is changed on the Home page.</p>
         {error && (
           <p id={errId} className="error" role="alert" data-testid="sa-save-error">
             {error}

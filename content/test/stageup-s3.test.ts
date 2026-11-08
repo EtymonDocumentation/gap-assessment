@@ -2,6 +2,7 @@
 import {
   buildDemoProject,
   changeProjectStage,
+  COMPARE_LEFT_OUT,
   compareChangeWord,
   compareCounts,
   compareSummary,
@@ -127,6 +128,104 @@ describe("compareVersions", () => {
     b.changeLog.push({ at: ACTOR.at, by: ACTOR.name, action: "answer", detail: "x" } as never);
     expect(loggedBetween(a, b)).toBe(1);
     expect(loggedBetween(b, a)).toBe(1);
+  });
+
+  // Code review CR-02: the comparison used to read the TRD's details, steps and limits only, so a changed hold time in a write-up, a
+  // typed blank or a sign-off line gave "No differences between these two."
+  describe("the TRD write-ups and approvals", () => {
+    const stamp = { by: "A. Tester (fictional)", at: "2026-11-04T09:00:00.000Z" };
+    /** The demo TRD with one write-up of our own (fixed id, so it is the same item on both sides). */
+    const withWriteup = (text: string, hold?: string): Project => {
+      const p = structuredClone(demo);
+      const d = p.trd.documents[0]!;
+      d.writeups = [
+        ...(d.writeups ?? []).filter((w) => w.id !== "WU-90"),
+        {
+          id: "WU-90",
+          kind: "section",
+          key: "compare_test_section",
+          title: "Hold section (fictional)",
+          parts: [{ id: "intro", kind: "paragraph", text }],
+          ...(hold ? { values: { holdTime: { value: hold, ...stamp } } } : {}),
+        },
+      ];
+      return p;
+    };
+    const trdRows = (a: Project, b: Project) => compareVersions(content, a, b).filter((r) => r.doc === "trd");
+
+    it("shows a changed write-up text", () => {
+      const rows = trdRows(withWriteup("Hold for {{holdTime|Hold time}} before filling."), withWriteup("Hold for {{holdTime|Hold time}} before filling and filtering."));
+      const r = rows.find((x) => x.item === "Text");
+      expect(r, "the part text").toBeTruthy();
+      expect(r!.kind).toBe("changed");
+      expect(r!.a).toContain("before filling.");
+      expect(r!.b).toContain("and filtering");
+      expect(compareSummary(compareVersions(content, withWriteup("a"), withWriteup("b")))).not.toBe("No differences between these two.");
+    });
+
+    it("shows a changed value typed for a blank, labelled by its key", () => {
+      const rows = trdRows(withWriteup("Hold {{holdTime|Hold time}}.", "4 h"), withWriteup("Hold {{holdTime|Hold time}}.", "24 h"));
+      expect(rows).toHaveLength(1);
+      expect(rows[0]!.item).toMatch(/hold ?time/i);
+      expect([rows[0]!.a, rows[0]!.b]).toEqual(["4 h", "24 h"]);
+    });
+
+    it("shows a write-up that was added or removed, by its id and title", () => {
+      const before = structuredClone(demo);
+      const after = withWriteup("Text (fictional).");
+      const added = trdRows(before, after).filter((x) => x.kind === "added");
+      expect(added.some((x) => x.item.includes("WU-90") && x.item.includes("Hold section (fictional)"))).toBe(true);
+      const removed = trdRows(after, before).filter((x) => x.kind === "removed");
+      expect(removed.some((x) => x.item.includes("WU-90"))).toBe(true);
+    });
+
+    it("shows a table row, the not-applicable switch and an optional part's switch", () => {
+      const mk = (cell: string, na: boolean, on?: boolean): Project => {
+        const p = withWriteup("x");
+        const w = p.trd.documents[0]!.writeups!.find((q) => q.id === "WU-90")!;
+        w.parts.push({ id: "tbl", kind: "table", text: "", columns: ["Item", "Limit"], rows: [["Hold", cell]] }, { id: "opt", kind: "paragraph", text: "Optional text.", optional: { condition: "when needed (fictional)" }, ...(on === undefined ? {} : { included: on }) });
+        w.notApplicable = { condition: "done elsewhere (fictional)", text: "Not applicable here.", on: na };
+        return p;
+      };
+      const rows = trdRows(mk("4 h", false), mk("24 h", true, true));
+      expect(rows.some((x) => x.item === "Rows" && x.a === "Hold | 4 h" && x.b === "Hold | 24 h")).toBe(true);
+      expect(rows.some((x) => x.item === "Marked not applicable" && x.a === "No" && x.b === "Yes")).toBe(true);
+      expect(rows.some((x) => x.item === "Switched on" && x.a === "Not chosen" && x.b === "Yes")).toBe(true);
+    });
+
+    it("shows a changed approval name and date, and an approval that was added", () => {
+      const mk = (name: string, date: string): Project => {
+        const p = structuredClone(demo);
+        p.trd.documents[0]!.approvals = [{ role: "Author", name, date }];
+        return p;
+      };
+      const rows = trdRows(mk("A. Author (fictional)", "2026-11-01"), mk("B. Author (fictional)", "2026-11-02"));
+      expect(rows.some((x) => x.item === "Approver" && x.b === "B. Author (fictional)")).toBe(true);
+      expect(rows.some((x) => x.item === "Date" && x.a === "2026-11-01" && x.b === "2026-11-02")).toBe(true);
+      const none = structuredClone(demo);
+      none.trd.documents[0]!.approvals = [];
+      expect(trdRows(none, mk("A. Author (fictional)", "2026-11-01")).some((x) => x.kind === "added" && x.item.includes("Approval, Author"))).toBe(true);
+    });
+  });
+
+  // Code review CR-11: two fields with one label used to collapse into one, so a change in either went unseen.
+  it("keeps two TRD fields with the same label apart", () => {
+    const mk = (second: string): Project => {
+      const p = structuredClone(demo);
+      const step = p.trd.documents[0]!.steps[0]!;
+      const field = (key: string, display: string) => ({ key, label: "Make (fictional)", override: { status: "established" as const, display, ...{ by: "A", at: "2026-11-04T09:00:00.000Z" } } });
+      step.fields = [field("makeA", "First maker (fictional)"), field("makeB", second)];
+      return p;
+    };
+    const rows = compareVersions(content, mk("Second maker (fictional)"), mk("Other maker (fictional)")).filter((r) => r.doc === "trd");
+    expect(rows).toHaveLength(1);
+    expect([rows[0]!.a, rows[0]!.b]).toEqual(["Second maker (fictional)", "Other maker (fictional)"]);
+    expect(rows[0]!.item).toMatch(/make ?B/); // told apart from the first by the field's own key
+  });
+
+  it("says on the page what the comparison leaves out", () => {
+    expect(COMPARE_LEFT_OUT).toMatch(/source/i);
+    expect(COMPARE_LEFT_OUT).not.toMatch(/\b(wizard|validate|required|error|must)\b/i);
   });
 });
 

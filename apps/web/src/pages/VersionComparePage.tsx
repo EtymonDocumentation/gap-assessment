@@ -1,6 +1,7 @@
 import {
   COMPARE_DOC_NAME,
   COMPARE_DOCS,
+  COMPARE_LEFT_OUT,
   compareChangeWord,
   compareCounts,
   compareSummary,
@@ -177,6 +178,9 @@ export function VersionComparePage({ params }: { params: URLSearchParams }) {
           </p>
           <p data-testid="compare-logged">
             {state.logged} {state.logged === 1 ? "change was" : "changes were"} logged between these versions. <a href={href("/changes")}>Open the change log</a>
+          </p>
+          <p className="muted small" data-testid="compare-left-out">
+            {COMPARE_LEFT_OUT}
           </p>
           <Tabs label="Documents" tabs={tabs} selected={current} onSelect={setTab} testId="compare-tabs">
             {shown.length === 0 ? (

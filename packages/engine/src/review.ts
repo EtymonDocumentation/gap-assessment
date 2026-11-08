@@ -187,16 +187,26 @@ export function isSamplingFormat(format: DocumentExport["format"]): boolean {
   return format.startsWith("sampling-plan-");
 }
 
+/** True for the two CMO reporting instruction outputs (Word and HTML): a separate document from the sampling plan. */
+export function isSamplingCmoFormat(format: DocumentExport["format"]): boolean {
+  return format.startsWith("sampling-cmo-instructions-");
+}
+
 /** True for the two risk assessment outputs (Word and HTML). */
 export function isRiskFormat(format: DocumentExport["format"]): boolean {
   return format.startsWith("risk-assessment-");
 }
 
-/** Which document an output belongs to: the gap assessment, the TRD outputs, the sampling plan, the risk assessment, the batch record or the evidence record. Each is compared with its own previous download. */
-function exportFamily(format: DocumentExport["format"]): "gap" | "trd" | "trd-document" | "trd-evidence" | "mbr" | "sampling" | "risk" {
+/**
+ * Which document an output belongs to: the gap assessment, the TRD outputs, the sampling plan, the CMO reporting instructions, the risk
+ * assessment, the batch record or the evidence record. Each is compared with its own previous download. The CMO instructions used to
+ * fall into "gap" because nothing named them: their downloads were then compared with gap downloads, and the gap document's
+ * omitted-section choice was written onto them.
+ */
+function exportFamily(format: DocumentExport["format"]): "gap" | "trd" | "trd-document" | "trd-evidence" | "mbr" | "sampling" | "sampling-cmo" | "risk" {
   // The evidence record is its own family: it is a different document from the standard TRD, so its first download has nothing to
   // compare with ("changed since previous" stays unset) instead of being compared with a TRD download.
-  return isTrdFormat(format) ? "trd" : isTrdEvidenceFormat(format) ? "trd-evidence" : isTrdDocumentFormat(format) ? "trd-document" : isMbrFormat(format) ? "mbr" : isSamplingFormat(format) ? "sampling" : isRiskFormat(format) ? "risk" : "gap";
+  return isTrdFormat(format) ? "trd" : isTrdEvidenceFormat(format) ? "trd-evidence" : isTrdDocumentFormat(format) ? "trd-document" : isMbrFormat(format) ? "mbr" : isSamplingFormat(format) ? "sampling" : isSamplingCmoFormat(format) ? "sampling-cmo" : isRiskFormat(format) ? "risk" : "gap";
 }
 
 /** Appends an export record. No change-log entry: downloading the document does not change the project. */
@@ -210,7 +220,7 @@ export function recordExport(project: Project, record: DocumentExport): Project 
   // an empty list is stored as no field at all, so "nothing omitted" reads the same as before this setting existed.
   const { omittedSections, changedSincePrevious: given, ...rest } = structuredClone(record);
   // A TRD output is not the gap assessment document, so the document's omitted-section choice does not apply to it.
-  // The same holds for the sampling plan: the gap document's optional sections are not part of it.
+  // The same holds for the sampling plan and the CMO instructions: the gap document's optional sections are not part of them.
   const family = exportFamily(record.format);
   const left = omittedSections ?? (family === "gap" ? omittedSectionIds(project) : []);
   // Whether the answers changed since the previous download is worked out here, from the fingerprints, so every caller records it

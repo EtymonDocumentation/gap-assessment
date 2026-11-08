@@ -351,7 +351,7 @@ export function HomePage() {
             useStore.setState({ listNote: null });
             // The names already in My projects decide whether the imported one needs "(imported)"; make sure the list has been read.
             if (remote && useSync.getState().listState !== "ready") await loadList();
-            const r = importJson(await f.text(), useSync.getState().list.map((x) => x.title));
+            const r = await importJson(await f.text(), useSync.getState().list.map((x) => x.title));
             if (r.error !== null) {
               setImportError(r.error);
               return;
@@ -387,7 +387,7 @@ export function HomePage() {
         </summary>
         <ul className="plain-list">
           {remote ? (
-            <li>Your projects are saved on the server under your account, as you work. This browser keeps an offline copy of the open project only. Export a project as JSON to share it.</li>
+            <li>Your projects are saved on the server under your account, as you work. This browser keeps an offline copy of each project you have open. Export a project as JSON to share it.</li>
           ) : (
             <li>Your project is stored only in this browser (IndexedDB). Export it as JSON to keep or share it.</li>
           )}

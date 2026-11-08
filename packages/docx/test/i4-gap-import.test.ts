@@ -11,9 +11,12 @@ import {
   gapSessionFromData,
   gapSessionFromForm,
   gapSessionFromOther,
+  isProjectStageQuestion,
   optionsFor,
   parseGapAnswer,
   projectAnswerOf,
+  projectStage,
+  PROJECT_STAGE_UPLOAD_NOTE,
   visibleInstances,
   SCANNED_PDF_MESSAGE,
   type GapDecisions,
@@ -89,9 +92,11 @@ describe("gap assessment upload, level 1: our own Word export (I4)", () => {
     expect(r.warnings).toEqual([]);
     for (const inst of visibleInstances(content, project, "paired")) {
       const want = projectAnswerOf(content, project, inst);
-      if (!want) continue;
+      if (!want || isProjectStageQuestion(inst.question.id, inst.side)) continue;
       expect(projectAnswerOf(content, r.project, inst)?.text, inst.key).toBe(want.text);
     }
+    // The project stage is the one answer that does not travel: it changes only through the stage change on the Home page.
+    expect(projectStage(r.project)).toBeUndefined();
     const ev = r.project.changeLog.at(-1)!;
     expect(ev.action).toBe("gap_import");
     expect(ev.detail).toContain("Imported from gap.docx");
@@ -116,6 +121,29 @@ describe("gap assessment upload, level 1: our own Word export (I4)", () => {
     const r = applyGapImport(project, s, { [f.id]: { value: "Edited in Word" } }, { actor, content, syn });
     expect(r.applied).toBe(1);
     expect(projectAnswerOf(content, r.project, target)!.text).toBe("Edited in Word");
+  });
+
+  // CR-03: the project stage changes only through the stage change on the Home page (a reason, a major version, a stage review).
+  // An upload must not set it, not even when somebody types a different stage on the review screen.
+  it("never changes the project stage: the stage cell says why, and a typed stage is not put in", async () => {
+    const s = gapSessionFromData(readUpload(await exportGap(), "gap.docx"), content, syn);
+    const f = fieldOf(s, "gap.q.site.stage.target")!;
+    expect(f.unreadable).toBe(PROJECT_STAGE_UPLOAD_NOTE);
+    const stage = projectStage(project)!;
+    const q = content.questionById.get("site.stage")!;
+    const other = optionsFor(content, q).find((o) => o.value !== stage)!;
+    const decisions: GapDecisions = { ...acceptAll(s), [f.id]: { value: other.label } };
+    // A typed stage is not counted as taken, and the row on the screen has no way to take it.
+    expect(gapCounts(s, decisions).taken).toBe(gapCounts(s, acceptAll(s)).taken);
+    const stageRecords = (p: typeof project) => p.answers.filter((a) => a.questionId === "site.stage" && a.side === "target").length;
+    const r = applyGapImport(project, s, decisions, { actor, content, syn });
+    expect(r.warnings.some((w) => w.includes(PROJECT_STAGE_UPLOAD_NOTE))).toBe(true);
+    expect(projectStage(r.project)).toBe(stage);
+    expect(stageRecords(r.project)).toBe(stageRecords(project));
+    expect(r.project.versionHistory).toEqual(project.versionHistory);
+    // Into a project that has no stage yet it stays unset too.
+    const fresh = applyGapImport(newProject(), s, decisions, { actor, content, syn });
+    expect(projectStage(fresh.project)).toBeUndefined();
   });
 
   it("does not take a foreign file for one of ours", () => {
@@ -153,8 +181,10 @@ describe("gap assessment upload, level 2: the fill-in form (I4)", () => {
     const spec = buildGapFormSpec(content, project);
     const read = readUpload(buildGapFormDocx(spec, { generatedAt: GENERATED_AT }), "form.docx");
     const s = gapSessionFromForm(read, content, syn);
-    const answered = visibleInstances(content, project, "paired").filter((i) => projectAnswerOf(content, project, i));
+    // Everything the project answers, except the project stage: an upload never sets it (its cell says so and it is not put in).
+    const answered = visibleInstances(content, project, "paired").filter((i) => projectAnswerOf(content, project, i) && !isProjectStageQuestion(i.question.id, i.side));
     expect(s.fields.filter((f) => !f.unreadable)).toHaveLength(answered.length);
+    expect(fieldOf(s, "gap.q.site.stage.target")).toMatchObject({ unreadable: PROJECT_STAGE_UPLOAD_NOTE });
     const r = applyGapImport(newProject(), s, acceptAll(s), { actor, content, syn });
     // A form holds only the words "TBD", not the best guess behind it. The demo has a TBD best guess that makes a follow-up question
     // appear; without it the follow-up is honestly reported as not asked, never forced in.

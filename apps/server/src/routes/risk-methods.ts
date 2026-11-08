@@ -6,7 +6,7 @@ import { z } from "zod";
 import { HttpError, sendJson, sendNoContent, type Ctx, type Route } from "../http";
 import { MAX_LIBRARY_BODY_BYTES, MAX_LIBRARY_ITEMS, requireRoomForItem } from "../limits";
 import { isId } from "../names";
-import { idParam, notFound, parseBody, userPath } from "./util";
+import { assertNotChanged, baseUpdatedAtSchema, idParam, notFound, parseBody, userPath } from "./util";
 
 type Stored = Record<string, unknown> & { id: string };
 
@@ -36,7 +36,8 @@ const methodSchema = riskMethodSnapshotSchema
     history: z.array(z.record(z.string(), z.unknown())).max(2000).optional(),
   })
   .passthrough();
-const bodySchema = z.object({ method: methodSchema });
+// `baseUpdatedAt` is only read when a method is replaced (PUT): see assertNotChanged.
+const bodySchema = z.object({ method: methodSchema, baseUpdatedAt: baseUpdatedAtSchema });
 
 export const riskMethodRoutes: Route[] = [
   {
@@ -92,6 +93,7 @@ export const riskMethodRoutes: Route[] = [
       const { store } = ctx.app;
       const saved = await store.update<Stored | null>(userPath(ctx, "risk-methods", `${id}.json`), null, (current) => {
         if (!current) throw notFound("risk method");
+        assertNotChanged(current, body.baseUpdatedAt, "risk method");
         return { ...body.method, id };
       });
       await store.audit("risk-method-update", { userId: ctx.user.id, methodId: id, ip: ctx.ip });

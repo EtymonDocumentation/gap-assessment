@@ -111,7 +111,7 @@ function AboutBody({ copy }: { copy: Copy }) {
           </p>
         )}
         <p>
-          <strong>In this browser.</strong> {onServer ? "A copy of the project you have open, so unsaved changes survive a reload or a lost connection, and a few small settings: " : "A few small settings: "}
+          <strong>In this browser.</strong> {onServer ? "A copy of each project you have open (one for each tab), so unsaved changes survive a reload or a lost connection, and a few small settings: " : "A few small settings: "}
           {SETTINGS}.
         </p>
         {hasAccount && (

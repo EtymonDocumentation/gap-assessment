@@ -564,9 +564,13 @@ export interface AnswerResult {
 
 class AnswerProblem extends Error {}
 
+// Typed text is read as a plain decimal number only. Number() would also take "0x10" as 16 and "1e3" as 1000, so a hex or exponent form
+// typed by mistake would be saved as a value nobody meant; those are refused with the same message as any other non-number.
+const PLAIN_NUMBER = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/;
 const num = (v: unknown, what: string): number => {
-  const n = typeof v === "number" ? v : Number(String(v ?? "").trim());
-  if (!Number.isFinite(n) || String(v ?? "").trim() === "") throw new AnswerProblem(`Please enter ${what} as a number, for example 12.5.`);
+  const typed = typeof v === "number" ? undefined : String(v ?? "").trim();
+  const n = typed === undefined ? (v as number) : PLAIN_NUMBER.test(typed) ? Number(typed) : NaN;
+  if (!Number.isFinite(n)) throw new AnswerProblem(`Please enter ${what} as a number, for example 12.5.`);
   return n;
 };
 

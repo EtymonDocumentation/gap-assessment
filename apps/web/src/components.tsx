@@ -197,21 +197,32 @@ export function ResponderForm({
 }: {
   initial?: { name: string; role?: string };
   submitLabel: string;
-  onSubmit: (v: { name: string; role?: string; title?: string }) => void;
+  /** May return (or resolve to) a sentence to show under the form, for example why the project could not be started. The form stays as typed. */
+  onSubmit: (v: { name: string; role?: string; title?: string }) => void | string | null | Promise<void | string | null>;
   withTitle?: boolean;
 }) {
   const [title, setTitle] = useState("");
   const [name, setName] = useState(initial?.name ?? "");
   const [role, setRole] = useState(initial?.role ?? "");
   const [err, setErr] = useState("");
+  // A second press while the first is still being answered must not start a second project.
+  const sending = useRef(false);
   return (
     <form
       className="stack"
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault();
+        if (sending.current) return;
         if (withTitle && !title.trim()) return setErr("Enter a project title.");
         if (!name.trim()) return setErr("Enter the responder's name.");
-        onSubmit({ name: name.trim(), ...(role.trim() ? { role: role.trim() } : {}), ...(withTitle ? { title: title.trim() } : {}) });
+        setErr("");
+        sending.current = true;
+        try {
+          const problem = await onSubmit({ name: name.trim(), ...(role.trim() ? { role: role.trim() } : {}), ...(withTitle ? { title: title.trim() } : {}) });
+          if (typeof problem === "string") setErr(problem);
+        } finally {
+          sending.current = false;
+        }
       }}
     >
       {withTitle && (

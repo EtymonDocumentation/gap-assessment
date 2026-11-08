@@ -4,8 +4,11 @@ import {
   applySavedSet,
   buildDemoProject,
   buildSavedSet,
+  PROJECT_STAGE_UPLOAD_NOTE,
+  projectStage,
   reviewSavedSet,
   savedSetOf,
+  STAGE_QUESTION_ID,
   visibleInstances,
   type AnswerInput,
   type QuestionInstance,
@@ -129,6 +132,30 @@ describe("saved answer sets", { timeout: 60_000 }, () => {
     const none = applySavedSet(target, content, set, new Set(), actor);
     expect(none.applied).toBe(0);
     expect(none.project.changeLog.length).toBe(target.changeLog.length);
+  });
+
+  // CR-03: the project stage is the receiving side of the stage question. It may change only through changeProjectStage (a reason, a
+  // major version, a stage review), so a saved set neither holds it nor puts it in, even if an older or hand-made file lists it.
+  it("never saves the project stage, and never applies it from a set that lists it", () => {
+    const p = demo();
+    const stage = projectStage(p);
+    expect(stage).toBeDefined();
+    const both = buildSavedSet(content, p, { name: "Both", sides: "both", savedAt: T0, id: "s1" }).set;
+    expect(both.answers.some((a) => a.questionId === STAGE_QUESTION_ID && a.side === "target")).toBe(false);
+    // The sending side's stage only describes the source process; it stays in a set.
+    expect(both.answers.some((a) => a.questionId === STAGE_QUESTION_ID && a.side === "source")).toBe(true);
+
+    const other = stage === "clinical" ? "ppq" : "clinical";
+    const forged = { ...both, answers: [...both.answers, { questionId: STAGE_QUESTION_ID, side: "target" as const, input: { kind: "value" as const, value: other } }] };
+    const row = reviewSavedSet(content, p, forged).find((r) => r.key === `${STAGE_QUESTION_ID}@target`)!;
+    expect(row.state).toBe("cannot");
+    expect(row.problem).toBe(PROJECT_STAGE_UPLOAD_NOTE);
+
+    const r = applySavedSet(p, content, forged, new Set([row.key]), actor);
+    expect(r.applied).toBe(0);
+    expect(r.project).toBe(p);
+    expect(projectStage(r.project)).toBe(stage);
+    expect(r.project.versionHistory).toEqual(p.versionHistory);
   });
 });
 

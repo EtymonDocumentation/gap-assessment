@@ -502,6 +502,22 @@ describe("answers", () => {
     expect(r.error).toMatch(/number/);
     expect(r.project).toBe(p0);
   });
+
+  // CR-13: JavaScript's Number() reads "0x10" as 16 and "1e3" as 1000. A typed hex or exponent form is refused instead of being saved as a value
+  // nobody meant; ordinary decimals (with a sign or a leading or trailing point) are still read, and a number that is already a number is kept.
+  it("refuses hex and exponent forms but reads plain decimals", () => {
+    const q = qs.find((x) => x.input === "number" || x.input === "quantity")!;
+    for (const bad of ["0x10", "1e3", "1E-3", "0b11", "0o7", "Infinity", "12,5", "1 000", "", "  "]) {
+      const r = applyTrdAnswer(p0, trdId, q, ans(bad), who, ctx);
+      expect(r.changed, bad).toBe(false);
+      expect(r.project, bad).toBe(p0);
+      if (bad.trim()) expect(r.error, bad).toMatch(/number/);
+    }
+    for (const good of ["12.5", " 12.5 ", "-3", "+3", ".5", "7."]) {
+      const r = applyTrdAnswer(p0, trdId, q, ans(good), who, ctx);
+      expect(r.error, good).toBeUndefined();
+    }
+  });
 });
 
 describe("ensureCatalogItem", () => {

@@ -1,6 +1,6 @@
 import { ensureStartVersion } from "@gap/engine";
 import { parseProject, type Project } from "@gap/process-model";
-import { del, get, set } from "idb-keyval";
+import { del, get, keys as listKeys, set } from "idb-keyval";
 import { create } from "zustand";
 import * as api from "./api";
 import type { ProjectSummary } from "./api";
@@ -8,13 +8,14 @@ import { afterSessionEnds, beforeSessionEnds, currentUserId } from "./session-st
 
 /**
  * Keeps the open project in step with the server: autosave with a revision number, conflict detection, the list of
- * the user's projects, and an offline copy in this browser's IndexedDB (a cache of the open project only).
+ * the user's projects, and an offline copy in this browser's IndexedDB (a cache of the projects open in this browser's tabs, one slot each).
  * Used only in server mode with `storage: "server"`.
  */
 
 const CACHE_KEY = "gap-assessment:server-cache";
 const DEBOUNCE_MS = 1000;
 const RETRY_MS = 5000;
+const PRUNE_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
 
 interface Cache {
   projectId: string | null;
@@ -23,6 +24,8 @@ interface Cache {
   /** True when this copy has changes the server does not have. */
   dirty: boolean;
   project: Project;
+  /** When this copy was written (milliseconds). Copies from before this field have none. */
+  at?: number;
 }
 
 export type SavePhase = "idle" | "dirty" | "saving" | "saved" | "error" | "conflict";
@@ -65,6 +68,8 @@ export function connect(h: Host): void {
   });
   afterSessionEnds(() => {
     reset();
+    // The browser copy of this account stays for its next sign-in; this tab just stops pointing at it.
+    setActiveSlot(null);
     patch({ list: [], listState: "idle", listError: "" });
   });
 }
@@ -78,15 +83,147 @@ let generation = 0;
 let chain: Promise<void> | undefined;
 let lifecycleStarted = false;
 
-const cacheKey = () => `${CACHE_KEY}:${currentUserId() ?? "none"}`;
+// The offline copy. One browser, one account, several tabs: each project has its own slot, so two tabs with two different projects do not
+// overwrite each other's copy (CR-09). A project that has not been saved yet has a slot of its own per tab. Two small pointers say which slot
+// to reopen: one per tab (sessionStorage, so a reload of a tab finds its own project) and one for the whole browser (the project last worked
+// on, for a tab that is opened fresh). The old single slot (`<base>`) is still read once and then replaced by the new ones.
+const cacheBase = () => `${CACHE_KEY}:${currentUserId() ?? "none"}`;
+const lastKey = () => `${cacheBase()}:last`;
+const tabKey = () => `${cacheBase()}:tab`;
+const slotKey = (projectId: string | null) => (projectId === null ? `${cacheBase()}:new:${tabToken()}` : `${cacheBase()}:p:${projectId}`);
+
+let token: string | undefined;
+/** A name for this tab's slot of an unsaved project. Only has to differ from the other tabs'. */
+function tabToken(): string {
+  token ??= typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
+  return token;
+}
+/** The slot this tab writes to now. Kept here (not worked out from the project id) because reset() clears the id before the slot is cleared. */
+let activeSlot: string | null = null;
+/** Changes the slot this tab works in, and tells the other tabs (see claimSlot). */
+function setActiveSlot(key: string | null): void {
+  activeSlot = key;
+  claimSlot(key);
+}
+
+// Which slots are in use right now. The browser-wide pointer cannot tell a copy that another open tab is still working in from one left behind
+// by a tab that was closed, so a tab that was opened fresh used to take over the other tab's project, find its unsaved changes and save them
+// under the other tab's revision: that tab then got a false "changed on another computer". Each tab therefore holds a Web Lock named after its
+// slot for as long as it is open (the browser lets go of it when the tab closes or reloads). A fresh tab leaves a slot alone while it is held,
+// and no tab removes a slot that another tab holds. Without the Web Locks API (an old browser, or a page not served over https) there is no
+// way to tell, and the tab behaves as before.
+const LOCK_PREFIX = "gap-assessment:slot:";
+const locksApi = (): LockManager | undefined => (typeof navigator === "undefined" ? undefined : navigator.locks);
+let held: { key: string; letGo: () => void } | null = null;
+function claimSlot(key: string | null): void {
+  const locks = locksApi();
+  if (!locks || held?.key === key) return;
+  held?.letGo();
+  held = null;
+  if (!key) return;
+  let release = () => {};
+  const open = new Promise<void>((resolve) => (release = resolve));
+  const waiting = new AbortController();
+  // Letting go also cancels a request that is still waiting, so a slot this tab only asked for and never got does not look taken.
+  held = {
+    key,
+    letGo: () => {
+      waiting.abort();
+      release();
+    },
+  };
+  // Not awaited: when this tab was just reloaded, the page it replaces may still have the lock for a moment, and this request waits its turn.
+  try {
+    locks.request(LOCK_PREFIX + key, { signal: waiting.signal }, () => open).catch(() => undefined);
+  } catch {
+    /* a browser that refuses locks behaves as one without them */
+  }
+}
+/** True when another tab has this slot open now. */
+async function slotInUseElsewhere(key: string): Promise<boolean> {
+  const locks = locksApi();
+  if (!locks || held?.key === key) return false;
+  try {
+    return await locks.request(LOCK_PREFIX + key, { ifAvailable: true }, (lock) => lock === null);
+  } catch {
+    return false;
+  }
+}
+
+// sessionStorage can be missing or refuse (private windows, blocked site data): the copy then simply has no tab pointer.
+function readTabPointer(): string | null {
+  try {
+    return sessionStorage.getItem(tabKey());
+  } catch {
+    return null;
+  }
+}
+function writeTabPointer(key: string | null): void {
+  try {
+    if (key) sessionStorage.setItem(tabKey(), key);
+    else sessionStorage.removeItem(tabKey());
+  } catch {
+    /* the browser cache still works without it */
+  }
+}
 
 async function writeCache(project: Project, dirty: boolean): Promise<void> {
   const s = useSync.getState();
-  const c: Cache = { projectId: s.projectId, revision: s.revision, dirty, project };
-  await set(cacheKey(), c);
+  const c: Cache = { projectId: s.projectId, revision: s.revision, dirty, project, at: Date.now() };
+  const key = slotKey(s.projectId);
+  const previous = activeSlot;
+  setActiveSlot(key);
+  writeTabPointer(key);
+  await set(key, c);
+  await set(lastKey(), key).catch(() => undefined);
+  // The slot changed: the project was saved for the first time (its unsaved slot is no longer needed), another project was opened, or the old
+  // single slot was replaced. The old slot's content is in the new one, or was saved before this tab left it. If another tab has the old slot
+  // open (the same project open in two tabs), that tab's copy stays.
+  if (previous && previous !== key && !(await slotInUseElsewhere(previous))) await del(previous).catch(() => undefined);
 }
 async function clearCache(): Promise<void> {
-  await del(cacheKey()).catch(() => undefined);
+  const key = activeSlot;
+  setActiveSlot(null);
+  writeTabPointer(null);
+  if (!key) return;
+  await del(key).catch(() => undefined);
+  // The browser-wide pointer must not point at a slot that is gone.
+  if ((await get<string>(lastKey()).catch(() => undefined)) === key) await del(lastKey()).catch(() => undefined);
+}
+
+/**
+ * Finds the copy to reopen: this tab's own project, else the one last worked on in the browser (unless another tab has it open: that tab is
+ * working in it, and a second tab picking up and saving its changes would give that tab a false conflict), else the old single slot.
+ */
+async function readCache(): Promise<{ key: string; cache: Cache } | undefined> {
+  const keys: string[] = [];
+  const mine = readTabPointer();
+  if (mine) keys.push(mine);
+  const last = await get<string>(lastKey()).catch(() => undefined);
+  if (last && !keys.includes(last) && !(await slotInUseElsewhere(last))) keys.push(last);
+  keys.push(cacheBase());
+  for (const key of keys) {
+    const cache = await get<Cache>(key).catch(() => undefined);
+    if (cache) return { key, cache };
+  }
+  return undefined;
+}
+
+/**
+ * Removes copies that are clean (the server has the same) and have not been touched for a week. A copy with unsaved changes is never removed,
+ * and a copy another tab may be using is too young to go. Best effort.
+ */
+async function pruneCache(keep: string | null): Promise<void> {
+  try {
+    const prefix = `${cacheBase()}:`;
+    for (const k of await listKeys()) {
+      if (typeof k !== "string" || !(k === cacheBase() || k.startsWith(prefix)) || k === keep || k === lastKey()) continue;
+      const c = await get<Cache>(k);
+      if (c && !c.dirty && Date.now() - (c.at ?? 0) > PRUNE_AFTER_MS) await del(k);
+    }
+  } catch {
+    /* housekeeping only */
+  }
 }
 
 function clearTimer() {
@@ -153,6 +290,16 @@ async function saveOnce(keepalive: boolean): Promise<void> {
       return;
     }
     if (err.status === 401) return; // the session ended; the unsaved project stays in the browser cache
+    if (err.status === 404 && st.projectId !== null) {
+      // The project was deleted from the server (on another computer) while it was open here. restore() answers the same case by saving the
+      // person's copy as a new project; do the same, and say so, instead of showing a bare "could not be saved" that never goes away.
+      // The copy is not lost: it is in this browser until the new project is saved.
+      patch({ projectId: null, revision: 0, phase: "dirty", error: null, conflict: null, list: useSync.getState().list.filter((x) => x.id !== st.projectId) });
+      H().fail("This project was removed from the server, probably on another computer. Your copy is kept here and is being saved again as a new project.");
+      await writeCache(H().getProject() ?? project, true).catch(() => undefined);
+      schedule(0);
+      return;
+    }
     const text =
       err.status === 0
         ? "The project could not be saved because the server cannot be reached. It is kept in this browser and will be saved when the connection returns."
@@ -240,11 +387,32 @@ async function withStartVersion(p: Project): Promise<Project> {
   }
 }
 
-async function settle(): Promise<void> {
+/**
+ * Saves the open project and throws while that is not possible (a conflict, or a save that failed). `what` finishes the sentence "..., so it
+ * cannot be ...": closing the project (opening another one closes it) or leaving it for a new one.
+ */
+async function settle(what = "it cannot be closed"): Promise<void> {
   await flush();
+  // Edits made while that save was running leave the project dirty again: save them too, a few times at most.
+  for (let i = 0; i < 3 && useSync.getState().phase === "dirty"; i++) await flush();
   const s = useSync.getState();
   if (s.phase === "conflict") throw new Error("This project was changed on another computer. Choose which version to keep first.");
-  if (s.phase === "error") throw new Error(`The open project could not be saved yet, so it cannot be closed. ${s.error ?? ""} Download it from the Project page if you need a copy.`.trim());
+  if (s.phase === "error") throw new Error(`The open project could not be saved yet, so ${what}. ${s.error ?? ""} Download it from the Project page if you need a copy.`.trim());
+}
+
+/**
+ * Called before a new project, a demo or an import takes the place of the open project. Returns why it cannot go on yet (the open project has
+ * a save that failed, or a conflict), or null when the open project is saved and the new one may be started. Same rule, same words as opening
+ * or closing a project, so the person's edits are never dropped by starting something new.
+ */
+export async function refuseNew(): Promise<string | null> {
+  if (!H().getProject()) return null;
+  try {
+    await settle("no other project can be started yet");
+    return null;
+  } catch (e) {
+    return (e as Error).message;
+  }
 }
 
 /**
@@ -281,6 +449,9 @@ export async function deleteProjectById(id: string): Promise<void> {
     reset();
     H().replace(null, "Project deleted");
     await clearCache();
+  } else {
+    // A browser copy of a project that is gone from the server would only be offered again by mistake.
+    await del(slotKey(id)).catch(() => undefined);
   }
 }
 
@@ -354,16 +525,16 @@ export async function keepMine(): Promise<void> {
 /** Reopens the project this browser had open, using the offline copy and the server. Called once after sign-in. */
 export async function restore(): Promise<void> {
   startLifecycle();
-  let cache: Cache | undefined;
-  try {
-    cache = await get<Cache>(cacheKey());
-  } catch {
-    cache = undefined;
-  }
-  if (!cache) {
+  const found = await readCache();
+  if (!found) {
     H().replace(null, "");
     return;
   }
+  const cache = found.cache;
+  // From here this tab writes to the slot it reopened (until the project is saved under another one, or another project is opened).
+  setActiveSlot(found.key);
+  writeTabPointer(found.key);
+  void pruneCache(found.key);
   let local: Project;
   try {
     local = parseProject(cache.project);

@@ -65,6 +65,19 @@ export const STAGE_FIELD = "programStage";
 export const STAGE_BINDS = "site.programStage";
 export const STAGE_QUESTION_ID = "site.stage";
 
+/**
+ * True for the PROJECT stage question: the receiving site's answer to the stage question. Only this one is the project stage; the sending
+ * site's answer ("source") describes the source process and does not move any document (see projectStage).
+ */
+export const isProjectStageQuestion = (questionId: string, side: string): boolean => questionId === STAGE_QUESTION_ID && side === "target";
+
+/**
+ * Said where an upload (saved answers, a gap assessment file) holds the project stage and does not apply it. The stage changes through
+ * changeProjectStage only: it asks for a reason, saves a version of the project and starts a stage review. An upload that wrote the answer
+ * directly would change the wording of every document with none of those, so the row is kept visible and left for the Home page.
+ */
+export const PROJECT_STAGE_UPLOAD_NOTE = "The project stage is changed on the Home page, where you say why and a version is saved. It is not changed from here.";
+
 /** What is printed for a stage that has not been answered. */
 export const STAGE_NOT_ESTABLISHED = "[TBD]";
 

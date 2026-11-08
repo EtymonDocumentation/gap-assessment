@@ -61,12 +61,20 @@ export const useRiskMethods = /* @__PURE__ */ create<State>((setState, getState)
     try {
       let saved = next;
       if (onServer()) {
-        if (cur) await api.putRiskMethod(next.id, next);
+        // The server refuses the save when the method was changed since this browser read it (CR-10): `updatedAt` is the stamp it compares.
+        if (cur) await api.putRiskMethod(next.id, next, cur.updatedAt);
         else saved = { ...next, id: (await api.createRiskMethod(next)).id };
       } else await set(next.id, next, db);
       setState({ items: sorted([...getState().items.filter((x) => x.id !== cur?.id && x.id !== saved.id), saved]), error: null });
       return saved;
     } catch (e) {
+      if (api.isConflict(e)) {
+        // Show the newer version that is on the server; the person's change is not applied.
+        setState({ ready: false });
+        await getState().load();
+        setState({ error: "This method was changed on another computer, so your change was not saved. The list now shows the newer version. Make your change again if you still want it." });
+        throw e;
+      }
       setState({ error: `The method could not be saved ${onServer() ? "on the server" : "in this browser"}: ${(e as Error).message}` });
       throw e;
     }

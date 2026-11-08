@@ -14,7 +14,13 @@ import { afterSessionEnds, remoteStorage } from "./server/session-store";
 const db = createStore("gap-saved-answers", "sets");
 const onServer = () => SERVER_MODE && remoteStorage();
 
-export const newSetId = (): string => globalThis.crypto?.randomUUID?.() ?? `s-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+/** The server's stamp on a set: when it was last saved there. Sets from before the stamp existed have none. */
+const stampOf = (s: SavedAnswerSet): string | undefined => {
+  const v = (s as unknown as Record<string, unknown>).updatedAt;
+  return typeof v === "string" ? v : undefined;
+};
+
+export const newSetId =(): string => globalThis.crypto?.randomUUID?.() ?? `s-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
 interface State {
   items: SavedAnswerSet[];
@@ -52,17 +58,27 @@ export const useSavedAnswers = /* @__PURE__ */ create<State>((setState, getState
     }
   },
 
-  async save(next) {
-    const cur = getState().items.find((x) => x.id === next.id);
+  async save(incoming) {
+    const cur = getState().items.find((x) => x.id === incoming.id);
+    // On the server every save stamps the set with `updatedAt`, and the next save sends the stamp it last saw, so a save made from an out-of-date
+    // copy is refused instead of replacing a newer one (CR-10). `savedAt` stays the time the answers were saved: renaming does not change it.
+    const next: SavedAnswerSet = onServer() ? ({ ...incoming, updatedAt: new Date().toISOString() } as SavedAnswerSet) : incoming;
     try {
       let saved = next;
       if (onServer()) {
-        if (cur) await api.putSavedAnswers(next.id, next);
+        if (cur) await api.putSavedAnswers(next.id, next, stampOf(cur));
         else saved = { ...next, id: (await api.createSavedAnswers(next)).id };
       } else await set(next.id, next, db);
       setState({ items: sorted([...getState().items.filter((x) => x.id !== cur?.id && x.id !== saved.id), saved]), error: null });
       return saved;
     } catch (e) {
+      if (api.isConflict(e)) {
+        // Show the newer version that is on the server; the person's change is not applied.
+        setState({ ready: false });
+        await getState().load();
+        setState({ error: "This set was changed on another computer, so your change was not saved. The list now shows the newer version. Make your change again if you still want it." });
+        throw e;
+      }
       setState({ error: `The set could not be saved ${onServer() ? "on the server" : "in this browser"}: ${(e as Error).message}` });
       throw e;
     }

@@ -9,6 +9,7 @@ import {
   gapCounts,
   gapFieldId,
   importSummaryText,
+  isProjectStageQuestion,
   visibleInstances,
   type GapField,
   type GapImportSession,
@@ -177,7 +178,18 @@ function Review({ session, file }: { session: GapImportSession; file: File }) {
     });
   }
 
-  function submit() {
+  // A second press while the first is still being answered must not make a second project.
+  const sending = useRef(false);
+  async function submit() {
+    if (sending.current) return;
+    sending.current = true;
+    try {
+      await submitOnce();
+    } finally {
+      sending.current = false;
+    }
+  }
+  async function submitOnce() {
     setError("");
     if (!mode) return setError("Choose whether this makes a new project or updates the open one.");
     const newTitle = title.trim() || session.title.value.trim();
@@ -193,7 +205,10 @@ function Review({ session, file }: { session: GapImportSession; file: File }) {
     };
     let err: string | null = null;
     if (mode === "new") {
-      useStore.getState().newProject(newTitle, { name: who.name.trim(), ...(who.role.trim() ? { role: who.role.trim() } : {}) });
+      // Refused while the open project's save has failed or has a conflict. Nothing is put into the open project then: the answers are
+      // still on this page, and the reason is shown.
+      const refused = await useStore.getState().newProject(newTitle, { name: who.name.trim(), ...(who.role.trim() ? { role: who.role.trim() } : {}) });
+      if (refused) return setError(refused);
       err = useStore.getState().update((p) => run(p), `Gap assessment imported from ${session.fileName}`);
     } else err = useStore.getState().update((p) => run(p), `Gap assessment imported from ${session.fileName}`);
     if (err || !result) return setError(err || "The answers could not be put in.");
@@ -311,22 +326,25 @@ function Review({ session, file }: { session: GapImportSession; file: File }) {
               {state}
             </span>
           )}
-          <span className="import-actions">
-            <button type="button" className="btn small" disabled={!!f.unreadable} onClick={() => set(f.id, f.change!.new)} aria-label={`Use the file's answer: ${name}`} data-testid="import-use-file">
-              Use the file's
-            </button>
-            <button type="button" className="btn small ghost" onClick={() => set(f.id, keep)} aria-label={`Keep the exported answer: ${name}`} data-testid="import-keep">
-              Keep the exported
-            </button>
-            <button type="button" className="btn small ghost" onClick={() => setEditing({ id: f.id, text: f.change!.new })} aria-label={`Edit: ${name}`}>
-              Edit
-            </button>
-            {decided !== undefined && (
-              <button type="button" className="btn small ghost" onClick={() => clear(f.id)}>
-                Undo
+          {/* The project stage is changed on the Home page: no button here puts it in (the cell says why). */}
+          {!isProjectStageQuestion(f.row, f.side) && (
+            <span className="import-actions">
+              <button type="button" className="btn small" disabled={!!f.unreadable} onClick={() => set(f.id, f.change!.new)} aria-label={`Use the file's answer: ${name}`} data-testid="import-use-file">
+                Use the file's
               </button>
-            )}
-          </span>
+              <button type="button" className="btn small ghost" onClick={() => set(f.id, keep)} aria-label={`Keep the exported answer: ${name}`} data-testid="import-keep">
+                Keep the exported
+              </button>
+              <button type="button" className="btn small ghost" onClick={() => setEditing({ id: f.id, text: f.change!.new })} aria-label={`Edit: ${name}`}>
+                Edit
+              </button>
+              {decided !== undefined && (
+                <button type="button" className="btn small ghost" onClick={() => clear(f.id)}>
+                  Undo
+                </button>
+              )}
+            </span>
+          )}
         </td>
       );
     }
@@ -361,9 +379,12 @@ function Review({ session, file }: { session: GapImportSession; file: File }) {
                   Accept
                 </button>
               )}
-              <button type="button" className="btn small ghost" onClick={() => setEditing({ id: f.id, text: f.value })} aria-label={`${f.value ? "Edit" : "Type an answer"}: ${name}`}>
-                {f.value ? "Edit" : "Type an answer"}
-              </button>
+              {/* The project stage is changed on the Home page, so no answer is typed for it here (the cell says why). */}
+              {!isProjectStageQuestion(f.row, f.side) && (
+                <button type="button" className="btn small ghost" onClick={() => setEditing({ id: f.id, text: f.value })} aria-label={`${f.value ? "Edit" : "Type an answer"}: ${name}`}>
+                  {f.value ? "Edit" : "Type an answer"}
+                </button>
+              )}
               {session.fieldCells[f.id] && (
                 <button type="button" className="btn small ghost" onClick={() => showInDocument([f.id])} aria-label={`Show in the document: ${name}`}>
                   Show

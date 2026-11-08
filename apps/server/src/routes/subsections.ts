@@ -7,7 +7,7 @@ import { HttpError, sendJson, sendNoContent, type Ctx, type Route } from "../htt
 import { MAX_LIBRARY_BODY_BYTES, MAX_LIBRARY_ITEMS, requireRoomForItem } from "../limits";
 import { isId } from "../names";
 import { SAMPLING_MODULE } from "./sampling-tables";
-import { idParam, notFound, parseBody, userPath } from "./util";
+import { assertNotChanged, baseUpdatedAtSchema, idParam, notFound, parseBody, userPath } from "./util";
 
 type Stored = Record<string, unknown> & { id: string };
 
@@ -31,7 +31,8 @@ const itemSchema = subsectionLibraryItemSchema
     history: z.array(z.record(z.string(), z.unknown())).max(2000).optional(),
   })
   .passthrough();
-const bodySchema = z.object({ item: itemSchema });
+// `baseUpdatedAt` is only read when a subsection is replaced (PUT): see assertNotChanged.
+const bodySchema = z.object({ item: itemSchema, baseUpdatedAt: baseUpdatedAtSchema });
 
 export const subsectionRoutes: Route[] = [
   {
@@ -87,6 +88,7 @@ export const subsectionRoutes: Route[] = [
       const { store } = ctx.app;
       const saved = await store.update<Stored | null>(userPath(ctx, "subsections", `${id}.json`), null, (current) => {
         if (!current) throw notFound("subsection");
+        assertNotChanged(current, body.baseUpdatedAt, "subsection");
         return { ...body.item, id };
       });
       await store.audit("subsection-update", { userId: ctx.user.id, itemId: id, ip: ctx.ip });

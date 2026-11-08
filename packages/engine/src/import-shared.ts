@@ -7,7 +7,19 @@
  * defaulted, units are never converted, and what is not accepted stays open.
  */
 
+import type { WrittenAnswer } from "./interview";
+
 export const norm = (s: string | undefined) => (s ?? "").replace(/[\s ]+/g, " ").trim();
+
+/**
+ * Marks an answer an upload has just applied (through applyAnswerWritten) with where it came from: the source's label says so, and so does
+ * the detail of every change-log record that applying wrote (those after `logBefore`). The saved-answer and gap-assessment uploads both did
+ * this by hand, each finding "its" record as the last one in the list. Mutates `written.project`, which applyAnswerWritten made a fresh copy.
+ */
+export function stampApplied(written: WrittenAnswer, logBefore: number, from: { sourceNote: string; detail: string }): void {
+  written.source.label = `${written.source.label} (${from.sourceNote})`;
+  for (const ev of written.project.changeLog.slice(logBefore)) ev.detail = from.detail;
+}
 
 // ------------------------------------------------------------------ the document as read
 

@@ -671,12 +671,20 @@ export function applySamplingImport(project: Project, s: SamplingImportSession, 
     if (!cur.sampling.plans.some((p) => p.id === planId)) throw new SamplingImportError(`Sampling plan ${planId} is not in this project.`);
   }
   const evidence: { field: string; value: string; source: string }[] = [];
+  // Accepted values that did not go into the plan (a value that failed the check, a row that was refused). They are not "taken".
+  let notPut = 0;
   const planNow = () => cur.sampling.plans.find((p) => p.id === planId)!;
   const isUpdate = opts.target.kind === "update";
 
+  // The change log is the audit trail, so it lists a value only when it really went into the plan. A row can still be refused after its
+  // values passed the format check (no step, a point that would not add), so the evidence of a row is kept apart and joins `evidence`
+  // only when the row changed the plan. Without this the log said values were taken that are not in the plan (CR-08).
   for (const row of s.rows) {
     const fieldOf = (c: SamplingColumn) => s.fields.find((f) => f.row === row.n && f.column === c)!;
     const accepted = new Map<SamplingColumn, string>();
+    const rowEvidence = new Map<SamplingColumn, { field: string; value: string; source: string }>();
+    // The plan as it was before this row: a step added for a row whose point then fails to add must not stay behind as an empty step.
+    const beforeRow = cur;
     for (const c of SAMPLING_COLUMNS) {
       const f = fieldOf(c);
       const v = decisions[f.id]?.value;
@@ -684,12 +692,15 @@ export function applySamplingImport(project: Project, s: SamplingImportSession, 
       const why = f.value === v ? f.unreadable : checkSamplingValue(c, v, syn);
       if (why) {
         warnings.push(`${row.label}: ${SAMPLING_COLUMN_LABEL[c]} was not put in: ${why}`);
+        notPut++;
         continue;
       }
       accepted.set(c, norm(v));
-      evidence.push({ field: `${row.label}: ${SAMPLING_COLUMN_LABEL[c]}`, value: norm(v), source: f.source });
+      rowEvidence.set(c, { field: `${row.label}: ${SAMPLING_COLUMN_LABEL[c]}`, value: norm(v), source: f.source });
     }
     if (accepted.size === 0) continue;
+    // How many of this row's accepted values did not go in; added to `notPut` when the row is done, whichever way it ends.
+    let refused = 0;
     try {
       const plan = planNow();
       const target = isUpdate ? findTargetPoint(plan, s, row, labels, project.meta.id) : undefined;
@@ -709,17 +720,23 @@ export function applySamplingImport(project: Project, s: SamplingImportSession, 
         if (stepText && norm(now.step).toLowerCase() !== stepText.toLowerCase()) {
           const t = resolveStep(plan, labels, stepText);
           if (t.kind === "plan") patch.flow = { stepId: t.step.id };
-          else warnings.push(`${row.label}: the step "${stepText}" is not a step of ${planId}, so ${target.id} stays on its step.`);
+          else {
+            warnings.push(`${row.label}: the step "${stepText}" is not a step of ${planId}, so ${target.id} stays on its step.`);
+            rowEvidence.delete("step");
+            refused = 1;
+          }
         }
         if (Object.keys(patch).length === 0) continue;
         cur = updatePoint(cur, planId, target.id, patch, actor);
         updated++;
+        evidence.push(...rowEvidence.values());
         continue;
       }
       // A new point needs its process step and at least one more value; without them it would be an empty row in the plan.
       const stepText = accepted.get("step");
       if (!stepText || accepted.size < 2) {
         warnings.push(`${row.label} was not added: ${!stepText ? "its process step was not accepted" : "only the process step was accepted, with nothing else to say about the sample"}.`);
+        refused = accepted.size;
         continue;
       }
       let t = resolveStep(plan, labels, stepText);
@@ -746,19 +763,30 @@ export function applySamplingImport(project: Project, s: SamplingImportSession, 
       }
       if (Object.keys(patch).length) cur = updatePoint(cur, planId, r.pointId, patch, actor);
       added++;
+      evidence.push(...rowEvidence.values());
     } catch (e) {
-      if (e instanceof SamplingError) warnings.push(`${row.label} was not applied: ${e.message}`);
-      else throw e;
+      if (e instanceof SamplingError) {
+        // Back to the plan as it was before this row: no new step without its point, and no evidence for values that did not go in.
+        cur = beforeRow;
+        refused = accepted.size;
+        warnings.push(`${row.label} was not applied: ${e.message}`);
+      } else throw e;
+    } finally {
+      notPut += refused;
     }
   }
   const log = (ev: Omit<ChangeEvent, "at" | "by">) => cur.changeLog.push({ at: actor.at, by: actor.name, ...ev });
   cur = structuredClone(cur);
-  const sumText = `${counts.taken} ${counts.taken === 1 ? "value" : "values"} taken`;
+  // What was accepted on the review screen is not always what went in: a value that failed the check, or a row that was refused, stays
+  // open. The count in the log and in the summary after the upload follows what the plan really took.
+  const put = Math.max(0, Math.min(counts.taken, counts.taken - notPut));
+  const done: ImportCounts = { ...counts, taken: put, open: counts.open + (counts.taken - put) };
+  const sumText = `${done.taken} ${done.taken === 1 ? "value" : "values"} taken`;
   log({
     action: "sampling_import",
     path: `sampling.${planId}`,
     detail: `Imported from ${s.fileName}: ${sumText}; ${added} ${added === 1 ? "point" : "points"} added, ${updated} updated${isUpdate ? ` (update of ${planId})` : ` (new plan ${planId})`}.`,
-    after: { file: s.fileName, level: s.level, counts, added, updated, evidence, warnings },
+    after: { file: s.fileName, level: s.level, counts: done, added, updated, evidence, warnings },
   });
-  return { project: cur, planId, counts, warnings, added, updated };
+  return { project: cur, planId, counts: done, warnings, added, updated };
 }

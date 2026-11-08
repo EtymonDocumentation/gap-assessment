@@ -6,7 +6,7 @@ import { z } from "zod";
 import { HttpError, sendJson, sendNoContent, type Ctx, type Route } from "../http";
 import { MAX_LIBRARY_BODY_BYTES, MAX_LIBRARY_ITEMS, requireRoomForItem } from "../limits";
 import { isId } from "../names";
-import { idParam, notFound, parseBody, userPath } from "./util";
+import { assertNotChanged, baseUpdatedAtSchema, idParam, notFound, parseBody, userPath } from "./util";
 
 type Stored = Record<string, unknown> & { id: string };
 
@@ -36,7 +36,8 @@ const tableSchema = companyTableSnapshotSchema
     history: z.array(z.record(z.string(), z.unknown())).max(2000).optional(),
   })
   .passthrough();
-const bodySchema = z.object({ table: tableSchema });
+// `baseUpdatedAt` is only read when a table is replaced (PUT): see assertNotChanged.
+const bodySchema = z.object({ table: tableSchema, baseUpdatedAt: baseUpdatedAtSchema });
 
 export const samplingTableRoutes: Route[] = [
   {
@@ -92,6 +93,7 @@ export const samplingTableRoutes: Route[] = [
       const { store } = ctx.app;
       const saved = await store.update<Stored | null>(userPath(ctx, "sampling-tables", `${id}.json`), null, (current) => {
         if (!current) throw notFound("sampling table");
+        assertNotChanged(current, body.baseUpdatedAt, "sampling table");
         return { ...body.table, id };
       });
       await store.audit("sampling-table-update", { userId: ctx.user.id, tableId: id, ip: ctx.ip });

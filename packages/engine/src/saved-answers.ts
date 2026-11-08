@@ -13,8 +13,10 @@ import {
 import { fieldLabel, parameterFields, type ContentBundle } from "./content";
 import type { Question } from "./content-schema";
 import { formatQuestionSide, formatValue, questionLabel } from "./format";
-import { applyAnswer, AnswerError, normalizeParamField, normalizeValue, type AnswerInput } from "./interview";
+import { stampApplied } from "./import-shared";
+import { applyAnswerWritten, AnswerError, normalizeParamField, normalizeValue, type AnswerInput } from "./interview";
 import { instanceRefs, visibleInstances, type QuestionInstance } from "./sequencer";
+import { isProjectStageQuestion, PROJECT_STAGE_UPLOAD_NOTE } from "./stage";
 import { valuesEqual } from "./values";
 
 /*
@@ -84,6 +86,8 @@ export function buildSavedSet(
   for (const inst of visibleInstances(content, project, "paired")) {
     if (inst.side === "shared") continue;
     if (opts.sides !== "both" && inst.side !== opts.sides) continue;
+    // The project stage is never part of a set: applying it would skip the reason, the version and the stage review (CR-03).
+    if (isProjectStageQuestion(inst.question.id, inst.side)) continue;
     const r = readInput(project, inst);
     if (r === "tbd") skipped.tbd++;
     else if (r === "same") skipped.sameAsSource++;
@@ -204,7 +208,9 @@ export function reviewSavedSet(content: ContentBundle, project: Project, set: Pi
       rows.push({ ...base, state: "not_asked", existing: "none" });
       continue;
     }
-    const problem = problemWith(content, inst, a);
+    // A set made before this rule (or edited by hand) can still hold the project stage. It is listed, so nothing is silently dropped, but it
+    // is never ready: the stage changes through changeProjectStage only (CR-03).
+    const problem = isProjectStageQuestion(a.questionId, a.side) ? PROJECT_STAGE_UPLOAD_NOTE : problemWith(content, inst, a);
     rows.push({ ...base, sectionTitle: inst.section.title, inst, state: problem ? "cannot" : "ready", ...(problem ? { problem } : {}), ...existingOf(content, project, inst, a) });
   }
   const asc = (r: ReviewRow) => (r.inst ? order.indexOf(r.key) : Number.MAX_SAFE_INTEGER);
@@ -234,17 +240,16 @@ export function applySavedSet(project: Project, content: ContentBundle, set: Pic
   for (const row of reviewSavedSet(content, project, set)) {
     if (row.state !== "ready" || !row.inst || !ticked.has(row.key)) continue;
     const logBefore = cur.changeLog.length;
+    let written: ReturnType<typeof applyAnswerWritten>;
     try {
-      cur = applyAnswer(cur, content, row.inst, row.answer.input as AnswerInput, actor);
+      written = applyAnswerWritten(cur, content, row.inst, row.answer.input as AnswerInput, actor);
     } catch (e) {
       failed.push({ key: row.key, message: (e as Error).message });
       continue;
     }
-    const rec = cur.answers[cur.answers.length - 1]!;
-    rec.fromSavedSet = ref;
-    const src = cur.sources.find((s) => s.id === rec.sourceId);
-    if (src) src.label = `${src.label} (from saved answers: ${ref.name}, ${savedDay(ref.savedAt)})`;
-    for (const ev of cur.changeLog.slice(logBefore)) ev.detail = note;
+    cur = written.project;
+    written.record.fromSavedSet = ref;
+    stampApplied(written, logBefore, { sourceNote: `from saved answers: ${ref.name}, ${savedDay(ref.savedAt)}`, detail: note });
     applied++;
   }
   if (applied) cur.changeLog.push({ at: actor.at, by: actor.name, action: "apply_saved_answers", detail: `${ref.name}, saved ${savedDay(ref.savedAt)}: ${applied} ${applied === 1 ? "answer" : "answers"} applied` });

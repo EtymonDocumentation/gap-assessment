@@ -168,8 +168,10 @@ export function StartChoices({ stay, compact, children }: { stay?: boolean; comp
         <ResponderForm
           withTitle
           submitLabel="Create project"
-          onSubmit={(v) => {
-            newProject(v.title!, { name: v.name, ...(v.role ? { role: v.role } : {}) });
+          onSubmit={async (v) => {
+            // Refused while the open project's save has failed or has a conflict: the reason shows in the form, which stays as typed.
+            const refused = await newProject(v.title!, { name: v.name, ...(v.role ? { role: v.role } : {}) });
+            if (refused) return refused;
             setCreating(false);
             // The Scope step comes right after project setup, before the interview, so nobody answers questions about steps they do not have.
             navigate(after?.path ?? "/scope", after?.params);

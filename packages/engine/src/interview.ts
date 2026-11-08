@@ -134,6 +134,16 @@ function sideLabel(side: QuestionInstance["side"]): string {
   return side === "shared" ? "scoping" : side === "source" ? "SU" : "RU";
 }
 
+/** The record of an answer that applyAnswer wrote into `project.answers`. */
+export type AnswerRecord = Project["answers"][number];
+
+/** What recording an answer wrote: the new project, the answer record and the source it cites (both are the objects inside `project`). */
+export interface WrittenAnswer {
+  project: Project;
+  record: AnswerRecord;
+  source: Source;
+}
+
 /**
  * Records an answer. Every answer creates an interview_answer source carrying
  * the responder and date; every entry written cites that source. Values are
@@ -147,6 +157,22 @@ export function applyAnswer(
   actor: Actor,
   opts: AnswerOptions = {},
 ): Project {
+  return applyAnswerWritten(project, content, inst, input, actor, opts).project;
+}
+
+/**
+ * The same as applyAnswer, but also hands back the answer record and the source it wrote. The saved-answer and gap-assessment uploads mark
+ * what they just applied (where it came from); they used to take "the last answer in the list", which is right only while this function
+ * happens to push last. Returning the record makes that a fact the compiler holds, not a habit.
+ */
+export function applyAnswerWritten(
+  project: Project,
+  content: ContentBundle,
+  inst: QuestionInstance,
+  input: AnswerInput,
+  actor: Actor,
+  opts: AnswerOptions = {},
+): WrittenAnswer {
   const q = inst.question;
   const side = inst.side;
   type Write = { path: string; ans: Exclude<FieldAnswer, { kind: "tbd" }> | { kind: "tbd"; info: TbdInfo } };
@@ -261,7 +287,7 @@ export function applyAnswer(
     });
   }
 
-  next.answers.push({
+  const record: AnswerRecord = {
     id: newId("ans"),
     questionId: q.id,
     side,
@@ -270,7 +296,8 @@ export function applyAnswer(
     sourceId: source.id,
     by: actor.name,
     at: actor.at,
-  });
+  };
+  next.answers.push(record);
   // Answering the project stage through any editor (the interview, the header chip, Home, the TRD form) is the review a stage check asks
   // for, so it clears the check. Choosing the same stage again clears it too: the person looked and confirmed. The clearing is logged.
   if (q.id === STAGE_QUESTION_ID && side === "target" && input.kind === "value" && next.meta.stageCheck) {
@@ -278,7 +305,7 @@ export function applyAnswer(
     delete next.meta.stageCheck;
     next.changeLog.push({ at: actor.at, by: actor.name, action: "clear_stage_check", path: fullRef(side, q.binds), detail: "The project stage was set again, so the stage check was cleared.", before: { stageCheck: check }, after: {} });
   }
-  return next;
+  return { project: next, record, source };
 }
 
 /** Switches the order questions are asked in. Logged when an actor is given. */
