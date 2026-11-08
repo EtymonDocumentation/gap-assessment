@@ -1,4 +1,4 @@
-import type { DocumentTagData, SamplingTagData, TagData, TemplateMode } from "@gap/docx";
+import type { DocumentTagData, SamplingTagData, TagData, TemplateAnalysis, TemplateMode } from "@gap/docx";
 import { BUILTIN_TEMPLATE_VERSION } from "@gap/docx/src/version";
 import { optionalSectionTitle, type Assessment, type ContentBundle, type DocModel } from "@gap/engine";
 import type { DocumentExport, Project, TemplateRecord } from "@gap/process-model";
@@ -40,7 +40,8 @@ export function useWordChoice(): WordChoice {
   const [mode, setMode] = useState<TemplateMode>("builtin");
   const [pick, setPick] = useState("");
   const candidates = useMemo(() => (mode === "builtin" ? [] : items.filter((t) => t.analysis.usableModes.includes(mode))), [items, mode]);
-  const template = candidates.find((t) => t.id === pick) ?? candidates[0];
+  // Nothing is chosen for the person: the list starts on "Choose a template" even when it holds only one (EOU-38).
+  const template = candidates.find((t) => t.id === pick);
   const record = mode === "builtin" ? BUILTIN_RECORD : template ? recordOf(mode, template) : undefined;
   return { mode, setMode, candidates, template, setTemplateId: setPick, record };
 }
@@ -53,6 +54,21 @@ export interface Checks {
   notes: string[];
 }
 
+/**
+ * The template warnings that matter for the kind of Word document chosen. The analysis is made once, when the template is added, so it
+ * names every kind; a tagged template was being told about a missing "Heading 3" that only a template's look or headings (or a body tag) use.
+ */
+function warningsFor(mode: TemplateMode, a: TemplateAnalysis): string[] {
+  const usesBody = a.tags?.found.includes("@body") ?? false;
+  return a.warnings.filter((w) => {
+    if (w.startsWith("The template does not define these Word styles")) return mode !== "tags" || usesBody;
+    if (w.startsWith("No headings were found")) return mode === "mapped";
+    if (w.startsWith("The template contains tracked changes")) return mode === "mapped" || mode === "their_look";
+    if (w.startsWith("The template has problems with its tags")) return mode === "tags";
+    return true;
+  });
+}
+
 /** Everything worth knowing before a download. A blocker disables the button; the rest is information. */
 function usePreExportChecks(choice: WordChoice, doc: DocModel): Checks | null {
   const { docx } = useDocx(choice.mode !== "builtin");
@@ -61,23 +77,23 @@ function usePreExportChecks(choice: WordChoice, doc: DocModel): Checks | null {
     const out: Checks = { blockers: [], warnings: [], notes: [] };
     if (choice.mode === "builtin") return out;
     if (!t) {
-      out.blockers.push("No template in the library works with this option. Add one on the Templates page.");
+      out.blockers.push(choice.candidates.length === 0 ? "No template in the library works with this option. Add one on the Templates page." : "Choose a template above, or go back to the built-in layout.");
       return out;
     }
     if (!docx) return null;
-    out.warnings.push(...t.analysis.warnings);
+    out.warnings.push(...warningsFor(choice.mode, t.analysis));
     if (choice.mode === "mapped") {
       if (!t.mapping) {
-        out.blockers.push("This template has no saved heading mapping yet. Open the mapping editor, choose where the content goes, and save it.");
+        out.blockers.push("This template has no heading placement yet. Choose where the content goes under its headings, and save it.");
       } else {
         const r = docx.mappingReport(t.analysis, t.mapping, doc);
         out.blockers.push(...r.errors);
         if (r.unmappedBlocks.length) {
           const titles = r.unmappedBlocks.map((b) => b.title).join("; ");
           if (t.mapping.unmappedBlocks === "append") {
-            out.notes.push(`${r.unmappedBlocks.length} ${r.unmappedBlocks.length === 1 ? "part" : "parts"} of the content ${r.unmappedBlocks.length === 1 ? "is" : "are"} not mapped to a heading and will be added at the end: ${titles}.`);
+            out.notes.push(`${r.unmappedBlocks.length} ${r.unmappedBlocks.length === 1 ? "part" : "parts"} of the content ${r.unmappedBlocks.length === 1 ? "is" : "are"} not placed under a heading and will be added at the end: ${titles}.`);
           } else {
-            out.warnings.push(`${r.unmappedBlocks.length} ${r.unmappedBlocks.length === 1 ? "part" : "parts"} of the content will be left out of the Word document, as you chose in the mapping: ${titles}.`);
+            out.warnings.push(`${r.unmappedBlocks.length} ${r.unmappedBlocks.length === 1 ? "part" : "parts"} of the content will be left out of the Word document, as you chose in the heading placement: ${titles}.`);
           }
         }
         if (r.flaggedHeadings.length) {
@@ -255,6 +271,7 @@ export function WordPanelView({
       </p>
       <fieldset className="stack">
         <legend>Kind of Word document</legend>
+        <p className="small muted">Most people keep the built-in layout. The other kinds use a Word template of your own, added on the Templates page.</p>
         {modes.map((m) => (
           <label key={m} className="check top">
             <input
@@ -275,9 +292,10 @@ export function WordPanelView({
         ))}
       </fieldset>
       {note && (
-        <p className="small muted" data-testid={testIdPrefix ? `${testIdPrefix}-word-note` : undefined}>
-          {note}
-        </p>
+        <details className="small" data-testid={testIdPrefix ? `${testIdPrefix}-word-note` : undefined}>
+          <summary>About template headings and tags</summary>
+          <p className="muted">{note}</p>
+        </details>
       )}
 
       {choice.mode !== "builtin" && (
@@ -291,6 +309,7 @@ export function WordPanelView({
             <label className="field">
               <span>Template</span>
               <select value={t?.id ?? ""} onChange={(e) => choice.setTemplateId(e.target.value)}>
+                <option value="">Choose a template</option>
                 {choice.candidates.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name} (version {c.version}
@@ -303,7 +322,7 @@ export function WordPanelView({
           )}
           {choice.mode === "mapped" && t && (
             <p className="small">
-              <a href={href(`/templates/${t.id}/mapping`)}>{t.mapping ? "Edit the heading mapping" : "Create the heading mapping"}</a> for {t.name}.
+              <a href={href(`/templates/${t.id}/mapping`)}>{t.mapping ? "Edit the heading placement" : "Set the heading placement"}</a> for {t.name}.
             </p>
           )}
         </div>

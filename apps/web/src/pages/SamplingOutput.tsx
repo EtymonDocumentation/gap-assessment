@@ -25,7 +25,7 @@ export function SamplingOutput({ plan }: { plan: SamplingPlan }) {
 }
 
 const SAMPLING_WORD_NOTE =
-  `"A template's headings" is offered for the gap assessment document only: a saved mapping names the gap document's sections. For a tagged template, {title}, {banner}, {status}, {generated}, {meta}, {sections} and the project tags ({program}, {modality}, {sourceSite}, {targetSite} and the like) are filled, and {@body} brings in the document in your template's styles. The parties from "Who does what" are available as {#parties}, {#fromParties}, {#toParties} and {#ccParties} (name, role, department), and as {sendingUnit}, {receivingSite}, {cmoName} and {sponsorName}; the Templates page lists every tag.`;
+  `"A template's headings" is offered for the gap assessment document only: a saved heading placement names the gap document's sections. For a tagged template, {title}, {banner}, {status}, {generated}, {meta}, {sections} and the project tags ({program}, {modality}, {sourceSite}, {targetSite} and the like) are filled, and {@body} brings in the document in your template's styles. The parties from "Who does what" are available as {#parties}, {#fromParties}, {#toParties} and {#ccParties} (name, role, department), and as {sendingUnit}, {receivingSite}, {cmoName} and {sponsorName}; the Templates page lists every tag.`;
 
 /** One document card. The CMO reporting instructions are a second output of the same plan, with their own export-history kinds. */
 function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "cmo" }) {
@@ -94,14 +94,17 @@ function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "
         )}
         {!cmo && (
           <fieldset className="stack" data-testid="figure-style-choice">
-            <legend>Process flow figure in the document</legend>
+            <legend>Document figure in the downloaded file</legend>
+            {/* One option per line: the options are inline, so "No figure" used to run into the hint that followed. */}
             {FIGURE_STYLES.map((s) => (
-              <label key={s} className="check">
-                <input type="radio" name="export-figure-style" value={s} checked={figureStyle === s} onChange={() => setFigureStyle(s)} data-testid={`export-figure-${s}`} />
-                <span>{FIGURE_STYLE_LABEL[s]}</span>
-              </label>
+              <div key={s}>
+                <label className="check">
+                  <input type="radio" name="export-figure-style" value={s} checked={figureStyle === s} onChange={() => setFigureStyle(s)} data-testid={`export-figure-${s}`} />
+                  <span>{FIGURE_STYLE_LABEL[s]}</span>
+                </label>
+              </div>
             ))}
-            <span className="muted small">One choice per export. It applies to the Word and the HTML document and is not stored in the plan.</span>
+            <p className="muted small">One choice per download. It applies to the Word and the HTML file and is not stored in the plan.</p>
           </fieldset>
         )}
         <div className="row wrap">

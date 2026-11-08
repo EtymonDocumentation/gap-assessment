@@ -40,10 +40,12 @@ import { SubsectionsEditor } from "./SamplingSubsections";
 import { SamplingContents } from "./SamplingContents";
 import { DesignReviewLine, SamplingReview } from "./SamplingReview";
 import { HelpTip } from "../HelpTip";
+import { useLandAtTop } from "../land-at-top";
+import { PlanSourceNote } from "./SamplingSource";
 import { SamplingFormButton, SamplingUploadButton } from "./SamplingUploadButton";
 
 type Tab = "overview" | "interview" | "review" | "subsections";
-const TAB_LABEL: Record<Tab, string> = { overview: "Overview", interview: "Interview", review: "Design review", subsections: "Plan subsections" };
+const TAB_LABEL: Record<Tab, string> = { overview: "Overview", interview: "Interview", review: "Design review", subsections: "Subsections" };
 
 /** The sentence the page and the document both carry: what the tool does and what it leaves to people. */
 export const SAMPLING_SCOPE_TEXT =
@@ -104,7 +106,7 @@ function PlanList({ missing }: { missing?: string | undefined }) {
                 <li>The plan is a draft and never says that a plan is approved.</li>
               </ul>
               <p>
-                Company sampling tables are kept on the <a href={href("/sampling/tables")}>Sampling tables</a> page. Reusable plan text is kept on the <a href={href("/sampling/subsections")}>Plan subsections</a> page.
+                Company sampling tables are kept on the <a href={href("/sampling/tables")}>Sampling tables</a> page. Reusable plan text is kept in the <a href={href("/sampling/subsections")}>Subsection library</a>.
               </p>
             </>
           ),
@@ -163,6 +165,7 @@ function PlanList({ missing }: { missing?: string | undefined }) {
             {error}
           </p>
         )}
+        <PlanSourceNote made={false} />
       </section>
     </div>
   );
@@ -190,6 +193,8 @@ function PlanRow({ plan }: { plan: SamplingPlan }) {
 // ------------------------------------------------------------------ the editor
 
 function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab }) {
+  // A plan that has just been made (or opened from the list) shows from its top, not level with the button that made it.
+  useLandAtTop(plan.id);
   const project = useStore((s) => s.project)!;
   const content = useContent();
   const update = useStore((s) => s.update);
@@ -306,6 +311,7 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
           { label: "Download reporting instructions (HTML)", onSelect: toDownload("cmo-download-html") },
         ]}
       />
+      <PlanSourceNote made />
 
       <div role="group" aria-label="Plan sections" className="row wrap seg no-print" data-testid="plan-tabs" data-tour="plan-tabs">
         {(Object.keys(TAB_LABEL) as Tab[]).map((t) => (
@@ -313,7 +319,7 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
             {TAB_LABEL[t]}
           </button>
         ))}
-        <HelpTip label="Plan sections" text="Overview shows the open items, the flow diagram, the sampling points and the document. Interview asks about each step or study type. Design review asks questions about how the samples are taken and where they sit. Plan subsections holds reusable text for the document. Switching tabs never loses anything you entered." />
+        <HelpTip label="Plan sections" text="Overview shows the open items, the sampling diagram, the document figure, the sampling points and the document. Interview asks about each step or study type. Design review asks questions about how the samples are taken and where they sit. Subsections holds your own text for the document, and can copy text from the subsection library. Switching tabs never loses anything you entered." />
       </div>
 
       <SamplingContents tab={tab} onTab={setTab} />

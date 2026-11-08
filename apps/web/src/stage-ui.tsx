@@ -154,7 +154,7 @@ function StageDialog({ open, onClose, restoreFocus }: { open: boolean; onClose: 
                   Version {result.entry.label} saved. Project stage is now {stageShort(done.stage)}.
                 </strong>
               </p>
-              {result.autoEntry && <p className="small">Your edits since the last version were saved first as {result.autoEntry.label}.</p>}
+              {result.autoEntry && <p className="small">Your edits since the last version were saved first as {result.autoEntry.label}, so they are kept in the history.</p>}
               <p className="small">{STAGE_OWN_TEXT_NOTE}</p>
               <div className="row wrap">
                 {items > 0 ? (
@@ -213,7 +213,8 @@ function StageDialog({ open, onClose, restoreFocus }: { open: boolean; onClose: 
             To: <strong>{STAGE_LABEL[picked]}</strong>
           </p>
           <label className="field" htmlFor={reasonId}>
-            <span>{stage === undefined ? "Why is the stage being set? (optional)" : "Why is the stage changing?"}</span>
+            {/* Ease-of-use pass (EOU-33): an empty reason stops the button with a message, so the box says it is needed before anyone presses. */}
+            <span>{stage === undefined ? "Why is the stage being set? (optional)" : "Why is the stage changing? (needed to save the change)"}</span>
             <textarea
               id={reasonId}
               rows={2}
@@ -222,10 +223,11 @@ function StageDialog({ open, onClose, restoreFocus }: { open: boolean; onClose: 
               onChange={(e) => setReason(e.target.value)}
               aria-describedby={[hintId, error ? errId : ""].filter(Boolean).join(" ")}
               aria-invalid={error ? true : undefined}
+              aria-required={stage === undefined ? undefined : true}
               autoFocus
             />
             <span className="small muted" id={hintId}>
-              For example: PPQ protocol approved
+              {stage === undefined ? "For example: PPQ protocol approved" : `A few words are enough, at least ${REASON_MIN} characters. For example: PPQ protocol approved`}
             </span>
           </label>
           {error && (
@@ -241,7 +243,10 @@ function StageDialog({ open, onClose, restoreFocus }: { open: boolean; onClose: 
             )}
             <p>
               <strong>Version {preview.label} will be saved.</strong>
-              {preview.autoLabel && ` Your edits since the last version are saved first as ${preview.autoLabel}.`}
+              {preview.autoLabel && ` Your edits since the last version are saved first as ${preview.autoLabel}, so they are kept in the history before the stage changes.`}
+            </p>
+            <p className="small muted" data-testid="version-kinds-note">
+              A change of the project stage makes a new main version, such as v2. Save a version makes a smaller step in between, such as v2.1.
             </p>
             <p>{preview.items.length > 0 ? `These need your review: ${docCountsText(preview.items)}.` : "Nothing in your documents needs your review for this change."}</p>
             <p>These change by themselves: Word headers and cover, titles.</p>

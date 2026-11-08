@@ -45,9 +45,9 @@ export function FigureView({
   if (!plan.steps.length) return null;
   return (
     <section className="card stack" aria-labelledby="sp-figure-h" data-testid="plan-figure">
-      <h2 id="sp-figure-h">PPQ flow figure</h2>
+      <h2 id="sp-figure-h">Document figure</h2>
       <p className="muted small">
-        The same figure goes into the Word and HTML documents. Point at or focus a sample to see its row in the table below; the table is the full record. Times that are not given are drawn as narrow blocks and listed under the figure.
+        This picture goes into the Word and HTML documents. To place samples, use the sampling diagram above. Point at or focus a sample to see its row in the table below; the table is the full record. Times that are not given are drawn as narrow blocks and listed under the figure.
       </p>
       <div role="group" aria-label="Figure style" className="row wrap seg">
         {(["time_scale", "step_cards"] as const).map((s) => (

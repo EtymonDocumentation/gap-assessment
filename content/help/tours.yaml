@@ -114,7 +114,7 @@ tours:
         text: Give the plan a title and create it. The number of batches and the sample sizes are your decisions.
       - anchor: plan-tabs
         title: Plan sections
-        text: Overview, Interview, Design review and Plan subsections. Switching tabs never loses anything you entered.
+        text: Overview, Interview, Design review and Subsections. Switching tabs never loses anything you entered.
       - anchor: plan-points
         title: Sampling points
         text: Each row is a place in the process where a sample is taken. Add one, select a row to edit it, and open the question marks for help.
@@ -136,8 +136,8 @@ tours:
         title: Three views
         text: Edit is where you write the record. Process view draws it as an equipment train. Document gives the Word or HTML draft.
       - anchor: mbr-sections
-        title: Sections and step blocks
-        text: Add sections and step blocks, fill in the rows, and clear the open items. Everything stays visible until you settle it.
+        title: Sections and ready-made steps
+        text: Add sections and ready-made steps, fill in the rows, and clear the open items. Everything stays visible until you settle it.
       - anchor: mbr-view-tab
         title: Process view
         text: Open this tab to follow the fluid step by step. It is a picture of the record, not a second place to edit. Use it to spot gaps before review.

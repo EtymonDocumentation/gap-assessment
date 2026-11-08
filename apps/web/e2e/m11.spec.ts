@@ -1,6 +1,6 @@
 // Milestone 11: the master batch record. A record starts from a TRD record, a sampling plan, both or neither; every parameter row shows the
 // TRD value with its source and the MBR value, with a three-way choice that is never preselected; notes about differences are information
-// only; steps are numbered by the tool and cross-references follow; the step blocks come from a versioned library the user can edit.
+// only; steps are numbered by the tool and cross-references follow; the ready-made steps come from a versioned library the user can edit.
 // Accessibility at desktop and phone widths in light and dark, and use by keyboard. All data are fictional.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
@@ -114,14 +114,14 @@ test.describe("batch record: the demo record", () => {
     await expect(table).toContainText("Tightened by the CMO");
   });
 
-  test("the open items panel lists what is undecided and the TRD requirements without a step, with a button to add a block", async ({ page }) => {
+  test("the open items panel lists what is undecided and the TRD requirements without a step, with a button to add a step", async ({ page }) => {
     await openDemoRecord(page);
     const panel = page.getByTestId("mbr-open-items");
     await expect(panel).toContainText("Not decided");
     const reqs = page.getByTestId("mbr-requirements");
     await expect(reqs).toContainText("TRD requirement without a batch record step");
     const before = await reqs.locator("li").count();
-    await reqs.getByRole("button", { name: /Add a block of my own/ }).first().click();
+    await reqs.getByRole("button", { name: /Add a step of my own/ }).first().click();
     await expect(reqs.locator("li")).toHaveCount(before - 1);
   });
 
@@ -205,7 +205,7 @@ test.describe("batch record: new record", () => {
     for (let i = 0; i < n; i++) await expect(offers.nth(i)).not.toBeChecked();
     await page.getByTestId("mbr-create").click();
     await expect(page.getByRole("heading", { level: 1, name: /MBR-002/ })).toBeVisible();
-    await expect(page.getByText("No sections yet. Add one below.")).toBeVisible();
+    await expect(page.getByTestId("mbr-empty-sections").getByText("No sections yet.")).toBeVisible();
     // Add a section and a block of my own.
     await page.getByTestId("mbr-section-new").fill("Receipt");
     await page.getByTestId("mbr-section-add").click();
@@ -224,7 +224,7 @@ test.describe("batch record: new record", () => {
     await page.getByTestId("mbr-start-plan-select").selectOption({ index: 1 });
     // The long block list is folded away (Tester D row 1); its summary says what the sources ticked, and opening it shows the ticked blocks.
     const summary = page.getByTestId("mbr-blocks-details").locator("summary");
-    await expect(summary).toContainText(/[1-9]\d* of \d+ ticked/);
+    await expect(summary).toContainText(/[1-9]\d* ticked of \d+ offered/);
     await summary.click();
     await expect(page.getByTestId("mbr-blocks-offer").locator('input[type="checkbox"]:checked').first()).toBeVisible();
     await page.getByTestId("mbr-create").click();
@@ -244,7 +244,7 @@ test.describe("batch record: new record", () => {
     expect(before.create.y - before.select.y, "Create is within one screen of the dropdown").toBeLessThan(screen * 0.75);
     await create.click();
     const message = page.getByTestId("mbr-create-error");
-    await expect(message).toHaveText("Choose which TRD record to start from, or untick it.");
+    await expect(message).toHaveText("Choose the technical requirements document to start from, or untick it.");
     await expect(select).toBeFocused();
     await expect(select).toHaveAttribute("aria-invalid", "true");
     const after = { select: (await select.boundingBox())!, message: (await message.boundingBox())! };
@@ -260,12 +260,12 @@ test.describe("batch record: new record", () => {
   });
 });
 
-test.describe("batch record: step blocks library", () => {
+test.describe("batch record: ready-made steps library", () => {
   test("an edit makes a new version, the record shows Update from library, and updating brings the record to it", async ({ page }) => {
     await openDemoRecord(page);
     const libLink = breadcrumb(page).getByRole("link", { name: "Batch record", exact: true });
     await libLink.click();
-    await page.getByTestId("module-library").getByRole("link", { name: "Step blocks" }).click();
+    await page.getByTestId("module-library").getByRole("link", { name: "Ready-made steps" }).click();
     await expect(page.getByTestId("mbl-table")).toBeVisible();
     await page.getByTestId("mbl-edit-pooling_with_weights").click();
     const steps = page.getByTestId("mbl-steps");

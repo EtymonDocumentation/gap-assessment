@@ -29,7 +29,7 @@ function Topic({ id, title, children }: { id: string; title: string; children: R
 }
 
 /** The libraries a person can save, named as the menu and the page titles name them. */
-const LIBRARIES = "templates, saved answers, sampling tables, plan subsections, risk methods, process descriptions and step blocks";
+const LIBRARIES = "templates, saved answers, sampling tables, subsection library, risk methods, process descriptions and ready-made steps";
 
 /** The browser settings the page code keeps in local storage (gap-theme, gap-getting-started-hidden, gap-sampling-add-mode). */
 const SETTINGS = "the colour theme, whether the getting-started tip is hidden, and how you add sampling rows";

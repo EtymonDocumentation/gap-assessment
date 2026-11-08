@@ -261,6 +261,10 @@ type Loadout = (typeof riskLoadouts.loadouts)[number];
 export function StarterPicker({ onLoadout, onBlank, idPrefix = "risk" }: { onLoadout: (l: Loadout) => void; onBlank: (m: Method) => void; idPrefix?: string }) {
   return (
     <>
+      {/* Ease-of-use pass (EOU-32): ten buttons and no word on which to take. This says what each group is for and still chooses nothing. */}
+      <p className="small" data-testid={`${idPrefix}-method-hint`}>
+        Not sure which to take? Take the starter closest to how your company scores risk, and change whatever does not fit. Start blank only when you already have a method of your own to enter.
+      </p>
       <ul className="plain-list loadouts" data-testid={`${idPrefix}-loadouts`}>
         {riskLoadouts.loadouts.map((l) => (
           <li key={l.id} className="loadout">
@@ -275,7 +279,7 @@ export function StarterPicker({ onLoadout, onBlank, idPrefix = "risk" }: { onLoa
         ))}
       </ul>
       <div role="group" aria-label="Start with an empty method" className="row wrap">
-        <span className="small muted">Or start blank:</span>
+        <span className="small muted">Your own method, entered from nothing:</span>
         {RISK_METHODS.map((m) => (
           <button key={m} type="button" className="btn small" data-testid={`${idPrefix}-blank-${m}`} onClick={() => onBlank(m)}>
             Blank {METHOD_LABEL[m]}

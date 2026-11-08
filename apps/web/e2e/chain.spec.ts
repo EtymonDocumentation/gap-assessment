@@ -170,11 +170,11 @@ test("each module has a visible Library button, and the TRD page starts a TRD fr
   await goTo(page, "Sampling plan");
   const lib = page.getByTestId("module-library");
   await expect(lib.getByRole("link", { name: "Sampling tables" })).toBeVisible();
-  await lib.getByRole("link", { name: "Plan subsections" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Plan subsections" })).toBeVisible();
+  await lib.getByRole("link", { name: "Subsection library" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Subsection library" })).toBeVisible();
   await goTo(page, "Batch record");
-  await page.getByTestId("module-library").getByRole("link", { name: "Step blocks" }).click();
-  await expect(page.getByRole("heading", { level: 1 })).toContainText(/Step blocks/i);
+  await page.getByTestId("module-library").getByRole("link", { name: "Ready-made steps" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(/Ready-made steps/i);
   await goTo(page, "TRD");
   await page.getByTestId("module-library").getByRole("link", { name: "Process descriptions" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText(/Process description/i);

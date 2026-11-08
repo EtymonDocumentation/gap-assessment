@@ -175,17 +175,17 @@ test("templates: uploading a Word file asks for a name and version", async ({ pa
 test("mapping editor: suggest, change a heading, reorder, leave out needs a tick, save and reload", async ({ page }) => {
   await loadDemo(page);
   await addSamples(page);
-  await card(page, "SOP-style template").getByRole("link", { name: /^Create mapping/ }).click();
-  await expect(page.getByRole("heading", { level: 1, name: /^Heading mapping:/ })).toBeVisible();
+  await card(page, "SOP-style template").getByRole("link", { name: /^Set heading placement/ }).click();
+  await expect(page.getByRole("heading", { level: 1, name: /^Heading placement:/ })).toBeVisible();
 
-  const unmapped = page.getByRole("heading", { level: 3, name: /^Tool content not mapped/ });
+  const unmapped = page.getByRole("heading", { level: 3, name: /^Content not placed/ });
   await expect(page.getByRole("heading", { level: 2, name: /^Template headings/ })).toBeVisible();
   // Nothing is mapped yet.
   await expect(unmapped).toContainText(/\(1\d\)$/);
   const mappedCount = async () => Number(/\((\d+)\)/.exec((await unmapped.textContent()) ?? "")?.[1]);
   const before = await mappedCount();
-  await page.getByRole("button", { name: "Suggest a mapping" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "A suggested mapping was filled in" })).toBeVisible();
+  await page.getByRole("button", { name: "Suggest a placement" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "A suggested placement was filled in" })).toBeVisible();
   const after = await mappedCount();
   // The suggestion maps most of the document; the Gap details appendix has no heading in this sample, so it stays listed.
   expect(after).toBeLessThan(before);
@@ -219,16 +219,16 @@ test("mapping editor: suggest, change a heading, reorder, leave out needs a tick
   // Take one more piece of content away from the mapping; leaving content out needs an explicit tick.
   await objective.getByRole("button", { name: /^Remove .*Purpose/ }).click();
   await page.getByLabel("Leave it out").check();
-  await page.getByRole("button", { name: "Save mapping" }).click();
+  await page.getByRole("button", { name: "Save heading placement" }).click();
   await expect(page.getByRole("alert")).toContainText("I understand this content will be left out");
   await page.getByLabel("I understand this content will be left out of the Word document").check();
-  await page.getByRole("button", { name: "Save mapping" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Mapping saved." })).toBeVisible();
+  await page.getByRole("button", { name: "Save heading placement" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Heading placement saved." })).toBeVisible();
   const savedCount = await mappedCount();
 
   // The mapping is stored with the template: still there after a reload.
   await page.reload();
-  await expect(page.getByRole("heading", { level: 1, name: /^Heading mapping:/ })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: /^Heading placement:/ })).toBeVisible();
   await expect(page.getByLabel("Leave it out")).toBeChecked();
   await expect(page.getByLabel("I understand this content will be left out of the Word document")).toBeChecked();
   expect(await mappedCount()).toBe(savedCount);
@@ -269,21 +269,22 @@ test("document: Word export in all four modes, from the saved mapping, with the 
   // 3. Mapped: blocked until a mapping is saved, then it uses the saved mapping.
   await pick(/^A template's headings/, "SOP-style");
   await expect(exportBtn).toBeDisabled();
-  await expect(panel).toContainText("no saved heading mapping");
-  await panel.getByRole("link", { name: /^Create the heading mapping/ }).click();
-  await page.getByRole("button", { name: "Suggest a mapping" }).click();
-  await page.getByRole("button", { name: "Save mapping" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Mapping saved." })).toBeVisible();
+  await expect(panel).toContainText("no heading placement");
+  await panel.getByRole("link", { name: /^Set the heading placement/ }).click();
+  await page.getByRole("button", { name: "Suggest a placement" }).click();
+  await page.getByRole("button", { name: "Save heading placement" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Heading placement saved." })).toBeVisible();
   await go(page, "#/document");
   await pick(/^A template's headings/, "SOP-style");
   await expect(exportBtn).toBeEnabled();
-  await expect(panel).toContainText("not mapped to a heading");
+  await expect(panel).toContainText("not placed under a heading");
   expectZip(await downloadBytes(page, () => exportBtn.click()), "mapped");
 
   // 4. Tags: only the tag template is offered.
   await panel.getByRole("radio", { name: /^Placeholder tags/ }).check();
-  await expect(panel.locator("select").locator("option")).toHaveCount(1);
+  await expect(panel.locator("select").locator("option")).toHaveCount(2);
   await expect(panel.locator("select")).toContainText("placeholder-tag");
+  await panel.locator("select").selectOption({ index: 1 });
   expectZip(await downloadBytes(page, () => exportBtn.click()), "tags");
 
   // 5. Mapped with the PDF template (headings only). The PDF is not offered for the other options.
@@ -293,11 +294,11 @@ test("document: Word export in all four modes, from the saved mapping, with the 
   await expect(panel.locator("select").locator("option", { hasText: "PDF outline" })).toHaveCount(1);
   await panel.locator("select").selectOption(await panel.locator("select").locator("option", { hasText: "PDF outline" }).getAttribute("value"));
   await expect(exportBtn).toBeDisabled();
-  await panel.getByRole("link", { name: /^Create the heading mapping/ }).click();
+  await panel.getByRole("link", { name: /^Set the heading placement/ }).click();
   await expect(page.getByRole("heading", { level: 1, name: /PDF outline/ })).toBeVisible();
-  await page.getByRole("button", { name: "Suggest a mapping" }).click();
-  await page.getByRole("button", { name: "Save mapping" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Mapping saved." })).toBeVisible();
+  await page.getByRole("button", { name: "Suggest a placement" }).click();
+  await page.getByRole("button", { name: "Save heading placement" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Heading placement saved." })).toBeVisible();
   await go(page, "#/document");
   await pick(/^A template's headings/, "PDF outline");
   await expect(exportBtn).toBeEnabled();
@@ -344,6 +345,7 @@ test("document: the tag sample passes the pre-export check", async ({ page }) =>
   await go(page, "#/document");
   const panel = page.locator("section", { has: page.getByRole("heading", { level: 2, name: "Word document" }) });
   await panel.getByRole("radio", { name: /^Placeholder tags/ }).check();
+  await panel.locator("select").selectOption({ index: 1 });
   await expect(panel.getByText("No problems found.").or(panel.getByText("Warnings"))).toBeVisible();
   await expect(page.getByRole("button", { name: "Download gap assessment (Word)" })).toBeEnabled();
 });
@@ -359,6 +361,8 @@ for (const theme of ["light", "dark"] as const) {
     // Templates, with the analysis open.
     await card(page, "SOP-style template").locator("summary").click();
     await card(page, "PDF outline").locator("summary").click();
+    // The tag reference is closed until it is asked for.
+    await page.getByTestId("tag-reference").locator("summary").click();
     await expect(page.getByRole("table", { name: "Tag reference table" }).or(page.getByRole("region", { name: "Tag reference table" }))).toBeVisible();
     const original = page.viewportSize();
     for (const width of [1280, 768, 390]) {
@@ -387,11 +391,11 @@ for (const theme of ["light", "dark"] as const) {
     await expectAccessible(page, `${theme} templates with an error`);
 
     // The mapping editor, before and after a suggestion.
-    await card(page, "SOP-style template").getByRole("link", { name: /^Create mapping/ }).click();
-    await expect(page.getByRole("heading", { level: 1, name: /^Heading mapping:/ })).toBeVisible();
+    await card(page, "SOP-style template").getByRole("link", { name: /^Set heading placement/ }).click();
+    await expect(page.getByRole("heading", { level: 1, name: /^Heading placement:/ })).toBeVisible();
     await expect(page.getByRole("heading", { level: 2, name: /^Template headings/ })).toBeVisible();
     await expectAccessible(page, `${theme} mapping editor, empty`);
-    await page.getByRole("button", { name: "Suggest a mapping" }).click();
+    await page.getByRole("button", { name: "Suggest a placement" }).click();
     await page.getByLabel("Leave it out").check();
     for (const width of [1280, 768, 390]) {
       await page.setViewportSize({ width, height: 900 });

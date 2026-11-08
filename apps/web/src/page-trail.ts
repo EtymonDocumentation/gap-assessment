@@ -5,7 +5,7 @@
  *
  * A page that is shared by a list and one record (the TRD list and one TRD) names the list in the trail; the page passes the record's own
  * name as `crumb`, and the list part becomes a link back to the list. The libraries (templates, guidance, saved answers, and the tables,
- * subsections, methods, step blocks and process descriptions of each module) belong to the browser, not to a project, so their trail
+ * subsections, methods, ready-made steps and process descriptions of each module) belong to the browser, not to a project, so their trail
  * has no project part.
  */
 export interface TrailPart {
@@ -43,12 +43,12 @@ const TRAILS: Record<string, Trail> = {
   "/trd/writeups": t(false, DOCS, trd, "Process descriptions"),
   "/sampling": t(true, DOCS, "Sampling plan"),
   "/sampling/tables": t(false, DOCS, sampling, "Sampling tables"),
-  "/sampling/subsections": t(false, DOCS, sampling, "Plan subsections"),
+  "/sampling/subsections": t(false, DOCS, sampling, "Subsection library"),
   "/sampling/expected": t(false, DOCS, sampling, "Expected studies"),
   "/sampling/import": t(true, DOCS, sampling, "Upload a sampling plan"),
   "/mbr": t(true, DOCS, "Batch record"),
   "/mbr/view": t(true, DOCS, mbr),
-  "/mbr/library": t(false, DOCS, mbr, "Step blocks"),
+  "/mbr/library": t(false, DOCS, mbr, "Ready-made steps"),
   "/risk": t(true, DOCS, "Risk assessment"),
   "/risk/methods": t(false, DOCS, risk, "Risk methods"),
   "/templates": t(false, LIB, "Templates"),
@@ -65,6 +65,6 @@ const TRAILS: Record<string, Trail> = {
 
 /** The trail of a route, or undefined for a route that has none (Home, the account pages). */
 export function pageTrail(path: string): Trail | undefined {
-  if (/^\/templates\/[^/]+\/mapping$/.test(path)) return t(false, LIB, { label: "Templates", path: "/templates" }, "Heading mapping");
+  if (/^\/templates\/[^/]+\/mapping$/.test(path)) return t(false, LIB, { label: "Templates", path: "/templates" }, "Heading placement");
   return TRAILS[path === "/model" ? "/builder" : path];
 }

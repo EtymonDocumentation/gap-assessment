@@ -71,6 +71,18 @@ describe("glossary (content/help/glossary.yaml)", () => {
     ]) expect(text, w).toContain(w);
   });
 
+  it("names the ready-made steps, the Process view, the heading placement and the two sampling pictures in plain words (ease-of-use pass)", () => {
+    const by = (id: string) => glossary.find((t) => t.id === id);
+    for (const id of ["ready-made-steps", "process-view", "heading-placement", "sampling-diagram", "document-figure", "subsection-library"]) expect(by(id), id).toBeDefined();
+    // The old name stays findable once, in the entry that replaced it, and the batch record entry uses the new one.
+    expect(by("ready-made-steps")!.short).toContain("Earlier called step blocks");
+    expect(by("batch-record")!.short).not.toMatch(/step blocks/i);
+    expect(by("batch-record")!.see).toEqual(expect.arrayContaining(["ready-made-steps", "process-view"]));
+    // The two pictures point at each other, so a first-time user can tell them apart.
+    expect(by("sampling-diagram")!.see).toContain("document-figure");
+    expect(by("document-figure")!.see).toContain("sampling-diagram");
+  });
+
   it("explains all four project stages and says nothing is hidden or blocked", () => {
     const stage = glossary.find((t) => t.id === "project-stage")!.short;
     for (const w of ["Engineering / development", "Clinical", "PPQ", "Commercial", "Nothing is hidden or blocked"]) expect(stage).toContain(w);

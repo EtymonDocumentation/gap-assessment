@@ -16,8 +16,8 @@ const TABS: TabDef<MbrTab>[] = [
     id: "edit",
     label: "Edit",
     testId: "mbr-tab-edit",
-    purpose: "Write the batch record: details, open items and the sections of step blocks.",
-    help: "This is where the record itself is written. Add sections and step blocks, fill the rows, and clear the open items. Everything you change here shows in the other two tabs.",
+    purpose: "Write the batch record: details, open items and the sections of ready-made steps.",
+    help: "This is where the record itself is written. Add sections and ready-made steps, fill the rows, and clear the open items. Everything you change here shows in the other two tabs.",
   },
   {
     id: "view",
@@ -73,7 +73,7 @@ export function MbrFrame({ rec, tab, children }: { rec: MbrRecord; tab: MbrTab; 
             children: (
               <>
                 <p>
-                  A batch record is the step-by-step instruction for making one batch. It is built from step blocks, and it can start from a TRD record (the parameter values) and a sampling plan (the sample rows), or from neither.
+                  A batch record is the step-by-step instruction for making one batch. It is built from ready-made steps, and it can start from a technical requirements document (the parameter values) and a sampling plan (the sample rows), or from neither.
                 </p>
                 <p>Next in the chain: the Process view draws the record as an equipment train, and the Document tab produces the draft for review.</p>
                 <p data-testid="mbr-scope-text">{mbrScopeText}</p>

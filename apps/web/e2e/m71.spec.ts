@@ -127,7 +127,7 @@ test("a custom subsection goes to the library and comes back; the library note a
 
   // The library page lists it; give it a new version.
   await page.evaluate(() => (window.location.hash = "#/sampling/subsections"));
-  await expect(page.getByRole("heading", { level: 1, name: "Plan subsections" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Subsection library" })).toBeVisible();
   const item = page.getByTestId("lib-item-Cold chain note (fictional)");
   await expect(item).toBeVisible();
   await item.locator('[data-testid^="lib-version-"]').fill("2");
@@ -245,7 +245,7 @@ for (const scheme of ["light", "dark"] as const) {
     await expectAccessible(page, `${scheme} CMO preview`);
 
     await page.evaluate(() => (window.location.hash = "#/sampling/subsections"));
-    await expect(page.getByRole("heading", { level: 1, name: "Plan subsections" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Subsection library" })).toBeVisible();
     await expectAccessible(page, `${scheme} library`);
   });
 }

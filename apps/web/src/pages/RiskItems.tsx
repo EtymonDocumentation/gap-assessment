@@ -116,6 +116,10 @@ function AddItems({ a, run, onOpen }: { a: RiskAssessment; run: Run; onOpen: (id
   const [stepId, setStepId] = useState("");
   const [mode, setMode] = useState("");
   const [ticked, setTicked] = useState<string[]>([]);
+  // Ease-of-use pass (EOU-31): "Add ticked gaps as items" used to give no message and leave the list open, while the new item sat far
+  // below it, so it looked as if nothing had happened. Now the list closes, a line says what was added and the cursor goes to the new item.
+  const [gapsOpen, setGapsOpen] = useState(false);
+  const [gapsNote, setGapsNote] = useState("");
   const seeds = useMemo(() => gapSeeds(content, project, a), [content, project, a]);
   const offers = useMemo(() => suggestFailureModes(failureModes, a), [a]);
   const hiddenSteps = failureModes.suggestions.length > 0 && offers.length === 0 && a.steps.length > 0;
@@ -135,8 +139,34 @@ function AddItems({ a, run, onOpen }: { a: RiskAssessment; run: Run; onOpen: (id
   function addTicked() {
     const chosen = seeds.filter((s) => ticked.includes(s.gapId) && s.itemIds.length === 0);
     if (!chosen.length) return;
-    const ok = run((p, actor) => chosen.reduce((proj, s) => addItemFromGap(proj, a.id, s, actor).project, p), `${chosen.length} ${chosen.length === 1 ? "item" : "items"} added from gaps`);
-    if (ok) setTicked([]);
+    const added: string[] = [];
+    const ok = run((p, actor) => {
+      added.length = 0;
+      return chosen.reduce((proj, s) => {
+        const r = addItemFromGap(proj, a.id, s, actor);
+        added.push(r.itemId);
+        return r.project;
+      }, p);
+    }, `${chosen.length} ${chosen.length === 1 ? "item" : "items"} added from gaps`);
+    if (!ok) return;
+    setTicked([]);
+    setGapsOpen(false);
+    setGapsNote(
+      added.length === 1
+        ? `1 item added from the gap: ${added[0]}. It is in the list of items below.`
+        : `${added.length} items added from the gaps: ${added.join(", ")}. They are in the list of items below.`,
+    );
+    // The list closes and the new item is on screen once this render has settled; the cursor goes to its Edit button (a real control).
+    setTimeout(() => {
+      const el = document.querySelector<HTMLElement>(`[data-testid="risk-item-edit-${added[0]}"], [data-testid="risk-row-edit-${added[0]}"]`);
+      el?.scrollIntoView({ block: "center" });
+      el?.focus();
+      // A programmatic focus after a mouse click shows no ring, so the new item gets an outline for a few seconds (the message above says
+      // what was added; the outline shows where it is).
+      const box = el?.closest(".risk-item, tr");
+      box?.classList.add("just-added");
+      setTimeout(() => box?.classList.remove("just-added"), 6000);
+    }, 50);
   }
 
   return (
@@ -173,7 +203,14 @@ function AddItems({ a, run, onOpen }: { a: RiskAssessment; run: Run; onOpen: (id
       </form>
       <p className="muted small">Effect, causes, controls, the score and the links are under "More details" (Edit) after the item is added. A new item has no score.</p>
 
-      <details data-testid="risk-from-gaps">
+      <details
+        data-testid="risk-from-gaps"
+        open={gapsOpen}
+        onToggle={(e) => {
+          setGapsOpen(e.currentTarget.open);
+          if (e.currentTarget.open) setGapsNote("");
+        }}
+      >
         <summary>
           <strong>Add from gaps ({seeds.length})</strong>
         </summary>
@@ -206,6 +243,13 @@ function AddItems({ a, run, onOpen }: { a: RiskAssessment; run: Run; onOpen: (id
           </div>
         </div>
       </details>
+      <div role="status" aria-live="polite">
+        {gapsNote && (
+          <p className="notice" data-testid="risk-gaps-note">
+            {gapsNote}
+          </p>
+        )}
+      </div>
 
       <details data-testid="risk-suggestions">
         <summary>

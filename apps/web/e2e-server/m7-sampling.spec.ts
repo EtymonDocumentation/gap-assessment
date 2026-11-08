@@ -71,7 +71,7 @@ test("server build: the Plan subsections library is stored on the server, with t
   await signUp(page, newAccount("sampsub"), makeSamplingInvite());
   await loadDemo(page);
   await go(page, "#/sampling/subsections");
-  await expect(page.getByRole("heading", { level: 1, name: "Plan subsections" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Subsection library" })).toBeVisible();
   await page.getByTestId("lib-new-name").fill("Server library item (fictional)");
   await page.getByTestId("lib-new-version").fill("1");
   await page.getByTestId("lib-add").click();

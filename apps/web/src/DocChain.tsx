@@ -157,11 +157,11 @@ const LIBRARIES: { module: string; id: string; test: (p: string) => boolean; lin
     test: (p) => p === "/sampling",
     links: [
       { label: "Sampling tables", path: "/sampling/tables" },
-      { label: "Plan subsections", path: "/sampling/subsections" },
+      { label: "Subsection library", path: "/sampling/subsections" },
       { label: "Expected studies", path: "/sampling/expected" },
     ],
   },
-  { module: "Batch record", id: "mbr", test: (p) => p === "/mbr", links: [{ label: "Step blocks", path: "/mbr/library" }] },
+  { module: "Batch record", id: "mbr", test: (p) => p === "/mbr", links: [{ label: "Ready-made steps", path: "/mbr/library" }] },
   { module: "Risk assessment", id: "risk", test: (p) => p === "/risk", links: [{ label: "Risk methods", path: "/risk/methods" }] },
 ];
 

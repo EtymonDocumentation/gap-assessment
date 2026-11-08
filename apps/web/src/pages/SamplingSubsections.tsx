@@ -143,9 +143,9 @@ export function SubsectionsEditor({ plan, run }: { plan: SamplingPlan; run: Run 
   return (
     <div className="stack-lg" data-testid="subsections-editor">
       <section className="card stack" aria-labelledby="sub-intro">
-        <h2 id="sub-intro">Plan subsections ({plan.subsections.length})</h2>
+        <h2 id="sub-intro">Subsections of this plan ({plan.subsections.length})</h2>
         <p className="muted small">
-          Your own text for the plan, placed where you choose: after a section, inside a study-type section, inside a point, or in an appendix. Tick "also in the CMO instructions" to print a subsection in the reporting instructions for the CMO (contract manufacturing organization). Reusable text lives in the <a href="#/sampling/subsections">Plan subsections library</a>.
+          Your own text for the plan, placed where you choose: after a section, inside a study-type section, inside a point, or in an appendix. Tick "also in the CMO instructions" to print a subsection in the reporting instructions for the CMO (contract manufacturing organization). Reusable text lives in the <a href="#/sampling/subsections">Subsection library</a>.
         </p>
         <TokenHelp />
       </section>
@@ -196,7 +196,7 @@ export function SubsectionsEditor({ plan, run }: { plan: SamplingPlan; run: Run 
       <section className="card stack" aria-labelledby="sub-lib">
         <h2 id="sub-lib">Insert from the library</h2>
         {items.length === 0 ? (
-          <Empty>The library is empty. Save a subsection to the library from its card above, or add items on the Plan subsections page.</Empty>
+          <Empty>The library is empty. Save a subsection to the library from its card above, or add items in the Subsection library.</Empty>
         ) : (
           <div className="stack">
             <label className="field">
@@ -314,7 +314,7 @@ function SubsectionCard({ plan, sub, run }: { plan: SamplingPlan; sub: CustomSub
             const base = { id: newLibraryId(), name: sub.title || sub.id, version: "1.0", blocks: structuredClone(sub.blocks), suggestedPlacement: sub.placement.startsWith("in_point:") ? "appendix" : sub.placement };
             save(itemOf(base)).then(
               (s) => setSaved(`Saved to the library as "${s.name}", version ${s.version}.`),
-              () => setSaved("The library could not be saved. See the Plan subsections page."),
+              () => setSaved("The library could not be saved. See the Subsection library."),
             );
           }}
         >

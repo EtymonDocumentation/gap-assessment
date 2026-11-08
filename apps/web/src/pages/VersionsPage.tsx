@@ -107,7 +107,7 @@ export function VersionsPage() {
         <p data-testid="working-copy-line">
           <strong>{workingCopyText(project, unsaved)}</strong>
         </p>
-        <p className="small muted">The working copy is the project you are editing now. A stage change saves a new main version (v2, v3); Save a version saves a smaller step (v2.1).</p>
+        <p className="small muted">The working copy is the project you are editing now. A change of the project stage saves a new main version (v2, v3). Save a version saves a smaller step in between (v2.1, v2.2). Edits that were not saved yet are saved first as a smaller step, so a stage change never loses them.</p>
         {viewing && (
           <p className="notice" data-testid="versions-viewing-note">
             {viewing.label} is open to look at. {READ_ONLY_MESSAGE}

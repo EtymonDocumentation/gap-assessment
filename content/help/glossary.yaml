@@ -14,8 +14,8 @@ version: 1
 terms:
   - id: batch-record
     term: Batch record (MBR)
-    short: The step-by-step instruction for making one batch. It is built from step blocks. It can start from a TRD and a sampling plan, or from neither. Its Process view draws it as an equipment train.
-    see: [trd, sampling-point, ppq-only-item]
+    short: The step-by-step instruction for making one batch. It is built from ready-made steps. It can start from a technical requirements document and a sampling plan, or from neither. Its Process view draws it as an equipment train.
+    see: [ready-made-steps, process-view, trd, sampling-point, ppq-only-item]
 
   - id: bioburden
     term: Bioburden
@@ -62,6 +62,11 @@ terms:
     short: A tab of the sampling plan with questions about how the samples are taken and where they sit. Each question is answered, left open, or marked to look at again.
     see: [sampling-point, open-item]
 
+  - id: document-figure
+    term: Document figure
+    short: The picture of the sampling plan that goes into the downloaded Word or HTML file. You choose how it looks when you download, and that choice is not kept in the plan. The sampling diagram on the page is the picture you work with.
+    see: [sampling-diagram, sampling-point]
+
   - id: drafting-aid
     term: Drafting aid
     short: What this tool is. It helps you write the documents and keeps every unknown visible. It decides nothing and fills in no value for you. A document is approved in your company's own document control. It is a proof of concept, not validated, and not for GMP use.
@@ -76,6 +81,11 @@ terms:
     term: Gap
     short: A difference between how the product is made at the sending unit and how the receiving unit plans to make it. The tool lists every gap. What to do about it is your decision. The tool never decides a filing category. Where one may be needed it only says "Requires regulatory affairs assessment".
     see: [sending-unit, receiving-unit, risk-rating]
+
+  - id: heading-placement
+    term: Heading placement
+    short: For one of your Word templates, choosing which heading each part of our content goes under. You set it on the Heading placement page. A download uses it only when you choose it, and nothing is placed for you.
+    see: [drafting-aid]
 
   - id: hold-time
     term: Hold time
@@ -117,6 +127,11 @@ terms:
     short: A hold or time challenge, or a PPQ sample, that belongs to the PPQ batches. At a project stage other than PPQ the Word document leaves it out. It stays in the record and nothing is deleted.
     see: [include-anyway, project-stage]
 
+  - id: process-view
+    term: Process view
+    short: A tab of a batch record that draws it as an equipment train. Move through the steps to see where the product is, which clocks are running and which samples are taken. It is a picture of the record, not a second place to edit, and it has nothing to draw until the record has sections.
+    see: [batch-record, time-limit, sampling-point]
+
   - id: project-stage
     term: Project stage
     short: "Which batches the receiving site will make next. Engineering / development runs: runs to learn the process, not for GMP supply. Clinical batches: GMP batches, the process is not yet validated. PPQ batches: batches that prove the process works at the receiving site. Commercial batches: batches for the market, made with a validated process. The stage changes the wording of the TRD ranges and limits, the purpose of the sampling plan, the PPQ steps of the batch record and the stage line in the header of every Word file. Nothing is hidden or blocked, and your own text is never changed or deleted. You choose the stage; the tool never fills it in."
@@ -132,6 +147,11 @@ terms:
     short: On the "Upload a TRD" review screen, how sure the reading of a value is. Exact means it was read straight from the data our own Word export carries. Matched means it was matched to a field by its label. Not found means the file gives no value, so it stays not established. Only Exact values are taken by "Accept all exact".
     see: [tbd, open-item, trd]
 
+  - id: ready-made-steps
+    term: Ready-made steps
+    short: The standard pieces a batch record is built from. They hold the steps, rows that take a value from the technical requirements document, time limits, and what the contract manufacturer completes. They come from a library you can edit, and a record keeps its own copy until you update it. Earlier called step blocks.
+    see: [batch-record, trd, time-limit]
+
   - id: receiving-unit
     term: Receiving unit (RU)
     short: The site that will make the product next. The gap assessment compares its plan with the sending unit.
@@ -146,6 +166,11 @@ terms:
     term: Risk rating
     short: The score given to a risk item by the method your team chooses in the risk assessment. The tool does not choose a method or a score for you.
     see: [gap]
+
+  - id: sampling-diagram
+    term: Sampling diagram
+    short: The picture of the sampling plan on the Sampling plan page. It shows the steps in order with the samples at their places. It is the picture you work with. The document figure is the version that goes into the downloaded file.
+    see: [document-figure, sampling-point]
 
   - id: sampling-point
     term: Sampling point
@@ -166,6 +191,11 @@ terms:
     term: Study point
     short: A sampling point that belongs to a study, for example a hold or mixing study. It tests a challenge value, not a limit.
     see: [sampling-point, hold-time]
+
+  - id: subsection-library
+    term: Subsection library
+    short: Reusable text for sampling plans, such as a sample-handling paragraph. A plan copies an item and keeps its own text, so a later change to the library does not rewrite a plan.
+    see: [sampling-point]
 
   - id: tbd
     term: TBD (to be decided)

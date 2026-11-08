@@ -18,7 +18,7 @@ import { useEffect, useId, useMemo, useState } from "react";
 import { PageHeader } from "../PageHeader";
 import { Tabs, type TabDef } from "../Tabs";
 import { Empty } from "../components";
-import { download, projectFileStem, today } from "../lib";
+import { countOf, download, projectFileStem, today } from "../lib";
 import { href, navigate } from "../router";
 import { useContent } from "../store";
 import { useRealProject } from "../version-ui";
@@ -177,7 +177,9 @@ export function VersionComparePage({ params }: { params: URLSearchParams }) {
             </strong>
           </p>
           <p data-testid="compare-logged">
-            {state.logged} {state.logged === 1 ? "change was" : "changes were"} logged between these versions. <a href={href("/changes")}>Open the change log</a>
+            {/* Ease-of-use pass (EOU-35): "2 changes" above and "6 changes were logged" read as a contradiction. The first counts the answers and
+                values that differ now; the second counts the actions in the change log, each edit once, so it can be longer. */}
+            The change log has {state.logged} {state.logged === 1 ? "entry" : "entries"} between these versions. It counts every edit as it was made, so it can be more than the answers and values that differ now. <a href={href("/changes")}>Open the change log</a>
           </p>
           <p className="muted small" data-testid="compare-left-out">
             {COMPARE_LEFT_OUT}
@@ -189,7 +191,7 @@ export function VersionComparePage({ params }: { params: URLSearchParams }) {
               <div className="table-scroll" role="region" aria-label={`${COMPARE_DOC_NAME[current]} differences`} tabIndex={0}>
                 <table className="data history-table compare-table" data-testid="compare-table">
                   <caption className="visually-hidden">
-                    {COMPARE_DOC_NAME[current]}: {shown.filter((r) => r.kind !== "same").length} differences between {a} and {b}
+                    {COMPARE_DOC_NAME[current]}: {countOf(shown.filter((r) => r.kind !== "same").length, "difference")} between {a} and {b}
                   </caption>
                   <thead>
                     <tr>

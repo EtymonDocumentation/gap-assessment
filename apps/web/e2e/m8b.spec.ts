@@ -247,6 +247,8 @@ test("the risk Output tab offers the Templates library; their look and placehold
   await expect(page.getByTestId("risk-word-note")).toBeVisible();
 
   await page.getByRole("radio", { name: /^A template's look/ }).check();
+  // Nothing is picked for the person: the first real template is index 1, after "Choose a template".
+  await page.getByRole("combobox", { name: "Template", exact: true }).selectOption({ index: 1 });
   const look = await download(page, "risk-download-word");
   expect(look.file).toMatch(/^risk-assessment-.*\.docx$/);
   const lookText = wordText(look.bytes);
@@ -259,6 +261,7 @@ test("the risk Output tab offers the Templates library; their look and placehold
   await expect(history.locator("tbody")).toContainText("SOP-style template");
 
   await page.getByRole("radio", { name: /^Placeholder tags/ }).check();
+  await page.getByRole("combobox", { name: "Template", exact: true }).selectOption({ index: 1 });
   await expect(page.getByTestId("risk-download-word")).toBeEnabled();
   const tags = await download(page, "risk-download-word");
   expect(wordText(tags.bytes)).toContain(NOTICE_DOCUMENT);

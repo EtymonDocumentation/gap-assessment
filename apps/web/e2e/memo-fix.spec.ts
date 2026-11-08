@@ -99,6 +99,8 @@ async function addMemoTemplate(page: Page) {
 test("the tag reference on the Templates page lists the memo party tags", async ({ page }) => {
   await loadDemo(page);
   await page.evaluate(() => (window.location.hash = "#/templates"));
+  // The tag reference is closed until it is asked for.
+  await page.getByTestId("tag-reference").locator("summary").click();
   const table = page.getByRole("region", { name: "Tag reference table" });
   for (const tag of ["{#parties} … {/parties}", "{#fromParties} … {/fromParties}", "{#toParties} … {/toParties}", "{#ccParties} … {/ccParties}", "{sendingUnit}", "{receivingSite}", "{cmoName}", "{fromText}"]) {
     await expect(table.getByRole("rowheader", { name: tag })).toBeVisible();
@@ -121,6 +123,10 @@ test("the sampling plan and the CMO instructions can use a library template; the
 
   await planPanel.getByRole("radio", { name: /^Placeholder tags/ }).check();
   await expect(planPanel.getByRole("combobox")).toContainText("Memo sample (fictional)");
+  // The list starts on "Choose a template": nothing is picked for the person, even with one template (EOU-38).
+  await expect(planPanel.getByRole("combobox")).toHaveValue("");
+  await expect(page.getByTestId("sampling-download-word")).toBeDisabled();
+  await planPanel.getByRole("combobox").selectOption({ index: 1 });
   // The two panels are separate: choosing a kind in one does not change the other.
   await expect(cmoPanel.getByRole("radio", { name: /^Built-in default/ })).toBeChecked();
   const plan = await download(page, "sampling-download-word");
@@ -137,6 +143,7 @@ test("the sampling plan and the CMO instructions can use a library template; the
   await expect(page.getByTestId("sampling-word-result")).toContainText("Memo sample (fictional)");
 
   await cmoPanel.getByRole("radio", { name: /^Placeholder tags/ }).check();
+  await cmoPanel.getByRole("combobox").selectOption({ index: 1 });
   const cmo = await download(page, "cmo-download-word");
   expect(cmo.file).toMatch(/^cmo-instructions-.*\.docx$/);
   expect(wordText(cmo.bytes)).toContain("To: Site South manufacturing (fictional)");

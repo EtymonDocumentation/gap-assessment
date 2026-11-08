@@ -256,7 +256,10 @@ export function SaveVersionDialog({ open, onClose, restoreFocus }: { open: boole
           void save();
         }}
       >
-        <p className="small">Version {versionLabelOf(next.major, next.minor)} will be saved.</p>
+        <p className="small">
+          Version {versionLabelOf(next.major, next.minor)} will be saved.
+          {next.minor > 0 && ` It is a smaller step after v${next.major}. A change of the project stage makes the next main version.`}
+        </p>
         {usage.atLimit && (
           <p className="notice" data-testid="version-limit">
             {limitMessage(real)} <a href={href("/versions")}>Go to the version history</a> to remove one.

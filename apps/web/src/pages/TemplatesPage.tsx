@@ -438,15 +438,15 @@ function TemplateCard({
         <dd>{usableText(t.analysis.usableModes)}</dd>
         {canMap && (
           <>
-            <dt>Heading mapping</dt>
+            <dt>Heading placement</dt>
             <dd>
-              {t.mapping ? `Saved: content assigned to ${mapped} of ${t.analysis.outline.length} headings.` : "Not saved yet."}{" "}
+              {t.mapping ? `Saved: content placed under ${mapped} of ${t.analysis.outline.length} headings.` : "Not set yet."}{" "}
               {hasProject ? (
-                <a href={href(`/templates/${t.id}/mapping`)} aria-label={`${t.mapping ? "Edit" : "Create"} mapping for ${t.name}`}>
-                  {t.mapping ? "Edit mapping" : "Create mapping"}
+                <a href={href(`/templates/${t.id}/mapping`)} aria-label={`${t.mapping ? "Edit" : "Set"} heading placement for ${t.name}`}>
+                  {t.mapping ? "Edit heading placement" : "Set heading placement"}
                 </a>
               ) : (
-                <span className="muted small">Open a project to edit the mapping, because the mapping lists that project's content.</span>
+                <span className="muted small">Open a project to set the heading placement, because it lists that project's content.</span>
               )}
             </dd>
           </>
@@ -454,8 +454,8 @@ function TemplateCard({
       </dl>
       <details className="report">
         <summary>
-          <span className="visually-hidden">Analysis report for {t.name}: </span>
-          Analysis report
+          <span className="visually-hidden">{t.name}: </span>
+          What the tool found in this template
         </summary>
         <AnalysisReport a={t.analysis} sha256={t.sha256} storedSha256={t.storedSha256} />
       </details>
@@ -539,7 +539,7 @@ function AnalysisReport({ a, sha256, storedSha256 }: { a: TemplateAnalysis; sha2
 
       <h4>Outline ({a.outline.length})</h4>
       {a.outline.length === 0 ? (
-        <p className="muted small">No headings were found, so this template cannot be used with the heading mapping.</p>
+        <p className="muted small">No headings were found, so this template cannot be used with the heading placement.</p>
       ) : (
         <ol className="outline small" aria-label="Headings found in the template">
           {a.outline.map((h) => (
@@ -642,8 +642,11 @@ const KIND_TEXT = { text: "Text", loop: "Loop", raw: "Raw (whole sections)" } as
 function TagReference() {
   const { docx } = useDocx();
   return (
-    <section className="stack" aria-labelledby="tags-title">
+    <section className="stack" aria-labelledby="tags-title" data-testid="tag-reference">
       <h2 id="tags-title">Tag reference</h2>
+      {/* Closed: the table is about 3,000 px tall and only a person writing their own tagged template needs it (EOU-37). */}
+      <details className="stack">
+      <summary>Show the tags you can use (for the "Placeholder tags" option)</summary>
       <p className="muted">
         For the "Placeholder tags" option. Type a tag in your Word template where the value should appear, for example <code>{"{program}"}</code>. A loop repeats what is between its start and
         end tags, for example one table row per gap. No expressions are evaluated: a tag is only looked up by name. The starter template above uses the main tags. The project tags, such as {"{program}"}, {"{modality}"} and the two sites, are filled in every document from the project; the gap tags (the loops of gaps, activities and so on) belong to the gap assessment only.
@@ -689,6 +692,7 @@ function TagReference() {
           </table>
         </div>
       )}
+      </details>
     </section>
   );
 }

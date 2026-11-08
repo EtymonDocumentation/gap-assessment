@@ -39,7 +39,7 @@ export const useMbrBlocks = /* @__PURE__ */ create<State>((setState, getState) =
       const items = onServer() ? ((await api.listMbrBlocks()) as MbrLibraryBlock[]) : await values<MbrLibraryBlock>(db);
       setState({ items, ready: true, error: null });
     } catch (e) {
-      setState({ ready: true, error: `The step blocks could not be read ${onServer() ? "from the server" : "from this browser"}: ${(e as Error).message}` });
+      setState({ ready: true, error: `The ready-made steps could not be read ${onServer() ? "from the server" : "from this browser"}: ${(e as Error).message}` });
     }
   },
 

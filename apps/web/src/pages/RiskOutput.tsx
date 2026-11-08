@@ -119,7 +119,7 @@ export function RiskOutput({ a, run }: { a: RiskAssessment; run: Run }) {
         tagData={(m) => m.buildDocumentTagData(doc, content, project)}
         testIdPrefix="risk"
         buttonLabel="Download risk assessment (Word)"
-        note={'"A template\'s headings" is offered for the gap assessment document only: a saved mapping names the gap document\'s sections. For a tagged template, {title}, {banner}, {status}, {generated}, {meta}, {sections} and the project tags ({program}, {modality}, {sourceSite}, {targetSite} and the like) are filled, and {@body} or a section tag such as {@section_register} brings in the risk assessment in your template\'s styles.'}
+        note={'"A template\'s headings" is offered for the gap assessment document only: a saved heading placement names the gap document\'s sections. For a tagged template, {title}, {banner}, {status}, {generated}, {meta}, {sections} and the project tags ({program}, {modality}, {sourceSite}, {targetSite} and the like) are filled, and {@body} or a section tag such as {@section_register} brings in the risk assessment in your template\'s styles.'}
       />
 
       <ExportHistory exports={exports} idPrefix="risk-export-history" title="Export history" />

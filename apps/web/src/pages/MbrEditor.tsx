@@ -38,6 +38,7 @@ import { href, navigate } from "../router";
 import { useStore } from "../store";
 import { useMbrLibrary } from "../mbr-blocks-store";
 import { BlockCard, type BlockEnv } from "./MbrBlocks";
+import { EmptySections } from "./MbrEmpty";
 import { MbrFrame } from "./MbrFrame";
 import { MbrOutput } from "./MbrOutput";
 import type { Run } from "./SamplingFlow";
@@ -123,14 +124,14 @@ export function MbrEditor({ rec, tab = "edit" }: { rec: MbrRecord; tab?: "edit" 
 
       <Details rec={rec} run={run} trdTitle={trd ? `${trd.id}: ${trd.title}` : undefined} planTitle={plan ? `${plan.id}: ${plan.title}` : undefined} />
 
-      {rec.trdId && !trd && <p className="notice small">The TRD this record started from ({rec.trdId}) is no longer in this project. The values keep their copy.</p>}
+      {rec.trdId && !trd && <p className="notice small">The technical requirements document this record started from ({rec.trdId}) is no longer in this project. The values keep their copy.</p>}
       {(trdN.length > 0 || sampleN.length > 0) && (
         <section className="card stack" aria-labelledby="mbr-changes-h" data-testid="mbr-changes">
           <h2 id="mbr-changes-h">Changed since this record was set</h2>
           <p className="small">
             {trdN.length > 0 && `${trdN.length} TRD ${trdN.length === 1 ? "value" : "values"} changed. `}
             {sampleN.length > 0 && `${sampleN.length} sample ${sampleN.length === 1 ? "row" : "rows"} changed in the sampling plan. `}
-            Nothing is rewritten for you: open the block and press the Update button on the row you want to bring up to date.
+            Nothing is rewritten for you: open the ready-made step and press the Update button on the row you want to bring up to date.
           </p>
         </section>
       )}
@@ -142,6 +143,8 @@ export function MbrEditor({ rec, tab = "edit" }: { rec: MbrRecord; tab?: "edit" 
           <h2 id="mbr-sections-h" tabIndex={-1}>
             Sections
           </h2>
+          {/* With no sections there is nothing to open or close (EOU-27): the empty record shows one next step instead. */}
+          {rec.sections.length > 0 && (
           <button
             type="button"
             className="btn small"
@@ -151,11 +154,12 @@ export function MbrEditor({ rec, tab = "edit" }: { rec: MbrRecord; tab?: "edit" 
               setOpenBlocks((s) => (all.every((id) => s.has(id)) ? new Set() : new Set(all)));
             }}
           >
-            Open or close all blocks
+            Open or close all ready-made steps
           </button>
-          <HelpTip label="the block list" text="Each section holds blocks of rows (values, samples, checks). Blocks start closed to keep the page short; this opens every block at once so you can read them, or closes them again." />
+          )}
+          {rec.sections.length > 0 && <HelpTip label="the ready-made steps" text="Each section holds ready-made steps, with their rows (values, samples, checks). They start closed to keep the page short; this opens every one at once so you can read them, or closes them again." />}
         </div>
-        {rec.sections.length === 0 && <p className="muted">No sections yet. Add one below.</p>}
+        {rec.sections.length === 0 && <EmptySections rec={rec} trd={trd} plan={plan} run={run} />}
         {rec.sections.map((s, si) => (
           <Fragment key={s.id}>
           <SectionView
@@ -208,8 +212,8 @@ export function MbrEditor({ rec, tab = "edit" }: { rec: MbrRecord; tab?: "edit" 
         <Modal
           open
           onOpenChange={(o) => !o && setConfirm(null)}
-          title={confirm.kind === "record" ? "Delete this batch record?" : confirm.kind === "section" ? "Remove this section?" : "Remove this block?"}
-          description={confirm.kind === "record" ? `${rec.id}: ${rec.title}` : confirm.kind === "section" ? `${confirm.section.title}, with ${countOf(confirm.section.blocks.length, "block")}.` : confirm.title}
+          title={confirm.kind === "record" ? "Delete this batch record?" : confirm.kind === "section" ? "Remove this section?" : "Remove this ready-made step?"}
+          description={confirm.kind === "record" ? `${rec.id}: ${rec.title}` : confirm.kind === "section" ? `${confirm.section.title}, with ${countOf(confirm.section.blocks.length, "ready-made step")}.` : confirm.title}
           restoreFocus={() => opener.current}
         >
           <div className="row end">
@@ -226,7 +230,7 @@ export function MbrEditor({ rec, tab = "edit" }: { rec: MbrRecord; tab?: "edit" 
                 if (c.kind === "record") {
                   if (run((p, a) => deleteMbr(p, rec.id, a), "Batch record deleted")) navigate("/mbr");
                 } else if (c.kind === "section") run((p, a) => removeSection(p, rec.id, c.section.id, a), "Section removed");
-                else run((p, a) => removeBlock(p, rec.id, c.blockId, a), "Block removed");
+                else run((p, a) => removeBlock(p, rec.id, c.blockId, a), "Ready-made step removed");
               }}
             >
               Remove
@@ -439,12 +443,12 @@ function OpenItems({
                     {q.stepLabel}: {q.label}
                   </span>
                   {lib.map((b) => (
-                    <button key={b.id} type="button" className="btn small" aria-label={`Add block: ${b.title} for ${q.label}`} data-testid={`mbr-req-add-${q.itemKey}`} onClick={() => run((p, a) => addBlockForRequirement(p, rec.id, q, b, a).project, "Block added")}>
-                      Add block: {b.title}
+                    <button key={b.id} type="button" className="btn small" aria-label={`Add ready-made step: ${b.title} for ${q.label}`} data-testid={`mbr-req-add-${q.itemKey}`} onClick={() => run((p, a) => addBlockForRequirement(p, rec.id, q, b, a).project, "Ready-made step added")}>
+                      Add ready-made step: {b.title}
                     </button>
                   ))}
-                  <button type="button" className="btn small" aria-label={`Add a block of my own for ${q.label}`} onClick={() => run((p, a) => addBlockForRequirement(p, rec.id, q, undefined, a).project, "Block added")}>
-                    Add a block of my own
+                  <button type="button" className="btn small" aria-label={`Add a step of my own for ${q.label}`} onClick={() => run((p, a) => addBlockForRequirement(p, rec.id, q, undefined, a).project, "Ready-made step added")}>
+                    Add a step of my own
                   </button>
                 </li>
               );
@@ -602,15 +606,15 @@ function SectionView({
           </button>
         </span>
       </div>
-      {section.blocks.length === 0 && <p className="muted small">No blocks in this section yet.</p>}
+      {section.blocks.length === 0 && <p className="muted small">No ready-made steps in this section yet.</p>}
       {section.blocks.map((b, bi) => (
         <BlockCard key={b.id} env={env} block={b} index={bi} count={section.blocks.length} open={openBlocks.has(b.id)} onToggle={() => toggle(b.id)} onRemove={(el) => askRemoveBlock(el, b.id, b.title)} />
       ))}
       <div className="row wrap end-align">
         <label className="field">
-          <span>Add a block from the library</span>
+          <span>Add a ready-made step from the library</span>
           <select value={pick} onChange={(e) => setPick(e.target.value)} data-testid={`mbr-add-lib-${section.id}`}>
-            <option value="">Choose a block</option>
+            <option value="">Choose a ready-made step</option>
             {offered.map((b) => (
               <option key={b.id} value={b.id}>
                 {b.title}
@@ -625,13 +629,13 @@ function SectionView({
           data-testid={`mbr-add-lib-btn-${section.id}`}
           onClick={() => {
             const lib = library.find((b) => b.id === pick);
-            if (lib && run((p, a) => addBlockFromLibrary(p, rec.id, section.id, lib, a).project, "Block added")) setPick("");
+            if (lib && run((p, a) => addBlockFromLibrary(p, rec.id, section.id, lib, a).project, "Ready-made step added")) setPick("");
           }}
         >
-          Add block
+          Add ready-made step
         </button>
         <label className="field grow">
-          <span>Or a block of my own</span>
+          <span>Or a step of my own</span>
           <input value={custom} onChange={(e) => setCustom(e.target.value)} data-testid={`mbr-add-custom-${section.id}`} />
         </label>
         <button
@@ -640,10 +644,10 @@ function SectionView({
           disabled={!custom.trim()}
           data-testid={`mbr-add-custom-btn-${section.id}`}
           onClick={() => {
-            if (run((p, a) => addCustomBlock(p, rec.id, section.id, { title: custom }, a).project, "Block added")) setCustom("");
+            if (run((p, a) => addCustomBlock(p, rec.id, section.id, { title: custom }, a).project, "Ready-made step added")) setCustom("");
           }}
         >
-          Add my block
+          Add my own step
         </button>
       </div>
     </section>

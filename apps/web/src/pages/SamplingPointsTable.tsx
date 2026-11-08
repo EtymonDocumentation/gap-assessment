@@ -8,7 +8,7 @@ import { movePoint, removePointRequest, targetOf, type OpenAdd, type Run } from 
 import { useConfirmRemove } from "../components";
 
 /*
- * The points table under the process flow diagram.
+ * The points table under the sampling diagram.
  *
  * Design notes (the why):
  *  - SAME DATA AS THE DIAGRAM. The rows come from tableOrder(plan) (diagram points by step order and slot, then the points that are not

@@ -8,7 +8,7 @@ import { itemOf, newLibraryId, useSubsectionLibrary, type StoredSubsection } fro
 import { PlacementPicker, TEXT_FORMAT_HELP, TokenHelp } from "./SamplingSubsections";
 
 /**
- * The Plan subsections library: reusable text a plan copies in. A plan keeps its own copy and the version it came from, so editing
+ * The Subsection library: reusable text a plan copies in. A plan keeps its own copy and the version it came from, so editing
  * an item here never changes an issued plan silently. Every edit keeps what the item said before (version history).
  */
 export function SamplingSubsectionsPage() {
@@ -26,7 +26,7 @@ export function SamplingSubsectionsPage() {
   return (
     <div className="stack-lg">
       <PageHeader
-        title="Plan subsections"
+        title="Subsection library"
         purpose="Reusable text for sampling plans, for example a sample-handling paragraph."
         about={{
           art: "page-document",

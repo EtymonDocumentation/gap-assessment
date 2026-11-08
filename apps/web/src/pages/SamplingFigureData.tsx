@@ -130,16 +130,16 @@ function Num({ label, value, onChange, testId }: { label: string; value: string;
   );
 }
 
-/** Holds, time targets, sub-processes and time zero of the flow figure. Collapsed by default: it is optional detail. */
+/** Holds, time targets, sub-processes and time zero of the document figure. Collapsed by default: it is optional detail. */
 export function FigureDataCard({ plan, run }: { plan: SamplingPlan; run: Run }) {
   const sug = useMemo(() => holdSuggestions(plan), [plan]);
   const hasSteps = plan.steps.length > 0;
   const tz = plan.timeZero;
   return (
     <section className="card stack" aria-labelledby="sp-figdata-h" data-testid="figure-data-card">
-      <h2 id="sp-figdata-h">Flow figure details (optional)</h2>
+      <h2 id="sp-figdata-h">Document figure details (optional)</h2>
       <p className="muted small">
-        Holds, time targets and a separate process such as a buffer preparation, for the PPQ flow figure. All of it is optional. Where a time is not given the figure draws a narrow block and lists it under "Hours not given"; that is not an open item.
+        Holds, time targets and a separate process such as a buffer preparation, for the document figure. All of it is optional. Where a time is not given the figure draws a narrow block and lists it under "Hours not given"; that is not an open item.
       </p>
       {!hasSteps ? (
         <p className="muted" data-testid="figure-data-nosteps">

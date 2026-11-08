@@ -59,7 +59,7 @@ test("compare from the history: the row button, the table, the words, the toggle
   const summary = page.getByTestId("compare-summary");
   await expect(summary).toContainText("Working copy");
   await expect(summary).toContainText(/\d+ changes?: /);
-  await expect(page.getByTestId("compare-logged")).toContainText("logged between these versions");
+  await expect(page.getByTestId("compare-logged")).toContainText(/entr(y|ies) between these versions/);
   await expect(page.getByTestId("compare-logged").getByRole("link", { name: "Open the change log" })).toHaveAttribute("href", /#\/changes/);
 
   // Tabs per document, each with its count; the gap assessment holds the stage change.
@@ -69,7 +69,7 @@ test("compare from the history: the row button, the table, the words, the toggle
 
   // The change is a word in the table, not a colour; the table has a caption and headers.
   const table = page.getByTestId("compare-table");
-  await expect(table.locator("caption")).toContainText("differences between");
+  await expect(table.locator("caption")).toContainText(/differences? between/);
   await expect(table.getByRole("columnheader")).toHaveCount(4);
   const rows = page.getByTestId("compare-row");
   await expect(rows.filter({ hasText: /stage/i }).first()).toContainText("Changed");

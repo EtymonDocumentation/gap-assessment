@@ -114,9 +114,12 @@ export function AddSampleDialog({
   const wherePicker = (
     <>
       <label className="field">
-        <span>Step</span>
+        <span>
+          Step <span className="muted">(optional now)</span>
+        </span>
         <select value={stepId} onChange={(e) => setStep(e.target.value)} data-testid="add-step">
-          <option value="">{NOT_ON_DIAGRAM}</option>
+          {/* "Choose" like the sample type below: "Not on the diagram" here read as an answer already given (EOU-26). The meaning is unchanged: no step chosen = not on the diagram. */}
+          <option value="">Choose</option>
           {plan.steps.map((s) => (
             <option key={s.id} value={s.id}>
               {s.label}
@@ -125,9 +128,11 @@ export function AddSampleDialog({
         </select>
       </label>
       <label className="field">
-        <span>Position</span>
+        <span>
+          Position <span className="muted">(optional now)</span>
+        </span>
         <select value={at} disabled={!onDiagram} onChange={(e) => setAt(e.target.value as FlowPosition | "")} data-testid="add-position">
-          <option value="">{onDiagram ? POSITION_NOT_SET : "Not applicable"}</option>
+          <option value="">{onDiagram ? "Choose" : "Choose a step first"}</option>
           {FLOW_POSITIONS.map((f) => (
             <option key={f} value={f}>
               {SLOT_LABEL[f]}
@@ -135,6 +140,9 @@ export function AddSampleDialog({
           ))}
         </select>
       </label>
+      <p className="muted small" data-testid="add-step-hint">
+        Leave the step on Choose and the sample is listed under "{NOT_ON_DIAGRAM}" until you place it.
+      </p>
     </>
   );
   const whatField = (
@@ -247,11 +255,11 @@ export function AddSampleDialog({
               <dl className="wizard-review" data-testid="wizard-review">
                 <div>
                   <dt>Step</dt>
-                  <dd>{stepLabel ?? NOT_ON_DIAGRAM}</dd>
+                  <dd>{stepLabel ?? `Not chosen (listed under "${NOT_ON_DIAGRAM}")`}</dd>
                 </div>
                 <div>
                   <dt>Position</dt>
-                  <dd>{onDiagram ? (at ? SLOT_LABEL[at] : POSITION_NOT_SET) : "Not applicable"}</dd>
+                  <dd>{onDiagram ? (at ? SLOT_LABEL[at] : POSITION_NOT_SET) : "Not chosen"}</dd>
                 </div>
                 <div>
                   <dt>Sample type</dt>

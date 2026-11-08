@@ -125,7 +125,7 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
         testIdPrefix="trd"
         dataPart={() => ({ kind: "trd-data", json: buildTrdData(project, d, doc, "standard") })}
         buttonLabel="Download TRD (Word)"
-        note={'"A template\'s headings" is offered for the gap assessment document only: a saved mapping names the gap document\'s sections. For a tagged template, {title}, {banner}, {status}, {generated}, {meta}, {sections} and the project tags ({program}, {modality}, {sourceSite}, {targetSite} and the like) are filled, and {@body} or a section tag such as {@section_par_nor} brings in the TRD in your template\'s styles. The sections of each process step have their own tags, for example {@section_step_TS_01}.'}
+        note={'"A template\'s headings" is offered for the gap assessment document only: a saved heading placement names the gap document\'s sections. For a tagged template, {title}, {banner}, {status}, {generated}, {meta}, {sections} and the project tags ({program}, {modality}, {sourceSite}, {targetSite} and the like) are filled, and {@body} or a section tag such as {@section_par_nor} brings in the TRD in your template\'s styles. The sections of each process step have their own tags, for example {@section_step_TS_01}.'}
       />
 
       <section className="card stack no-print" aria-labelledby="trd-evidence" data-testid="trd-evidence-output">

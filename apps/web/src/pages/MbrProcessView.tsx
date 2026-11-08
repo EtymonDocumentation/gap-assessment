@@ -75,6 +75,16 @@ export function MbrProcessView({ rec }: { rec: MbrRecord }) {
   const suggestions = useEffectiveSuggestions();
   const view = useMemo(() => buildProcessView(project, rec, { expected: expectedStudies(suggestions) }), [project, rec, suggestions]);
   const [index, setIndex] = useState(0);
+  // Ease-of-use pass (EOU-30): a record with no sections has nothing to draw. One line and a way back to where sections are added,
+  // not the long explanation, the legend and a slider over two moments ("Before the first step", "After the last step").
+  if (rec.sections.length === 0)
+    return (
+      <MbrFrame rec={rec} tab="view">
+        <p className="notice" data-testid="pv-empty">
+          This batch record has no sections yet, so there is nothing to draw. Add them on the <a href={href("/mbr", { mbr: rec.id })}>Edit tab</a>, and the equipment train appears here.
+        </p>
+      </MbrFrame>
+    );
   const last = view.moments.length - 1;
   const at = Math.min(index, last);
   const moment = view.moments[at]!;
@@ -92,8 +102,8 @@ export function MbrProcessView({ rec }: { rec: MbrRecord }) {
           paragraphs and the legend. The explanation is one tap away. */}
       <PvAbout>
         <p>
-          The batch record drawn as an equipment train. Move through its steps with the slider to see where the product is, which clocks are running against their limits, and which samples are taken at that moment. A small fluid
-          tracker (no AI: the same record always gives the same answer) checks the record and lists review prompts.
+          The batch record drawn as an equipment train. Move through its steps with the slider to see where the product is, which clocks are running against their limits, and which samples are taken at that moment. Fixed rules check the record
+          and list review prompts. The same record always gives the same answer.
         </p>
         <p className="small muted">
           The record has no clock times, so the picture does not run a timeline. Every number comes from the record or its linked TRD and sampling plan; where a check needs a number the record does not state, it says &quot;Not enough data
@@ -779,7 +789,7 @@ const CHECK_STATUS: Record<string, string> = { ok: "No finding", finding: "Revie
 function Findings({ view, counts, go }: { view: ProcessView; counts: (readonly [Severity, number])[]; go: (i: number) => void }) {
   return (
     <section className="card stack" aria-labelledby="pv-find" data-testid="pv-findings">
-      <h2 id="pv-find">Fluid tracker findings</h2>
+      <h2 id="pv-find">Review prompts</h2>
       <p className="small muted">
         Each rule runs on the record&apos;s own data. Major: the record contradicts its own numbers. Minor: a gap or an inconsistency to look at. Note: worth knowing. A rule that lacks data says so instead of guessing.
       </p>

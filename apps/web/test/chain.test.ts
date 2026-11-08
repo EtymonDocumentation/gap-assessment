@@ -21,6 +21,13 @@ describe("the document chain", { timeout: 60_000 }, () => {
     expect(stages.find((s) => s.id === "view")!.path).toBe("/mbr");
   });
 
+  it("says the Process view is a tab of a batch record, not a document of its own (EOU-30)", () => {
+    const empty = blank();
+    expect(chainStages(empty, assess(content, empty), all).find((s) => s.id === "view")!.status).toMatch(/tab of a batch record/);
+    const p = syr();
+    expect(chainStages(p, assess(content, p), all).find((s) => s.id === "view")!.status).toBe("A tab of the batch record");
+  });
+
   it("leaves out the stages of modules the account does not have", () => {
     const p = blank();
     const ids = chainStages(p, assess(content, p), { ...all, trd: false, mbr: false }).map((s) => s.id);

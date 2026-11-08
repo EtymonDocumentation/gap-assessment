@@ -15,7 +15,7 @@ interface Item {
 const SETUP: Item[] = [
   { id: "sp-details", label: "Plan details", tab: "overview" },
   { id: "sp-steps-h", label: "Process steps", tab: "overview" },
-  { id: "sp-figdata-h", label: "Flow figure details", tab: "overview" },
+  { id: "sp-figdata-h", label: "Document figure details", tab: "overview" },
   { id: "sp-batches", label: "PPQ batches", tab: "overview" },
   { id: "sp-design", label: "PPQ design and readiness", tab: "overview" },
 ];
@@ -23,8 +23,8 @@ const BY_TAB: Record<ContentsTab, Item[]> = {
   overview: [
     { id: "sp-open", label: "Open items", tab: "overview" },
     { id: "sp-sugg", label: "Suggestions", tab: "overview" },
-    { id: "sp-flow", label: "Process flow diagram", tab: "overview" },
-    { id: "sp-figure-h", label: "PPQ flow figure", tab: "overview" },
+    { id: "sp-flow", label: "Sampling diagram", tab: "overview" },
+    { id: "sp-figure-h", label: "Document figure", tab: "overview" },
     { id: "sp-points", label: "Sampling points", tab: "overview" },
     { id: "sp-totals", label: "Sample totals per batch", tab: "overview" },
     { id: "sampling-doc", label: "Download the sampling plan", tab: "overview" },
@@ -36,9 +36,9 @@ const BY_TAB: Record<ContentsTab, Item[]> = {
     { id: "sp-agency", label: "Agency requests", tab: "interview" },
   ],
   review: [{ id: "sp-review", label: "Design review", tab: "review" }],
-  // The three headings of the Plan subsections tab (SamplingSubsections.tsx). The tab used to be missing here, so the list ended at Design review.
+  // The three headings of the Subsections tab (SamplingSubsections.tsx). The tab used to be missing here, so the list ended at Design review.
   subsections: [
-    { id: "sub-intro", label: "Plan subsections", tab: "subsections" },
+    { id: "sub-intro", label: "Subsections of this plan", tab: "subsections" },
     { id: "sub-add", label: "Add a subsection", tab: "subsections" },
     { id: "sub-lib", label: "Insert from the library", tab: "subsections" },
   ],
@@ -61,7 +61,7 @@ export function SamplingContents({ tab, onTab }: { tab: ContentsTab; onTab: (t: 
     { title: "Overview tab", items: BY_TAB.overview, tab: "overview" },
     { title: "Interview tab", items: BY_TAB.interview, tab: "interview" },
     { title: "Design review tab", items: BY_TAB.review, tab: "review" },
-    { title: "Plan subsections tab", items: BY_TAB.subsections, tab: "subsections" },
+    { title: "Subsections tab", items: BY_TAB.subsections, tab: "subsections" },
   ];
   return (
     <nav className="card stack no-print" aria-labelledby="sp-contents" data-testid="plan-contents">

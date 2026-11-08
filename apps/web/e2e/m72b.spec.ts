@@ -57,7 +57,8 @@ test("the short form has four fields, closes with Escape and returns focus; Add 
   const form = page.getByTestId("add-short");
   await expect(form).toBeVisible();
   await expect(form.locator("select, input, textarea")).toHaveCount(4);
-  await expect(page.getByTestId("add-step").locator("option").first()).toHaveText("Not on the diagram");
+  await expect(page.getByTestId("add-step").locator("option").first()).toHaveText("Choose");
+  await expect(page.getByTestId("add-step-hint")).toContainText("Not on the diagram");
   // Nothing is preselected and Add waits for the one thing that decides the questions.
   await expect(page.getByTestId("add-type")).toHaveValue("");
   await expect(page.getByTestId("add-submit")).toBeDisabled();

@@ -98,8 +98,8 @@ function List({ missing, preTrd }: { missing?: string | undefined; preTrd?: stri
 
   function create() {
     if (!title.trim()) return fail("title", "Enter a title for the batch record.");
-    if (useTrd && !trd) return fail("trd", trds.length === 0 ? "This project has no TRD record to start from. Untick it, or add one on the TRD page first." : "Choose which TRD record to start from, or untick it.");
-    if (usePlan && !plan) return fail("plan", plans.length === 0 ? "This project has no sampling plan to start from. Untick it, or add one on the Sampling page first." : "Choose which sampling plan to start from, or untick it.");
+    if (useTrd && !trd) return fail("trd", trds.length === 0 ? "This project has no technical requirements document to start from. Untick it, or start one on the TRD page first." : "Choose the technical requirements document to start from, or untick it.");
+    if (usePlan && !plan) return fail("plan", plans.length === 0 ? "This project has no sampling plan to start from. Untick it, or start one on the Sampling page first." : "Choose the sampling plan to start from, or untick it.");
     const sections = offers
       .map((o) => ({ ...(o.unitOp ? { unitOp: o.unitOp } : {}), title: o.label, blocks: o.proposals.filter((p) => isTicked(o.key, p)).map((p) => p.block) }))
       .filter((s) => s.blocks.length > 0);
@@ -127,11 +127,11 @@ function List({ missing, preTrd }: { missing?: string | undefined; preTrd?: stri
             <>
               <p data-testid="mbr-scope-text">{mbrScopeText}</p>
               <ul className="plain-list">
-                <li>A batch record can start from a TRD record, from a sampling plan, from both, or blank.</li>
-                <li>It is built from step blocks. The blocks come from a library you can edit; an edit makes a new version, and records already made keep their own copy until you choose to update them.</li>
-                <li>When the TRD or the sampling plan changes, the rows concerned show a notice and an Update button. Nothing is rewritten for you.</li>
+                <li>A batch record can start from a technical requirements document, from a sampling plan, from both, or blank.</li>
+                <li>It is built from ready-made steps. They come from a library you can edit; an edit makes a new version, and records already made keep their own copy until you choose to update them.</li>
+                <li>When the technical requirements document or the sampling plan changes, the rows concerned show a notice and an Update button. Nothing is rewritten for you.</li>
                 <li>
-                  The step blocks are on the <a href={href("/mbr/library")}>step blocks library</a> page.
+                  The ready-made steps are on the <a href={href("/mbr/library")}>ready-made steps library</a> page.
                 </li>
               </ul>
             </>
@@ -231,16 +231,16 @@ function List({ missing, preTrd }: { missing?: string | undefined; preTrd?: stri
                   data-testid="mbr-start-trd"
                 />
                 <span>
-                  <strong>A TRD record</strong>
-                  <span className="block muted small">Parameter rows take the TRD value with its source. Unit operations come from the TRD steps.</span>
+                  <strong>A technical requirements document</strong>
+                  <span className="block muted small">Parameter rows take the value from the document, with its source. The sections come from its steps.</span>
                 </span>
               </label>
               {useTrd &&
                 (trds.length === 0 ? (
-                  <p className="notice small">This project has no TRD record yet. Add one on the TRD page, upload one, or untick this. <TrdUploadButton className="btn small" testId="mbr-upload-trd" /></p>
+                  <p className="notice small">This project has no technical requirements document yet. Start one on the TRD page, upload one, or untick this. <TrdUploadButton className="btn small" testId="mbr-upload-trd" /></p>
                 ) : (
                   <label className="field">
-                    <span>TRD record</span>
+                    <span>Choose the technical requirements document to start from</span>
                     <select
                       ref={trdRef}
                       value={trdId}
@@ -252,7 +252,7 @@ function List({ missing, preTrd }: { missing?: string | undefined; preTrd?: stri
                       aria-describedby={error?.field === "trd" ? "mbr-start-trd-error" : undefined}
                       data-testid="mbr-start-trd-select"
                     >
-                      <option value="">Choose a TRD record</option>
+                      <option value="">Choose one</option>
                       {trds.map((d) => (
                         <option key={d.id} value={d.id}>
                           {d.id}: {d.title}
@@ -283,10 +283,10 @@ function List({ missing, preTrd }: { missing?: string | undefined; preTrd?: stri
               </label>
               {usePlan &&
                 (plans.length === 0 ? (
-                  <p className="notice small">This project has no sampling plan yet. Add one on the Sampling page, or untick this.</p>
+                  <p className="notice small">This project has no sampling plan yet. Start one on the Sampling page, or untick this.</p>
                 ) : (
                   <label className="field">
-                    <span>Sampling plan</span>
+                    <span>Choose the sampling plan to start from</span>
                     <select
                       ref={planRef}
                       value={planId}
@@ -298,7 +298,7 @@ function List({ missing, preTrd }: { missing?: string | undefined; preTrd?: stri
                       aria-describedby={error?.field === "plan" ? "mbr-start-plan-error" : undefined}
                       data-testid="mbr-start-plan-select"
                     >
-                      <option value="">Choose a sampling plan</option>
+                      <option value="">Choose one</option>
                       {plans.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.id}: {p.title}
@@ -318,12 +318,12 @@ function List({ missing, preTrd }: { missing?: string | undefined; preTrd?: stri
           {blockCount > 0 && (
             <details className="mbr-blocks-details" data-testid="mbr-blocks-details">
               <summary>
-                Step blocks to include (optional): {tickedCount} of {blockCount} ticked
+                Ready-made steps to include (optional): {tickedCount} ticked of {blockCount} offered
               </summary>
               <fieldset className="fs stack" data-testid="mbr-blocks-offer">
-                <legend>Proposed step blocks</legend>
+                <legend>Ready-made steps on offer</legend>
                 <p className="muted small">
-                  These are offers. A block is ticked only when a source you chose backs it (the TRD holds its values, or the sampling plan has sample points). You can tick or untick any of them, and add more later.
+                  These are offers, not answers. The list is the ready-made steps that fit the source you chose above, so the number offered changes when you choose a different document or plan. One is ticked only when a source you chose backs it (the technical requirements document holds its values, or the sampling plan has sample points). You can tick or untick any of them, and add more later.
                 </p>
                 {offers
                   .filter((o) => o.proposals.length > 0)

@@ -14,7 +14,7 @@ function blankMapping(outline: OutlineHeading[]): TemplateMapping {
   return { headings: outline.map((h) => ({ headingIndex: h.index, blocks: [], existing: "keep" })), unmappedBlocks: "append" };
 }
 
-/** A saved mapping with a row for every current heading (in case the saved one is older than the outline). */
+/** A saved heading placement with a row for every current heading (in case the saved one is older than the outline). */
 function completeMapping(outline: OutlineHeading[], saved?: TemplateMapping): TemplateMapping {
   if (!saved) return blankMapping(outline);
   const byIndex = new Map(saved.headings.map((h) => [h.headingIndex, h]));
@@ -37,7 +37,7 @@ export function MappingPage({ id }: { id: string }) {
   if (!t) {
     return (
       <div className="stack">
-        <h1>Heading mapping</h1>
+        <h1>Heading placement</h1>
         <Empty>This template is not in the library any more.</Empty>
         <p>
           <a href={href("/templates")}>Back to templates</a>
@@ -48,9 +48,9 @@ export function MappingPage({ id }: { id: string }) {
   if (!t.analysis.usableModes.includes("mapped")) {
     return (
       <div className="stack">
-        <h1>Heading mapping</h1>
+        <h1>Heading placement</h1>
         <p className="notice">
-          {t.name} has no headings that can be mapped. Use it with "A template's look" or "Placeholder tags" instead.
+          {t.name} has no headings to place content under. Use it with "A template's look" or "Placeholder tags" instead.
         </p>
         <p>
           <a href={href("/templates")}>Back to templates</a>
@@ -99,22 +99,22 @@ function Editor({ t }: { t: StoredTemplate }) {
 
   function save() {
     if (!report) return;
-    if (report.errors.length) return setError("The mapping has problems (listed below). Fix them before saving.");
-    if (draft.unmappedBlocks === "omit" && !leaveOutOk) return setError('Tick "I understand this content will be left out of the Word document", or choose to add the unmapped content at the end.');
+    if (report.errors.length) return setError("The heading placement has problems (listed below). Fix them before saving.");
+    if (draft.unmappedBlocks === "omit" && !leaveOutOk) return setError('Tick "I understand this content will be left out of the Word document", or choose to add the content that is not placed at the end.');
     useTemplates
       .getState()
       .patch(t.id, { mapping: draft })
       .then(() => {
         setError("");
-        setStatus("Mapping saved.");
+        setStatus("Heading placement saved.");
       })
-      .catch((e: Error) => setError(`The mapping could not be saved: ${e.message}`));
+      .catch((e: Error) => setError(`The heading placement could not be saved: ${e.message}`));
   }
 
   return (
     <div className="stack-lg">
       <PageHeader
-        title={`Heading mapping: ${t.name}`}
+        title={`Heading placement: ${t.name}`}
         purpose="For each heading of the template, choose which content from this project's gap assessment goes under it."
         meta={
           <>
@@ -123,7 +123,7 @@ function Editor({ t }: { t: StoredTemplate }) {
         }
         about={{
           art: "page-mapping",
-          children: <p>Nothing changes until you save, and the same mapping is used for every Word document made with "A template's headings".</p>,
+          children: <p>Nothing changes until you save, and the same heading placement is used for every Word document made with "A template's headings".</p>,
         }}
       />
       {pdf && (
@@ -147,13 +147,13 @@ function Editor({ t }: { t: StoredTemplate }) {
             setDraft(docx.suggestMapping(t.analysis, doc));
             setLeaveOutOk(false);
             setError("");
-            setStatus("A suggested mapping was filled in from the headings' titles. Review it, then save.");
+            setStatus("A suggested placement was filled in from the headings' titles. Review it, then save.");
           }}
         >
-          Suggest a mapping
+          Suggest a placement
         </button>
         <button type="button" className="btn primary" disabled={!docx || !dirty} onClick={save}>
-          Save mapping
+          Save heading placement
         </button>
         <span className="small muted">{dirty ? "You have unsaved changes." : t.mapping ? "Saved." : "Nothing saved yet."}</span>
       </div>
@@ -291,7 +291,7 @@ function Editor({ t }: { t: StoredTemplate }) {
 
           <div className="stack">
             <section className="card stack" aria-labelledby="map-report-title">
-              <h2 id="map-report-title">What this mapping will do</h2>
+              <h2 id="map-report-title">What this heading placement will do</h2>
               {report && (
                 <>
                   {report.errors.length > 0 && (
@@ -307,9 +307,9 @@ function Editor({ t }: { t: StoredTemplate }) {
                     </div>
                   )}
                   <div>
-                    <h3>Tool content not mapped ({report.unmappedBlocks.length})</h3>
+                    <h3>Content not placed ({report.unmappedBlocks.length})</h3>
                     {report.unmappedBlocks.length === 0 ? (
-                      <p className="small muted">Every piece of content is mapped to a heading.</p>
+                      <p className="small muted">Every piece of content is placed under a heading.</p>
                     ) : (
                       <ul className="plain-list small">
                         {report.unmappedBlocks.map((b) => (
@@ -355,7 +355,7 @@ function Editor({ t }: { t: StoredTemplate }) {
             </section>
 
             <fieldset className="card stack">
-              <legend>Content that is not mapped</legend>
+              <legend>Content that is not placed</legend>
               <label className="check">
                 <input
                   type="radio"

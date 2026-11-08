@@ -41,16 +41,16 @@ export function MbrLibraryPage() {
   return (
     <div className="stack-lg">
       <PageHeader
-        title="Step blocks library"
-        purpose="The blocks a batch record is built from: steps, parameter rows that pull a TRD value, time limits, and what the CMO (contract manufacturing organization) completes."
+        title="Ready-made steps library"
+        purpose="The ready-made steps a batch record is built from: the steps themselves, parameter rows that take a value from the technical requirements document, time limits, and what the CMO (contract manufacturing organization) completes."
         about={{
           art: "page-document",
           children: (
             <ul className="plain-list">
               <li>{SERVER_MODE ? "Your edits are kept on the server for your account." : "Your edits are kept in this browser, not in the project file."}</li>
-              <li>The shipped blocks are not changed. Editing one saves your copy with the next version number, and the earlier content stays in its history.</li>
-              <li>A batch record keeps its own copy of a block and the version it was made from. When the library has a newer version, the record shows "Update from library" and you choose.</li>
-              <li>A block names which TRD value a row pulls; it never holds a number of its own.</li>
+              <li>The shipped ready-made steps are not changed. Editing one saves your copy with the next version number, and the earlier content stays in its history.</li>
+              <li>A batch record keeps its own copy of a ready-made step and the version it was made from. When the library has a newer version, the record shows "Update from library" and you choose.</li>
+              <li>A ready-made step names which value of the technical requirements document a row takes; it never holds a number of its own.</li>
             </ul>
           ),
         }}
@@ -67,7 +67,7 @@ export function MbrLibraryPage() {
 
       <section className="card stack" aria-labelledby="mbl-list">
         <div className="row between wrap">
-          <h2 id="mbl-list">Blocks ({library.length})</h2>
+          <h2 id="mbl-list">Ready-made steps ({library.length})</h2>
           <button
             type="button"
             className="btn primary"
@@ -78,17 +78,17 @@ export function MbrLibraryPage() {
               setMessage("");
             }}
           >
-            New block
+            New ready-made step
           </button>
         </div>
         {!ready ? (
-          <Empty>Loading the blocks.</Empty>
+          <Empty>Loading the ready-made steps.</Empty>
         ) : (
-          <div className="table-scroll" role="region" aria-label="Step blocks table" tabIndex={0}>
+          <div className="table-scroll" role="region" aria-label="Ready-made steps table" tabIndex={0}>
             <table className="data" data-testid="mbl-table">
               <thead>
                 <tr>
-                  <th scope="col">Block</th>
+                  <th scope="col">Ready-made step</th>
                   <th scope="col">Version</th>
                   <th scope="col">Source</th>
                   <th scope="col">Steps</th>
@@ -107,7 +107,7 @@ export function MbrLibraryPage() {
                         <button
                           type="button"
                           className="btn small"
-                          aria-label={`Edit block ${b.title}`}
+                          aria-label={`Edit ready-made step ${b.title}`}
                           data-testid={`mbl-edit-${b.id}`}
                           onClick={(e) => {
                             opener.current = e.currentTarget;
@@ -122,7 +122,7 @@ export function MbrLibraryPage() {
                           <button
                             type="button"
                             className="btn small"
-                            aria-label={shippedIds.has(b.id) ? `Back to shipped: ${b.title}` : `Remove block ${b.title}`}
+                            aria-label={shippedIds.has(b.id) ? `Back to shipped: ${b.title}` : `Remove ready-made step ${b.title}`}
                             data-testid={`mbl-remove-${b.id}`}
                             onClick={(e) => {
                               opener.current = e.currentTarget;
@@ -150,7 +150,7 @@ export function MbrLibraryPage() {
           onSave={async (edit, id) => {
             await save(newLibraryBlock(id, { title: edit.title ?? "", ...edit }, new Date().toISOString(), who()));
             setCreating(false);
-            setMessage(`Block "${edit.title}" added as version 1.`);
+            setMessage(`Ready-made step "${edit.title}" added as version 1.`);
           }}
         />
       )}
@@ -170,7 +170,7 @@ export function MbrLibraryPage() {
             const next = editLibraryBlock(editing, edit, new Date().toISOString(), who());
             await save(next);
             setEditId(null);
-            setMessage(`Block "${next.title}" saved as version ${next.version}. Records made from an earlier version show "Update from library".`);
+            setMessage(`Ready-made step "${next.title}" saved as version ${next.version}. Records made from an earlier version show "Update from library".`);
             setTimeout(() => opener.current?.focus(), 0);
           }}
         />
@@ -180,7 +180,7 @@ export function MbrLibraryPage() {
         <Modal
           open
           onOpenChange={(o) => !o && setConfirm(null)}
-          title={shippedIds.has(confirm.id) ? "Bring back the shipped version?" : "Remove this block?"}
+          title={shippedIds.has(confirm.id) ? "Bring back the shipped version?" : "Remove this ready-made step?"}
           description={shippedIds.has(confirm.id) ? `${confirm.title}: your edits (version ${confirm.version}) are removed from the list. Records keep their own copies.` : `${confirm.title}: removed from the library. Records keep their own copies.`}
           restoreFocus={() => opener.current}
         >
@@ -196,7 +196,7 @@ export function MbrLibraryPage() {
                 const b = confirm;
                 setConfirm(null);
                 await remove(b.id);
-                setMessage(shippedIds.has(b.id) ? `The shipped version of "${b.title}" is back.` : `Block "${b.title}" removed.`);
+                setMessage(shippedIds.has(b.id) ? `The shipped version of "${b.title}" is back.` : `Ready-made step "${b.title}" removed.`);
               }}
             >
               {shippedIds.has(confirm.id) ? "Bring back shipped version" : "Remove"}
@@ -274,7 +274,7 @@ function BlockForm({ cur, onSave, onCancel }: { cur: MbrLibraryBlock | undefined
   useEffect(() => heading.current?.focus(), []);
 
   async function submit() {
-    if (!title.trim()) return setError("Give the block a title.");
+    if (!title.trim()) return setError("Give the ready-made step a title.");
     const bad = [...params, ...limits].find((r) => !r.label.trim() || !r.itemKey.trim() || !r.field.trim());
     if (bad) return setError("Each parameter and time limit row needs a label, a TRD item key and a field.");
     const clean = (rows: RefRow[]) => rows.map((r) => ({ ...r, key: r.key || slug(r.label), label: r.label.trim(), itemKey: r.itemKey.trim(), field: r.field.trim() }));
@@ -293,7 +293,7 @@ function BlockForm({ cur, onSave, onCancel }: { cur: MbrLibraryBlock | undefined
   return (
     <section className="card stack" aria-labelledby="mbl-form-h" data-testid="mbl-form">
       <h2 id="mbl-form-h" tabIndex={-1} ref={heading}>
-        {cur ? `Edit block: ${cur.title} (now version ${cur.version})` : "New block"}
+        {cur ? `Edit ready-made step: ${cur.title} (now version ${cur.version})` : "New ready-made step"}
       </h2>
       <label className="field">
         <span>Title</span>
@@ -351,7 +351,7 @@ function BlockForm({ cur, onSave, onCancel }: { cur: MbrLibraryBlock | undefined
       )}
       <div className="row">
         <button type="button" className="btn primary" disabled={busy} data-testid="mbl-save" onClick={() => void submit()}>
-          {cur ? "Save as a new version" : "Save block"}
+          {cur ? "Save as a new version" : "Save ready-made step"}
         </button>
         <button type="button" className="btn" onClick={onCancel}>
           Cancel

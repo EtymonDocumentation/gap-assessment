@@ -136,7 +136,9 @@ export function chainStages(project: Project, a: Assessment | null, allowed: Cha
             label: NAMES.view,
             path: viewRec ? "/mbr/view" : "/mbr",
             ...(viewRec ? { params: { mbr: viewRec.id } } : {}),
-            status: viewRec ? "Opens from a batch record" : "Needs a batch record to show",
+            // Ease-of-use pass (EOU-30): the Process view is a tab of a batch record, not a document of its own. The strip lists it as the last
+            // stage of the chain, so its status line says what it is instead of leaving "5 · Process view (you are here)" to read as a fifth document.
+            status: viewRec ? "A tab of the batch record" : "A tab of a batch record, once there is one",
           },
         ]
       : []),

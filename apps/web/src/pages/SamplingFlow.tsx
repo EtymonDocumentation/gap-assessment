@@ -21,7 +21,7 @@ import { countOf } from "../lib";
 import type { RemoveRequest } from "../components";
 
 /*
- * The process flow diagram of a sampling plan.
+ * The sampling diagram of a plan (the picture where samples are placed; the "document figure" is the one that goes into the files).
  *
  * Design notes (the why):
  *  - ONE STORE. The diagram never keeps its own copy of where a sample is. It draws plan.steps and point.flow from the project in the
@@ -424,9 +424,9 @@ export function FlowDiagram({
   const empty = plan.steps.length === 0;
   return (
     <section className="card stack" aria-labelledby="sp-flow" data-testid="flow-card">
-      <h2 id="sp-flow">Process flow</h2>
+      <h2 id="sp-flow">Sampling diagram</h2>
       <p className="muted small">
-        The steps of this plan in process order, with each sampling point where it is taken: before, during or after a step. A point can also stay off the diagram, and a point on a step does not need a position yet. Drag a marker to move it, or press Enter on it, use the arrow keys and press Enter again. The points table below lists the same thing as text.
+        The steps of this plan in process order, with each sampling point where it is taken: before, during or after a step. A point can also stay off the diagram, and a point on a step does not need a position yet. Drag a marker to move it, or press Enter on it, use the arrow keys and press Enter again. The points table lists the same thing as text. The document figure below this diagram is a second picture, made for the Word and HTML files.
       </p>
       {empty && (
         <p className="notice" data-testid="flow-empty">
@@ -440,7 +440,7 @@ export function FlowDiagram({
           viewBox={`0 0 ${layout.width} ${layout.height}`}
           style={{ width: "100%", maxWidth: Math.round(layout.width * 1.25) }}
           role="group"
-          aria-label={`Process flow diagram of ${countOf(plan.steps.length, "step")}`}
+          aria-label={`Sampling diagram of ${countOf(plan.steps.length, "step")}`}
           data-cols={cols}
         >
           <defs>

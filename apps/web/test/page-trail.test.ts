@@ -32,12 +32,12 @@ describe("breadcrumb trail of each page", () => {
     expect(back("/risk/methods")).toEqual({ label: "Risk assessment", path: "/risk" });
   });
 
-  it("names the Process view under the batch record, and the heading mapping under Templates", () => {
+  it("names the Process view under the batch record, and the heading placement under Templates", () => {
     expect(pageTrail("/mbr/view")!.parts.map((p) => p.label)).toEqual(["Documents", "Batch record"]);
     expect(pageTrail("/mbr/view")!.parts[1]!.path).toBe("/mbr");
     const mapping = pageTrail("/templates/abc-123/mapping")!;
     expect(mapping.project).toBe(false);
-    expect(mapping.parts.map((p) => p.label)).toEqual(["Library", "Templates", "Heading mapping"]);
+    expect(mapping.parts.map((p) => p.label)).toEqual(["Library", "Templates", "Heading placement"]);
     expect(mapping.parts[1]!.path).toBe("/templates");
   });
 

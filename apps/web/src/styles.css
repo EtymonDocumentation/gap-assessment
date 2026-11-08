@@ -2996,6 +2996,11 @@ details > summary {
 .risk-item[data-open="true"] {
   border-width: 2px;
 }
+/* The item just added from a gap: an outline, so it can be found in a long list (the message names it too). */
+.just-added {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
 .risk-item h4 {
   margin: 0;
 }
