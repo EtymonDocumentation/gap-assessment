@@ -1,20 +1,27 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { DEMO_NAMES, demoProjectTitle, type DemoId } from "../demo-build";
-import { Modal, ResponderForm } from "../components";
 import { href, navigate } from "../router";
 import { useIsRemote } from "../server/ServerUi";
 import { SERVER_MODE } from "../server/mode";
 import { loadList, openProject, useSync } from "../server/sync";
 import { useStore } from "../store";
-import { useMbrAllowed, useSamplingAllowed, useTrdAllowed } from "../risk-module";
+import { useChainAllowed } from "../DocChain";
+import { startTrdByQuestions } from "../trd-start";
+import { NewProjectDialog } from "./NewProjectDialog";
 
-/** The starts that are not the gap assessment (that one is "Start a new project"). The TRD button is the same start as "Answer questions" on the TRD page. */
+/**
+ * The starts that are not the gap assessment (that one is "Start a new project"). The TRD button is the same start as "Answer questions" on the TRD
+ * page: it makes the TRD and opens its first question. The abbreviations are spelled out once, where a first-time reader meets them.
+ */
 const DOCUMENT_STARTS: { id: string; title: string; text: string; button: string; path: string; params?: Record<string, string> }[] = [
-  { id: "trd", title: "A TRD on its own", text: "Answer plain questions and the TRD fills itself in. Anything you don't know stays open.", button: "Answer questions", path: "/trd", params: { start: "interview" } },
+  { id: "trd", title: "A technical requirements document (TRD) on its own", text: "Answer plain questions and the TRD fills itself in. Anything you don't know stays open.", button: "Answer questions", path: "/trd" },
   { id: "sampling", title: "A sampling plan on its own", text: "Say where and when samples are taken. No TRD is needed.", button: "Start a sampling plan", path: "/sampling" },
-  { id: "mbr", title: "A batch record from a TRD", text: "It takes its values from a TRD. A sampling plan is welcome but not needed.", button: "Start a batch record", path: "/mbr" },
+  { id: "mbr", title: "A batch record (MBR) from a TRD", text: "It takes its values from a TRD. A sampling plan is welcome but not needed.", button: "Start a batch record", path: "/mbr" },
 ];
+
+/** Where a start goes once the project exists: a page, or (the TRD start) a new TRD opened on its first question. */
+type After = { path: string; params?: Record<string, string> } | "trd-questions";
 
 /**
  * The ways to get a project open: start a new one, or open one of the two fictional demos. Home and the "this page needs an open project" box
@@ -26,15 +33,21 @@ const DOCUMENT_STARTS: { id: string; title: string; text: string; button: string
  * chosen. On Home, `stay` is off and a demo lands on Home, the overview of the project.
  */
 export function StartChoices({ stay, compact, children }: { stay?: boolean; compact?: boolean; children?: ReactNode }) {
-  const { project, openDemo, demoBuilding, homeFlash, newProject } = useStore();
+  const { project, openDemo, demoBuilding, homeFlash } = useStore();
   const [creating, setCreating] = useState(false);
   // The page a "start one document" button was meant for: with no project open the name form comes first, then the person lands there instead of on Scope.
-  const [after, setAfter] = useState<{ path: string; params?: Record<string, string> } | null>(null);
+  const [after, setAfter] = useState<After | null>(null);
+  const [startError, setStartError] = useState("");
   const remote = SERVER_MODE && useIsRemote();
   const busy = demoBuilding !== null;
   // A start is offered only when its module is on for the account (always in the browser-only build).
-  const allowed: Record<string, boolean> = { trd: useTrdAllowed(), sampling: useSamplingAllowed(), mbr: useMbrAllowed() };
+  const chain = useChainAllowed();
+  const allowed: Record<string, boolean> = { trd: chain.trd, sampling: chain.sampling, mbr: chain.mbr };
   const starts = DOCUMENT_STARTS.filter((s) => allowed[s.id]);
+  // The demo lines name only the follow-on documents this account has (EOU-43): an account with the gap assessment alone is not told about
+  // a TRD, a batch record, a plan or a risk assessment it cannot open. With every module the words are the ones they always were.
+  const followOn = [chain.trd && "TRD", chain.mbr && "batch record", chain.sampling && "sampling plan", chain.risk && "risk assessment"].filter((x): x is string => !!x);
+  const followOnText = followOn.length > 1 ? `${followOn.slice(0, -1).join(", ")} and ${followOn.at(-1)}` : (followOn[0] ?? "");
   // Server storage: every project is its own saved project on the server, so nothing is replaced.
   const confirmReplace = () => remote || !project || window.confirm("This replaces the project currently open in this browser. Export it first if you want to keep it. Continue?");
 
@@ -74,10 +87,12 @@ export function StartChoices({ stay, compact, children }: { stay?: boolean; comp
 
   return (
     <>
-      <div className="start-grid" data-testid="start-options" data-tour="home-start">
+      <div className="start-grid" data-testid="start-options">
         <div className="start-option">
           <h3 className="start-option-title">Start fresh</h3>
-          <button className="btn primary big" disabled={busy} onClick={() => {
+          {/* The tour's first step points at this button, not at the whole grid: the grid is over a screen tall, so pointing at it scrolled the page and the
+              bubble landed on the upload choices (EOU-39). */}
+          <button className="btn primary big" data-tour="home-start" disabled={busy} onClick={() => {
               if (!confirmReplace()) return;
               setAfter(null);
               setCreating(true);
@@ -97,7 +112,7 @@ export function StartChoices({ stay, compact, children }: { stay?: boolean; comp
               <div className="stack" key={s.id}>
                 <h4 className="start-sub">{s.title}</h4>
                 <p className="muted small">{s.text}</p>
-                {project ? (
+                {project && s.id !== "trd" ? (
                   <a className="btn" href={href(s.path, s.params)} data-testid={`start-doc-${s.id}`}>
                     {s.button}
                   </a>
@@ -106,8 +121,11 @@ export function StartChoices({ stay, compact, children }: { stay?: boolean; comp
                     className="btn"
                     disabled={busy}
                     data-testid={`start-doc-${s.id}`}
-                    onClick={() => {
-                      setAfter({ path: s.path, ...(s.params ? { params: s.params } : {}) });
+                    onClick={async () => {
+                      setStartError("");
+                      // With a project open the TRD is made at once. Without one, the project comes first (one dialog), then the TRD and its first question.
+                      if (project) return setStartError((await startTrdByQuestions()) ?? "");
+                      setAfter(s.id === "trd" ? "trd-questions" : { path: s.path, ...(s.params ? { params: s.params } : {}) });
                       setCreating(true);
                     }}
                   >
@@ -132,7 +150,7 @@ export function StartChoices({ stay, compact, children }: { stay?: boolean; comp
             ) : (
               <p className="muted small">
                 A fictional liquid mAb in 2R vials moving between two sites. It shows every kind of difference the tool can find (all eight comparison categories), so it is a good way to
-                see the gap assessment from start to finish. It also carries a short TRD, batch record, sampling plan and risk assessment.
+                see the gap assessment from start to finish.{followOnText ? ` It also carries a short ${followOnText}.` : ""}
               </p>
             )}
           </div>
@@ -141,11 +159,12 @@ export function StartChoices({ stay, compact, children }: { stay?: boolean; comp
               Open demo: {DEMO_NAMES["syr-305"]}
             </button>
             {compact ? (
-              <p className="muted small">Fictional prefilled syringe; the whole document chain is filled in.</p>
+              <p className="muted small">Fictional prefilled syringe; {followOnText ? "the whole document chain is filled in." : "the whole gap assessment is filled in."}</p>
             ) : (
               <p className="muted small">
-                A fictional prefilled syringe, filled at a receiving fill site from frozen drug substance. The whole document chain is filled in (a complete TRD, batch record, sampling
-                plan and risk assessment), so it is a good way to see the follow-on documents.
+                A fictional prefilled syringe, filled at a receiving fill site from frozen drug substance. {followOnText
+                  ? `The whole document chain is filled in (a complete ${followOnText}), so it is a good way to see the follow-on documents.`
+                  : "The whole gap assessment is filled in, so it is a good way to see a finished one."}
               </p>
             )}
           </div>
@@ -164,20 +183,25 @@ export function StartChoices({ stay, compact, children }: { stay?: boolean; comp
       <p className="muted small">
         Both demos are fictional. {remote ? "Opening one adds it to your projects on the server." : "Opening one replaces the project open in this browser (you are asked first)."}
       </p>
-      <Modal open={creating} onOpenChange={setCreating} title="New project" description="Name the project and the person answering.">
-        <ResponderForm
-          withTitle
-          submitLabel="Create project"
-          onSubmit={async (v) => {
-            // Refused while the open project's save has failed or has a conflict: the reason shows in the form, which stays as typed.
-            const refused = await newProject(v.title!, { name: v.name, ...(v.role ? { role: v.role } : {}) });
-            if (refused) return refused;
-            setCreating(false);
-            // The Scope step comes right after project setup, before the interview, so nobody answers questions about steps they do not have.
-            navigate(after?.path ?? "/scope", after?.params);
-          }}
-        />
-      </Modal>
+      {startError && (
+        <p className="error" role="alert" data-testid="start-error">
+          {startError}
+        </p>
+      )}
+      <NewProjectDialog
+        open={creating}
+        onOpenChange={setCreating}
+        description={
+          after === "trd-questions"
+            ? "Name the project and the person answering. The technical requirements document is made with it, and you land on its first question."
+            : "Name the project and the person answering."
+        }
+        onCreated={async () => {
+          // The Scope step comes right after project setup, before the interview, so nobody answers questions about steps they do not have.
+          if (after === "trd-questions") setStartError((await startTrdByQuestions()) ?? "");
+          else navigate(after?.path ?? "/scope", after?.params);
+        }}
+      />
     </>
   );
 }

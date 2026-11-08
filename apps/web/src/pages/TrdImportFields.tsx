@@ -205,7 +205,7 @@ function ParamCell({ ctx, col, label, fields }: { ctx: ImportCtx; col: Col; labe
     const text = low || high ? rangeText(low ? shownValue(ctx, low) : "", high ? shownValue(ctx, high) : "") : parts[0] ? shownValue(ctx, parts[0]) : "";
     const relevant = parts.filter((f) => f.value !== "" || ctx.decisions[f.id] !== undefined);
     const accepted = relevant.filter((f) => ctx.decisions[f.id] !== undefined).length;
-    const state = relevant.length === 0 ? "" : accepted === relevant.length ? "Accepted" : accepted === 0 ? "Open" : "Part accepted";
+    const state = relevant.length === 0 ? "" : accepted === relevant.length ? "Accepted" : accepted === 0 ? "Read, not accepted yet" : "Part accepted";
     const nows = parts.map(nowOf);
     const nowText = low || high ? rangeText(low ? (nowOf(low)?.text ?? "") : "", high ? (nowOf(high)?.text ?? "") : "") : (nows[0]?.text ?? "");
     const loose = parts.filter((f) => !f.lockedBy && f.confidence !== "exact" && f.confidence !== "matched" && f.value && ctx.decisions[f.id] === undefined);
@@ -370,7 +370,7 @@ export function SimpleTable({ ctx, fields }: { ctx: ImportCtx; fields: ImportFie
                 <td className="import-cell" data-label="Value">
                   <span className="import-value">{f.multiline ? <span className="block">{shown || <span className="muted">Not filled</span>}</span> : shown || <span className="muted">Not filled</span>}</span>
                   <span className="import-cell-state" data-testid="import-state">
-                    {decision !== undefined ? (decision === "" ? "Accepted as no value" : "Accepted") : f.value ? "Open" : ""}
+                    {decision !== undefined ? (decision === "" ? "Accepted as no value" : "Accepted") : f.value ? "Read, not accepted yet" : ""}
                   </span>
                   {now && (
                     <span className="import-cell-state" data-testid="import-now">

@@ -193,7 +193,7 @@ test("Home offers the upload and the blank form", async ({ page }) => {
   await loadDemo(page);
   await goTo(page, "Home");
   const block = page.getByTestId("home-start-from-document");
-  await expect(block).toContainText("Start from a document you have");
+  await expect(block).toContainText("A technical requirements document (TRD)");
   await expect(page.getByTestId("home-upload-trd")).toBeVisible();
   await expect(page.getByTestId("home-blank-form")).toBeVisible();
   await block.scrollIntoViewIfNeeded();
@@ -215,7 +215,7 @@ test("compact review: one row per parameter, row Accept, step Accept, Edit, the 
   await expect(first.getByTestId("import-row-accept")).toBeVisible();
   await expect(first).toContainText("Exact");
   await expect(first).toContainText(/\d+(\.\d+)? to \d+(\.\d+)?/);
-  await expect(first).toContainText("Open");
+  await expect(first).toContainText("not accepted yet");
   // The source is one short line, in the More menu only; no path is repeated on every value.
   await expect(page.getByText("The data stored in the Word file")).toHaveCount(0);
   await first.getByTestId("import-more").click();

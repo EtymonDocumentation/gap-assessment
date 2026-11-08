@@ -1,14 +1,16 @@
-import { NO_VALUE_YET, deleteTrd, openBlankCount, trdOpenItems, trdOverrides, updateTrd, writeupsInOrder, type BlankContext, type TrdOpenItem } from "@gap/engine";
+import { NO_VALUE_YET, deleteTrd, deriveTrdQuestions, openBlankCount, trdOpenItems, trdOverrides, updateTrd, writeupsInOrder, type BlankContext, type TrdOpenItem } from "@gap/engine";
+import { trdInterviewWording } from "@gap/content";
 import type { TrdDocument } from "@gap/process-model";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Modal } from "../components";
 import { focusWhenReady, PageHeader, type PagePill } from "../PageHeader";
 import { Tabs, type TabDef } from "../Tabs";
+import { landAtTop } from "../land-at-top";
 import { countOf, dateTime } from "../lib";
 import { href, navigate } from "../router";
 import { StageRow } from "../stage-ui";
 import { useContent, useStore } from "../store";
-import { placeInterviewTab, trdIsEmpty } from "../trd-interview-lib";
+import { openItemQuestionKey, placeInterviewTab, trdIsEmpty } from "../trd-interview-lib";
 import type { Run } from "./SamplingFlow";
 import { FieldRow } from "./TrdFieldRow";
 import { TrdInterview, type InterviewShow } from "./TrdInterview";
@@ -74,7 +76,7 @@ const KIND_TEXT: Record<TrdOpenItem["kind"], string> = {
   limit_note: "Note",
 };
 
-export function TrdEditor({ d, initialTab, initialShow }: { d: TrdDocument; initialTab: TrdTab; initialShow?: InterviewShow }) {
+export function TrdEditor({ d, initialTab, initialShow, initialQuestion }: { d: TrdDocument; initialTab: TrdTab; initialShow?: InterviewShow; initialQuestion?: string }) {
   const update = useStore((s) => s.update);
   const [tab, setTab] = useState<TrdTab>(initialTab);
   // A link to another tab of the TRD that is already open (same page, new address) switches the tab.
@@ -82,6 +84,16 @@ export function TrdEditor({ d, initialTab, initialShow }: { d: TrdDocument; init
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const opener = useRef<HTMLElement | null>(null);
+  // A TRD opens at its top, under the header and the tabs. Making one, or opening one from the list, changes only the query of the address
+  // (the path stays /trd), so the scroll-to-top that runs for a new page did not run: the person landed wherever the list had been scrolled
+  // to, far down the new page, and the header with the Menu was out of sight.
+  useEffect(() => {
+    // An address that names a question goes to that question (the interview scrolls to it and puts the cursor there), not to the top. That is why
+    // this calls landAtTop() itself instead of useLandAtTop(d.id), which would always scroll back to the top after the interview had jumped.
+    if (!initialQuestion) landAtTop();
+  }, [d.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The question an Open items entry points to. Used once: choosing a tab by hand drops it, so the Interview tab does not jump back to it later.
+  const [jump, setJump] = useState<string | undefined>(initialQuestion);
   const run: Run = (fn, status) => {
     const err = update(fn, status);
     setError(err ?? "");
@@ -92,7 +104,14 @@ export function TrdEditor({ d, initialTab, initialShow }: { d: TrdDocument; init
   // page is not re-rendered or reset by it.
   const select = (t: TrdTab) => {
     setTab(t);
+    setJump(undefined);
     window.history.replaceState(null, "", href("/trd", { trd: d.id, tab: t }));
+  };
+  // An entry of the Open items tab: the Interview tab, scrolled to the question that asks for the missing value.
+  const goToQuestion = (key: string) => {
+    setTab("interview");
+    setJump(key);
+    window.history.replaceState(null, "", href("/trd", { trd: d.id, tab: "interview" }));
   };
   // The Interview tab is first for a TRD with nothing in it and otherwise right after "1. Details". Decided once when the page opens, so the tabs do
   // not move under the person while they answer.
@@ -166,7 +185,7 @@ export function TrdEditor({ d, initialTab, initialShow }: { d: TrdDocument; init
       )}
 
       <Tabs label="TRD steps" tabs={tabDefs} selected={tab} onSelect={select} testId="trd-tabs" tour="trd-tabs">
-        {tab === "interview" && <TrdInterview d={d} {...(initialShow ? { initialShow } : {})} />}
+        {tab === "interview" && <TrdInterview d={d} {...(initialShow ? { initialShow } : {})} {...(jump ? { initialQuestion: jump } : {})} />}
         {tab === "details" && <Details d={d} run={run} />}
         {/* The update (a newer seed file, or the differences from the project) sits under the details. It stays mounted while another tab is
             open, so a file already read and a review in progress are not lost by a look at the Process tab; the page shows it only here. */}
@@ -175,7 +194,7 @@ export function TrdEditor({ d, initialTab, initialShow }: { d: TrdDocument; init
         </div>
         {tab === "process" && <TrdSteps d={d} run={run} />}
         {tab === "writeups" && <TrdWriteups d={d} run={run} />}
-        {tab === "open" && <OpenItems d={d} open={open} />}
+        {tab === "open" && <OpenItems d={d} open={open} onQuestion={goToQuestion} onTab={select} />}
         {tab === "output" && <TrdOutput d={d} run={run} />}
       </Tabs>
 
@@ -376,10 +395,15 @@ function Details({ d, run }: { d: TrdDocument; run: Run }) {
 
 // ------------------------------------------------------------------ step 3: open items
 
-function OpenItems({ d, open }: { d: TrdDocument; open: TrdOpenItem[] }) {
-  const overrides = trdOverrides(d);
+function OpenItems({ d, open, onQuestion, onTab }: { d: TrdDocument; open: TrdOpenItem[]; onQuestion: (key: string) => void; onTab: (t: TrdTab) => void }) {
+  // An override is a value typed in place of one the project has. A value typed where the project had nothing (a TRD without a gap
+  // assessment, or a detail the project does not know) is the person's own answer; listing it here as an override with "No project value" and
+  // "No reason recorded" made a first-time user think something had gone wrong.
+  const overrides = trdOverrides(d).filter((o) => o.overridesProject);
   const project = useStore((s) => s.project)!;
   const content = useContent();
+  // Each entry is a link to the question that asks for it. An entry the interview has no question for (a field of a step itself) opens the tab that holds it.
+  const questionKeys = useMemo(() => new Set(deriveTrdQuestions(project, d.id, { content, wording: trdInterviewWording }).map((q) => q.key)), [project, d.id, content]);
   // Two different counts, named so a first-time reader sees why they differ: open items are entries of this list; blank fields are the
   // square-bracket gaps inside the process descriptions (same wording as the exported document).
   const blanks = useMemo(() => {
@@ -398,19 +422,38 @@ function OpenItems({ d, open }: { d: TrdDocument; open: TrdOpenItem[] }) {
         {open.length === 0 ? (
           <p>No open items. This says the entries are all there, not that the numbers are right; that decision belongs to your team and your quality system.</p>
         ) : (
-          <ul className="plain-list small">
-            {open.map((o, i) => (
-              <li key={i}>
-                <strong>{KIND_TEXT[o.kind]}:</strong> {o.where}. {o.kind === "not_established" || o.kind === "tbd" ? "" : `${o.text}.`}
-              </li>
-            ))}
-          </ul>
+          <>
+            <p className="muted small">Select an entry to go to its question.</p>
+            <ul className="plain-list small">
+              {open.map((o, i) => {
+                const q = openItemQuestionKey(d, o, questionKeys);
+                const tab: TrdTab = o.stepId || o.itemRef ? "process" : "details";
+                return (
+                  <li key={i}>
+                    <strong>{KIND_TEXT[o.kind]}:</strong>{" "}
+                    <a
+                      href={q ? href("/trd", { trd: d.id, tab: "interview", q }) : href("/trd", { trd: d.id, tab })}
+                      data-testid="trd-open-link"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (q) onQuestion(q);
+                        else onTab(tab);
+                      }}
+                    >
+                      {o.where}
+                    </a>
+                    . {o.kind === "not_established" || o.kind === "tbd" ? "" : `${o.text}.`}
+                  </li>
+                );
+              })}
+            </ul>
+          </>
         )}
       </section>
       <section className="card stack" aria-labelledby="trd-ovr-h" data-testid="trd-overrides">
         <h2 id="trd-ovr-h">Overrides ({overrides.length})</h2>
         {overrides.length === 0 ? (
-          <p>No value has been overridden.</p>
+          <p>No value has been overridden. A value you type where the project has none is your own answer, not an override.</p>
         ) : (
           <div className="table-scroll" role="region" aria-label="Overrides table" tabIndex={0}>
             <table className="data">
@@ -429,7 +472,7 @@ function OpenItems({ d, open }: { d: TrdDocument; open: TrdOpenItem[] }) {
                     <th scope="row">
                       {o.where}, {o.field}
                     </th>
-                    <td>{o.overridesProject ? o.projectValue : "No project value"}</td>
+                    <td>{o.projectValue}</td>
                     <td>{o.trdValue}</td>
                     <td>{o.reason}</td>
                     <td className="small">

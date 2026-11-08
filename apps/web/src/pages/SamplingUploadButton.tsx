@@ -8,6 +8,7 @@ import { download } from "../lib";
 import { navigate } from "../router";
 import { content, useStore } from "../store";
 import { holdSamplingImport } from "../sampling-import-store";
+import { useProjectFirst } from "./NewProjectDialog";
 
 const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
@@ -54,6 +55,8 @@ export function SamplingUploadButton({ className = "btn primary", testId = "samp
   const input = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState<{ text: string; offerForm: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
+  // A sampling plan lives in a project. With none open the file is read first and the project is asked for after it (Home offers this button with no project).
+  const { proceed, dialog } = useProjectFirst("Your file is read. Name the project it goes into and the person answering. You then check every value.");
 
   async function onFile(f: File | undefined) {
     setMessage(null);
@@ -71,7 +74,7 @@ export function SamplingUploadButton({ className = "btn primary", testId = "samp
           ? samplingSessionFromData(read, samplingImportSynonyms)
           : samplingSessionFromForm(read, samplingImportSynonyms);
       holdSamplingImport({ session, file: f });
-      navigate("/sampling/import");
+      proceed(() => navigate("/sampling/import"));
     } catch (e) {
       const own = e instanceof SamplingImportError || (e as Error).name === "TemplateError";
       setMessage({ text: own ? (e as Error).message : `The file could not be read: ${(e as Error).message}`, offerForm: true });
@@ -107,6 +110,7 @@ export function SamplingUploadButton({ className = "btn primary", testId = "samp
           )}
         </span>
       )}
+      {dialog}
     </span>
   );
 }

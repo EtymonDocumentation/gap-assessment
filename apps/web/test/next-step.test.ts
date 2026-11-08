@@ -29,6 +29,17 @@ describe("next step on the Home page", () => {
     expect(stepDone(p, a).interview).toBeUndefined();
   });
 
+  // EOU-09: a first-time tester answered one question and the step bar showed "Scope done", although the Scope step was never opened.
+  it("does not tick the scope just because questions were answered; the next step still moves on to the interview", () => {
+    const d = demo("syr-305");
+    const p: Project = { ...d, stepScope: { ...d.stepScope, excluded: [] } };
+    const a = assess(content, p);
+    expect(scopeRecorded(p)).toBe(false);
+    expect(stepDone(p, a).scope).toBeUndefined();
+    // "Everything stays in scope" leaves no trace, so answered questions still mean the person has moved on from the Scope step.
+    expect(nextStep(p, a).path).not.toBe("/scope");
+  }, 30000);
+
   it("sends an opened demo to the gap register once every question is answered, and ticks the interview but never the register or document", () => {
     const p = demo("syr-305");
     const a = assess(content, p);

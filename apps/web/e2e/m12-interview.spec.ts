@@ -32,14 +32,10 @@ async function newProject(page: Page) {
   await hash(page, "#/trd");
 }
 
-/** The fourth start: "Answer questions" on the TRD page, a title, Create. Lands on the Interview tab. */
+/** "Answer questions" on the TRD page: one click makes a blank TRD (named after the project) and lands on its Interview tab. No form, no title to type. */
 async function startInterview(page: Page) {
   await newProject(page);
   await page.getByTestId("trd-interview-btn").click();
-  await expect(page.getByTestId("trd-start-interview")).toBeChecked();
-  await expect(page.getByTestId("trd-title-input")).toBeFocused();
-  await page.getByTestId("trd-title-input").fill("Answered TRD (fictional)");
-  await page.getByTestId("trd-create").click();
   await expect(page.getByTestId("trd-interview")).toBeVisible();
 }
 
@@ -102,10 +98,11 @@ test("'Answer questions' starts a blank TRD on the Interview tab, with no gap as
   await expect(first).toHaveText("Interview");
   await expect(first).toHaveAttribute("aria-selected", "true");
   await expect(page.getByTestId("iv-empty")).toContainText("Answer a few questions and the TRD fills itself in. Anything you don't know stays open.");
-  for (const id of ["iv-empty-first", "iv-empty-one", "iv-empty-open"]) await expect(page.getByTestId(id)).toBeVisible();
+  for (const id of ["iv-empty-first", "iv-empty-one"]) await expect(page.getByTestId(id)).toBeVisible();
+  await expect(page.getByTestId("iv-empty-open")).toHaveCount(0);
   // Nothing is pre-filled, and the project stage is asked for without being chosen.
   const n = await progressNumbers(page);
-  // Only the title typed on the start form is an answer so far.
+  // Only the title (made from the project's title when the TRD is started) is an answer so far.
   expect(n.answered).toBe(1);
   await expect(page.getByTestId("iv-stage-prompt")).toContainText("Set the project stage to get questions that fit");
   await expect(card(page, "doc:purpose").getByTestId("iv-input")).toHaveValue("");

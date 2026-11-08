@@ -39,7 +39,7 @@ test("Home with no project: the four starts are there in plain words, and each b
   await expect(options.getByRole("heading", { level: 3 })).toHaveText(["Start fresh", "Start with one document", "Open a demo", "Upload a document you have"]);
   await expect(options.getByRole("button", { name: "Start a new project" })).toBeVisible(); // the gap assessment
   const docs = page.getByTestId("start-documents");
-  await expect(docs.getByRole("heading", { level: 4 })).toHaveText(["A TRD on its own", "A sampling plan on its own", "A batch record from a TRD"]);
+  await expect(docs.getByRole("heading", { level: 4 })).toHaveText(["A technical requirements document (TRD) on its own", "A sampling plan on its own", "A batch record (MBR) from a TRD"]);
   await expect(docs).toContainText("A sampling plan is welcome but not needed");
   await shot(page, "home-starts");
   await expectNoSidewaysScroll(page, "home starts");
@@ -48,9 +48,9 @@ test("Home with no project: the four starts are there in plain words, and each b
 });
 
 // Without a project each button first asks for the project name (a document lives in a project), then lands on its page. One test each, so
-// every one starts with a clean browser (a project left open would turn the buttons into links).
+// every one starts with a clean browser (a project left open would turn the sampling and batch record buttons into links).
 const targets: [string, string, RegExp][] = [
-  ["trd", "Answer questions", /#\/trd\?start=interview$/],
+  ["trd", "Answer questions", /#\/trd\?trd=[^&]+&tab=interview$/],
   ["sampling", "Start a sampling plan", /#\/sampling$/],
   ["mbr", "Start a batch record", /#\/mbr$/],
 ];
@@ -62,28 +62,28 @@ for (const [id, name, url] of targets) {
     await createProject(page);
     await expect(page).toHaveURL(url);
     if (id === "trd") {
-      // The same start as "Answer questions" on the TRD page: the choice is made, the title box is ready, nothing is created yet.
-      await expect(page.getByTestId("trd-start-interview")).toBeChecked();
-      await expect(page.getByTestId("trd-title-input")).toBeFocused();
+      // The same start as "Answer questions" on the TRD page, with the project made first: the TRD exists and its Interview tab is open, with
+      // no second form to fill in (EOU-02, EOU-12).
+      await expect(page.getByTestId("trd-interview")).toBeVisible();
+      await expect(page.getByTestId("trd-tab-interview")).toHaveAttribute("aria-selected", "true");
+      await expect(page.getByTestId("trd-title-input")).toHaveCount(0);
     }
   });
 }
 
-test("Home with a project open: the starts are plain links to the same pages, and the TRD one makes a blank TRD on the Interview tab", async ({ page }) => {
+test("Home with a project open: the sampling and batch record starts are plain links, and the TRD one makes a blank TRD on the Interview tab at once", async ({ page }) => {
   await page.goto("./");
   await openDemo(page, "syr");
   const docs = page.getByTestId("start-documents");
   await expect(docs).toBeVisible();
-  await expect(page.getByTestId("start-doc-trd")).toHaveAttribute("href", "#/trd?start=interview");
+  await expect(page.getByTestId("start-doc-trd")).toHaveText("Answer questions");
   await expect(page.getByTestId("start-doc-sampling")).toHaveAttribute("href", "#/sampling");
   await expect(page.getByTestId("start-doc-mbr")).toHaveAttribute("href", "#/mbr");
   await expectAccessible(page, "home starts with a project");
   await page.getByTestId("start-doc-trd").click();
-  await expect(page.getByTestId("trd-start-interview")).toBeChecked();
-  await expect(page.getByTestId("trd-title-input")).toBeFocused();
-  await page.getByTestId("trd-title-input").fill("From Home (fictional)");
-  await page.getByTestId("trd-create").click();
+  // One click: no form. The new TRD is named after the project and its first question is on screen.
   await expect(page.getByTestId("trd-interview")).toBeVisible();
+  await expect(page.getByTestId("trd-title-input")).toHaveCount(0);
   await expect(page.getByTestId("trd-tab-interview")).toHaveAttribute("aria-selected", "true");
 });
 

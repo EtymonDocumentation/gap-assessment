@@ -285,7 +285,7 @@ test("Export menu: the page's downloads, arrow keys, Home and End, Escape return
   await expect(page.getByRole("menu")).toHaveCount(0);
 });
 
-test("Export menu on the Document page runs the same downloads as the buttons, including the pre-download check", async ({ page }) => {
+test("the Document page has one set of downloads (no Export menu repeating them), and its pre-download check and export history work", async ({ page }) => {
   test.setTimeout(90_000);
   await loadDemo(page);
   await go(page, "#/document");
@@ -296,20 +296,19 @@ test("Export menu on the Document page runs the same downloads as the buttons, i
   // Word is the one highlighted download; Print is not set above it.
   await expect(buttons.nth(0)).toHaveClass(/\bprimary\b/);
   await expect(buttons.nth(3)).not.toHaveClass(/\bprimary\b/);
+  // The header does not repeat the same four as an Export menu (EOU-09): the buttons are right under it.
+  await expect(page.getByTestId("export-menu-button")).toHaveCount(0);
 
-  await page.getByTestId("export-menu-button").click();
-  await expect(page.getByRole("menuitem")).toHaveText(["Download gap assessment (Word)", "Download gap assessment (HTML)", "Download gap assessment (Markdown)", "Print / save as PDF"]);
   const [md] = await Promise.all([
     page.waitForEvent("download"),
     (async () => {
-      await page.getByRole("menuitem", { name: "Download gap assessment (Markdown)" }).click();
-      // The demo has open TBD values, so the same warning as the button's appears first.
+      await buttons.nth(2).click();
+      // The demo has open TBD values, so the warning appears first.
       await expect(page.getByRole("dialog", { name: "Download with open items?" })).toBeVisible();
       await page.getByRole("button", { name: "Download anyway" }).click();
     })(),
   ]);
   expect(md.suggestedFilename()).toMatch(/\.md$/);
-  // And the export history has the row, as it has after the button.
   await expect(page.getByRole("region", { name: "Export history table" }).locator("tbody tr").first()).toContainText("Markdown");
 });
 

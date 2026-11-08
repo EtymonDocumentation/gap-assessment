@@ -20,8 +20,11 @@ const PROGRESS_HELP =
  * The Interview tab: plain questions that fill the same TRD the form fills. The list is derived from the TRD every time (nothing is stored
  * but the Keep marks and the place you were at, in this browser), and each answer goes through the same edit functions as the form, one
  * change-log event each. Nothing here blocks saving, leaving or the export.
+ *
+ * `initialQuestion` is the question an entry of the Open items tab links to: the view widens to hold it, then the page scrolls to its card
+ * and the cursor goes to its heading (the same move as "Continue where you left off").
  */
-export function TrdInterview({ d, initialShow }: { d: TrdDocument; initialShow?: InterviewShow }) {
+export function TrdInterview({ d, initialShow, initialQuestion }: { d: TrdDocument; initialShow?: InterviewShow; initialQuestion?: string }) {
   const project = useStore((s) => s.project)!;
   const update = useStore((s) => s.update);
   const content = useContent();
@@ -44,6 +47,7 @@ export function TrdInterview({ d, initialShow }: { d: TrdDocument; initialShow?:
   const [idx, setIdx] = useState(0);
   const [skipped, setSkipped] = useState<Set<string>>(() => new Set());
   const [focusKey, setFocusKey] = useState<string | undefined>();
+  const jumped = useRef(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const endRef = useRef<HTMLHeadingElement>(null);
 
@@ -122,6 +126,18 @@ export function TrdInterview({ d, initialShow }: { d: TrdDocument; initialShow?:
     if (one) (ended ? endRef.current : headingRef.current)?.focus();
   }, [one, idx, ended]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ---- a link from the Open items tab: show everything (and More detail when the question is one), then go to the question
+  useEffect(() => {
+    if (!initialQuestion || jumped.current) return;
+    const q = all.find((x) => x.key === initialQuestion);
+    if (!q) return;
+    jumped.current = true;
+    setShow("all");
+    setSearch("");
+    if (!q.essential) setMore(true);
+    setFocusKey(q.key);
+  }, [initialQuestion, all]);
+
   // ---- continue where you left off, and the "first step" start: scroll to the card and put the cursor on it
   useEffect(() => {
     if (!focusKey || one) return;
@@ -154,7 +170,7 @@ export function TrdInterview({ d, initialShow }: { d: TrdDocument; initialShow?:
       <section className="card stack" aria-labelledby="iv-h">
         <h2 id="iv-h">Answer questions to fill the TRD</h2>
         <p className="small" data-testid="iv-intro">
-          Each answer goes straight into the TRD (technology transfer document), the same one the other tabs show. Anything you don't know stays open; nothing here stops you from saving or leaving.
+          Each answer goes straight into the TRD (technical requirements document), the same one the other tabs show. Anything you don't know stays open; nothing here stops you from saving or leaving.
         </p>
         <p data-testid="iv-stage">
           <strong>Project stage:</strong> <StageRow />
@@ -203,10 +219,9 @@ export function TrdInterview({ d, initialShow }: { d: TrdDocument; initialShow?:
             <button type="button" className="btn" data-testid="iv-empty-one" onClick={() => startOne()}>
               Answer one question at a time
             </button>
-            <button type="button" className="btn" data-testid="iv-empty-open" onClick={() => setShow("open")}>
-              Show only what is still open
-            </button>
           </div>
+          {/* "Show only what is still open" used to be a third button here. In an empty TRD every question is open, so it did nothing, and the
+              Show options below already say it. Two ways to start are enough: the whole list, or one question at a time. */}
         </section>
       )}
 

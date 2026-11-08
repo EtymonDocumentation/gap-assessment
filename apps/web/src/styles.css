@@ -4843,6 +4843,10 @@ fieldset.stage-options {
     font-weight: 600;
     color: var(--muted);
   }
+  /* The interview summary: a row with no comparison chip has nothing to label, so the empty cell is left out of the card. */
+  .answers-table td:empty {
+    display: none;
+  }
 }
 
 /* ---------------------------------------------------------------- Help (?) menu, guided tour, glossary */
@@ -5636,6 +5640,9 @@ fieldset.stage-options {
 .iv-side { border-left: 3px solid var(--divider); padding-left: 0.75rem; }
 .iv-why, .iv-hint { margin: 0; }
 .iv-status { margin: 0; }
+/* Margin 0 above also cancelled the stack gap, so the status ("Open") sat tight against the question's heading (EOU-11). A small gap keeps it
+   with the heading and lets it breathe. */
+.iv-main > .iv-status { margin-top: 0.45rem; }
 .iv-status[data-tone="project"] { color: var(--text); }
 .iv-project { border: 1px dashed var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 8px 12px; }
 .iv-project p { margin: 0; overflow-wrap: anywhere; }

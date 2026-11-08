@@ -1,8 +1,8 @@
-import { applyTrdAnswer, createTrd, deriveTrdQuestions } from "@gap/engine";
+import { applyTrdAnswer, createTrd, deriveTrdQuestions, trdOpenItems } from "@gap/engine";
 import { content, trdInterviewWording, trdWriteups } from "@gap/content";
 import { emptyProject } from "@gap/process-model";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { defaultInterviewShow, nextIndex, placeInterviewTab, readKept, readLast, sequencePosition, trdIsEmpty, writeKept, writeLast } from "../src/trd-interview-lib";
+import { defaultInterviewShow, nextIndex, openItemQuestionKey, placeInterviewTab, readKept, readLast, sequencePosition, trdIsEmpty, writeKept, writeLast } from "../src/trd-interview-lib";
 
 const who = { name: "Tester (fictional)", at: "2026-11-05T09:00:00.000Z" };
 const blank = () => {
@@ -32,6 +32,36 @@ describe("tab placement and the default view", () => {
     const d2 = r.project.trd.documents.find((x) => x.id === trdId)!;
     expect(trdIsEmpty(d2)).toBe(false);
     expect(defaultInterviewShow(d2)).toBe("open");
+  });
+});
+
+// EOU-15: each entry of the Open items tab links to the question that answers it.
+describe("open items link to their question", () => {
+  const { project, trdId } = blank();
+  const d = project.trd.documents.find((x) => x.id === trdId)!;
+  const qs = deriveTrdQuestions(project, trdId, { content, wording: trdInterviewWording });
+  const keys = new Set(qs.map((q) => q.key));
+  const items = trdOpenItems(d);
+
+  it("gives every field-level open item the key of the field it is about", () => {
+    const fields = items.filter((o) => o.fieldKey !== undefined);
+    expect(fields.length).toBeGreaterThan(0);
+    // A detail of the document (no process step) is asked as its own "detail:" question.
+    const detail = fields.find((o) => !o.stepId);
+    expect(detail).toBeDefined();
+    expect(openItemQuestionKey(d, detail!, keys)).toBe(`detail:${detail!.fieldKey}`);
+  });
+
+  it("only ever returns a key the interview really has, and finds one for most open items of a blank TRD", () => {
+    const found = items.map((o) => openItemQuestionKey(d, o, keys));
+    for (const k of found) if (k !== undefined) expect(keys.has(k), k).toBe(true);
+    expect(found.filter((k) => k !== undefined).length).toBeGreaterThan(0);
+  });
+
+  it("gives nothing for an item the interview has no question for, so the link goes to the tab that holds it", () => {
+    const none = openItemQuestionKey(d, { where: "x", what: "y" } as never, keys);
+    expect(none).toBeUndefined();
+    expect(openItemQuestionKey(d, { where: "x", what: "y", fieldKey: "no-such-field" } as never, keys)).toBeUndefined();
   });
 });
 

@@ -105,9 +105,10 @@ test("Home is the Cascade start page: welcome, the three start choices and one c
   await expect(start).toBeVisible();
   const options = page.getByTestId("start-options");
   await expect(options.getByRole("heading", { level: 3 })).toHaveText(["Start fresh", "Start with one document", "Open a demo", "Upload a document you have"]);
-  // An upload is read into a project, so with none open the choice says what to do first (no dead buttons).
-  await expect(page.getByTestId("upload-needs-project")).toBeVisible();
-  await expect(page.getByTestId("home-upload-trd")).toHaveCount(0);
+  // Every upload is offered with no project open too (EOU-12): the file is chosen first and the project is asked for after it, so there is
+  // no "open a project first" line and no missing button.
+  await expect(page.getByTestId("upload-needs-project")).toHaveCount(0);
+  for (const id of ["home-upload-gap", "home-upload-trd", "home-upload-sampling"]) await expect(page.getByTestId(id)).toBeVisible();
   // One card per document, in chain order, each with its purpose.
   const names = await page.getByTestId("home-chain").getByRole("heading", { level: 3 }).allInnerTexts();
   expect(names).toEqual(["Gap assessment", "TRD", "Sampling plan", "Batch record", "Risk assessment"]);
@@ -130,8 +131,7 @@ test("with a project open the cards show its state and their buttons go to each 
   test.setTimeout(120_000);
   await page.goto("./");
   await openDemo(page, "syr");
-  await expect(page.getByTestId("upload-needs-project")).toHaveCount(0);
-  // With a project the upload choice offers the TRD and sampling plan uploads (reused from the pages that read them).
+  // The same uploads as with no project open (the project is simply not asked for again).
   await expect(page.getByTestId("home-upload-trd")).toBeVisible();
   await expect(page.getByTestId("home-upload-sampling")).toBeVisible();
   const expected: [string, RegExp, string, RegExp][] = [

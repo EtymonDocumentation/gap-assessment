@@ -77,10 +77,20 @@ terms:
     short: An engineering or demonstration run to learn the process. It is not for GMP supply. This is the Engineering project stage.
     see: [project-stage, clinical-batch]
 
+  - id: entry-order
+    term: Entry order
+    short: How the interview asks the two sides. Paired asks the sending unit (SU), then the receiving unit (RU), for each question, on one card. Sequential asks all the SU answers first, then the RU pass. It changes only the order of the questions, never an answer. You choose it at the top of the Interview.
+    see: [sending-unit, receiving-unit]
+
   - id: gap
     term: Gap
     short: A difference between how the product is made at the sending unit and how the receiving unit plans to make it. The tool lists every gap. What to do about it is your decision. The tool never decides a filing category. Where one may be needed it only says "Requires regulatory affairs assessment".
     see: [sending-unit, receiving-unit, risk-rating]
+
+  - id: gap-register
+    term: Gap register
+    short: The list of every gap the tool found, one row for each, with its category and severity. You can filter, sort and export it, and record an owner, a status and a note for each gap. What to do about a gap is your decision. The tool never decides a filing category.
+    see: [gap, sending-unit, receiving-unit]
 
   - id: heading-placement
     term: Heading placement
@@ -111,6 +121,11 @@ terms:
     term: Open item
     short: A value or question still to be decided. Every TBD is an open item, and so is every question not answered yet. Open items stay visible in the pages and the documents, with an owner and a due date where you give them. They do not stop saving or downloading.
     see: [tbd]
+
+  - id: override
+    term: Override
+    short: A value you type in the TRD in place of the one the project or a seed file gave. The original stays beside yours, so you can always see what was replaced. A value you type where nothing was given is your own answer, not an override. The Overrides list on the TRD page shows them all.
+    see: [trd]
 
   - id: par
     term: PAR (proven acceptable range)
@@ -177,6 +192,11 @@ terms:
     short: A place and a time in the process where a sample is taken, with the reason for it and what it is tested for. The sampling plan lists them for the PPQ batches.
     see: [study-point, in-process-control]
 
+  - id: saved-answers
+    term: Saved answers
+    short: A named set of interview answers that you keep, to offer to another project. You see every answer first and untick the ones you do not want. Nothing is applied on its own. They are kept on the Saved answers page.
+    see: [open-item]
+
   - id: sending-unit
     term: Sending unit (SU)
     short: The site that makes the product today. The gap assessment compares how it makes the product with the receiving unit's plan.
@@ -234,5 +254,5 @@ terms:
 
   - id: working-copy
     term: Working copy
-    short: The project you are editing now, as opposed to a saved version. It is shown as Working copy after v2.1, with the words unsaved changes when it has moved on from that version.
+    short: The project you are editing now, as opposed to a saved version. It is kept as you work. It is shown as Working copy after v2.1, with the words changed since then when it has moved on from that version.
     see: [version]

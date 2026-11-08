@@ -8,6 +8,7 @@ import { download } from "../lib";
 import { navigate } from "../router";
 import { content } from "../store";
 import { holdImport } from "../trd-import-store";
+import { useProjectFirst } from "./NewProjectDialog";
 
 const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
@@ -52,6 +53,8 @@ export function TrdUploadButton({ className = "btn primary", testId = "trd-uploa
   const input = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState<{ text: string; offerForm: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
+  // A TRD lives in a project. With none open the file is read first and the project is asked for after it (Home offers this button with no project).
+  const { proceed, dialog } = useProjectFirst("Your file is read. Name the project it goes into and the person answering. You then check every value.");
 
   async function onFile(f: File | undefined) {
     setMessage(null);
@@ -65,7 +68,7 @@ export function TrdUploadButton({ className = "btn primary", testId = "trd-uploa
       if (read.dataKind?.startsWith("sampling")) return setMessage({ text: "This file is a sampling plan made by this tool. Upload it on the Sampling plan page instead.", offerForm: false });
       const session = !read.dataKind ? sessionFromOther(read, content.catalog, trdImportSynonyms) : read.dataKind === "trd-data" ? sessionFromData(read) : sessionFromForm(read);
       holdImport({ session, file: f });
-      navigate("/trd/import");
+      proceed(() => navigate("/trd/import"));
     } catch (e) {
       const own = e instanceof TrdImportError || (e as Error).name === "TemplateError";
       setMessage({ text: own ? (e as Error).message : `The file could not be read: ${(e as Error).message}`, offerForm: true });
@@ -101,6 +104,7 @@ export function TrdUploadButton({ className = "btn primary", testId = "trd-uploa
           )}
         </span>
       )}
+      {dialog}
     </span>
   );
 }

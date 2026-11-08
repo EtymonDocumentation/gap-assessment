@@ -68,6 +68,8 @@ describe("glossary (content/help/glossary.yaml)", () => {
       "in-process control", "release testing", "cci", "bioburden", "design review", "open item", "gap", "risk rating", "drafting aid",
       // The terms the TRD interview hints link to.
       "tbd", "cqa", "unit operation", "write-up",
+      // Words the pages use that a first-time reader meets without a definition (EOU-40).
+      "override", "saved answers", "entry order", "gap register",
     ]) expect(text, w).toContain(w);
   });
 

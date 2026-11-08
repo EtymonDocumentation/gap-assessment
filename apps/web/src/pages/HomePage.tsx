@@ -29,9 +29,9 @@ interface DocCardSpec {
 
 const CARD_PURPOSE: Record<DocCardSpec["id"], string> = {
   gap: "Compare the sending and receiving unit and list every difference.",
-  trd: "The technical requirements: what the receiving site has to meet. Start from a project, a document you have, by answering questions, or blank.",
+  trd: "The technical requirements document (TRD): what the receiving site has to meet. Start from a project, a document you have, by answering questions, or blank.",
   sampling: "Where and when samples are taken in the PPQ (process performance qualification) batches.",
-  mbr: "The step-by-step instruction for making one batch.",
+  mbr: "The batch record (MBR): the step-by-step instruction for making one batch.",
   risk: "Rate what could go wrong with a method you choose.",
 };
 
@@ -97,47 +97,45 @@ export function HomePage() {
   const canUpload = true;
   const startChoices = (
     <StartChoices compact={!!project}>
-              {/* The third choice. An upload is read into the open project (the review page needs one), so without a project it says what to do first. */}
+              {/* The third choice. Every upload button is there with or without a project. A gap assessment makes its own project; a TRD or a
+                  sampling plan lives in a project, so with none open the file is chosen first and the project is asked for after it. The three
+                  titles say what the file is, in the same shape, and the sentence under each says what happens next. */}
               {canUpload && (
               <div className="start-option start-upload" role="group" aria-labelledby="start-upload-h">
                 <h3 id="start-upload-h" className="start-option-title">
                   Upload a document you have
                 </h3>
                 <div className="stack" data-testid="home-start-from-gap">
-                  <h4 className="start-sub">Start from a gap assessment you have</h4>
+                  <h4 className="start-sub">A gap assessment</h4>
                   <p className="muted small">Upload a gap assessment Word file that this tool made, a fill-in form, or one in another layout (Word or PDF). It makes a new project, or updates the open one. You check every answer before it is used.</p>
                   <div className="row wrap">
                     <GapUploadButton className="btn" testId="home-upload-gap" />
                     <GapFormButton testId="home-gap-blank-form" />
                   </div>
                 </div>
-                {project ? (
-                  <>
-                    {allowed.trd && (
-                      <div className="stack" data-testid="home-start-from-document">
-                        <h4 className="start-sub">Start from a document you have</h4>
-                        <p className="muted small">Upload a TRD Word file that this tool made, or fill in the blank TRD form and upload that. You check every value before it is used.</p>
-                        <div className="row wrap">
-                          <TrdUploadButton className="btn" testId="home-upload-trd" />
-                          <TrdFormButton testId="home-blank-form" />
-                        </div>
-                      </div>
-                    )}
-                    {allowed.sampling && (
-                      <div className="stack" data-testid="home-start-from-sampling-document">
-                        <h4 className="start-sub">Start a sampling plan from a document you have</h4>
-                        <p className="muted small">Upload a sampling plan Word file that this tool made, a fill-in form, or a plan in another layout (Word or PDF). You check every value before it is used.</p>
-                        <div className="row wrap">
-                          <SamplingUploadButton className="btn" testId="home-upload-sampling" />
-                          <SamplingFormButton testId="home-sampling-blank-form" />
-                        </div>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <p className="muted small" data-testid="upload-needs-project">
-                    A finished TRD or sampling plan is read into a project, so open a demo or start a new project first. Then this choice offers the upload.
-                  </p>
+                {allowed.trd && (
+                  <div className="stack" data-testid="home-start-from-document">
+                    <h4 className="start-sub">A technical requirements document (TRD)</h4>
+                    <p className="muted small">
+                      Upload a TRD Word file that this tool made, or fill in the blank TRD form and upload that. {project ? "" : "You name the project after you choose the file. "}You check every value before it is used.
+                    </p>
+                    <div className="row wrap">
+                      <TrdUploadButton className="btn" testId="home-upload-trd" />
+                      <TrdFormButton testId="home-blank-form" />
+                    </div>
+                  </div>
+                )}
+                {allowed.sampling && (
+                  <div className="stack" data-testid="home-start-from-sampling-document">
+                    <h4 className="start-sub">A sampling plan</h4>
+                    <p className="muted small">
+                      Upload a sampling plan Word file that this tool made, a fill-in form, or a plan in another layout (Word or PDF). {project ? "" : "You name the project after you choose the file. "}You check every value before it is used.
+                    </p>
+                    <div className="row wrap">
+                      <SamplingUploadButton className="btn" testId="home-upload-sampling" />
+                      <SamplingFormButton testId="home-sampling-blank-form" />
+                    </div>
+                  </div>
                 )}
               </div>
               )}
@@ -267,9 +265,14 @@ export function HomePage() {
           <section className="card stack" aria-labelledby="chain-h" data-testid="home-chain" data-tour="home-chain">
             <h2 id="chain-h">Your documents</h2>
             <p className="muted small">
-              {project
-                ? "Each document can use the one before it, but none is required: a TRD can start blank, and you can skip the gap assessment. Anything not yet known stays visible as an open item."
-                : "One card for each document. The gap assessment can be read now; the others open once a project is open."}
+              {/* An account with the gap assessment alone is not told about documents it cannot open (EOU-43). */}
+              {cards.length === 1
+                ? project
+                  ? "Anything not yet known stays visible as an open item."
+                  : "The gap assessment can be read now."
+                : project
+                  ? `Each document can use the one before it, but none is required: ${allowed.trd ? "a TRD can start blank, and you can skip" : "you can skip"} the gap assessment. Anything not yet known stays visible as an open item.`
+                  : "One card for each document. The gap assessment can be read now; the others open once a project is open."}
             </p>
             <ul className="doc-cards">
               {cards.map((c) => {
@@ -286,7 +289,7 @@ export function HomePage() {
                     </p>
                     {usable && (
                       <div className="doc-card-actions">
-                        <a className="btn" href={href(c.path, c.params)} aria-label={`${buttonOf(c)} ${c.name}`} data-testid={`doc-card-open-${c.id}`}>
+                        <a className="btn" href={href(c.path, c.params)} aria-label={`${buttonOf(c)} the ${c.id === "trd" ? "TRD" : c.name.toLowerCase()}`} data-testid={`doc-card-open-${c.id}`}>
                           {buttonOf(c)}
                         </a>
                         {c.id === "mbr" && firstRecord && (
@@ -335,7 +338,7 @@ export function HomePage() {
 
       <section className="card stack" aria-labelledby="import-h">
         <h2 id="import-h">Import a project</h2>
-        <p className="muted small">Open a project JSON file exported from this tool. It is validated before it opens.</p>
+        <p className="muted small">Opens a project file (JSON) that you exported from this tool. It is checked when it opens.</p>
         <input
           ref={fileRef}
           type="file"

@@ -193,18 +193,23 @@ export function ResponderForm({
   initial,
   submitLabel,
   onSubmit,
+  onCancel,
   withTitle,
 }: {
   initial?: { name: string; role?: string };
   submitLabel: string;
   /** May return (or resolve to) a sentence to show under the form, for example why the project could not be started. The form stays as typed. */
   onSubmit: (v: { name: string; role?: string; title?: string }) => void | string | null | Promise<void | string | null>;
+  /** Shows a Cancel button beside the submit button. Without it the form is one the person cannot leave (the name is needed to go on). */
+  onCancel?: () => void;
   withTitle?: boolean;
 }) {
   const [title, setTitle] = useState("");
   const [name, setName] = useState(initial?.name ?? "");
   const [role, setRole] = useState(initial?.role ?? "");
   const [err, setErr] = useState("");
+  const titleInput = useRef<HTMLInputElement>(null);
+  const nameInput = useRef<HTMLInputElement>(null);
   // A second press while the first is still being answered must not start a second project.
   const sending = useRef(false);
   return (
@@ -213,8 +218,15 @@ export function ResponderForm({
       onSubmit={async (e) => {
         e.preventDefault();
         if (sending.current) return;
-        if (withTitle && !title.trim()) return setErr("Enter a project title.");
-        if (!name.trim()) return setErr("Enter the responder's name.");
+        // One message that names everything that is missing (two messages one after the other made the person fix, press, and read again),
+        // and the cursor goes to the first empty box.
+        const missingTitle = !!withTitle && !title.trim();
+        const missingName = !name.trim();
+        if (missingTitle || missingName) {
+          setErr(`Enter ${missingTitle && missingName ? "a project title and the responder's name" : missingTitle ? "a project title" : "the responder's name"}.`);
+          (missingTitle ? titleInput : nameInput).current?.focus();
+          return;
+        }
         setErr("");
         sending.current = true;
         try {
@@ -227,13 +239,17 @@ export function ResponderForm({
     >
       {withTitle && (
         <label className="field">
-          <span>Project title</span>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Program X transfer (fictional)" autoFocus />
+          <span>
+            Project title <span className="muted">(needed)</span>
+          </span>
+          <input ref={titleInput} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Program X transfer (fictional)" autoFocus />
         </label>
       )}
       <label className="field">
-        <span>Responder name</span>
-        <input value={name} onChange={(e) => setName(e.target.value)} autoFocus={!withTitle} autoComplete="name" />
+        <span>
+          Responder name <span className="muted">(needed)</span>
+        </span>
+        <input ref={nameInput} value={name} onChange={(e) => setName(e.target.value)} autoFocus={!withTitle} autoComplete="name" />
       </label>
       <label className="field">
         <span>
@@ -250,6 +266,11 @@ export function ResponderForm({
         </p>
       )}
       <div className="row end">
+        {onCancel && (
+          <button type="button" className="btn" onClick={onCancel}>
+            Cancel
+          </button>
+        )}
         <button type="submit" className="btn primary">
           {submitLabel}
         </button>

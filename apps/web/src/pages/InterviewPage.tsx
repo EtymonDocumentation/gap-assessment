@@ -1141,8 +1141,10 @@ function SectionSummary({ sectionId, instances, thenKey }: { sectionId: string; 
       ) : (
         <p className="muted">All questions here are answered. Check the answers below; select a row to change it.</p>
       )}
+      {/* On a phone each row becomes a card (the same pattern as the version list): the SU and RU values sit one under the other, in full,
+          instead of the RU column being cut off at the edge of a scrolling table (EOU-45). */}
       <div className="table-scroll" role="region" aria-label="Section answers table" tabIndex={0}>
-        <table className="data">
+        <table className="data history-table answers-table">
           <thead>
             <tr>
               <th scope="col">Attribute</th>
@@ -1166,8 +1168,8 @@ function SectionSummary({ sectionId, instances, thenKey }: { sectionId: string; 
               if (srcInst?.side === "shared") {
                 return (
                   <tr key={q.id}>
-                    <th scope="row">{questionLabel(q)}</th>
-                    <td colSpan={allShared ? 1 : 3}>
+                    <th scope="row" data-label="Attribute">{questionLabel(q)}</th>
+                    <td colSpan={allShared ? 1 : 3} data-label={allShared ? "Answer for both SU and RU" : "Answer"}>
                       {!allShared && <span className="tag">Both SU and RU</span>} <a href={href("/interview", { q: srcInst.key })}>{formatQuestionSide(content, project, q, "shared")}</a>
                     </td>
                   </tr>
@@ -1175,18 +1177,18 @@ function SectionSummary({ sectionId, instances, thenKey }: { sectionId: string; 
               }
               return (
                 <tr key={q.id}>
-                  <th scope="row">{questionLabel(q)}</th>
-                  <td>
+                  <th scope="row" data-label="Attribute">{questionLabel(q)}</th>
+                  <td data-label="SU">
                     {srcInst ? (
                       <a href={href("/interview", { q: srcInst.key })}>{formatQuestionSide(content, project, q, srcInst.side)}</a>
                     ) : (
                       <span className="muted">—</span>
                     )}
                   </td>
-                  <td>
+                  <td data-label="RU">
                     {tgtInst ? <a href={href("/interview", { q: tgtInst.key })}>{formatQuestionSide(content, project, q, "target")}</a> : <span className="muted">—</span>}
                   </td>
-                  <td>
+                  <td data-label="Comparison">
                     {gaps.map((g) => (
                       <CategoryChip key={g.key} category={g.category} compact />
                     ))}

@@ -92,12 +92,7 @@ export function DocumentPage() {
             </>
           ),
         }}
-        exports={[
-          { label: "Download gap assessment (Word)", onSelect: word.run, testId: "export-word" },
-          { label: "Download gap assessment (HTML)", onSelect: downloadHtml, testId: "export-html" },
-          { label: "Download gap assessment (Markdown)", onSelect: downloadMarkdown, testId: "export-markdown" },
-          { label: "Print / save as PDF", onSelect: printPdf, testId: "export-print" },
-        ]}
+        // No Export menu here (EOU-09): the four downloads are the row of buttons right under this header, so a menu would only repeat them.
       />
 
       <section className="card stack no-print" aria-labelledby="doc-scope-title" data-testid="doc-scope-panel">

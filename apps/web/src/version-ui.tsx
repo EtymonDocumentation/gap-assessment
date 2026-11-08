@@ -107,14 +107,17 @@ export function useUnsaved(): boolean {
   return value;
 }
 
-/** "Working copy after v2.1, unsaved changes". */
+/**
+ * "Working copy after v2.1, changed since then". The words used to be "unsaved changes", which reads as if the person's work could be lost.
+ * It cannot: the project is kept as it is edited. What differs is only that no version has been saved since (a version is a frozen copy).
+ */
 export function workingCopyText(p: Project, unsaved: boolean): string {
   const last = lastVersion(p);
-  return `Working copy${last ? ` after ${last.label}` : ""}${unsaved ? ", unsaved changes" : ""}`;
+  return `Working copy${last ? ` after ${last.label}` : ""}${unsaved ? ", changed since then" : ""}`;
 }
 
 /**
- * The "v2" chip beside the stage chip. It opens the version history. On a wide screen it says "unsaved changes" in words; on a narrow
+ * The "v2" chip beside the stage chip. It opens the version history. On a wide screen it says "Changed since v2" in words; on a narrow
  * one it shows a dot, and the words are in its accessible name either way (the cue is never colour alone).
  */
 export function VersionChip({ short }: { short?: boolean }) {
@@ -123,8 +126,8 @@ export function VersionChip({ short }: { short?: boolean }) {
   const unsaved = useUnsaved();
   const label = real ? lastVersion(real)?.label : undefined;
   if (!label) return null;
-  const text = viewing ? `Viewing ${viewing.label}` : unsaved && !short ? `${label}, unsaved changes` : label;
-  const name = viewing ? `Viewing ${viewing.label}, read-only. Open the version history` : `Version ${label}${unsaved ? ", unsaved changes" : ""}. Open the version history`;
+  const text = viewing ? `Viewing ${viewing.label}` : unsaved && !short ? `Changed since ${label}` : label;
+  const name = viewing ? `Viewing ${viewing.label}, read-only. Open the version history` : `${unsaved ? `Changed since ${label}` : `Version ${label}`}. Open the version history`;
   return (
     <a className="stage-chip version-chip" href={href("/versions")} data-testid="version-chip" data-tour="version-chip" aria-label={name}>
       {unsaved && short && !viewing && <span className="stage-dot" aria-hidden="true" />}

@@ -662,6 +662,8 @@ export interface TrdOpenItem {
   text: string;
   stepId?: string;
   itemRef?: ItemRef;
+  /** The key of the field that has no value yet (not set for a limit finding). It lets the screen find the interview question that asks for it. */
+  fieldKey?: string;
 }
 
 export interface TrdItemCheck {
@@ -692,7 +694,7 @@ export function trdOpenItems(d: TrdDocument): TrdOpenItem[] {
   const out: TrdOpenItem[] = [];
   const field = (f: TrdField, where: string, ref?: ItemRef, stepId?: string) => {
     const v = effectiveField(f);
-    const base = { where: `${where}, ${f.label}`, ...(stepId ? { stepId } : {}), ...(ref ? { itemRef: ref } : {}) };
+    const base = { where: `${where}, ${f.label}`, fieldKey: f.key, ...(stepId ? { stepId } : {}), ...(ref ? { itemRef: ref } : {}) };
     if (v.status === "not_established") out.push({ ...base, kind: "not_established", text: "TBD" });
     else if (v.status === "tbd") out.push({ ...base, kind: v.provisional ? "provisional" : "tbd", text: v.provisional ? `${v.text}` : "To be decided (TBD)" });
   };

@@ -294,6 +294,11 @@ function Review({ session, file }: { session: ImportSession; file: File }) {
         <p role="status" aria-live="polite" data-testid="import-live-summary">
           {importSummaryText(counts, session.level)}
         </p>
+        {session.level !== 3 && (
+          <p className="muted small" data-testid="import-taken-explain">
+            A value is taken when you accept it. Until then it counts as still open, even though it was read.
+          </p>
+        )}
         {session.notUsed.length > 0 && (
           <details className="notice import-not-used" open={session.notUsed.length <= 8} data-testid="import-not-used">
             <summary>
@@ -337,6 +342,65 @@ function Review({ session, file }: { session: ImportSession; file: File }) {
           <span role="status" aria-live="polite" className="small" data-testid="import-bulk-status">
             {bulk}
           </span>
+        </div>
+      </section>
+
+      {/* The button that makes the TRD sits here, right under "Accept all exact", not under the whole document and every field (where it was
+          out of sight). Taking values and making the TRD are two separate things: the TRD can be made at any time and what was not accepted
+          stays open in it. */}
+      <section className="card stack" aria-labelledby="import-make-h" data-testid="import-make">
+        <h2 id="import-make-h">Make the TRD</h2>
+        {trds.length > 0 && (
+          <fieldset className="stack">
+            <legend>This project already has {trds.length === 1 ? "a TRD" : "TRDs"}. What should this upload do?</legend>
+            <label className="check">
+              <input type="radio" name="import-target" checked={target === "new"} onChange={() => setTarget("new")} data-testid="import-target-new" />
+              <span>Make a new TRD</span>
+            </label>
+            {trds.map((d) => (
+              <label key={d.id} className="check">
+                <input type="radio" name="import-target" checked={target === d.id} onChange={() => setTarget(d.id)} data-testid={`import-target-${d.id}`} />
+                <span>
+                  Update {d.id}: {d.title}
+                </span>
+              </label>
+            ))}
+          </fieldset>
+        )}
+        {updating && <p className="muted small">Only the values you accept are changed. Values you set yourself in {updating.id} are protected: they are replaced only if you accept the file's value for them, one by one.</p>}
+        {target === "new" && (
+          <label className="field">
+            <span>Title of the new TRD</span>
+            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} data-testid="import-title" />
+            <span className="muted small">Leave empty to use the title from the file, if you accepted it.</span>
+          </label>
+        )}
+        {SERVER_MODE && (
+          <label className="check">
+            <input type="checkbox" checked={keepCopy} onChange={(e) => setKeepCopy(e.target.checked)} data-testid="import-keep-copy" />
+            <span>Keep a copy in My files</span>
+          </label>
+        )}
+        {!SERVER_MODE && <p className="muted small">The file was read in your browser and has not been sent anywhere.</p>}
+        {error && (
+          <p className="error" role="alert" data-testid="import-error">
+            {error}
+          </p>
+        )}
+        <div className="row wrap">
+          <button type="button" className="btn primary" onClick={submit} data-testid="import-create">
+            {updating ? `Update ${updating.id}` : "Make the TRD"}
+          </button>
+          <button
+            type="button"
+            className="btn ghost"
+            onClick={() => {
+              holdImport(null);
+              navigate("/trd");
+            }}
+          >
+            Cancel
+          </button>
         </div>
       </section>
 
@@ -410,62 +474,6 @@ function Review({ session, file }: { session: ImportSession; file: File }) {
           innerRef={docPane}
         />
       </div>
-
-      <section className="card stack" aria-labelledby="import-make-h" data-testid="import-make">
-        <h2 id="import-make-h">Make the TRD</h2>
-        {trds.length > 0 && (
-          <fieldset className="stack">
-            <legend>This project already has {trds.length === 1 ? "a TRD" : "TRDs"}. What should this upload do?</legend>
-            <label className="check">
-              <input type="radio" name="import-target" checked={target === "new"} onChange={() => setTarget("new")} data-testid="import-target-new" />
-              <span>Make a new TRD</span>
-            </label>
-            {trds.map((d) => (
-              <label key={d.id} className="check">
-                <input type="radio" name="import-target" checked={target === d.id} onChange={() => setTarget(d.id)} data-testid={`import-target-${d.id}`} />
-                <span>
-                  Update {d.id}: {d.title}
-                </span>
-              </label>
-            ))}
-          </fieldset>
-        )}
-        {updating && <p className="muted small">Only the values you accept are changed. Values you set yourself in {updating.id} are protected: they are replaced only if you accept the file's value for them, one by one.</p>}
-        {target === "new" && (
-          <label className="field">
-            <span>Title of the new TRD</span>
-            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} data-testid="import-title" />
-            <span className="muted small">Leave empty to use the title from the file, if you accepted it.</span>
-          </label>
-        )}
-        {SERVER_MODE && (
-          <label className="check">
-            <input type="checkbox" checked={keepCopy} onChange={(e) => setKeepCopy(e.target.checked)} data-testid="import-keep-copy" />
-            <span>Keep a copy in My files</span>
-          </label>
-        )}
-        {!SERVER_MODE && <p className="muted small">The file was read in your browser and has not been sent anywhere.</p>}
-        {error && (
-          <p className="error" role="alert" data-testid="import-error">
-            {error}
-          </p>
-        )}
-        <div className="row wrap">
-          <button type="button" className="btn primary" onClick={submit} data-testid="import-create">
-            {updating ? `Update ${updating.id}` : "Make the TRD"}
-          </button>
-          <button
-            type="button"
-            className="btn ghost"
-            onClick={() => {
-              holdImport(null);
-              navigate("/trd");
-            }}
-          >
-            Cancel
-          </button>
-        </div>
-      </section>
     </div>
   );
 }

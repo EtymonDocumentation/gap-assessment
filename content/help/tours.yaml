@@ -14,7 +14,7 @@ tours:
     steps:
       - anchor: home-start
         title: Start here
-        text: Start a new project, open one of the two fictional demos to see a finished example first, or upload a document you already have. A new project begins empty. Nothing is filled in for you.
+        text: Start a new project with this button. It begins empty, and nothing is filled in for you. Beside it are the other ways in, which are one document on its own, a fictional demo, or a document you already have.
       - anchor: stage-chip
         title: Project stage
         text: Which batches the receiving site will make next (Engineering, Clinical, PPQ or Commercial). It changes the wording of your documents, and each change is saved as a version (the chip beside it, such as v2, opens the version history). Your own text is never changed.

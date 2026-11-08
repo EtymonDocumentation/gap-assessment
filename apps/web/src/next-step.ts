@@ -78,7 +78,9 @@ export function interviewCountsText(c: InterviewCounts): string {
 /**
  * Which steps can honestly be shown as done, worked out from the project data (no stored flag). A step with no way to tell stays
  * absent (never a guess): reading the validation view leaves no trace in the project.
- * - Scope: a scope choice is recorded, or interview answers exist (see scopePassed).
+ * - Scope: a scope choice is recorded. Answering interview questions does NOT tick it (a first-time tester saw "Scope done" after one answer, without
+ *   ever opening the Scope step). "Everything stays in scope" leaves no trace, so there is no way to tell; the tick stays absent rather than guessing.
+ *   (nextStep still moves on to the interview once answers exist, see scopePassed.)
  * - Interview: every question has a real answer; "to be decided" counts as still open.
  * - Gap register: the interview is done and either there are no differences or at least one gap has an owner, status or note recorded.
  * - Document: the gap assessment document was downloaded and no open items are left. A download while items are still open is not
@@ -86,7 +88,7 @@ export function interviewCountsText(c: InterviewCounts): string {
  */
 export function stepDone(project: Project, a: Assessment): Partial<Record<GapStepId, boolean>> {
   const done: Partial<Record<GapStepId, boolean>> = {};
-  if (scopePassed(project, a)) done.scope = true;
+  if (scopeRecorded(project)) done.scope = true;
   const counts = interviewCounts(project, a.instances);
   if (counts.total > 0 && counts.open === 0) {
     done.interview = true;

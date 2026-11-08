@@ -270,7 +270,7 @@ test("Home and the sampling page offer the upload and the blank form", async ({ 
   await expect(page.getByTestId("sampling-blank-form")).toBeVisible();
   await goTo(page, "Home");
   const block = page.getByTestId("home-start-from-sampling-document");
-  await expect(block).toContainText("Start a sampling plan from a document you have");
+  await expect(block).toContainText("A sampling plan");
   await expect(page.getByTestId("home-upload-sampling")).toBeVisible();
   await expect(page.getByTestId("home-sampling-blank-form")).toBeVisible();
   await block.scrollIntoViewIfNeeded();

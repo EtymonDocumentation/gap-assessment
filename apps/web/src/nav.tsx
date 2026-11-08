@@ -112,13 +112,14 @@ function ItemLinks({ items, routePath, onPick, collapse, plainLink }: { items: N
 }
 
 /** A drop-down made of a real button (aria-expanded / aria-controls) and a list of links. */
-function Dropdown({ group, routePath }: { group: NavGroup; routePath: string }) {
+function Dropdown({ group, routePath, quiet }: { group: NavGroup; routePath: string; quiet?: boolean }) {
   const [open, setOpen] = useState(false);
   const id = useId();
   const wrap = useRef<HTMLLIElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const focusFirst = useRef(false);
-  const current = groupCurrent(group, routePath);
+  // `quiet`: the top "Gap assessment" link already marks the page, so this group is not marked as well (two lit entries read as two places).
+  const current = !quiet && groupCurrent(group, routePath);
 
   // Closing on navigation: the route changed, so the list is done with.
   useEffect(() => setOpen(false), [routePath]);
@@ -342,7 +343,7 @@ export function MainNav({
         {homeLink(() => undefined)}
         {gapLink(() => undefined)}
         {groups.map((g) => (
-          <Dropdown key={g.label} group={g} routePath={routePath} />
+          <Dropdown key={g.label} group={g} routePath={routePath} quiet={gapCurrent && g.items.some((i) => i.plain)} />
         ))}
         <ItemLinks items={extra} routePath={routePath} onPick={() => undefined} />
       </ul>

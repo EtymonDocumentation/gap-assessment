@@ -90,10 +90,14 @@ export function DocChainStrip({ route, heading = true }: { route?: ChainRoute; h
             <li key={s.id}>
               <a href={to(s)} aria-current={s.current ? "step" : undefined} data-testid={`chain-${s.id}`}>
                 <span className="doc-chain-name">
-                  {n > 0 && (
+                  {n > 0 ? (
                     <span className="doc-chain-num" aria-hidden="true">
                       {n} ·{" "}
                     </span>
+                  ) : (
+                    // The risk assessment has no number (it is not a step the next document is built on), so the strip says what it is
+                    // instead of leaving a gap that looks like a mistake. The Documents menu lists it under the same word.
+                    <span className="doc-chain-num">Alongside: </span>
                   )}
                   {s.name}
                   {s.current && <span className="doc-chain-here"> (you are here)</span>}

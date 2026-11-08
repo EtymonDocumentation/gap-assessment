@@ -114,7 +114,7 @@ Sampling plan format 1.3.0 (project schema 1.16.0). Additive: nothing was remove
 TRD format 1.0.0 (project schema 1.15.0). Additive: nothing was removed, and a project without `trd` migrates to an empty one.
 
 ### Added
-- `project.trd.documents` (trdStateSchema): editable technology transfer documents (TRD-001 ...). Each field keeps the value
+- `project.trd.documents` (trdStateSchema): editable technical requirements documents (TRD-001 ...). Each field keeps the value
   as it came in (`pulled`, the seed field) apart from the user's `override`; items carry optional set point, NOR and PAR with
   source citations; steps carry the user's description. Origin: project, seed import or blank.
 - TRD_FORMAT_VERSION, TRD_BASIS_LOADOUTS and TRD_SOURCE_DOC_TYPES (suggestions only; the source document type stays free text).

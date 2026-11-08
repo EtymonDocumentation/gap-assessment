@@ -79,8 +79,7 @@ async function exportDemoGap(page: Page): Promise<Buffer> {
   await page.goto("./");
   await openDemo(page, "arx", "#/document");
   return downloadOf(page, async () => {
-    await page.getByTestId("export-menu-button").click();
-    await page.getByTestId("export-word").click();
+    await page.getByRole("button", { name: "Download gap assessment (Word)", exact: true }).click();
   });
 }
 

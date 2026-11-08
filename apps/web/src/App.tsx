@@ -45,7 +45,7 @@ import { GAP_STEPS } from "./next-step";
 import { DocChainBar } from "./DocChain";
 import { chainStageOf } from "./chain";
 import { GapStepFooter, gapStepIndex } from "./steps";
-import { useRoute } from "./router";
+import { href, useRoute } from "./router";
 import { TourHost } from "./tour";
 import { ConflictDialog, ServerGate, useIsRemote } from "./server/ServerUi";
 import { SERVER_MODE } from "./server/mode";
@@ -54,45 +54,30 @@ import { useMbrAllowed, useRiskAllowed, useTrdAllowed } from "./risk-module";
 import { useStore } from "./store";
 import { VersionBanner } from "./version-ui";
 
-/** Shown instead of the sampling pages on an account without the sampling module. */
-function SamplingNotIncluded() {
+/**
+ * Shown instead of a module's pages on an account that does not include the module (server mode). It says so first, even when no project is
+ * open: asking for a project to open a page that can never open was a detour to a dead end (EOU-41). It also says what still works and links
+ * back to Home, so the page is not the end of the road (EOU-42). The first sentence is the same for every module.
+ */
+function ModuleNotIncluded({ testId, title, module }: { testId: string; title: string; module: string }) {
   return (
-    <section className="card stack" data-testid="sampling-not-included">
-      <h1>Sampling plan</h1>
-      <p>This account does not include the sampling module. Ask the administrator to add it.</p>
+    <section className="card stack" data-testid={testId}>
+      <h1>{title}</h1>
+      <p>This account does not include the {module} module. Ask the administrator to add it.</p>
+      <p className="muted">Everything else in your account works as before. Home shows the documents you can start.</p>
+      <p>
+        <a className="btn" href={href("/")}>
+          Back to Home
+        </a>
+      </p>
     </section>
   );
 }
 
-/** Shown instead of the TRD pages on an account without the TRD module. */
-function TrdNotIncluded() {
-  return (
-    <section className="card stack" data-testid="trd-not-included">
-      <h1>TRD</h1>
-      <p>This account does not include the TRD module. Ask the administrator to add it.</p>
-    </section>
-  );
-}
-
-/** Shown instead of the batch record pages on an account without the batch record module. */
-function MbrNotIncluded() {
-  return (
-    <section className="card stack" data-testid="mbr-not-included">
-      <h1>Batch record</h1>
-      <p>This account does not include the batch record module. Ask the administrator to add it.</p>
-    </section>
-  );
-}
-
-/** Shown instead of the risk pages on an account without the risk module. */
-function RiskNotIncluded() {
-  return (
-    <section className="card stack" data-testid="risk-not-included">
-      <h1>Risk assessment</h1>
-      <p>This account does not include the risk module. Ask the administrator to add it.</p>
-    </section>
-  );
-}
+const SamplingNotIncluded = () => <ModuleNotIncluded testId="sampling-not-included" title="Sampling plan" module="sampling" />;
+const TrdNotIncluded = () => <ModuleNotIncluded testId="trd-not-included" title="Technical requirements document (TRD)" module="TRD" />;
+const MbrNotIncluded = () => <ModuleNotIncluded testId="mbr-not-included" title="Batch record" module="batch record" />;
+const RiskNotIncluded = () => <ModuleNotIncluded testId="risk-not-included" title="Risk assessment" module="risk" />;
 
 /** In server mode the app opens behind the sign-in page; the static build (GitHub Pages) has no sign-in and no network calls. */
 export function App() {
@@ -187,10 +172,15 @@ function AppShell() {
       ],
     },
   ];
+  const moduleOf = /^\/(sampling|trd|risk|mbr)(\/|$)/.exec(route.path)?.[1];
+  const notIncluded: React.ReactNode =
+    moduleOf === "sampling" && !samplingAllowed ? <SamplingNotIncluded /> : moduleOf === "trd" && !trdAllowed ? <TrdNotIncluded /> : moduleOf === "risk" && !riskAllowed ? <RiskNotIncluded /> : moduleOf === "mbr" && !mbrAllowed ? <MbrNotIncluded /> : null;
   let page: React.ReactNode;
   if (!ready) page = <p className="muted">Loading…</p>;
   // A project page with no project open used to show Home with a one-line notice, which looked as if the menu click had done nothing. The box
   // names the page that was asked for and offers the ways to open a project right there.
+  // A module this account does not include is said first, with or without a project (the box below would only offer to open one for a page that cannot open).
+  else if (notIncluded) page = notIncluded;
   else if (needsProject && !project) page = <NeedsProject path={route.path} />;
   else if (route.path === "/gap") page = <GapPage />;
   else if (route.path === "/gap/import") page = <GapImportPage />;

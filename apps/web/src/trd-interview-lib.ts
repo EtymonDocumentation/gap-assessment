@@ -1,4 +1,4 @@
-import { effectiveField, type InterviewQuestion } from "@gap/engine";
+import { effectiveField, type InterviewQuestion, type TrdOpenItem } from "@gap/engine";
 import type { TrdDocument, TrdField } from "@gap/process-model";
 
 /*
@@ -16,6 +16,24 @@ const hasValue = (f: TrdField): boolean => Boolean(f.override) || f.pulled?.stat
 export function trdIsEmpty(d: TrdDocument): boolean {
   if (d.details.some(hasValue)) return false;
   return !d.steps.some((s) => s.fields.some(hasValue) || s.items.some((i) => i.fields.some(hasValue) || i.limits || i.control));
+}
+
+/**
+ * The interview question that asks for what an open item is missing, so the Open items tab can link to it. `keys` are the keys of the questions
+ * the interview offers for this TRD. A detail asks `detail:<field>`; a field of an item asks `field:<step>.<collection>.<item>.<field>`; a set
+ * point, NOR or PAR asks one `limits:` question for the whole item. An open item the interview has no question for (a field of a step itself)
+ * gives undefined, and the tab then links to the form that holds it.
+ */
+export function openItemQuestionKey(d: TrdDocument, o: TrdOpenItem, keys: ReadonlySet<string>): string | undefined {
+  if (o.itemRef) {
+    const step = d.steps.find((s) => s.id === o.itemRef!.stepId);
+    if (!step) return undefined;
+    const item = `${step.key}.${o.itemRef.collection}.${o.itemRef.key}`;
+    const candidates = o.fieldKey ? [`field:${item}.${o.fieldKey}`, `limits:${item}`] : [`limits:${item}`];
+    return candidates.find((k) => keys.has(k));
+  }
+  if (!o.stepId && o.fieldKey) return [`detail:${o.fieldKey}`].find((k) => keys.has(k));
+  return undefined;
 }
 
 /** "Only what is still open" is the first view when the TRD already holds values (a project start, a seed, an upload); an empty TRD shows everything. */
