@@ -3,7 +3,7 @@
 // shows the first few rows then "Show all"; and a project page asked for with no project open names itself and lands there after Open.
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { DEMO_NAMES, isPhone } from "../e2e/nav-helper";
+import { DEMO_NAMES, isPhone, openMoreWays } from "../e2e/nav-helper";
 import { expect, expectAccessibleInBothThemes, go, newAccount, projectAction, serverRevision, signUp, startProject, test } from "./helpers";
 
 type Page = import("@playwright/test").Page;
@@ -121,9 +121,11 @@ test("a second click on a demo opens the demo that is already there, and a proje
   test.setTimeout(240_000);
   await signUp(page, newAccount("h1box"));
   await go(page, "#/");
+  await openMoreWays(page);
   await page.getByRole("button", { name: `Open demo: ${DEMO_NAMES.arx}` }).click();
   await expect(page.getByTestId("demo-opened")).toHaveText(`Demo opened: ${DEMO_NAMES.arx}`, { timeout: 90_000 });
   await page.getByRole("button", { name: "Close project" }).click();
+  await openMoreWays(page);
   await page.getByRole("button", { name: `Open demo: ${DEMO_NAMES.arx}` }).click();
   // Walk-through: no second copy is added. The same demo is open again and the list still has one row.
   await expect(page.getByRole("button", { name: "Close project" })).toBeVisible({ timeout: 90_000 });

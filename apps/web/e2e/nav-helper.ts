@@ -50,12 +50,18 @@ const STEP_PATHS: Record<string, string> = {
 };
 
 /**
+ * Version history and the Change log are not in the menu (EOU-36): they belong to the open project and are reached from the header's version chip
+ * and from the project's panel on Home. A spec that only needs the page opens it by address, like the six gap steps.
+ */
+const PROJECT_PATHS: Record<string, string> = { "Version history": "/versions", "Change log": "/changes" };
+
+/**
  * Opens a page by its menu name, whatever the layout: a top link (Home, Gap assessment, My files), a link inside the Documents or Library
  * drop-down, or on a phone inside the Menu panel. The six step pages are reached by address, because the step bar is only a compact line
  * on a phone; the step bar itself is covered in nav.spec.ts.
  */
 export async function goTo(page: Page, label: string): Promise<void> {
-  const stepPath = STEP_PATHS[label];
+  const stepPath = STEP_PATHS[label] ?? PROJECT_PATHS[label];
   if (stepPath) {
     await page.evaluate((h) => (window.location.hash = h), stepPath);
     return;
@@ -107,6 +113,25 @@ export async function openAbout(page: Page) {
   return panel;
 }
 
+/**
+ * Opens the "More ways to start" fold on Home (EOU-01): the demos, "start with one document" and the uploads sit in it, closed at first, under the one
+ * big "Start a new project". Safe to call when it is already open, or when the page has no such fold.
+ */
+export async function openMoreWays(page: Page): Promise<void> {
+  const fold = page.getByTestId("more-ways").first();
+  if ((await fold.count()) === 0) return;
+  if ((await fold.getAttribute("open")) === null) await fold.locator("summary").click();
+  await expect(fold).toHaveAttribute("open", "");
+}
+
+/** Opens the Interview's "More" panel (entry order, saved answers, progress map; EOU-07). Closed at first; safe to call when it is already open. */
+export async function openInterviewMore(page: Page): Promise<void> {
+  const button = page.getByTestId("interview-more");
+  await expect(button).toBeVisible();
+  if ((await button.getAttribute("aria-expanded")) !== "true") await button.click();
+  await expect(button).toHaveAttribute("aria-expanded", "true");
+}
+
 /** The two fictional demos on Home: the name on their buttons, messages and the project title. */
 export const DEMO_NAMES = { arx: "ARX-217 vials", syr: "SYR-305 syringe" } as const;
 
@@ -117,6 +142,7 @@ export const DEMO_NAMES = { arx: "ARX-217 vials", syr: "SYR-305 syringe" } as co
  */
 export async function openDemo(page: Page, which: keyof typeof DEMO_NAMES = "arx", then?: string): Promise<void> {
   const name = DEMO_NAMES[which];
+  await openMoreWays(page);
   await page.getByRole("button", { name: `Open demo: ${name}` }).click();
   // A demo already in My projects is reopened instead of copied again; the note then adds "This is the copy you already had".
   await expect(page.getByTestId("demo-opened")).toHaveText(new RegExp(`^Demo opened: ${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\.|$)`), { timeout: 90_000 });

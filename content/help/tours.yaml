@@ -14,7 +14,7 @@ tours:
     steps:
       - anchor: home-start
         title: Start here
-        text: Start a new project with this button. It begins empty, and nothing is filled in for you. Beside it are the other ways in, which are one document on its own, a fictional demo, or a document you already have.
+        text: Start a new project with this button. It begins empty, and nothing is filled in for you. Under it, More ways to start holds one document on its own, a fictional demo, or a document you already have.
       - anchor: stage-chip
         title: Project stage
         text: Which batches the receiving site will make next (Engineering, Clinical, PPQ or Commercial). It changes the wording of your documents, and each change is saved as a version (the chip beside it, such as v2, opens the version history). Your own text is never changed.
@@ -58,9 +58,9 @@ tours:
       - anchor: interview-tbd
         title: Not known yet?
         text: Choose TBD (to be decided). It is saved as an open item, with an optional owner and due date. The tool never fills in an answer for you.
-      - anchor: interview-map
-        title: Progress map
-        text: Jump to any section. A section that still has a TBD is not counted as done until you settle it.
+      - anchor: interview-more
+        title: More
+        text: Open More for the progress map (jump to any section; a section that still has a TBD is not counted as done until you settle it), the entry order and your saved answers. It starts closed.
 
   - id: risk
     path: /risk

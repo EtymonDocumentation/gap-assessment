@@ -1,4 +1,4 @@
-import { NO_VALUE_YET, deleteTrd, deriveTrdQuestions, openBlankCount, trdOpenItems, trdOverrides, updateTrd, writeupsInOrder, type BlankContext, type TrdOpenItem } from "@gap/engine";
+import { NO_VALUE_YET, deleteTrd, deriveTrdQuestions, trdOpenItems, trdOverrides, updateTrd, type TrdOpenItem } from "@gap/engine";
 import { trdInterviewWording } from "@gap/content";
 import type { TrdDocument } from "@gap/process-model";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -10,6 +10,7 @@ import { countOf, dateTime } from "../lib";
 import { href, navigate } from "../router";
 import { StageRow } from "../stage-ui";
 import { useContent, useStore } from "../store";
+import { openItemsCount, trdOpenCount, type OpenCount } from "../open-count";
 import { openItemQuestionKey, placeInterviewTab, trdIsEmpty } from "../trd-interview-lib";
 import type { Run } from "./SamplingFlow";
 import { FieldRow } from "./TrdFieldRow";
@@ -100,6 +101,9 @@ export function TrdEditor({ d, initialTab, initialShow, initialQuestion }: { d: 
     return !err;
   };
   const open = useMemo(() => trdOpenItems(d), [d]);
+  // The one count (open-count.ts): the entries of the list plus the blank fields in the descriptions. The tab, the pill and the Open items tab say the same number.
+  const projectForCount = useStore((s) => s.project)!;
+  const count = useMemo(() => trdOpenCount(projectForCount, d), [projectForCount, d]);
   // Keep the address in step with the tab so a reload or a copied link opens the same tab. replaceState fires no hashchange, so the
   // page is not re-rendered or reset by it.
   const select = (t: TrdTab) => {
@@ -117,13 +121,13 @@ export function TrdEditor({ d, initialTab, initialShow, initialQuestion }: { d: 
   // not move under the person while they answer.
   const [emptyAtOpen] = useState(() => trdIsEmpty(d));
   const order = placeInterviewTab(TAB_INFO.filter((t) => t.id !== "interview").map((t) => t.id), "interview" as TrdTab, emptyAtOpen);
-  const tabDefs = order.map((id) => TAB_INFO.find((t) => t.id === id)!).map((t) => ({ ...t, label: `${TAB_LABEL[t.id]}${t.id === "open" ? ` (${open.length})` : ""}` }));
+  const tabDefs = order.map((id) => TAB_INFO.find((t) => t.id === id)!).map((t) => ({ ...t, label: `${TAB_LABEL[t.id]}${t.id === "open" ? ` (${count.total})` : ""}` }));
 
   // Facts the page already knows. "Differences from the project" is the same count the review in the Details tab lists.
   const differences = useProjectDifferences(d);
   const pills: PagePill[] = [
     { label: `${d.steps.length} process ${d.steps.length === 1 ? "step" : "steps"}`, testId: "trd-pill-steps" },
-    { label: `${open.length} open ${open.length === 1 ? "item" : "items"}`, warning: open.length > 0, testId: "trd-pill-open" },
+    { label: openItemsCount(count.total), warning: count.total > 0, testId: "trd-pill-open" },
     ...(differences === null
       ? []
       : [differences > 0 ? { label: `${differences} ${differences === 1 ? "difference" : "differences"} from the project`, warning: true, testId: "trd-pill-update" } : { label: "Up to date with the project", testId: "trd-pill-update" }]),
@@ -194,7 +198,7 @@ export function TrdEditor({ d, initialTab, initialShow, initialQuestion }: { d: 
         </div>
         {tab === "process" && <TrdSteps d={d} run={run} />}
         {tab === "writeups" && <TrdWriteups d={d} run={run} />}
-        {tab === "open" && <OpenItems d={d} open={open} onQuestion={goToQuestion} onTab={select} />}
+        {tab === "open" && <OpenItems d={d} open={open} count={count} onQuestion={goToQuestion} onTab={select} />}
         {tab === "output" && <TrdOutput d={d} run={run} />}
       </Tabs>
 
@@ -395,7 +399,7 @@ function Details({ d, run }: { d: TrdDocument; run: Run }) {
 
 // ------------------------------------------------------------------ step 3: open items
 
-function OpenItems({ d, open, onQuestion, onTab }: { d: TrdDocument; open: TrdOpenItem[]; onQuestion: (key: string) => void; onTab: (t: TrdTab) => void }) {
+function OpenItems({ d, open, count, onQuestion, onTab }: { d: TrdDocument; open: TrdOpenItem[]; count: OpenCount; onQuestion: (key: string) => void; onTab: (t: TrdTab) => void }) {
   // An override is a value typed in place of one the project has. A value typed where the project had nothing (a TRD without a gap
   // assessment, or a detail the project does not know) is the person's own answer; listing it here as an override with "No project value" and
   // "No reason recorded" made a first-time user think something had gone wrong.
@@ -404,23 +408,30 @@ function OpenItems({ d, open, onQuestion, onTab }: { d: TrdDocument; open: TrdOp
   const content = useContent();
   // Each entry is a link to the question that asks for it. An entry the interview has no question for (a field of a step itself) opens the tab that holds it.
   const questionKeys = useMemo(() => new Set(deriveTrdQuestions(project, d.id, { content, wording: trdInterviewWording }).map((q) => q.key)), [project, d.id, content]);
-  // Two different counts, named so a first-time reader sees why they differ: open items are entries of this list; blank fields are the
-  // square-bracket gaps inside the process descriptions (same wording as the exported document).
-  const blanks = useMemo(() => {
-    const ctx: BlankContext = { project, doc: d, content };
-    return writeupsInOrder(d).reduce((n, w) => n + openBlankCount(ctx, w), 0);
-  }, [project, d, content]);
+  // One count, broken down (open-count.ts): everything still to fill is the entries listed here plus the blank fields in the text of the process
+  // descriptions (same wording as the exported document). The parts are named so nobody has to add them up to see where the number comes from.
+  const blanks = count.blanks;
   return (
     <>
       <section className="card stack" aria-labelledby="trd-open-h" data-testid="trd-open-items">
-        <h2 id="trd-open-h">Open items ({open.length})</h2>
+        <h2 id="trd-open-h">{openItemsCount(count.total)}</h2>
         {blanks > 0 && (
           <p className="notice" data-testid="trd-blank-count">
-            {open.length} open {open.length === 1 ? "item" : "items"}, and {blanks} blank {blanks === 1 ? "field" : "fields"} in the text of the process descriptions. Blank fields are counted apart; they are listed on the Descriptions tab.
+            {openItemsCount(count.total)}: {count.entries} {count.entries === 1 ? "entry" : "entries"} listed below, and {blanks} blank {blanks === 1 ? "field" : "fields"} in the text of the process descriptions.{" "}
+            <a
+              href={href("/trd", { trd: d.id, tab: "writeups" })}
+              onClick={(e) => {
+                e.preventDefault();
+                onTab("writeups");
+              }}
+            >
+              See the blank fields on the Descriptions tab
+            </a>
+            .
           </p>
         )}
         {open.length === 0 ? (
-          <p>No open items. This says the entries are all there, not that the numbers are right; that decision belongs to your team and your quality system.</p>
+          <p>{blanks > 0 ? "No entries are open." : "No open items."} This says the entries are all there, not that the numbers are right; that decision belongs to your team and your quality system.</p>
         ) : (
           <>
             <p className="muted small">Select an entry to go to its question.</p>

@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { PageHeader } from "../PageHeader";
 import { Empty } from "../components";
 import { download, projectFileStem, today } from "../lib";
+import { href } from "../router";
 import { useContent, useStore } from "../store";
 
 /** Every change made to the project, newest first, with who made it and the value before and after. */
@@ -29,6 +30,10 @@ export function ChangesPage() {
         purpose="Every change to the project, newest first: answers, sources, verifications and gap decisions, each with the value before and after."
         about={{ art: "page-changes", children: <p>Names are free text, not an electronic signature, so they are not attributable in a GMP sense.</p> }}
         actions={
+          <>
+          <a className="btn" href={href("/versions")} data-testid="changes-to-versions">
+            Version history
+          </a>
           <button
             type="button"
             className="btn primary"
@@ -36,6 +41,7 @@ export function ChangesPage() {
           >
             Export CSV{filtered ? " (filtered)" : ""}
           </button>
+          </>
         }
       />
 

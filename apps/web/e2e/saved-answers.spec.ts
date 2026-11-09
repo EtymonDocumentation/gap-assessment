@@ -5,7 +5,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { expectNotice, goTo, openDemo as openDemoFromHome } from "./nav-helper";
+import { expectNotice, goTo, openDemo as openDemoFromHome, openInterviewMore } from "./nav-helper";
 
 const SET_NAME = "Site North answers (fictional)";
 
@@ -46,9 +46,11 @@ test("save an SU-only set, apply it to a second project with one row unticked, a
   test.setTimeout(150_000);
   await openDemo(page, "arx");
   await go(page, "#/interview");
+  await openInterviewMore(page);
   await expect(page.getByTestId("saved-answers-card")).toBeVisible();
 
   // Save: the name and the unit are required, nothing is chosen for the author.
+  await openInterviewMore(page);
   await page.getByTestId("saved-save").click();
   const save = page.getByRole("dialog", { name: "Save these answers" });
   await save.getByTestId("sa-save-submit").click();
@@ -80,6 +82,7 @@ test("save an SU-only set, apply it to a second project with one row unticked, a
   // A second project: the syringe example replaces the open one in this browser; the saved set stays.
   await openDemo(page, "syr");
   await go(page, "#/interview");
+  await openInterviewMore(page);
   await page.getByTestId("saved-apply").click();
   const apply = page.getByRole("dialog", { name: "Apply saved answers" });
   await apply.getByTestId("sa-apply-set").selectOption({ index: 1 });
@@ -134,6 +137,7 @@ test("export a set to a file, delete it (with a confirm step), import the file b
   test.setTimeout(150_000);
   await openDemo(page, "arx");
   await go(page, "#/interview");
+  await openInterviewMore(page);
   await page.getByTestId("saved-save").click();
   const save = page.getByRole("dialog", { name: "Save these answers" });
   await save.getByTestId("sa-save-name").fill(SET_NAME);

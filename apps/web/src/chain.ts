@@ -1,9 +1,10 @@
 import { content } from "@gap/content";
 import { effectiveSuggestions } from "./expected-studies-store";
-import { isAnswered, planDesignReview, trdOpenItems, type Assessment } from "@gap/engine";
+import { isAnswered, planDesignReview, type Assessment } from "@gap/engine";
 import { designReviewLine, type DesignReviewView } from "@gap/sampling";
 import type { Project } from "@gap/process-model";
 import { interviewCounts, scopeRecorded } from "./next-step";
+import { openItemsCountOrNone, trdOpenCount } from "./open-count";
 
 /**
  * The document chain: gap assessment, TRD, sampling plan, batch record, Process view. It is a map of how the documents lead to each
@@ -75,7 +76,7 @@ function gapStatus(project: Project, a: Assessment | null): string {
   if (answered === 0 && !scopeRecorded(project)) return "Not started";
   // "To be decided" answers count as still open here as everywhere else (see interviewCounts).
   const counts = interviewCounts(project, a.instances);
-  if (total > 0 && counts.open > 0) return `${counts.known} of ${total} questions answered, ${counts.open} still open`;
+  if (total > 0 && counts.open > 0) return `${counts.known} of ${total} questions answered, ${openItemsCountOrNone(a.openItems.length)}`;
   const differences = a.gaps.filter((g) => g.category !== "equivalent").length;
   return plural(differences, "difference", "differences");
 }
@@ -83,9 +84,10 @@ function gapStatus(project: Project, a: Assessment | null): string {
 function trdStatus(project: Project): string {
   const docs = project.trd.documents;
   if (docs.length === 0) return "Not started";
-  const open = docs.reduce((n, d) => n + trdOpenItems(d).length, 0);
+  // The one TRD count (open-count.ts): entries still open plus blank fields in the descriptions, the same number the TRD page header shows.
+  const open = docs.reduce((n, d) => n + trdOpenCount(project, d).total, 0);
   const name = docs.length === 1 ? docs[0]!.id : `${docs.length} TRDs`;
-  return `${name}, ${open === 0 ? "no open items" : plural(open, "open item", "open items")}`;
+  return `${name}, ${openItemsCountOrNone(open)}`;
 }
 
 function countStatus(ids: string[], many: string): string {

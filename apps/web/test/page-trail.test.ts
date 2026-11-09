@@ -41,6 +41,15 @@ describe("breadcrumb trail of each page", () => {
     expect(mapping.parts[1]!.path).toBe("/templates");
   });
 
+  it("Version history and the Change log are the open project's, not the Library's (EOU-36)", () => {
+    for (const [path, label] of [["/versions", "Version history"], ["/changes", "Change log"]] as const) {
+      const t = pageTrail(path)!;
+      expect(t.project).toBe(true);
+      expect(t.parts.map((p) => p.label)).toEqual([label]);
+    }
+    expect(pageTrail("/stage-review")!.parts.map((p) => p.label)).toEqual(["Version history", "Stage review"]);
+  });
+
   it("gives the Open items page the same kind of trail as the other pages, under Documents", () => {
     // The page used to have no header; the menu lists it under Documents ("Alongside"), so the trail does too.
     const t = pageTrail("/tbd")!;

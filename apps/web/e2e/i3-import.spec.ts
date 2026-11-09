@@ -12,7 +12,7 @@ import { join } from "node:path";
 import PizZip from "pizzip";
 import { foreignDocx, pictureOnlyPdf } from "../../../packages/docx/test/i2-foreign";
 import { foreignSamplingBodyXml, foreignSamplingPdf } from "../../../packages/docx/test/i3-foreign";
-import { goTo, openDemo } from "./nav-helper";
+import { goTo, openDemo, openMoreWays } from "./nav-helper";
 
 const SHOTS = tmpdir();
 const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -269,8 +269,10 @@ test("Home and the sampling page offer the upload and the blank form", async ({ 
   await openSamplingList(page);
   await expect(page.getByTestId("sampling-blank-form")).toBeVisible();
   await goTo(page, "Home");
+  await openMoreWays(page);
   const block = page.getByTestId("home-start-from-sampling-document");
   await expect(block).toContainText("A sampling plan");
+  await openMoreWays(page);
   await expect(page.getByTestId("home-upload-sampling")).toBeVisible();
   await expect(page.getByTestId("home-sampling-blank-form")).toBeVisible();
   await block.scrollIntoViewIfNeeded();

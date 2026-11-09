@@ -4,7 +4,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { goTo, openDemo } from "./nav-helper";
+import { goTo, openDemo, openMoreWays } from "./nav-helper";
 
 test.beforeEach(async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
@@ -12,6 +12,8 @@ test.beforeEach(async ({ page }) => {
 
 test("the syringe demo opens from the start page with a complete TRD", async ({ page }) => {
   await page.goto("./");
+  // The demos sit in the "More ways to start" fold on Home (EOU-01).
+  await openMoreWays(page);
   await expect(page.getByRole("button", { name: "Open demo: ARX-217 vials" })).toHaveCount(1);
   await openDemo(page, "syr");
   await expect(page.getByTestId("home-chain")).toBeVisible();

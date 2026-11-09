@@ -1,6 +1,7 @@
+import { DocPreview } from "../DocPreview";
 import { NO_VALUE_YET, stampDocument, buildTrdOutline, buildTrdSeed, recordExport, trdSeedCounts, trdSeedFingerprint } from "@gap/engine";
 import { PROCESS_MODEL_VERSION, TRD_SEED_VERSION, parseTrdSeed, type DocumentExport, type TemplateRecord } from "@gap/process-model";
-import { DOCUMENT_CSS, renderHtml, renderHtmlBody } from "@gap/renderers";
+import { DOCUMENT_CSS, renderHtml, renderHtmlPreview } from "@gap/renderers";
 import { useMemo, useRef, useState } from "react";
 import { PageHeader } from "../PageHeader";
 import { Modal } from "../components";
@@ -42,7 +43,7 @@ export function TrdSeedPage() {
   const seed = built.seed;
   const versionStamp = useVersionStamp();
   const outline = useMemo(() => (seed ? stampDocument(buildTrdOutline(seed, { traceability }), versionStamp) : null), [seed, traceability, versionStamp]);
-  const body = useMemo(() => (outline ? renderHtmlBody(outline) : ""), [outline]);
+  const body = useMemo(() => (outline ? renderHtmlPreview(outline) : ""), [outline]);
   const counts = useMemo(() => (seed ? trdSeedCounts(seed) : null), [seed]);
 
   const stamp = `${projectFileStem(project.meta)}-${today()}`;
@@ -278,7 +279,7 @@ export function TrdSeedPage() {
             </h2>
             <style>{DOCUMENT_CSS}</style>
             {/* Content is built from escaped text by renderHtmlBody (every value passes through escapeHtml). */}
-            <div className="doc-preview" data-testid="trd-preview" dangerouslySetInnerHTML={{ __html: body }} />
+            <DocPreview html={body} testId="trd-preview" />
           </section>
         </>
       )}

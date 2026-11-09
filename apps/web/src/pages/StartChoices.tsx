@@ -87,11 +87,12 @@ export function StartChoices({ stay, compact, children }: { stay?: boolean; comp
 
   return (
     <>
-      <div className="start-grid" data-testid="start-options">
-        <div className="start-option">
+      <div className="stack" data-testid="start-options">
+        {/* One big start (EOU-01): four equal choices made a first-time reader pick before knowing what they were choosing between. Every other way in is
+            one fold away, under "More ways to start", closed at first. */}
+        <div className="start-option start-main">
           <h3 className="start-option-title">Start fresh</h3>
-          {/* The tour's first step points at this button, not at the whole grid: the grid is over a screen tall, so pointing at it scrolled the page and the
-              bubble landed on the upload choices (EOU-39). */}
+          {/* The tour's first step points at this button, not at the whole block (EOU-39). */}
           <button className="btn primary big" data-tour="home-start" disabled={busy} onClick={() => {
               if (!confirmReplace()) return;
               setAfter(null);
@@ -101,6 +102,10 @@ export function StartChoices({ stay, compact, children }: { stay?: boolean; comp
           </button>
           <p className="muted small">Name it and say who is answering. Then you choose the scope and answer the guided questions.</p>
         </div>
+        <details className="more-ways" data-testid="more-ways">
+          <summary>More ways to start</summary>
+          <p className="muted small more-ways-hint">Open a demo, start with one document, or upload a document you already have.</p>
+          <div className="start-grid">
         {/* The other three starts of the chain, each on its own: no gap assessment is needed for any of them. With a project open the button is a plain
             link; without one it asks for the project name first (a document lives in a project) and then goes to the page. */}
         {!stay && starts.length > 0 && (
@@ -170,6 +175,8 @@ export function StartChoices({ stay, compact, children }: { stay?: boolean; comp
           </div>
         </div>
         {children}
+          </div>
+        </details>
       </div>
       {/* A status region that is always on the page, so a screen reader announces the text when it appears. */}
       <div role="status" data-testid="demo-status">

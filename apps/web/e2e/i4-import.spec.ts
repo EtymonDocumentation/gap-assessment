@@ -12,7 +12,7 @@ import { join } from "node:path";
 import PizZip from "pizzip";
 import { foreignDocx, pictureOnlyPdf } from "../../../packages/docx/test/i2-foreign";
 import { foreignGapBodyXml, foreignGapPdf, type ForeignGapQuestions } from "../../../packages/docx/test/i4-foreign";
-import { openDemo } from "./nav-helper";
+import { openDemo, openMoreWays } from "./nav-helper";
 
 const SHOTS = tmpdir();
 const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -239,6 +239,7 @@ test("a TRD or sampling file made by this tool is sent to its own page", async (
 test("the Home upload block and the interview offer the gap assessment upload", async ({ page }) => {
   test.setTimeout(240_000);
   await page.goto("./");
+  await openMoreWays(page);
   await expect(page.getByTestId("home-upload-gap")).toBeVisible();
   await openDemo(page, "arx", "#/gap");
   await expect(page.getByTestId("gap-upload")).toBeVisible();

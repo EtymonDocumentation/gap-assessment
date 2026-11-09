@@ -1,6 +1,7 @@
+import { DocPreview } from "../DocPreview";
 import { buildMbrDocument, documentFingerprint, mbrBasisText, projectLabel, recordExport, stampDocument } from "@gap/engine";
 import { MBR_FORMAT_VERSION, PROCESS_MODEL_VERSION, type DocumentExport, type MbrRecord, type TemplateRecord } from "@gap/process-model";
-import { DOCUMENT_CSS, renderHtml, renderHtmlBody } from "@gap/renderers";
+import { DOCUMENT_CSS, renderHtml, renderHtmlPreview } from "@gap/renderers";
 import { useMemo, useRef, useState } from "react";
 import { Modal } from "../components";
 import { HelpTip } from "../HelpTip";
@@ -30,7 +31,7 @@ export function MbrOutput({ rec }: { rec: MbrRecord }) {
   const part = rec.split && partChoice !== "whole" ? (Number(partChoice) as 1 | 2) : undefined;
   const versionStamp = useVersionStamp();
   const doc = useMemo(() => stampDocument(buildMbrDocument(project, rec, { generatedAt, appVersion: APP_VERSION, catalogVersion: content.versions.catalog, part }), versionStamp), [project, rec, content, generatedAt, part, versionStamp]);
-  const body = useMemo(() => (showPreview ? renderHtmlBody(doc) : ""), [doc, showPreview]);
+  const body = useMemo(() => (showPreview ? renderHtmlPreview(doc) : ""), [doc, showPreview]);
   const stamp = `${projectFileStem(project.meta)}-${rec.id}${part ? `-part${part}` : ""}-${today()}`;
   const tbd = doc.tbdCount ?? 0;
 
@@ -135,7 +136,7 @@ export function MbrOutput({ rec }: { rec: MbrRecord }) {
           </h2>
           <style>{DOCUMENT_CSS}</style>
           {/* Built from escaped text by renderHtmlBody (every value passes through escapeHtml). */}
-          <div className="doc-preview" data-testid="mbr-preview" dangerouslySetInnerHTML={{ __html: body }} />
+          <DocPreview html={body} testId="mbr-preview" />
         </section>
       )}
 

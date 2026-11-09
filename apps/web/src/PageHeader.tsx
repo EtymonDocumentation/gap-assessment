@@ -162,7 +162,9 @@ function PageStrips() {
   if (!project) return null;
   return (
     <>
-      {chainStageOf(route.path) && <DocChainStrip route={route} />}
+      {/* The gap pages show only their own six step pills (EOU-06): two strips of six boxes made a first-time reader ask which one to use. The document
+          chain stays on Home, on the other documents' pages and in the Documents menu. */}
+      {chainStageOf(route.path) !== undefined && chainStageOf(route.path) !== "gap" && <DocChainStrip route={route} />}
       {gapStepIndex(route.path) >= 0 && <GapStepBar path={route.path} />}
       <ModuleLibraryLinks path={route.path} />
     </>

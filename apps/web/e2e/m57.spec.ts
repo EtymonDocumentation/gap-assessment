@@ -7,7 +7,7 @@ import { readFile } from "node:fs/promises";
 import { mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { expectNotice, openDemo, setTheme } from "./nav-helper";
+import { expectNotice, openDemo, setTheme, openInterviewMore } from "./nav-helper";
 
 const SHOTS = tmpdir();
 
@@ -58,7 +58,11 @@ async function shot(page: Page, name: string, testInfo: { project: { name: strin
   await page.emulateMedia({ colorScheme: null });
 }
 
-const mapTitles = (page: Page) => page.locator(".progress-map .pm-title").allTextContents();
+// The progress map is behind the Interview's "More" button (EOU-07), closed at first.
+const mapTitles = async (page: Page) => {
+  await openInterviewMore(page);
+  return page.locator(".progress-map .pm-title").allTextContents();
+};
 
 test("a new project opens the Scope step first: everything is included, nothing is pre-decided", async ({ page }, testInfo) => {
   await newProject(page);
@@ -96,6 +100,7 @@ test("scope step: groups, a single step, a confirm for answered steps, and re-ti
   await go(page, "#/interview?summary=uo.aseptic_filling");
   await expect(page.locator("#sum-h")).toContainText("Section summary");
   expect(await mapTitles(page)).toContain("Aseptic filling and stoppering");
+  await openInterviewMore(page);
   const countBefore = await page.locator(".progress-map li", { hasText: "Aseptic filling" }).locator(".pm-count").textContent();
 
   await go(page, "#/scope");
@@ -140,6 +145,7 @@ test("scope step: groups, a single step, a confirm for answered steps, and re-ti
   await page.locator("#scope-step-aseptic_filling").check();
   await go(page, "#/interview?summary=uo.aseptic_filling");
   expect(await mapTitles(page)).toContain("Aseptic filling and stoppering");
+  await openInterviewMore(page);
   await expect(page.locator(".progress-map li", { hasText: "Aseptic filling" }).locator(".pm-count")).toHaveText(countBefore ?? "");
 
   // A whole group: one tick leaves every step out, one tick puts them back.
@@ -293,6 +299,7 @@ test("the Scoping summary has no RU column: the answers apply to both sides", as
 test("the Progress map explains its counts and never clips at 390px with 200% text", async ({ page }, testInfo) => {
   await loadDemo(page);
   await go(page, "#/interview?summary=uo.aseptic_filling");
+  await openInterviewMore(page);
   await expect(page.getByTestId("pm-help")).toContainText("Counts are questions answered out of those showing.");
   await expect(page.locator(".pm-sides").first()).toContainText(/SU: \d+ of \d+ answered · RU: \d+ of \d+ answered/);
   await page.setViewportSize({ width: 390, height: 844 });

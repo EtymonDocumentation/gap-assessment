@@ -83,7 +83,7 @@ export function HomePage() {
   const buttonOf = (c: DocCardSpec): string => {
     const status = statusOf(c.id);
     if (!project || status === undefined || status === "Not started") return "Start";
-    return c.id === "gap" && /still open/.test(status) ? "Continue" : "Open";
+    return c.id === "gap" && /questions answered/.test(status) ? "Continue" : "Open";
   };
 
   // Renames the open project. A name another saved project has is refused (server mode), so My projects never shows two projects with one name.
@@ -212,7 +212,7 @@ export function HomePage() {
               <dl className="stats stats-quiet">
                 <div>
                   <dt>Questions answered</dt>
-                  <dd>{interviewCountsText(interviewCounts(project, a.instances))}</dd>
+                  <dd>{interviewCountsText(interviewCounts(project, a.instances), a.openItems.length)}</dd>
                 </div>
                 <div>
                   <dt>Differences</dt>

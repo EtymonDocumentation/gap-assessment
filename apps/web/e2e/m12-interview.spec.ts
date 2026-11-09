@@ -65,9 +65,9 @@ async function expectNoSidewaysScroll(page: Page, label: string) {
 
 const shot = (page: Page, name: string) => page.screenshot({ path: join(SHOTS, `m12-j2-${name}-${test.info().project.name}.png`), fullPage: true });
 const progressNumbers = async (page: Page) => {
-  const m = /^(\d+) of (\d+) answered, (\d+) left open/.exec((await page.getByTestId("iv-progress").textContent()) ?? "");
+  const m = /^(\d+) of (\d+) answered/.exec((await page.getByTestId("iv-progress").textContent()) ?? "");
   expect(m, "the progress banner").not.toBeNull();
-  return { answered: Number(m![1]), total: Number(m![2]), open: Number(m![3]) };
+  return { answered: Number(m![1]), total: Number(m![2]) };
 };
 
 async function downloadOf(page: Page, click: () => Promise<void>): Promise<{ file: string; bytes: Buffer }> {
@@ -270,7 +270,7 @@ test("one question at a time: Back and Next, the heading takes the focus, Don't 
   const end = page.getByTestId("iv-end");
   for (let i = 0; i < 40 && !(await end.isVisible()); i++) await mode.getByTestId("iv-skip").click();
   await expect(end).toBeVisible();
-  await expect(end).toContainText(/That was the last open question\. \d+ left open\./);
+  await expect(end).toContainText(/That was the last open question\. \d+ open items? left\./);
   await expect(end.getByRole("heading")).toBeFocused();
   await shot(page, "end-screen");
   await expect(page.getByTestId("iv-end-open")).toHaveAttribute("href", /tab=open/);

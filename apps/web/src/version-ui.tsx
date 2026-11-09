@@ -328,6 +328,7 @@ export function HomeVersion() {
       <span>{text}</span>
       <SaveVersionButton className="btn small" />
       <a href={href("/versions")}>Version history</a>
+      <a href={href("/changes")}>Change log</a>
     </span>
   );
 }

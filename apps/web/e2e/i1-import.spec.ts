@@ -7,7 +7,7 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
-import { goTo, openDemo } from "./nav-helper";
+import { goTo, openDemo, openMoreWays } from "./nav-helper";
 
 const SHOTS = tmpdir();
 const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -192,6 +192,7 @@ test("file rules: old Word formats and unreadable files get a plain message", as
 test("Home offers the upload and the blank form", async ({ page }) => {
   await loadDemo(page);
   await goTo(page, "Home");
+  await openMoreWays(page);
   const block = page.getByTestId("home-start-from-document");
   await expect(block).toContainText("A technical requirements document (TRD)");
   await expect(page.getByTestId("home-upload-trd")).toBeVisible();

@@ -2,7 +2,7 @@
 // question shows a banner. Runs on the desktop, tablet and phone projects.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { expectNotice, openDemo, setTheme } from "./nav-helper";
+import { expectNotice, openDemo, setTheme, openInterviewMore } from "./nav-helper";
 
 const SU_LEGEND = "Sending unit (SU) — Site North (fictional), Line 2 · validated state";
 const RU_LEGEND = "Receiving unit (RU) — Site South (fictional), Line 4 · planned state";
@@ -82,6 +82,7 @@ test("a paired question shows SU and RU together, each in its own labelled group
   // The same card opens from the RU key, and both sides stay editable in sequential order too.
   await go(page, "#/interview?q=fill.pump%40target");
   await expect(page.locator("fieldset.side-panel")).toHaveCount(2);
+  await openInterviewMore(page);
   await page.locator(".segmented label", { hasText: "Sequential" }).click();
   await go(page, "#/interview?q=fill.pump%40source");
   await expect(page.locator("fieldset.side-panel")).toHaveCount(2);
@@ -211,6 +212,7 @@ test("saving one side with TBD stays on the card for the other side; site names 
 test("in the SU-first order, the RU panel is there too and says it can be answered now", async ({ page }) => {
   await newProject(page);
   await go(page, "#/interview?q=site.name%40source");
+  await openInterviewMore(page);
   await page.locator(".segmented label", { hasText: "Sequential" }).click();
   await expect(page.locator("#mode-help")).toHaveText(/All SU answers first/);
   await expect(page.locator("fieldset.side-panel")).toHaveCount(2);

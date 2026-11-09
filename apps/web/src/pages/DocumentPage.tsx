@@ -1,6 +1,7 @@
+import { DocPreview } from "../DocPreview";
 import { buildDocument, buildGapData, documentFingerprint, omittedSectionIds, openItemsText, recordExport, stampDocument, verificationSummary } from "@gap/engine";
 import type { DocumentExport, TemplateRecord } from "@gap/process-model";
-import { DOCUMENT_CSS, renderHtml, renderHtmlBody, renderMarkdown } from "@gap/renderers";
+import { DOCUMENT_CSS, renderHtml, renderHtmlPreview, renderMarkdown } from "@gap/renderers";
 import { useMemo, useRef, useState } from "react";
 import { Modal } from "../components";
 import { HelpTip } from "../HelpTip";
@@ -21,7 +22,7 @@ export function DocumentPage() {
   const [generatedAt] = useState(() => new Date().toISOString());
   const versionStamp = useVersionStamp();
   const doc = useMemo(() => stampDocument(buildDocument(content, project, a, generatedAt), versionStamp), [project, a, generatedAt, versionStamp]);
-  const body = useMemo(() => renderHtmlBody(doc), [doc]);
+  const body = useMemo(() => renderHtmlPreview(doc), [doc]);
   const vs = useMemo(() => verificationSummary(content, project), [content, project]);
   const base = `${projectFileStem(project.meta)}-gap-assessment-${today()}`;
   const update = useStore((s) => s.update);
@@ -31,12 +32,15 @@ export function DocumentPage() {
   const omitted = omittedSectionIds(project);
   const [scopeOpen, setScopeOpen] = useState(false);
 
-  // Downloading with TBD values still open is allowed, but only after the person has seen the count. The count of values marked TBD
-  // is recorded in the export history. (GMP: a document with open TBD values must not leave the tool without that being plain.)
+  // Downloading with open items is allowed, but only after the person has seen the count (EOU-10). The question used to appear only for values marked
+  // TBD, so a Word file with 42 open items and none marked TBD left without it, while the TRD, the plan and the batch record asked. Now it asks
+  // whenever the document lists open items, with the same count as the page header, Home and the interview (open-count rule). The number marked TBD
+  // is recorded in the export history. (GMP: a document with open items must not leave the tool without that being plain.)
+  const open = a.openItems.length;
   const [pending, setPending] = useState<(() => void) | null>(null);
   const opener = useRef<HTMLElement | null>(null);
   const guard = (run: () => void) => {
-    if (doc.tbdCount > 0) {
+    if (open > 0) {
       opener.current = document.activeElement as HTMLElement | null;
       setPending(() => run);
     } else run();
@@ -72,7 +76,6 @@ export function DocumentPage() {
   const printPdf = () => guard(() => window.print());
 
   const n = doc.tbdCount;
-  const open = a.openItems.length;
   const included = summary.steps.included;
   return (
     <div className="stack-lg">
@@ -189,7 +192,7 @@ export function DocumentPage() {
       <ExportHistory exports={project.document.exports} />
       <style>{DOCUMENT_CSS}</style>
       {/* Content is built from escaped text by renderHtmlBody (every value passes through escapeHtml). */}
-      <div className="doc-preview" dangerouslySetInnerHTML={{ __html: body }} />
+      <DocPreview html={body} />
 
       {pending && (
         <Modal
@@ -201,7 +204,7 @@ export function DocumentPage() {
         >
           <div className="stack">
             <p data-testid="tbd-warning">
-              The download will record <strong>{n} marked TBD</strong> in the export history.
+              The download will record <strong>{n} marked TBD</strong> in the export history. Go back to answer them first, or download now; nothing stops you.
             </p>
             <div className="row end">
               <button type="button" className="btn" autoFocus onClick={() => setPending(null)}>

@@ -1,10 +1,11 @@
-import { createTrd, trdOpenItems, trdOverrides, type TrdStart } from "@gap/engine";
+import { createTrd, trdOverrides, type TrdStart } from "@gap/engine";
 import { parseTrdSeed, type TrdSeed } from "@gap/process-model";
 import { useState } from "react";
 import { StartArt } from "../art";
 import { Empty } from "../components";
 import { PageHeader } from "../PageHeader";
 import { dateTime } from "../lib";
+import { trdOpenCount } from "../open-count";
 import { href, navigate } from "../router";
 import { useStore } from "../store";
 import { startTrdByQuestions } from "../trd-start";
@@ -196,7 +197,7 @@ function List({ missing, preselect }: { missing?: string | undefined; preselect:
                     <td className="small">{ORIGIN_TEXT[d.origin.kind]}</td>
                     <td className="num">{d.steps.length}</td>
                     <td className="num">{trdOverrides(d).filter((o) => o.overridesProject).length}</td>
-                    <td className="num">{trdOpenItems(d).length}</td>
+                    <td className="num">{trdOpenCount(project, d).total}</td>
                     <td className="small">{dateTime(d.updatedAt)}</td>
                   </tr>
                 ))}

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HelpTip } from "../HelpTip";
 import { href } from "../router";
 import { StageRow, useProjectStage } from "../stage-ui";
+import { openItemsCount, trdOpenCount } from "../open-count";
 import { useContent, useStore } from "../store";
 import { useTrdWriteupLibrary } from "../trd-writeups-store";
 import { defaultInterviewShow, interviewSequence, nextIndex, readKept, readLast, sequencePosition, trdIsEmpty, writeKept, writeLast } from "../trd-interview-lib";
@@ -14,7 +15,7 @@ export type InterviewShow = "all" | "open" | "confirm";
 const SHOW_TEXT: Record<InterviewShow, string> = { all: "Everything", open: "Only what is still open", confirm: "Only what came from the project, to confirm" };
 
 const PROGRESS_HELP =
-  "These counts are about the questions on this tab. The Open items tab counts what is missing in the TRD itself, so the two numbers can differ. Anything you do not know stays open. You can also print the blank form.";
+  "The first number is the questions you have answered on this tab. The open items are everything still to fill in the TRD: entries still open plus blank fields in the process descriptions. The Open items tab lists them, and each one links to its question. Anything you do not know stays open. You can also print the blank form.";
 
 /**
  * The Interview tab: plain questions that fill the same TRD the form fills. The list is derived from the TRD every time (nothing is stored
@@ -66,6 +67,8 @@ export function TrdInterview({ d, initialShow, initialQuestion }: { d: TrdDocume
     open: c.essentials.open + (more ? c.moreDetail.open : 0),
   });
   const overall = counts(progress.overall);
+  // The one open-items number of the TRD (open-count.ts): the same words as the chain strip, the page header and the Home card (EOU-14, EOU-15).
+  const openCount = useMemo(() => trdOpenCount(project, d), [project, d]);
   const hiddenMore = more ? 0 : all.filter((q) => !q.essential).length;
 
   const groups = useMemo(() => {
@@ -182,8 +185,12 @@ export function TrdInterview({ d, initialShow, initialQuestion }: { d: TrdDocume
         )}
         <div className="iv-banner" role="status" aria-live="polite" data-testid="iv-banner">
           <strong data-testid="iv-progress">
-            {overall.answered} of {overall.total} answered, {overall.open} left open
-          </strong>
+            {overall.answered} of {overall.total} answered
+          </strong>{" "}
+          <span aria-hidden="true">·</span>{" "}
+          <a href={href("/trd", { trd: d.id, tab: "open" })} data-testid="iv-open-count">
+            {openItemsCount(openCount.total)}
+          </a>
           {hiddenMore > 0 && (
             <span className="muted small" data-testid="iv-more-count">
               {" "}
@@ -313,7 +320,7 @@ export function TrdInterview({ d, initialShow, initialQuestion }: { d: TrdDocume
           ) : (
             <div className="card stack" data-testid="iv-end">
               <h2 ref={endRef} tabIndex={-1}>
-                That was the last open question. {overall.open} left open.
+                That was the last open question. {openItemsCount(openCount.total)} left.
               </h2>
               <div className="row wrap">
                 <a className="btn" href={href("/trd", { trd: d.id, tab: "open" })} data-testid="iv-end-open">

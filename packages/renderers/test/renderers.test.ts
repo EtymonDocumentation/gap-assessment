@@ -2,7 +2,7 @@ import type { Project } from "@gap/process-model";
 import { NOTICE_DOCUMENT, adaptText, assess, buildDemoProject, buildDocument, CSV_COLUMNS, excludeStep, gapsToCsv, type DocModel, type Gap } from "@gap/engine";
 import { describe, expect, it } from "vitest";
 import { content, demos } from "../../../content/index";
-import { DOCUMENT_CSS, EXPORT_HTML_CSP, escapeHtml, renderHtml, renderHtmlBody, renderMarkdown } from "../src/index";
+import { DOCUMENT_CSS, EXPORT_HTML_CSP, escapeHtml, renderHtml, renderHtmlBody, renderHtmlPreview, renderMarkdown, PREVIEW_TABLE_ROWS } from "../src/index";
 
 const project = buildDemoProject(content, demos["arx-217"]);
 const assessment = assess(content, project);
@@ -291,6 +291,25 @@ describe("renderHtml", () => {
     expect(body).not.toContain("<html");
     expect(body).not.toContain("<style");
     expect(html).toContain(body);
+  });
+
+  it("the preview shows the first rows of a long table and a Show all button; the download body never does (EOU-44)", () => {
+    const rows = Array.from({ length: PREVIEW_TABLE_ROWS + 5 }, (_, i) => [`row ${i}`]);
+    const long: DocModel = { ...hostile, sections: [{ id: "s", number: "1", title: "Long", blocks: [{ type: "table", columns: ["A"], rows }] }] };
+    const preview = renderHtmlPreview(long);
+    expect(preview.match(/preview-more-row/g)).toHaveLength(5);
+    expect(preview).toContain(`Showing the first ${PREVIEW_TABLE_ROWS} of ${rows.length} rows`);
+    expect(preview).toContain(`Show all ${rows.length} rows`);
+    // Every row is in the page, hidden by CSS, so nothing is lost.
+    expect(preview).toContain(`row ${rows.length - 1}`);
+    for (const out of [renderHtmlBody(long), renderHtml(long), renderMarkdown(long)]) {
+      expect(out).not.toContain("preview-more-row");
+      expect(out).not.toContain("Show all");
+      expect(out).toContain(`row ${rows.length - 1}`);
+    }
+    // A short table is untouched.
+    const short: DocModel = { ...long, sections: [{ id: "s", number: "1", title: "Short", blocks: [{ type: "table", columns: ["A"], rows: rows.slice(0, PREVIEW_TABLE_ROWS) }] }] };
+    expect(renderHtmlPreview(short)).toBe(renderHtmlBody(short));
   });
 
   it("is deterministic", () => {

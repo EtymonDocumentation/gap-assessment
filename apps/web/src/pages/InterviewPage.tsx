@@ -186,6 +186,8 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
   const allInstances = useMemo(() => visibleInstances(content, project, mode), [content, project, mode]);
   const prog = useMemo(() => progress(content, project, allInstances), [content, project, allInstances]);
   const [editingResponder, setEditingResponder] = useState(false);
+  // The "More" button's panel (entry order, saved answers, progress map) starts closed.
+  const [moreOpen, setMoreOpen] = useState(false);
   // "Show only TBD" narrows the questions the card moves through to those recorded as TBD. Progress still counts all of them.
   const [onlyTbd, setOnlyTbd] = useState(false);
   const tbdInstances = useMemo(() => allInstances.filter((i) => isTbdInstance(project, i)), [allInstances, project]);
@@ -278,23 +280,11 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
       <aside className="interview-aside" aria-label="Interview progress">
         <div className="card tight" data-tour="interview-progress">
           <p className="small muted">
-            {interviewCountsText(interviewCounts(project, allInstances))}
+            {interviewCountsText(interviewCounts(project, allInstances), a.openItems.length)}
           </p>
           <div className="progress" aria-hidden="true">
             <span style={{ width: `${allInstances.length ? (100 * answeredCount) / allInstances.length : 0}%` }} />
           </div>
-          <fieldset className="segmented" aria-describedby="mode-help">
-            <legend className="small">Entry order</legend>
-            {(["paired", "sequential"] as const).map((m) => (
-              <label key={m}>
-                <input type="radio" name="mode" value={m} checked={mode === m} onChange={() => update((p, actor) => setEntrySequence(p, m, actor), `Entry order: ${m}`)} />
-                <span>{m === "paired" ? "Paired" : "Sequential"}</span>
-              </label>
-            ))}
-          </fieldset>
-          <p id="mode-help" className="small muted">
-            {mode === "paired" ? "SU, then RU, for each question. Both are on one card." : "All SU answers first, then the RU pass. A question for both units still shows SU and RU together."}
-          </p>
           <p className="small">
             Responder: <strong>{project.interview.responder?.name ?? "not set"}</strong>{" "}
             <button className="link-btn" onClick={() => setEditingResponder(true)}>
@@ -337,30 +327,56 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
             </div>
           </div>
         )}
-        <div className="card tight" data-testid="saved-answers-card">
-          <p className="small">
-            <strong>Saved answers</strong> <HelpTip label="saved answers" text="Keep this project's answers as a named set, or offer a set you saved earlier to this project. You review every answer and untick what you do not want; nothing is applied on its own." />
-          </p>
-          <div className="row wrap">
-            {(["save", "apply"] as const).map((k) => (
-              <button
-                key={k}
-                type="button"
-                className="btn small"
-                data-testid={`saved-${k}`}
-                onClick={() => {
-                  setSavedDialog(k);
-                }}
-              >
-                {k === "save" ? "Save answers…" : "Apply saved answers…"}
-              </button>
-            ))}
-          </div>
-          <p className="small">
-            <a href={href("/saved-answers")}>Manage saved answers</a>
-          </p>
+        {/* EOU-07: the entry order, the saved answers and the progress map sit behind one "More" button, closed at first, so the side column is
+            the count, the responder and "Show only TBD" and a first-time reader sees what they need to answer. Nothing is removed; it is one tap away. */}
+        <div className="card tight interview-more">
+          <button type="button" className="btn small" aria-expanded={moreOpen} aria-controls="interview-more-panel" data-tour="interview-more" data-testid="interview-more" onClick={() => setMoreOpen((o) => !o)}>
+            More <span aria-hidden="true">{moreOpen ? "▴" : "▾"}</span>
+          </button>
+          <p className="small muted">Entry order, saved answers and the progress map.</p>
         </div>
-        <ProgressMap prog={prog} instances={allInstances} project={project} currentSection={summaryId ?? current?.section.id} />
+        {moreOpen && (
+          <div id="interview-more-panel" className="stack" data-testid="interview-more-panel">
+            <div className="card tight">
+            <fieldset className="segmented" aria-describedby="mode-help">
+              <legend className="small">Entry order</legend>
+              {(["paired", "sequential"] as const).map((m) => (
+                <label key={m}>
+                  <input type="radio" name="mode" value={m} checked={mode === m} onChange={() => update((p, actor) => setEntrySequence(p, m, actor), `Entry order: ${m}`)} />
+                  <span>{m === "paired" ? "Paired" : "Sequential"}</span>
+                </label>
+              ))}
+            </fieldset>
+            <p id="mode-help" className="small muted">
+              {mode === "paired" ? "SU, then RU, for each question. Both are on one card." : "All SU answers first, then the RU pass. A question for both units still shows SU and RU together."}
+            </p>
+            </div>
+          <div className="card tight" data-testid="saved-answers-card">
+            <p className="small">
+              <strong>Saved answers</strong> <HelpTip label="saved answers" text="Keep this project's answers as a named set, or offer a set you saved earlier to this project. You review every answer and untick what you do not want; nothing is applied on its own." />
+            </p>
+            <div className="row wrap">
+              {(["save", "apply"] as const).map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  className="btn small"
+                  data-testid={`saved-${k}`}
+                  onClick={() => {
+                    setSavedDialog(k);
+                  }}
+                >
+                  {k === "save" ? "Save answers…" : "Apply saved answers…"}
+                </button>
+              ))}
+            </div>
+            <p className="small">
+              <a href={href("/saved-answers")}>Manage saved answers</a>
+            </p>
+          </div>
+          <ProgressMap prog={prog} instances={allInstances} project={project} currentSection={summaryId ?? current?.section.id} />
+          </div>
+        )}
         {a.inactive.length > 0 && (
           <p className="notice small">
             {a.inactive.length} earlier answer{a.inactive.length === 1 ? "" : "s"} belong to questions that no longer apply. They are kept but
@@ -785,6 +801,10 @@ function QuestionCard({
         </div>
       )}
 
+      {/* EOU-07: both stay (they do different things), with one line saying the difference. */}
+      <p className="small muted" data-testid="tbd-vs-skip">
+        TBD puts the question on the open items list. Skip for now just moves on.
+      </p>
       <div className="row between q-nav">
         {prev ? (
           <a href={href("/interview", { q: prev.key })} className="btn ghost" onClick={() => markHeadingFocus(prev.key)}>

@@ -1,5 +1,6 @@
 import { isAnswered, isTbdAnswer, omittedSectionIds, type Assessment, type QuestionInstance } from "@gap/engine";
 import type { Project } from "@gap/process-model";
+import { openItemsCountOrNone } from "./open-count";
 
 /** The six gap assessment steps, in the order a new user works through them. */
 export const GAP_STEPS = [
@@ -70,9 +71,13 @@ export function interviewCounts(project: Project, instances: QuestionInstance[])
   return { total, known, tbd, open: total - known };
 }
 
-/** "5 of 43 answered, 38 still open (3 to be decided)": the same words in the interview, on Home and in the chain strip. */
-export function interviewCountsText(c: InterviewCounts): string {
-  return `${c.known} of ${c.total} answered${c.open > 0 ? `, ${c.open} still open` : ""}${c.tbd > 0 ? ` (${c.tbd} to be decided)` : ""}`;
+/**
+ * "5 of 43 answered, 42 open items (3 to be decided)": the same words in the interview banner and on Home. The open items are the ones the
+ * Open items tab and the document list (a.openItems), so the interview, Home, the chain strip and the document all give ONE count for what is
+ * still to fill, instead of "38 still open" here and "42 open items" there (EOU-14, EOU-15, EOU-25).
+ */
+export function interviewCountsText(c: InterviewCounts, openItems: number): string {
+  return `${c.known} of ${c.total} answered, ${openItemsCountOrNone(openItems)}${c.tbd > 0 ? ` (${c.tbd} to be decided)` : ""}`;
 }
 
 /**

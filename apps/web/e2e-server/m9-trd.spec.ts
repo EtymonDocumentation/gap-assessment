@@ -1,5 +1,5 @@
 // Milestone 9, server build: the TRD module gates the menu and the page, and a TRD is kept with the project on the server.
-import { expectNoMenuEntry, goTo } from "../e2e/nav-helper";
+import { expectNoMenuEntry, goTo, openMoreWays } from "../e2e/nav-helper";
 import { expect, go, loadDemo, makeSamplingInvite, newAccount, serverRevision, signUp, test } from "./helpers";
 
 const DEMO_TITLE = "ARX-217 transfer: Site North Line 2 to Site South Line 4 (fictional demo)";
@@ -28,6 +28,8 @@ test("server build: a gap-only account with no project open is told the TRD modu
   await expect(page.getByTestId("needs-project")).toHaveCount(0);
   await page.getByTestId("trd-not-included").getByRole("link", { name: "Back to Home" }).click();
   await expect(page.getByRole("heading", { level: 1, name: /Welcome to/ })).toBeVisible();
+  // The starts are folded under "More ways to start": open it, so the text checked below is the whole of it.
+  await openMoreWays(page);
   for (const id of ["start-options", "home-chain"]) {
     const text = await page.getByTestId(id).innerText();
     expect(text, `${id} names a document this account does not have`).not.toMatch(/TRD|batch record|sampling plan|risk assessment/i);

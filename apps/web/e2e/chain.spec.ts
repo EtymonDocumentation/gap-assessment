@@ -63,9 +63,8 @@ test("a project with no documents says 'Not started', proposes the TRD after the
   await page.goto("./");
   await openDemo(page, "arx", "#/register");
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
-  // On a gap assessment page the gap stage is the current one.
-  await expect(page.getByRole("navigation", { name: "Document chain" })).toBeVisible();
-  await expect(page.getByTestId("chain-gap")).toHaveAttribute("aria-current", "step");
+  // Gap assessment pages show only their own six step pills; the document chain stays on Home and in the Documents menu.
+  await expect(page.getByTestId("doc-chain")).toHaveCount(0);
   await page.goto("./");
   await page.getByRole("button", { name: "Start a new project" }).click();
   const dialog = page.getByRole("dialog", { name: "New project" });
@@ -93,7 +92,7 @@ test("Next and Back walk gap document, TRD, sampling plan, batch record and Proc
   test.slow();
   await openSyringe(page);
   await hash(page, "#/document");
-  await expect(page.getByTestId("chain-gap")).toHaveAttribute("aria-current", "step");
+  await expect(page.getByTestId("doc-chain")).toHaveCount(0);
   await expect(page.getByTestId("chain-next")).toContainText("Next: TRD");
   await page.getByTestId("chain-next").click();
   await expect(page.getByRole("heading", { level: 1, name: "TRD" })).toBeVisible();

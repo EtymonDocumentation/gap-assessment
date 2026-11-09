@@ -71,6 +71,6 @@ test("an interview answered with 'to be decided' is not called complete", async 
   await page.getByRole("button", { name: "TBD (to be decided)" }).first().click();
   const text = (await page.locator(".interview-aside").innerText()).replace(/\s+/g, " ");
   expect(text).not.toMatch(/\d+ of \d+ answered, complete/);
-  expect(text).toMatch(/\d+ of \d+ answered, \d+ still open \(\d+ to be decided\)/);
+  expect(text).toMatch(/\d+ of \d+ answered, \d+ open items? \(\d+ to be decided\)/);
   await page.screenshot({ path: join(tmpdir(), "fix1-interview-tbd-after.png"), fullPage: true });
 });

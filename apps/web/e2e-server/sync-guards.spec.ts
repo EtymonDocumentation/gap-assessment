@@ -2,6 +2,7 @@
 //   CR-04: a new project, a demo or an import is refused while the open project could not be saved, and the edits stay.
 //   CR-09: two tabs of one account keep their own browser copies; a project deleted on another computer is saved again as a new one.
 // Every test also fails on a script error or a Content Security Policy violation (see helpers.ts).
+import { openMoreWays } from "../e2e/nav-helper";
 import {
   answeredCount,
   answerFirst,
@@ -51,6 +52,7 @@ test("a new project is refused while the open one could not be saved, and the ed
   await expect(dialog).toBeHidden();
 
   // A demo is refused with the same words, in the banner.
+  await openMoreWays(page);
   await page.getByRole("button", { name: /^Open demo:/ }).first().click();
   await expect(page.getByRole("alert").filter({ hasText: "no other project can be started yet" })).toBeVisible();
   await page.getByRole("button", { name: "Dismiss" }).click();

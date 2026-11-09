@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { DEMO_NAMES, expectNotice, openDemo, setTheme } from "./nav-helper";
+import { DEMO_NAMES, expectNotice, openDemo, openMoreWays, setTheme } from "./nav-helper";
 
 // The two demo buttons (fix job D1, rows 16 and showcase audit 1): next to "Start a new project", one wording, a "Building the demo" line at
 // once, buttons off while it builds, and the same landing for both demos. The demo build takes seconds, so these specs allow it time.
@@ -17,9 +17,13 @@ async function axeClean(page: Page, label: string) {
   expect(serious.map((v) => `${v.id}: ${v.nodes[0]?.target.join(" ")}`).join("\n"), label).toBe("");
 }
 
-test("both demos sit next to Start a new project with one wording", async ({ page }) => {
+test("both demos sit under More ways to start, below the one big Start a new project, with one wording", async ({ page }) => {
   const options = page.getByTestId("start-options");
   await expect(options.getByRole("button", { name: "Start a new project" })).toBeVisible();
+  // EOU-01: the demos are one fold away, closed at first.
+  await expect(page.getByTestId("more-ways")).not.toHaveAttribute("open", "");
+  await expect(options.getByRole("button", { name: `Open demo: ${DEMO_NAMES.arx}` })).toBeHidden();
+  await openMoreWays(page);
   await expect(options.getByRole("button", { name: `Open demo: ${DEMO_NAMES.arx}` })).toBeVisible();
   await expect(options.getByRole("button", { name: `Open demo: ${DEMO_NAMES.syr}` })).toBeVisible();
   // The old wordings are gone, and only one control starts a project.
@@ -33,6 +37,7 @@ test("both demos sit next to Start a new project with one wording", async ({ pag
 
 test("the Building line shows within 100 ms, buttons go off, a second click is ignored, and both demos land on Home", async ({ page }) => {
   test.setTimeout(120_000);
+  await openMoreWays(page);
   // Measured inside the page: Playwright's own polling queues behind a busy page, so it cannot tell a 50 ms answer from a 5 s freeze.
   const shown = await page.evaluate(async (name) => {
     const button = [...document.querySelectorAll("button")].find((b) => b.textContent === `Open demo: ${name}`)!;
@@ -62,6 +67,7 @@ test("the Building line shows within 100 ms, buttons go off, a second click is i
   expect(shown.disabled).toBe(6);
   await expect(page.getByTestId("demo-opened")).toHaveText(`Demo opened: ${DEMO_NAMES.arx}`, { timeout: 90_000 });
   await expect(page.getByTestId("demo-status")).toHaveText("");
+  await openMoreWays(page);
   await expect(page.getByRole("button", { name: `Open demo: ${DEMO_NAMES.syr}` })).toBeEnabled();
   // Landing: Home, with the open project card.
   expect(new URL(page.url()).hash).toMatch(/^(#\/?)?$/);
@@ -85,6 +91,7 @@ test("the Home page with a demo building and with a demo open has no accessibili
     await setTheme(page, theme);
     await axeClean(page, `home ${theme}`);
   }
+  await openMoreWays(page);
   await page.getByRole("button", { name: `Open demo: ${DEMO_NAMES.syr}` }).click();
   await expect(page.getByTestId("demo-status")).toContainText("Building the demo");
   await axeClean(page, "home while building (dark)");

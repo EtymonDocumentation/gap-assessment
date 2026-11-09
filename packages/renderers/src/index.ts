@@ -91,7 +91,18 @@ function htmlRuns(runs: Run[]): string {
 /** A table cell: from its runs when it holds an open blank (so the blank is highlighted), else the plain text. */
 const htmlCell = (text: string, runs: Run[] | undefined): string => (runs?.length ? htmlRuns(runs) : escapeHtml(text));
 
-function htmlBlock(b: Block): string {
+/**
+ * How many rows of a long table the on-screen preview shows before "Show all" (EOU-44). It is for the preview ONLY: the Word, HTML and Markdown
+ * downloads never pass it, so a download always holds every row, and nothing is hidden from a reader of the file.
+ */
+export const PREVIEW_TABLE_ROWS = 10;
+
+export interface HtmlOptions {
+  /** Preview only: a table with more rows than this shows this many, then a "Show all" button. Leave it out for a download. */
+  previewRows?: number;
+}
+
+function htmlBlock(b: Block, opts: HtmlOptions = {}): string {
   switch (b.type) {
     case "paragraph":
       return `<p>${escapeHtml(b.text)}</p>`;
@@ -109,9 +120,15 @@ function htmlBlock(b: Block): string {
       if (!b.rows.length) return `<p class="none">${escapeHtml(b.emptyText ?? "None.")}</p>`;
       // Focusable so keyboard users can scroll a wide table sideways. A cell with an open blank is drawn from its runs, so the blank is
       // highlighted (and read as "open blank") like one in a paragraph; its words are the same as the plain cell.
-      return `<div class="table-wrap" role="region" aria-label="Table" tabindex="0"><table>${tableColgroup(b.weights, b.columns.length)}<thead><tr>${b.columns.map((c) => `<th scope="col">${escapeHtml(c)}</th>`).join("")}</tr></thead><tbody>${b.rows
-        .map((r, ri) => `<tr>${r.map((c, ci) => `<td>${htmlCell(c, b.cellRuns?.[ri]?.[ci])}</td>`).join("")}</tr>`)
-        .join("")}</tbody></table></div>`;
+      {
+        const cap = opts.previewRows !== undefined && b.rows.length > opts.previewRows ? opts.previewRows : undefined;
+        const table = `<div class="table-wrap" role="region" aria-label="Table" tabindex="0"><table>${tableColgroup(b.weights, b.columns.length)}<thead><tr>${b.columns.map((c) => `<th scope="col">${escapeHtml(c)}</th>`).join("")}</tr></thead><tbody>${b.rows
+          .map((r, ri) => `<tr${cap !== undefined && ri >= cap ? ' class="preview-more-row"' : ""}>${r.map((c, ci) => `<td>${htmlCell(c, b.cellRuns?.[ri]?.[ci])}</td>`).join("")}</tr>`)
+          .join("")}</tbody></table></div>`;
+        // The rows past the cap are in the page but hidden by CSS on screen only, so a printed preview still shows every row. The button is script-free here: the
+        // preview component listens for its click.
+        return cap === undefined ? table : `${table}<p class="preview-rows" role="status">Showing the first ${cap} of ${b.rows.length} rows. <button type="button" class="btn small preview-show-all" data-show-all="${b.rows.length}">Show all ${b.rows.length} rows</button></p>`;
+      }
     case "picture":
       // Embedded as a data: URL so the HTML file stays one file. It never overflows the page (max-width in the CSS below).
       return `<figure class="figure picture"><img src="data:${b.mime};base64,${b.data}" alt="${escapeHtml(b.alt)}" width="${b.width}" height="${b.height}"><figcaption>Figure ${b.number}.${b.caption ? ` ${escapeHtml(b.caption)}` : ""}</figcaption></figure>`;
@@ -158,10 +175,10 @@ export const DOCUMENT_CSS = `
 `;
 
 /** Document body (no <html> wrapper), for in-app preview. */
-export function renderHtmlBody(doc: DocModel): string {
+export function renderHtmlBody(doc: DocModel, opts: HtmlOptions = {}): string {
   const meta = doc.meta.map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`).join("");
   const sections = doc.sections
-    .map((s) => `<section id="doc-${s.id}"><h2>${escapeHtml(`${s.appendix ? "Appendix " : ""}${s.number}. ${s.title}`)}</h2>${s.blocks.map(htmlBlock).join("\n")}</section>`)
+    .map((s) => `<section id="doc-${s.id}"><h2>${escapeHtml(`${s.appendix ? "Appendix " : ""}${s.number}. ${s.title}`)}</h2>${s.blocks.map((b) => htmlBlock(b, opts)).join("\n")}</section>`)
     .join("\n");
   return `<article class="gap-doc">
 <div class="banner" role="note">${escapeHtml(doc.banner)}</div>
@@ -199,3 +216,6 @@ ${renderHtmlBody(doc)}
 </html>
 `;
 }
+
+/** The in-app preview of a document: the same body as the download, but a long table shows its first rows and a "Show all" button (EOU-44). */
+export const renderHtmlPreview = (doc: DocModel): string => renderHtmlBody(doc, { previewRows: PREVIEW_TABLE_ROWS });

@@ -136,7 +136,6 @@ test("the Library menu says in one line what each page is for, and Builder and S
     ["Saved answers", /^Your own sets of interview answers/],
     ["Sources", /^Where each answer came from\.$/],
     ["Builder", /^Advanced view; the Interview is easier\.$/],
-    ["Change log", /^Every change to the project, newest first\.$/],
   ];
   for (const [name, hint] of hints) await expect(nav.getByRole("link", { name, exact: true }), name).toHaveAccessibleDescription(hint);
 

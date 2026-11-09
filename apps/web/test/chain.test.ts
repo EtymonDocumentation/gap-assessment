@@ -2,6 +2,7 @@ import { assess, buildDemoProject } from "@gap/engine";
 import { content, demos, designLoadouts, failureModes, mbrLibrary, riskLoadouts, samplingSuggestions, trdWriteups } from "@gap/content";
 import { emptyProject } from "@gap/process-model";
 import { describe, expect, it } from "vitest";
+import { trdOpenCount } from "../src/open-count";
 import { chainBar, chainStageOf, chainStages, thenStep, type ChainAllowed } from "../src/chain";
 
 const all: ChainAllowed = { trd: true, sampling: true, mbr: true, risk: true };
@@ -41,6 +42,16 @@ describe("the document chain", { timeout: 60_000 }, () => {
     // The risk page shows the strip (Tester D row 27) but is not a numbered stage; its library page is not in the chain at all.
     expect(chainStageOf("/risk")).toBe("risk");
     expect(chainStageOf("/risk/methods")).toBeUndefined();
+  });
+
+  it("the TRD's open items are ONE count: entries plus blank fields, the same in the chain strip as on the TRD page (EOU-14, EOU-15)", () => {
+    const p = syr();
+    const a = assess(content, p);
+    const d = p.trd.documents[0]!;
+    const count = trdOpenCount(p, d);
+    expect(count.total).toBe(count.entries + count.blanks);
+    const status = chainStages(p, a, all).find((s) => s.id === "trd")!.status;
+    expect(status).toBe(`${d.id}, ${count.total === 0 ? "no open items" : count.total === 1 ? "1 open item" : `${count.total} open items`}`);
   });
 
   it("derives status from the stored documents, and Next follows an existing link", () => {

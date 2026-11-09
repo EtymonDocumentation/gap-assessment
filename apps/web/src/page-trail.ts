@@ -58,9 +58,10 @@ const TRAILS: Record<string, Trail> = {
   "/tbd": t(true, DOCS, "Open items"),
   "/sources": t(true, LIB, "Sources"),
   "/builder": t(true, LIB, "Builder"),
-  "/changes": t(true, LIB, "Change log"),
-  "/versions": t(true, LIB, "Version history"),
-  "/stage-review": t(true, LIB, { label: "Version history", path: "/versions" }, "Stage review"),
+  // Version history and the Change log belong to the open project (EOU-36): the trail is "<project> > Version history", not "Library > ...".
+  "/changes": t(true, "Change log"),
+  "/versions": t(true, "Version history"),
+  "/stage-review": t(true, { label: "Version history", path: "/versions" }, "Stage review"),
 };
 
 /** The trail of a route, or undefined for a route that has none (Home, the account pages). */

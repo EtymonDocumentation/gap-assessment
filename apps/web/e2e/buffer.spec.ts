@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openDemo } from "./nav-helper";
+import { openDemo, openInterviewMore } from "./nav-helper";
 
 test.beforeEach(async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
@@ -18,6 +18,8 @@ async function go(page: Page, hash: string) {
 test("dilution = No removes the Buffer preparation section from the progress map, and Yes brings it back", async ({ page }) => {
   await loadDemo(page);
   await go(page, "#/interview");
+  // The section map sits behind the Interview's "More" button (EOU-07).
+  await openInterviewMore(page);
   const map = page.getByRole("navigation", { name: "Sections" });
   await expect(map.getByRole("link", { name: /^Buffer preparation/ })).toBeVisible();
   await expect(map.getByRole("link", { name: /^Bioburden reduction \(BBR\) filtration/ })).toBeVisible();

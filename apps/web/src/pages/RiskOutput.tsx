@@ -1,7 +1,8 @@
+import { DocPreview } from "../DocPreview";
 import { buildRiskAssessmentDocument, documentFingerprint, projectLabel, recordExport, RISK_OPTIONAL_SECTIONS, riskBasisText, type RiskOptionalSection, stampDocument, updateAssessment } from "@gap/engine";
 import { failureModes } from "@gap/content";
 import { PROCESS_MODEL_VERSION, RISK_FORMAT_VERSION, type DocumentExport, type RiskApproval, type RiskAssessment, type TemplateRecord } from "@gap/process-model";
-import { DOCUMENT_CSS, renderHtml, renderHtmlBody } from "@gap/renderers";
+import { DOCUMENT_CSS, renderHtml, renderHtmlPreview } from "@gap/renderers";
 import { RISK_SCORING_VERSION } from "@gap/risk";
 import { useMemo, useRef, useState } from "react";
 import { Modal } from "../components";
@@ -30,7 +31,7 @@ export function RiskOutput({ a, run }: { a: RiskAssessment; run: Run }) {
   const choice = useWordChoice();
   const versionStamp = useVersionStamp();
   const doc = useMemo(() => stampDocument(buildRiskAssessmentDocument(content, project, a, failureModes, { generatedAt, appVersion: APP_VERSION, omit }), versionStamp), [content, project, a, generatedAt, omit, versionStamp]);
-  const body = useMemo(() => (showPreview ? renderHtmlBody(doc) : ""), [doc, showPreview]);
+  const body = useMemo(() => (showPreview ? renderHtmlPreview(doc) : ""), [doc, showPreview]);
   const stamp = `${projectFileStem(project.meta)}-${a.id}-${today()}`;
   const tbd = doc.tbdCount ?? 0;
 
@@ -131,7 +132,7 @@ export function RiskOutput({ a, run }: { a: RiskAssessment; run: Run }) {
           </h2>
           <style>{DOCUMENT_CSS}</style>
           {/* Built from escaped text by renderHtmlBody (every value passes through escapeHtml). */}
-          <div className="doc-preview" data-testid="risk-preview" dangerouslySetInnerHTML={{ __html: body }} />
+          <DocPreview html={body} testId="risk-preview" />
         </section>
       )}
 

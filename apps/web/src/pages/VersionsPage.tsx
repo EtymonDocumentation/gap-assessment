@@ -99,7 +99,14 @@ export function VersionsPage() {
       <PageHeader
         title="Version history"
         purpose="A version is a saved copy of the whole project. Open one to look at it (nothing in it can be changed), save a new one, or remove one you no longer need."
-        actions={<SaveVersionButton className="btn primary" />}
+        actions={
+          <>
+            <a className="btn" href={href("/changes")} data-testid="versions-to-changes">
+              Change log
+            </a>
+            <SaveVersionButton className="btn primary" />
+          </>
+        }
       />
 
       <section className="card stack" aria-labelledby="versions-now-h">

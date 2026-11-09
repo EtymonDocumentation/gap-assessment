@@ -5,7 +5,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { expectNotice, openDemo } from "./nav-helper";
+import { expectNotice, openDemo, openInterviewMore } from "./nav-helper";
 
 const SHOTS = tmpdir();
 
@@ -56,6 +56,7 @@ test("the new sections appear in process order, with bulk packaging between visu
   await loadDemo(page);
   await go(page, "#/interview?summary=uo.bulk_packaging");
   await expect(page.locator("#sum-h")).toHaveText("Section summary: Bulk packaging");
+  await openInterviewMore(page);
   const titles = await page.locator(".progress-map .pm-title").allTextContents();
   const at = (t: string) => titles.indexOf(t);
   expect(at("Drug substance shipping to the fill site")).toBeGreaterThan(-1);

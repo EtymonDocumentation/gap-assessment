@@ -3,7 +3,7 @@
 import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { DEMO_NAMES } from "../e2e/nav-helper";
+import { DEMO_NAMES, openMoreWays } from "../e2e/nav-helper";
 import { expect, expectAccessibleInBothThemes, go, newAccount, projectAction, serverRevision, signUp, startProject, test } from "./helpers";
 
 type Page = import("@playwright/test").Page;
@@ -121,6 +121,7 @@ test("a double click on a demo button makes exactly one project, and the other d
   test.setTimeout(240_000);
   await signUp(page, newAccount("demo-once"));
   await go(page, "#/");
+  await openMoreWays(page);
   await expect(page.getByRole("button", { name: `Open demo: ${DEMO_NAMES.syr}` })).toBeEnabled();
   // Two clicks in the same frame: the in-flight guard drops the second, whatever React has drawn by then.
   await page.evaluate((name) => {
@@ -135,6 +136,7 @@ test("a double click on a demo button makes exactly one project, and the other d
   expect((await listedOnServer(page)).filter((p) => /SYR-305/.test(p.title))).toHaveLength(1);
   await expect(projectList(page).getByRole("listitem")).toHaveCount(1);
 
+  await openMoreWays(page);
   await page.getByRole("button", { name: `Open demo: ${DEMO_NAMES.arx}` }).click();
   await expect(page.getByTestId("demo-opened")).toHaveText(`Demo opened: ${DEMO_NAMES.arx}`, { timeout: 120_000 });
   await expect.poll(async () => (await listedOnServer(page)).length, { timeout: 60_000 }).toBe(2);

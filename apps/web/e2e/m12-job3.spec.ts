@@ -5,7 +5,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { openDemo } from "./nav-helper";
+import { openDemo, openMoreWays } from "./nav-helper";
 
 test.beforeEach(async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
@@ -33,9 +33,11 @@ async function createProject(page: Page) {
   await dialog.getByRole("button", { name: "Create project" }).click();
 }
 
-test("Home with no project: the four starts are there in plain words, and each button lands on the right page", async ({ page }) => {
+test("Home with no project: one big start, and the other three under More ways to start in plain words, and each button lands on the right page", async ({ page }) => {
   await page.goto("./");
   const options = page.getByTestId("start-options");
+  await expect(options.getByRole("heading", { level: 3 })).toHaveText(["Start fresh"]);
+  await openMoreWays(page);
   await expect(options.getByRole("heading", { level: 3 })).toHaveText(["Start fresh", "Start with one document", "Open a demo", "Upload a document you have"]);
   await expect(options.getByRole("button", { name: "Start a new project" })).toBeVisible(); // the gap assessment
   const docs = page.getByTestId("start-documents");
@@ -57,6 +59,7 @@ const targets: [string, string, RegExp][] = [
 for (const [id, name, url] of targets) {
   test(`Home with no project: "${name}" asks for the project name and lands on the right page`, async ({ page }) => {
     await page.goto("./");
+    await openMoreWays(page);
     await expect(page.getByTestId(`start-doc-${id}`)).toHaveText(name);
     await page.getByTestId(`start-doc-${id}`).click();
     await createProject(page);
@@ -74,6 +77,7 @@ for (const [id, name, url] of targets) {
 test("Home with a project open: the sampling and batch record starts are plain links, and the TRD one makes a blank TRD on the Interview tab at once", async ({ page }) => {
   await page.goto("./");
   await openDemo(page, "syr");
+  await openMoreWays(page);
   const docs = page.getByTestId("start-documents");
   await expect(docs).toBeVisible();
   await expect(page.getByTestId("start-doc-trd")).toHaveText("Answer questions");
@@ -91,6 +95,7 @@ for (const [id, h1] of [["sampling", "Sampling plan"], ["mbr", "Batch record"]] 
   test(`Home with a project open: the ${id} start goes to its page`, async ({ page }) => {
     await page.goto("./");
     await openDemo(page, "syr");
+    await openMoreWays(page);
     await page.getByTestId(`start-doc-${id}`).click();
     await expect(page.getByRole("heading", { level: 1, name: h1 })).toBeVisible();
   });
@@ -149,8 +154,8 @@ test("the chain status on the TRD stage is the Open items count, and it agrees w
   await page.goto("./");
   await openDemo(page, "arx");
   await hash(page, "#/trd?trd=TRD-001&tab=open");
-  const heading = await page.getByRole("heading", { level: 2, name: /^Open items \(\d+\)$/ }).innerText();
-  const n = Number(/\((\d+)\)/.exec(heading)![1]);
+  const heading = await page.getByRole("heading", { level: 2, name: /^\d+ open items?$/ }).innerText();
+  const n = Number(/^(\d+)/.exec(heading)![1]);
   await hash(page, "#/");
   const status = page.getByTestId("doc-card-state-trd");
   await expect(status).toHaveText(n === 0 ? "TRD-001, no open items" : n === 1 ? "TRD-001, 1 open item" : `TRD-001, ${n} open items`);
@@ -165,12 +170,11 @@ test("both demos open the TRD with the Interview tab and a sensible 'N of M answ
     await hash(page, "#/trd?trd=TRD-001&tab=interview");
     await expect(page.getByTestId("trd-tab-interview")).toBeVisible();
     const text = await page.getByTestId("iv-banner").innerText();
-    const m = /(\d+) of (\d+) answered, (\d+) left open/.exec(text);
+    const m = /(\d+) of (\d+) answered/.exec(text);
     expect(m, text).not.toBeNull();
-    const [answered, total, open] = [Number(m![1]), Number(m![2]), Number(m![3])];
+    const [answered, total] = [Number(m![1]), Number(m![2])];
     expect(total).toBeGreaterThan(0);
     expect(answered).toBeLessThanOrEqual(total);
-    expect(answered + open).toBeLessThanOrEqual(total);
     if (which === "syr") await shot(page, "demo-interview");
     await expectAccessible(page, `${which} demo interview`);
   }

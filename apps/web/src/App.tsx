@@ -132,6 +132,8 @@ function AppShell() {
   const mappingId = /^\/templates\/([^/]+)\/mapping$/.exec(route.path)?.[1];
   // Documents run in chain order (gap assessment, TRD, sampling plan, batch record), each with a line saying what it is for. They are all
   // optional: the order is a suggestion about which document feeds the next, never a rule. Risk and the TBD list sit alongside the chain.
+  // Version history and the Change log are not here either (EOU-36): they belong to the open project, not to the library, so they are reached from the
+  // version chip in the header and from the project's panel on Home. Their addresses (#/versions, #/changes) still open.
   // The module libraries are not here: they have a "Library" button on their own module's pages (see ModuleLibraryLinks).
   const groups: NavGroup[] = [
     {
@@ -167,8 +169,6 @@ function AppShell() {
         { path: "/saved-answers", label: "Saved answers", desc: "Your own sets of interview answers, to offer to another project." },
         { path: "/sources", label: "Sources", desc: "Where each answer came from." },
         { path: "/builder", label: "Builder", desc: "Advanced view; the Interview is easier." },
-        { path: "/versions", label: "Version history", desc: "Saved copies of the project, compare them and see stage changes." },
-        { path: "/changes", label: "Change log", desc: "Every change to the project, newest first." },
       ],
     },
   ];

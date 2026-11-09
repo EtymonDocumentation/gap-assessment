@@ -1,6 +1,7 @@
+import { DocPreview } from "../DocPreview";
 import { buildCmoInstructionsDocument, buildSamplingData, buildSamplingPlanDocument, CMO_INSTRUCTIONS_TITLE, documentFingerprint, projectLabel, recordExport, samplingBasisText, stampDocument } from "@gap/engine";
 import { PROCESS_MODEL_VERSION, SAMPLING_PLAN_FORMAT_VERSION, type DocumentExport, type SamplingPlan, type TemplateRecord } from "@gap/process-model";
-import { DOCUMENT_CSS, renderHtml, renderHtmlBody } from "@gap/renderers";
+import { DOCUMENT_CSS, renderHtml, renderHtmlPreview } from "@gap/renderers";
 import { FIGURE_STYLE_LABEL, FIGURE_STYLES, SAMPLING_STATS_VERSION, type FigureStyle } from "@gap/sampling";
 import { useEffectiveSuggestions } from "../expected-studies-store";
 import { useMemo, useRef, useState } from "react";
@@ -47,7 +48,7 @@ function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "
   const versionStamp = useVersionStamp();
   const samplingSuggestions = useEffectiveSuggestions();
   const doc = useMemo(() => stampDocument((cmo ? buildCmoInstructionsDocument : buildSamplingPlanDocument)(content, project, plan, samplingSuggestions, { generatedAt, appVersion: APP_VERSION, ...(cmo ? {} : { figureStyle }) }), versionStamp), [content, project, plan, samplingSuggestions, generatedAt, cmo, figureStyle, versionStamp]);
-  const body = useMemo(() => (showPreview ? renderHtmlBody(doc) : ""), [doc, showPreview]);
+  const body = useMemo(() => (showPreview ? renderHtmlPreview(doc) : ""), [doc, showPreview]);
   // The plan can be downloaded with each flow figure style; the style is in the name so the three files do not overwrite one another.
   const stamp = `${projectFileStem(project.meta)}-${plan.id}${cmo ? "" : `-${figureStyle.replace(/_/g, "-")}`}-${today()}`;
   const tbd = doc.tbdCount ?? 0;
@@ -162,7 +163,7 @@ function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "
           </h2>
           <style>{DOCUMENT_CSS}</style>
           {/* Built from escaped text by renderHtmlBody (every value passes through escapeHtml). */}
-          <div className="doc-preview" data-testid={`${p}-preview`} dangerouslySetInnerHTML={{ __html: body }} />
+          <DocPreview html={body} testId={`${p}-preview`} />
         </section>
       )}
 

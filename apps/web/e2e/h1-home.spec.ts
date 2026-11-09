@@ -5,7 +5,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { DEMO_NAMES, goTo, isPhone, openDemo, setTheme } from "./nav-helper";
+import { DEMO_NAMES, goTo, isPhone, openDemo, openMoreWays, setTheme } from "./nav-helper";
 
 test.beforeEach(async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
@@ -42,6 +42,7 @@ test("a project page with no project open names the page and offers the ways to 
     await expect(box.getByRole("heading", { level: 1, name: `${menuName} needs an open project` })).toBeVisible();
     await expect(page.getByTestId("needs-project-text")).toContainText(`you will come straight back to ${menuName}.`);
     await expect(box.getByRole("button", { name: "Start a new project" })).toBeVisible();
+    await openMoreWays(page);
     await expect(box.getByRole("button", { name: `Open demo: ${DEMO_NAMES.arx}` })).toBeVisible();
     await expect(box.getByRole("button", { name: `Open demo: ${DEMO_NAMES.syr}` })).toBeVisible();
     await expect(box.getByRole("link", { name: "Go to the Home page" })).toHaveAttribute("href", "#/");
@@ -104,6 +105,10 @@ test("Home is the Cascade start page: welcome, the three start choices and one c
   const start = page.getByRole("heading", { level: 2, name: "Start", exact: true });
   await expect(start).toBeVisible();
   const options = page.getByTestId("start-options");
+  // EOU-01: one big start; the other three are in the "More ways to start" fold, closed at first.
+  await expect(options.getByRole("heading", { level: 3 })).toHaveText(["Start fresh"]);
+  await expect(page.getByTestId("more-ways")).not.toHaveAttribute("open", "");
+  await openMoreWays(page);
   await expect(options.getByRole("heading", { level: 3 })).toHaveText(["Start fresh", "Start with one document", "Open a demo", "Upload a document you have"]);
   // Every upload is offered with no project open too (EOU-12): the file is chosen first and the project is asked for after it, so there is
   // no "open a project first" line and no missing button.
@@ -132,6 +137,7 @@ test("with a project open the cards show its state and their buttons go to each 
   await page.goto("./");
   await openDemo(page, "syr");
   // The same uploads as with no project open (the project is simply not asked for again).
+  await openMoreWays(page);
   await expect(page.getByTestId("home-upload-trd")).toBeVisible();
   await expect(page.getByTestId("home-upload-sampling")).toBeVisible();
   const expected: [string, RegExp, string, RegExp][] = [

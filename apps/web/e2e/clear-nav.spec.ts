@@ -2,7 +2,7 @@
 // Runs on the desktop, tablet and phone projects.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { expectNotice, openDemo } from "./nav-helper";
+import { expectNotice, openDemo, openInterviewMore } from "./nav-helper";
 
 
 test.beforeEach(async ({ page }) => {
@@ -169,7 +169,8 @@ test("Save and continue goes to the NEXT question even when it is already answer
   await save.click();
   await expect(page.getByRole("heading", { level: 1, name: /Section summary: Aseptic filling/ })).toBeVisible();
 
-  // Review from the progress map still opens the summary at any time.
+  // Review from the progress map (behind "More", EOU-07) still opens the summary at any time.
+  await openInterviewMore(page);
   await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: /^Review Pooling, compounding and dilution/ }).click();
   await expect(page.getByRole("heading", { level: 1, name: /Section summary: Pooling, compounding and dilution/ })).toBeVisible();
 });

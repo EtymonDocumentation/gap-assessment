@@ -1,5 +1,6 @@
 // Saved answers in the server build: a set is saved to the account on the server (not only to this browser), it is listed from the server,
 // and deleting it from the page removes it there. The other account sees none of it. All data are fictional.
+import { openInterviewMore } from "../e2e/nav-helper";
 import { expect, go, loadDemo, newAccount, signUp, test } from "./helpers";
 
 test("server build: a saved answer set lives on the server for the account, and a delete removes it there", async ({ page }) => {
@@ -7,6 +8,7 @@ test("server build: a saved answer set lives on the server for the account, and 
   await signUp(page, newAccount("savedans"));
   await loadDemo(page);
   await go(page, "#/interview");
+  await openInterviewMore(page);
   await page.getByTestId("saved-save").click();
   const save = page.getByRole("dialog", { name: "Save these answers" });
   await save.getByTestId("sa-save-name").fill("Server set (fictional)");

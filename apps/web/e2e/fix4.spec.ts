@@ -78,10 +78,10 @@ test("a 'to be decided' answer counts as open: the count says so and the step is
   await page.goto("./#/interview");
   await page.getByRole("button", { name: "TBD (to be decided)" }).first().click();
   const aside = (await page.locator(".interview-aside").innerText()).replace(/\s+/g, " ");
-  expect(aside).toMatch(/0 of \d+ answered, \d+ still open \(1 to be decided\)/);
+  expect(aside).toMatch(/0 of \d+ answered, \d+ open items? \(1 to be decided\)/);
   await page.screenshot({ path: join(tmpdir(), "fix4-interview-count.png"), fullPage: true });
   await page.goto("./#/");
-  await expect(page.locator("dt", { hasText: "Questions answered" }).locator("+ dd")).toContainText(/still open \(1 to be decided\)/);
+  await expect(page.locator("dt", { hasText: "Questions answered" }).locator("+ dd")).toContainText(/open items? \(1 to be decided\)/);
   // The checklist moved to the gap assessment's own page.
   await page.goto("./#/gap");
   const started = page.getByTestId("getting-started");

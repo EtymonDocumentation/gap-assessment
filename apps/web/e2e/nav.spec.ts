@@ -2,7 +2,7 @@
 // pages, and the Home page that tells a new user what to do next. All data are fictional.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
-import { openDemo } from "./nav-helper";
+import { openDemo, openMoreWays } from "./nav-helper";
 
 test.beforeEach(async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
@@ -38,7 +38,8 @@ test("home with no project explains the tool, what you need and how to start, wi
   await expect(page.getByTestId("next-step")).toHaveCount(0);
   // The "what you need" list is open on a first visit.
   await expect(page.getByTestId("before-you-start")).toHaveAttribute("open", "");
-  // The two demos sit next to "Start a new project" (the start options), not in a card further down.
+  // The two demos sit under "More ways to start" (closed at first), not in a card further down.
+  await openMoreWays(page);
   await expect(page.getByTestId("start-options").getByRole("button", { name: /^Open demo: / })).toHaveCount(2);
   await expect(page.getByText("Both demos are fictional.")).toBeVisible();
   // One card per document; the gap assessment can be read now, the rest say they need an open project.
@@ -65,6 +66,7 @@ test("a new project is offered the scope first, and the checklist shows no tick 
 
 test("home with the demo open leads with the next step; demo cards say what they are and why", async ({ page }) => {
   await page.goto("./");
+  await openMoreWays(page);
   await expect(page.getByText("all eight comparison categories")).toBeVisible();
   await expect(page.getByText("The whole document chain is filled in")).toBeVisible();
   await openDemo(page, "arx", "#/register");
@@ -152,7 +154,9 @@ test("the Documents and Library drop-downs open on click, move with the arrow ke
 
   const library = nav.getByRole("button", { name: /^Library/ });
   await library.click();
-  for (const name of ["Templates", "Guidance", "Saved answers", "Sources", "Builder", "Change log"]) await expect(nav.getByRole("link", { name, exact: true })).toBeVisible();
+  for (const name of ["Templates", "Guidance", "Saved answers", "Sources", "Builder"]) await expect(nav.getByRole("link", { name, exact: true })).toBeVisible();
+  // Version history and Change log are reached from the version chip and the project Home, not from this menu.
+  for (const name of ["Version history", "Change log"]) await expect(nav.getByRole("link", { name, exact: true })).toHaveCount(0);
   // The module libraries moved next to their modules: the Library menu keeps only the cross-cutting entries.
   await expect(nav.getByText("Module libraries")).toHaveCount(0);
   for (const name of ["Sampling tables", "Subsection library", "Risk methods", "Ready-made steps library", "Process description library"]) await expect(nav.getByRole("link", { name, exact: true })).toHaveCount(0);

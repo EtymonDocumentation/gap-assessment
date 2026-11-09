@@ -1,7 +1,8 @@
+import { DocPreview } from "../DocPreview";
 import { buildTrdData, buildTrdDocument, documentFingerprint, projectLabel, recordExport, stampDocument, TRD_OPTIONAL_SECTIONS, trdBasisText, type TrdOptionalSection, updateTrd } from "@gap/engine";
 import type { DocModel } from "@gap/engine";
 import { PROCESS_MODEL_VERSION, TRD_FORMAT_VERSION, type DocumentExport, type TemplateRecord, type TrdApproval, type TrdDocument } from "@gap/process-model";
-import { DOCUMENT_CSS, renderHtml, renderHtmlBody } from "@gap/renderers";
+import { DOCUMENT_CSS, renderHtml, renderHtmlPreview } from "@gap/renderers";
 import { useMemo, useRef, useState } from "react";
 import { Modal } from "../components";
 import { APP_VERSION, download, projectFileStem, today } from "../lib";
@@ -33,7 +34,7 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
   const versionStamp = useVersionStamp();
   const doc = useMemo(() => stampDocument(buildTrdDocument(project, d, { generatedAt, appVersion: APP_VERSION, catalogVersion: content.versions.catalog, omit, content }), versionStamp), [project, d, content, generatedAt, omit, versionStamp]);
   const evidenceDoc = useMemo(() => stampDocument(buildTrdDocument(project, d, { generatedAt, appVersion: APP_VERSION, catalogVersion: content.versions.catalog, omit: omitEvidence, content, variant: "evidence" }), versionStamp), [project, d, content, generatedAt, omitEvidence, versionStamp]);
-  const body = useMemo(() => (showPreview ? renderHtmlBody(doc) : ""), [doc, showPreview]);
+  const body = useMemo(() => (showPreview ? renderHtmlPreview(doc) : ""), [doc, showPreview]);
   const stamp = `${projectFileStem(project.meta)}-${d.id}-${today()}`;
   const tbd = doc.tbdCount ?? 0;
 
@@ -194,7 +195,7 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
           </h2>
           <style>{DOCUMENT_CSS}</style>
           {/* Built from escaped text by renderHtmlBody (every value passes through escapeHtml). */}
-          <div className="doc-preview" data-testid="trd-preview" dangerouslySetInnerHTML={{ __html: body }} />
+          <DocPreview html={body} testId="trd-preview" />
         </section>
       )}
 

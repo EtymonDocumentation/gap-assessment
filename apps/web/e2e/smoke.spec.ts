@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Download, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
-import { expectNotice, NOTICE_DOCUMENT, openDemo, setTheme } from "./nav-helper";
+import { expectNotice, NOTICE_DOCUMENT, openDemo, setTheme, openInterviewMore } from "./nav-helper";
 
 const CATEGORIES = [
   "Equivalent",
@@ -96,6 +96,7 @@ test("demo loads in one click and the register covers all eight categories", asy
 test("interview: progress map jump, why-asked, SU and RU on one card, SU-first order", async ({ page }) => {
   await loadDemo(page);
   await go(page, "#/interview");
+  await openInterviewMore(page);
   const map = page.getByRole("navigation", { name: "Sections" });
   await expect(map).toBeVisible();
 
@@ -117,6 +118,7 @@ test("interview: progress map jump, why-asked, SU and RU on one card, SU-first o
   await expect(why.locator("p").first()).not.toBeEmpty();
 
   // SU-first: a paired question still shows both sides; a one-sided question shows the banner, and Skip moves on.
+  await openInterviewMore(page);
   await page.locator(".segmented label", { hasText: "Sequential" }).click();
   await expect(page.locator("#mode-help")).toHaveText(/All SU answers first/);
   await go(page, "#/interview?q=fill.pump%40target");
@@ -180,7 +182,7 @@ test("new project: responder, scoping answers, TBD and not-applicable handling",
   await expect(page.getByRole("alert")).toBeVisible();
   await expect(prompt).toHaveText("What is the primary container presentation?");
 
-  await expect(page.locator(".interview-aside")).toContainText(/2 of \d+ answered, \d+ still open \(1 to be decided\)/);
+  await expect(page.locator(".interview-aside")).toContainText(/2 of \d+ answered, \d+ open items? \(1 to be decided\)/);
 
   await go(page, "#/builder");
   await expect(page.getByRole("heading", { level: 1, name: "Builder" })).toBeVisible();
