@@ -72,6 +72,16 @@ export const ACTION_LABELS: Record<string, string> = {
   risk_step_move: "Process step of a risk assessment moved",
   risk_step_remove: "Process step removed from a risk assessment",
   risk_steps_copy: "Process steps copied from the project scope (risk assessment)",
+  excipient_assessment_add: "Excipient assessment added",
+  excipient_assessment_update: "Excipient assessment edited",
+  excipient_assessment_remove: "Excipient assessment removed",
+  excipient_line_add: "Excipient added to an assessment",
+  excipient_line_update: "Excipient edited",
+  excipient_line_remove: "Excipient removed from an assessment",
+  excipient_fact_set: "Excipient fact recorded",
+  excipient_spec_add: "Specification comparison row added",
+  excipient_spec_update: "Specification comparison row edited",
+  excipient_spec_remove: "Specification comparison row removed",
   trd_add: "TRD added",
   trd_update: "TRD edited",
   trd_remove: "TRD removed",
@@ -541,7 +551,7 @@ function toRow(content: ContentBundle, project: Project, ev: ChangeEvent, i: num
       return row;
     }
     default: {
-      if (ev.action.startsWith("sampling_") || ev.action === "migrate_sampling_steps" || ev.action.startsWith("risk_") || ev.action.startsWith("trd_") || ev.action.startsWith("mbr_")) {
+      if (ev.action.startsWith("sampling_") || ev.action === "migrate_sampling_steps" || ev.action.startsWith("risk_") || ev.action.startsWith("excipient_") || ev.action.startsWith("trd_") || ev.action.startsWith("mbr_")) {
         row.subject = ev.detail ?? ev.path ?? "";
         const d = samplingDiff(ev.before, ev.after);
         row.before = d.before;

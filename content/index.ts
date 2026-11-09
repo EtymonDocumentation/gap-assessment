@@ -1,5 +1,5 @@
 import type { DesignLoadouts, FailureModeSuggestions, MbrLibraryBlock, RiskLoadouts, TrdLibraryWriteup } from "@gap/process-model";
-import { buildContent, parseFailureModes, parseGuidance, parseMbrLibrary, parseTrdWriteupLibrary, parseDesignLoadouts, parseRiskLoadouts, parseSamplingSuggestions, parseSamplingImportSynonyms, parseGapImportSynonyms, parseTrdSynonyms, parseTrdInterviewWording, type GapImportSynonyms, type SamplingImportSynonyms, type TrdSynonyms, type ContentBundle, type GuidanceLibrary, type RawContent, type SamplingSuggestions } from "@gap/engine";
+import { buildContent, parseFailureModes, parseGuidance, parseMbrLibrary, parseTrdWriteupLibrary, parseDesignLoadouts, parseRiskLoadouts, parseSamplingSuggestions, parseSamplingImportSynonyms, parseGapImportSynonyms, parseTrdSynonyms, parseTrdInterviewWording, parseExcipientClasses, parseExcipientWording, type GapImportSynonyms, type SamplingImportSynonyms, type TrdSynonyms, type ContentBundle, type GuidanceLibrary, type RawContent, type SamplingSuggestions } from "@gap/engine";
 import { catalog } from "@gap/process-model/catalog";
 import catalogOverlay from "./catalog/gap-overlay.yaml";
 import demoArx217 from "./demo/arx-217.yaml";
@@ -8,6 +8,8 @@ import glossaryRaw from "./help/glossary.yaml";
 import toursRaw from "./help/tours.yaml";
 import guidanceRaw from "./guidance/guidance.yaml";
 import trdInterviewWordingRaw from "./trd-interview/wording.yaml";
+import excipientClassesRaw from "./excipient/classes.yaml";
+import excipientWordingRaw from "./excipient/wording.yaml";
 import { parseGlossary, parseTours } from "./help";
 import mbrBlocksRaw from "./mbr/blocks.yaml";
 import q00 from "./questions/00-scoping-and-site.yaml";
@@ -161,3 +163,9 @@ export const gapImportSynonyms: GapImportSynonyms = parseGapImportSynonyms(
 
 /** Wording of the TRD interview ("Answer questions" tab); content/trd-interview/wording.yaml, versioned on its own. */
 export const trdInterviewWording = parseTrdInterviewWording(trdInterviewWordingRaw);
+
+/** Classes of excipient, with the tests teams often compare and the topics they often look at (options only); content/excipient/classes.yaml. */
+export const excipientClasses = parseExcipientClasses(excipientClassesRaw);
+
+/** Wording of the Excipient assessment interview and of its change-risk markers; content/excipient/wording.yaml, versioned on its own. */
+export const excipientWording = parseExcipientWording(excipientWordingRaw);

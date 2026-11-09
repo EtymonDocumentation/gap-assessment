@@ -1,5 +1,6 @@
 import type { CollectionKind, Entry, ModelItem, ProcessModel, Project, Side, UnitOperation } from "./types";
 import { COLLECTION_KINDS } from "./types";
+import { excipientEntryAt } from "./excipient";
 
 /**
  * Reference grammar (dot separated):
@@ -60,6 +61,8 @@ export function contentPathOf(ref: string): string {
 }
 
 export function getEntry(project: Project, ref: string): Entry | undefined {
+  // The facts of an excipient line (schema 1.31.0) are entries too, so verification, citing a source and clearing work on them.
+  if (ref.startsWith("excipient.")) return excipientEntryAt(project, ref);
   const p = parseRef(ref);
   if (p.side === "shared") return project.scope[p.key];
   const model = project.processes[p.side];

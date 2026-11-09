@@ -206,6 +206,58 @@ describe("recordExport", () => {
     expect(p.document.exports[5]!.changedSincePrevious).toBeUndefined();
   });
 
+  // CR-05 (b): a family can hold more than one document. Two sampling plans, or a whole batch record and one part of it, are different
+  // files; a difference between their fingerprints says nothing about a change, so "changed since previous download" compares only
+  // within the same documentId. A record without a documentId keeps the earlier behaviour.
+  describe("compares only within the same document (documentId)", () => {
+    it("CMO instructions then a gap document: each is compared with its own earlier download", () => {
+      let p = recordExport(project(), rec({ format: "sampling-cmo-instructions-docx", template: BUILTIN, documentId: "cmo-1", fingerprint: "1111111111111111" }));
+      p = recordExport(p, rec({ template: BUILTIN, documentId: "gap", fingerprint: "2222222222222222" }));
+      expect(p.document.exports[1]!.changedSincePrevious).toBeUndefined();
+      p = recordExport(p, rec({ format: "sampling-cmo-instructions-html", template: BUILTIN, documentId: "cmo-1", fingerprint: "1111111111111111" }));
+      expect(p.document.exports[2]!.changedSincePrevious).toBe(false);
+      p = recordExport(p, rec({ format: "html", template: BUILTIN, documentId: "gap", fingerprint: "3333333333333333" }));
+      expect(p.document.exports[3]!.changedSincePrevious).toBe(true);
+    });
+
+    it("two sampling plans: a download of the second plan is not compared with the first plan", () => {
+      let p = recordExport(project(), rec({ format: "sampling-plan-docx", template: BUILTIN, documentId: "plan-A", fingerprint: "aaaaaaaaaaaaaaaa" }));
+      p = recordExport(p, rec({ format: "sampling-plan-docx", template: BUILTIN, documentId: "plan-B", fingerprint: "bbbbbbbbbbbbbbbb" }));
+      expect(p.document.exports[1]!.changedSincePrevious).toBeUndefined();
+      // Back to plan A: compared with plan A's earlier download, not with plan B in between.
+      p = recordExport(p, rec({ format: "sampling-plan-html", template: BUILTIN, documentId: "plan-A", fingerprint: "aaaaaaaaaaaaaaaa" }));
+      expect(p.document.exports[2]!.changedSincePrevious).toBe(false);
+      p = recordExport(p, rec({ format: "sampling-plan-docx", template: BUILTIN, documentId: "plan-B", fingerprint: "cccccccccccccccc" }));
+      expect(p.document.exports[3]!.changedSincePrevious).toBe(true);
+    });
+
+    it("a whole record and then one part of it: the part is not compared with the whole", () => {
+      let p = recordExport(project(), rec({ format: "mbr-docx", template: BUILTIN, documentId: "mbr-1", fingerprint: "aaaaaaaaaaaaaaaa" }));
+      p = recordExport(p, rec({ format: "mbr-docx", template: BUILTIN, documentId: "mbr-1:part-2", fingerprint: "bbbbbbbbbbbbbbbb" }));
+      expect(p.document.exports[1]!.changedSincePrevious).toBeUndefined();
+      p = recordExport(p, rec({ format: "mbr-html", template: BUILTIN, documentId: "mbr-1", fingerprint: "dddddddddddddddd" }));
+      expect(p.document.exports[2]!.changedSincePrevious).toBe(true);
+      p = recordExport(p, rec({ format: "mbr-html", template: BUILTIN, documentId: "mbr-1:part-2", fingerprint: "bbbbbbbbbbbbbbbb" }));
+      expect(p.document.exports[3]!.changedSincePrevious).toBe(false);
+    });
+
+    it("a record without a documentId keeps the earlier behaviour, and the id is kept on the record", () => {
+      let p = recordExport(project(), rec({ format: "mbr-docx", template: BUILTIN, documentId: "mbr-1", fingerprint: "aaaaaaaaaaaaaaaa" }));
+      expect(p.document.exports[0]!.documentId).toBe("mbr-1");
+      p = recordExport(p, rec({ format: "mbr-html", template: BUILTIN, fingerprint: "aaaaaaaaaaaaaaaa" }));
+      expect(p.document.exports[1]!.changedSincePrevious).toBe(false);
+      expect(p.document.exports[1]!.documentId).toBeUndefined();
+      // A record with an id is not compared with an old record that has none.
+      p = recordExport(p, rec({ format: "mbr-html", template: BUILTIN, documentId: "mbr-2", fingerprint: "aaaaaaaaaaaaaaaa" }));
+      expect(p.document.exports[2]!.changedSincePrevious).toBeUndefined();
+    });
+
+    it("survives a file round trip", () => {
+      const p = recordExport(project(), rec({ format: "mbr-docx", template: BUILTIN, documentId: "mbr-1" }));
+      expect(parseProject(JSON.parse(JSON.stringify(p))).document.exports[0]!.documentId).toBe("mbr-1");
+    });
+  });
+
   it("keeps the sections left out at download time, taken from the project when the record does not say", () => {
     const p0 = setOmittedSections(project(), ["risk", "references"]);
     expect(recordExport(p0, rec()).document.exports[0]!.omittedSections).toEqual(["risk", "references"]);

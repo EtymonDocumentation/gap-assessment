@@ -1,7 +1,7 @@
 # Guidance library: official links to regulations and guidance for sterile injectable fill-finish, tech transfer and
 # post-approval changes. Official agency domains only (see content/test/guidance.test.ts).
 # Edit by hand after reviewing the agency page; run `npm run check:guidance-links` first, then bump `checked`.
-version: 1.0.0
+version: 1.1.0
 checked: "2026-10-20"
 items:
   - id: us-21cfr210
@@ -2283,3 +2283,87 @@ items:
     topics: [index]
     verified: blocked-but-official
     notes: "EDQM returns 403 to scripts. Direct pages for 2.6.1 (sterility) and 5.1.1 not found. confirm in a browser."
+  - id: ich-q3c-r8
+    jurisdiction: ICH
+    agency: "ICH"
+    title: "Q3C(R8) Guideline for Residual Solvents"
+    reference: "Q3C(R8)"
+    type: guideline
+    status: final
+    date: "2021-04-22"
+    language: en
+    access: free
+    url: "https://database.ich.org/sites/default/files/ICH_Q3C-R8_Guideline_Step4_2021_0422_1.pdf"
+    topics: [gmp, risk]
+    verified: ok
+    notes: "Named in the Excipient assessment help for the residual-solvents question. Date taken from the file name."
+  - id: ich-q3d-r2
+    jurisdiction: ICH
+    agency: "ICH"
+    title: "Q3D(R2) Guideline for Elemental Impurities"
+    reference: "Q3D(R2)"
+    type: guideline
+    status: final
+    date: "2022-03-08"
+    language: en
+    access: free
+    url: "https://database.ich.org/sites/default/files/Q3D-R2_Guideline_Step4_2022_0308.pdf"
+    topics: [gmp, risk]
+    verified: ok
+    notes: "The drug-product risk assessment for elemental impurities looks at every component, excipients included. Date taken from the file name."
+  - id: ich-m7-r2
+    jurisdiction: ICH
+    agency: "ICH"
+    title: "M7(R2) Assessment and Control of DNA Reactive (Mutagenic) Impurities in Pharmaceuticals to Limit Potential Carcinogenic Risk"
+    reference: "M7(R2)"
+    type: guideline
+    status: final
+    date: "2023-02-16"
+    language: en
+    access: free
+    url: "https://database.ich.org/sites/default/files/ICH_M7%28R2%29_Guideline_Step4_2023_0216_0.pdf"
+    topics: [gmp, risk]
+    verified: ok
+    notes: "Background for the nitrosamine question in the Excipient assessment (N-nitroso compounds are covered here). Date taken from the file name."
+  - id: ich-q6b
+    jurisdiction: ICH
+    agency: "ICH"
+    title: "Q6B Specifications: Test Procedures and Acceptance Criteria for Biotechnological/Biological Products"
+    reference: "Q6B"
+    type: guideline
+    status: final
+    date: "1999-03-10"
+    language: en
+    access: free
+    url: "https://database.ich.org/sites/default/files/Q6B%20Guideline.pdf"
+    topics: [biologics, gmp]
+    verified: ok
+    notes: "Background for comparing specifications. Date is the Step 4 date of the guideline."
+  - id: eu-tse-minimising-risk
+    jurisdiction: EU
+    agency: "EMA"
+    title: "Note for guidance on minimising the risk of transmitting animal spongiform encephalopathy agents via human and veterinary medicinal products"
+    reference: "EMA/410/01 (Ph. Eur. general chapter 5.2.8)"
+    type: guideline
+    status: final
+    date: ""
+    language: en
+    access: free
+    url: "https://www.ema.europa.eu/en/minimising-risk-transmitting-animal-spongiform-encephalopathy-agents-human-veterinary-medicinal-products-scientific-guideline"
+    topics: [gmp, biologics]
+    verified: ok
+    notes: "Background for the animal-origin questions in the Excipient assessment. The Ph. Eur. chapter itself is in the subscription edition."
+  - id: eu-excipient-gmp-risk
+    jurisdiction: EU
+    agency: "European Commission"
+    title: "Guidelines of 19 March 2015 on the formal risk assessment for ascertaining the appropriate good manufacturing practice for excipients of medicinal products for human use"
+    reference: "2015/C 95/02"
+    type: guideline
+    status: final
+    date: "2015-03-21"
+    language: en
+    access: free
+    url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:52015XC0321(02)"
+    topics: [gmp, risk]
+    verified: blocked-but-official
+    notes: "EUR-Lex returns a holding page to scripts; the CELEX number is the official identifier. The excipient industry's own GMP and significant-change guides are not listed because the library holds official agency links only."

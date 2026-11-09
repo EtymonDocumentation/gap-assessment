@@ -21,8 +21,8 @@ const plan = (parties: unknown[]) => ({
 });
 
 describe("plan parties with a department and a memo line", () => {
-  it("is schema 1.30.0 and plan format 1.8.0 (a later minor of the memo-party shapes)", () => {
-    expect(SCHEMA_VERSION).toBe("1.30.0");
+  it("is schema 1.31.0 and plan format 1.8.0 (a later minor of the memo-party shapes)", () => {
+    expect(SCHEMA_VERSION).toBe("1.31.0");
     expect(SAMPLING_PLAN_FORMAT_VERSION).toBe("1.8.0");
   });
 

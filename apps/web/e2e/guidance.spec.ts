@@ -36,8 +36,8 @@ test("opens without a project, with the note, the last-checked date and every it
   await expectNotice(page);
   await expect(page.getByText("Links open the official agency site. Always confirm you are reading the current version there.")).toBeVisible();
   await expect(page.getByText(/Last checked: \d{4}-\d{2}-\d{2}/)).toBeVisible();
-  await expect(page.getByRole("status").filter({ hasText: "shown" })).toHaveText("162 of 162 shown");
-  await expect(entries(page)).toHaveCount(162);
+  await expect(page.getByRole("status").filter({ hasText: "shown" })).toHaveText("168 of 168 shown");
+  await expect(entries(page)).toHaveCount(168);
   const mainNav = page.getByRole("navigation", { name: "Main" });
   const library = mainNav.getByRole("button", { name: /^Library/ });
   if (await library.isVisible()) await library.click();
@@ -50,7 +50,7 @@ test("search narrows the results and a filter narrows them further; Clear filter
   await page.getByRole("searchbox", { name: "Search" }).fill("annex 1");
   const afterSearch = await shownCount(page);
   expect(afterSearch).toBeGreaterThan(0);
-  expect(afterSearch).toBeLessThan(162);
+  expect(afterSearch).toBeLessThan(168);
   // Every word has to match, so the EU Annex 1 entry is among the hits.
   await expect(entries(page).filter({ hasText: "Manufacture of Sterile Medicinal Products" }).first()).toBeVisible();
 
@@ -64,7 +64,7 @@ test("search narrows the results and a filter narrows them further; Clear filter
   await page.getByRole("button", { name: "Clear filters" }).click();
   await expect(page.getByRole("searchbox", { name: "Search" })).toHaveValue("");
   await expect(field(page, "Jurisdiction or market")).toHaveValue("all");
-  await expect(page.getByRole("status").filter({ hasText: "shown" })).toHaveText("162 of 162 shown");
+  await expect(page.getByRole("status").filter({ hasText: "shown" })).toHaveText("168 of 168 shown");
 });
 
 test("every filter works, and a search with no match says so", async ({ page }) => {
@@ -73,12 +73,12 @@ test("every filter works, and a search with no match says so", async ({ page }) 
     await field(page, label).selectOption(value);
     const n = await shownCount(page);
     expect(n, label).toBeGreaterThan(0);
-    expect(n, label).toBeLessThan(162);
+    expect(n, label).toBeLessThan(168);
     await page.getByRole("button", { name: "Clear filters" }).click();
-    expect(await shownCount(page)).toBe(162);
+    expect(await shownCount(page)).toBe(168);
   }
   await page.getByRole("searchbox", { name: "Search" }).fill("zzzz-no-such-guidance");
-  await expect(page.getByRole("status").filter({ hasText: "shown" })).toHaveText("0 of 162 shown");
+  await expect(page.getByRole("status").filter({ hasText: "shown" })).toHaveText("0 of 168 shown");
   await expect(page.getByText("Nothing matches.")).toBeVisible();
 });
 

@@ -97,7 +97,7 @@ describe("the method load-outs are starting shapes, not answers", () => {
 
 describe("the failure-mode catalog is options only", () => {
   it("is versioned, covers the filling steps and every entry has a rationale", () => {
-    expect(failureModes.catalog).toEqual({ id: "risk-failure-modes", version: "1.0.0" });
+    expect(failureModes.catalog).toEqual({ id: "risk-failure-modes", version: "1.1.0" });
     const ops = new Set(failureModes.suggestions.map((s) => s.unitOp));
     for (const uo of ["sterile_filtration", "aseptic_filling", "stoppering", "lyophilization", "capping", "visual_inspection"]) expect(ops.has(uo)).toBe(true);
     for (const s of failureModes.suggestions) expect(s.rationale.length).toBeGreaterThan(20);
@@ -432,10 +432,10 @@ describe("seeding from the failure-mode catalog", () => {
     const item = asm(added.project, id).items[0]!;
     expect(item.failureMode).toBe(offer.failureMode);
     expect(item.stepId).toBe(offer.stepId);
-    expect(item.origin).toEqual({ kind: "catalog", suggestionKey: "sterile_filter_integrity", catalogVersion: "1.0.0" });
+    expect(item.origin).toEqual({ kind: "catalog", suggestionKey: "sterile_filter_integrity", catalogVersion: "1.1.0" });
     expect(item.initial).toEqual({ values: {} });
     expect(suggestFailureModes(failureModes, asm(added.project, id)).find((o) => o.key === offer.key)!.added).toBe(true);
-    expect(() => addItemFromSuggestion(added.project, id, offer, "1.0.0", ACTOR)).toThrow(/already added/);
+    expect(() => addItemFromSuggestion(added.project, id, offer, "1.1.0", ACTOR)).toThrow(/already added/);
   });
 });
 

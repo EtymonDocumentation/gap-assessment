@@ -1,0 +1,137 @@
+# Classes of excipient for the Excipient assessment (the "Role" question). OPTIONS AND PROMPTS ONLY.
+#
+#  - label / summary: plain words, one sentence for what an excipient of this class does.
+#  - oftenCompared: tests teams often compare between two sites' specifications. The page offers them as a prompt list. Nothing is added
+#    to a comparison table until a person picks one, and a test is never marked as expected or missing.
+#  - teamsOftenLookAt: where teams usually start on the origin, nitrosamine and elemental-impurity topics for this class. It never says
+#    that the excipient has the issue.
+#  - No limits, no numbers, no verdict. The product owner reviews these lists before a release.
+# Editable without code changes. A content test keeps the keys valid and unique. Bump version on any change.
+version: 1.0.0
+changelog:
+  - version: 1.0.0
+    note: First list. Nine classes and "other"; prompts for the tests teams often compare and the topics teams often look at.
+classes:
+  - key: buffer_salt
+    label: Buffer salt
+    summary: A salt, such as a phosphate, citrate or acetate, that holds the solution at its pH.
+    oftenCompared:
+      - { key: identity, test: Identification }
+      - { key: assay, test: Assay }
+      - { key: ph_solution, test: pH of a solution }
+      - { key: endotoxin, test: Bacterial endotoxins }
+      - { key: bioburden, test: Microbial count }
+      - { key: elemental, test: Elemental impurities }
+      - { key: water, test: Water content or loss on drying }
+    teamsOftenLookAt:
+      origin: Salts are usually mineral or synthetic. A supplier statement on origin settles the animal-origin question quickly.
+      elemental: Salts made from mined or refined minerals, or with metal catalysts, are the usual starting point.
+  - key: ph_adjuster
+    label: Acid or base for pH adjustment
+    summary: An acid or a base, such as hydrochloric acid or sodium hydroxide, used to bring the solution to its pH.
+    oftenCompared:
+      - { key: identity, test: Identification }
+      - { key: assay, test: Assay }
+      - { key: endotoxin, test: Bacterial endotoxins }
+      - { key: elemental, test: Elemental impurities }
+      - { key: residue, test: Residue on evaporation }
+    teamsOftenLookAt:
+      elemental: Strong acids and bases are often made in metal equipment, so the supplier data on trace metals is the usual starting point.
+  - key: amino_acid
+    label: Amino acid
+    summary: An amino acid, such as histidine, arginine or glycine, used as a buffer, stabiliser or tonicity agent.
+    oftenCompared:
+      - { key: identity, test: Identification }
+      - { key: assay, test: Assay }
+      - { key: specific_rotation, test: Specific optical rotation }
+      - { key: ph_solution, test: pH of a solution }
+      - { key: endotoxin, test: Bacterial endotoxins }
+      - { key: bioburden, test: Microbial count }
+      - { key: related, test: Related substances }
+      - { key: elemental, test: Elemental impurities }
+    teamsOftenLookAt:
+      origin: Amino acids can be made by fermentation, by extraction or by synthesis. The route, and any animal-derived raw material, is the usual starting point.
+      nitrosamine: Amino acids carry amine groups, so they are the usual starting point when a nitrosamine evaluation lists excipients.
+  - key: sugar
+    label: Sugar or sugar alcohol
+    summary: A sugar or sugar alcohol, such as sucrose, trehalose or mannitol, used to stabilise the product or to adjust tonicity.
+    oftenCompared:
+      - { key: identity, test: Identification }
+      - { key: assay, test: Assay }
+      - { key: reducing_substances, test: Reducing substances }
+      - { key: ph_solution, test: pH of a solution }
+      - { key: endotoxin, test: Bacterial endotoxins }
+      - { key: bioburden, test: Microbial count }
+      - { key: water, test: Water content }
+      - { key: elemental, test: Elemental impurities }
+    teamsOftenLookAt:
+      origin: Sugars are mostly plant-derived. Some grades are made with processing aids, so a supplier statement on origin is the usual starting point.
+  - key: surfactant
+    label: Surfactant
+    summary: A surface-active agent, such as a polysorbate or a poloxamer, that protects the product from surfaces and interfaces.
+    oftenCompared:
+      - { key: identity, test: Identification }
+      - { key: fatty_acid, test: Fatty acid composition }
+      - { key: peroxides, test: Peroxide value }
+      - { key: water, test: Water content }
+      - { key: ethylene_oxide, test: Residual ethylene oxide }
+      - { key: dioxane, test: Residual dioxane }
+      - { key: acid_value, test: Acid value }
+      - { key: endotoxin, test: Bacterial endotoxins }
+      - { key: elemental, test: Elemental impurities }
+    teamsOftenLookAt:
+      origin: Fatty acids can come from plant or animal sources, and the source can differ between grades.
+      nitrosamine: Polysorbates and poloxamers can contain amines from their manufacture. The supplier data on this is the usual starting point.
+      elemental: Surfactants made with metal catalysts are the usual starting point.
+  - key: tonicity_salt
+    label: Salt for tonicity
+    summary: A salt, usually sodium chloride, used to bring the solution to the tonicity of body fluids.
+    oftenCompared:
+      - { key: identity, test: Identification }
+      - { key: assay, test: Assay }
+      - { key: ph_solution, test: pH of a solution }
+      - { key: endotoxin, test: Bacterial endotoxins }
+      - { key: bioburden, test: Microbial count }
+      - { key: elemental, test: Elemental impurities }
+    teamsOftenLookAt:
+      elemental: Salts that are mined or refined from minerals are the usual starting point.
+  - key: chelator_antioxidant
+    label: Chelator or antioxidant
+    summary: A material, such as EDTA or methionine, that binds metal ions or protects the product from oxidation.
+    oftenCompared:
+      - { key: identity, test: Identification }
+      - { key: assay, test: Assay }
+      - { key: related, test: Related substances }
+      - { key: endotoxin, test: Bacterial endotoxins }
+      - { key: elemental, test: Elemental impurities }
+    teamsOftenLookAt:
+      nitrosamine: Chelators with amine groups are the usual starting point when a nitrosamine evaluation lists excipients.
+      elemental: Materials made with metal catalysts, or that bind metals, are the usual starting point.
+  - key: preservative
+    label: Preservative
+    summary: A material, such as benzyl alcohol or phenol, that limits microbial growth in a multi-dose product.
+    oftenCompared:
+      - { key: identity, test: Identification }
+      - { key: assay, test: Assay }
+      - { key: related, test: Related substances }
+      - { key: residual_solvents, test: Residual solvents }
+      - { key: endotoxin, test: Bacterial endotoxins }
+    teamsOftenLookAt:
+      nitrosamine: Preservatives with amine groups are the usual starting point when a nitrosamine evaluation lists excipients.
+  - key: bulking_agent
+    label: Bulking agent
+    summary: A material, such as mannitol or glycine, that gives a freeze-dried cake its body.
+    oftenCompared:
+      - { key: identity, test: Identification }
+      - { key: assay, test: Assay }
+      - { key: water, test: Water content }
+      - { key: particle, test: Particle size or form }
+      - { key: endotoxin, test: Bacterial endotoxins }
+      - { key: bioburden, test: Microbial count }
+    teamsOftenLookAt:
+      origin: Most bulking agents are plant-derived or synthetic. A supplier statement on origin settles the animal-origin question quickly.
+  - key: other
+    label: Other
+    summary: An excipient that fits none of the classes above. Write its role in your own words on the excipient.
+    oftenCompared: []
+    teamsOftenLookAt: {}

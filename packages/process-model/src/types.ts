@@ -10,6 +10,7 @@ import type { SamplingState } from "./sampling";
 import type { RiskState } from "./risk";
 import type { TrdState } from "./trd";
 import type { MbrState } from "./mbr";
+import type { ExcipientState } from "./excipient";
 
 export type Side = "source" | "target";
 
@@ -364,6 +365,13 @@ export interface DocumentExport {
   /** How many TBD values the exported document listed (added in schema 1.7.0). */
   tbdCount?: number;
   /**
+   * Which document of its kind the download was of (schema 1.31.0): the technical requirements document, sampling plan, risk assessment or batch record id,
+   * or the part of a split batch record. "Changed since previous download" compares only downloads with the same document id, so two plans (or a whole
+   * record and one part of it) are never compared with each other. Absent on records from before 1.31.0 and on documents there is only one of; such a
+   * record is compared with the previous download of its kind, as it always was.
+   */
+  documentId?: string;
+  /**
    * Versions behind a TRD seed output (process model, catalog, seed format), so the history says which model produced a file.
    * Present only on the "trd-*" formats; optional, so the project schema version did not change.
    */
@@ -484,6 +492,11 @@ export interface Project {
    * save, conflict check, offline cache) and cannot drift from the project it describes.
    */
   versionHistory?: VersionHistory;
+  /**
+   * Excipient assessments (schema 1.31.0; excipient format 1.0.0). Optional: a project from before 1.31.0 gets { assessments: [] } when it is opened.
+   * Everything about an excipient, including its links to the other modules, is kept here, so no other format changed.
+   */
+  excipients?: ExcipientState;
 }
 
 /** Who is acting and when. Passed explicitly so engine functions stay pure and testable. */

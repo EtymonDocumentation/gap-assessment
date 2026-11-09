@@ -46,7 +46,7 @@ function oldFile() {
 
 describe("migration 1.9.0 -> 1.10.0", () => {
   it("is the current schema version", () => {
-    expect(SCHEMA_VERSION).toBe("1.30.0");
+    expect(SCHEMA_VERSION).toBe("1.31.0");
   });
 
   it("excludes nothing after the update: the project behaves as it did", () => {

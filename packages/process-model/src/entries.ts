@@ -1,7 +1,8 @@
 import { allEntries, getEntry, parseRef } from "./paths";
+import { allExcipientEntries, allExcipientSpecSides, parseExcipientPath } from "./excipient";
 import type { Actor, Entry, EntryStatus, EntryValue, Project, Source, SourceLocation, TbdInfo } from "./types";
 
-export const SCHEMA_VERSION = "1.30.0";
+export const SCHEMA_VERSION = "1.31.0";
 
 let counter = 0;
 /** Short unique id. Uses crypto.randomUUID where available. */
@@ -42,6 +43,7 @@ export function emptyProject(args: {
     gapOverlays: [],
     changeLog: [],
     versionHistory: { entries: [], reviews: [] },
+    excipients: { assessments: [] },
   };
 }
 
@@ -81,9 +83,12 @@ export function resolveEntry(project: Project, ref: string): Resolved {
   const e = getEntry(project, ref);
   if (!e) return { ref, status: "not_established", entryIds: [], sameAsSource: false };
   if (e.sameAsSource && e.status === "established") {
-    const p = parseRef(ref);
-    if (p.side !== "target") throw new Error(`sameAsSource on non-target entry ${ref}`);
-    const srcRef = "source" + ref.slice("target".length);
+    // An excipient fact set to "same as the sending site" reads the sending site's fact of the same line (schema 1.31.0).
+    const ex = parseExcipientPath(ref);
+    if (ex && ex.side !== "receiving") throw new Error(`sameAsSource on a fact that is not the receiving site's: ${ref}`);
+    const p = ex ? undefined : parseRef(ref);
+    if (p && p.side !== "target") throw new Error(`sameAsSource on non-target entry ${ref}`);
+    const srcRef = ex ? ref.slice(0, -"receiving".length) + "sending" : "source" + ref.slice("target".length);
     const src = getEntry(project, srcRef);
     if (!src || src.sameAsSource) return { ref, status: "not_established", entryIds: [e.id], sameAsSource: true };
     const v = ownView(src);
@@ -362,7 +367,15 @@ export function removeSource(project: Project, sourceId: string, actor: Actor): 
   next.sources = next.sources.filter((s) => s.id !== sourceId);
   const reverted: string[] = [];
   let detached = 0;
-  for (const e of allEntries(next)) {
+  // The facts of excipient lines cite sources too. A document reference on a specification row is only dropped: the typed criterion stays,
+  // because a source is encouraged there and never needed (who typed it and when is in the change log).
+  for (const side of allExcipientSpecSides(next)) {
+    if (!side.sourceIds.includes(sourceId)) continue;
+    side.sourceIds = side.sourceIds.filter((id) => id !== sourceId);
+    dropLocation(side, sourceId);
+    detached++;
+  }
+  for (const e of [...allEntries(next), ...allExcipientEntries(next)]) {
     if (!e.sourceIds.includes(sourceId)) continue;
     e.sourceIds = e.sourceIds.filter((id) => id !== sourceId);
     dropLocation(e, sourceId);
@@ -408,7 +421,7 @@ export function clearEntries(project: Project, refs: string[], actor: Actor): { 
 }
 
 /** Forgets the place in a document when the citation of that document goes away. Mutates the draft. */
-function dropLocation(e: Entry, sourceId: string): void {
+function dropLocation(e: { sourceLocations?: Record<string, SourceLocation> }, sourceId: string): void {
   if (!e.sourceLocations) return;
   delete e.sourceLocations[sourceId];
   if (!Object.keys(e.sourceLocations).length) delete e.sourceLocations;

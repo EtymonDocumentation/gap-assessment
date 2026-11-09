@@ -73,8 +73,8 @@ describe("migration to 1.30.0", () => {
     raw.schemaVersion = "1.29.0";
     delete raw.versionHistory;
     const once = parseProject(raw);
-    expect(SCHEMA_VERSION).toBe("1.30.0");
-    expect(once.schemaVersion).toBe("1.30.0");
+    expect(SCHEMA_VERSION).toBe("1.31.0");
+    expect(once.schemaVersion).toBe("1.31.0");
     expect(once.versionHistory).toEqual({ entries: [], reviews: [] });
     expect(parseProject(JSON.parse(JSON.stringify(once)))).toEqual(once);
     expect({ ...once, versionHistory: undefined }).toEqual({ ...p, versionHistory: undefined });

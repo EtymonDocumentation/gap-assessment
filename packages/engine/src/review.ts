@@ -227,7 +227,10 @@ export function recordExport(project: Project, record: DocumentExport): Project 
   // the same way. The first download has nothing to compare with and records nothing.
   // A TRD output is compared with the previous TRD output only: a gap document download says nothing about whether the seed changed.
   // The same holds for the sampling plan.
-  const previous = [...project.document.exports].reverse().find((e) => exportFamily(e.format) === family);
+  // A record that names its document (CR-05 b) is compared only with the previous download of that same document: two sampling plans, or a
+  // whole batch record and one part of it, are different files, so a difference between them says nothing about a change. A record that
+  // names no document keeps the earlier behaviour (compared with the previous download of its kind), so old records read as before.
+  const previous = [...project.document.exports].reverse().find((e) => exportFamily(e.format) === family && (record.documentId === undefined || e.documentId === record.documentId));
   const changedSincePrevious = given ?? (previous ? previous.fingerprint !== record.fingerprint : undefined);
   // The record names the version the file was made from, the same words the document states on its cover. Only a working copy gets here:
   // a saved version is never changed, so a download made from one is not recorded (its file carries its own label).

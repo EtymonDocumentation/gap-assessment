@@ -15,7 +15,7 @@ describe("guidance library content", () => {
   it("has a version, a last-checked date and the researched items", () => {
     expect(guidance.version).toMatch(/^\d+\.\d+\.\d+$/);
     expect(guidance.checked).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(items.length).toBe(162);
+    expect(items.length).toBe(168);
   });
 
   it("has unique ids and unique urls", () => {

@@ -42,10 +42,20 @@ terms:
     short: A company that makes a product for another company. The receiving unit is often a CMO.
     see: [receiving-unit, sending-unit]
 
+  - id: coa
+    term: CoA (certificate of analysis)
+    short: The document a supplier sends with a delivery of material. It lists the tests done on that lot and the results, so the receiving site can compare them with the specification.
+    see: [specification, excipient]
+
   - id: commercial-production
     term: Commercial (routine) production
     short: Batches made for the market with a validated process. This is the Commercial project stage.
     see: [project-stage, cpv, ppq]
+
+  - id: compendial
+    term: Compendial
+    short: Written in a pharmacopoeia (for example Ph. Eur., USP-NF or JP). A compendial grade of a material meets the monograph of that pharmacopoeia.
+    see: [monograph, excipient]
 
   - id: cpv
     term: CPV (continued process verification)
@@ -72,6 +82,11 @@ terms:
     short: What this tool is. It helps you write the documents and keeps every unknown visible. It decides nothing and fills in no value for you. A document is approved in your company's own document control. It is a proof of concept, not validated, and not for GMP use.
     see: [open-item, tbd]
 
+  - id: elemental-impurity
+    term: Elemental impurity
+    short: A trace of a metal or other element in a material, for example from a catalyst or from mining. The drug-product assessment of elemental impurities looks at every component, excipients included (ICH Q3D). The Excipient assessment only asks where that evaluation is written.
+    see: [excipient]
+
   - id: engineering-run
     term: Engineering run
     short: An engineering or demonstration run to learn the process. It is not for GMP supply. This is the Engineering project stage.
@@ -81,6 +96,11 @@ terms:
     term: Entry order
     short: How the interview asks the two sides. Paired asks the sending unit (SU), then the receiving unit (RU), for each question, on one card. Sequential asks all the SU answers first, then the RU pass. It changes only the order of the questions, never an answer. You choose it at the top of the Interview.
     see: [sending-unit, receiving-unit]
+
+  - id: excipient
+    term: Excipient
+    short: A material in the drug product that is not the active substance, for example a buffer salt, a sugar or a surfactant. The Excipient assessment compares each one between the sending and the receiving site.
+    see: [specification, supplier-qualification]
 
   - id: gap
     term: Gap
@@ -111,6 +131,16 @@ terms:
     term: In-process control (IPC)
     short: A check made while a step runs, for example a pH, a weight or a filter test, to show the step is in control. It is not the release test of the finished batch.
     see: [release-testing, sampling-point]
+
+  - id: monograph
+    term: Monograph
+    short: The entry of a pharmacopoeia that describes one material, with its tests and acceptance criteria. Monographs are revised, so the edition matters.
+    see: [compendial]
+
+  - id: nitrosamine
+    term: Nitrosamine
+    short: A group of impurities (N-nitroso compounds) that can form when amines and nitrite are present. The Excipient assessment only records whether the topic was looked at and where the evaluation is written. It does not rate the risk.
+    see: [excipient]
 
   - id: nor
     term: NOR (normal operating range)
@@ -207,6 +237,11 @@ terms:
     short: The target value of a process parameter. You enter it in the TRD, with a source.
     see: [nor, par, trd]
 
+  - id: specification
+    term: Specification
+    short: The list of tests, test methods and acceptance criteria that a material must meet. The Excipient assessment lays the two sites' specifications side by side and shows where they differ. It does not say which one is stricter.
+    see: [coa, excipient]
+
   - id: study-point
     term: Study point
     short: A sampling point that belongs to a study, for example a hold or mixing study. It tests a challenge value, not a limit.
@@ -216,6 +251,11 @@ terms:
     term: Subsection library
     short: Reusable text for sampling plans, such as a sample-handling paragraph. A plan copies an item and keeps its own text, so a later change to the library does not rewrite a plan.
     see: [sampling-point]
+
+  - id: supplier-qualification
+    term: Supplier qualification
+    short: The steps a company takes before it buys a material from a supplier, for example an audit or a questionnaire. Whether a supplier is qualified is decided in the company's own quality system. The tool records the answer.
+    see: [excipient]
 
   - id: tbd
     term: TBD (to be decided)
@@ -236,6 +276,11 @@ terms:
     term: Stage review
     short: The list of things to look at after the project stage changes, one set for each document you have. Each item shows the wording before and after, and stays open until you tick it as reviewed. Nothing is ticked for you.
     see: [project-stage, version, open-item]
+
+  - id: tse
+    term: TSE (transmissible spongiform encephalopathy)
+    short: A group of prion diseases, which includes BSE. Materials made from animals can be asked for a statement or certificate on TSE risk. The Excipient assessment records whether one is held and where it is.
+    see: [excipient]
 
   - id: unit-operation
     term: Unit operation

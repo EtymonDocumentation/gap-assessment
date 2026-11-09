@@ -7,9 +7,9 @@ const fresh = () => emptyProject({ title: "TRD schema test (fictional)", actor: 
 const doc = (over: Record<string, unknown> = {}) => ({ id: "TRD-001", title: "Test TRD (fictional)", status: "draft", origin: { kind: "blank", importedAt: T0 }, details: [], steps: [], createdAt: T0, updatedAt: T0, ...over });
 const step = (over: Record<string, unknown> = {}) => ({ id: "TS-01", label: "Sterile filtration", custom: false, fields: [], items: [], ...over });
 
-describe("TRD schema (current project schema 1.30.0)", () => {
-  it("is schema version 1.30.0 and TRD format 1.4.0", () => {
-    expect(SCHEMA_VERSION).toBe("1.30.0");
+describe("TRD schema (current project schema 1.31.0)", () => {
+  it("is schema version 1.31.0 and TRD format 1.4.0", () => {
+    expect(SCHEMA_VERSION).toBe("1.31.0");
     expect(TRD_FORMAT_VERSION).toBe("1.4.0");
   });
 

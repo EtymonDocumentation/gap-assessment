@@ -5,6 +5,7 @@ import { categoryToType, samplingStateSchema } from "./sampling";
 import { riskStateSchema } from "./risk";
 import { trdStateSchema } from "./trd";
 import { mbrStateSchema } from "./mbr";
+import { buildExcipientSchemas } from "./excipient";
 import type { Project } from "./types";
 
 const quantity = z.object({ value: z.number().finite(), unit: z.string().min(1) });
@@ -69,6 +70,11 @@ export const entrySchema = z
       ctx.addIssue({ code: "custom", message: `Not-applicable entry ${e.path} needs a justification` });
     }
   });
+
+// Schema 1.31.0. The facts of an excipient line are the same entries the gap assessment uses.
+const excipientSchemas = buildExcipientSchemas(entrySchema);
+export const excipientAssessmentSchema = excipientSchemas.assessment;
+export const excipientStateSchema = excipientSchemas.state;
 
 const fields = z.record(z.string(), entrySchema);
 const item = z.object({ key: z.string(), label: z.string(), custom: z.boolean().optional(), fields });
@@ -201,6 +207,7 @@ export const documentStateSchema = z.object({
       fingerprint: z.string(),
       changedSinceRevision: z.boolean().optional(),
       changedSincePrevious: z.boolean().optional(),
+      documentId: z.string().min(1).optional(),
       version: z.string().optional(),
       omittedSections: z.array(z.string()).optional(),
       tbdCount: z.number().int().nonnegative().optional(),
@@ -358,6 +365,7 @@ export const projectSchema = z.object({
     }),
   ),
   versionHistory: versionHistorySchema.optional(),
+  excipients: excipientStateSchema.optional(),
   changeLog: z.array(
     z.object({
       at: z.string(),
@@ -637,6 +645,14 @@ const MIGRATIONS: { from: string; to: string; migrate: Migrate }[] = [
     from: "1.29.0",
     to: "1.30.0",
     migrate: (raw) => ({ ...raw, schemaVersion: "1.30.0", versionHistory: raw.versionHistory ?? { entries: [], reviews: [] } }),
+  },
+  // 1.30.0 -> 1.31.0: excipient assessments (M13) and the document id on export records. The project gets an empty excipients part; an
+  // export record keeps no documentId (it is optional and means "compare with the previous download of its kind", as before). Nothing else
+  // changes, so only the version moves and the new part is added. Running it again changes nothing.
+  {
+    from: "1.30.0",
+    to: "1.31.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.31.0", excipients: raw.excipients ?? { assessments: [] } }),
   },
 ];
 

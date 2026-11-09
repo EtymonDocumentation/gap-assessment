@@ -9,7 +9,7 @@
 # Editable without code changes. Bump catalog.version on any change.
 catalog:
   id: risk-failure-modes
-  version: 1.0.0
+  version: 1.1.0
 
 suggestions:
   - key: thaw_gradient
@@ -45,6 +45,51 @@ suggestions:
     controlsPrevention: Defined and verified hold time; cleaning of vessels and hoses
     controlsDetection: Bioburden sampled before filtration
     rationale: Aqueous solutions can support growth if held, so a verified hold time and bioburden before filtration are normally set.
+  - key: excipient_grade_differs
+    unitOp: buffer_prep
+    failureMode: An excipient used in the buffer is a different grade or standard at the receiving site
+    effect: Impurity profile, endotoxin or bioburden level, or performance in the buffer may differ from what the process was developed with
+    causes: Different compendial standard or edition; supplier grade named differently; grade not compared between the two sites
+    controlsPrevention: Excipient specifications compared between the sites before the first batch; grade stated in the material specification
+    controlsDetection: Incoming testing against the receiving site's specification; certificate of analysis review
+    rationale: A grade is often assumed to be the same because the name is the same, so the two specifications are normally compared side by side.
+    guidanceRef: eu-excipient-gmp-risk
+  - key: excipient_supplier_change_not_notified
+    unitOp: buffer_prep
+    failureMode: The supplier changes the manufacturing site or process of an excipient and the change is not notified
+    effect: The material received differs from the one that was assessed, without anyone having looked at it
+    causes: No change-notification agreement with the supplier; supplier qualification not repeated; single source with no contact point
+    controlsPrevention: Quality agreement that requires change notification; periodic supplier review
+    controlsDetection: Certificate of analysis compared with earlier lots; incoming identity testing
+    rationale: Excipient suppliers can change site or route of manufacture, so a notification arrangement is normally agreed and reviewed.
+    guidanceRef: eu-excipient-gmp-risk
+  - key: excipient_animal_origin_unknown
+    unitOp: buffer_prep
+    failureMode: Animal-origin status of an excipient is not known
+    effect: A TSE or BSE statement cannot be given, which can hold up a filing or a release
+    causes: Origin not asked of the supplier; supplier statement missing or out of date; material made from more than one source
+    controlsPrevention: Origin and TSE or BSE statement requested at supplier qualification and kept with the specification
+    controlsDetection: Statements reviewed at each requalification of the supplier
+    rationale: Regulators ask for the origin of materials that could come from animals, so the statement is normally collected before it is needed.
+    guidanceRef: eu-tse-minimising-risk
+  - key: excipient_nitrite_amine_unknown
+    unitOp: compounding
+    failureMode: Nitrite or amine content of an excipient is not known
+    effect: A nitrosamine risk evaluation of the product cannot be completed
+    causes: Excipient not included in the nitrosamine evaluation; supplier data not requested; no test for nitrite
+    controlsPrevention: Excipients with amine groups or possible nitrite included in the product's nitrosamine evaluation
+    controlsDetection: Supplier data or a test result on file for each excipient evaluated
+    rationale: Excipients are a common route for nitrite, so the evaluation normally covers them, and the written evaluation says where its evidence is.
+    guidanceRef: ich-m7-r2
+  - key: excipient_elemental_not_assessed
+    unitOp: buffer_prep
+    failureMode: Elemental impurities from an excipient have not been assessed
+    effect: The drug-product risk assessment for elemental impurities is incomplete
+    causes: Excipient not listed in the assessment; source or manufacturing route not known; supplier data not requested
+    controlsPrevention: Every excipient listed in the elemental-impurity risk assessment with its source or route of manufacture
+    controlsDetection: Supplier data or test results on file for excipients made with metal catalysts or mined or refined from minerals
+    rationale: The drug-product assessment looks at every component, excipients included, so a missing excipient leaves a gap in it.
+    guidanceRef: ich-q3d-r2
   - key: compounding_addition_error
     unitOp: compounding
     failureMode: Wrong amount or wrong order of addition during compounding

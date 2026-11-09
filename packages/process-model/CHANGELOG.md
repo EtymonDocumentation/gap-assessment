@@ -2,6 +2,16 @@
 
 All notable changes to `@gap/process-model`. Versions follow semver; see README.md for what counts as breaking.
 
+## 1.17.0
+
+Project schema 1.31.0 (was 1.30.0), catalog and questions unchanged. Additive: the project gains `excipients`, and an export record may carry `documentId`.
+
+### Added
+- `Project.excipients` (`assessments`): excipient assessments (format 1.0.0). Types `ExcipientAssessment`, `ExcipientLine`, `ExcipientSpecRow`, `ExcipientSpecSide`, `ExcipientLinks`;
+  the fact list `EXCIPIENT_FACTS` (each fact of a line is an ordinary `Entry`, once per site where it can differ), `excipientFactPath`, `parseExcipientPath`,
+  and the schemas `excipientAssessmentSchema` / `excipientStateSchema`. `getEntry`, `resolveEntry` (same as the sending site) and `removeSource` reach the facts.
+- `DocumentExport.documentId`: the technical requirements document, plan, record or part an export was of, so "Changed since previous download" compares like with like.
+- Migration 1.30.0 to 1.31.0 adds an empty `excipients` part; export records keep no `documentId`.
 ## 1.16.0
 
 Project schema 1.30.0 (was 1.29.0), catalog and questions unchanged. Additive: the project gains `versionHistory`.

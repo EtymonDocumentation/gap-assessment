@@ -1,0 +1,179 @@
+# Wording of the Excipient assessment: the interview questions and the explanations under the change-risk markers.
+#
+# Conventions
+#  - Question keys: line:class (the role question) and fact:<fact key>, one per fact in packages/process-model/src/excipient.ts. A key with
+#    no entry gets a generated sentence as a safety net only; the content test fails until every key has its own wording, and until no
+#    wording key is left over.
+#  - prompt: a question a process engineer can answer from memory, at most 140 characters. A fact that is asked for each site holds
+#    {site}, which the page replaces with "the sending site" or "the receiving site". why: one sentence on the GMP reason, at most 220.
+#    hint: how to find or read the answer. glossary: term ids of content/help/glossary.yaml (the page links them).
+#  - choices: the words shown for each option value of a choice (the content test checks the values against the fact list).
+#  - markers: one explanation under each change-risk marker (the marker label is in code). A marker is a reason to look, never a finding.
+#  - {{@stage development, clinical: text ;; ppq: text ;; else: text}} changes a phrase by project stage (never a rule, only wording).
+#  - The interview never says an answer is wrong or enough, and never names a filing category. The only regulatory wording is the fixed
+#    sentence shown with the first five markers. No client, product or supplier names.
+version: 1.0.0
+changelog:
+  - version: 1.0.0
+    note: First wording. Every question has its own sentence; every marker has an explanation with stage wording.
+questions:
+  "line:class":
+    prompt: "What does this excipient do in the product?"
+    why: "The role decides which comparison tests and which topics are offered as prompts. It never changes an answer."
+    hint: "Pick the closest class. If none fits, write the role in your own words."
+  "fact:whereAdded":
+    prompt: "Where is this excipient added?"
+    why: "It shows which steps of the process use the excipient, so the right documents and the right people are involved."
+    hint: "Tick every place that applies."
+    choices:
+      drug_substance: "In the drug substance"
+      buffer_prep: "In buffer preparation"
+      compounding: "In pooling, compounding or dilution"
+      other: "Somewhere else"
+  "fact:amount":
+    prompt: "What is its concentration in the product?"
+    why: "The amount gives context for how much a difference between sites could matter. The tool does not calculate with it."
+    hint: "Use the unit of your formulation document."
+  "fact:grade":
+    prompt: "Which compendial standards does it follow at {site}?"
+    why: "A material that follows a pharmacopoeia is tested to a published standard, and the two sites may follow different ones."
+    hint: "Look in the specification or on the supplier's certificate of analysis."
+    glossary: [compendial, monograph]
+    choices:
+      ph_eur: "Ph. Eur."
+      usp_nf: "USP-NF"
+      jp: "JP"
+      other: "Another standard"
+      none: "None of these"
+  "fact:gradeEdition":
+    prompt: "Which edition of the monograph does {site} use?"
+    why: "Monographs are revised, so two sites can follow the same standard and still apply different editions."
+    hint: "For example the edition named in the site's specification."
+    glossary: [monograph]
+  "fact:qualityStatement":
+    prompt: "How does the supplier describe the grade at {site}?"
+    why: "The supplier's own words, for example a low-endotoxin or multi-compendial grade, are kept as said so they can be compared."
+    hint: "Copy the words from the supplier's documents."
+  "fact:supplier":
+    prompt: "Who supplies it to {site}?"
+    why: "A change of supplier between sites is one of the first things a quality reviewer looks at."
+    hint: "The name used in your supplier list."
+  "fact:manufacturingSite":
+    prompt: "At which manufacturing site is it made for {site}?"
+    why: "The same supplier can make a material at more than one site, and the site can change what is delivered."
+    hint: "The manufacturing site is often on the certificate of analysis."
+  "fact:supplierStatus":
+    prompt: "Is the supplier qualified for {site}?"
+    why: "Supplier qualification is part of the quality system of each site. The tool only records the answer."
+    hint: "Answer from your own approved supplier list."
+    glossary: [supplier-qualification]
+    choices:
+      qualified: "Qualified"
+      not_yet: "Not yet qualified"
+      unknown: "Not known"
+  "fact:sourcesOfSupply":
+    prompt: "Is there one supplier or more than one for {site}?"
+    why: "A single source is a continuity question and a reason to agree how changes are communicated."
+    choices:
+      one: "One supplier"
+      more_than_one: "More than one supplier"
+  "fact:origin":
+    prompt: "Where does the material come from at {site}?"
+    why: "The origin decides whether an animal-origin statement is asked for, and a different origin between sites is a reason to look."
+    hint: "The supplier's statement on origin is the usual source."
+    choices:
+      plant: "Plant"
+      synthetic: "Synthetic"
+      mineral: "Mineral"
+      fermentation: "Fermentation"
+      animal: "Animal"
+      mixed: "A mix of sources"
+      not_known: "Not known"
+  "fact:animalDetail":
+    prompt: "Which animal, which tissue and which country does {site}'s material come from?"
+    why: "Regulators ask for the animal source of a material so that the risk of transmissible agents can be assessed."
+    hint: "Copy it from the supplier's statement."
+    glossary: [tse]
+  "fact:animalStatement":
+    prompt: "Is a statement on TSE or BSE held for {site}?"
+    why: "A supplier statement is the usual evidence for the animal-origin question, and its absence is a reason to look."
+    glossary: [tse]
+    choices:
+      held: "A statement is held"
+      not_held: "No statement is held"
+  "fact:tseEvidence":
+    prompt: "Where is the TSE evidence for {site}?"
+    why: "A reviewer needs to find the statement or certificate quickly, so the place is kept."
+    hint: "A document reference, with the section or page."
+    glossary: [tse]
+  "fact:nitrosamine":
+    prompt: "Has this excipient been looked at for nitrosamine risk?"
+    why: "The product's nitrosamine evaluation covers every component. The tool records whether this one was looked at, not what was found."
+    hint: "Answer from the product's written evaluation."
+    glossary: [nitrosamine]
+    choices:
+      evaluated: "Looked at"
+      not_yet: "Not looked at yet"
+  "fact:nitrosamineRef":
+    prompt: "Where is the nitrosamine evaluation of this excipient written?"
+    why: "A reviewer needs to find the written evaluation, so the document, section and page are kept."
+    hint: "A document reference, with the section or page."
+    glossary: [nitrosamine]
+  "fact:elemental":
+    prompt: "Is this excipient covered by the product's elemental-impurity assessment?"
+    why: "The drug-product assessment looks at every component, excipients included. The tool records whether it is covered, not the result."
+    hint: "Answer from the product's written assessment."
+    glossary: [elemental-impurity]
+    choices:
+      evaluated: "Covered"
+      not_yet: "Not covered yet"
+  "fact:elementalRef":
+    prompt: "Where is the elemental-impurity evaluation of this excipient written?"
+    why: "A reviewer needs to find the written assessment, so the document, section and page are kept."
+    hint: "A document reference, with the section or page."
+    glossary: [elemental-impurity]
+  "fact:endotoxin":
+    prompt: "Is the endotoxin level controlled? By which test, and where is it written?"
+    why: "Endotoxin is a safety topic for an injectable, and the limit and the test are normally part of the specification."
+    hint: "For example the test named in the specification, with its limit as written there."
+  "fact:bioburden":
+    prompt: "Is the microbial level controlled? By which test, and where is it written?"
+    why: "The microbial level of a raw material feeds the bioburden of the solution made from it."
+    hint: "For example the test named in the specification, with its limit as written there."
+    glossary: [bioburden]
+  "fact:residualSolvents":
+    prompt: "Are residual solvents controlled? By which test, and where is it written?"
+    why: "Solvents left from the manufacture of a material are a quality topic of the product as a whole."
+    hint: "ICH Q3C is the usual reference. Write where your own document states it."
+  "fact:particulates":
+    prompt: "Are particulates controlled? By which test, and where is it written?"
+    why: "Particles in a raw material can end up in the filled product."
+    hint: "For example a test in the specification, or a statement on filtration by the supplier."
+  "fact:sterilisation":
+    prompt: "Does the supplier sterilise or depyrogenate the material? How, and where is it written?"
+    why: "The supplier's treatment decides what the receiving site still has to do, for example filtration or an endotoxin test."
+    hint: "Copy the supplier's own words."
+  "fact:storage":
+    prompt: "What are the storage conditions and the retest or shelf life at {site}?"
+    why: "Storage and retest period are part of how the material is held, and they can differ between sites."
+    hint: "As written in the site's specification or material record."
+  "fact:notes":
+    prompt: "Is there anything else the team wants to keep about this excipient?"
+    why: "A place for context that does not fit a question, so it travels with the assessment."
+markers:
+  different_supplier:
+    explanation: "The two sites name a different supplier for this excipient. {{@stage development, clinical: Record it now so the later change assessment starts from known facts ;; ppq, commercial: At PPQ and commercial a change of supplier usually goes through change control ;; else: A change of supplier usually goes through change control once batches are made for supply}}."
+  different_site:
+    explanation: "The two sites name a different manufacturing site for this excipient. The same supplier can deliver a different material from another site. {{@stage development, clinical: Record it now so the later change assessment starts from known facts ;; ppq, commercial: At PPQ and commercial a change of site usually goes through change control ;; else: A change of site usually goes through change control once batches are made for supply}}."
+  different_grade:
+    explanation: "The two sites name a different compendial standard or monograph edition. {{@stage development, clinical: Record it now so the later change assessment starts from known facts ;; ppq, commercial: At PPQ and commercial a change of grade usually goes through change control ;; else: A change of grade usually goes through change control once batches are made for supply}}."
+  different_specification:
+    explanation: "At least one test is different, or stated at only one site. A difference is a reason to look. It does not say which specification is stricter. {{@stage development, clinical: Record it now so the later change assessment starts from known facts ;; ppq, commercial: At PPQ and commercial a difference in specification usually goes through change control ;; else: A difference in specification usually goes through change control once batches are made for supply}}."
+  different_origin:
+    explanation: "The two sites name a different origin for this excipient. {{@stage development, clinical: Record it now so the later change assessment starts from known facts ;; ppq, commercial: At PPQ and commercial a change of origin usually goes through change control ;; else: A change of origin usually goes through change control once batches are made for supply}}."
+  origin_not_known:
+    explanation: "The origin is recorded as not known at one or both sites. An unknown origin leaves the animal-origin question open. {{@stage development, clinical: Ask the supplier early, so the answer is on file before the batches start ;; ppq, commercial: Ask the supplier before the next batch ;; else: Ask the supplier, so the answer is on file}}."
+  supplier_not_qualified:
+    explanation: "The supplier is recorded as not yet qualified at the receiving site. {{@stage development: Qualification is normally in place before GMP supply ;; clinical, ppq, commercial: Qualification is normally in place before the material is used in a batch ;; else: Qualification is normally in place before the material is used in a batch}}."
+  single_source:
+    explanation: "The receiving site has one supplier for this excipient. {{@stage development, clinical: Note it now. A second source is a later decision for the team ;; ppq, commercial: A single source is a continuity question and a reason to agree how changes are communicated ;; else: A single source is a continuity question}}."
