@@ -1,4 +1,4 @@
-// M13 job 2: the excipient assessment screens. The list page with its three starts (the library one is switched off and says why), the
+// M13 job 2: the excipient assessment screens. The list page with its three starts (the library one opens a picker, see m13-library.spec.ts), the
 // assessment page with its five numbered tabs, the Questions tab (the shared interview card), the specifications comparison, the excipient's own
 // page with markers and the regulatory sentence, one open-items count that every page agrees on, deleting with a logged reason, and the phone
 // layout (no sideways scroll, axe clean, light and dark). Fictional data only. The spec runs at the three widths of the config.
@@ -53,14 +53,13 @@ async function answerFact(page: Page, key: string, value: string) {
   await expect(page.getByTestId(`ex-edit-${key}`)).toHaveText("Change");
 }
 
-test("the menu entry, and the list page with three starts: the library start is off and says why", async ({ page }) => {
+test("the menu entry, and the list page with three starts: the library start is on", async ({ page }) => {
   await newProject(page);
   await goTo(page, "Excipient assessment");
   await expect(page.getByRole("heading", { level: 1, name: "Excipient assessment" })).toBeVisible();
   await expect(page.getByTestId("ex-start-blank")).toBeEnabled();
   await expect(page.getByTestId("ex-start-questions")).toBeEnabled();
-  await expect(page.getByTestId("ex-start-library")).toBeDisabled();
-  await expect(page.getByTestId("ex-library-note")).toHaveText("The excipient library comes next");
+  await expect(page.getByTestId("ex-start-library")).toBeEnabled();
   await expect(page.getByTestId("ex-empty-text")).toContainText("Anything you don't know stays open");
   await expect(page.getByText("No excipient assessment yet. Start one above.")).toBeVisible();
 });

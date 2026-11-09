@@ -11,6 +11,7 @@ import { href, navigate } from "../router";
 import { useStore } from "../store";
 import { EXCIPIENT_SCOPE_TEXT, ExcipientEditor } from "./ExcipientEditor";
 import type { ExcipientShow } from "./ExcipientInterview";
+import { StartFromLibrary } from "./ExcipientLibraryUse";
 import { ExcipientLinePage } from "./ExcipientLine";
 
 /** The list of assessments, one assessment (tabs), or one excipient's page, chosen by the address: ?excipient=EXA-001[&tab=...][&line=EXL-001]. */
@@ -41,6 +42,7 @@ function List({ missing }: { missing?: string | undefined }) {
   const project = useStore((s) => s.project)!;
   const update = useStore((s) => s.update);
   const [error, setError] = useState("");
+  const [picking, setPicking] = useState(false);
   const list = excipientAssessments(project);
 
   // Both starts make the same empty assessment, named after the project (renamed on the first tab); they differ only in the tab that opens.
@@ -101,15 +103,12 @@ function List({ missing }: { missing?: string | undefined }) {
           </div>
           <div className="card stack">
             <h3>Start from the library</h3>
-            <p className="small">Pick excipients from a ready-made list.</p>
+            <p className="small">Pick excipients you saved before. Their names, roles and tests come with them.</p>
             <div>
-              <button type="button" className="btn" disabled aria-describedby="ex-library-note" data-testid="ex-start-library">
+              <button type="button" className="btn" aria-expanded={picking} aria-controls="ex-lib-picker" onClick={() => setPicking((v) => !v)} data-testid="ex-start-library">
                 Start from the library
               </button>
             </div>
-            <p className="muted small" id="ex-library-note" data-testid="ex-library-note">
-              The excipient library comes next
-            </p>
           </div>
           <div className="card stack">
             <h3>Answer questions</h3>
@@ -122,6 +121,12 @@ function List({ missing }: { missing?: string | undefined }) {
           </div>
         </div>
       </section>
+
+      {picking && (
+        <div id="ex-lib-picker">
+          <StartFromLibrary onClose={() => setPicking(false)} />
+        </div>
+      )}
 
       <section className="card stack" aria-labelledby="ex-list-h">
         <h2 id="ex-list-h">Excipient assessments in this project</h2>

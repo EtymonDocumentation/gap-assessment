@@ -339,3 +339,8 @@ export const deleteMbrBlock = (id: string) => call("DELETE", `/api/mbr-blocks/${
 export const listTrdWriteups = () => json<{ writeups: unknown[] }>("GET", "/api/trd-writeups").then((r) => r.writeups);
 export const putTrdWriteup = (id: string, writeup: unknown) => json<{ writeup: unknown }>("PUT", `/api/trd-writeups/${enc(id)}`, { json: { writeup } });
 export const deleteTrdWriteup = (id: string) => call("DELETE", `/api/trd-writeups/${enc(id)}`).then(() => undefined);
+
+// ------------------------------------------------------------------ Excipient library (module "excipient")
+export const listExcipientLibrary = () => json<{ records: unknown[] }>("GET", "/api/excipient-library").then((r) => r.records);
+export const putExcipientRecord = (id: string, record: unknown) => json<{ record: unknown }>("PUT", `/api/excipient-library/${enc(id)}`, { json: { record } });
+export const deleteExcipientRecord = (id: string, reason: string) => call("DELETE", `/api/excipient-library/${enc(id)}`, { json: { reason } }).then(() => undefined);

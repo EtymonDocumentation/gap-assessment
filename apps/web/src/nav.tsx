@@ -34,6 +34,7 @@ export function isCurrentPath(itemPath: string, routePath: string): boolean {
   if (itemPath === "/templates") return /^\/templates\/[^/]+\/mapping$/.test(routePath);
   if (itemPath === "/sampling") return routePath === "/sampling/tables" || routePath === "/sampling/subsections" || routePath === "/sampling/expected" || routePath === "/sampling/import";
   if (itemPath === "/risk") return routePath === "/risk/methods";
+  if (itemPath === "/excipient") return routePath === "/excipient/library";
   if (itemPath === "/mbr") return routePath === "/mbr/library" || routePath === "/mbr/view";
   if (itemPath === "/trd") return routePath === "/trd/writeups" || routePath === "/trd/import";
   // The stage review is reached from the version history, and the comparison of two versions belongs to it as well.

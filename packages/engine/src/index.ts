@@ -77,3 +77,4 @@ export * from "./excipient";
 export * from "./excipient-analysis";
 export * from "./excipient-content";
 export * from "./excipient-interview";
+export * from "./excipient-library";

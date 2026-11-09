@@ -1,8 +1,9 @@
 import { excipientClasses } from "@gap/content";
-import { SPEC_RESULT_LABEL, addSpecRow, compareSpecRow, deleteSpecRow, oftenComparedPrompts, specCounts, specCountsText, updateSpecRow, type SpecResult } from "@gap/engine";
+import { SPEC_RESULT_LABEL, addSpecRow, compareSpecRow, copyFromOtherSite, deleteSpecRow, findLibraryMatch, oftenComparedPrompts, specCounts, specCountsText, specPickerText, updateSpecRow, type SpecResult } from "@gap/engine";
 import type { ExcipientAssessment, ExcipientLine, ExcipientSide, ExcipientSpecRow, Source } from "@gap/process-model";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { EXCIPIENT_PATH } from "../excipient-ui";
+import { useExcipientRecords } from "../excipient-library-store";
 import { href } from "../router";
 import { useStore } from "../store";
 import { ReasonDialog } from "./ReasonDialog";
@@ -25,6 +26,7 @@ export function ExcipientSpecs({ a, lineId, onPick }: { a: ExcipientAssessment; 
   const [test, setTest] = useState("");
   const [error, setError] = useState("");
   const sources = project.sources.filter((s) => !s.supersededBy);
+  const { items: saved } = useExcipientRecords();
 
   if (!line) {
     return (
@@ -39,6 +41,8 @@ export function ExcipientSpecs({ a, lineId, onPick }: { a: ExcipientAssessment; 
   }
   const prompts = oftenComparedPrompts(line, excipientClasses);
   const counts = specCounts(line);
+  // The team's own prompts from the saved excipient with the same name (the project stores no link to the library). Only tests not in the table yet are offered.
+  const libPrompts = (findLibraryMatch(saved, line.name)?.prompts ?? []).filter((t) => !line.specs.some((r) => r.test.toLowerCase() === t.toLowerCase()));
   const add = (t: string, promptKey?: string) => {
     const err = update((p, actor) => addSpecRow(p, a.id, line.id, { test: t, ...(promptKey ? { promptKey } : {}) }, actor).project, "Test added");
     setError(err ?? "");
@@ -54,7 +58,7 @@ export function ExcipientSpecs({ a, lineId, onPick }: { a: ExcipientAssessment; 
           <select value={line.id} onChange={(e) => onPick(e.target.value)} data-testid="ex-specs-line">
             {a.lines.map((l) => (
               <option key={l.id} value={l.id}>
-                {l.name}
+                {specPickerText(l.name, l)}
               </option>
             ))}
           </select>
@@ -72,6 +76,20 @@ export function ExcipientSpecs({ a, lineId, onPick }: { a: ExcipientAssessment; 
               {prompts.map((p) => (
                 <button key={p.key} type="button" className="btn small" onClick={() => add(p.test, p.key)} data-testid={`ex-prompt-${p.key}`}>
                   Add {p.test}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {libPrompts.length > 0 && (
+          <div className="stack" data-testid="ex-specs-lib-prompts">
+            <p className="small">
+              <strong>From your library</strong> (select one to add it to the table):
+            </p>
+            <div className="row wrap">
+              {libPrompts.map((t) => (
+                <button key={t} type="button" className="btn small" onClick={() => add(t)} data-testid={`ex-libprompt-${t.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}>
+                  Add {t}
                 </button>
               ))}
             </div>
@@ -192,6 +210,12 @@ function SideFields({ side, row, sources, onSave }: { side: ExcipientSide; row: 
   const notTested = s.state === "not_tested";
   const where: Where = (s.sourceLocations ?? {}) as Where;
   const id = `${row.id}-${side}`;
+  // A copy from the other site changes the stored values from outside the boxes, so each box follows its own stored value.
+  useEffect(() => setMethod(s.method ?? ""), [s.method]);
+  useEffect(() => setCriterion(s.criterion ?? ""), [s.criterion]);
+  useEffect(() => setUnit(s.unit ?? ""), [s.unit]);
+  // What the other site's entries could add to the empty boxes of this side (nothing already written is replaced).
+  const copyPatch = copyFromOtherSite(row, side);
 
   // The state follows what was written: a criterion means "stated", the tick means "not tested", otherwise it stays open (never guessed).
   const commit = (over: { method?: string; criterion?: string; unit?: string; notTested?: boolean } = {}) => {
@@ -204,6 +228,16 @@ function SideFields({ side, row, sources, onSave }: { side: ExcipientSide; row: 
   return (
     <fieldset className="fs stack ex-side" data-testid={`ex-side-${id}`}>
       <legend>{SIDE_TEXT[side]}</legend>
+      {copyPatch && (
+        <div>
+          <button type="button" className="btn small" onClick={() => onSave({ [side]: copyPatch })} data-testid={`ex-copy-${id}`} aria-describedby={`ex-copy-hint-${id}`}>
+            Copy from the {side === "sending" ? "receiving" : "sending"} site
+          </button>
+          <span className="muted small block" id={`ex-copy-hint-${id}`}>
+            Fills only the empty boxes. What you wrote stays.
+          </span>
+        </div>
+      )}
       <label className="check">
         <input type="checkbox" checked={notTested} onChange={(e) => commit({ notTested: e.target.checked })} data-testid={`ex-nottested-${id}`} /> <span>This site's specification has no such test</span>
       </label>

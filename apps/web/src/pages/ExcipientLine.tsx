@@ -9,6 +9,7 @@ import { openItemsCount } from "../open-count";
 import { href, navigate } from "../router";
 import { useStore } from "../store";
 import { ExcipientCard } from "./ExcipientCard";
+import { ExcipientLibraryBox } from "./ExcipientLibraryUse";
 import { ReasonDialog } from "./ReasonDialog";
 
 /**
@@ -253,6 +254,8 @@ export function ExcipientLinePage({ a, line }: { a: ExcipientAssessment; line: L
           </ul>
         )}
       </section>
+
+      <ExcipientLibraryBox a={a} line={line} />
 
       <section className="card stack no-print" aria-labelledby="ex-line-delete-h">
         <h2 id="ex-line-delete-h">Remove this excipient</h2>

@@ -51,6 +51,7 @@ import { ConflictDialog, ServerGate, useIsRemote } from "./server/ServerUi";
 import { SERVER_MODE } from "./server/mode";
 import { useSession } from "./server/session-store";
 import { useExcipientAllowed, useMbrAllowed, useRiskAllowed, useTrdAllowed } from "./risk-module";
+import { ExcipientLibraryPage } from "./pages/ExcipientLibraryPage";
 import { ExcipientPage } from "./pages/ExcipientPage";
 import { useStore } from "./store";
 import { VersionBanner } from "./version-ui";
@@ -131,7 +132,7 @@ function AppShell() {
 
   // The template library belongs to the browser, not to a project, so it opens without one. So does the guidance library,
   // which is reference material and has nothing to do with the open project.
-  const needsProject = route.path !== "/" && route.path !== "/gap" && route.path !== "/gap/import" && route.path !== "/templates" && route.path !== "/guidance" && route.path !== "/saved-answers" && route.path !== "/sampling/tables" && route.path !== "/sampling/subsections" && route.path !== "/sampling/expected" && route.path !== "/risk/methods" && route.path !== "/mbr/library" && route.path !== "/trd/writeups" && route.path !== "/myfiles" && route.path !== "/about" && route.path !== "/glossary";
+  const needsProject = route.path !== "/" && route.path !== "/gap" && route.path !== "/gap/import" && route.path !== "/templates" && route.path !== "/guidance" && route.path !== "/saved-answers" && route.path !== "/sampling/tables" && route.path !== "/sampling/subsections" && route.path !== "/sampling/expected" && route.path !== "/risk/methods" && route.path !== "/mbr/library" && route.path !== "/excipient/library" && route.path !== "/trd/writeups" && route.path !== "/myfiles" && route.path !== "/about" && route.path !== "/glossary";
   const mappingId = /^\/templates\/([^/]+)\/mapping$/.exec(route.path)?.[1];
   // Documents run in chain order (gap assessment, TRD, sampling plan, batch record), each with a line saying what it is for. They are all
   // optional: the order is a suggestion about which document feeds the next, never a rule. Risk and the TBD list sit alongside the chain.
@@ -205,6 +206,7 @@ function AppShell() {
   else if (route.path === "/sampling") page = samplingAllowed ? <SamplingPage params={route.params} /> : <SamplingNotIncluded />;
   else if (route.path === "/risk/methods") page = riskAllowed ? <RiskMethodsPage /> : <RiskNotIncluded />;
   else if (route.path === "/risk") page = riskAllowed ? <RiskPage params={route.params} /> : <RiskNotIncluded />;
+  else if (route.path === "/excipient/library") page = excipientAllowed ? <ExcipientLibraryPage /> : <ExcipientNotIncluded />;
   else if (route.path === "/excipient") page = excipientAllowed ? <ExcipientPage params={route.params} /> : <ExcipientNotIncluded />;
   else if (route.path === "/trd/writeups") page = trdAllowed ? <TrdLibraryPage /> : <TrdNotIncluded />;
   else if (route.path === "/trd/import") page = trdAllowed ? <TrdImportPage /> : <TrdNotIncluded />;

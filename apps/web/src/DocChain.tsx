@@ -167,6 +167,7 @@ const LIBRARIES: { module: string; id: string; test: (p: string) => boolean; lin
   },
   { module: "Batch record", id: "mbr", test: (p) => p === "/mbr", links: [{ label: "Ready-made steps", path: "/mbr/library" }] },
   { module: "Risk assessment", id: "risk", test: (p) => p === "/risk", links: [{ label: "Risk methods", path: "/risk/methods" }] },
+  { module: "Excipient assessment", id: "excipient", test: (p) => p === "/excipient", links: [{ label: "Excipient library", path: "/excipient/library" }] },
 ];
 
 export function ModuleLibraryLinks({ path }: { path: string }) {

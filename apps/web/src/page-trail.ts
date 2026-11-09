@@ -52,6 +52,7 @@ const TRAILS: Record<string, Trail> = {
   "/risk": t(true, DOCS, "Risk assessment"),
   "/risk/methods": t(false, DOCS, risk, "Risk methods"),
   "/excipient": t(true, DOCS, "Excipient assessment"),
+  "/excipient/library": t(false, DOCS, { label: "Excipient assessment", path: "/excipient" }, "Excipient library"),
   "/templates": t(false, LIB, "Templates"),
   "/guidance": t(false, LIB, "Guidance"),
   "/saved-answers": t(false, LIB, "Saved answers"),

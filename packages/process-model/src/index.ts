@@ -11,6 +11,7 @@ export * from "./trd-seed";
 export * from "./sampling";
 export * from "./risk";
 export * from "./excipient";
+export * from "./excipient-library";
 export * from "./trd";
 export * from "./trd-writeups";
 export * from "./trd-image";

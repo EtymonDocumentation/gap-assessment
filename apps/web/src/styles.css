@@ -5848,3 +5848,11 @@ html:has(.iv-one) { scroll-padding-bottom: 9rem; }
     padding: 0;
   }
 }
+
+/* "Update from library": each difference is its own box, so the list has no bullets or indent (nothing to scroll sideways at 390 px). */
+.ex-lib-changes {
+  list-style: none;
+  padding-left: 0;
+  display: grid;
+  gap: 10px;
+}
