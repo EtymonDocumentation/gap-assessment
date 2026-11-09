@@ -1,5 +1,5 @@
 import { allEntries, getEntry, parseRef } from "./paths";
-import { allExcipientEntries, allExcipientSpecSides, parseExcipientPath } from "./excipient";
+import { allExcipientCitingRefs, allExcipientEntries, allExcipientSpecSides, parseExcipientPath } from "./excipient";
 import type { Actor, Entry, EntryStatus, EntryValue, Project, Source, SourceLocation, TbdInfo } from "./types";
 
 export const SCHEMA_VERSION = "1.31.0";
@@ -529,6 +529,8 @@ export interface SourceUse {
 export function sourceUsage(project: Project): SourceUse[] {
   const byId = new Map<string, string[]>(project.sources.map((s) => [s.id, []]));
   for (const e of allEntries(project)) for (const id of e.sourceIds) byId.get(id)?.push(e.path);
+  // The facts and comparison rows of the excipient lines cite sources too (schema 1.31.0).
+  for (const c of allExcipientCitingRefs(project)) for (const id of c.sourceIds) byId.get(id)?.push(c.ref);
   return project.sources.map((source) => {
     const refs = byId.get(source.id) ?? [];
     return { source, refs, unused: refs.length === 0 };

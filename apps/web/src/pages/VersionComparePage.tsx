@@ -11,9 +11,9 @@ import {
   loggedBetween,
   openSide,
   WORKING_COPY_LABEL,
+  type CompareDoc,
   type CompareRow,
 } from "@gap/engine";
-import type { ReviewDoc } from "@gap/process-model";
 import { useEffect, useId, useMemo, useState } from "react";
 import { PageHeader } from "../PageHeader";
 import { Tabs, type TabDef } from "../Tabs";
@@ -24,12 +24,13 @@ import { useContent } from "../store";
 import { useRealProject } from "../version-ui";
 
 /** One sentence per document tab: what the rows in it are. */
-const TAB_PURPOSE: Record<ReviewDoc, string> = {
+const TAB_PURPOSE: Record<CompareDoc, string> = {
   gap: "Questions of the gap assessment whose answer differs, for the sending and the receiving site, including the project stage.",
   trd: "Fields, ranges and texts of the technical requirements document that differ.",
   sampling: "Sampling points and plan settings that differ.",
   mbr: "Steps, parameter rows and sample rows of the batch record that differ.",
   risk: "Risk items, ratings and links that differ.",
+  excipient: "Excipients, their answers for the sending and the receiving site, specification rows and links that differ.",
 };
 
 /** Texts longer than this show their first part and a "Show all" button, so one long paragraph never pushes the table off the screen. */
@@ -68,7 +69,7 @@ export function VersionComparePage({ params }: { params: URLSearchParams }) {
   const a = params.get("a") || labels[0] || WORKING_COPY_LABEL;
   const b = params.get("b") || WORKING_COPY_LABEL;
   const [onlyChanges, setOnlyChanges] = useState(true);
-  const [tab, setTab] = useState<ReviewDoc | null>(null);
+  const [tab, setTab] = useState<CompareDoc | null>(null);
   const [state, setState] = useState<{ rows: CompareRow[]; logged: number } | { error: string } | null>(null);
   const onlyId = useId();
 
@@ -104,9 +105,9 @@ export function VersionComparePage({ params }: { params: URLSearchParams }) {
   const rows = state && "rows" in state ? state.rows : null;
   const counts = useMemo(() => (rows ? compareCounts(rows) : null), [rows]);
   const firstWithChanges = counts ? (COMPARE_DOCS.find((d) => counts[d] > 0) ?? "gap") : "gap";
-  const current: ReviewDoc = tab ?? firstWithChanges;
+  const current: CompareDoc = tab ?? firstWithChanges;
 
-  const tabs: TabDef<ReviewDoc>[] = COMPARE_DOCS.map((d) => ({
+  const tabs: TabDef<CompareDoc>[] = COMPARE_DOCS.map((d) => ({
     id: d,
     label: `${COMPARE_DOC_NAME[d]}${counts ? ` ${counts[d]}` : ""}`,
     purpose: TAB_PURPOSE[d],

@@ -8,7 +8,7 @@ import { Modal } from "../components";
 import { APP_VERSION, download, projectFileStem, today } from "../lib";
 import { useContent, useStore } from "../store";
 import { useVersionStamp } from "../version-ui";
-import { BUILTIN_RECORD, ExportHistory, GENERIC_MODES, useWordChoice, WordPanel } from "./document-panels";
+import { BUILTIN_RECORD, ExportHistory, exportsOfDocument, GENERIC_MODES, useWordChoice, WordPanel } from "./document-panels";
 import type { Run } from "./SamplingFlow";
 import { TrdFormButton } from "./TrdUploadButton";
 
@@ -55,6 +55,7 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
           by: actor.name,
           format,
           template,
+          documentId: d.id,
           fingerprint: documentFingerprint(made),
           tbdCount: tbd,
           versions: { processModel: PROCESS_MODEL_VERSION, catalog: content.versions.catalog, format: TRD_FORMAT_VERSION },
@@ -64,7 +65,7 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
   // "Recorded" is only said when the history really took the entry; a problem is shown in its place.
   const saved = (file: string, problem?: string | null) => setDone(problem ? `Saved ${file}. This download is not in the export history. ${problem}` : `Saved ${file}. The download is recorded in the export history below.`);
 
-  const exports = project.document.exports.filter((x) => x.format === "trd-docx" || x.format === "trd-html" || x.format === "trd-evidence-docx" || x.format === "trd-evidence-html");
+  const exports = exportsOfDocument(project.document.exports, (f) => f === "trd-docx" || f === "trd-html" || f === "trd-evidence-docx" || f === "trd-evidence-html", d.id, project.trd.documents.length === 1);
   const standardOptions = TRD_OPTIONAL_SECTIONS.filter((s) => s.id === "overview");
   const evidenceOptions = TRD_OPTIONAL_SECTIONS.filter((s) => s.id !== "overview");
 

@@ -10,6 +10,7 @@ import { href, navigate } from "../router";
 import { useStore } from "../store";
 import { ExcipientCard } from "./ExcipientCard";
 import { ExcipientLibraryBox } from "./ExcipientLibraryUse";
+import { ExcipientLinksBox } from "./ExcipientLinks";
 import { ReasonDialog } from "./ReasonDialog";
 
 /**
@@ -234,26 +235,7 @@ export function ExcipientLinePage({ a, line }: { a: ExcipientAssessment; line: L
         </div>
       </section>
 
-      <section className="card stack" aria-labelledby="ex-links-h" data-testid="ex-links">
-        <h2 id="ex-links-h">Linked to</h2>
-        {line.links.gapIds.length === 0 && line.links.riskItems.length === 0 && !line.links.trdItem ? (
-          <p>Nothing is linked yet. The buttons to link a gap, a risk item or a technical requirements document come next.</p>
-        ) : (
-          <ul className="plain-list">
-            {line.links.gapIds.length > 0 && <li>Gaps: {line.links.gapIds.join(", ")}</li>}
-            {line.links.riskItems.map((r) => (
-              <li key={`${r.assessmentId}-${r.itemId}`}>
-                Risk item {r.itemId} (assessment {r.assessmentId})
-              </li>
-            ))}
-            {line.links.trdItem && (
-              <li>
-                Technical requirements document {line.links.trdItem.trdId}, {line.links.trdItem.itemKey}
-              </li>
-            )}
-          </ul>
-        )}
-      </section>
+      <ExcipientLinksBox a={a} line={line} />
 
       <ExcipientLibraryBox a={a} line={line} />
 

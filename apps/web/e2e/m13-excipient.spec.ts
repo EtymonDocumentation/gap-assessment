@@ -80,7 +80,9 @@ test("'Start blank' opens the Excipients tab, 'Answer questions' the Questions t
   await page.getByTestId("ex-first-btn").click();
   await expect(page.getByTestId("ex-interview")).toBeVisible();
   await page.getByTestId("ex-tab-document").click();
-  await expect(page.getByTestId("ex-document")).toContainText("The download comes later");
+  await expect(page.getByTestId("ex-download-html")).toBeVisible();
+  await expect(page.getByTestId("ex-download-markdown")).toBeVisible();
+  await expect(page.getByTestId("ex-open-count")).toContainText("open");
 });
 
 test("one open-items count: the pill, the tab, the list page and the project Open items page agree", async ({ page }) => {

@@ -1,5 +1,6 @@
 import { assess, buildDemoProject } from "@gap/engine";
 import { content, demos, designLoadouts, failureModes, mbrLibrary, riskLoadouts, samplingSuggestions, trdWriteups } from "@gap/content";
+import { addExcipientLine, createExcipientAssessment } from "@gap/engine";
 import { emptyProject } from "@gap/process-model";
 import { describe, expect, it } from "vitest";
 import { trdOpenCount } from "../src/open-count";
@@ -95,5 +96,30 @@ describe("the risk assessment in the chain strip", () => {
   it("is left out when the account has no risk module", () => {
     const p = blank();
     expect(chainStages(p, assess(content, p), { ...all, risk: false }).map((s) => s.id)).not.toContain("risk");
+  });
+});
+
+describe("the excipient assessment in the chain strip", () => {
+  it("is left out unless the account has it, and then sits beside the chain without a number", () => {
+    const p = blank();
+    expect(chainStages(p, assess(content, p), all).map((s) => s.id)).not.toContain("excipient");
+    const stages = chainStages(p, assess(content, p), { ...all, excipient: true });
+    expect(stages.map((s) => s.id)).toEqual(["gap", "risk", "excipient", "trd", "sampling", "mbr", "view"]);
+    expect(stages.find((s) => s.id === "excipient")!.status).toBe("Not started");
+    expect(chainStageOf("/excipient")).toBe("excipient");
+    expect(chainStageOf("/excipient/library")).toBeUndefined();
+  });
+
+  it("says the assessment and its open items in the words every other page uses, and is never the Back or Next document", () => {
+    let p = blank();
+    p = createExcipientAssessment(p, { title: "Buffer excipients (fictional)" }, { name: "Tester", at: "2026-01-01T00:00:00.000Z" }).project;
+    p = addExcipientLine(p, "EXA-001", { name: "Sucrose (fictional)", classKey: "stabiliser" }, { name: "Tester", at: "2026-01-01T00:00:00.000Z" }).project;
+    const allowed = { ...all, excipient: true };
+    const status = chainStages(p, assess(content, p), allowed).find((s) => s.id === "excipient")!.status;
+    expect(status).toMatch(/^EXA-001, \d+ open items?$/);
+    const bar = chainBar(p, assess(content, p), allowed, route("/excipient", "excipient=EXA-001"));
+    expect(bar).toEqual({});
+    const trdBar = chainBar(p, assess(content, p), allowed, route("/trd"));
+    expect(trdBar.back?.path).not.toBe("/excipient");
   });
 });

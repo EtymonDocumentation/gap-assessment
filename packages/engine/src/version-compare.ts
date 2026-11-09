@@ -1,4 +1,5 @@
-import { allEntries, resolveEntry, stableStringify, type Project, type ReviewDoc, type TrdDocument, type TrdField, type TrdRange } from "@gap/process-model";
+import { EXCIPIENT_FACTS, EXCIPIENT_SIDE_LABEL, allEntries, excipientAssessments, excipientFactPath, resolveEntry, stableStringify, type ExcipientAssessment, type Project, type ReviewDoc, type TrdDocument, type TrdField, type TrdRange } from "@gap/process-model";
+import { excipientTbdText } from "./excipient-analysis";
 import type { ContentBundle } from "./content";
 import { cell } from "./csv";
 import { entryDisplay, entryLabel } from "./labels";
@@ -19,9 +20,11 @@ import { historyOf, readVersion } from "./version-history";
 
 export const WORKING_COPY_LABEL = "Working copy";
 
-export const COMPARE_DOCS: readonly ReviewDoc[] = ["gap", "trd", "sampling", "mbr", "risk"];
-/** The names the menu and the stage review use for the five documents. */
-export const COMPARE_DOC_NAME: Record<ReviewDoc, string> = { gap: "Gap assessment", trd: "TRD", sampling: "Sampling plan", mbr: "Batch record", risk: "Risk" };
+/** The five documents of the stage review, and the excipient assessment (a part of the project, not one of the five). */
+export type CompareDoc = ReviewDoc | "excipient";
+export const COMPARE_DOCS: readonly CompareDoc[] = ["gap", "trd", "sampling", "mbr", "risk", "excipient"];
+/** The names the menu and the stage review use for the documents. */
+export const COMPARE_DOC_NAME: Record<CompareDoc, string> = { gap: "Gap assessment", trd: "TRD", sampling: "Sampling plan", mbr: "Batch record", risk: "Risk", excipient: "Excipient assessment" };
 
 /** "same" only appears when the caller asks for unchanged items too (the page's "Only show changes" switched off). */
 export type CompareKind = "changed" | "added" | "removed" | "same";
@@ -32,7 +35,7 @@ export interface CompareOptions {
 }
 
 export interface CompareRow {
-  doc: ReviewDoc;
+  doc: CompareDoc;
   /** Where the item sits: the section of the gap assessment, or the plan point, step or document it belongs to. */
   area: string;
   /** The question, field or list entry. */
@@ -100,7 +103,7 @@ function elementLabel(el: Record<string, Json>): string {
 }
 
 interface Ctx {
-  doc: ReviewDoc;
+  doc: CompareDoc;
   rows: CompareRow[];
   includeSame: boolean;
 }
@@ -231,6 +234,55 @@ function trdView(d: TrdDocument): Record<string, Json> {
   };
 }
 
+// ------------------------------------------------------------------ the excipient assessments
+
+/**
+ * The excipient assessments as plain values: each fact under the words of its question (and the site it is for), the specification rows
+ * by test, and the links. A fact reads as the person sees it: the stated value, "TBD" or nothing. The facts are looked up through
+ * resolveEntry, so "same as the sending site" shows the sending site's value on both sides of the comparison.
+ */
+function excipientView(project: Project, a: ExcipientAssessment): Record<string, Json> {
+  return {
+    id: a.id,
+    title: a.title,
+    "Purpose and scope": a.scopeNote ?? "",
+    lines: a.lines.map((l) => {
+      const facts: Record<string, Json> = {};
+      for (const def of EXCIPIENT_FACTS) {
+        for (const side of def.perSide ? (["sending", "receiving"] as const) : ([undefined] as const)) {
+          const path = excipientFactPath(a.id, l.id, def.key, side);
+          if (l.facts[path] === undefined) continue;
+          const r = resolveEntry(project, path);
+          facts[side ? `${def.label}, ${EXCIPIENT_SIDE_LABEL[side]}` : def.label] = r.status === "established" ? plain(r.value) : r.status === "tbd" ? excipientTbdText(r.tbd) : "";
+        }
+      }
+      return {
+        id: l.id,
+        label: l.name,
+        Role: l.classLabel ?? l.classKey ?? "",
+        facts,
+        specs: l.specs.map((r) => ({
+          id: r.id,
+          label: r.test,
+          Note: r.note ?? "",
+          "Sending site": specSideText(r.sending),
+          "Receiving site": specSideText(r.receiving),
+        })),
+        "Linked gaps": l.links.gapIds.join("; "),
+        "Linked risk items": l.links.riskItems.map((x) => `${x.assessmentId} ${x.itemId}`).join("; "),
+        "Technical requirements document": l.links.trdItem ? `${l.links.trdItem.trdId}, ${l.links.trdItem.stepKey}, ${l.links.trdItem.itemKey}` : "",
+        "Regulatory affairs assessment document": l.links.regulatoryReference ?? "",
+      };
+    }),
+  };
+}
+
+function specSideText(s: { state: string; method?: string; criterion?: string; unit?: string }): string {
+  if (s.state === "not_tested") return "Not tested";
+  if (s.state !== "stated") return "";
+  return [s.method, [s.criterion, s.unit].filter(Boolean).join(" ")].filter(Boolean).join(": ");
+}
+
 // ------------------------------------------------------------------ the gap assessment
 
 function gapRows(content: ContentBundle, a: Project, b: Project, includeSame: boolean): CompareRow[] {
@@ -286,18 +338,20 @@ function gapRows(content: ContentBundle, a: Project, b: Project, includeSame: bo
 export function compareVersions(content: ContentBundle, a: Project, b: Project, opts: CompareOptions = {}): CompareRow[] {
   const includeSame = opts.includeSame ?? false;
   const rows: CompareRow[] = gapRows(content, a, b, includeSame);
-  const docs = (doc: ReviewDoc, root: string, la: Json, lb: Json) => walk(la, lb, [], root, { doc, rows, includeSame });
+  const docs = (doc: CompareDoc, root: string, la: Json, lb: Json) => walk(la, lb, [], root, { doc, rows, includeSame });
   // The TRD documents are listed by id like the others; a list with no entry on either side is skipped quietly by the walk.
   docs("trd", COMPARE_DOC_NAME.trd, a.trd.documents.map(trdView), b.trd.documents.map(trdView));
   docs("sampling", COMPARE_DOC_NAME.sampling, a.sampling.plans, b.sampling.plans);
   docs("mbr", COMPARE_DOC_NAME.mbr, a.mbr.records, b.mbr.records);
   docs("risk", COMPARE_DOC_NAME.risk, a.risk.assessments, b.risk.assessments);
+  // Saved versions carry the excipient assessments (spec section 8): the whole project is stored, so they are read back like the rest.
+  docs("excipient", COMPARE_DOC_NAME.excipient, excipientAssessments(a).map((x) => excipientView(a, x)), excipientAssessments(b).map((x) => excipientView(b, x)));
   return rows;
 }
 
 /** How many differences each document has (unchanged items, when listed, are not counted). */
-export function compareCounts(rows: readonly CompareRow[]): Record<ReviewDoc, number> {
-  const out: Record<ReviewDoc, number> = { gap: 0, trd: 0, sampling: 0, mbr: 0, risk: 0 };
+export function compareCounts(rows: readonly CompareRow[]): Record<CompareDoc, number> {
+  const out: Record<CompareDoc, number> = { gap: 0, trd: 0, sampling: 0, mbr: 0, risk: 0, excipient: 0 };
   for (const r of rows) if (r.kind !== "same") out[r.doc]++;
   return out;
 }

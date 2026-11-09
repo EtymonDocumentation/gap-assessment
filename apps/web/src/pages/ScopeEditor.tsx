@@ -1,6 +1,6 @@
 import {
-  OPTIONAL_SECTIONS,
-  SECTION_CHOICES,
+  optionalSectionsFor,
+  sectionChoicesFor,
   omittedSectionIds,
   setOmittedSections,
   setStepsExcluded,
@@ -33,8 +33,8 @@ export function useScopeSummary() {
   return useMemo(() => {
     const steps = stepSummary(content, project);
     const omitted = omittedSectionIds(project);
-    const optionalTotal = OPTIONAL_SECTIONS.length;
-    const sectionsTotal = SECTION_CHOICES.length;
+    const optionalTotal = optionalSectionsFor(project).length;
+    const sectionsTotal = sectionChoicesFor(project).length;
     const optionalIncluded = optionalTotal - omitted.length;
     const stepText = `${steps.included} of ${steps.selectable} process steps${steps.notApplicable ? ` (${steps.notApplicable} not applicable)` : ""}`;
     return {
@@ -325,7 +325,7 @@ export function DocumentSectionsBlock({ idPrefix }: { idPrefix: string }) {
 
   /** Ticks or unticks one optional section. The choice is stored with the project and applies to every format. */
   const toggle = (id: string, include: boolean) => {
-    const title = OPTIONAL_SECTIONS.find((x) => x.id === id)?.title ?? id;
+    const title = optionalSectionsFor(project).find((x) => x.id === id)?.title ?? id;
     // Worked out from the stored project, not from this render, so two quick clicks both count.
     const err = update(
       (p) => {
@@ -343,7 +343,7 @@ export function DocumentSectionsBlock({ idPrefix }: { idPrefix: string }) {
         Untick an optional section to leave it out of the preview and of every download (Markdown, HTML, Word and print). Numbering and appendix letters close up, and the document lists what was left out.
       </p>
       <ul className="section-choice">
-        {SECTION_CHOICES.map((sec) => {
+        {sectionChoicesFor(project).map((sec) => {
           const id = `${idPrefix}-sec-${sec.id}`;
           return (
             <li key={sec.id}>

@@ -149,8 +149,9 @@ test("the chain strip says where you are in words, not only in colour; a phone g
     await expect(page.getByRole("navigation", { name: "Document chain" })).toContainText("Chain 5 of 5 · Process view");
     await expect(page.getByTestId("chain-strip-next")).toHaveCount(0);
   } else {
-    // One segmented bar: a segment per stage, the numbered ones read "N · name", and only the current one says "(you are here)".
-    await expect(chain.getByRole("link")).toHaveCount(6);
+    // One segmented bar: a segment per stage (five numbered, two beside the chain), the numbered ones read "N · name", and only the current one says "(you are here)".
+    // Seven links: five numbered stages and, beside them, risk assessment and the excipient assessment (no number).
+    await expect(chain.getByRole("link")).toHaveCount(7);
     await expect(here).toContainText("2 · TRD (you are here)");
     await expect(chain.getByText("(you are here)")).toHaveCount(1);
     await expect(chain.getByTestId("chain-gap")).toContainText("1 · Gap assessment");

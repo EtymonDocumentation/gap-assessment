@@ -8,7 +8,7 @@ import { HelpTip } from "../HelpTip";
 import { APP_VERSION, download, projectFileStem, today } from "../lib";
 import { useContent, useStore } from "../store";
 import { useVersionStamp } from "../version-ui";
-import { BUILTIN_RECORD, ExportHistory, GENERIC_MODES, useWordChoice, WordPanel } from "./document-panels";
+import { BUILTIN_RECORD, ExportHistory, exportsOfDocument, GENERIC_MODES, useWordChoice, WordPanel } from "./document-panels";
 
 /**
  * The Word or HTML draft of a master batch record, with a preview. The same rules as the other documents: the banner is in every
@@ -52,6 +52,7 @@ export function MbrOutput({ rec }: { rec: MbrRecord }) {
           by: actor.name,
           format,
           template,
+          documentId: part ? `${rec.id}:part-${part}` : rec.id,
           fingerprint: documentFingerprint(doc),
           tbdCount: tbd,
           versions: { processModel: PROCESS_MODEL_VERSION, catalog: content.versions.catalog, format: MBR_FORMAT_VERSION },
@@ -60,7 +61,8 @@ export function MbrOutput({ rec }: { rec: MbrRecord }) {
     );
   // "Recorded" is only said when the history really took the entry; a problem is shown in its place.
   const saved = (file: string, problem?: string | null) => setDone(problem ? `Saved ${file}. This download is not in the export history. ${problem}` : `Saved ${file}. The download is recorded in the export history below.`);
-  const exports = project.document.exports.filter((x) => x.format === "mbr-docx" || x.format === "mbr-html");
+  // The history of a record lists its whole-record and part downloads together; the id of a part is "MBR-001:part-1".
+  const exports = exportsOfDocument(project.document.exports, (f) => f === "mbr-docx" || f === "mbr-html", rec.id, project.mbr.records.length === 1);
 
   return (
     <>

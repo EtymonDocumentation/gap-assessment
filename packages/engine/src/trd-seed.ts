@@ -90,7 +90,7 @@ export function buildTrdSeed(rawContent: ContentBundle, project: Project, opts: 
   const eff = effectiveContent(rawContent, project);
   const a: Assessment = assess(eff, project);
   const content = stagedFor(eff, project);
-  const fingerprint = documentFingerprint(buildDocument(eff, project, a, exportedAt));
+  const fingerprint = documentFingerprint(buildDocument(eff, project, a, exportedAt, { includeExcipients: false }));
 
   // Active references per side. An item or field that no visible question binds is inactive and is not exported.
   const targetInstances = a.instances.filter((i) => i.side === "target");

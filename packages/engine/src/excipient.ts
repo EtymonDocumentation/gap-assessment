@@ -200,6 +200,8 @@ export interface ExcipientLinePatch {
   trdItem?: { trdId: string; stepKey: string; itemKey: string } | null;
   /** Where the regulatory affairs assessment is written. Empty clears it. The marker itself never depends on it. */
   regulatoryReference?: string;
+  /** Why a link is taken away (a gap, a risk item or the TRD link). Needed only when the patch removes one; kept in the change log. */
+  reason?: string;
 }
 
 export function updateExcipientLine(project: Project, assessmentId: string, lineId: string, patch: ExcipientLinePatch, actor: Actor, check: ExcipientClassCheck = {}): Project {
@@ -208,6 +210,7 @@ export function updateExcipientLine(project: Project, assessmentId: string, line
   const l = excipientLineOf(a, lineId);
   const before: Record<string, unknown> = {};
   const after: Record<string, unknown> = {};
+  let removal: string | undefined;
   const note = (k: string, was: unknown, now: unknown) => {
     before[k] = was ?? null;
     after[k] = now ?? null;
@@ -247,6 +250,7 @@ export function updateExcipientLine(project: Project, assessmentId: string, line
   }
   if ("gapIds" in patch) {
     const list = [...new Set((patch.gapIds ?? []).map(text).filter(Boolean))];
+    if (l.links.gapIds.some((g) => !list.includes(g))) removal = reasonOf(patch.reason, "a gap link");
     if (stableStringify(list) !== stableStringify(l.links.gapIds)) {
       note("gapIds", l.links.gapIds, list);
       l.links.gapIds = list;
@@ -260,6 +264,7 @@ export function updateExcipientLine(project: Project, assessmentId: string, line
       seen.add(k);
       return true;
     });
+    if (l.links.riskItems.some((r0) => !list.some((r1) => r1.assessmentId === r0.assessmentId && r1.itemId === r0.itemId))) removal = reasonOf(patch.reason, "a risk item link");
     if (stableStringify(list) !== stableStringify(l.links.riskItems)) {
       note("riskItems", l.links.riskItems, list);
       l.links.riskItems = list;
@@ -267,6 +272,7 @@ export function updateExcipientLine(project: Project, assessmentId: string, line
   }
   if ("trdItem" in patch) {
     const v = patch.trdItem ?? undefined;
+    if (l.links.trdItem && !v) removal = reasonOf(patch.reason, "the TRD link");
     if (stableStringify(v ?? null) !== stableStringify(l.links.trdItem ?? null)) {
       note("trdItem", l.links.trdItem, v);
       if (v) l.links.trdItem = { trdId: v.trdId, stepKey: v.stepKey, itemKey: v.itemKey };
@@ -285,7 +291,7 @@ export function updateExcipientLine(project: Project, assessmentId: string, line
   assertValid(a);
   l.updatedAt = actor.at;
   a.updatedAt = actor.at;
-  log(next, actor, { action: "excipient_line_update", path: `excipient.${assessmentId}.${lineId}`, detail: `Excipient ${lineId} (${l.name}) edited`, before, after });
+  log(next, actor, { action: "excipient_line_update", path: `excipient.${assessmentId}.${lineId}`, detail: `Excipient ${lineId} (${l.name}) edited${removal ? `. Reason for taking a link away: ${removal}` : ""}`, before, after });
   return next;
 }
 

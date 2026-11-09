@@ -428,6 +428,15 @@ function openWhenMade(r: DocumentExport): string {
   return MARKED_TBD_FORMATS.has(r.format) ? `${r.tbdCount} marked TBD` : `${r.tbdCount} open ${r.tbdCount === 1 ? "item" : "items"}`;
 }
 
+/**
+ * The downloads of ONE document of a kind (one TRD, one sampling plan, one risk assessment, one excipient assessment, one batch record
+ * and its parts). Each download records the id of the document it was of; a record from before ids were kept has none, and is shown
+ * for the document only when it is the only one of its kind (then it can only have been of that one).
+ */
+export function exportsOfDocument(all: readonly DocumentExport[], formats: (format: DocumentExport["format"]) => boolean, documentId: string, aloneOfItsKind: boolean): DocumentExport[] {
+  return all.filter((x) => formats(x.format) && (x.documentId === undefined ? aloneOfItsKind : x.documentId === documentId || x.documentId.startsWith(`${documentId}:`)));
+}
+
 /** What the document was downloaded with and when. Not a revision history: formal versions live in the company's document system. */
 export function ExportHistory({ exports, idPrefix = "export-history", title = "Export history" }: { exports: DocumentExport[]; idPrefix?: string; title?: string }) {
   const rows = [...exports].reverse();
@@ -494,7 +503,7 @@ export function ExportHistory({ exports, idPrefix = "export-history", title = "E
                             <dt>Versions used</dt>
                             <dd>
                               <span data-testid="export-versions">
-                                Process model {r.versions.processModel}; catalog {r.versions.catalog}; {r.format.startsWith("sampling-") ? "plan" : r.format.startsWith("risk-") ? "risk" : r.format === "trd-docx" || r.format === "trd-html" || r.format === "trd-evidence-docx" || r.format === "trd-evidence-html" ? "TRD" : r.format.startsWith("mbr-") ? "batch record" : "seed"} format {r.versions.format}
+                                Process model {r.versions.processModel}; catalog {r.versions.catalog}; {r.format.startsWith("sampling-") ? "plan" : r.format.startsWith("risk-") ? "risk" : r.format.startsWith("excipient-") ? "excipient assessment" : r.format === "trd-docx" || r.format === "trd-html" || r.format === "trd-evidence-docx" || r.format === "trd-evidence-html" ? "TRD" : r.format.startsWith("mbr-") ? "batch record" : "seed"} format {r.versions.format}
                               </span>
                               <span className="block muted">The version of the project format, of the question catalog and of this file's layout that made it.</span>
                             </dd>

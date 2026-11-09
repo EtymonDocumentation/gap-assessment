@@ -1,12 +1,16 @@
 import {
   allEntries,
   attachSource,
+  excipientAssessments,
+  excipientFactDef,
+  parseExcipientPath,
   detachSource,
   getEntry,
   removeSource,
   sourceUsage,
   verificationState,
   type Actor,
+  type ExcipientLine,
   type Project,
   type Source,
   type SourceType,
@@ -40,7 +44,10 @@ function plural(n: number, one: string, many: string): string {
 
 // ------------------------------------------------------------------ register rows
 
-export interface CitingEntry extends EntryLabel {
+export interface CitingEntry extends Omit<EntryLabel, "side" | "sideText"> {
+  /** "excipient" for a fact or comparison row of an excipient line (the side is then part of the text). */
+  side: EntryLabel["side"] | "excipient";
+  sideText: EntryLabel["sideText"] | "Excipient assessment";
   /** False when the entry belongs to a question that is no longer applicable (kept, but not compared). */
   active: boolean;
   display: string;
@@ -67,6 +74,36 @@ export function docDetail(s: Source): string {
   return [d.docType, d.title, d.version ? `version ${d.version}` : ""].filter(Boolean).join("; ");
 }
 
+const SPEC_REF = /^excipient.(EXA-d+).(EXL-d+).spec.(EXR-d+).(sending|receiving)$/;
+
+function excipientLineOfRef(project: Project, assessmentId: string, lineId: string): ExcipientLine | undefined {
+  return excipientAssessments(project).find((a) => a.id === assessmentId)?.lines.find((l) => l.id === lineId);
+}
+
+const SITE_WORD = { sending: "sending site", receiving: "receiving site" } as const;
+
+/** Reads the citation of an excipient fact or comparison row in words. The value is shown plainly (the option words live in the content files). */
+function excipientCiting(project: Project, ref: string, sourceId: string): Omit<CitingEntry, "active"> {
+  const base = { ref, side: "excipient" as const, sideText: "Excipient assessment" as const };
+  const spec = SPEC_REF.exec(ref);
+  if (spec) {
+    const line = excipientLineOfRef(project, spec[1]!, spec[2]!);
+    const row = line?.specs.find((r) => r.id === spec[3]);
+    const side = row?.[spec[4] as "sending" | "receiving"];
+    const attribute = `Specification: ${row?.test ?? spec[3]!} (${SITE_WORD[spec[4] as "sending" | "receiving"]})`;
+    const shown = side ? [side.criterion, side.unit, side.method ? `method ${side.method}` : ""].filter(Boolean).join(" ") : "";
+    return { ...base, sectionTitle: `Excipient assessment: ${line?.name ?? spec[2]!}`, attribute, text: `Excipient assessment: ${line?.name ?? spec[2]!}: ${attribute}`, display: shown || "Not established", location: locationText(side?.sourceLocations?.[sourceId]) };
+  }
+  const p = parseExcipientPath(ref);
+  const line = p ? excipientLineOfRef(project, p.assessmentId, p.lineId) : undefined;
+  const entry = getEntry(project, ref);
+  const def = p ? excipientFactDef(p.key) : undefined;
+  const attribute = `${def?.label ?? ref}${p?.side ? ` (${SITE_WORD[p.side]})` : ""}`;
+  const v = entry?.value;
+  const shown = v === undefined ? "" : Array.isArray(v) ? v.join(", ") : typeof v === "object" ? [String((v as { value?: unknown }).value ?? ""), (v as { unit?: string }).unit ?? ""].filter(Boolean).join(" ") : String(v).replace(/_/g, " ");
+  return { ...base, sectionTitle: `Excipient assessment: ${line?.name ?? ref}`, attribute, text: `Excipient assessment: ${line?.name ?? ref}: ${attribute}`, display: shown || "Not established", location: locationText(entry?.sourceLocations?.[sourceId]) };
+}
+
 /** One row per source, with the entries citing it. */
 export function sourceRegisterRows(content: ContentBundle, project: Project): SourceRow[] {
   const eff = effectiveStaged(content, project);
@@ -80,7 +117,12 @@ export function sourceRegisterRows(content: ContentBundle, project: Project): So
       detail: docDetail(source),
       responder: source.responder ? `${source.responder.name}${source.responder.role ? ` (${source.responder.role})` : ""}` : "—",
       date: source.date.slice(0, 10),
-      citing: refs.map((ref) => ({ ...entryLabel(eff, project, ref), active: active.has(ref), display: entryDisplay(eff, project, ref), location: locationText(getEntry(project, ref)?.sourceLocations?.[source.id]) })),
+      // An excipient fact is always asked about, so it is never "inactive".
+      citing: refs.map((ref): CitingEntry =>
+        ref.startsWith("excipient.")
+          ? { ...excipientCiting(project, ref, source.id), active: true }
+          : { ...entryLabel(eff, project, ref), active: active.has(ref), display: entryDisplay(eff, project, ref), location: locationText(getEntry(project, ref)?.sourceLocations?.[source.id]) },
+      ),
       state,
       stateText: state === "in_use" ? "In use" : state === "superseded" ? "Superseded, no longer cited" : "Unused",
     };

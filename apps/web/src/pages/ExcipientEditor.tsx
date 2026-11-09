@@ -11,6 +11,7 @@ import { href, navigate } from "../router";
 import { useStore } from "../store";
 import { AddExcipientForm } from "./ExcipientAdd";
 import { ExcipientInterview, type ExcipientShow } from "./ExcipientInterview";
+import { ExcipientOutput } from "./ExcipientOutput";
 import { ExcipientSpecs } from "./ExcipientSpecs";
 import { ReasonDialog } from "./ReasonDialog";
 
@@ -158,10 +159,7 @@ export function ExcipientEditor({ a, initialTab, initialShow, initialQuestion, i
           </section>
         )}
         {tab === "document" && (
-          <section className="card stack" aria-labelledby="ex-doc-h" data-testid="ex-document">
-            <h2 id="ex-doc-h">Document</h2>
-            <p>The download comes later. Everything you enter here will be in it, and open items will stay visible.</p>
-          </section>
+          <ExcipientOutput a={a} />
         )}
       </Tabs>
 

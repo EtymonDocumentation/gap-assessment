@@ -262,6 +262,9 @@ const tbdText = (t: TbdInfo | undefined): string => {
   return parts.length ? `TBD (${parts.join(", ")})` : "TBD";
 };
 
+/** "TBD (owner Name, due 2026-12-01)" or just "TBD": how an open item that was set aside is worded everywhere, including the document. */
+export const excipientTbdText = tbdText;
+
 /** Does the line cite any document (a source that is not just "who answered")? */
 export function lineCitesDocument(project: Project, line: ExcipientLine): boolean {
   const isDoc = (id: string) => project.sources.find((s) => s.id === id)?.type !== "user_entry" && project.sources.some((s) => s.id === id);

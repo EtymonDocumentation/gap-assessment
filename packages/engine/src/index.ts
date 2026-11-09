@@ -78,3 +78,6 @@ export * from "./excipient-analysis";
 export * from "./excipient-content";
 export * from "./excipient-interview";
 export * from "./excipient-library";
+export * from "./excipient-links";
+export * from "./excipient-document";
+export * from "./excipient-gap-section";

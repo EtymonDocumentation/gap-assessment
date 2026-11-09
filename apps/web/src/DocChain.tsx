@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { chainBar, chainStages, type ChainAllowed, type ChainLink, type ChainRoute } from "./chain";
-import { useMbrAllowed, useRiskAllowed, useSamplingAllowed, useTrdAllowed } from "./risk-module";
+import { ALONGSIDE_STAGES, chainBar, chainStages, type ChainAllowed, type ChainLink, type ChainRoute } from "./chain";
+import { useExcipientAllowed, useMbrAllowed, useRiskAllowed, useSamplingAllowed, useTrdAllowed } from "./risk-module";
 import { useEffectiveSuggestions } from "./expected-studies-store";
 import { href } from "./router";
 import { SERVER_MODE } from "./server/mode";
@@ -16,7 +16,8 @@ export function useChainAllowed(): ChainAllowed {
   const sampling = useSamplingAllowed();
   const mbr = useMbrAllowed();
   const risk = useRiskAllowed();
-  return useMemo(() => ({ trd, sampling, mbr, risk }), [trd, sampling, mbr, risk]);
+  const excipient = useExcipientAllowed();
+  return useMemo(() => ({ trd, sampling, mbr, risk, excipient }), [trd, sampling, mbr, risk, excipient]);
 }
 
 /**
@@ -37,14 +38,14 @@ export function DocChainStrip({ route, heading = true }: { route?: ChainRoute; h
   const expectedList = useEffectiveSuggestions();
   const stages = useMemo(() => (project ? chainStages(project, a, allowed, route) : []), [project, a, allowed, route, expectedList]);
   if (!project) return null;
-  const numbered = stages.filter((s) => s.id !== "risk");
+  const numbered = stages.filter((s) => !ALONGSIDE_STAGES.includes(s.id));
   const at = numbered.findIndex((s) => s.current);
 
-  // The risk assessment has no number ("N of 5"), so its page names the stage instead and offers the stage that follows it.
-  const riskAt = stages.findIndex((s) => s.current && s.id === "risk");
+  // The risk and excipient assessments have no number ("N of 5"), so their page names the stage instead and offers the stage that follows it.
+  const riskAt = stages.findIndex((s) => s.current && ALONGSIDE_STAGES.includes(s.id));
   if (narrow && at < 0 && riskAt >= 0) {
     const here = stages[riskAt]!;
-    const next = stages[riskAt + 1];
+    const next = stages.slice(riskAt + 1).find((s) => !ALONGSIDE_STAGES.includes(s.id));
     return (
       <nav aria-label="Document chain" className="doc-chain doc-chain-compact no-print" data-testid="doc-chain">
         <span className="doc-chain-now" aria-current="step" data-testid={`chain-${here.id}`}>

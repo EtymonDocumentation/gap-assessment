@@ -342,7 +342,7 @@ export interface DocumentExport {
   at: string;
   by?: string;
   /** The gap assessment document formats, and the three TRD seed outputs (kind "trd-*": see the TRD seed page). */
-  format: "markdown" | "html" | "docx" | "trd-seed-json" | "trd-outline-docx" | "trd-outline-html" | "sampling-plan-docx" | "sampling-plan-html" | "sampling-cmo-instructions-docx" | "sampling-cmo-instructions-html" | "risk-assessment-docx" | "risk-assessment-html" | "trd-docx" | "trd-html" | "trd-evidence-docx" | "trd-evidence-html" | "mbr-docx" | "mbr-html";
+  format: "markdown" | "html" | "docx" | "trd-seed-json" | "trd-outline-docx" | "trd-outline-html" | "sampling-plan-docx" | "sampling-plan-html" | "sampling-cmo-instructions-docx" | "sampling-cmo-instructions-html" | "risk-assessment-docx" | "risk-assessment-html" | "trd-docx" | "trd-html" | "trd-evidence-docx" | "trd-evidence-html" | "mbr-docx" | "mbr-html" | "excipient-docx" | "excipient-html" | "excipient-markdown";
   /** Markdown and HTML always use mode "builtin". */
   template: TemplateRecord;
   /** Latest issued revision number at export time. */

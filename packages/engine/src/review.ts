@@ -38,6 +38,15 @@ export const DOCUMENT_SECTION_IDS: readonly string[] = [
 ];
 
 /**
+ * The optional "Excipient assessment" section of the gap document. It exists only while the project has at least one excipient line, so
+ * the choice is not offered (and is not counted) for a project that never used the excipient module.
+ */
+export const EXCIPIENT_SECTION_ID = "excipient-assessment";
+
+/** True when the project has an excipient line, so the section above can be part of the gap document. */
+export const hasExcipientLines = (project: Pick<Project, "excipients">): boolean => (project.excipients?.assessments ?? []).some((a) => a.lines.length > 0);
+
+/**
  * The sections a user may leave out of the document, in document order. Everything else is mandatory: the purpose, the
  * scope, the SU and RU summaries, the detailed gap table and the open items (TBD values must stay visible).
  * The titles here are the titles buildDocument uses.
@@ -47,6 +56,7 @@ export const OPTIONAL_SECTIONS: readonly { id: string; title: string; appendix: 
   { id: "validation-plan", title: "Validation plan", appendix: false },
   { id: "equipment-qualification", title: "Equipment qualification comparison", appendix: false },
   { id: "risk", title: "Risk ranking", appendix: false },
+  { id: EXCIPIENT_SECTION_ID, title: "Excipient assessment", appendix: false },
   { id: "verification-status", title: "Verification status", appendix: false },
   { id: "references", title: "References", appendix: false },
   { id: "approval", title: "Approval", appendix: false },
@@ -71,6 +81,7 @@ export const SECTION_CHOICES: readonly { id: string; title: string; appendix: bo
   { id: "equipment-qualification", title: "Equipment qualification comparison", appendix: false, optional: true },
   { id: "open-items", title: "Open items", appendix: false, optional: false },
   { id: "risk", title: "Risk ranking", appendix: false, optional: true },
+  { id: EXCIPIENT_SECTION_ID, title: "Excipient assessment", appendix: false, optional: true },
   { id: "verification-status", title: "Verification status", appendix: false, optional: true },
   { id: "references", title: "References", appendix: false, optional: true },
   { id: "approval", title: "Approval", appendix: false, optional: true },
@@ -78,6 +89,12 @@ export const SECTION_CHOICES: readonly { id: string; title: string; appendix: bo
   { id: "source-register", title: "Source register", appendix: true, optional: true },
   { id: "change-log-summary", title: "Change log summary", appendix: true, optional: true },
 ];
+
+/** The optional sections this project can show: the excipient section only when there is an excipient line. */
+export const optionalSectionsFor = (project: Pick<Project, "excipients">): typeof OPTIONAL_SECTIONS => OPTIONAL_SECTIONS.filter((s) => s.id !== EXCIPIENT_SECTION_ID || hasExcipientLines(project));
+
+/** Every section of the document for this project, for the Scope step and the Document page. */
+export const sectionChoicesFor = (project: Pick<Project, "excipients">): typeof SECTION_CHOICES => SECTION_CHOICES.filter((s) => s.id !== EXCIPIENT_SECTION_ID || hasExcipientLines(project));
 
 /** Title of an optional section, or undefined for a mandatory or unknown id. */
 export function optionalSectionTitle(id: string): string | undefined {
@@ -87,7 +104,8 @@ export function optionalSectionTitle(id: string): string | undefined {
 /** The sections currently left out of the document: the stored choice, limited to optional sections, in document order. */
 export function omittedSectionIds(project: Project): string[] {
   const stored = new Set(project.document.omittedSections ?? []);
-  return OPTIONAL_SECTIONS.filter((s) => stored.has(s.id)).map((s) => s.id);
+  // The excipient section only exists while the project has excipient lines; a stored choice for it means nothing without them.
+  return optionalSectionsFor(project).filter((s) => stored.has(s.id)).map((s) => s.id);
 }
 
 /**
@@ -160,7 +178,7 @@ function cleanTemplate(t: TemplateRecord): TemplateRecord {
 
 // ------------------------------------------------------------------ exports
 
-const EXPORT_FORMATS: readonly DocumentExport["format"][] = ["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html", "sampling-plan-docx", "sampling-plan-html", "sampling-cmo-instructions-docx", "sampling-cmo-instructions-html", "risk-assessment-docx", "risk-assessment-html", "trd-docx", "trd-html", "trd-evidence-docx", "trd-evidence-html", "mbr-docx", "mbr-html"];
+const EXPORT_FORMATS: readonly DocumentExport["format"][] = ["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html", "sampling-plan-docx", "sampling-plan-html", "sampling-cmo-instructions-docx", "sampling-cmo-instructions-html", "risk-assessment-docx", "risk-assessment-html", "trd-docx", "trd-html", "trd-evidence-docx", "trd-evidence-html", "mbr-docx", "mbr-html", "excipient-docx", "excipient-html", "excipient-markdown"];
 
 /** True for the three TRD seed outputs (the seed JSON and its Word and HTML outlines). The TRD module's own document is not one of them. */
 export function isTrdFormat(format: DocumentExport["format"]): boolean {
@@ -197,16 +215,21 @@ export function isRiskFormat(format: DocumentExport["format"]): boolean {
   return format.startsWith("risk-assessment-");
 }
 
+/** True for the excipient assessment outputs (Word, HTML and Markdown). */
+export function isExcipientFormat(format: DocumentExport["format"]): boolean {
+  return format.startsWith("excipient-");
+}
+
 /**
  * Which document an output belongs to: the gap assessment, the TRD outputs, the sampling plan, the CMO reporting instructions, the risk
  * assessment, the batch record or the evidence record. Each is compared with its own previous download. The CMO instructions used to
  * fall into "gap" because nothing named them: their downloads were then compared with gap downloads, and the gap document's
  * omitted-section choice was written onto them.
  */
-function exportFamily(format: DocumentExport["format"]): "gap" | "trd" | "trd-document" | "trd-evidence" | "mbr" | "sampling" | "sampling-cmo" | "risk" {
+function exportFamily(format: DocumentExport["format"]): "gap" | "trd" | "trd-document" | "trd-evidence" | "mbr" | "sampling" | "sampling-cmo" | "risk" | "excipient" {
   // The evidence record is its own family: it is a different document from the standard TRD, so its first download has nothing to
   // compare with ("changed since previous" stays unset) instead of being compared with a TRD download.
-  return isTrdFormat(format) ? "trd" : isTrdEvidenceFormat(format) ? "trd-evidence" : isTrdDocumentFormat(format) ? "trd-document" : isMbrFormat(format) ? "mbr" : isSamplingFormat(format) ? "sampling" : isSamplingCmoFormat(format) ? "sampling-cmo" : isRiskFormat(format) ? "risk" : "gap";
+  return isTrdFormat(format) ? "trd" : isTrdEvidenceFormat(format) ? "trd-evidence" : isTrdDocumentFormat(format) ? "trd-document" : isMbrFormat(format) ? "mbr" : isSamplingFormat(format) ? "sampling" : isSamplingCmoFormat(format) ? "sampling-cmo" : isRiskFormat(format) ? "risk" : isExcipientFormat(format) ? "excipient" : "gap";
 }
 
 /** Appends an export record. No change-log entry: downloading the document does not change the project. */

@@ -223,6 +223,22 @@ export function* allExcipientSpecSides(project: Pick<Project, "excipients">): Ge
   for (const a of excipientAssessments(project)) for (const l of a.lines) for (const r of l.specs) yield r.sending, r.receiving;
 }
 
+/** The reference of one side of a comparison row, the way the source register names it: excipient.EXA-001.EXL-001.spec.EXR-001.sending. */
+export const excipientSpecSideRef = (assessmentId: string, lineId: string, rowId: string, side: ExcipientSide): string => `excipient.${assessmentId}.${lineId}.spec.${rowId}.${side}`;
+
+/**
+ * Everything on an excipient line that can cite a source: each fact and each side of each comparison row, with the sources it cites.
+ * The source register counts these, so a document cited only by an excipient fact is "in use" and not "unused".
+ */
+export function* allExcipientCitingRefs(project: Pick<Project, "excipients">): Generator<{ ref: string; sourceIds: readonly string[] }> {
+  for (const a of excipientAssessments(project)) {
+    for (const l of a.lines) {
+      for (const e of Object.values(l.facts)) yield { ref: e.path, sourceIds: e.sourceIds };
+      for (const r of l.specs) for (const side of EXCIPIENT_SIDES) yield { ref: excipientSpecSideRef(a.id, l.id, r.id, side), sourceIds: r[side].sourceIds };
+    }
+  }
+}
+
 // ------------------------------------------------------------------ zod
 
 const locationSchema = z.object({ section: z.string().optional(), page: z.string().optional() });

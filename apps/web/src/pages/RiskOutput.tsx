@@ -9,7 +9,7 @@ import { Modal } from "../components";
 import { APP_VERSION, download, projectFileStem, today } from "../lib";
 import { useContent, useStore } from "../store";
 import { useVersionStamp } from "../version-ui";
-import { BUILTIN_RECORD, ExportHistory, GENERIC_MODES, useWordChoice, WordPanel } from "./document-panels";
+import { BUILTIN_RECORD, ExportHistory, exportsOfDocument, GENERIC_MODES, useWordChoice, WordPanel } from "./document-panels";
 import type { Run } from "./SamplingFlow";
 
 /**
@@ -52,6 +52,7 @@ export function RiskOutput({ a, run }: { a: RiskAssessment; run: Run }) {
           by: actor.name,
           format,
           template,
+          documentId: a.id,
           fingerprint: documentFingerprint(doc),
           tbdCount: tbd,
           versions: { processModel: PROCESS_MODEL_VERSION, catalog: content.versions.catalog, format: RISK_FORMAT_VERSION, stats: RISK_SCORING_VERSION, suggestions: failureModes.catalog.version },
@@ -61,7 +62,7 @@ export function RiskOutput({ a, run }: { a: RiskAssessment; run: Run }) {
   // "Recorded" is only said when the history really took the entry; a problem is shown in its place.
   const saved = (file: string, problem?: string | null) => setDone(problem ? `Saved ${file}. This download is not in the export history. ${problem}` : `Saved ${file}. The download is recorded in the export history below.`);
 
-  const exports = project.document.exports.filter((x) => x.format.startsWith("risk-assessment-"));
+  const exports = exportsOfDocument(project.document.exports, (f) => f.startsWith("risk-assessment-"), a.id, project.risk.assessments.length === 1);
 
   return (
     <>

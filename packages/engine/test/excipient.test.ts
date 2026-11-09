@@ -91,7 +91,7 @@ describe("assessments and lines", () => {
     let p = withLine();
     p = updateExcipientLine(p, "EXA-001", "EXL-001", { gapIds: ["G1", "G1", " G2 "], riskItems: [{ assessmentId: "RA-001", itemId: "RI-001" }], trdItem: { trdId: "TRD-001", stepKey: "buffer_prep", itemKey: "diluent" }, regulatoryReference: " RA-DOC-1 " }, at(4));
     expect(line(p).links).toEqual({ gapIds: ["G1", "G2"], riskItems: [{ assessmentId: "RA-001", itemId: "RI-001" }], trdItem: { trdId: "TRD-001", stepKey: "buffer_prep", itemKey: "diluent" }, regulatoryReference: "RA-DOC-1" });
-    p = updateExcipientLine(p, "EXA-001", "EXL-001", { trdItem: null, regulatoryReference: "" }, at(5));
+    p = updateExcipientLine(p, "EXA-001", "EXL-001", { trdItem: null, regulatoryReference: "", reason: "Wrong document (fictional)" }, at(5));
     expect(line(p).links.trdItem).toBeUndefined();
     expect(line(p).links.regulatoryReference).toBeUndefined();
   });

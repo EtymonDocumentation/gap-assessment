@@ -15,7 +15,8 @@ import { cellVerification, verificationSummary } from "./verification";
 import { sourceRegisterRows } from "./source-register";
 import { changeLogActionCounts } from "./changelog";
 import { effectiveStaged } from "./custom";
-import { omittedSectionIds, optionalSectionTitle } from "./review";
+import { omittedSectionIds, optionalSectionTitle, EXCIPIENT_SECTION_ID } from "./review";
+import { excipientGapBlocks } from "./excipient-gap-section";
 import { coverStage, STAGE_NOT_ESTABLISHED, stageBasis, stagedFor, stageOpenItems, stageWording } from "./stage";
 
 export type Block =
@@ -247,7 +248,7 @@ export function documentSourceRefs(content: ContentBundle, project: Project): Ma
   return new Map(documentSourceRegister(sourceRegisterRows(content, project)).map((r, i) => [r.source.id, sourceRegisterRef(i)]));
 }
 
-export function buildDocument(rawContent: ContentBundle, project: Project, a: Assessment, generatedAt: string): DocModel {
+export function buildDocument(rawContent: ContentBundle, project: Project, a: Assessment, generatedAt: string, opts: { includeExcipients?: boolean } = {}): DocModel {
   // Texts, headings and labels follow the program stage of the source (see stage.ts).
   const content = stagedFor(rawContent, project);
   const w = stageWording(project);
@@ -498,6 +499,10 @@ export function buildDocument(rawContent: ContentBundle, project: Project, a: As
   if (withdrawnItems.length) vsBlocks.push({ type: "heading", text: "Entries with a withdrawn verification" }, { type: "list", items: withdrawnItems });
   if (selfItems.length) vsBlocks.push({ type: "heading", text: "Entries verified by the person who recorded them" }, { type: "list", items: selfItems });
   vsBlocks.push({ type: "note", text: t.identityStatement });
+  // The optional excipient section: only when the project has an excipient line. The TRD seed leaves it out of the gap fingerprint it
+  // stores (opts.includeExcipients false), because an excipient edit is not a change of the gap assessment.
+  const excipientBlocks = opts.includeExcipients === false ? undefined : excipientGapBlocks(project);
+  if (excipientBlocks) add(EXCIPIENT_SECTION_ID, "Excipient assessment", excipientBlocks);
   add("verification-status", "Verification status", vsBlocks);
 
   // References: every source cited by an active entry, plus the content versions used.

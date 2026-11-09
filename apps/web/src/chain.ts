@@ -4,7 +4,8 @@ import { isAnswered, planDesignReview, type Assessment } from "@gap/engine";
 import { designReviewLine, type DesignReviewView } from "@gap/sampling";
 import type { Project } from "@gap/process-model";
 import { interviewCounts, scopeRecorded } from "./next-step";
-import { openItemsCountOrNone, trdOpenCount } from "./open-count";
+import { excipientOpenCount, openItemsCountOrNone, trdOpenCount } from "./open-count";
+import { excipientAssessments } from "@gap/process-model";
 
 /**
  * The document chain: gap assessment, TRD, sampling plan, batch record, Process view. It is a map of how the documents lead to each
@@ -12,7 +13,10 @@ import { openItemsCountOrNone, trdOpenCount } from "./open-count";
  * required, and a stage that is not started says so in plain words. All status text is derived from the project, so it reads the
  * same in the browser-only build and in server mode.
  */
-export type ChainId = "gap" | "risk" | "trd" | "sampling" | "mbr" | "view";
+export type ChainId = "gap" | "risk" | "excipient" | "trd" | "sampling" | "mbr" | "view";
+
+/** The stages that sit beside the chain: shown in the strip, with no number and never the Back or Next document. */
+export const ALONGSIDE_STAGES: readonly ChainId[] = ["risk", "excipient"];
 
 /** Which modules the account may use. The gap assessment and the chain itself are always there. */
 export interface ChainAllowed {
@@ -20,6 +24,8 @@ export interface ChainAllowed {
   sampling: boolean;
   mbr: boolean;
   risk: boolean;
+  /** The excipient assessment. Absent counts as not included. */
+  excipient?: boolean;
 }
 
 export interface ChainLink {
@@ -52,7 +58,7 @@ export interface ChainRoute {
   params: URLSearchParams;
 }
 
-const NAMES: Record<ChainId, string> = { gap: "Gap assessment", risk: "Risk assessment", trd: "TRD", sampling: "Sampling plan", mbr: "Batch record", view: "Process view" };
+const NAMES: Record<ChainId, string> = { gap: "Gap assessment", risk: "Risk assessment", excipient: "Excipient assessment", trd: "TRD", sampling: "Sampling plan", mbr: "Batch record", view: "Process view" };
 const GAP_PATHS = ["/scope", "/interview", "/compare", "/register", "/validation", "/document"];
 
 /** Which stage a route belongs to, or undefined when the route is not part of the chain (libraries, templates...). */
@@ -60,6 +66,7 @@ export function chainStageOf(path: string): ChainId | undefined {
   if (GAP_PATHS.includes(path)) return "gap";
   // The risk assessment sits beside the chain: its page shows the strip, but it has no number and no Back / Next (see chainBar).
   if (path === "/risk") return "risk";
+  if (path === "/excipient") return "excipient";
   if (path === "/trd") return "trd";
   if (path === "/sampling") return "sampling";
   if (path === "/mbr") return "mbr";
@@ -87,6 +94,15 @@ function trdStatus(project: Project): string {
   // The one TRD count (open-count.ts): entries still open plus blank fields in the descriptions, the same number the TRD page header shows.
   const open = docs.reduce((n, d) => n + trdOpenCount(project, d).total, 0);
   const name = docs.length === 1 ? docs[0]!.id : `${docs.length} TRDs`;
+  return `${name}, ${openItemsCountOrNone(open)}`;
+}
+
+/** The excipient stage: the assessment ids, then the one open-items count the assessment's own pages use (open-count.ts). */
+function excipientStatus(project: Project): string {
+  const list = excipientAssessments(project);
+  if (list.length === 0) return "Not started";
+  const open = list.reduce((n, x) => n + excipientOpenCount(project, x), 0);
+  const name = list.length === 1 ? list[0]!.id : `${list.length} assessments`;
   return `${name}, ${openItemsCountOrNone(open)}`;
 }
 
@@ -125,6 +141,7 @@ export function chainStages(project: Project, a: Assessment | null, allowed: Cha
     ...(allowed.risk
       ? [{ id: "risk" as const, name: NAMES.risk, label: NAMES.risk, path: "/risk", status: countStatus(project.risk.assessments.map((r) => r.id), "assessments") }]
       : []),
+    ...(allowed.excipient ? [{ id: "excipient" as const, name: NAMES.excipient, label: NAMES.excipient, path: "/excipient", status: excipientStatus(project) }] : []),
     ...(allowed.trd ? [{ id: "trd" as const, name: NAMES.trd, label: NAMES.trd, path: "/trd", status: trdStatus(project) }] : []),
     ...(allowed.sampling
       ? [{ id: "sampling" as const, name: NAMES.sampling, label: NAMES.sampling, path: "/sampling", status: samplingStatus(project) }]
@@ -155,7 +172,7 @@ export function chainStages(project: Project, a: Assessment | null, allowed: Cha
  */
 export function chainBar(project: Project, a: Assessment | null, allowed: ChainAllowed, route: ChainRoute): ChainBar {
   // The risk assessment sits beside the chain: it is shown in the strip but is never the Back or Next document.
-  const stages = chainStages(project, a, allowed, route).filter((s) => s.id !== "risk");
+  const stages = chainStages(project, a, allowed, route).filter((s) => !ALONGSIDE_STAGES.includes(s.id));
   const at = stages.findIndex((s) => s.current);
   if (at < 0) return {};
   const here = stages[at]!;

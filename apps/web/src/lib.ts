@@ -126,6 +126,9 @@ export const FORMAT_LABEL = {
   "trd-evidence-html": "TRD evidence record (HTML)",
   "mbr-docx": "Batch record (Word)",
   "mbr-html": "Batch record (HTML)",
+  "excipient-docx": "Excipient assessment (Word)",
+  "excipient-html": "Excipient assessment (HTML)",
+  "excipient-markdown": "Excipient assessment (Markdown)",
 } as const;
 
 /** First 12 characters of a SHA-256 value, for tables. The full value goes in a title or an expandable. */

@@ -281,6 +281,7 @@ describe("optional document sections", () => {
       "validation-plan",
       "equipment-qualification",
       "risk",
+      "excipient-assessment",
       "verification-status",
       "references",
       "approval",

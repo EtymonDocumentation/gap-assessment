@@ -201,7 +201,7 @@ export const documentStateSchema = z.object({
     z.object({
       at: z.string(),
       by: z.string().optional(),
-      format: z.enum(["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html", "sampling-plan-docx", "sampling-plan-html", "sampling-cmo-instructions-docx", "sampling-cmo-instructions-html", "risk-assessment-docx", "risk-assessment-html", "trd-docx", "trd-html", "trd-evidence-docx", "trd-evidence-html", "mbr-docx", "mbr-html"]),
+      format: z.enum(["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html", "sampling-plan-docx", "sampling-plan-html", "sampling-cmo-instructions-docx", "sampling-cmo-instructions-html", "risk-assessment-docx", "risk-assessment-html", "trd-docx", "trd-html", "trd-evidence-docx", "trd-evidence-html", "mbr-docx", "mbr-html", "excipient-docx", "excipient-html", "excipient-markdown"]),
       template: templateRecord,
       revision: z.number().int().positive().optional(),
       fingerprint: z.string(),

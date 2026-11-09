@@ -1,4 +1,4 @@
-import { NO_VALUE_YET, deleteTrd, deriveTrdQuestions, trdOpenItems, trdOverrides, updateTrd, type TrdOpenItem } from "@gap/engine";
+import { NO_VALUE_YET, deleteTrd, excipientsAssessedInTrd, excipientsAssessedText, deriveTrdQuestions, trdOpenItems, trdOverrides, updateTrd, type TrdOpenItem } from "@gap/engine";
 import { trdInterviewWording } from "@gap/content";
 import type { TrdDocument } from "@gap/process-model";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -125,9 +125,12 @@ export function TrdEditor({ d, initialTab, initialShow, initialQuestion }: { d: 
 
   // Facts the page already knows. "Differences from the project" is the same count the review in the Details tab lists.
   const differences = useProjectDifferences(d);
+  // Excipients whose line is linked to this TRD (spec section 7). Shown only when there are some, so a TRD without the excipient module is unchanged.
+  const assessedHere = excipientsAssessedInTrd(projectForCount, d.id);
   const pills: PagePill[] = [
     { label: `${d.steps.length} process ${d.steps.length === 1 ? "step" : "steps"}`, testId: "trd-pill-steps" },
     { label: openItemsCount(count.total), warning: count.total > 0, testId: "trd-pill-open" },
+    ...(assessedHere > 0 ? [{ label: excipientsAssessedText(assessedHere), testId: "trd-pill-excipients" }] : []),
     ...(differences === null
       ? []
       : [differences > 0 ? { label: `${differences} ${differences === 1 ? "difference" : "differences"} from the project`, warning: true, testId: "trd-pill-update" } : { label: "Up to date with the project", testId: "trd-pill-update" }]),
