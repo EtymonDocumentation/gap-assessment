@@ -1,6 +1,6 @@
 import { content } from "@gap/content";
-import { openBlankCount, trdOpenItems, writeupsInOrder, type BlankContext, type ContentBundle } from "@gap/engine";
-import type { Project, TrdDocument } from "@gap/process-model";
+import { excipientOpenItems, openBlankCount, trdOpenItems, writeupsInOrder, type BlankContext, type ContentBundle } from "@gap/engine";
+import type { ExcipientAssessment, Project, TrdDocument } from "@gap/process-model";
 
 /**
  * The one "open items" count of a technical requirements document (EOU-14, EOU-15, EOU-25). Before, the chain strip and the page header
@@ -23,6 +23,15 @@ export function trdOpenCount(project: Project, d: TrdDocument, bundle: ContentBu
   const ctx: BlankContext = { project, doc: d, content: bundle };
   const blanks = writeupsInOrder(d).reduce((n, w) => n + openBlankCount(ctx, w), 0);
   return { entries, blanks, total: entries + blanks };
+}
+
+/**
+ * The one "open items" count of an excipient assessment: the entries of excipientOpenItems (a fact not established or to be decided, a test
+ * not compared yet, an excipient with no document cited). The list page, the pill, the Open items tab and the project's Open items page
+ * all say this same number.
+ */
+export function excipientOpenCount(project: Project, a: ExcipientAssessment): number {
+  return excipientOpenItems(project, a).length;
 }
 
 /** "1 open item", "12 open items": the same words in the chain strip, the page header, the Home cards and the interview banner. */

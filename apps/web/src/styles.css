@@ -5710,3 +5710,141 @@ html:has(.iv-one) { scroll-padding-bottom: 9rem; }
     display: none;
   }
 }
+
+/* M13: the excipient assessment. Existing tokens only; a state is always an icon plus words, never colour alone. */
+.ex-starts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+@media (max-width: 900px) {
+  .ex-starts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.ex-open {
+  color: var(--warn);
+}
+.ex-cell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.ex-edit-card {
+  display: grid;
+  gap: 8px;
+  padding: 8px 0;
+}
+.ex-facts th[scope="row"] {
+  min-width: 11rem;
+}
+.ex-rows {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 16px;
+}
+.ex-row h3 {
+  margin: 0;
+}
+.ex-name {
+  width: 100%;
+  font: inherit;
+  font-weight: 600;
+}
+.ex-sides {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+@media (max-width: 700px) {
+  .ex-sides {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.ex-side {
+  min-width: 0;
+}
+.ex-side input[type="text"],
+.ex-side input:not([type]) {
+  min-width: 0;
+  max-width: 100%;
+}
+/* Same column widths in every fact table of the excipient page, so the sites line up from group to group. */
+.ex-facts {
+  table-layout: fixed;
+  min-width: 34rem;
+  width: 100%;
+}
+.ex-col-fact {
+  width: 30%;
+}
+.ex-col-site {
+  width: 35%;
+}
+
+/* Phone: each fact becomes a block (the app's 700px table-to-cards breakpoint). The same DOM as the table; the column headers are hidden
+   and each cell carries its own label ("Sending site", "Receiving site", "Both sites") so nothing sits off-screen. */
+@media (max-width: 700px) {
+  .ex-facts {
+    min-width: 0;
+    table-layout: auto;
+  }
+  .ex-facts colgroup {
+    display: none;
+  }
+  .ex-facts,
+  .ex-facts tbody,
+  .ex-facts tr,
+  .ex-facts th,
+  .ex-facts td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .ex-facts thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .ex-facts tr {
+    margin-bottom: 12px;
+    padding: 8px 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .ex-facts th[scope="row"] {
+    min-width: 0;
+    border: 0;
+    padding: 4px 12px;
+  }
+  .ex-facts td {
+    border: 0;
+    padding: 4px 12px;
+  }
+  .ex-facts td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .ex-facts .ex-both-label {
+    display: none;
+  }
+  .ex-facts .ex-cell .btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  /* The answer card under a fact takes the full width of the block. */
+  .ex-facts tr:has(.ex-edit-card) {
+    border: 0;
+    padding: 0;
+  }
+}

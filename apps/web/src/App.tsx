@@ -50,7 +50,8 @@ import { TourHost } from "./tour";
 import { ConflictDialog, ServerGate, useIsRemote } from "./server/ServerUi";
 import { SERVER_MODE } from "./server/mode";
 import { useSession } from "./server/session-store";
-import { useMbrAllowed, useRiskAllowed, useTrdAllowed } from "./risk-module";
+import { useExcipientAllowed, useMbrAllowed, useRiskAllowed, useTrdAllowed } from "./risk-module";
+import { ExcipientPage } from "./pages/ExcipientPage";
 import { useStore } from "./store";
 import { VersionBanner } from "./version-ui";
 
@@ -78,6 +79,7 @@ const SamplingNotIncluded = () => <ModuleNotIncluded testId="sampling-not-includ
 const TrdNotIncluded = () => <ModuleNotIncluded testId="trd-not-included" title="Technical requirements document (TRD)" module="TRD" />;
 const MbrNotIncluded = () => <ModuleNotIncluded testId="mbr-not-included" title="Batch record" module="batch record" />;
 const RiskNotIncluded = () => <ModuleNotIncluded testId="risk-not-included" title="Risk assessment" module="risk" />;
+const ExcipientNotIncluded = () => <ModuleNotIncluded testId="excipient-not-included" title="Excipient assessment" module="excipient" />;
 
 /** In server mode the app opens behind the sign-in page; the static build (GitHub Pages) has no sign-in and no network calls. */
 export function App() {
@@ -102,6 +104,7 @@ function AppShell() {
   const riskAllowed = useRiskAllowed();
   const trdAllowed = useTrdAllowed();
   const mbrAllowed = useMbrAllowed();
+  const excipientAllowed = useExcipientAllowed();
 
   useEffect(() => {
     void init();
@@ -157,6 +160,7 @@ function AppShell() {
         heading: "Alongside",
         items: [
           ...(riskAllowed ? [{ path: "/risk", label: "Risk assessment", desc: "Rate risks with a method you choose." }] : []),
+          ...(excipientAllowed ? [{ path: "/excipient", label: "Excipient assessment", desc: "Compare the excipients between the sending and the receiving site." }] : []),
           { path: "/tbd", label: "Open items", desc: "Every value still to be decided, with owner and due date." },
         ],
       },
@@ -172,9 +176,9 @@ function AppShell() {
       ],
     },
   ];
-  const moduleOf = /^\/(sampling|trd|risk|mbr)(\/|$)/.exec(route.path)?.[1];
+  const moduleOf = /^\/(sampling|trd|risk|mbr|excipient)(\/|$)/.exec(route.path)?.[1];
   const notIncluded: React.ReactNode =
-    moduleOf === "sampling" && !samplingAllowed ? <SamplingNotIncluded /> : moduleOf === "trd" && !trdAllowed ? <TrdNotIncluded /> : moduleOf === "risk" && !riskAllowed ? <RiskNotIncluded /> : moduleOf === "mbr" && !mbrAllowed ? <MbrNotIncluded /> : null;
+    moduleOf === "excipient" && !excipientAllowed ? <ExcipientNotIncluded /> : moduleOf === "sampling" && !samplingAllowed ? <SamplingNotIncluded /> : moduleOf === "trd" && !trdAllowed ? <TrdNotIncluded /> : moduleOf === "risk" && !riskAllowed ? <RiskNotIncluded /> : moduleOf === "mbr" && !mbrAllowed ? <MbrNotIncluded /> : null;
   let page: React.ReactNode;
   if (!ready) page = <p className="muted">Loading…</p>;
   // A project page with no project open used to show Home with a one-line notice, which looked as if the menu click had done nothing. The box
@@ -201,6 +205,7 @@ function AppShell() {
   else if (route.path === "/sampling") page = samplingAllowed ? <SamplingPage params={route.params} /> : <SamplingNotIncluded />;
   else if (route.path === "/risk/methods") page = riskAllowed ? <RiskMethodsPage /> : <RiskNotIncluded />;
   else if (route.path === "/risk") page = riskAllowed ? <RiskPage params={route.params} /> : <RiskNotIncluded />;
+  else if (route.path === "/excipient") page = excipientAllowed ? <ExcipientPage params={route.params} /> : <ExcipientNotIncluded />;
   else if (route.path === "/trd/writeups") page = trdAllowed ? <TrdLibraryPage /> : <TrdNotIncluded />;
   else if (route.path === "/trd/import") page = trdAllowed ? <TrdImportPage /> : <TrdNotIncluded />;
   else if (route.path === "/trd") page = trdAllowed ? <TrdPage params={route.params} /> : <TrdNotIncluded />;

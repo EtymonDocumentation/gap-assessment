@@ -1,6 +1,10 @@
 import { isOverdue, localDate, openReviewItems, TBD_DEFINITION, tbdItems, tbdSummary, tbdSummaryText } from "@gap/engine";
+import { excipientAssessments } from "@gap/process-model";
 import { useMemo } from "react";
 import { Empty } from "../components";
+import { EXCIPIENT_PATH } from "../excipient-ui";
+import { excipientOpenCount, openItemsCount } from "../open-count";
+import { useExcipientAllowed } from "../risk-module";
 import { PageHeader } from "../PageHeader";
 import { href } from "../router";
 import { useAssessment, useContent, useStore } from "../store";
@@ -20,6 +24,8 @@ export function TbdPage() {
   const summary = tbdSummary(items, today);
   // Stage-review items are open items too: they stay here until each one is ticked. They live in the real project's history, which a saved
   // version being viewed does not carry, so this reads the real project.
+  const excipientAllowed = useExcipientAllowed();
+  const excipients = excipientAssessments(project);
   const real = useRealProject();
   const review = useMemo(() => (real ? openReviewItems(real) : []), [real]);
 
@@ -98,6 +104,22 @@ export function TbdPage() {
             </tbody>
           </table>
         </div>
+      )}
+      {excipientAllowed && excipients.length > 0 && (
+        // The same number as the assessment's own page and the list (excipientOpenCount), so every place says one count.
+        <section className="card stack" aria-labelledby="tbd-excipient-h" data-testid="tbd-excipient">
+          <h2 id="tbd-excipient-h">Excipient assessments</h2>
+          <ul className="plain-list">
+            {excipients.map((x) => (
+              <li key={x.id}>
+                <a href={href(EXCIPIENT_PATH, { excipient: x.id, tab: "open" })} data-testid="tbd-excipient-link">
+                  {x.id}: {x.title}
+                </a>
+                : <span data-testid="tbd-excipient-count">{openItemsCount(excipientOpenCount(project, x))}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
     </div>
   );

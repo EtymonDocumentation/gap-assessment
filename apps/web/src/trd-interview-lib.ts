@@ -71,7 +71,7 @@ export function sequencePosition(qs: readonly InterviewQuestion[], index: number
 }
 
 /** The next index after `from` (step +1 or -1) that is not skipped for this sitting; -1 when the run is over (or at the start). */
-export function nextIndex(qs: readonly InterviewQuestion[], from: number, step: 1 | -1, skipped: ReadonlySet<string>): number {
+export function nextIndex(qs: readonly { key: string }[], from: number, step: 1 | -1, skipped: ReadonlySet<string>): number {
   for (let i = from + step; i >= 0 && i < qs.length; i += step) if (!skipped.has(qs[i]!.key)) return i;
   return -1;
 }

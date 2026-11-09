@@ -22,6 +22,12 @@ export function useMbrAllowed(): boolean {
   return !SERVER_MODE || !!modules?.includes("mbr");
 }
 
+/** Is the excipient assessment available? Always on in the static demo; on the server it needs the "excipient" module on the account. */
+export function useExcipientAllowed(): boolean {
+  const modules = useSession((s) => s.user?.plan.modules);
+  return !SERVER_MODE || !!modules?.includes("excipient");
+}
+
 /** Is the sampling module available? When it is off, the links between sampling points and risk items are hidden; the data stays. */
 export function useSamplingAllowed(): boolean {
   const modules = useSession((s) => s.user?.plan.modules);

@@ -1,9 +1,8 @@
 import { checkLimits, type InterviewAnswer, type InterviewQuestion } from "@gap/engine";
-import { glossary } from "@gap/content";
 import type { Source, TrdDocument, TrdItem, TrdLimits } from "@gap/process-model";
-import { useId, useRef, useState, type ReactNode, type Ref } from "react";
-import { href } from "../router";
+import { useId, useRef, useState, type Ref } from "react";
 import { projectValueText, sourceText, statusOf } from "../trd-interview-lib";
+import { InterviewCardBase, UnitControl, type CardCtx, type CardDraft, type CardExitDraft, type CardKit } from "./InterviewCardBase";
 import { SourcePicker, type Where } from "./TrdSourcePicker";
 
 type Part = "setPoint" | "nor" | "par";
@@ -36,410 +35,140 @@ const numOf = (t: string): number | undefined => {
   return Number.isFinite(n) ? n : NaN;
 };
 
-/** A unit control: the catalog's units as a list that starts on "Choose...", or a plain box when the catalog gives none. Never pre-chosen. */
-function UnitControl({ id, label, units, value, onChange, describedBy }: { id: string; label: string; units: string[]; value: string; onChange: (v: string) => void; describedBy?: string }) {
-  return (
-    <label className="field compact iv-unit">
-      <span>{label}</span>
-      {units.length > 0 ? (
-        <select id={id} value={value} onChange={(e) => onChange(e.target.value)} aria-describedby={describedBy}>
-          <option value="">Choose...</option>
-          {value && !units.includes(value) && <option value={value}>{value}</option>}
-          {units.map((u) => (
-            <option key={u} value={u}>
-              {u}
-            </option>
-          ))}
-        </select>
-      ) : (
-        <input id={id} value={value} onChange={(e) => onChange(e.target.value)} aria-describedby={describedBy} />
-      )}
-    </label>
-  );
-}
-
 /**
- * One question: the prompt, the reason beside it (always visible), a hint with a glossary link, the input, and the same exits everywhere
- * ("Don't know yet", "Not applicable here", "Mark as to be decided (TBD)"). Nothing is filled in for the person: boxes start empty, lists
- * start on "Choose...", a yes/no on neither. A project value is shown as such and counts only after "Keep this" or a change.
+ * One question of the technical requirements document interview. The card itself is the shared one (InterviewCardBase, also used by the
+ * excipient assessment); this file holds what only the TRD has: the project value to keep or change, the "Where is this written?" box, the
+ * yes/no about a step, and the set point / NOR / PAR fields. A project value is shown as such and counts only after "Keep this" or a change.
  */
 export function InterviewCard(props: CardProps) {
   const { q, d, kept, large, headingRef, sources, onSave, onKeep, onDontKnow, onSkip, onFocusCard } = props;
-  const uid = useId().replace(/:/g, "");
-  const ids = { h: `${uid}-h`, why: `${uid}-why`, hint: `${uid}-hint`, err: `${uid}-err`, input: `${uid}-in`, saved: `${uid}-saved` };
-  const card = useRef<HTMLElement>(null);
   const t = q.target;
-  // Typed text of the document and of a sentence blank is the person's own earlier answer, so it is shown to be edited; everything else starts empty.
-  const prefill = q.state === "answered" && (t.kind === "document" || t.kind === "blank") && (q.input === "text" || q.input === "long_text" || q.input === "date") ? q.current ?? "" : "";
-  const [value, setValue] = useState(prefill);
-  const [unit, setUnit] = useState("");
-  const [values, setValues] = useState<string[]>([]);
-  const [min, setMin] = useState("");
-  const [max, setMax] = useState("");
-  const [reason, setReason] = useState("");
-  const [performed, setPerformed] = useState<"" | "yes" | "no">("");
-  const [changing, setChanging] = useState(false);
-  const [exit, setExit] = useState<null | "na" | "tbd">(null);
-  const [exitPart, setExitPart] = useState("");
-  const [naReason, setNaReason] = useState("");
-  const [guess, setGuess] = useState("");
-  const [owner, setOwner] = useState("");
-  const [due, setDue] = useState("");
-  const [error, setError] = useState("");
-  const [note, setNote] = useState("");
-  const [saved, setSaved] = useState(false);
-  const [dirty, setDirty] = useState(false);
   const limitsAnswer = useRef<() => InterviewAnswer | string>(() => "");
-
-  const status = statusOf(q, kept);
   const projectNow = q.state === "from_project";
-  const showInput = !projectNow || changing;
   const typedOver = projectValueText(d, q);
-  const describedBy = [ids.why, q.hint ? ids.hint : "", error ? ids.err : ""].filter(Boolean).join(" ");
-  const label = q.blankLabel ?? q.stepLabel;
-  const touch = () => {
-    setDirty(true);
-    setSaved(false);
-    setNote("");
+  const hasReasonBox = (t.kind === "field" || t.kind === "detail") && q.input !== "limits";
+
+  const kit: CardKit<InterviewQuestion, InterviewAnswer> = {
+    status: statusOf,
+    // Typed text of the document and of a sentence blank is the person's own earlier answer, so it is shown to be edited; everything else starts empty.
+    prefill: (x) => (x.state === "answered" && (x.target.kind === "document" || x.target.kind === "blank") && (x.input === "text" || x.input === "long_text" || x.input === "date") ? (x.current ?? "") : ""),
+    nowText: (x) => {
+      const here = x.state !== "open" && x.current !== undefined && !projectNow && x.state !== "tbd" && x.current && x.input !== "limits";
+      return here || (x.input === "limits" && x.current) ? `Now in the TRD: ${x.current}` : undefined;
+    },
+    fromElsewhere: () => projectNow,
+    naLabel: "Why is it not applicable? (optional)",
+    tbdGuess: true,
+    build(x, dr: CardDraft) {
+      if (x.input === "limits") return limitsAnswer.current();
+      if (t.kind === "presence") return dr.performed ? { kind: "presence", performed: dr.performed === "yes" } : "Please choose Yes or No, or choose Don't know yet.";
+      const why = t.kind === "field" || t.kind === "detail" ? (dr.reason.trim() ? { reason: dr.reason.trim() } : {}) : {};
+      if (x.input === "range") {
+        const lo = numOf(dr.min);
+        const hi = numOf(dr.max);
+        if (Number.isNaN(lo)) return "Please enter the lowest value as a number, for example 12.5.";
+        if (Number.isNaN(hi)) return "Please enter the highest value as a number, for example 12.5.";
+        return { kind: "range", ...(lo !== undefined ? { min: lo } : {}), ...(hi !== undefined ? { max: hi } : {}), ...(dr.unit ? { unit: dr.unit } : {}), ...why };
+      }
+      if (x.input === "multi_choice") return { kind: "value", values: dr.values, ...why };
+      const numeric = x.input === "number" || x.input === "quantity";
+      return { kind: "value", value: numeric ? dr.value.trim().replace(",", ".") : dr.value, ...(dr.unit ? { unit: dr.unit } : {}), ...why };
+    },
+    exitAnswer(_x, kind, dr: CardExitDraft) {
+      if (t.kind === "limits" && !dr.part) return "Please choose which one this is about.";
+      const part = dr.part ? { part: dr.part as Part } : {};
+      return kind === "na" ? { kind: "not_applicable", ...(dr.reason.trim() ? { reason: dr.reason.trim() } : {}), ...part } : { kind: "tbd", ...(dr.guess.trim() ? { bestGuess: dr.guess.trim() } : {}), ...(dr.owner.trim() ? { owner: dr.owner.trim() } : {}), ...(dr.due ? { due: dr.due } : {}), ...part };
+    },
+    before: (_x, ctx: CardCtx) => (
+      <>
+        {projectNow && (
+          <div className="iv-project stack" data-testid="iv-project">
+            <p>
+              <strong>{sourceText(q) || "From the project"}:</strong> <span data-testid="iv-project-value">{q.current}</span>
+            </p>
+            <div className="row wrap">
+              <button type="button" className="btn small" data-testid="iv-keep" disabled={kept} onClick={() => onKeep(q)}>
+                {kept ? "Kept" : "Keep this"}
+              </button>
+              <button type="button" className="btn small" data-testid="iv-change" aria-expanded={ctx.changing} onClick={() => ctx.setChanging((v) => !v)}>
+                {ctx.changing ? "Keep the project value" : "Change it"}
+              </button>
+            </div>
+          </div>
+        )}
+        {!projectNow && q.source && q.source.kind === "uploaded file" && q.state === "answered" && <p className="small muted">{sourceText(q)}</p>}
+        {typedOver !== undefined && (
+          <p className="small muted" data-testid="iv-project-beside">
+            Project value: {typedOver}
+          </p>
+        )}
+      </>
+    ),
+    customInput(x, ctx: CardCtx) {
+      if (x.input === "limits") return <LimitsFields q={x} d={d} sources={sources} labelledBy={ctx.ids.h} describedBy={ctx.describedBy} onChange={ctx.touch} expose={(f) => (limitsAnswer.current = f)} />;
+      if (t.kind === "presence") {
+        const opts = x.choices.length ? x.choices : [{ value: "yes", label: "Yes" }, { value: "no", label: "No" }];
+        return (
+          <div role="radiogroup" aria-labelledby={ctx.ids.h} aria-describedby={ctx.describedBy} className="row wrap iv-radios">
+            {opts.map((o) => (
+              <label key={o.value} className="check">
+                <input type="radio" name={ctx.ids.input} checked={ctx.draft.performed === o.value} data-testid={`iv-option-${o.value}`} onChange={() => ctx.set({ performed: o.value === "yes" ? "yes" : "no" })} /> <span>{o.label}</span>
+              </label>
+            ))}
+          </div>
+        );
+      }
+      return undefined;
+    },
+    afterInput: (_x, ctx: CardCtx) =>
+      hasReasonBox ? (
+        <label className="field">
+          <span>Where is this written? (optional)</span>
+          <input value={ctx.draft.reason} onChange={(e) => ctx.set({ reason: e.target.value })} data-testid="iv-reason" />
+        </label>
+      ) : null,
+    exitBefore: (_x, ctx: CardCtx) => {
+      if (t.kind !== "limits") return null;
+      const own = PARTS.filter((p) => t.parts.includes(p));
+      const all = own.length ? own : PARTS;
+      return (
+        <label className="field compact">
+          <span>Which one is this about?</span>
+          <select value={ctx.exitDraft.part} onChange={(e) => ctx.setExitDraft({ part: e.target.value })} data-testid="iv-exit-part">
+            <option value="">Choose...</option>
+            {all.map((p) => (
+              <option key={p} value={p}>
+                {PART_LABEL[p]}
+              </option>
+            ))}
+          </select>
+        </label>
+      );
+    },
+    asideExtra: (x) =>
+      x.usedIn.length > 0 ? (
+        <p className="small muted" data-testid="iv-used-in">
+          Used in: {x.usedIn.map((u) => u.title).join("; ")}
+        </p>
+      ) : null,
   };
 
-  function build(): InterviewAnswer | string {
-    if (q.input === "limits") return limitsAnswer.current();
-    if (t.kind === "presence") return performed ? { kind: "presence", performed: performed === "yes" } : "Please choose Yes or No, or choose Don't know yet.";
-    const why = t.kind === "field" || t.kind === "detail" ? (reason.trim() ? { reason: reason.trim() } : {}) : {};
-    if (q.input === "range") {
-      const lo = numOf(min);
-      const hi = numOf(max);
-      if (Number.isNaN(lo)) return "Please enter the lowest value as a number, for example 12.5.";
-      if (Number.isNaN(hi)) return "Please enter the highest value as a number, for example 12.5.";
-      return { kind: "range", ...(lo !== undefined ? { min: lo } : {}), ...(hi !== undefined ? { max: hi } : {}), ...(unit ? { unit } : {}), ...why };
-    }
-    if (q.input === "multi_choice") return { kind: "value", values, ...why };
-    const numeric = q.input === "number" || q.input === "quantity";
-    return { kind: "value", value: numeric ? value.trim().replace(",", ".") : value, ...(unit ? { unit } : {}), ...why };
-  }
-
-  function submit(a: InterviewAnswer | string) {
-    const err = typeof a === "string" ? a : onSave(q, a);
-    if (err) {
-      setError(`${label}: ${err}`);
-      setSaved(false);
-      return;
-    }
-    setError("");
-    setSaved(true);
-    setDirty(false);
-    setExit(null);
-    setNote("");
-  }
-
-  // "Save on leaving a finished box": only when focus leaves the whole card, so the buttons inside it (Don't know yet, Save) stay the person's choice.
-  const autoSave = dirty && showInput && exit === null && ((q.input === "text" && value.trim()) || (q.input === "long_text" && value.trim()) || (q.input === "date" && value) || (q.input === "number" && value.trim() && !q.units.length));
-
-  const Heading = large ? "h2" : "h3";
-  const choicesOf = q.choices;
-
-  function input(): ReactNode {
-    if (q.input === "limits") return <LimitsFields q={q} d={d} sources={sources} labelledBy={ids.h} describedBy={describedBy} onChange={touch} expose={(f) => (limitsAnswer.current = f)} />;
-    if (t.kind === "presence" || q.input === "yes_no") {
-      const opts = choicesOf.length ? choicesOf : [{ value: "yes", label: "Yes" }, { value: "no", label: "No" }];
-      const cur = t.kind === "presence" ? performed : value;
-      return (
-        <div role="radiogroup" aria-labelledby={ids.h} aria-describedby={describedBy} className="row wrap iv-radios">
-          {opts.map((o) => (
-            <label key={o.value} className="check">
-              <input
-                type="radio"
-                name={ids.input}
-                checked={cur === o.value}
-                data-testid={`iv-option-${o.value}`}
-                onChange={() => {
-                  if (t.kind === "presence") setPerformed(o.value === "yes" ? "yes" : "no");
-                  else setValue(o.value);
-                  touch();
-                }}
-              />{" "}
-              <span>{o.label}</span>
-            </label>
-          ))}
-        </div>
-      );
-    }
-    if (q.input === "choice") {
-      return (
-        <select id={ids.input} value={value} aria-labelledby={ids.h} aria-describedby={describedBy} data-testid="iv-input" onChange={(e) => (setValue(e.target.value), touch())}>
-          <option value="">Choose...</option>
-          {choicesOf.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-      );
-    }
-    if (q.input === "multi_choice") {
-      return (
-        <div role="group" aria-labelledby={ids.h} aria-describedby={describedBy} className="stack">
-          {choicesOf.map((o) => (
-            <label key={o.value} className="check">
-              <input
-                type="checkbox"
-                checked={values.includes(o.value)}
-                data-testid={`iv-option-${o.value}`}
-                onChange={(e) => (setValues(e.target.checked ? [...values, o.value] : values.filter((v) => v !== o.value)), touch())}
-              />{" "}
-              <span>{o.label}</span>
-            </label>
-          ))}
-        </div>
-      );
-    }
-    if (q.input === "range") {
-      return (
-        <div className="row wrap end-align">
-          <label className="field compact">
-            <span>Lowest value</span>
-            <input inputMode="decimal" value={min} aria-describedby={describedBy} data-testid="iv-min" onChange={(e) => (setMin(e.target.value), touch())} />
-          </label>
-          <label className="field compact">
-            <span>Highest value</span>
-            <input inputMode="decimal" value={max} aria-describedby={describedBy} data-testid="iv-max" onChange={(e) => (setMax(e.target.value), touch())} />
-          </label>
-          <UnitControl id={`${ids.input}-u`} label="Unit" units={q.units} value={unit} onChange={(v) => (setUnit(v), touch())} describedBy={describedBy} />
-        </div>
-      );
-    }
-    if (q.input === "long_text") {
-      return <textarea id={ids.input} rows={large ? 6 : 3} value={value} aria-labelledby={ids.h} aria-describedby={describedBy} data-testid="iv-input" onChange={(e) => (setValue(e.target.value), touch())} />;
-    }
-    if (q.input === "date") {
-      return <input id={ids.input} type="date" value={value} aria-labelledby={ids.h} aria-describedby={describedBy} data-testid="iv-input" onChange={(e) => (setValue(e.target.value), touch())} />;
-    }
-    const numeric = q.input === "number" || q.input === "quantity";
-    return (
-      <div className="row wrap end-align">
-        <input
-          id={ids.input}
-          className="iv-text"
-          inputMode={numeric ? "decimal" : undefined}
-          value={value}
-          aria-labelledby={ids.h}
-          aria-describedby={describedBy}
-          data-testid="iv-input"
-          onChange={(e) => (setValue(e.target.value), touch())}
-        />
-        {(q.input === "quantity" || (q.input === "number" && q.units.length > 0)) && <UnitControl id={`${ids.input}-u`} label="Unit" units={q.units} value={unit} onChange={(v) => (setUnit(v), touch())} describedBy={describedBy} />}
-      </div>
-    );
-  }
-
-  const exitParts = t.kind === "limits" ? PARTS.filter((p) => t.parts.includes(p)) : [];
-  const exitPartsAll = t.kind === "limits" ? (exitParts.length ? exitParts : PARTS) : [];
-  function partProblem(): string | null {
-    return t.kind === "limits" && !exitPart ? "Please choose which one this is about." : null;
-  }
-
   return (
-    <article
-      ref={card}
-      className={`iv-card${large ? " iv-card-large" : ""}`}
-      data-testid={`iv-card-${q.key}`}
-      data-state={q.state}
-      aria-labelledby={ids.h}
-      onFocus={() => onFocusCard?.(q)}
-      onBlur={(e) => {
-        if (autoSave && !card.current?.contains(e.relatedTarget as Node | null)) submit(build());
-      }}
-    >
-      <div className="iv-grid">
-        <div className="iv-main stack">
-          <Heading id={ids.h} ref={headingRef} tabIndex={-1} className="iv-prompt" data-testid="iv-prompt">
-            {q.prompt}
-          </Heading>
-          <p className="iv-status small" data-testid="iv-status" data-tone={status.tone}>
-            <span aria-hidden="true">{status.icon}</span> <strong>{status.text}</strong>
-            {q.state !== "open" && q.current !== undefined && !projectNow && q.state !== "tbd" && q.current && q.input !== "limits" && <span className="muted"> Now in the TRD: {q.current}</span>}
-            {q.input === "limits" && q.current && <span className="muted"> Now in the TRD: {q.current}</span>}
-          </p>
-
-          {projectNow && (
-            <div className="iv-project stack" data-testid="iv-project">
-              <p>
-                <strong>{sourceText(q) || "From the project"}:</strong> <span data-testid="iv-project-value">{q.current}</span>
-              </p>
-              <div className="row wrap">
-                <button type="button" className="btn small" data-testid="iv-keep" disabled={kept} onClick={() => onKeep(q)}>
-                  {kept ? "Kept" : "Keep this"}
-                </button>
-                <button type="button" className="btn small" data-testid="iv-change" aria-expanded={changing} onClick={() => setChanging((v) => !v)}>
-                  {changing ? "Keep the project value" : "Change it"}
-                </button>
-              </div>
-            </div>
-          )}
-          {!projectNow && q.source && q.source.kind === "uploaded file" && q.state === "answered" && <p className="small muted">{sourceText(q)}</p>}
-          {typedOver !== undefined && (
-            <p className="small muted" data-testid="iv-project-beside">
-              Project value: {typedOver}
-            </p>
-          )}
-
-          {showInput && (
-            <div className="stack iv-input">
-              {input()}
-              {(t.kind === "field" || t.kind === "detail") && q.input !== "limits" && (
-                <label className="field">
-                  <span>Where is this written? (optional)</span>
-                  <input value={reason} onChange={(e) => (setReason(e.target.value), touch())} data-testid="iv-reason" />
-                </label>
-              )}
-              <div className="row wrap iv-save-row">
-                <button type="button" className="btn primary" data-testid="iv-save" onClick={() => submit(build())}>
-                  Save answer
-                </button>
-                {dirty && !saved && <span className="small muted">Changed, not saved yet.</span>}
-              </div>
-            </div>
-          )}
-
-          <div className="row wrap iv-exits" role="group" aria-label="If you cannot answer">
-            <button
-              type="button"
-              className="btn small"
-              data-testid="iv-dontknow"
-              onClick={() => {
-                setExit(null);
-                setNote("Left open. It stays in the Open items list.");
-                setSaved(false);
-                onDontKnow?.(q);
-              }}
-            >
-              Don't know yet
-            </button>
-            {q.canNotApplicable && (
-              <button type="button" className="btn small" data-testid="iv-na" aria-expanded={exit === "na"} onClick={() => setExit(exit === "na" ? null : "na")}>
-                Not applicable here
-              </button>
-            )}
-            {q.canTbd && (
-              <button type="button" className="btn small" data-testid="iv-tbd" aria-expanded={exit === "tbd"} onClick={() => setExit(exit === "tbd" ? null : "tbd")}>
-                Mark as to be decided (TBD)
-              </button>
-            )}
-            {onSkip && (
-              <button type="button" className="btn small" data-testid="iv-skip" onClick={() => onSkip(q)}>
-                Skip
-              </button>
-            )}
-          </div>
-
-          {exit && (
-            <div className="iv-exit-panel stack" role="group" aria-label={exit === "na" ? "Not applicable here" : "To be decided"} data-testid="iv-exit-panel">
-              {t.kind === "limits" && (
-                <label className="field compact">
-                  <span>Which one is this about?</span>
-                  <select value={exitPart} onChange={(e) => setExitPart(e.target.value)} data-testid="iv-exit-part">
-                    <option value="">Choose...</option>
-                    {exitPartsAll.map((p) => (
-                      <option key={p} value={p}>
-                        {PART_LABEL[p]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-              {exit === "na" ? (
-                <label className="field">
-                  <span>Why is it not applicable? (optional)</span>
-                  <input value={naReason} onChange={(e) => setNaReason(e.target.value)} data-testid="iv-na-reason" />
-                </label>
-              ) : (
-                <>
-                  <label className="field">
-                    <span>Best guess (optional, shown as provisional)</span>
-                    <input value={guess} onChange={(e) => setGuess(e.target.value)} data-testid="iv-tbd-guess" />
-                  </label>
-                  <div className="row wrap">
-                    <label className="field">
-                      <span>Owner (optional)</span>
-                      <input value={owner} onChange={(e) => setOwner(e.target.value)} data-testid="iv-tbd-owner" />
-                    </label>
-                    <label className="field compact">
-                      <span>Due date (optional)</span>
-                      <input type="date" value={due} onChange={(e) => setDue(e.target.value)} data-testid="iv-tbd-due" />
-                    </label>
-                  </div>
-                </>
-              )}
-              <div>
-                <button
-                  type="button"
-                  className="btn small primary"
-                  data-testid="iv-exit-save"
-                  onClick={() => {
-                    const p = partProblem();
-                    if (p) return submit(p);
-                    const part = exitPart ? { part: exitPart as Part } : {};
-                    submit(exit === "na" ? { kind: "not_applicable", ...(naReason.trim() ? { reason: naReason.trim() } : {}), ...part } : { kind: "tbd", ...(guess.trim() ? { bestGuess: guess.trim() } : {}), ...(owner.trim() ? { owner: owner.trim() } : {}), ...(due ? { due } : {}), ...part });
-                  }}
-                >
-                  {exit === "na" ? "Save as not applicable" : "Save as to be decided"}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {error && (
-            <p className="error" role="alert" id={ids.err} data-testid="iv-error">
-              {error}
-            </p>
-          )}
-          {saved && (
-            <p className="iv-saved small" id={ids.saved} data-testid="iv-saved">
-              <span aria-hidden="true">{"✓"}</span> Saved
-            </p>
-          )}
-          {note && !saved && (
-            <p className="small muted" data-testid="iv-note">
-              {note}
-            </p>
-          )}
-        </div>
-
-        <aside className="iv-side stack" aria-label="About this question">
-          <p id={ids.why} className="iv-why" data-testid="iv-why">
-            <strong>Why we ask:</strong> {q.why}
-          </p>
-          {(q.hint || q.glossary.length > 0) && (
-            <p id={ids.hint} className="small iv-hint" data-testid="iv-hint">
-              {q.hint}
-              {q.glossary.map((g, i) => {
-                const term = glossary.find((x) => x.id === g)?.term;
-                return (
-                  <span key={g}>
-                    {" "}
-                    <a href={href("/glossary", { term: g })} data-testid="iv-glossary">
-                      {/* Glossary terms are title-cased ("Set point"); mid-sentence they read lower-case, but
-                          abbreviations ("NOR (...)") keep their capitals. */}
-                      {q.glossary.length === 1
-                        ? "What is this?"
-                        : `What is ${term && /^[A-Z][a-z]/.test(term) ? term[0]!.toLowerCase() + term.slice(1) : (term ?? g)}?`}
-                    </a>
-                  </span>
-                );
-              })}
-            </p>
-          )}
-          {q.usedIn.length > 0 && (
-            <p className="small muted" data-testid="iv-used-in">
-              Used in: {q.usedIn.map((u) => u.title).join("; ")}
-            </p>
-          )}
-        </aside>
-      </div>
-    </article>
+    <InterviewCardBase
+      q={q}
+      kit={kit}
+      kept={kept}
+      {...(large !== undefined ? { large } : {})}
+      {...(headingRef ? { headingRef } : {})}
+      onSave={onSave}
+      {...(onDontKnow ? { onDontKnow } : {})}
+      {...(onSkip ? { onSkip } : {})}
+      {...(onFocusCard ? { onFocusCard } : {})}
+      errorLabel={q.blankLabel ?? q.stepLabel}
+    />
   );
 }
+
 
 // ------------------------------------------------------------------ the limits card
 
