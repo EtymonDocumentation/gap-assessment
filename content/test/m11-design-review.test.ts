@@ -32,8 +32,8 @@ const ARX = blank(ARX_DEMO);
 const planOf = (p: Project) => p.sampling.plans[0]!;
 
 describe("versions and migration", () => {
-  it("is schema 1.32.0 and plan format 1.8.0", () => {
-    expect(SCHEMA_VERSION).toBe("1.32.0");
+  it("is schema 1.33.0 and plan format 1.8.0", () => {
+    expect(SCHEMA_VERSION).toBe("1.33.0");
     expect(SAMPLING_PLAN_FORMAT_VERSION).toBe("1.8.0");
   });
 

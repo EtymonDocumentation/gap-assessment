@@ -140,6 +140,12 @@ export const ACTION_LABELS: Record<string, string> = {
   mbr_sample_add: "Sample rows added to a batch record",
   mbr_sample_remove: "Sample row removed from a batch record",
   mbr_sample_refresh: "Sample row brought up to date with the sampling plan",
+  facility_area_add: "Facility area added",
+  facility_area_update: "Facility area edited",
+  facility_area_steps: "Steps of a facility area changed",
+  facility_area_remove: "Facility area removed",
+  facility_example_use: "Example layout of facility areas used",
+  facility_example_confirm: "Facility area from the example checked",
   mbr_excipient_add: "Excipient added to the excipients used in a batch record",
   mbr_excipient_update: "Excipient of a batch record brought up to date with the excipient assessment",
   mbr_excipient_remove: "Excipient removed from the excipients used in a batch record",
@@ -555,7 +561,7 @@ function toRow(content: ContentBundle, project: Project, ev: ChangeEvent, i: num
       return row;
     }
     default: {
-      if (ev.action.startsWith("sampling_") || ev.action === "migrate_sampling_steps" || ev.action.startsWith("risk_") || ev.action.startsWith("excipient_") || ev.action.startsWith("trd_") || ev.action.startsWith("mbr_")) {
+      if (ev.action.startsWith("sampling_") || ev.action === "migrate_sampling_steps" || ev.action.startsWith("risk_") || ev.action.startsWith("excipient_") || ev.action.startsWith("facility_") || ev.action.startsWith("trd_") || ev.action.startsWith("mbr_")) {
         row.subject = ev.detail ?? ev.path ?? "";
         const d = samplingDiff(ev.before, ev.after);
         row.before = d.before;

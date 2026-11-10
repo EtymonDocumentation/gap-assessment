@@ -11,6 +11,7 @@ import type { RiskState } from "./risk";
 import type { TrdState } from "./trd";
 import type { MbrState } from "./mbr";
 import type { ExcipientState } from "./excipient";
+import type { FacilityState } from "./facility";
 
 export type Side = "source" | "target";
 
@@ -497,6 +498,8 @@ export interface Project {
    * Everything about an excipient, including its links to the other modules, is kept here, so no other format changed.
    */
   excipients?: ExcipientState;
+  /** Facility areas for the interview maps (schema 1.33.0). Optional; absent means none. */
+  facility?: FacilityState;
 }
 
 /** Who is acting and when. Passed explicitly so engine functions stay pure and testable. */

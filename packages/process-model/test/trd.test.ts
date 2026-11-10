@@ -9,7 +9,7 @@ const step = (over: Record<string, unknown> = {}) => ({ id: "TS-01", label: "Ste
 
 describe("TRD schema (current project schema 1.32.0)", () => {
   it("is schema version 1.32.0 and TRD format 1.4.0", () => {
-    expect(SCHEMA_VERSION).toBe("1.32.0");
+    expect(SCHEMA_VERSION).toBe("1.33.0");
     expect(TRD_FORMAT_VERSION).toBe("1.4.0");
   });
 

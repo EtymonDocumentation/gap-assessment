@@ -6,6 +6,7 @@ import { riskStateSchema } from "./risk";
 import { trdStateSchema } from "./trd";
 import { mbrStateSchema } from "./mbr";
 import { buildExcipientSchemas } from "./excipient";
+import { facilityStateSchema } from "./facility";
 import type { Project } from "./types";
 
 const quantity = z.object({ value: z.number().finite(), unit: z.string().min(1) });
@@ -366,6 +367,8 @@ export const projectSchema = z.object({
   ),
   versionHistory: versionHistorySchema.optional(),
   excipients: excipientStateSchema.optional(),
+  // Schema 1.33.0 (M14): the facility areas the interview maps use. Optional; absent means none.
+  facility: facilityStateSchema.optional(),
   changeLog: z.array(
     z.object({
       at: z.string(),
@@ -660,6 +663,13 @@ const MIGRATIONS: { from: string; to: string; migrate: Migrate }[] = [
     from: "1.31.0",
     to: "1.32.0",
     migrate: (raw) => ({ ...raw, schemaVersion: "1.32.0" }),
+  },
+  // 1.32.0 -> 1.33.0: the optional facility areas of the interview maps (M14). The new part is optional and a project without it has no
+  // areas, so only the version moves (nothing is filled in for the user). Running it again changes nothing.
+  {
+    from: "1.32.0",
+    to: "1.33.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.33.0" }),
   },
 ];
 

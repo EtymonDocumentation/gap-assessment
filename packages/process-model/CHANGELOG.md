@@ -2,6 +2,16 @@
 
 All notable changes to `@gap/process-model`. Versions follow semver; see README.md for what counts as breaking.
 
+## 1.19.0
+
+Project schema 1.33.0 (was 1.32.0), catalog and questions unchanged. Additive: a project may carry optional facility areas for the interview maps (M14).
+
+### Added
+- Project.facility: optional { su?, ru? }, each with reas (FacilityArea: id `AR-01` and up, never reused and unique across both units; the user's name; an optional
+  stated grade; an optional parent area of the same unit; the process steps done there, one step may be in several areas; `fromExample`; note). The schema refuses a
+  cycle in the parent chain, a parent from another unit and the same step twice in one area.
+- `FACILITY_UNITS`, `FACILITY_GRADES`, labels, `facilityAreas` and `facilityUnitOf`.
+- Migration 1.32.0 to 1.33.0 moves only the version. A project without `facility` has no areas and behaves as before.
 ## 1.18.0
 
 Project schema 1.32.0 (was 1.31.0), MBR format 1.3.0 (was 1.2.0), catalog and questions unchanged. Additive: a batch record may carry an optional `Excipients used` table.

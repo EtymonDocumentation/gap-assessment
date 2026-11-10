@@ -353,7 +353,7 @@ The **Excipient assessment** page (module `excipient`, at `#/excipient`) compare
 - **Library** (`#/excipient/library`): excipients you saved before, with versions; an assessment keeps its own copy and is offered "Update from library".
 - **Demos:** the ARX-217 and SYR-305 demos each carry a small fictional excipient assessment (two or three lines, a few facts left open, a mix of Same / Different / Only at one site, one linked risk item, one line linked to its TRD item). The demo script is the `excipients:` block of `content/demo/*.yaml` and is replayed through the same edit functions a person uses.
 - **Help:** a tour of the page, a glossary (excipient, compendial, monograph, specification, CoA, TSE, nitrosamine, elemental impurity, supplier qualification) and an "About this page" panel on the page, on each excipient and on the library.
-- **Data:** the project part is `excipients.assessments` (schema 1.32.0, process model 1.18.0; a batch record may carry an optional `Excipients used` table, MBR format 1.3.0, engine/src/mbr-excipients.ts). Wording and the class list are editable content in `content/excipient/`. Tests: `content/test/m13-excipient.test.ts`, `content/test/m13-demo-excipients.test.ts`, and the browser tests `apps/web/e2e/m13-*.spec.ts`.
+- **Data:** the project part is `excipients.assessments` (schema 1.33.0, process model 1.19.0; a batch record may carry an optional `Excipients used` table, MBR format 1.3.0, engine/src/mbr-excipients.ts). Wording and the class list are editable content in `content/excipient/`. Tests: `content/test/m13-excipient.test.ts`, `content/test/m13-demo-excipients.test.ts`, and the browser tests `apps/web/e2e/m13-*.spec.ts`.
 
 ## Testing
 

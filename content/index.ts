@@ -1,5 +1,5 @@
 import type { DesignLoadouts, FailureModeSuggestions, MbrLibraryBlock, RiskLoadouts, TrdLibraryWriteup } from "@gap/process-model";
-import { buildContent, parseFailureModes, parseGuidance, parseMbrLibrary, parseTrdWriteupLibrary, parseDesignLoadouts, parseRiskLoadouts, parseSamplingSuggestions, parseSamplingImportSynonyms, parseGapImportSynonyms, parseTrdSynonyms, parseTrdInterviewWording, parseExcipientClasses, parseExcipientWording, type GapImportSynonyms, type SamplingImportSynonyms, type TrdSynonyms, type ContentBundle, type GuidanceLibrary, type RawContent, type SamplingSuggestions } from "@gap/engine";
+import { buildContent, parseFailureModes, parseGuidance, parseMbrLibrary, parseTrdWriteupLibrary, parseDesignLoadouts, parseRiskLoadouts, parseSamplingSuggestions, parseSamplingImportSynonyms, parseGapImportSynonyms, parseTrdSynonyms, parseTrdInterviewWording, parseExcipientClasses, parseExcipientWording, parseInterviewMapWording, parseExampleLayout, type GapImportSynonyms, type SamplingImportSynonyms, type TrdSynonyms, type ContentBundle, type GuidanceLibrary, type RawContent, type SamplingSuggestions } from "@gap/engine";
 import { catalog } from "@gap/process-model/catalog";
 import catalogOverlay from "./catalog/gap-overlay.yaml";
 import demoArx217 from "./demo/arx-217.yaml";
@@ -10,6 +10,8 @@ import guidanceRaw from "./guidance/guidance.yaml";
 import trdInterviewWordingRaw from "./trd-interview/wording.yaml";
 import excipientClassesRaw from "./excipient/classes.yaml";
 import excipientWordingRaw from "./excipient/wording.yaml";
+import interviewMapWordingRaw from "./interview-map/wording.yaml";
+import exampleLayoutRaw from "./interview-map/example-layout.yaml";
 import { parseGlossary, parseTours } from "./help";
 import mbrBlocksRaw from "./mbr/blocks.yaml";
 import q00 from "./questions/00-scoping-and-site.yaml";
@@ -169,3 +171,15 @@ export const excipientClasses = parseExcipientClasses(excipientClassesRaw);
 
 /** Wording of the Excipient assessment interview and of its change-risk markers; content/excipient/wording.yaml, versioned on its own. */
 export const excipientWording = parseExcipientWording(excipientWordingRaw);
+
+/** Wording of the interview maps (process steps and facility areas); content/interview-map/wording.yaml, versioned on its own. */
+export const interviewMapWording = parseInterviewMapWording(interviewMapWordingRaw);
+
+/**
+ * The example layout of facility areas, offered to a person who has none (names and steps only, never a grade). Checked here against the
+ * catalog's unit operations, so a misspelt step key stops the build.
+ */
+export const interviewMapExample = parseExampleLayout(
+  exampleLayoutRaw,
+  content.catalog.unitOperations.map((u) => u.key),
+);

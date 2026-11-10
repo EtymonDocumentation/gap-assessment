@@ -40,7 +40,7 @@ describe("package independence", () => {
 
   it("keeps PROCESS_MODEL_VERSION equal to package.json", () => {
     expect(PROCESS_MODEL_VERSION).toBe(pkg.version);
-    expect(pkg.version).toBe("1.18.0");
+    expect(pkg.version).toBe("1.19.0");
   });
 
   it("is private until it is published on purpose", () => {
@@ -80,6 +80,10 @@ describe("public API", () => {
         "EXCIPIENT_REGULATORY_SENTENCE",
         "EXCIPIENT_SIDES",
         "EXCIPIENT_SIDE_LABEL",
+        "FACILITY_GRADES",
+        "FACILITY_GRADE_LABEL",
+        "FACILITY_UNITS",
+        "FACILITY_UNIT_LABEL",
         "FILTER_TESTS",
         "FLOW_POSITIONS",
         "GRADE_STANDARDS",
@@ -229,6 +233,11 @@ describe("public API", () => {
         "excipientLibraryVersionSchema",
         "excipientSpecSideRef",
         "excipientStateSchema",
+        "facilityAreaSchema",
+        "facilityAreas",
+        "facilityStateSchema",
+        "facilityUnitOf",
+        "facilityUnitOfSide",
         "failureModeSuggestionSchema",
         "failureModeSuggestionsSchema",
         "fingerprintResolved",

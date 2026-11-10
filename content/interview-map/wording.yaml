@@ -1,0 +1,55 @@
+# Wording of the interview maps (process steps and facility areas): view names, status words, empty states and run messages.
+#
+# Conventions
+#  - Plain words, one idea per sentence, the same words in the map, the list, the help and the documents. No "wizard", "validate",
+#    "required", "must" or "error". Every text is at most 140 characters; the `explain` block may run to 260.
+#  - {braces} are filled in by the page. Each template holds exactly the placeholders the content reader expects (checked at load).
+#  - The state of a tile is always said in words as well as shown by an icon and a border style. Never colour alone.
+#  - Nothing here is an answer, a grade or a default. The example layout is in example-layout.yaml and is only an offer.
+version: 1.0.0
+changelog:
+  - version: 1.0.0
+    note: First wording (M14 job 1).
+views:
+  groupLabel: "Show the questions as"
+  list: "List"
+  process: "Process steps"
+  areas: "Facility areas"
+  listHint: "Every question, grouped by step."
+  processHint: "One tile for each process step. Pick a tile to answer its questions."
+  areasHint: "One card for each room of your site. Pick a room to answer the questions of its steps."
+status:
+  allAnswered: "All {total} answered"
+  someOpen: "{answered} of {total} answered, {open} open"
+  tbdPart: "{tbd} to be decided"
+  toConfirmPart: "{toConfirm} to confirm"
+  nothingToAsk: "No questions here"
+  leftOut: "Left out of this project"
+  leftOutWithReason: "Left out of this project: {reason}"
+  notPlaced: "Not placed in an area yet"
+  notPlacedHint: "These steps are not in any room yet. You can still answer their questions here."
+nodes:
+  wholeAreas: "About the whole site"
+  wholeGap: "Scope and site"
+  wholeTrd: "Document and details"
+steps:
+  moreDetail: "plus {n} more in More detail"
+areas:
+  noStepsHere: "No steps placed here yet"
+  alsoDoneIn: "also done in {areas}"
+  fromExample: "From the example, please check"
+  gradeNotStated: "Grade not stated"
+  unitSwitchLabel: "Show the rooms of"
+run:
+  nextOpen: "Go to the next open question"
+  backToMap: "Back to the map"
+  nextStepWithOpen: "Next step with open questions"
+  backOnMap: "Back on the map. {label}: {status}."
+  endOfNode: "That was the last question in {label}. {open} left open."
+explain:
+  emptyAreas: "Tell us the rooms of your site and which steps happen in each, and you can answer by room. This is optional; the list and the step map work without it."
+  addFirst: "Add the first area"
+  startExample: "Start from an example layout"
+  useExample: "Use this example"
+  exampleNote: "An example; your site may be laid out differently."
+  listIsDefault: "The list stays as it is. A map is one more way to reach the same questions."

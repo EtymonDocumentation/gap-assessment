@@ -1,0 +1,32 @@
+# An example layout of facility areas, OFFERED to a person who has none yet. It is names and steps only, never a grade: the person states
+# the grade of each room after copying it. Nothing is applied until the person presses "Use this example", and every copied area is marked
+# "From the example, please check" until they edit or confirm it. Fictional, generic names. The product owner reviews this before release.
+#  - inside: the name of another example area this one sits inside (an isolator inside a filling room).
+#  - steps: unit operation keys of the catalog (checked at load).
+version: 1.0.0
+changelog:
+  - version: 1.0.0
+    note: First example (M14 job 1).
+note: "An example; your site may be laid out differently."
+areas:
+  - name: "Receiving and storage"
+    steps: [ds_shipping_inbound]
+  - name: "Thaw room"
+    steps: [ds_receipt_thaw]
+  - name: "Buffer and compounding room"
+    steps: [buffer_prep, compounding]
+  - name: "Filtration room"
+    steps: [bbr_filtration, sterile_filtration]
+  - name: "Filling room"
+    steps: [stoppering]
+  - name: "Filling isolator"
+    inside: "Filling room"
+    steps: [aseptic_filling]
+  - name: "Freeze-drying room"
+    steps: [lyophilization]
+  - name: "Capping and inspection room"
+    steps: [capping, visual_inspection]
+  - name: "Packaging room"
+    steps: [bulk_packaging, labeling_packaging]
+  - name: "Cold store and dispatch"
+    steps: [storage_shipping]

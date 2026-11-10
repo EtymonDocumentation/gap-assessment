@@ -240,7 +240,7 @@ describe("verification in the change log", () => {
 
 describe("schema 1.2.0 features", () => {
   it("is superseded by the current version", () => {
-    expect(SCHEMA_VERSION).toBe("1.32.0");
+    expect(SCHEMA_VERSION).toBe("1.33.0");
     expect(newProject().schemaVersion).toBe(SCHEMA_VERSION);
   });
 
