@@ -81,6 +81,9 @@ test("project page, account menu and the password and delete dialogs", async ({ 
 });
 
 test("sources page with attached files, and the remove dialog", async ({ page }) => {
+  // Six axe passes (light + dark, three states) over the demo's sources page. Since M13 job 4B the demo cites more
+  // documents (excipient specifications), so the page is longer and the CI runner needed more than 60 s twice in a row.
+  test.setTimeout(180_000);
   await signUp(page, newAccount("a11y-src"));
   await loadDemo(page);
   await go(page, "#/sources");
