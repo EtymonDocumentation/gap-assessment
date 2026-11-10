@@ -35,9 +35,9 @@ const line = (facts: Record<string, Entry> = {}) => ({
 });
 const assessment = (lines: unknown[] = []) => ({ id: "EXA-001", title: "Buffer excipients (fictional)", status: "draft", lines, createdAt: ACTOR.at, updatedAt: ACTOR.at });
 
-describe("schema 1.31.0", () => {
-  it("is schema 1.31.0 and a new project has an empty excipient part", () => {
-    expect(SCHEMA_VERSION).toBe("1.31.0");
+describe("schema 1.31.0 (the excipient part) and the version it is at now", () => {
+  it("is schema 1.32.0 (1.31.0 added the excipient part) and a new project has an empty excipient part", () => {
+    expect(SCHEMA_VERSION).toBe("1.32.0");
     expect(empty().excipients).toEqual({ assessments: [] });
     expect(EXCIPIENT_FORMAT_VERSION).toBe("1.0.0");
     expect(EXCIPIENT_REGULATORY_SENTENCE).toBe("Requires regulatory affairs assessment");
@@ -49,7 +49,7 @@ describe("schema 1.31.0", () => {
     raw.schemaVersion = "1.30.0";
     delete raw.excipients;
     const once = parseProject(raw);
-    expect(once.schemaVersion).toBe("1.31.0");
+    expect(once.schemaVersion).toBe("1.32.0"); // 1.30.0 runs through 1.31.0 and on to the current version
     expect(once.excipients).toEqual({ assessments: [] });
     expect(parseProject(json(once))).toEqual(once);
     expect({ ...once, excipients: undefined }).toEqual({ ...p, excipients: undefined });

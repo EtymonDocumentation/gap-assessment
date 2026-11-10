@@ -13,7 +13,7 @@ section 1 rather than appending to it.
 - Latest: M11 sampling plan design review, complete in three jobs (`1dd435c`, `cc69e86`, `249cdb9`): questions about
   likely design errors and left-out studies, a Process view "Coverage" group, a Word/HTML appendix, and an
   account-editable "Expected studies" list (`/sampling/expected`).
-- Current versions: project schema 1.31.0, process model 1.17.0. Check `packages/process-model/src` for the other format versions.
+- Current versions: project schema 1.32.0, process model 1.18.0, MBR format 1.3.0. Check `packages/process-model/src` for the other format versions.
 - **M12 (TRD interview) is built** (jobs 1 to 3): an Interview tab inside the TRD stage, no new module, no schema change. Starts: TRD page
   and Home ("Answer questions"), also Home starts for a sampling plan and a batch record on their own. Files: engine
   `packages/engine/src/trd-interview.ts`, wording `content/trd-interview/wording.yaml` (all questions hand-worded), tab

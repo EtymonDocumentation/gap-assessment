@@ -654,6 +654,13 @@ const MIGRATIONS: { from: string; to: string; migrate: Migrate }[] = [
     to: "1.31.0",
     migrate: (raw) => ({ ...raw, schemaVersion: "1.31.0", excipients: raw.excipients ?? { assessments: [] } }),
   },
+  // 1.31.0 -> 1.32.0: the optional "Excipients used" table on a batch record (M13 job 4C, MBR format 1.3.0). The new field is optional and a
+  // record without it means no table, so only the version moves. Running it again changes nothing.
+  {
+    from: "1.31.0",
+    to: "1.32.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.32.0" }),
+  },
 ];
 
 /**

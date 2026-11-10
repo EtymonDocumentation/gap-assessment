@@ -17,7 +17,7 @@ const TABS: TabDef<MbrTab>[] = [
     label: "Edit",
     testId: "mbr-tab-edit",
     purpose: "Write the batch record: details, open items and the sections of ready-made steps.",
-    help: "This is where the record itself is written. Add sections and ready-made steps, fill the rows, and clear the open items. Everything you change here shows in the other two tabs.",
+    help: "This is where the record itself is written. Add sections and ready-made steps, fill the rows, and clear the open items. Everything you change here shows in the other two tabs. The optional \"Excipients used\" table lists the excipients the excipient assessment links to this record's TRD, as a copy you add yourself.",
   },
   {
     id: "view",

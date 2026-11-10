@@ -2,6 +2,16 @@
 
 All notable changes to `@gap/process-model`. Versions follow semver; see README.md for what counts as breaking.
 
+## 1.18.0
+
+Project schema 1.32.0 (was 1.31.0), MBR format 1.3.0 (was 1.2.0), catalog and questions unchanged. Additive: a batch record may carry an optional `Excipients used` table.
+
+### Added
+- `MbrRecord.excipients`: optional rows (`mbrExcipientUsedSchema`, `MbrExcipientUsed`). Each row keeps its own copy of the excipient name, grade statement and specification reference, and where it came from
+  (assessment id, line id, the line's `updatedAt` at copy time). Row ids are `EU-001` and up and are never reused. A record with no table prints nothing.
+- `GRADE_STANDARD_LABEL`: the words for the grade standards of an excipient line (the same words as `content/excipient/wording.yaml`).
+- Migration 1.31.0 to 1.32.0 moves only the version.
+
 ## 1.17.0
 
 Project schema 1.31.0 (was 1.30.0), catalog and questions unchanged. Additive: the project gains `excipients`, and an export record may carry `documentId`.

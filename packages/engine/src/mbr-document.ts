@@ -9,6 +9,7 @@ import { projectLabel } from "./format";
 import { coverStage, projectStage, stageOpenItems } from "./stage";
 import { holdEntryInfo, mbrOpenItems, numberSteps, renderStepText, sampleIdsTakenAt, splitIndex, stepNumberText, type HoldEntryInfo, type MbrOpenItem, type MbrPart } from "./mbr";
 import { mbrStageView } from "./mbr-stage";
+import { MBR_EXCIPIENTS_COLUMNS, MBR_EXCIPIENTS_INTRO, MBR_EXCIPIENTS_TITLE, mbrExcipientStates, mbrExcipientStateText, mbrExcipientTableRow } from "./mbr-excipients";
 import { NOT_HELD, NOTE_OUTSIDE, NOTE_TIGHTER, paramNote, targetSum, trdRefText } from "./mbr-values";
 
 /**
@@ -304,6 +305,18 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
       `${CMO_PLACEHOLDER}: entries only the CMO can make (batch number, equipment IDs, calibration, BOM and ERP IDs, form and SOP numbers, alarm values, weights, densities, signatures and all results).`,
     ] },
   ]);
+
+  // The optional "Excipients used" table sits right after the basis, which is where the record says what only the CMO enters (the bill of
+  // materials stays that entry). A record with no rows prints nothing. A row that is out of date with the excipient assessment says so.
+  if (rec.excipients?.length) {
+    const states = mbrExcipientStates(project, rec);
+    const notes = rec.excipients.flatMap((x) => (states.get(x.id) && states.get(x.id) !== "current" ? [`${x.name}: ${mbrExcipientStateText(states.get(x.id)!)}`] : []));
+    appendix("excipients-used", MBR_EXCIPIENTS_TITLE, [
+      { type: "paragraph", text: MBR_EXCIPIENTS_INTRO },
+      { type: "table", columns: [...MBR_EXCIPIENTS_COLUMNS], rows: rec.excipients.map(mbrExcipientTableRow), caption: MBR_EXCIPIENTS_TITLE },
+      ...(notes.length ? ([{ type: "list", items: notes }] as Block[]) : []),
+    ]);
+  }
 
   if (stageView.sentence || stageView.keptIn.length) {
     appendix("left-out", "PPQ-only items left out at this stage", [

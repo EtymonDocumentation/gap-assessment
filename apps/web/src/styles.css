@@ -5856,3 +5856,17 @@ html:has(.iv-one) { scroll-padding-bottom: 9rem; }
   display: grid;
   gap: 10px;
 }
+
+/* Excipients used on a batch record (M13 job 4C): the notice and the buttons sit under the name in the first cell, and stays readable in a narrow table. */
+[data-testid="mbr-excipients-table"] th[scope="row"] .notice {
+  margin-top: 8px;
+}
+[data-testid="mbr-excipients-table"] th[scope="row"] .notice .btn {
+  margin-left: 4px;
+}
+[data-testid="mbr-excipients-table"] th[scope="row"] .btn {
+  margin-top: 8px;
+}
+[data-testid="mbr-excipients-table"] th[scope="row"] {
+  min-width: 9rem;
+}

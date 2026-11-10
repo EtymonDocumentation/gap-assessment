@@ -138,6 +138,9 @@ tours:
       - anchor: mbr-sections
         title: Sections and ready-made steps
         text: Add sections and ready-made steps, fill in the rows, and clear the open items. Everything stays visible until you settle it.
+      - anchor: mbr-excipients
+        title: Excipients used
+        text: An optional list of the excipients the excipient assessment links to this record's TRD. Nothing is added unless you tick it, and a row only changes when you press Update.
       - anchor: mbr-view-tab
         title: Process view
         text: Open this tab to follow the fluid step by step. It is a picture of the record, not a second place to edit. Use it to spot gaps before review.

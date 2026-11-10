@@ -62,6 +62,11 @@ export const WHERE_ADDED = ["drug_substance", "buffer_prep", "compounding", "oth
 /** The two places that only exist when the program dilutes or formulates with a buffer (scope.dilution). */
 export const BUFFER_STEP_PLACES: readonly string[] = ["buffer_prep", "compounding"];
 export const GRADE_STANDARDS = ["ph_eur", "usp_nf", "jp", "other", "none"] as const;
+/**
+ * The words for the compendial standards. The question wording (content/excipient/wording.yaml) uses the same words; a content test checks the two
+ * agree. The batch record's "Excipients used" table copies them, so they live here where the engine can reach them without the content files.
+ */
+export const GRADE_STANDARD_LABEL: Readonly<Record<(typeof GRADE_STANDARDS)[number], string>> = { ph_eur: "Ph. Eur.", usp_nf: "USP-NF", jp: "JP", other: "Another standard", none: "None of these" };
 export const SUPPLIER_STATUSES = ["qualified", "not_yet", "unknown"] as const;
 export const SOURCES_OF_SUPPLY = ["one", "more_than_one"] as const;
 export const ORIGINS = ["plant", "synthetic", "mineral", "fermentation", "animal", "mixed", "not_known"] as const;

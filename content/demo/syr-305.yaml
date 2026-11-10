@@ -998,6 +998,8 @@ mbr:
   title: SYR-305 batch record, Example Fill Site PFS Line 3 (fictional)
   docRef: DEMO-MBR-305-01
   purpose: This record gives the steps to fill the SYR-305 prefilled syringe at the receiving unit (fictional).
+  # The excipients the excipient assessment links to this TRD are listed in the record (the same action as the "Add excipients" button).
+  excipientsUsed: true
   sections:
     - { uo: ds_shipping_inbound, blocks: [batch_identification, inbound_shipment_check, shipment_monitoring_custody] }
     - { uo: ds_receipt_thaw, blocks: [receipt_and_thaw, sample_table] }

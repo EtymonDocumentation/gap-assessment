@@ -17,10 +17,13 @@ import { SEED_STATUSES } from "./trd-seed";
  *    text ("[[step:ST-0007]]") and is shown as "(Step 9.14)", so adding, removing or moving a block renumbers everything correctly.
  *  - REPORT-ONLY NOTES. The record never blocks, refuses or rewrites on the strength of a comparison; the notes are information.
  *  - The record never states a regulatory filing category.
+ *  - EXCIPIENTS USED IS A COPY, TOO (MBR format 1.3.0). The optional table keeps its own copy of an excipient's name, grade statement and
+ *    specification reference, and says which excipient assessment line it came from. Nothing is added by itself, and a changed source line
+ *    is only offered as an update.
  */
 
-/** Version of the MBR format (shapes, output). Independent of the project schema version. */
-export const MBR_FORMAT_VERSION = "1.2.0";
+/** Version of the MBR format (shapes, output). Independent of the project schema version. 1.3.0: the optional "Excipients used" table. */
+export const MBR_FORMAT_VERSION = "1.3.0";
 
 export const MBR_CHOICES = ["same_as_trd", "tightened_by_cmo", "not_decided"] as const;
 export type MbrChoice = (typeof MBR_CHOICES)[number];
@@ -211,6 +214,25 @@ export const mbrSplitSchema = z.object({
 });
 export type MbrSplit = z.infer<typeof mbrSplitSchema>;
 
+/**
+ * One row of the optional "Excipients used" table (MBR format 1.3.0, project schema 1.32.0). The row keeps its OWN copy of what the
+ * excipient assessment said when the author added it, so the record reads on its own; the assessment line stays the record of truth.
+ * `from.updatedAt` is the line's updatedAt at copy time: a newer one is how a changed source is noticed. A value the assessment did not
+ * hold is left out (the document then says "Not established"); nothing is filled in.
+ */
+export const mbrExcipientUsedSchema = z.object({
+  /** EU-001 ... never reused inside a record. */
+  id: z.string().regex(/^EU-\d{3,}$/),
+  name: z.string().min(1),
+  /** The grade statement as copied: compendial standards, monograph edition and the supplier's own words, for the receiving site. */
+  grade: z.string().optional(),
+  /** The specification reference as copied: the documents cited for the receiving site's specification. */
+  specification: z.string().optional(),
+  from: z.object({ assessmentId: z.string(), lineId: z.string(), updatedAt: z.string() }),
+  copiedAt: z.string(),
+});
+export type MbrExcipientUsed = z.infer<typeof mbrExcipientUsedSchema>;
+
 export const mbrRecordSchema = z
   .object({
     /** MBR-001, MBR-002 ... */
@@ -231,6 +253,8 @@ export const mbrRecordSchema = z
      * leave them out ("Include anyway", job L2). Absent = the stage decides. Optional, so no schema or format bump is needed.
      */
     includeAnyway: z.array(z.string()).optional(),
+    /** The optional "Excipients used" table (MBR format 1.3.0). Absent or empty = no table. Nothing is ever added to it by itself. */
+    excipients: z.array(mbrExcipientUsedSchema).optional(),
     createdAt: z.string(),
     updatedAt: z.string(),
   })
@@ -253,6 +277,11 @@ export const mbrRecordSchema = z
           for (const g of t.targets) take(g.id, "row");
         }
       }
+    }
+    const usedIds = new Set<string>();
+    for (const x of r.excipients ?? []) {
+      if (usedIds.has(x.id)) ctx.addIssue({ code: "custom", message: `MBR ${r.id}: excipient row ${x.id} appears twice` });
+      usedIds.add(x.id);
     }
     if (r.split) {
       // The split must sit BETWEEN two sections: not before the first (the split is "after" a section) and not after the last.

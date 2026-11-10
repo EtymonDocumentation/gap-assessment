@@ -58,6 +58,7 @@ export * from "./trd-interview";
 export * from "./trd-writeup-document";
 export * from "./mbr";
 export * from "./mbr-document";
+export * from "./mbr-excipients";
 export * from "./mbr-stage";
 export * from "./mbr-process-view";
 export * from "./saved-answers";

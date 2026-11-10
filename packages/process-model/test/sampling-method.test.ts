@@ -5,9 +5,9 @@ const T0 = "2026-10-01T09:00:00.000Z";
 const ACTOR: Actor = { name: "Alex Example (fictional)", role: "MSAT engineer", at: T0 };
 const refs = { catalog: "1.0.0", questions: "1.0.0", rules: "1.0.0", templates: "1.0.0" };
 
-describe("sampling method (current versions: schema 1.31.0, plan format 1.8.0)", () => {
+describe("sampling method (current versions: schema 1.32.0, plan format 1.8.0)", () => {
   it("has the new versions", () => {
-    expect(SCHEMA_VERSION).toBe("1.31.0");
+    expect(SCHEMA_VERSION).toBe("1.32.0");
     expect(SAMPLING_PLAN_FORMAT_VERSION).toBe("1.8.0");
   });
 

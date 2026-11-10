@@ -10,6 +10,7 @@ import { answerReview, setStudyEquipment, acceptSuggestion, addAgencyRequest, ad
 import { suggestPoints, type SamplingSuggestions } from "./sampling-seed";
 import { planDesignReview } from "./sampling-review";
 import { addMbrStep, addParamRow, addPlanPointToSection, addTarget, createMbr, setParam, splitMbr, stepRefToken, updateMbrStep, updateSplit } from "./mbr";
+import { addExcipientsUsed, mbrExcipientOffers } from "./mbr-excipients";
 import { addExcipientLine, addSpecRow, createExcipientAssessment, setExcipientFact, updateExcipientLine, updateSpecRow, type ExcipientFactAnswer } from "./excipient";
 import { startRiskItemFromExcipient } from "./excipient-links";
 import { createTrd, setControl, setLimits, setOverride, updateTrd, updateTrdStep } from "./trd";
@@ -248,6 +249,9 @@ const mbrDemoSchema = z.object({
   /** The purpose line of the record. A record with no purpose counts it as an open item, so a finished demo writes one. */
   purpose: z.string().optional(),
   sections: z.array(z.object({ uo: z.string().optional(), title: z.string().optional(), blocks: z.array(z.string()) })),
+  // The optional "Excipients used" table: the record takes every excipient line the demo excipient assessment links to its TRD, with the same
+  // action as the "Add excipients from the excipient assessment" button. The count is whatever the links say; nothing is typed here.
+  excipientsUsed: z.boolean().default(false),
   undecided: z.array(z.string()).default([]),
   rows: z
     .array(
@@ -770,6 +774,10 @@ function applyMbrDemo(project: Project, content: ContentBundle, m: z.infer<typeo
       }
       project = updateMbrStep(project, recordId, step.id, text, who);
     }
+  }
+  if (m.excipientsUsed) {
+    const offers = mbrExcipientOffers(project, rec()).offers;
+    if (offers.length) project = addExcipientsUsed(project, recordId, offers.map((o) => ({ assessmentId: o.assessmentId, lineId: o.lineId })), who);
   }
   return project;
 }

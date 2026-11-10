@@ -40,6 +40,7 @@ import { useMbrLibrary } from "../mbr-blocks-store";
 import { BlockCard, type BlockEnv } from "./MbrBlocks";
 import { EmptySections } from "./MbrEmpty";
 import { MbrFrame } from "./MbrFrame";
+import { MbrExcipients } from "./MbrExcipients";
 import { MbrOutput } from "./MbrOutput";
 import type { Run } from "./SamplingFlow";
 
@@ -137,6 +138,8 @@ export function MbrEditor({ rec, tab = "edit" }: { rec: MbrRecord; tab?: "edit" 
       )}
 
       <OpenItems rec={rec} plan={plan} open={open} requirements={requirements} library={library} run={run} goToRow={goToRow} goToSection={goToSection} goToSections={goToSections} />
+
+      <MbrExcipients rec={rec} />
 
       <section className="stack" aria-labelledby="mbr-sections-h" data-tour="mbr-sections">
         <div className="row wrap between">

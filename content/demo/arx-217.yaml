@@ -1133,6 +1133,8 @@ mbr:
   title: ARX-217 batch record, Site South Line 4 (fictional)
   docRef: DEMO-MBR-217-01
   purpose: This record gives the steps to fill the ARX-217 vial at the receiving unit (fictional).
+  # The excipients the excipient assessment links to this TRD are listed in the record (the same action as the "Add excipients" button).
+  excipientsUsed: true
   sections:
     - { uo: ds_shipping_inbound, blocks: [inbound_shipment_check] }
     - { uo: ds_receipt_thaw, blocks: [receipt_and_thaw] }
