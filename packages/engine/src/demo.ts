@@ -10,6 +10,8 @@ import { answerReview, setStudyEquipment, acceptSuggestion, addAgencyRequest, ad
 import { suggestPoints, type SamplingSuggestions } from "./sampling-seed";
 import { planDesignReview } from "./sampling-review";
 import { addMbrStep, addParamRow, addPlanPointToSection, addTarget, createMbr, setParam, splitMbr, stepRefToken, updateMbrStep, updateSplit } from "./mbr";
+import { addExcipientLine, addSpecRow, createExcipientAssessment, setExcipientFact, updateExcipientLine, updateSpecRow, type ExcipientFactAnswer } from "./excipient";
+import { startRiskItemFromExcipient } from "./excipient-links";
 import { createTrd, setControl, setLimits, setOverride, updateTrd, updateTrdStep } from "./trd";
 import { buildTrdSeed } from "./trd-seed";
 import { addWriteupFromLibrary, moveWriteup, removePart, setBlankValue, setNotApplicable, setPartImage, setPartIncluded, setPartText, setTableRows } from "./trd-writeup";
@@ -297,6 +299,51 @@ const mbrDemoSchema = z.object({
     .default([]),
 });
 
+/**
+ * The demo excipient assessment (M13): a few fictional excipient lines with the facts the team knows (some left open on purpose), a small
+ * comparison table with a mix of results, and the links kept on the line (the TRD buffer or diluent, one draft risk item). Everything goes
+ * through the same edit functions a person uses, so the change log and the sources are real. The counts the app shows are computed from it.
+ * A fact names its document by identifier (one of `sources`, or a document the project already lists).
+ */
+const exCite = { docs: z.array(z.string()).default([]), section: z.string().optional(), page: z.string().optional() };
+const exSide = { state: z.enum(["open", "stated", "not_tested"]), method: z.string().optional(), criterion: z.string().optional(), unit: z.string().optional(), ...exCite };
+const excipientDemoSchema = z.object({
+  at: z.string(),
+  by: z.string(),
+  role: z.string().optional(),
+  title: z.string(),
+  scopeNote: z.string().optional(),
+  sources: z.array(z.object({ identifier: z.string(), docType: z.string(), title: z.string().optional(), version: z.string().optional() })).default([]),
+  lines: z.array(
+    z.object({
+      name: z.string(),
+      class: z.string().optional(),
+      classLabel: z.string().optional(),
+      /** The TRD material this line belongs to: the unit operation and the material item ("mat.diluent"). */
+      trd: z.object({ uo: z.string(), item: z.string() }).optional(),
+      /** A key of an excipient suggestion of the failure-mode catalog, started as a draft item of the demo risk assessment. */
+      risk: z.string().optional(),
+      regulatoryReference: z.string().optional(),
+      facts: z
+        .array(
+          z.object({
+            key: z.string(),
+            side: z.enum(["sending", "receiving"]).optional(),
+            value: z.unknown().optional(),
+            same: z.boolean().optional(),
+            tbd: z.object({ bestGuess: z.unknown().optional(), owner: z.string().optional(), due: z.string().optional(), note: z.string().optional() }).optional(),
+            notApplicable: z.string().optional(),
+            ...exCite,
+          }),
+        )
+        .default([]),
+      specs: z
+        .array(z.object({ test: z.string(), prompt: z.string().optional(), note: z.string().optional(), sending: z.object(exSide), receiving: z.object(exSide) }))
+        .default([]),
+    }),
+  ),
+});
+
 const demoSchema = z.object({
   demo: z.object({ id: z.string(), title: z.string(), version: z.string() }),
   responder: z.object({ name: z.string(), role: z.string().optional() }),
@@ -320,6 +367,7 @@ const demoSchema = z.object({
   risk: riskDemoSchema.optional(),
   trd: trdDemoSchema.optional(),
   mbr: mbrDemoSchema.optional(),
+  excipients: excipientDemoSchema.optional(),
 });
 
 export type DemoScript = z.infer<typeof demoSchema>;
@@ -402,6 +450,8 @@ export function buildDemoProject(content: ContentBundle, raw: unknown, suggestio
   if (demo.risk && risk) project = applyRiskDemo(project, content, demo.risk, risk.loadouts, risk.failureModes);
   // The TRD starts from the project's own seed, so it needs nothing but the content.
   if (demo.trd) project = applyTrdDemo(project, content, demo.trd, trd?.writeups);
+  // The excipient assessment links to the TRD material and to the risk assessment, so it comes after both. Its risk link needs the failure-mode catalog.
+  if (demo.excipients) project = applyExcipientDemo(project, demo.excipients, risk?.failureModes);
   // The design review's answers need the finished project (the questions read the TRD, the risk assessment and the catalog).
   if (demo.sampling && suggestions) project = applyReviewAnswersDemo(project, content, demo.sampling, suggestions);
   // The batch record takes its values from the TRD and its sample rows from the plan, so it comes last and needs the step-blocks library.
@@ -817,6 +867,73 @@ function applyTrdDemo(project: Project, content: ContentBundle, t: z.infer<typeo
     for (const fg of t.writeups.figures) {
       project = setPartText(project, id, wu(fg.writeup), fg.part, { caption: fg.caption, alt: fg.alt }, who);
       if (fg.picture) project = setPartImage(project, id, wu(fg.writeup), fg.part, readTrdImage(placeholderPng(fg.picture.width, fg.picture.height), { name: "placeholder.png" }), who);
+    }
+  }
+  return project;
+}
+
+function applyExcipientDemo(project: Project, e: z.infer<typeof excipientDemoSchema>, failureModes?: FailureModeSuggestions): Project {
+  const who: Actor = { name: e.by, at: e.at, ...(e.role ? { role: e.role } : {}) };
+  // A document the project already lists is cited, not added again; the others listed under `sources` are new to the project.
+  const sourceIds = new Map<string, string>(project.sources.flatMap((x) => (x.docRef ? ([[x.docRef.identifier, x.id]] as [string, string][]) : [])));
+  for (const s of e.sources) {
+    if (sourceIds.has(s.identifier)) continue;
+    const r = addSource(project, { type: "document_reference", docRef: s }, who);
+    project = r.project;
+    sourceIds.set(s.identifier, r.source.id);
+  }
+  const cite = (c: { docs: string[]; section?: string | undefined; page?: string | undefined }) => {
+    const ids = c.docs.map((d) => {
+      const id = sourceIds.get(d);
+      if (!id) throw new Error(`Demo excipients: document ${d} is not listed under sources or documents`);
+      return id;
+    });
+    const loc = { ...(c.section ? { section: c.section } : {}), ...(c.page ? { page: c.page } : {}) };
+    return { sourceIds: ids, ...(ids.length && Object.keys(loc).length ? { locations: Object.fromEntries(ids.map((id) => [id, loc])) } : {}) };
+  };
+  const created = createExcipientAssessment(project, { title: e.title, ...(e.scopeNote ? { scopeNote: e.scopeNote } : {}) }, who);
+  project = created.project;
+  const aid = created.assessmentId;
+  for (const l of e.lines) {
+    const added = addExcipientLine(project, aid, { name: l.name, ...(l.class ? { classKey: l.class } : {}), ...(l.classLabel ? { classLabel: l.classLabel } : {}) }, who);
+    project = added.project;
+    const lid = added.lineId;
+    for (const f of l.facts) {
+      let answer: ExcipientFactAnswer;
+      if (f.same) answer = { kind: "same_as_sending" };
+      else if (f.notApplicable) answer = { kind: "not_applicable", justification: f.notApplicable };
+      else if (f.tbd) answer = { kind: "tbd", ...(f.tbd.bestGuess !== undefined ? { bestGuess: f.tbd.bestGuess as never } : {}), ...(f.tbd.owner ? { owner: f.tbd.owner } : {}), ...(f.tbd.due ? { due: f.tbd.due } : {}), ...(f.tbd.note ? { note: f.tbd.note } : {}) };
+      else answer = { kind: "value", value: f.value as never };
+      try {
+        const c = cite(f);
+        project = setExcipientFact(project, aid, lid, f.key, f.side, answer, who, { sourceIds: c.sourceIds, ...(c.locations ? { locations: c.locations } : {}) });
+      } catch (err) {
+        throw new Error(`Demo excipient ${l.name}, ${f.key}${f.side ? `.${f.side}` : ""}: ${(err as Error).message}`);
+      }
+    }
+    for (const sp of l.specs) {
+      const row = addSpecRow(project, aid, lid, { test: sp.test, ...(sp.prompt ? { promptKey: sp.prompt } : {}) }, who);
+      project = row.project;
+      const side = (s: typeof sp.sending) => {
+        const c = cite(s);
+        return { state: s.state, ...(s.method ? { method: s.method } : {}), ...(s.criterion ? { criterion: s.criterion } : {}), ...(s.unit ? { unit: s.unit } : {}), sourceIds: c.sourceIds, ...(c.locations ? { sourceLocations: c.locations } : {}) };
+      };
+      project = updateSpecRow(project, aid, lid, row.rowId, { ...(sp.note ? { note: sp.note } : {}), sending: side(sp.sending), receiving: side(sp.receiving) }, who);
+    }
+    const links: { trdItem?: { trdId: string; stepKey: string; itemKey: string }; regulatoryReference?: string } = {};
+    if (l.trd) {
+      const doc = project.trd.documents[0];
+      const [collection, key] = l.trd.item.split(".");
+      const step = doc?.steps.find((s) => s.key === l.trd!.uo);
+      if (!doc || !step || !key || !step.items.some((i) => i.collection === collection && i.key === key)) throw new Error(`Demo excipients: ${l.trd.uo} ${l.trd.item} is not a material of the demo TRD`);
+      links.trdItem = { trdId: doc.id, stepKey: l.trd.uo, itemKey: key };
+    }
+    if (l.regulatoryReference) links.regulatoryReference = l.regulatoryReference;
+    if (Object.keys(links).length) project = updateExcipientLine(project, aid, lid, links, who);
+    if (l.risk && failureModes) {
+      const risk = project.risk.assessments[0];
+      if (!risk) throw new Error("Demo excipients: the demo has no risk assessment to start an item in");
+      project = startRiskItemFromExcipient(project, aid, lid, risk.id, l.risk, failureModes, who).project;
     }
   }
   return project;

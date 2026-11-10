@@ -67,13 +67,14 @@ describe("renderMarkdown", () => {
     for (const [k, v] of doc.meta) expect(md).toContain(`- **${k}:** ${v}`);
   });
 
-  it("numbers the sections 1 to 13 and the appendices A to C in order", () => {
+  it("numbers the sections 1 to 14 and the appendices A to C in order", () => {
+    // 14 numbered sections: the 13 base ones plus the optional excipient assessment the demo carries.
     const headings = lines.filter((l) => l.startsWith("## "));
-    expect(headings).toHaveLength(16);
-    headings.slice(0, 13).forEach((h, i) => expect(h.startsWith(`## ${i + 1}. `), h).toBe(true));
-    expect(headings[13]).toMatch(/^## Appendix A\. Gap details$/);
-    expect(headings[14]).toMatch(/^## Appendix B\. Source register$/);
-    expect(headings[15]).toMatch(/^## Appendix C\. Change log summary$/);
+    expect(headings).toHaveLength(17);
+    headings.slice(0, 14).forEach((h, i) => expect(h.startsWith(`## ${i + 1}. `), h).toBe(true));
+    expect(headings[14]).toMatch(/^## Appendix A\. Gap details$/);
+    expect(headings[15]).toMatch(/^## Appendix B\. Source register$/);
+    expect(headings[16]).toMatch(/^## Appendix C\. Change log summary$/);
     expect(headings).toEqual(doc.sections.map((s) => `## ${s.appendix ? "Appendix " : ""}${s.number}. ${s.title}`));
   });
 
@@ -189,9 +190,9 @@ describe("renderHtml", () => {
     expect(html).toContain(`<div class="footer">${BANNER}</div>`);
   });
 
-  it("numbers the sections 1 to 13 and the appendices A to C, each in its own section element", () => {
+  it("numbers the sections 1 to 14 and the appendices A to C, each in its own section element", () => {
     const h2 = [...html.matchAll(/<h2>(?:Appendix )?([0-9A-Z]+)\. ([^<]*)<\/h2>/g)];
-    expect(h2.map((m) => m[1])).toEqual(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "A", "B", "C"]);
+    expect(h2.map((m) => m[1])).toEqual(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "A", "B", "C"]);
     for (const s of doc.sections) expect(html).toContain(`<section id="doc-${s.id}">`);
   });
 

@@ -86,10 +86,10 @@ describe("the demos raise questions and store no answers", () => {
 
 describe("SYR-305: the review raises no false alarm for what the plan already covers", () => {
   const view = planDesignReview(content, SYR, planOf(SYR), samplingSuggestions);
-  it("B5 lists only the failure modes with no linked sample (RA-005, -007, -008, -009)", () => {
+  it("B5 lists only the failure modes with no linked sample (RA-005, -007, -008, -009 and the excipient draft RA-011)", () => {
     // The risk assessment links samples as "SPL-001.SP-018"; reading only the bare "SP-018" form once listed all ten failure modes.
     const ids = view.items.filter((i) => i.finding.checkId === "B5").flatMap((i) => [...i.finding.states.matchAll(/RAS-001\/(RA-\d+)/g)].map((m) => m[1]));
-    expect(ids).toEqual(["RA-005", "RA-007", "RA-008", "RA-009"]);
+    expect(ids).toEqual(["RA-005", "RA-007", "RA-008", "RA-009", "RA-011"]);
   });
 
   it("D2 no longer lists the bioburden studies the plan has (SP-021, SP-009) and words integrity tests as batch-record steps", () => {

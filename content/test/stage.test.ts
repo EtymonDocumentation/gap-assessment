@@ -89,7 +89,7 @@ describe("program stage question", () => {
   it("does not turn a stage difference into a gap row", () => {
     const same = build("commercial", "commercial").a.gaps.length;
     for (const [s, t] of PAIRS) expect(build(s, t).a.gaps.length, `${s} to ${t}`).toBe(same);
-  }, 60_000);
+  }, 120_000); // builds the demo once per stage pair; the demos now carry an excipient assessment, so it needs more room when the whole suite runs at once
 });
 
 describe.each(PAIRS)("source %s, target %s", (source, target) => {

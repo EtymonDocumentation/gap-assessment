@@ -164,6 +164,8 @@ test("the chain status on the TRD stage is the Open items count, and it agrees w
 });
 
 test("both demos open the TRD with the Interview tab and a sensible 'N of M answered'", async ({ page }) => {
+  // Opens a whole demo and runs axe over the 425-question interview: close to 30 s on a busy laptop since the demos also carry an excipient assessment (M13 job 4B).
+  test.setTimeout(60_000);
   for (const which of ["arx", "syr"] as const) {
     await page.goto("./");
     await openDemo(page, which);
@@ -181,6 +183,8 @@ test("both demos open the TRD with the Interview tab and a sensible 'N of M answ
 });
 
 test("the Show filter options sit one per line with normal spacing, 24 px targets and no sideways scroll", async ({ page }) => {
+  // Opens a whole demo and runs axe over the 425-question interview: close to 30 s on a busy laptop since the demos also carry an excipient assessment (M13 job 4B).
+  test.setTimeout(60_000);
   await page.goto("./");
   await openDemo(page, "syr");
   await hash(page, "#/trd?trd=TRD-001&tab=interview");

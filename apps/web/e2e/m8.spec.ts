@@ -139,19 +139,19 @@ test("qualitative method asks for a written reason: a level without one is an op
   await expect(page.getByTestId("risk-open-items")).toContainText(/reason/i);
 });
 
-test("the demo: FMEA 1-10 with ten items, the register table sorts and filters, and residual is optional", async ({ page }) => {
+test("the demo: FMEA 1-10 with eleven items (ten of the team and one draft from the excipient assessment), the register table sorts and filters, and residual is optional", async ({ page }) => {
   await openDemoAssessment(page);
-  expect(await itemCount(page)).toBe(10);
+  expect(await itemCount(page)).toBe(11);
   await expect(page.getByTestId("risk-open-items")).toContainText("RA-008 is not scored");
 
   await page.getByTestId("risk-view-table").click();
-  await expect(page.getByTestId("risk-register").locator("tbody tr")).toHaveCount(10);
+  await expect(page.getByTestId("risk-register").locator("tbody tr")).toHaveCount(11);
   await page.getByTestId("risk-sort").selectOption("score");
   // The highest RPN first (10 x 4 x 5 = 200); the items that cannot be scored go last, never first.
   await expect(page.getByTestId("risk-register").locator("tbody tr").first()).toContainText("RA-002");
   await expect(page.getByTestId("risk-register").locator("tbody tr").first()).toContainText("200");
   await page.getByTestId("risk-filter").selectOption("not-scored");
-  await expect(page.getByTestId("risk-register-count")).toContainText("of 10 items");
+  await expect(page.getByTestId("risk-register-count")).toContainText("of 11 items");
   await expect(page.getByTestId("risk-register").locator("tbody tr").first()).toContainText("Not scored");
   await page.getByTestId("risk-filter").selectOption("residual");
   await expect(page.getByTestId("risk-register").locator("tbody tr")).toHaveCount(3);

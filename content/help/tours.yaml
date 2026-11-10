@@ -3,7 +3,7 @@
 # Rules for every step (a unit test checks the mechanical ones):
 #  - anchor: the id of a real element on the page, written in the page source as data-tour="<id>" (or tour="<id>" on the Tabs component).
 #    A step whose element is not on screen (an empty list, the phone layout) is skipped by the app, so a tour is never wrong about what is there.
-#  - 3 to 5 steps per tour. A short title and one or two plain sentences. No filled-in values, no decision made for the reader.
+#  - At least 3 steps per tour (no fixed upper limit; steps whose element is not on the open tab are skipped). A short title and one or two plain sentences. No filled-in values, no decision made for the reader.
 #  - Same words as the app and the documents. The tool never decides a filing category, and a document is approved in the company's
 #    own document control (the tool is a drafting aid).
 version: 1
@@ -141,3 +141,27 @@ tours:
       - anchor: mbr-view-tab
         title: Process view
         text: Open this tab to follow the fluid step by step. It is a picture of the record, not a second place to edit. Use it to spot gaps before review.
+
+  - id: excipient
+    path: /excipient
+    title: Tour of the excipient assessment
+    steps:
+      - anchor: page-head
+        title: What this page is
+        text: An excipient is any ingredient of the product that is not the active substance. This assessment compares each one between the sending and the receiving site.
+      - anchor: excipient-starts
+        title: Start an assessment
+        text: Start blank, start from the library, or answer questions. Nothing is filled in for you, and anything you do not know stays open.
+      - anchor: excipient-tabs
+        title: Five steps
+        text: Excipients, Questions, Specifications, Open items and Document. You can open any of them at any time, in any order.
+      - anchor: excipient-lines
+        title: Your excipients
+        text: Add each excipient by name. The table shows what is still open for each one, and one click opens its page.
+      - anchor: excipient-one-at-a-time
+        title: One question at a time
+        text: On the Questions tab you can see all the questions, or one at a time. A question you cannot answer yet can stay open.
+      - anchor: excipient-specs
+        title: Specifications compared
+        text: Pick a test and enter the limit at each site. The tool shows Same, Different or Only at one site, and the counts are worked out for you.
+

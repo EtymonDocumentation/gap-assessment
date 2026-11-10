@@ -20,7 +20,7 @@ import { content, useAssessment, useContent, useStageWording, useStore } from ".
 
 /** One card per document of the chain. The buttons go to the document's own page; "Not started" says so in words and the button says Start. */
 interface DocCardSpec {
-  id: "gap" | "trd" | "sampling" | "mbr" | "risk";
+  id: "gap" | "trd" | "sampling" | "mbr" | "risk" | "excipient";
   name: string;
   purpose: string;
   path: string;
@@ -33,6 +33,7 @@ const CARD_PURPOSE: Record<DocCardSpec["id"], string> = {
   sampling: "Where and when samples are taken in the PPQ (process performance qualification) batches.",
   mbr: "The batch record (MBR): the step-by-step instruction for making one batch.",
   risk: "Rate what could go wrong with a method you choose.",
+  excipient: "Compare the excipients of the product between the sending and the receiving site: supplier, grade, origin and specification.",
 };
 
 export function HomePage() {
@@ -78,6 +79,7 @@ export function HomePage() {
     ...(allowed.sampling ? [{ id: "sampling" as const, name: "Sampling plan", purpose: CARD_PURPOSE.sampling, path: "/sampling" }] : []),
     ...(allowed.mbr ? [{ id: "mbr" as const, name: "Batch record", purpose: CARD_PURPOSE.mbr, path: "/mbr" }] : []),
     ...(allowed.risk ? [{ id: "risk" as const, name: "Risk assessment", purpose: CARD_PURPOSE.risk, path: "/risk" }] : []),
+    ...(allowed.excipient ? [{ id: "excipient" as const, name: "Excipient assessment", purpose: CARD_PURPOSE.excipient, path: "/excipient" }] : []),
   ];
   /** The card's button: Start for a document that has not been started, Continue for a gap assessment with open questions, Open otherwise. */
   const buttonOf = (c: DocCardSpec): string => {

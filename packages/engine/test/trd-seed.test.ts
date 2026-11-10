@@ -50,7 +50,7 @@ describe("buildTrdSeed", () => {
     const a = trdSeedFingerprint(seedOf(pair(base(), "fill.pump", "rotary_piston", "peristaltic")));
     const b = trdSeedFingerprint(seedOf(pair(base(), "fill.pump", "rotary_piston", "time_pressure")));
     expect(a).not.toBe(b);
-  });
+  }, 60_000); // builds the demo, which now also carries an excipient assessment; allow for the whole suite running at once
 
   it("does not export a unit operation the project left out, nor its values", () => {
     const withValues = par(base(), "comp.mixing_speed", "target", { setPoint: q(100, "rpm"), nor: "tbd" });

@@ -478,7 +478,8 @@ describe("the fictional demo risk assessment", () => {
   it("uses the FMEA 1-10 load-out with no bands and about ten items over several steps", () => {
     expect(a.method).toBe("fmea");
     expect(a.config?.loadoutId).toBe("fmea-1-10");
-    expect(a.items).toHaveLength(10);
+    // Ten items of the team's own plus one draft started from the excipient assessment (it has no score: the team gives it).
+    expect(a.items).toHaveLength(11);
     expect(new Set(a.items.map((i) => i.stepId)).size).toBeGreaterThan(4);
   });
 
@@ -502,7 +503,8 @@ describe("the fictional demo risk assessment", () => {
     expect(residuals.length).toBeGreaterThanOrEqual(2);
     expect(residuals.length).toBeLessThanOrEqual(3);
     const open = riskOpenItems(demo, a);
-    expect(open.filter((o) => o.kind === "not-scored")).toHaveLength(1);
+    // The one left unscored on purpose, and the excipient draft, which the team has not scored yet.
+    expect(open.filter((o) => o.kind === "not-scored")).toHaveLength(2);
     expect(open.some((o) => o.kind === "dangling-link")).toBe(false);
   });
 

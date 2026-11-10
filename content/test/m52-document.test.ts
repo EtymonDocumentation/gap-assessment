@@ -300,13 +300,14 @@ describe("optional document sections", () => {
     expect(omittedSectionIds(demo)).toEqual([]);
     expect(demo.document.omittedSections).toBeUndefined();
     expect(full.meta.find(([k]) => k === "Sections omitted")?.[1]).toBe("None");
-    expect(full.sections).toHaveLength(16);
+    // The 16 base sections plus the optional excipient assessment, which the demo has (it carries excipient lines).
+    expect(full.sections).toHaveLength(17);
   });
 
   it("removes the sections and closes up the numbering and the appendix letters", () => {
     expect(d.sections.map((s) => s.id)).not.toContain("risk");
     expect(d.sections.map((s) => s.id)).not.toContain("approval");
-    expect(d.sections.filter((s) => !s.appendix).map((s) => s.number)).toEqual(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"]);
+    expect(d.sections.filter((s) => !s.appendix).map((s) => s.number)).toEqual(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]);
     expect(d.sections.filter((s) => !s.appendix).map((s) => s.id)).toEqual([
       "purpose",
       "scope",
@@ -317,6 +318,7 @@ describe("optional document sections", () => {
       "validation-plan",
       "equipment-qualification",
       "open-items",
+      "excipient-assessment",
       "verification-status",
       "references",
     ]);
@@ -360,7 +362,7 @@ describe("optional document sections", () => {
     expect(md).not.toMatch(/^## \d+\. Approval$/m);
     expect(html).not.toContain('<section id="doc-risk">');
     expect(html).not.toContain('<section id="doc-approval">');
-    expect(md).toMatch(/^## 10\. Verification status$/m);
+    expect(md).toMatch(/^## 11\. Verification status$/m);
   });
 
   it("leaves the gap list, the open items and the plan alone", () => {

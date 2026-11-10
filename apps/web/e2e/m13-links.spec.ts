@@ -23,7 +23,10 @@ async function expectNoSidewaysScroll(page: Page, label: string) {
   expect(over, `${label}: horizontal overflow`).toBeLessThanOrEqual(1);
 }
 
-/** The syringe demo (it has gaps, a risk assessment and a TRD), then "Start blank" on the excipient page and one excipient added by name. */
+/**
+ * The syringe demo (it has gaps, a risk assessment, a TRD and its own excipient assessment EXA-001), then "Start blank" on the excipient page
+ * (a new assessment, EXA-002) and one excipient added by name.
+ */
 async function demoWithExcipient(page: Page, name = "Excipient A (fictional)") {
   test.setTimeout(180_000);
   await page.goto("./");
@@ -104,7 +107,7 @@ test("TRD: link a buffer material, write the two blanks with Use in the TRD, cop
   await expect(page.getByTestId("ex-trd-now")).toContainText("QA-DOC-0001 (fictional)");
   await expect(page.getByTestId("ex-trd-now")).toContainText("SOP-0002 (fictional)");
   await hash(page, "#/trd?trd=TRD-001");
-  await expect(page.getByTestId("trd-pill-excipients")).toHaveText("1 excipient assessed");
+  await expect(page.getByTestId("trd-pill-excipients")).toHaveText("3 excipients assessed"); // the demo's two linked lines and this one
 });
 
 
@@ -123,7 +126,7 @@ test("document: HTML and Markdown carry the notice, the export history names the
   await page.getByTestId("ex-tab-document").click();
   await expect(page.getByTestId("ex-open-count")).toContainText("open");
   const html = await downloadText(page, "ex-download-html");
-  expect(html.name).toMatch(/^excipient-assessment-.*EXA-001.*\.html$/);
+  expect(html.name).toMatch(/^excipient-assessment-.*EXA-002.*\.html$/);
   expect(html.text).toContain(NOTICE_DOCUMENT);
   expect(html.text).toContain("Excipient A (fictional)");
   await expect(page.getByTestId("ex-done")).toContainText("recorded in the export history");
@@ -165,7 +168,9 @@ test("project pages: the Open items page and the compare page list the excipient
   await demoWithExcipient(page);
   const pill = (await page.getByTestId("ex-pill-open").innerText()).trim();
   await hash(page, "#/tbd");
-  await expect(page.getByTestId("tbd-excipient-count")).toHaveText(pill);
+  // One count per assessment: the demo's own (EXA-001) first, the one just started (EXA-002) last.
+  await expect(page.getByTestId("tbd-excipient-count")).toHaveCount(2);
+  await expect(page.getByTestId("tbd-excipient-count").last()).toHaveText(pill);
   await hash(page, "#/versions");
   await page.getByTestId("version-table").locator("tbody tr").filter({ hasText: "Start" }).getByRole("link", { name: /^Compare/ }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Compare versions" })).toBeVisible();

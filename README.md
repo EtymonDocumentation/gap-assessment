@@ -341,6 +341,20 @@ The `transition` comparator (used by the PUPSIT rule) reads an ordered list in `
 
 **YAML tip:** in `{ ... }` flow mappings, put any text that contains a comma in quotes. Otherwise YAML splits it into extra keys. A test checks for this.
 
+## The excipient assessment module (milestone 13)
+
+The **Excipient assessment** page (module `excipient`, at `#/excipient`) compares the excipients of the product between the sending and the receiving site: supplier, grade, origin and specification, side by side. Like the other modules it is checked on the server (an account without the module has no menu entry). It is a drafting aid: the tool shows what is the same, what differs and what is still open, and never decides a filing category (the only wording is "Requires regulatory affairs assessment").
+
+- **Three ways to start:** blank, from the excipient library, or by answering questions. Nothing is filled in for you.
+- **Five tabs:** Excipients, Questions, Specifications, Open items, Document. Each excipient has its own page with the facts, the links and the comparison table. Facts left unknown stay visible as open items, with the one shared open-items wording.
+- **Specifications compared:** a test, the limit at each site, and a computed result (Same, Different, Only at one site, Not compared yet). The counts are computed from the rows, never typed.
+- **Links:** an excipient can be linked to gaps of the gap assessment, can start a draft risk item (no score), and can be linked to its material row in the TRD ("Use in the TRD" writes the typed blanks through the TRD's own edit function).
+- **Document:** Word, HTML and Markdown from one renderer family with the single shared notice. The gap assessment document gets an optional "Excipient assessment" section while the project has excipient lines.
+- **Library** (`#/excipient/library`): excipients you saved before, with versions; an assessment keeps its own copy and is offered "Update from library".
+- **Demos:** the ARX-217 and SYR-305 demos each carry a small fictional excipient assessment (two or three lines, a few facts left open, a mix of Same / Different / Only at one site, one linked risk item, one line linked to its TRD item). The demo script is the `excipients:` block of `content/demo/*.yaml` and is replayed through the same edit functions a person uses.
+- **Help:** a tour of the page, a glossary (excipient, compendial, monograph, specification, CoA, TSE, nitrosamine, elemental impurity, supplier qualification) and an "About this page" panel on the page, on each excipient and on the library.
+- **Data:** the project part is `excipients.assessments` (schema 1.31.0, process model 1.17.0). Wording and the class list are editable content in `content/excipient/`. Tests: `content/test/m13-excipient.test.ts`, `content/test/m13-demo-excipients.test.ts`, and the browser tests `apps/web/e2e/m13-*.spec.ts`.
+
 ## Testing
 
 - **Unit tests** (`npm test`) cover:

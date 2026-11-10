@@ -1226,3 +1226,115 @@ mbr:
       step: 3
       after:
         - "Pack the shipping study units (sample SP-013) with the shipment and record how many were packed: {units packed}, {packed by}."
+
+
+# ---------------------------------------------------------------- excipient assessment (fictional)
+# Two excipients of the diluent (the same two the TRD excipient solution table lists). Built through the same edit functions a person uses.
+# Almost every question is answered. A few gaps are left on purpose so the open-items list has something to show: the receiving site
+# manufacturing site of the buffer salt, its microbial count comparison, the nitrosamine topic of the amino acid, its receiving site storage
+# answer and its receiving site assay. The comparison tables show a mix: same, different, only at one site and not compared yet. The risk item
+# is a draft started from the amino acid. Every name, supplier, site and document is invented; no limit here is a statement about any real material.
+excipients:
+  at: "2026-10-13T09:00:00.000Z"
+  by: Alex Example (fictional)
+  role: MSAT engineer
+  title: ARX-217 diluent excipient assessment (fictional)
+  scopeNote: The two excipients of the ARX-217 diluent, sending site against receiving site (fictional example to show the module).
+  sources:
+    - { identifier: DEMO-EXS-217-N, docType: Excipient specification, title: Excipient A specification for Site North (fictional), version: "2.0" }
+    - { identifier: DEMO-EXS-217-S, docType: Excipient specification, title: Excipient A specification for Site South (fictional), version: "1.0" }
+    - { identifier: DEMO-EXQ-217-01, docType: Supplier quality statement, title: Excipient B supplier statement (fictional), version: "1.0" }
+  lines:
+    - name: Excipient A (fictional)
+      class: buffer_salt
+      trd: { uo: compounding, item: mat.diluent }
+      facts:
+        - { key: whereAdded, value: [compounding] }
+        - { key: amount, value: { value: 10, unit: "%" } }
+        - { key: grade, side: sending, value: [ph_eur, usp_nf], docs: [DEMO-EXS-217-N], section: "1", page: "1" }
+        - { key: grade, side: receiving, value: [ph_eur], docs: [DEMO-EXS-217-S], section: "1", page: "1" }
+        - { key: gradeEdition, side: sending, value: "Ph. Eur. 11th edition and USP-NF 2026 issue (fictional)", docs: [DEMO-EXS-217-N], section: "1", page: "1" }
+        - { key: gradeEdition, side: receiving, value: "Ph. Eur. 11th edition (fictional)", docs: [DEMO-EXS-217-S], section: "1", page: "1" }
+        - { key: qualityStatement, side: sending, value: "Statement of compliance with the monograph, on file (fictional)", docs: [DEMO-EXS-217-N], section: "6", page: "4" }
+        - { key: qualityStatement, side: receiving, value: "Statement of compliance with the monograph, on file (fictional)", docs: [DEMO-EXS-217-S], section: "6", page: "4" }
+        - { key: supplier, side: sending, value: Supplier One (fictional) }
+        - { key: supplier, side: receiving, value: Supplier Two (fictional) }
+        - { key: manufacturingSite, side: sending, value: Plant P (fictional) }
+        - { key: manufacturingSite, side: receiving, tbd: { owner: Site South supplier quality (fictional), due: "2026-11-30", note: Asked of the supplier } }
+        - { key: supplierStatus, side: sending, value: qualified }
+        - { key: supplierStatus, side: receiving, value: not_yet }
+        - { key: sourcesOfSupply, side: sending, value: more_than_one }
+        - { key: sourcesOfSupply, side: receiving, value: more_than_one }
+        - { key: origin, side: sending, value: synthetic }
+        - { key: origin, side: receiving, same: true }
+        - { key: nitrosamine, value: evaluated }
+        - { key: nitrosamineRef, value: "Nitrosamine risk evaluation DEMO-NIT-217-01 (fictional) section 4" }
+        - { key: elemental, value: evaluated }
+        - { key: elementalRef, value: "Elemental impurity risk assessment DEMO-EI-217-01 (fictional) section 3" }
+        - { key: endotoxin, value: "No more than 0.25 EU/mg on the supplier certificate (fictional)" }
+        - { key: bioburden, value: "No more than 10 CFU/g on the supplier certificate (fictional)" }
+        - { key: residualSolvents, notApplicable: "Inorganic salt, no organic solvent is used in its manufacture (fictional)" }
+        - { key: particulates, value: "Controlled by the 0.2 micron filtration of the diluent (fictional)" }
+        - { key: sterilisation, value: "None. Supplied non-sterile and the diluent is sterile filtered (fictional)" }
+        - { key: storage, side: sending, value: "Room temperature, retest after 36 months (fictional)" }
+        - { key: storage, side: receiving, same: true }
+        - { key: notes, value: "Same monograph at both sites. Only the supplier and the grade list differ (fictional example)." }
+      specs:
+        - test: Identification
+          prompt: identity
+          sending: { state: stated, method: "Ph. Eur. / USP monograph method", criterion: Positive, docs: [DEMO-EXS-217-N], section: "3.1", page: "2" }
+          receiving: { state: stated, method: "Ph. Eur. / USP monograph method", criterion: Positive, docs: [DEMO-EXS-217-S], section: "3.1", page: "2" }
+        - test: Bacterial endotoxins
+          prompt: endotoxin
+          sending: { state: stated, method: "Compendial bacterial endotoxins test", criterion: "<= 0.25", unit: EU/mg, docs: [DEMO-EXS-217-N], section: "3.4", page: "3" }
+          receiving: { state: stated, method: "Compendial bacterial endotoxins test", criterion: "<= 0.5", unit: EU/mg, docs: [DEMO-EXS-217-S], section: "3.4", page: "3" }
+        - test: Elemental impurities
+          prompt: elemental
+          sending: { state: stated, method: ICP-MS, criterion: Reported on the certificate of analysis, docs: [DEMO-EXS-217-N], section: "3.6", page: "3" }
+          receiving: { state: not_tested }
+        - test: Microbial count
+          prompt: bioburden
+          sending: { state: open }
+          receiving: { state: open }
+    - name: Excipient B (fictional)
+      class: amino_acid
+      trd: { uo: compounding, item: mat.diluent }
+      risk: excipient_nitrite_amine_unknown
+      facts:
+        - { key: whereAdded, value: [compounding] }
+        - { key: amount, value: { value: 5, unit: "%" } }
+        - { key: grade, side: sending, value: [ph_eur], docs: [DEMO-EXQ-217-01], section: "3", page: "1" }
+        - { key: grade, side: receiving, same: true }
+        - { key: gradeEdition, side: sending, value: "Ph. Eur. 11th edition (fictional)", docs: [DEMO-EXQ-217-01], section: "3", page: "1" }
+        - { key: gradeEdition, side: receiving, same: true }
+        - { key: qualityStatement, side: sending, value: "Supplier quality statement DEMO-EXQ-217-01 (fictional)", docs: [DEMO-EXQ-217-01], section: "1", page: "1" }
+        - { key: qualityStatement, side: receiving, same: true }
+        - { key: supplier, side: sending, value: Supplier Three (fictional), docs: [DEMO-EXQ-217-01], section: "2", page: "1" }
+        - { key: supplier, side: receiving, same: true }
+        - { key: manufacturingSite, side: sending, value: Plant Q (fictional) }
+        - { key: manufacturingSite, side: receiving, same: true }
+        - { key: supplierStatus, side: sending, value: qualified }
+        - { key: supplierStatus, side: receiving, value: qualified }
+        - { key: sourcesOfSupply, side: sending, value: more_than_one }
+        - { key: sourcesOfSupply, side: receiving, same: true }
+        - { key: origin, side: sending, value: fermentation, docs: [DEMO-EXQ-217-01], section: "4", page: "2" }
+        - { key: origin, side: receiving, same: true }
+        - { key: nitrosamine, tbd: { owner: Alex Example (fictional), due: "2026-12-04" } }
+        - { key: elemental, value: evaluated }
+        - { key: elementalRef, value: "Elemental impurity risk assessment DEMO-EI-217-01 (fictional) section 3" }
+        - { key: endotoxin, value: "No more than 0.1 EU/mg on the supplier certificate (fictional)" }
+        - { key: bioburden, value: "No more than 10 CFU/g on the supplier certificate (fictional)" }
+        - { key: residualSolvents, notApplicable: "Made by fermentation, the supplier statement lists no organic solvent step (fictional)" }
+        - { key: particulates, value: "Controlled by the 0.2 micron filtration of the diluent (fictional)" }
+        - { key: sterilisation, value: "None. Supplied non-sterile and the diluent is sterile filtered (fictional)" }
+        - { key: storage, side: sending, value: "Room temperature, retest after 48 months (fictional)" }
+        - { key: notes, value: "Same supplier and plant at both sites. The nitrosamine topic is still being evaluated (fictional example)." }
+      specs:
+        - test: Identification
+          prompt: identity
+          sending: { state: stated, method: "Ph. Eur. / USP monograph method", criterion: Positive }
+          receiving: { state: stated, method: "Ph. Eur. / USP monograph method", criterion: Positive }
+        - test: Assay
+          prompt: assay
+          sending: { state: stated, method: "Ph. Eur. / USP monograph method", criterion: 98.5 to 101.0, unit: "%" }
+          receiving: { state: open }

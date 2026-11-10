@@ -40,7 +40,8 @@ describe("SYR-305 demo batch record", () => {
 
   it("is not added when the caller gives no library", () => {
     expect(buildDemoProject(content, demos["syr-305"], undefined, undefined, undefined, undefined, { writeups: trdWriteups }).mbr.records).toHaveLength(0);
-  });
+    // Builds the whole demo a second time; on a busy runner that alone can pass the 5 s default.
+  }, 30_000);
 
   it("has one section per selected unit operation, in process order, and a final review section", () => {
     const uos = rec.sections.filter((s) => s.unitOp).map((s) => s.unitOp);

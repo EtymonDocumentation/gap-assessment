@@ -22,8 +22,8 @@ describe("risk assessment document", () => {
     expect(doc.sections.map((s) => s.id)).toEqual(["purpose-scope", "method", "register", "actions", "open-items", "traceability", "versions"]);
   });
 
-  it("counts the open items it lists (the unscored item)", () => {
-    expect(doc.tbdCount).toBe(1);
+  it("counts the open items it lists (the unscored item and the excipient draft)", () => {
+    expect(doc.tbdCount).toBe(2);
     expect(table(doc, "open-items").rows[0]![1]).toContain("not scored");
   });
 

@@ -235,7 +235,7 @@ function ExcipientsTab({ a, run }: { a: ExcipientAssessment; run: (fn: Parameter
         </label>
       </section>
 
-      <section className="card stack" aria-labelledby="ex-lines-h">
+      <section className="card stack" aria-labelledby="ex-lines-h" data-tour="excipient-lines">
         <h2 id="ex-lines-h">Excipients</h2>
         {a.lines.length === 0 && (
           <p data-testid="ex-lines-empty">Add the excipients of your product and answer a few questions. Anything you don't know stays open.</p>

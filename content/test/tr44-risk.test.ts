@@ -173,9 +173,9 @@ describe("old files migrate with only a version change", () => {
 describe("SYR-305 demo FMEA", () => {
   const project = buildDemoProject(content, demos["syr-305"], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes }, undefined, { writeups: trdWriteups });
   const a = project.risk.assessments[0]!;
-  it("has a TR 44 FMEA of ten rows with the team's own threshold", () => {
+  it("has a TR 44 FMEA of ten rows (plus the excipient draft) with the team's own threshold", () => {
     expect(isTr44(a.config)).toBe(true);
-    expect(a.items).toHaveLength(10);
+    expect(a.items).toHaveLength(11);
     expect(a.actionThreshold).toBe(100);
   });
   it("has rows above the threshold with actions and after-scores, and exactly one 'risk accepted?' left blank", () => {
@@ -186,12 +186,13 @@ describe("SYR-305 demo FMEA", () => {
       expect(x.i.residual).toBeDefined();
       expect(a.actions.some((act) => act.itemId === x.id)).toBe(true);
     }
-    expect(a.items.filter((i) => !i.accepted)).toHaveLength(1);
+    // The one left blank on purpose, and the excipient draft the team has not looked at yet.
+    expect(a.items.filter((i) => !i.accepted)).toHaveLength(2);
     expect(a.items.some((i) => i.accepted === "no")).toBe(true);
   });
   it("reports the blank answer as an open item, and has intervention scoring that the team chose", () => {
     const open = riskOpenItems(project, a);
-    expect(open.filter((o) => o.kind === "accepted-missing")).toHaveLength(1);
+    expect(open.filter((o) => o.kind === "accepted-missing")).toHaveLength(2);
     expect(open.some((o) => o.kind === "threshold-missing")).toBe(false);
     const iv = a.items.filter((i) => i.intervention);
     expect(iv.length).toBeGreaterThanOrEqual(2);
@@ -209,7 +210,7 @@ describe("SYR-305 demo FMEA", () => {
     expect(reg.columns).toHaveLength(13);
     expect(reg.columns).toContain("Detection (reversed: high = poor)");
     expect(reg.rows.some((r) => r[8]!.includes("above the action threshold (100)"))).toBe(true);
-    expect(reg.rows.filter((r) => r[9] === "Not answered")).toHaveLength(1);
+    expect(reg.rows.filter((r) => r[9] === "Not answered")).toHaveLength(2);
     const text = JSON.stringify(doc);
     expect(text).toContain("PDA TR 44 s4.1");
     expect(text).not.toMatch(/filing category/i);

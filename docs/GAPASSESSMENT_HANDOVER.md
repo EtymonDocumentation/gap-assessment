@@ -4,7 +4,7 @@ This is the public handover for any machine or new session: status, architecture
 Machine-specific notes (local paths, server addresses, accounts) live in a private handover outside the repo and
 must never be copied in here. Read this file, then `README.md`. The commit history tells the detail of each change.
 
-Last updated: 2026-11-06. Update this file (no machine-specific details) whenever a milestone lands; replace
+Last updated: 2026-11-09. Update this file (no machine-specific details) whenever a milestone lands; replace
 section 1 rather than appending to it.
 
 ## 1. Where things stand
@@ -13,13 +13,23 @@ section 1 rather than appending to it.
 - Latest: M11 sampling plan design review, complete in three jobs (`1dd435c`, `cc69e86`, `249cdb9`): questions about
   likely design errors and left-out studies, a Process view "Coverage" group, a Word/HTML appendix, and an
   account-editable "Expected studies" list (`/sampling/expected`).
-- Current versions: project schema 1.30.0. Check `packages/process-model/src` for the other format versions.
+- Current versions: project schema 1.31.0, process model 1.17.0. Check `packages/process-model/src` for the other format versions.
 - **M12 (TRD interview) is built** (jobs 1 to 3): an Interview tab inside the TRD stage, no new module, no schema change. Starts: TRD page
   and Home ("Answer questions"), also Home starts for a sampling plan and a batch record on their own. Files: engine
   `packages/engine/src/trd-interview.ts`, wording `content/trd-interview/wording.yaml` (all questions hand-worded), tab
   `apps/web/src/pages/TrdInterview.tsx` + `TrdInterviewCard.tsx`, helpers `apps/web/src/trd-interview-lib.ts`, tests
   `content/test/m12-trd-interview.test.ts`, `apps/web/e2e/m12-interview.spec.ts`, `m12-job3.spec.ts`. Spec: docsGAPASSESSMENT_M12-SPEC.md.
-- **NEXT:** excipient assessment; AI features are deliberately the very last step.
+- **M13 (excipient assessment) is built** (jobs 1 to 4B, commits `7883a4f`, `188d2a8`, `bd7898b`, `52233aa`, then job 4B): a module
+  `excipient` at `/excipient` (list, five tabs, an excipient page per line) and a library at `/excipient/library`. Compares the
+  excipients of the product between the sending and the receiving site; no verdict, no score, the only filing wording is "Requires
+  regulatory affairs assessment". Links to the gap assessment, a draft risk item and the TRD material row; Word, HTML and Markdown
+  document; an optional "Excipient assessment" section in the gap document; both demos carry a small fictional assessment (`excipients:`
+  block in `content/demo/*.yaml`); tour, glossary and "?" help; a Home card. Files: model `packages/process-model/src/excipient*.ts`,
+  engine `packages/engine/src/excipient*.ts`, content `content/excipient/`, screens `apps/web/src/pages/Excipient*.tsx`, tests
+  `content/test/m13-*.test.ts`, `apps/web/e2e/m13-*.spec.ts`. Spec: docs/GAPASSESSMENT_M13-EXCIPIENT-SPEC.md (kept outside the repo).
+- **Open design question (M13):** the batch record has no material list, so an excipient line cannot yet be copied onto the record's
+  dispensing step. That needs a new optional list in the batch record format (a format change), so it was left for a decision.
+- **NEXT:** the batch-record material list (see above), then the ease-of-use pass; AI features are deliberately the very last step.
 
 ## 2. Milestones done
 | Milestone | Commit | What it added |
@@ -45,6 +55,7 @@ section 1 rather than appending to it.
 | Home | `bf0f4c6` | Cascade Home page; gap assessment gets its own page |
 | Stage-up | `5ce06ec`, `5d8f582`, `a1cafdf` | Version history per project, stage change = new version + guided review, compare two versions, version stamp on documents |
 | M11 | `1dd435c`, `cc69e86`, `249cdb9` | Sampling plan design review (see section 1) |
+| M13 | `7883a4f`, `188d2a8`, `bd7898b`, `52233aa`, job 4B | Excipient assessment: model and engine, screens, library, links and document, demos, tour, glossary, help (see section 1) |
 
 ## 3. Hard rules
 - **Identity:** never put a personal name or email in the repo (files, commits, issues, PRs). Git identity is
@@ -76,6 +87,12 @@ section 1 rather than appending to it.
 - **TRD** (engine `trd*.ts`): each field keeps the project value and the team's override side by side; PAR/NOR are
   never derived. Write-up blanks `{{key|Label}}` fill from typed values, TRD record or project answer, else stay open.
   Pictures stored inside the project (2 MB each, 10 MB per TRD).
+- **Excipient assessment** (`packages/process-model/src/excipient*.ts`, engine `excipient*.ts`, `content/excipient`): each fact of a line
+  is an ordinary `Entry` (once per site where it can differ), so sources, TBD and the change log work as everywhere else. Spec
+  comparison, markers and open items are computed, never stored. Ids: EXA-001 (assessment), EXL-001 (line), EXR-001 (spec row). The
+  gap, risk and TRD links live on the line; "Use in the TRD" writes only typed blanks through the TRD's own edit function. The
+  library is account level like the other libraries (`/api/excipient-library`). Demo lines are built by `applyExcipientDemo` in
+  `packages/engine/src/demo.ts`, through the same edit functions a person uses.
 - **Batch record** (engine `mbr*.ts`, `content/mbr/blocks.yaml`): built from a TRD, a plan, both or blank, never
   dependent on the plan's review. Process view (`mbr-process-view.ts`) is built live from any record.
 - **Libraries** (write-ups, MBR blocks, plan subsections, risk methods, saved answers, expected studies): account

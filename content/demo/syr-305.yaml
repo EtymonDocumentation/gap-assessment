@@ -1527,3 +1527,154 @@ risk:
       initial: { severity: 9, occurrence: 3, detection: 3 }
       accepted: "yes"
       actions: []
+
+
+
+# ---------------------------------------------------------------- excipient assessment (fictional)
+# Three excipients of the buffer (the surfactant is the one the TRD excipient solution table lists). Built through the same edit functions a
+# person uses. Almost every question is answered. A few gaps are left on purpose so the open-items list has something to show: the nitrosamine
+# topic of the surfactant, its fatty acid comparison, the receiving site storage answer of the amino acid, and the sugar, which cites no
+# document yet and has one supply question open. The comparison tables show a mix: same, different, only at one site and not compared yet.
+# The risk item is a draft started from the surfactant. Every name, supplier, site and document is invented; no limit here is a statement
+# about a real material.
+excipients:
+  at: "2026-10-27T09:00:00.000Z"
+  by: Alex Example (fictional)
+  role: MSAT engineer
+  title: SYR-305 buffer excipient assessment (fictional)
+  scopeNote: The excipients of the SYR-305 formulation buffer, sending site against receiving site (fictional example to show the module).
+  sources:
+    - { identifier: DEMO-EXS-305-N, docType: Excipient specification, title: Surfactant C specification for Example Biologics Drug Substance Site (fictional), version: "3.0" }
+    - { identifier: DEMO-EXS-305-F, docType: Excipient specification, title: Surfactant C specification for Example Fill Site (fictional), version: "1.2" }
+    - { identifier: DEMO-EXQ-305-01, docType: Certificate of analysis, title: Amino acid D certificate of analysis (fictional), version: "1.0" }
+  lines:
+    - name: Surfactant C (fictional)
+      class: surfactant
+      trd: { uo: buffer_prep, item: mat.buffer }
+      risk: excipient_grade_differs
+      facts:
+        - { key: whereAdded, value: [buffer_prep] }
+        - { key: amount, value: { value: 0.2, unit: g/L } }
+        - { key: grade, side: sending, value: [ph_eur], docs: [DEMO-EXS-305-N], section: "1", page: "1" }
+        - { key: grade, side: receiving, value: [usp_nf], docs: [DEMO-EXS-305-F], section: "1", page: "1" }
+        - { key: gradeEdition, side: sending, value: "Ph. Eur. 11th edition (fictional)", docs: [DEMO-EXS-305-N], section: "1", page: "1" }
+        - { key: gradeEdition, side: receiving, value: "USP-NF 2026 issue (fictional)", docs: [DEMO-EXS-305-F], section: "1", page: "1" }
+        - { key: qualityStatement, side: sending, value: "Certificate of conformity to the monograph (fictional)", docs: [DEMO-EXS-305-N], section: "6", page: "5" }
+        - { key: qualityStatement, side: receiving, value: "Certificate of conformity to the monograph (fictional)", docs: [DEMO-EXS-305-F], section: "6", page: "5" }
+        - { key: supplier, side: sending, value: Supplier Four (fictional) }
+        - { key: supplier, side: receiving, same: true }
+        - { key: manufacturingSite, side: sending, value: Plant R (fictional) }
+        - { key: manufacturingSite, side: receiving, value: Plant S (fictional) }
+        - { key: supplierStatus, side: sending, value: qualified }
+        - { key: supplierStatus, side: receiving, value: qualified }
+        - { key: sourcesOfSupply, side: sending, value: more_than_one }
+        - { key: sourcesOfSupply, side: receiving, value: one }
+        - { key: origin, side: sending, value: plant, docs: [DEMO-EXS-305-N], section: "5", page: "4" }
+        - { key: origin, side: receiving, value: plant, docs: [DEMO-EXS-305-F], section: "5", page: "4" }
+        - { key: nitrosamine, tbd: { owner: Alex Example (fictional), due: "2026-12-11" } }
+        - { key: elemental, value: evaluated }
+        - { key: elementalRef, value: "Elemental impurity risk assessment DEMO-EI-305-01 (fictional) section 3" }
+        - { key: endotoxin, value: "No more than 0.25 EU/mg on the supplier certificate (fictional)" }
+        - { key: bioburden, value: "No more than 100 CFU/g on the supplier certificate (fictional)" }
+        - { key: residualSolvents, value: "Within the limits of the monograph (fictional)" }
+        - { key: particulates, value: "Controlled by the 0.2 micron filtration of the buffer (fictional)" }
+        - { key: sterilisation, value: "None. Supplied non-sterile and the buffer is sterile filtered (fictional)" }
+        - { key: storage, side: sending, value: "2 to 8 C under nitrogen, retest after 24 months (fictional)" }
+        - { key: storage, side: receiving, same: true }
+        - { key: notes, value: "The sending site cites the European monograph and the receiving site the American one (fictional example)." }
+      specs:
+        - test: Identification
+          prompt: identity
+          sending: { state: stated, method: "Ph. Eur. / USP monograph method", criterion: Conforms to the monograph, docs: [DEMO-EXS-305-N], section: "3.1", page: "2" }
+          receiving: { state: stated, method: "Ph. Eur. / USP monograph method", criterion: Conforms to the monograph, docs: [DEMO-EXS-305-F], section: "3.1", page: "2" }
+        - test: Water content
+          prompt: water
+          sending: { state: stated, method: "Karl Fischer titration", criterion: "<= 5.0", unit: "%", docs: [DEMO-EXS-305-N], section: "3.3", page: "2" }
+          receiving: { state: stated, method: "Karl Fischer titration", criterion: "<= 5.0", unit: "%", docs: [DEMO-EXS-305-F], section: "3.3", page: "2" }
+        - test: Peroxide value
+          prompt: peroxides
+          sending: { state: stated, method: "Compendial titration method", criterion: "<= 10", unit: mEq/kg, docs: [DEMO-EXS-305-N], section: "3.5", page: "3" }
+          receiving: { state: stated, method: "Compendial titration method", criterion: "<= 5", unit: mEq/kg, docs: [DEMO-EXS-305-F], section: "3.5", page: "3" }
+        - test: Residual ethylene oxide
+          prompt: ethylene_oxide
+          sending: { state: stated, method: "Headspace gas chromatography", criterion: "<= 1", unit: ppm, docs: [DEMO-EXS-305-N], section: "3.7", page: "3" }
+          receiving: { state: not_tested }
+        - test: Fatty acid composition
+          prompt: fatty_acid
+          sending: { state: open }
+          receiving: { state: open }
+    - name: Amino acid D (fictional)
+      class: amino_acid
+      trd: { uo: buffer_prep, item: mat.buffer }
+      facts:
+        - { key: whereAdded, value: [buffer_prep] }
+        - { key: amount, value: { value: 20, unit: mM } }
+        - { key: grade, side: sending, value: [ph_eur], docs: [DEMO-EXQ-305-01], section: "1", page: "1" }
+        - { key: grade, side: receiving, same: true }
+        - { key: gradeEdition, side: sending, value: "Ph. Eur. 11th edition (fictional)", docs: [DEMO-EXQ-305-01], section: "1", page: "1" }
+        - { key: gradeEdition, side: receiving, same: true }
+        - { key: qualityStatement, side: sending, value: "Certificate of analysis DEMO-EXQ-305-01 (fictional)", docs: [DEMO-EXQ-305-01], section: "2", page: "1" }
+        - { key: qualityStatement, side: receiving, same: true }
+        - { key: supplier, side: sending, value: Supplier Five (fictional) }
+        - { key: supplier, side: receiving, value: Supplier Six (fictional) }
+        - { key: manufacturingSite, side: sending, value: Plant U (fictional) }
+        - { key: manufacturingSite, side: receiving, value: Plant V (fictional) }
+        - { key: supplierStatus, side: sending, value: qualified }
+        - { key: supplierStatus, side: receiving, value: not_yet }
+        - { key: sourcesOfSupply, side: sending, value: more_than_one }
+        - { key: sourcesOfSupply, side: receiving, value: more_than_one }
+        - { key: origin, side: sending, value: fermentation }
+        - { key: origin, side: receiving, same: true }
+        - { key: nitrosamine, value: evaluated }
+        - { key: nitrosamineRef, value: "Nitrosamine risk evaluation DEMO-NIT-305-01 (fictional) section 2" }
+        - { key: elemental, value: evaluated }
+        - { key: elementalRef, value: "Elemental impurity risk assessment DEMO-EI-305-01 (fictional) section 3" }
+        - { key: endotoxin, value: "No more than 0.1 EU/mg on the certificate of analysis (fictional)" }
+        - { key: bioburden, value: "No more than 10 CFU/g on the certificate of analysis (fictional)" }
+        - { key: residualSolvents, notApplicable: "Made by fermentation, no organic solvent step (fictional)" }
+        - { key: particulates, value: "Controlled by the 0.2 micron filtration of the buffer (fictional)" }
+        - { key: sterilisation, value: "None. Supplied non-sterile and the buffer is sterile filtered (fictional)" }
+        - { key: storage, side: sending, value: "Room temperature, retest after 48 months (fictional)" }
+        - { key: notes, value: "The receiving site supplier is not qualified yet (fictional example)." }
+      specs:
+        - test: Identification
+          prompt: identity
+          sending: { state: stated, method: "Ph. Eur. / USP monograph method", criterion: Positive }
+          receiving: { state: stated, method: "Ph. Eur. / USP monograph method", criterion: Positive }
+        - test: Assay
+          prompt: assay
+          sending: { state: stated, method: "Ph. Eur. / USP monograph method", criterion: 98.5 to 101.0, unit: "%" }
+          receiving: { state: stated, method: "Ph. Eur. / USP monograph method", criterion: 98.0 to 102.0, unit: "%" }
+    - name: Sugar E (fictional)
+      class: sugar
+      facts:
+        - { key: whereAdded, value: [buffer_prep] }
+        - { key: amount, value: { value: 60, unit: mg/mL } }
+        - { key: grade, side: sending, value: [usp_nf] }
+        - { key: grade, side: receiving, same: true }
+        - { key: gradeEdition, side: sending, value: "USP-NF 2026 issue (fictional)" }
+        - { key: gradeEdition, side: receiving, same: true }
+        - { key: qualityStatement, side: sending, value: "Supplier statement of low endotoxin grade (fictional)" }
+        - { key: qualityStatement, side: receiving, same: true }
+        - { key: supplier, side: sending, value: Supplier Seven (fictional) }
+        - { key: supplier, side: receiving, same: true }
+        - { key: manufacturingSite, side: sending, value: Plant T (fictional) }
+        - { key: manufacturingSite, side: receiving, same: true }
+        - { key: supplierStatus, side: sending, value: qualified }
+        - { key: supplierStatus, side: receiving, value: qualified }
+        - { key: sourcesOfSupply, side: sending, value: more_than_one }
+        - { key: sourcesOfSupply, side: receiving, tbd: { owner: Example Fill Site quality (fictional), note: Asked whether a second source is approved } }
+        - { key: origin, side: sending, value: plant }
+        - { key: origin, side: receiving, same: true }
+        - { key: nitrosamine, value: evaluated }
+        - { key: nitrosamineRef, value: "Nitrosamine risk evaluation DEMO-NIT-305-01 (fictional) section 2" }
+        - { key: elemental, value: evaluated }
+        - { key: elementalRef, value: "Elemental impurity risk assessment DEMO-EI-305-01 (fictional) section 3" }
+        - { key: endotoxin, value: "No more than 0.05 EU/mg (fictional)" }
+        - { key: bioburden, value: "No more than 10 CFU/g (fictional)" }
+        - { key: residualSolvents, notApplicable: "Made by crystallisation from water, no organic solvent (fictional)" }
+        - { key: particulates, value: "Controlled by the 0.2 micron filtration of the buffer (fictional)" }
+        - { key: sterilisation, value: "None. Supplied non-sterile and the buffer is sterile filtered (fictional)" }
+        - { key: storage, side: sending, value: "Room temperature, retest after 60 months (fictional)" }
+        - { key: storage, side: receiving, same: true }
+        - { key: notes, value: "Not yet linked to a supplier document. Add the supplier statement when it arrives (fictional example)." }

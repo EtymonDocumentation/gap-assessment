@@ -1,4 +1,4 @@
-import { NOTICE_DOCUMENT, assess, buildDemoProject, buildDocument, CATEGORIES, DOCUMENT_SECTION_IDS, gapsToCsv, tbdItems, tbdSummary, verificationSummary } from "@gap/engine";
+import { NOTICE_DOCUMENT, assess, buildDemoProject, buildDocument, CATEGORIES, DOCUMENT_SECTION_IDS, EXCIPIENT_SECTION_ID, gapsToCsv, tbdItems, tbdSummary, verificationSummary } from "@gap/engine";
 import { getEntry, removeSource, sourceUsage, verificationState } from "@gap/process-model";
 import { renderHtml, renderMarkdown } from "@gap/renderers";
 import { describe, expect, it } from "vitest";
@@ -11,7 +11,8 @@ describe("ARX-217 demo (golden)", () => {
   it("builds through the interview path with a source on every established entry", () => {
     expect(project.meta.demo).toBe(true);
     expect(project.answers.length).toBeGreaterThan(100);
-    for (const s of project.sources) expect(s.type === "interview_answer" || s.type === "document_reference").toBe(true);
+    // "user_entry" is the source a typed value in the excipient assessment carries.
+    for (const s of project.sources) expect(["interview_answer", "document_reference", "user_entry"]).toContain(s.type);
   });
 
   it("answers only visible questions and leaves nothing inactive", () => {
@@ -91,7 +92,8 @@ describe("ARX-217 demo (golden)", () => {
   it("renders the document to Markdown, HTML and the register to CSV", () => {
     const doc = buildDocument(content, project, a, "2026-10-02T00:00:00.000Z");
     expect(doc.title).toBe("Gap assessment: ARX-217 — Site North (fictional), Line 2 to Site South (fictional), Line 4");
-    expect(doc.sections.map((s) => s.id)).toHaveLength(16);
+    // The 16 base sections plus the optional excipient assessment (the demo has excipient lines).
+    expect(doc.sections.map((s) => s.id)).toHaveLength(17);
     const md = renderMarkdown(doc);
     expect(md).toContain(NOTICE_DOCUMENT);
     expect(md).toContain("DEMO-PPQ-217-01");
@@ -173,7 +175,10 @@ describe("ARX-217 demo (golden)", () => {
     });
 
     it("keeps the section id list in step with the sections the document builds", () => {
-      expect(doc.sections.map((s) => s.id)).toEqual([...DOCUMENT_SECTION_IDS]);
+      // The excipient assessment is optional (it exists only while the project has excipient lines) and follows the risk section.
+      const expected = [...DOCUMENT_SECTION_IDS];
+      expected.splice(expected.indexOf("risk") + 1, 0, EXCIPIENT_SECTION_ID);
+      expect(doc.sections.map((s) => s.id)).toEqual(expected);
     });
   });
 });

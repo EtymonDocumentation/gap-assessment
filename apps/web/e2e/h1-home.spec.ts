@@ -116,10 +116,10 @@ test("Home is the Cascade start page: welcome, the three start choices and one c
   for (const id of ["home-upload-gap", "home-upload-trd", "home-upload-sampling"]) await expect(page.getByTestId(id)).toBeVisible();
   // One card per document, in chain order, each with its purpose.
   const names = await page.getByTestId("home-chain").getByRole("heading", { level: 3 }).allInnerTexts();
-  expect(names).toEqual(["Gap assessment", "TRD", "Sampling plan", "Batch record", "Risk assessment"]);
+  expect(names).toEqual(["Gap assessment", "TRD", "Sampling plan", "Batch record", "Risk assessment", "Excipient assessment"]);
   await expect(page.getByTestId("doc-card-state-gap")).toHaveText("Read how it works, then start a project.");
   await expect(page.getByTestId("doc-card-open-gap")).toHaveAttribute("href", "#/gap");
-  for (const id of ["trd", "sampling", "mbr", "risk"]) {
+  for (const id of ["trd", "sampling", "mbr", "risk", "excipient"]) {
     await expect(page.getByTestId(`doc-card-state-${id}`)).toHaveText("Needs an open project.");
     await expect(page.getByTestId(`doc-card-open-${id}`)).toHaveCount(0);
   }

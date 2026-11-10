@@ -51,7 +51,7 @@ export function ExcipientSpecs({ a, lineId, onPick }: { a: ExcipientAssessment; 
 
   return (
     <div className="stack" data-testid="ex-specs">
-      <section className="card stack" aria-labelledby="ex-specs-h">
+      <section className="card stack" aria-labelledby="ex-specs-h" data-tour="excipient-specs">
         <h2 id="ex-specs-h">Specifications compared</h2>
         <label className="field">
           <span>Excipient</span>
