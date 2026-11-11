@@ -162,7 +162,7 @@ export const createTemplate = (meta: TemplateMeta, bytesBase64: string) => json<
 export async function getTemplateFile(id: string): Promise<Uint8Array> {
   return new Uint8Array(await (await call("GET", `/api/templates/${enc(id)}/file`)).arrayBuffer());
 }
-export const patchTemplate = (id: string, patch: { name?: string; version?: string; mapping?: unknown }) =>
+export const patchTemplate = (id: string, patch: { name?: string; version?: string; mapping?: unknown; trdMapping?: unknown }) =>
   json<{ meta: TemplateMeta }>("PATCH", `/api/templates/${enc(id)}`, { json: patch }).then((r) => r.meta);
 export const deleteTemplate = (id: string) => call("DELETE", `/api/templates/${enc(id)}`).then(() => undefined);
 

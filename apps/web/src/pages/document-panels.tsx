@@ -1,7 +1,7 @@
 import type { DocumentTagData, SamplingTagData, TagData, TemplateAnalysis, TemplateMode } from "@gap/docx";
 import { BUILTIN_TEMPLATE_VERSION } from "@gap/docx/src/version";
-import { optionalSectionTitle, type Assessment, type ContentBundle, type DocModel } from "@gap/engine";
-import type { DocumentExport, Project, TemplateRecord } from "@gap/process-model";
+import { optionalSectionTitle, rematchTrdMapping, resolveHeadingTexts, trdLeftOut, trdUnitsOf, type Assessment, type ContentBundle, type DocModel, type TrdUnitInfo } from "@gap/engine";
+import type { DocumentExport, Project, TemplateRecord, TrdDocument } from "@gap/process-model";
 import { useEffect, useMemo, useState } from "react";
 import { Empty } from "../components";
 import { loadDocx, useDocx, type DocxModule } from "../docx-loader";
@@ -105,8 +105,30 @@ function warningsFor(mode: TemplateMode, a: TemplateAnalysis): string[] {
   });
 }
 
+/**
+ * What the TRD's Word download needs to follow a template's own headings (M15): the TRD itself (the text written under headings and the
+ * sections added at the end are kept on it) and the TRD regrouped into units (`trdUnitModel`), which is what gets placed.
+ */
+export interface TrdWordInput {
+  d: TrdDocument;
+  unitDoc: DocModel;
+}
+
+/** The stored match of a template against the TRD as it is now: re-matched by heading text, with what is left out and what has no content. */
+export function trdMatchState(t: StoredTemplate, trd: TrdWordInput) {
+  const outline = t.analysis.outline;
+  const rematched = rematchTrdMapping(outline, t.trdMapping);
+  const units: TrdUnitInfo[] = trdUnitsOf(trd.unitDoc);
+  const known = new Set(units.map((u) => u.id));
+  const written = resolveHeadingTexts(outline, trd.d.headingTexts);
+  const leftOut = trdLeftOut(units, rematched.mapping, trd.d.addedBack);
+  // A heading with nothing of Cascade's under it shows the text written for it, else its own text, else "[To be completed.]".
+  const toComplete = outline.filter((h) => !h.hasBody && !written.byIndex.has(h.index) && !(rematched.mapping.headings.find((p) => p.headingIndex === h.index)?.units.some((u) => known.has(u)) ?? false));
+  return { rematched, units, leftOut, toComplete, empty: !t.trdMapping || (!rematched.mapping.headings.length && !trd.d.addedBack?.length) };
+}
+
 /** Everything worth knowing before a download. A blocker disables the button; the rest is information. */
-function usePreExportChecks(choice: WordChoice, doc: DocModel): Checks | null {
+function usePreExportChecks(choice: WordChoice, doc: DocModel, trd?: TrdWordInput): Checks | null {
   const { docx } = useDocx(choice.mode !== "builtin");
   const t = choice.template;
   return useMemo(() => {
@@ -118,7 +140,17 @@ function usePreExportChecks(choice: WordChoice, doc: DocModel): Checks | null {
     }
     if (!docx) return null;
     out.warnings.push(...warningsFor(choice.mode, t.analysis));
-    if (choice.mode === "mapped") {
+    if (choice.mode === "mapped" && trd) {
+      // The TRD has its own match (the gap assessment's heading placement names the gap document's sections, so it is not used here).
+      const s = trdMatchState(t, trd);
+      if (s.empty) {
+        out.blockers.push("This template has no match for the TRD yet. Choose \"Match your headings\" below, then download.");
+      } else {
+        if (s.rematched.again.length) out.warnings.push(`${s.rematched.again.length} ${s.rematched.again.length === 1 ? "heading" : "headings"} you matched earlier ${s.rematched.again.length === 1 ? "is" : "are"} not in the template any more, so their content is not placed: ${s.rematched.again.map((p) => p.headingText).join("; ")}.`);
+        if (s.leftOut.length) out.warnings.push(`${s.leftOut.length} ${s.leftOut.length === 1 ? "section is" : "sections are"} not in your template and will be left out of the Word file: ${s.leftOut.map((u) => u.title).join("; ")}.`);
+        if (s.toComplete.length) out.notes.push(`${s.toComplete.length} ${s.toComplete.length === 1 ? "heading has" : "headings have"} no content and no text of your own. ${s.toComplete.length === 1 ? "It" : "They"} will say "[To be completed.]" in the Word file: ${s.toComplete.map((h) => h.text).join("; ")}.`);
+      }
+    } else if (choice.mode === "mapped") {
       if (!t.mapping) {
         out.blockers.push("This template has no heading placement yet. Choose where the content goes under its headings, and save it.");
       } else {
@@ -145,7 +177,7 @@ function usePreExportChecks(choice: WordChoice, doc: DocModel): Checks | null {
       for (const m of tags?.missingRecommended ?? []) out.warnings.push(`The template does not use the recommended tag {${m}}.`);
     }
     return out;
-  }, [choice.mode, t, docx, doc]);
+  }, [choice.mode, t, docx, doc, trd]);
 }
 
 /** The help tip next to the Word download button (the Document page shows the button beside the other downloads, so it needs the text too). */
@@ -177,6 +209,8 @@ export interface WordExportInput {
   tagData?: (m: DocxModule) => TagData | DocumentTagData | SamplingTagData;
   /** Data that travels inside the Word file (the TRD export carries its record, so the file can be uploaded again). Made at download time. */
   dataPart?: () => { kind: "trd-data" | "trd-form" | "sampling-data" | "sampling-form" | "gap-data" | "gap-form"; json: string };
+  /** The TRD, for "A template's headings": its own match of the template's headings is used instead of the gap assessment's heading placement. */
+  trd?: TrdWordInput;
 }
 
 /** The words on every Word download button while the file is being made (the same on every page). */
@@ -191,7 +225,7 @@ export interface WordExporter {
   /** "This one takes about N s" while busy, once an earlier download of this document took longer than 5 s; otherwise "". */
   slowNote: string;
   error: string;
-  result: { file: string; template: TemplateRecord; warnings: string[]; omitted: string[]; historyProblem?: string } | null;
+  result: { file: string; template: TemplateRecord; warnings: string[]; omitted: string[]; toComplete: string[]; historyProblem?: string } | null;
   /** True while a blocker (or the template check still running) means the download cannot be made. */
   blocked: boolean;
   /** The download itself: the TBD warning first when the document still lists TBD values, then the .docx. */
@@ -200,8 +234,8 @@ export interface WordExporter {
   reset: () => void;
 }
 
-export function useWordExport({ choice, doc, content, project, assessment, generatedAt, fileBase, guard, onExported, tagData, dataPart }: WordExportInput): WordExporter {
-  const checks = usePreExportChecks(choice, doc);
+export function useWordExport({ choice, doc, content, project, assessment, generatedAt, fileBase, guard, onExported, tagData, dataPart, trd }: WordExportInput): WordExporter {
+  const checks = usePreExportChecks(choice, doc, trd);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<WordExporter["result"]>(null);
@@ -215,8 +249,11 @@ export function useWordExport({ choice, doc, content, project, assessment, gener
     try {
       const m = await loadDocx();
       try {
+        // "A template's headings" for a TRD places the TRD's units (not the document's numbered sections) under the template's own headings.
+        const byHeadings = !!trd && choice.mode === "mapped" && !!t;
         const res = await m.renderDocx({
-          doc,
+          doc: byHeadings ? trd!.unitDoc : doc,
+          ...(byHeadings ? { trd: { mapping: t!.trdMapping ?? { headings: [] }, ...(trd!.d.headingTexts ? { headingTexts: trd!.d.headingTexts } : {}), ...(trd!.d.addedBack ? { addedBack: trd!.d.addedBack } : {}) } } : {}),
           tagData: tagData ? tagData(m) : m.buildTagData(content, project, assessment!, doc),
           mode: choice.mode,
           generatedAt,
@@ -230,7 +267,7 @@ export function useWordExport({ choice, doc, content, project, assessment, gener
         const file = `${fileBase}.docx`;
         download(file, res.bytes, DOCX_MIME);
         const historyProblem = onExported(res.templateRecord);
-        setResult({ file, template: res.templateRecord, warnings: res.warnings, omitted: res.omittedBlocks, ...(historyProblem ? { historyProblem } : {}) });
+        setResult({ file, template: res.templateRecord, warnings: res.warnings, omitted: res.omittedBlocks, toComplete: res.toComplete, ...(historyProblem ? { historyProblem } : {}) });
       } catch (e) {
         setError(e instanceof m.TemplateError ? e.message : `The Word document could not be created: ${(e as Error).message}`);
       }
@@ -280,6 +317,26 @@ export interface WordPanelProps {
   buttonLabel?: string;
   /** False where the page puts the download button elsewhere (the Document page puts it beside the other downloads). */
   showButton?: boolean;
+  /** The TRD (see `TrdWordInput`): "A template's headings" then uses the TRD's own match, and the panel links to it. */
+  trd?: TrdWordInput;
+}
+
+/** The TRD's match of a template: how many sections the template has no heading for, and the link to the match screen. */
+function TrdMatchLinks({ t, trd }: { t: StoredTemplate; trd: TrdWordInput }) {
+  const s = trdMatchState(t, trd);
+  return (
+    <div className="stack" data-testid="trd-match-links">
+      {!s.empty && (
+        <p className="small" data-testid="trd-not-in-template">
+          Not in your template: {s.leftOut.length} {s.leftOut.length === 1 ? "section" : "sections"}.{" "}
+          {s.leftOut.length > 0 && <a href={href(`/templates/${t.id}/trd-match`, { trd: trd.d.id })}>See which and place them</a>}
+        </p>
+      )}
+      <p className="small">
+        <a href={href(`/templates/${t.id}/trd-match`, { trd: trd.d.id })}>{t.trdMapping ? "Edit the match of your headings" : "Match your headings"}</a> for {t.name}.
+      </p>
+    </div>
+  );
 }
 
 export function WordPanelView({
@@ -292,6 +349,7 @@ export function WordPanelView({
   title = "Word document",
   buttonLabel = "Download gap assessment (Word)",
   showButton = true,
+  trd,
 }: WordPanelProps & { exporter: WordExporter }) {
   const { checks, busy, error, result, blocked } = exporter;
   const items = useTemplates((s) => s.items);
@@ -362,11 +420,12 @@ export function WordPanelView({
               </select>
             </label>
           )}
-          {choice.mode === "mapped" && t && (
+          {choice.mode === "mapped" && t && !trd && (
             <p className="small">
               <a href={href(`/templates/${t.id}/mapping`)}>{t.mapping ? "Edit the heading placement" : "Set the heading placement"}</a> for {t.name}.
             </p>
           )}
+          {choice.mode === "mapped" && t && trd && <TrdMatchLinks t={t} trd={trd} />}
         </div>
       )}
 
@@ -439,6 +498,11 @@ export function WordPanelView({
             </p>
             {result.historyProblem && <p>The file is saved, but this download is not in the export history. {result.historyProblem}</p>}
             {result.omitted.length > 0 && <p className="small">Left out by choice: {result.omitted.join("; ")}.</p>}
+            {result.toComplete.length > 0 && (
+              <p className="small" data-testid={testIdPrefix ? `${testIdPrefix}-to-complete` : undefined}>
+                {result.toComplete.length} {result.toComplete.length === 1 ? "heading has" : "headings have"} no content and no text of your own. {result.toComplete.length === 1 ? "It says" : "They say"} "[To be completed.]" in the Word file: {result.toComplete.join("; ")}.
+              </p>
+            )}
             {result.warnings.length > 0 && (
               <div>
                 <p className="small">

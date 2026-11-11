@@ -182,6 +182,26 @@ describe("templates", () => {
     expect((await c.get("/api/templates")).json.templates).toHaveLength(6);
   });
 
+  it("keeps a template's TRD heading match (M15) apart from the gap assessment's mapping, and removes it with null", async () => {
+    const c = await signedInClient(env);
+    const { id } = (await c.post("/api/templates", { meta: meta(), bytesBase64: Buffer.from("x").toString("base64") })).json;
+    const trdMapping = { templateVersion: "1", headings: [{ headingIndex: 0, headingText: "Objective", units: ["writeup-purpose"], existing: "replace" }] };
+    const withBoth = await c.patch(`/api/templates/${id}`, { mapping: { rows: [1] }, trdMapping });
+    expect(withBoth.status).toBe(200);
+    expect(withBoth.json.meta).toMatchObject({ mapping: { rows: [1] }, trdMapping });
+    // The match survives a list, and clearing the gap mapping leaves it alone.
+    expect((await c.get("/api/templates")).json.templates[0]).toMatchObject({ id, trdMapping });
+    const gapCleared = await c.patch(`/api/templates/${id}`, { mapping: null });
+    expect(gapCleared.json.meta.mapping).toBeUndefined();
+    expect(gapCleared.json.meta.trdMapping).toEqual(trdMapping);
+    const cleared = await c.patch(`/api/templates/${id}`, { trdMapping: null });
+    expect(cleared.json.meta.trdMapping).toBeUndefined();
+    // A patch that does not name it changes nothing about it; a value that is not an object is refused.
+    await c.patch(`/api/templates/${id}`, { trdMapping });
+    expect((await c.patch(`/api/templates/${id}`, { name: "Renamed" })).json.meta.trdMapping).toEqual(trdMapping);
+    expect((await c.patch(`/api/templates/${id}`, { trdMapping: "nope" })).status).toBe(400);
+  });
+
   it("patches name, version and mapping, and deletes both files to the trash", async () => {
     const c = await signedInClient(env);
     const { id } = (await c.post("/api/templates", { meta: meta(), bytesBase64: Buffer.from("x").toString("base64") })).json;

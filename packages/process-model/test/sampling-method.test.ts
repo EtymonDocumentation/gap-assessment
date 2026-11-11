@@ -7,7 +7,7 @@ const refs = { catalog: "1.0.0", questions: "1.0.0", rules: "1.0.0", templates: 
 
 describe("sampling method (current versions: schema 1.32.0, plan format 1.8.0)", () => {
   it("has the new versions", () => {
-    expect(SCHEMA_VERSION).toBe("1.34.0");
+    expect(SCHEMA_VERSION).toBe("1.35.0");
     expect(SAMPLING_PLAN_FORMAT_VERSION).toBe("1.8.0");
   });
 

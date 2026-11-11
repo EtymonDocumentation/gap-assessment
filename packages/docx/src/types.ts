@@ -1,5 +1,5 @@
 import type { TemplateRecord } from "@gap/process-model";
-import type { DocModel } from "@gap/engine";
+import type { DocModel, TrdMapping } from "@gap/engine";
 
 export type TemplateMode = "builtin" | "their_look" | "mapped" | "tags";
 
@@ -78,6 +78,20 @@ export type FigureRasteriser = (page: { svg: string; widthPt: number; heightPt: 
 /** Resolution of the figure pictures in the Word file. */
 export const FIGURE_DPI = 200;
 
+/**
+ * What the TRD adds when it comes out under the headings of a template (M15, job 2). With it, `doc.sections` are the TRD's units (see the
+ * engine's `trdUnitModel`) and the match decides where each goes. Without it, "A template's headings" works as it always did, for the gap
+ * assessment.
+ */
+export interface TrdRenderInput {
+  /** The confirmed match (the template's `trdMapping`). Content placed under a heading, and replace or keep for that heading. */
+  mapping: TrdMapping;
+  /** Text the person wrote under headings, by heading position and words. */
+  headingTexts?: { headingIndex: number; headingText: string; text: string }[];
+  /** Unit ids the person chose to add at the end because the template has no heading for them. */
+  addedBack?: string[];
+}
+
 export interface RenderDocxInput {
   doc: DocModel;
   /** Draws the figure pages as pictures. Without it (or if it fails) a figure is its caption and text description, with a warning. */
@@ -89,6 +103,8 @@ export interface RenderDocxInput {
   dataPart?: import("./trd-data").DataPart;
   /** ISO timestamp; used for the document properties so the output is the same every time. */
   generatedAt: string;
+  /** The TRD in "A template's headings": the match, the text written under headings and the content added back. Not for the gap assessment. */
+  trd?: TrdRenderInput;
   template?: {
     name: string;
     version: string;
@@ -106,4 +122,6 @@ export interface RenderDocxResult {
   warnings: string[];
   /** Titles of tool blocks left out because the user chose "omit". */
   omittedBlocks: string[];
+  /** Headings of the template left with "[To be completed.]" because no content, written text or template text was there. Counted as open items. TRD only. */
+  toComplete: string[];
 }

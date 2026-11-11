@@ -69,5 +69,6 @@ const TRAILS: Record<string, Trail> = {
 /** The trail of a route, or undefined for a route that has none (Home, the account pages). */
 export function pageTrail(path: string): Trail | undefined {
   if (/^\/templates\/[^/]+\/mapping$/.test(path)) return t(false, LIB, { label: "Templates", path: "/templates" }, "Heading placement");
+  if (/^\/templates\/[^/]+\/trd-match$/.test(path)) return t(false, LIB, { label: "Templates", path: "/templates" }, "Match your headings");
   return TRAILS[path === "/model" ? "/builder" : path];
 }

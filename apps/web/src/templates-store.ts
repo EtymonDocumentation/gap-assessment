@@ -1,4 +1,5 @@
 import type { TemplateAnalysis, TemplateMapping, TemplateMode } from "@gap/docx";
+import { parseTrdMapping, type TrdMapping } from "@gap/engine";
 import type { TemplateRecord } from "@gap/process-model";
 import { createStore, del, set, values } from "idb-keyval";
 import { create } from "zustand";
@@ -25,6 +26,8 @@ export interface StoredTemplate {
   bytes: Uint8Array;
   analysis: TemplateAnalysis;
   mapping?: TemplateMapping;
+  /** The match of the TRD to this template's headings (M15): which TRD content goes under which heading. Separate from `mapping`, which the gap assessment uses. */
+  trdMapping?: TrdMapping;
 }
 
 const db = createStore("gap-templates", "templates");
@@ -36,7 +39,7 @@ interface State {
   error: string | null;
   load(): Promise<void>;
   add(t: StoredTemplate): Promise<void>;
-  patch(id: string, patch: Partial<Pick<StoredTemplate, "name" | "version" | "mapping">>): Promise<void>;
+  patch(id: string, patch: Partial<Pick<StoredTemplate, "name" | "version" | "mapping" | "trdMapping">>): Promise<void>;
   remove(id: string): Promise<void>;
 }
 
@@ -179,6 +182,7 @@ export function templateFileJson(t: StoredTemplate): string {
       sourceFormat: t.sourceFormat,
       stripped: t.analysis.stripped,
       mapping: t.mapping ?? null,
+      trdMapping: t.trdMapping ?? null,
       bytesBase64: toBase64(t.bytes),
     },
     null,
@@ -194,6 +198,8 @@ export interface TemplateFile {
   storedSha256?: string;
   stripped: string[];
   mapping?: TemplateMapping;
+  /** The match of the TRD to this template's headings (M15): which TRD content goes under which heading. Separate from `mapping`, which the gap assessment uses. */
+  trdMapping?: TrdMapping;
   bytes: Uint8Array;
 }
 
@@ -233,6 +239,7 @@ export function parseTemplateFile(text: string): TemplateFile {
     throw userError("The template file is damaged: its document data could not be decoded.");
   }
   const mapping = o.mapping && typeof o.mapping === "object" ? (o.mapping as TemplateMapping) : undefined;
+  const trdMapping = parseTrdMapping(o.trdMapping);
   return {
     name: str("name"),
     version: str("version"),
@@ -241,6 +248,7 @@ export function parseTemplateFile(text: string): TemplateFile {
     ...(typeof o.storedSha256 === "string" ? { storedSha256: o.storedSha256 } : {}),
     stripped: Array.isArray(o.stripped) ? o.stripped.filter((x): x is string => typeof x === "string") : [],
     ...(mapping && Array.isArray(mapping.headings) ? { mapping } : {}),
+    ...(trdMapping ? { trdMapping } : {}),
     bytes,
   };
 }

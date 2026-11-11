@@ -10,6 +10,7 @@ export type {
   TemplateAnalysis,
   TemplateMapping,
   TemplateMode,
+  TrdRenderInput,
   ToolBlock,
 } from "./types";
 export { importTemplateFile } from "./import";

@@ -67,7 +67,7 @@ const issuesOf = (raw: unknown): string[] => {
 
 describe("schema 1.3.0 and later: the document block", () => {
   it("is the current version, and a new project starts with an empty document block", () => {
-    expect(SCHEMA_VERSION).toBe("1.34.0");
+    expect(SCHEMA_VERSION).toBe("1.35.0");
     const p = empty();
     expect(p.schemaVersion).toBe(SCHEMA_VERSION);
     expect(p.document).toEqual({ exports: [] });
@@ -145,7 +145,7 @@ describe("migration to 1.3.0", () => {
   it("still refuses versions it does not know", () => {
     const raw = reviewed();
     raw.schemaVersion = "0.9.0";
-    expect(() => parseProject(raw)).toThrow(/Unsupported schema version 0\.9\.0 \(this build reads 1.34.0\)/);
+    expect(() => parseProject(raw)).toThrow(/Unsupported schema version 0\.9\.0 \(this build reads 1.35.0\)/);
     raw.schemaVersion = "2.0.0";
     expect(() => parseProject(raw)).toThrow(/Unsupported schema version 2.0.0/);
   });

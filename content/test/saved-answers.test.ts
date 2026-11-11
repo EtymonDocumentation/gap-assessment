@@ -33,8 +33,8 @@ function answeredInst(p: Project, side: "source" | "target"): QuestionInstance {
 }
 
 describe("saved answer sets", { timeout: 60_000 }, () => {
-  it("is schema 1.34.0", () => {
-    expect(SCHEMA_VERSION).toBe("1.34.0");
+  it("is schema 1.35.0", () => {
+    expect(SCHEMA_VERSION).toBe("1.35.0");
     expect(demo().schemaVersion).toBe(SCHEMA_VERSION);
   });
 

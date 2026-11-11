@@ -112,6 +112,7 @@ export function TemplatesPage() {
       stored.sha256 = tf.sha256;
       stored.analysis = { ...stored.analysis, stripped: [...new Set([...tf.stripped, ...stored.analysis.stripped])] };
       if (tf.mapping) stored.mapping = tf.mapping;
+      if (tf.trdMapping) stored.trdMapping = tf.trdMapping;
       await useTemplates.getState().add(stored);
       setNotice(`Template "${stored.name}" imported.`);
     } catch (e) {
@@ -398,6 +399,7 @@ function TemplateCard({
 }) {
   const canMap = t.analysis.usableModes.includes("mapped");
   const mapped = t.mapping?.headings.filter((h) => h.blocks.length > 0).length ?? 0;
+  const trdPlaced = t.trdMapping?.headings.filter((h) => h.units.length > 0).length ?? 0;
   return (
     <article className="card stack" aria-labelledby={`tpl-${t.id}`}>
       <div className="row between wrap">
@@ -448,6 +450,13 @@ function TemplateCard({
               ) : (
                 <span className="muted small">Open a project to set the heading placement, because it lists that project's content.</span>
               )}
+            </dd>
+            <dt>TRD heading match</dt>
+            <dd data-testid={`trd-match-card-${t.id}`}>
+              {t.trdMapping ? `Saved: TRD content placed under ${trdPlaced} of ${t.analysis.outline.length} headings.` : "Not set yet."}{" "}
+              <a href={href(`/templates/${t.id}/trd-match`)} aria-label={`${t.trdMapping ? "Edit the TRD match" : "Match your headings"} for ${t.name}`}>
+                {t.trdMapping ? "Edit the TRD match" : "Match your headings"}
+              </a>
             </dd>
           </>
         )}

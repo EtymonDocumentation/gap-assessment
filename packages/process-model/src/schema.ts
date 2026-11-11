@@ -678,6 +678,14 @@ const MIGRATIONS: { from: string; to: string; migrate: Migrate }[] = [
     to: "1.34.0",
     migrate: (raw) => ({ ...raw, schemaVersion: "1.34.0" }),
   },
+  // 1.34.0 -> 1.35.0: the text a TRD holds under headings of the person's own Word template and the content they added back (M15 job 2). Both
+  // parts are optional and a TRD without them has written and added nothing, so only the version moves (nothing is placed for the user).
+  // Running it again changes nothing.
+  {
+    from: "1.34.0",
+    to: "1.35.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.35.0" }),
+  },
 ];
 
 /**

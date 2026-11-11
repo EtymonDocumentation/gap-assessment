@@ -36,6 +36,7 @@ import { SamplingImportPage } from "./pages/SamplingImportPage";
 import { TrdPage } from "./pages/TrdPage";
 import { TrdSeedPage } from "./pages/TrdSeedPage";
 import { MappingPage } from "./pages/MappingPage";
+import { TrdMatchPage } from "./pages/TrdMatchPage";
 import { TemplatesPage } from "./pages/TemplatesPage";
 import { ValidationPage } from "./pages/ValidationPage";
 import { NoticeFooter, NoticeStrip } from "./components";
@@ -77,6 +78,8 @@ function ModuleNotIncluded({ testId, title, module }: { testId: string; title: s
 }
 
 const SamplingNotIncluded = () => <ModuleNotIncluded testId="sampling-not-included" title="Sampling plan" module="sampling" />;
+/** A template's "Match your headings" page for the TRD. It works without an open project (it then lists the whole TRD write-up library). */
+const TRD_MATCH_PATH = /^\/templates\/([^/]+)\/trd-match$/;
 const TrdNotIncluded = () => <ModuleNotIncluded testId="trd-not-included" title="Technical requirements document (TRD)" module="TRD" />;
 const MbrNotIncluded = () => <ModuleNotIncluded testId="mbr-not-included" title="Batch record" module="batch record" />;
 const RiskNotIncluded = () => <ModuleNotIncluded testId="risk-not-included" title="Risk assessment" module="risk" />;
@@ -132,8 +135,9 @@ function AppShell() {
 
   // The template library belongs to the browser, not to a project, so it opens without one. So does the guidance library,
   // which is reference material and has nothing to do with the open project.
-  const needsProject = route.path !== "/" && route.path !== "/gap" && route.path !== "/gap/import" && route.path !== "/templates" && route.path !== "/guidance" && route.path !== "/saved-answers" && route.path !== "/sampling/tables" && route.path !== "/sampling/subsections" && route.path !== "/sampling/expected" && route.path !== "/risk/methods" && route.path !== "/mbr/library" && route.path !== "/excipient/library" && route.path !== "/trd/writeups" && route.path !== "/myfiles" && route.path !== "/about" && route.path !== "/glossary";
+  const needsProject = route.path !== "/" && route.path !== "/gap" && route.path !== "/gap/import" && route.path !== "/templates" && route.path !== "/guidance" && route.path !== "/saved-answers" && route.path !== "/sampling/tables" && route.path !== "/sampling/subsections" && route.path !== "/sampling/expected" && route.path !== "/risk/methods" && route.path !== "/mbr/library" && route.path !== "/excipient/library" && route.path !== "/trd/writeups" && route.path !== "/myfiles" && route.path !== "/about" && route.path !== "/glossary" && !TRD_MATCH_PATH.test(route.path);
   const mappingId = /^\/templates\/([^/]+)\/mapping$/.exec(route.path)?.[1];
+  const trdMatchId = TRD_MATCH_PATH.exec(route.path)?.[1];
   // Documents run in chain order (gap assessment, TRD, sampling plan, batch record), each with a line saying what it is for. They are all
   // optional: the order is a suggestion about which document feeds the next, never a rule. Risk and the TBD list sit alongside the chain.
   // Version history and the Change log are not here either (EOU-36): they belong to the open project, not to the library, so they are reached from the
@@ -225,6 +229,7 @@ function AppShell() {
   else if (route.path === "/guidance") page = <GuidancePage />;
   else if (route.path === "/saved-answers") page = <SavedAnswersPage />;
   else if (mappingId) page = <MappingPage id={decodeURIComponent(mappingId)} />;
+  else if (trdMatchId) page = trdAllowed ? <TrdMatchPage id={decodeURIComponent(trdMatchId)} params={route.params} /> : <TrdNotIncluded />;
   else page = <HomePage />;
 
   return (

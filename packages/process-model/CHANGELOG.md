@@ -2,6 +2,18 @@
 
 All notable changes to `@gap/process-model`. Versions follow semver; see README.md for what counts as breaking.
 
+## 1.21.0
+
+Project schema 1.35.0 (was 1.34.0), catalog and questions unchanged. Additive: what a TRD needs to come out under the headings of a person's own Word template (M15, job 2).
+
+### Added
+- `TrdDocument.headingTexts`: optional list of text the person wrote under a heading of their template, each { headingIndex, headingText, text, setAt, setBy }. Kept by the
+  heading's index AND words, so a changed template can be matched again by its words.
+- `TrdDocument.addedBack`: optional list of stable TRD unit ids the person added at the end of the Word file (under "Additional content") although the template has no heading for them.
+- `trdHeadingTextSchema`, `TrdHeadingText`.
+- Migration 1.34.0 to 1.35.0 moves only the version.
+- The template file (`.gap-template.json`, formatVersion 1) gains an optional `trdMapping` (the TRD's match of the template's headings). It is additive, so the file format stays at 1.
+
 ## 1.20.0
 
 Project schema 1.34.0 (was 1.33.0), catalog and questions unchanged. Additive: a TRD may remember which Word template it comes out in (M15).

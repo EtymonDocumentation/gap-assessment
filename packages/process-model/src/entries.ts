@@ -2,7 +2,7 @@ import { allEntries, getEntry, parseRef } from "./paths";
 import { allExcipientCitingRefs, allExcipientEntries, allExcipientSpecSides, parseExcipientPath } from "./excipient";
 import type { Actor, Entry, EntryStatus, EntryValue, Project, Source, SourceLocation, TbdInfo } from "./types";
 
-export const SCHEMA_VERSION = "1.34.0";
+export const SCHEMA_VERSION = "1.35.0";
 
 let counter = 0;
 /** Short unique id. Uses crypto.randomUUID where available. */

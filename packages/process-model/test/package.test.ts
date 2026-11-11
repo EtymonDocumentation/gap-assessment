@@ -40,7 +40,7 @@ describe("package independence", () => {
 
   it("keeps PROCESS_MODEL_VERSION equal to package.json", () => {
     expect(PROCESS_MODEL_VERSION).toBe(pkg.version);
-    expect(pkg.version).toBe("1.20.0");
+    expect(pkg.version).toBe("1.21.0");
   });
 
   it("is private until it is published on purpose", () => {
@@ -375,6 +375,7 @@ describe("public API", () => {
         "trdControlSchema",
         "trdDocumentSchema",
         "trdFieldSchema",
+        "trdHeadingTextSchema",
         "trdImageMeta",
         "trdImageSchema",
         "trdImageSize",

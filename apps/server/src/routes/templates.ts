@@ -29,6 +29,8 @@ const patchSchema = z.object({
   name: z.string().min(1, "The template needs a name.").max(200).optional(),
   version: z.string().max(100).optional(),
   mapping: z.union([z.record(z.string(), z.unknown()), z.null()]).optional(),
+  // The match of the TRD to the headings of the template (M15), kept as given like `mapping`. null removes it.
+  trdMapping: z.union([z.record(z.string(), z.unknown()), z.null()]).optional(),
 });
 
 export const templateRoutes: Route[] = [
@@ -106,6 +108,8 @@ export const templateRoutes: Route[] = [
         if (body.version !== undefined) meta.version = body.version;
         if (body.mapping === null) delete meta.mapping;
         else if (body.mapping !== undefined) meta.mapping = body.mapping;
+        if (body.trdMapping === null) delete meta.trdMapping;
+        else if (body.trdMapping !== undefined) meta.trdMapping = body.trdMapping;
         return meta;
       });
       sendJson(ctx.res, 200, { meta: next });

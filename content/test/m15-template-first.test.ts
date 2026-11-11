@@ -47,12 +47,12 @@ const presence = (qs: InterviewQuestion[]) => qs.filter((q) => q.target.kind ===
 const doc = (p: Project, id: string) => p.trd.documents.find((d) => d.id === id)!;
 
 describe("schema 1.34.0: the stored Word template choice", () => {
-  it("is schema 1.34.0 and a 1.33.0 project opens with only the version changed", () => {
-    expect(SCHEMA_VERSION).toBe("1.34.0");
+  it("a 1.33.0 project opens with only the version changed (the current schema is 1.35.0)", () => {
+    expect(SCHEMA_VERSION).toBe("1.35.0");
     const base = JSON.parse(JSON.stringify(baseProject()));
     const old = { ...base, schemaVersion: "1.33.0" };
     const once = parseProject(old);
-    expect(once.schemaVersion).toBe("1.34.0");
+    expect(once.schemaVersion).toBe("1.35.0");
     expect(once.trd).toEqual(base.trd);
     expect(parseProject(JSON.parse(JSON.stringify(once)))).toEqual(once);
   });

@@ -5956,3 +5956,37 @@ html:has(.iv-one) { scroll-padding-bottom: 9rem; }
 .start-kinds .check {
   display: flex;
 }
+
+/* "Not in your template" on the TRD match page: with up to 30+ sections, each one is one line (name, heading picker, button) on a wide
+   screen so the list can be scanned, and stacks on a phone where three controls do not fit side by side. */
+.tm-left-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.tm-left-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 16rem) auto;
+  gap: 8px 12px;
+  align-items: center;
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+}
+.tm-left-item:first-child {
+  border-top: 0;
+}
+.tm-left-item select {
+  width: 100%;
+  min-width: 0;
+}
+.tm-left-name {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 600px) {
+  .tm-left-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tm-left-item .btn {
+    justify-self: start;
+  }
+}

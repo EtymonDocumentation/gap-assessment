@@ -103,7 +103,7 @@ export const MODE_LABEL = {
 export const MODE_HELP = {
   builtin: "The tool's own clean layout. No template needed.",
   their_look: "Our sections, written in the fonts, styles, header, footer and page setup of one of your templates.",
-  mapped: "Our content placed under the headings of one of your templates, as you chose on the heading placement page.",
+  mapped: "Our content placed under the headings of one of your templates, as you chose on its heading page (the gap assessment's placement or the TRD's match). Your cover, headers, footers and styles are kept.",
   tags: "One of your templates with placeholder tags such as {program}. The tool fills them in.",
 } as const;
 

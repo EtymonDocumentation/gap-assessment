@@ -100,6 +100,94 @@ export function clearTrdTemplateChoice(project: Project, id: string, reason: str
   return next;
 }
 
+/** A heading of the person's template, named by its position and its words (see trdHeadingTextSchema). */
+export interface TrdHeadingRef {
+  headingIndex: number;
+  headingText: string;
+}
+
+const sameHeading = (a: TrdHeadingRef, b: TrdHeadingRef) => a.headingIndex === b.headingIndex && text(a.headingText) === text(b.headingText);
+
+/**
+ * Keeps text the person wrote under a heading of their own template (schema 1.35.0). The text is theirs and is printed as written, under that
+ * heading, in the Word file made with "A template's headings". Writing the same text again changes nothing and logs nothing; the earlier
+ * text is kept in the change log. Nothing is written for the person.
+ */
+export function setTrdHeadingText(project: Project, id: string, heading: TrdHeadingRef, value: string, actor: Actor): Project {
+  const body = text(value);
+  if (!body) throw new TrdError("Write some text, or remove the text under this heading.");
+  if (!text(heading.headingText)) throw new TrdError("The heading needs its words, so the text can be found again.");
+  const next = structuredClone(project);
+  const d = docOf(next, id);
+  const list = d.headingTexts ?? [];
+  const old = list.find((x) => sameHeading(x, heading));
+  if (old && old.text === body) return project;
+  const entry = { headingIndex: heading.headingIndex, headingText: text(heading.headingText), text: body, setAt: actor.at, setBy: actor.name };
+  d.headingTexts = [...list.filter((x) => x !== old), entry].sort((a, b) => a.headingIndex - b.headingIndex);
+  assertValid(d);
+  d.updatedAt = actor.at;
+  log(next, actor, {
+    action: "trd_heading_text_set",
+    path: `trd.${id}.headingText.${heading.headingIndex}`,
+    detail: `TRD ${id}: text ${old ? "changed" : "written"} under the template heading "${entry.headingText}"`,
+    before: old ? { headingText: old.headingText, text: old.text } : null,
+    after: { headingText: entry.headingText, text: entry.text },
+  });
+  return next;
+}
+
+/** Removes the text written under one template heading. The reason is kept in the change log, as for every removal, with the text that was removed. */
+export function clearTrdHeadingText(project: Project, id: string, heading: TrdHeadingRef, reason: string, actor: Actor): Project {
+  const next = structuredClone(project);
+  const d = docOf(next, id);
+  const old = (d.headingTexts ?? []).find((x) => sameHeading(x, heading));
+  if (!old) return project;
+  const rest = (d.headingTexts ?? []).filter((x) => x !== old);
+  if (rest.length) d.headingTexts = rest;
+  else delete d.headingTexts;
+  d.updatedAt = actor.at;
+  log(next, actor, {
+    action: "trd_heading_text_clear",
+    path: `trd.${id}.headingText.${old.headingIndex}`,
+    detail: `TRD ${id}: text under the template heading "${old.headingText}" removed (${text(reason) || NO_REASON_RECORDED})`,
+    before: { headingText: old.headingText, text: old.text },
+    after: null,
+  });
+  return next;
+}
+
+/**
+ * Adds a piece of the TRD that the person's template has no heading for to the end of the Word file ("Additional content"). Without this the
+ * piece is left out of that Word file, and the Document page says so. The piece is named by its stable unit id, never by a section number.
+ */
+export function addTrdAddedBack(project: Project, id: string, unitId: string, actor: Actor): Project {
+  const unit = text(unitId);
+  if (!unit) throw new TrdError("Choose which content to add at the end.");
+  const next = structuredClone(project);
+  const d = docOf(next, id);
+  const before = d.addedBack ?? [];
+  if (before.includes(unit)) return project;
+  d.addedBack = [...before, unit];
+  assertValid(d);
+  d.updatedAt = actor.at;
+  log(next, actor, { action: "trd_added_back_set", path: `trd.${id}.addedBack`, detail: `TRD ${id}: "${unit}" added at the end of the Word file made with a template's headings`, before: [...before], after: [...d.addedBack] });
+  return next;
+}
+
+/** Takes one piece back out of the end of the Word file (it is then left out again). The reason is kept in the change log. */
+export function removeTrdAddedBack(project: Project, id: string, unitId: string, reason: string, actor: Actor): Project {
+  const next = structuredClone(project);
+  const d = docOf(next, id);
+  const before = d.addedBack ?? [];
+  if (!before.includes(unitId)) return project;
+  const rest = before.filter((u) => u !== unitId);
+  if (rest.length) d.addedBack = rest;
+  else delete d.addedBack;
+  d.updatedAt = actor.at;
+  log(next, actor, { action: "trd_added_back_clear", path: `trd.${id}.addedBack`, detail: `TRD ${id}: "${unitId}" no longer added at the end of the Word file (${text(reason) || NO_REASON_RECORDED})`, before: [...before], after: [...rest] });
+  return next;
+}
+
 const TEMPLATE_KIND_WORDS: Record<TrdTemplateChoice["kind"], string> = {
   later: "Decide later",
   builtin: "Built-in default",

@@ -230,6 +230,21 @@ export const trdTemplateChoiceSchema = z.object({
 });
 export type TrdTemplateChoice = z.infer<typeof trdTemplateChoiceSchema>;
 
+/**
+ * Text the person wrote under one heading of their own Word template (schema 1.35.0, M15). Kept on the TRD, not on the template, because it
+ * is this document's content. The heading is named by its position AND its text, so a re-uploaded template that moved or renamed the heading
+ * does not hand the text to a different heading by accident (the match screen lists it "to match again" instead).
+ */
+export const trdHeadingTextSchema = z.object({
+  headingIndex: z.number().int().min(0),
+  headingText: z.string().min(1),
+  text: z.string().min(1),
+  /** Written by the person, so the author and time are kept like every other edit. */
+  setAt: z.string(),
+  setBy: z.string(),
+});
+export type TrdHeadingText = z.infer<typeof trdHeadingTextSchema>;
+
 export const trdDocumentSchema = z
   .object({
     /** TRD-001, TRD-002 ... */
@@ -251,6 +266,13 @@ export const trdDocumentSchema = z
     writeups: z.array(trdWriteupSchema).optional(),
     /** The Word template the person chose for this TRD (schema 1.34.0). Absent in a TRD made before: no choice recorded, never a default. */
     templateChoice: trdTemplateChoiceSchema.optional(),
+    /** Text written under headings of the person's own template (schema 1.35.0). Absent when none was written; nothing is made up. */
+    headingTexts: z.array(trdHeadingTextSchema).optional(),
+    /**
+     * Content the person's template has no heading for, which they chose to add back at the end of the Word file (schema 1.35.0). Stable unit
+     * ids, never section numbers. Absent means none: unplaced content stays out of the Word file, and the Document page says so.
+     */
+    addedBack: z.array(z.string().min(1)).optional(),
     createdAt: z.string(),
     updatedAt: z.string(),
   })

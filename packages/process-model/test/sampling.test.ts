@@ -117,7 +117,7 @@ describe("project schema 1.12.0", () => {
   const fresh = () => emptyProject({ title: "Sampling schema test (fictional)", actor: ACTOR, contentRefs: { catalog: "1.0.0", questions: "1.0.0", rules: "1.0.0", templates: "1.0.0" } });
 
   it("starts a new project with no plans", () => {
-    expect(SCHEMA_VERSION).toBe("1.34.0");
+    expect(SCHEMA_VERSION).toBe("1.35.0");
     expect(fresh().sampling).toEqual({ plans: [] });
   });
 

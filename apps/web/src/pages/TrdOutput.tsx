@@ -1,5 +1,5 @@
 import { DocPreview } from "../DocPreview";
-import { buildTrdData, buildTrdDocument, documentFingerprint, clearTrdTemplateChoice, projectLabel, recordExport, setTrdTemplateChoice, stampDocument, TRD_OPTIONAL_SECTIONS, trdBasisText, trdTemplateChoiceText, type TrdOptionalSection, updateTrd } from "@gap/engine";
+import { buildTrdData, buildTrdDocument, documentFingerprint, clearTrdTemplateChoice, projectLabel, recordExport, setTrdTemplateChoice, stampDocument, TRD_OPTIONAL_SECTIONS, trdBasisText, trdTemplateChoiceText, type TrdOptionalSection, trdUnitModel, updateTrd } from "@gap/engine";
 import type { DocModel } from "@gap/engine";
 import { PROCESS_MODEL_VERSION, TRD_FORMAT_VERSION, type DocumentExport, type TemplateRecord, type TrdApproval, type TrdDocument } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlPreview } from "@gap/renderers";
@@ -41,6 +41,8 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
   const versionStamp = useVersionStamp();
   const doc = useMemo(() => stampDocument(buildTrdDocument(project, d, { generatedAt, appVersion: APP_VERSION, catalogVersion: content.versions.catalog, omit, content }), versionStamp), [project, d, content, generatedAt, omit, versionStamp]);
   const evidenceDoc = useMemo(() => stampDocument(buildTrdDocument(project, d, { generatedAt, appVersion: APP_VERSION, catalogVersion: content.versions.catalog, omit: omitEvidence, content, variant: "evidence" }), versionStamp), [project, d, content, generatedAt, omitEvidence, versionStamp]);
+  // For "A template's headings": the same document regrouped into pieces that can each go under a heading of the person's own template.
+  const trdWord = useMemo(() => ({ d, unitDoc: trdUnitModel(doc, d) }), [d, doc]);
   const body = useMemo(() => (showPreview ? renderHtmlPreview(doc) : ""), [doc, showPreview]);
   const stamp = `${projectFileStem(project.meta)}-${d.id}-${today()}`;
   const tbd = doc.tbdCount ?? 0;
@@ -177,12 +179,12 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
         fileBase={`trd-${stamp}`}
         guard={guard}
         onExported={(template) => record("trd-docx", template)}
-        modes={GENERIC_MODES}
+        trd={trdWord}
         tagData={(m) => m.buildDocumentTagData(doc, content, project)}
         testIdPrefix="trd"
         dataPart={() => ({ kind: "trd-data", json: buildTrdData(project, d, doc, "standard") })}
         buttonLabel="Download TRD (Word)"
-        note={'"A template\'s headings" is offered for the gap assessment document only: a saved heading placement names the gap document\'s sections. For a tagged template, {title}, {banner}, {status}, {generated}, {meta}, {sections} and the project tags ({program}, {modality}, {sourceSite}, {targetSite} and the like) are filled, and {@body} or a section tag such as {@section_par_nor} brings in the TRD in your template\'s styles. The sections of each process step have their own tags, for example {@section_step_TS_01}.'}
+        note={'With "A template\'s headings", the sections of the TRD go under the headings of your template, as you matched them on "Match your headings". Your template\'s cover, headers, footers, styles and page setup are kept. Sections with no heading in your template are left out unless you add them at the end, and the Word file says which. For a tagged template, {title}, {banner}, {status}, {generated}, {meta}, {sections} and the project tags ({program}, {modality}, {sourceSite}, {targetSite} and the like) are filled, and {@body} or a section tag such as {@section_par_nor} brings in the TRD in your template\'s styles. The sections of each process step have their own tags, for example {@section_step_TS_01}.'}
       />
 
       <section className="card stack no-print" aria-labelledby="trd-evidence" data-testid="trd-evidence-output">

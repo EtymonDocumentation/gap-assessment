@@ -1,4 +1,4 @@
-import type { DocModel } from "@gap/engine";
+import { TRD_FRONT_UNIT, rematchTrdMapping, resolveHeadingTexts, type DocModel, type DocSection } from "@gap/engine";
 import type { TemplateRecord } from "@gap/process-model";
 import { BUILTIN_TEMPLATE_VERSION } from "./version";
 import { DOCUMENT_CLOSE, createBuiltin, documentOpen } from "./builtin";
@@ -13,7 +13,7 @@ import { splitDocument, splitParagraph, type BodySplit } from "./scan";
 import { StyleTable, builtinStylesXml, parseNumbering } from "./styles";
 import { fillTemplate, inspectTags, NOT_AVAILABLE } from "./templater";
 import { sectionTagName } from "./tags";
-import { FIGURE_DPI, type OutlineHeading, type RenderDocxInput, RenderDocxResult, TemplateAnalysis, TemplateMapping } from "./types";
+import { FIGURE_DPI, type OutlineHeading, type RenderDocxInput, RenderDocxResult, TemplateAnalysis, TemplateMapping, type TrdRenderInput } from "./types";
 import { WriterCtx, figureKey, bannerPara, frontXml, headingPara, notePara, para, sectionHeadingText, sectionXml, textRuns } from "./writer";
 import { cleanXmlText, decodeXml, parseXml } from "./xml";
 
@@ -53,9 +53,9 @@ function finaliseInput(input: RenderDocxInput, record: TemplateRecord): Finalise
 }
 
 /** What closes every document: a note for left-out content and the banner. */
-function endMatter(ctx: WriterCtx, omitted: string[] = []): string {
+function endMatter(ctx: WriterCtx, omitted: string[] = [], what = "tool content"): string {
   let out = "";
-  if (omitted.length) out += notePara(`The following tool content was left out by choice: ${omitted.join("; ")}.`);
+  if (omitted.length) out += notePara(`The following ${what} was left out by choice: ${omitted.join("; ")}.`);
   return out + bannerPara(ctx.doc.banner);
 }
 
@@ -233,7 +233,146 @@ function checkMapping(analysis: TemplateAnalysis, mapping: TemplateMapping, doc:
   if (errors.length) throw new TemplateError(`The heading mapping has problems and cannot be used yet: ${errors.join(" ")}`);
 }
 
-function renderMapped(input: RenderDocxInput, record: TemplateRecord, warnings: string[], pics: Pictures): { bytes: Uint8Array; omitted: string[] } {
+// ------------------------------------------------------------------ mapped, the TRD
+
+export const TRD_TO_COMPLETE_TEXT = "[To be completed.]";
+export const TRD_ADDITIONAL_HEADING = "Additional content";
+
+interface TrdMappedResult extends MappedResult {
+  /** Headings left with "[To be completed.]". */
+  toComplete: string[];
+}
+
+/** One unit of the TRD under a heading. Pictures are numbered again in the order they are written, so no number is skipped when content is left out. */
+function trdUnitContent(ctx: WriterCtx, id: string, o: { sub: boolean; level: number }, nextPicture: () => number): string {
+  if (id === TRD_FRONT_UNIT) return (o.sub ? headingPara(ctx, o.level, FRONT_BLOCK_TITLE, { noNumber: true }) : "") + frontXml(ctx, { banner: false });
+  const found = ctx.doc.sections.find((x) => x.id === id)!;
+  const s: DocSection = { ...found, blocks: found.blocks.map((b) => (b.type === "picture" ? { ...b, number: nextPicture() } : b)) };
+  if (o.sub) return sectionXml(ctx, s, { headingLevel: o.level, headingText: sectionHeadingText(s, false), subLevel: o.level + 1, noNumber: true });
+  return sectionXml(ctx, s, { headingLevel: o.level - 1, noHeading: true, subLevel: o.level });
+}
+
+/** Text a person wrote, one paragraph per line, exactly as written. */
+function writtenParas(text: string): string {
+  return text
+    .split(/\r?\n/)
+    .filter((l) => l.trim() !== "")
+    .map((l) => para(textRuns(l)))
+    .join("");
+}
+
+/**
+ * The TRD under the headings of the person's own template. Same walk as `assembleMapped` (which the gap assessment keeps using unchanged), with
+ * the TRD's own rules: a heading with content gets the template's text kept or replaced as picked; a heading with none gets what the person wrote
+ * under it, the template's own text if it has some, else "[To be completed.]" (an open item). Content with no heading is left out unless it was
+ * added back, and then it goes under "Additional content".
+ */
+function assembleTrd(ctx: WriterCtx, items: Item[], outline: OutlineHeading[], trd: TrdRenderInput, pdf: boolean): TrdMappedResult {
+  const doc = ctx.doc;
+  const warnings: string[] = [];
+  const known = new Set([TRD_FRONT_UNIT, ...doc.sections.map((s) => s.id)]);
+  const { mapping } = rematchTrdMapping(outline, trd.mapping);
+  const entries = new Map(mapping.headings.map((h) => [h.headingIndex, h]));
+  const { byIndex: written } = resolveHeadingTexts(outline, trd.headingTexts);
+  const used = new Set<string>();
+  const toComplete: string[] = [];
+  let picture = 0;
+  const nextPicture = () => ++picture;
+  const out: string[] = [bannerPara(doc.banner)];
+
+  for (let i = 0; i < items.length; ) {
+    const it = items[i]!;
+    if (it.kind !== "heading") {
+      out.push(it.xml);
+      i++;
+      continue;
+    }
+    let j = i + 1;
+    while (j < items.length && items[j]!.kind !== "heading") j++;
+    const region = items.slice(i + 1, j);
+    const heading = outline[it.headingIndex!]!;
+    const entry = entries.get(heading.index);
+    // Content the TRD does not have (a placement kept from another TRD) or that another heading already holds is not written twice.
+    const ids = (entry?.units ?? []).filter((id) => known.has(id) && !used.has(id));
+    const text = written.get(heading.index)?.text.trim() ?? "";
+    const regionXml = region.map((r) => r.xml).join("");
+    const keptText = !pdf && region.some((r) => r.content);
+    out.push(it.xml);
+
+    if (!ids.length) {
+      out.push(regionXml);
+      if (text) out.push(writtenParas(text));
+      else if (!keptText) {
+        out.push(para(textRuns(TRD_TO_COMPLETE_TEXT, { b: true, highlight: "yellow" })));
+        toComplete.push(heading.text);
+      }
+    } else {
+      if (entry!.existing === "keep") out.push(regionXml);
+      else {
+        // The template's own text is replaced because the person picked that; section breaks stay so the page layout does not change.
+        if (keptText) warnings.push(`The template's own text under "${heading.text}" was replaced by Cascade content, as chosen.`);
+        for (const r of region) if (r.sectionBreak) out.push(keepSectionBreak(r.xml));
+      }
+      if (text) out.push(writtenParas(text));
+      const single = ids.length === 1;
+      for (const id of ids) {
+        used.add(id);
+        out.push(trdUnitContent(ctx, id, { sub: !single, level: heading.level + 1 }, nextPicture));
+      }
+    }
+    i = j;
+  }
+
+  const added = new Set(trd.addedBack ?? []);
+  const unplaced = [TRD_FRONT_UNIT, ...doc.sections.map((s) => s.id)].filter((id) => !used.has(id));
+  const back = unplaced.filter((id) => added.has(id));
+  const omitted = unplaced.filter((id) => !added.has(id) && id !== TRD_FRONT_UNIT).map((id) => doc.sections.find((s) => s.id === id)!.title);
+  if (back.length) {
+    out.push(headingPara(ctx, 1, TRD_ADDITIONAL_HEADING, { noNumber: true }));
+    for (const id of back) out.push(trdUnitContent(ctx, id, { sub: true, level: 2 }, nextPicture));
+  }
+  return { body: out.join(""), omitted, warnings, toComplete };
+}
+
+function renderTrdMapped(input: RenderDocxInput, record: TemplateRecord, warnings: string[], pics: Pictures): { bytes: Uint8Array; omitted: string[]; toComplete: string[] } {
+  const { doc } = input;
+  const t = input.template!;
+  const trd = input.trd!;
+  if (!trd.mapping.headings.length && !trd.addedBack?.length) throw new TemplateError("Match your template's headings first (on the Document page, choose \"Match your headings\"), then create the Word document.");
+  const fin = finaliseInput(input, record);
+  const what = "content";
+
+  if (t.analysis.sourceFormat === "pdf") {
+    const { dp, ctx, sectPr, numbering } = createBuiltin(doc);
+    ctx.figureImages = pics;
+    const items: Item[] = t.analysis.outline.map((h) => ({
+      kind: "heading",
+      xml: headingPara(ctx, h.level, h.number ? `${h.number} ${h.text}` : h.text, { noNumber: true }),
+      headingIndex: h.index,
+      content: false,
+      sectionBreak: false,
+    }));
+    const r = assembleTrd(ctx, items, t.analysis.outline, trd, true);
+    warnings.push(...r.warnings);
+    const xml = documentOpen() + r.body + endMatter(ctx, r.omitted, what) + sectPr + DOCUMENT_CLOSE;
+    assertBanner(xml, doc.banner);
+    dp.setMainXml(xml);
+    finalisePackage(dp, ctx, fin, numbering);
+    return { bytes: dp.commit(), omitted: r.omitted, toComplete: r.toComplete };
+  }
+
+  const { dp, split, ctx, numbering, styles } = openTemplate(doc, t.bytes);
+  ctx.figureImages = pics;
+  const { items, outline } = classifyBody(split, styles, parseNumbering(numbering));
+  const r = assembleTrd(ctx, itemsOf(items), outline, trd, false);
+  warnings.push(...r.warnings);
+  writeBody(dp, split, r.body + endMatter(ctx, r.omitted, what), doc.banner);
+  finalisePackage(dp, ctx, fin, numbering);
+  return { bytes: dp.commit(), omitted: r.omitted, toComplete: r.toComplete };
+}
+
+function renderMapped(input: RenderDocxInput, record: TemplateRecord, warnings: string[], pics: Pictures): { bytes: Uint8Array; omitted: string[]; toComplete?: string[] } {
+  if (input.trd) return renderTrdMapped(input, record, warnings, pics);
   const { doc } = input;
   const t = input.template!;
   if (!t.mapping) throw new TemplateError("Choose how the tool content maps to the template's headings before creating the document.");
@@ -397,6 +536,7 @@ export async function renderDocx(input: RenderDocxInput): Promise<RenderDocxResu
   }
   let bytes: Uint8Array;
   let omittedBlocks: string[] = [];
+  let toComplete: string[] = [];
   const pics = await drawFigures(input, warnings);
   switch (input.mode) {
     case "builtin":
@@ -409,6 +549,7 @@ export async function renderDocx(input: RenderDocxInput): Promise<RenderDocxResu
       const r = renderMapped(input, record, warnings, pics);
       bytes = r.bytes;
       omittedBlocks = r.omitted;
+      toComplete = r.toComplete ?? [];
       break;
     }
     case "tags":
@@ -418,5 +559,5 @@ export async function renderDocx(input: RenderDocxInput): Promise<RenderDocxResu
       throw new TemplateError("Unknown kind of Word document.");
   }
   if (t) for (const w of t.analysis.warnings) if (!warnings.includes(w)) warnings.push(w);
-  return { bytes, templateRecord: record, warnings, omittedBlocks };
+  return { bytes, templateRecord: record, warnings, omittedBlocks, toComplete };
 }
