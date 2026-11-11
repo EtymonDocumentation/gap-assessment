@@ -1,3 +1,4 @@
+import { useTrdTemplateFor } from "../trd-template-source";
 import { mbrOpenItems } from "@gap/engine";
 import type { MbrRecord } from "@gap/process-model";
 import { useMemo, type ReactNode } from "react";
@@ -45,7 +46,8 @@ const TABS: TabDef<MbrTab>[] = [
 export function MbrFrame({ rec, tab, children }: { rec: MbrRecord; tab: MbrTab; children: ReactNode }) {
   const project = useStore((s) => s.project)!;
   const library = useMbrLibrary();
-  const open = useMemo(() => mbrOpenItems(project, rec, library).length, [project, rec, library]);
+  const trdTemplate = useTrdTemplateFor();
+  const open = useMemo(() => mbrOpenItems(project, rec, library, trdTemplate).length, [project, rec, library, trdTemplate]);
   const go = (t: MbrTab) => {
     if (t === "view") navigate("/mbr/view", { mbr: rec.id });
     else if (t === "word") navigate("/mbr", { mbr: rec.id, tab: "word" });

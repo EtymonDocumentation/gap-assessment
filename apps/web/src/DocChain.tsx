@@ -1,3 +1,4 @@
+import { useTrdTemplateFor } from "./trd-template-source";
 import { useMemo } from "react";
 import { ALONGSIDE_STAGES, chainBar, chainStages, type ChainAllowed, type ChainLink, type ChainRoute } from "./chain";
 import { useExcipientAllowed, useMbrAllowed, useRiskAllowed, useSamplingAllowed, useTrdAllowed } from "./risk-module";
@@ -36,7 +37,9 @@ export function DocChainStrip({ route, heading = true }: { route?: ChainRoute; h
   const narrow = useNarrow(PHONE_WIDTH);
   // The sampling stage's open-question count reads the account's expected studies list, so the strip follows it.
   const expectedList = useEffectiveSuggestions();
-  const stages = useMemo(() => (project ? chainStages(project, a, allowed, route) : []), [project, a, allowed, route, expectedList]);
+  // A TRD that follows a template counts its empty headings as open items (trd-template-source.ts): the strip says the TRD's one number.
+  const trdTemplate = useTrdTemplateFor();
+  const stages = useMemo(() => (project ? chainStages(project, a, allowed, route, trdTemplate) : []), [project, a, allowed, route, expectedList, trdTemplate]);
   if (!project) return null;
   const numbered = stages.filter((s) => !ALONGSIDE_STAGES.includes(s.id));
   const at = numbered.findIndex((s) => s.current);
@@ -118,7 +121,8 @@ export function DocChainBar({ route }: { route: ChainRoute }) {
   const project = useStore((s) => s.project);
   const a = useAssessment();
   const allowed = useChainAllowed();
-  const bar = useMemo(() => (project ? chainBar(project, a, allowed, route) : {}), [project, a, allowed, route]);
+  const trdTemplate = useTrdTemplateFor();
+  const bar = useMemo(() => (project ? chainBar(project, a, allowed, route, trdTemplate) : {}), [project, a, allowed, route, trdTemplate]);
   if (!bar.back && !bar.next && !bar.nextNote && !bar.related) return null;
   return (
     <nav aria-label="Next document" className="doc-chain-bar no-print" data-testid="doc-chain-bar">

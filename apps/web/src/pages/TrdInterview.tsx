@@ -1,3 +1,4 @@
+import { useTrdTemplateFor } from "../trd-template-source";
 import {
   addCheckedSteps,
   addTrdAddedBack,
@@ -106,7 +107,6 @@ export function TrdInterview({ d, initialShow, initialQuestion }: { d: TrdDocume
   // Where each answer lands: the section of the document (number and heading, with a link that opens the Document tab there) and the piece of the TRD it is
   // read in, which is what a template heading holds. Built once for the whole list.
   const landings = useMemo(() => trdAnswerLandings(project, d, all, content), [project, d, all, content]);
-  const places = useMemo(() => new Map<string, AnswerPlace>([...landings].flatMap(([k, l]) => (l.place ? [[k, l.place] as const] : []))), [landings]);
 
   // The interview follows the headings of the template the TRD uses ("A template's headings") once the template is matched (see trd-heading-follow.ts).
   // Otherwise it is in Cascade's own order, with a notice that says why. The groups only regroup the same questions: no answer is read or changed here.
@@ -126,6 +126,20 @@ export function TrdInterview({ d, initialShow, initialQuestion }: { d: TrdDocume
       kept,
     });
   }, [follow, all, landings, templateUnits, d.headingTexts, d.addedBack, kept]);
+  // "See it in the document" lands on the section of the preview. When the document follows the template's headings the preview's sections ARE the template's
+  // headings (anchor `doc-heading-<index>` or `doc-additional`), so the link names the heading the answer lands under, not Cascade's own section.
+  const places = useMemo(
+    () =>
+      new Map<string, AnswerPlace>(
+        [...landings].flatMap(([k, l]) => {
+          if (!l.place) return [];
+          if (!hi) return [[k, l.place] as const];
+          const at = hi.landing.get(k);
+          return [[k, { ...l.place, sectionId: at?.groupId ?? "" }] as const];
+        }),
+      ),
+    [landings, hi],
+  );
 
   // Every card in the order it is asked: Cascade's own order, or the template's headings in the template's order.
   const entries = useMemo<Entry[]>(() => {
@@ -152,7 +166,8 @@ export function TrdInterview({ d, initialShow, initialQuestion }: { d: TrdDocume
   // Following the headings, the count is over what is asked there (a piece with no heading is not asked) and a writing box counts as one open or answered.
   const overall = counts(hi ? hi.overall : progress.overall);
   // The one open-items number of the TRD (open-count.ts): the same words as the chain strip, the page header and the Home card (EOU-14, EOU-15).
-  const openCount = useMemo(() => trdOpenCount(project, d), [project, d]);
+  const trdTemplate = useTrdTemplateFor();
+  const openCount = useMemo(() => trdOpenCount(project, d, undefined, trdTemplate(d)), [project, d, trdTemplate]);
   const hiddenMore = more ? 0 : hi ? hi.overall.moreDetail.total : all.filter((q) => !q.essential).length;
 
   const groups = useMemo(() => {

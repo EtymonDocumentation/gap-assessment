@@ -1,3 +1,4 @@
+import type { TrdTemplateFor } from "./trd-document";
 import {
   POINT_AFTER_PPQ_LABEL, docRefLabel, mbrChoiceText, MBR_FORMAT_VERSION, printableUnit, PROCESS_MODEL_VERSION, SCHEMA_VERSION, type MbrParamRow, type MbrRecord, type MbrTrdRef, type Project, type TrdDocument } from "@gap/process-model";
 import type { Block, DocModel, DocSection } from "./document";
@@ -31,6 +32,8 @@ export const WRITE_IN = "______________________";
 export const CMO_PLACEHOLDER = "[To be completed by the CMO]";
 
 export interface MbrDocumentOptions {
+  /** Finds the template a TRD follows, so the record's line about its TRD's open items counts headings still to complete. */
+  trdTemplate?: TrdTemplateFor;
   generatedAt?: string;
   generatorName?: string;
   appVersion?: string;
@@ -180,14 +183,14 @@ function holdEntrySection(project: Project, rec: MbrRecord, info: HoldEntryInfo,
   return { id: start ? "hold-start" : "hold-end", number: start ? "H1" : "H2", title: start ? "Hold start (end of Part 1)" : "Hold end (start of Part 2)", blocks };
 }
 
-export function mbrDocumentOpenItems(project: Project, rec: MbrRecord): MbrOpenItem[] {
-  return mbrOpenItems(project, rec);
+export function mbrDocumentOpenItems(project: Project, rec: MbrRecord, trdTemplate?: TrdTemplateFor): MbrOpenItem[] {
+  return mbrOpenItems(project, rec, [], trdTemplate);
 }
 
 export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocumentOptions = {}): DocModel {
   const generatedAt = opts.generatedAt ?? new Date().toISOString();
   const trd = rec.trdId ? project.trd.documents.find((d) => d.id === rec.trdId) : undefined;
-  const open = mbrOpenItems(project, rec);
+  const open = mbrOpenItems(project, rec, [], opts.trdTemplate);
   const src = new SourceNumbers(project, trd);
   const numbers = numberSteps(rec);
   // PPQ-only items the project stage leaves out. Step numbers still come from the whole record so a cross-reference stays right.

@@ -1,3 +1,4 @@
+import { useTemplates } from "./templates-store";
 import { STORAGE_PHRASE_BROWSER, STORAGE_PHRASE_SERVER } from "@gap/engine";
 import { useEffect, useRef } from "react";
 import { AboutPage } from "./pages/AboutPage";
@@ -114,6 +115,15 @@ function AppShell() {
     void init();
   }, [init]);
 
+  // A TRD that follows a template's headings counts its empty headings as open items, and the template lives in the library, not in the project. The page waits
+  // for the library (a moment) so the TRD's open-item number is never shown wrong first and then changed (trd-template-source.ts).
+  const templatesReady = useTemplates((t) => t.ready);
+  const followsTemplate = !!project?.trd.documents.some((d) => d.templateChoice?.kind === "mapped" && d.templateChoice.templateId);
+  const pageReady = ready && !(followsTemplate && !templatesReady);
+  useEffect(() => {
+    if (followsTemplate) void useTemplates.getState().load();
+  }, [followsTemplate]);
+
   // The hidden announcement area keeps its last message until something replaces it, so "Batch record created" was still there when a
   // tester reached My files. A message belongs to the page it was made on: it is cleared on the next page change, unless it was made in the
   // same moment as the change (an action that opens a new page announces its result there, and that has to be heard).
@@ -185,7 +195,7 @@ function AppShell() {
   const notIncluded: React.ReactNode =
     moduleOf === "excipient" && !excipientAllowed ? <ExcipientNotIncluded /> : moduleOf === "sampling" && !samplingAllowed ? <SamplingNotIncluded /> : moduleOf === "trd" && !trdAllowed ? <TrdNotIncluded /> : moduleOf === "risk" && !riskAllowed ? <RiskNotIncluded /> : moduleOf === "mbr" && !mbrAllowed ? <MbrNotIncluded /> : null;
   let page: React.ReactNode;
-  if (!ready) page = <p className="muted">Loading…</p>;
+  if (!pageReady) page = <p className="muted">Loading…</p>;
   // A project page with no project open used to show Home with a one-line notice, which looked as if the menu click had done nothing. The box
   // names the page that was asked for and offers the ways to open a project right there.
   // A module this account does not include is said first, with or without a project (the box below would only offer to open one for a page that cannot open).
@@ -251,8 +261,8 @@ function AppShell() {
       <main id="main" tabIndex={-1}>
         {/* The chain strip, the gap steps and the module library buttons are part of each page's header (PageHeader), under its title. */}
         {page}
-        {ready && project && gapStepIndex(route.path) >= 0 && <GapStepFooter path={route.path} />}
-        {ready && project && chainStageOf(route.path) && <DocChainBar route={route} />}
+        {pageReady && project && gapStepIndex(route.path) >= 0 && <GapStepFooter path={route.path} />}
+        {pageReady && project && chainStageOf(route.path) && <DocChainBar route={route} />}
       </main>
       <div className="visually-hidden" aria-live="polite">
         {status}

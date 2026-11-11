@@ -1,6 +1,6 @@
 import type { DocumentTagData, SamplingTagData, TagData, TemplateAnalysis, TemplateMode } from "@gap/docx";
 import { BUILTIN_TEMPLATE_VERSION } from "@gap/docx/src/version";
-import { optionalSectionTitle, rematchTrdMapping, resolveHeadingTexts, trdLeftOut, trdUnitsOf, type Assessment, type ContentBundle, type DocModel, type TrdUnitInfo } from "@gap/engine";
+import { optionalSectionTitle, rematchTrdMapping, TRD_TO_COMPLETE_TEXT, trdHeadingsToComplete, trdLeftOut, trdUnitsOf, type Assessment, type ContentBundle, type DocModel, type TrdUnitInfo } from "@gap/engine";
 import type { DocumentExport, Project, TemplateRecord, TrdDocument } from "@gap/process-model";
 import { useEffect, useMemo, useState } from "react";
 import { Empty } from "../components";
@@ -114,16 +114,24 @@ export interface TrdWordInput {
   unitDoc: DocModel;
 }
 
+/**
+ * The line about headings that say "[To be completed.]", before and after a download: the same words, because the Word file, the preview and the open-item
+ * number all count these headings (an open item each).
+ */
+export function toCompleteLine(titles: readonly string[]): string {
+  const n = titles.length;
+  return `${n} ${n === 1 ? "heading has" : "headings have"} no content and no text of your own. ${n === 1 ? "It says" : "They say"} "${TRD_TO_COMPLETE_TEXT}" in the Word file and ${n === 1 ? "counts as an open item" : "count as open items"}: ${titles.join("; ")}.`;
+}
+
 /** The stored match of a template against the TRD as it is now: re-matched by heading text, with what is left out and what has no content. */
 export function trdMatchState(t: StoredTemplate, trd: TrdWordInput) {
   const outline = t.analysis.outline;
   const rematched = rematchTrdMapping(outline, t.trdMapping);
   const units: TrdUnitInfo[] = trdUnitsOf(trd.unitDoc);
-  const known = new Set(units.map((u) => u.id));
-  const written = resolveHeadingTexts(outline, trd.d.headingTexts);
   const leftOut = trdLeftOut(units, rematched.mapping, trd.d.addedBack);
-  // A heading with nothing of Cascade's under it shows the text written for it, else its own text, else "[To be completed.]".
-  const toComplete = outline.filter((h) => !h.hasBody && !written.byIndex.has(h.index) && !(rematched.mapping.headings.find((p) => p.headingIndex === h.index)?.units.some((u) => known.has(u)) ?? false));
+  // A heading with nothing of Cascade's under it, no text of the person's and no text of the template's own is "[To be completed.]" and an open item.
+  // One definition in the engine, the same one the Word file, the preview and the open-item number use.
+  const toComplete = trdHeadingsToComplete({ headings: outline, mapping: t.trdMapping, unitIds: units.map((u) => u.id), headingTexts: trd.d.headingTexts, addedBack: trd.d.addedBack });
   return { rematched, units, leftOut, toComplete, empty: !t.trdMapping || (!rematched.mapping.headings.length && !trd.d.addedBack?.length) };
 }
 
@@ -148,7 +156,7 @@ function usePreExportChecks(choice: WordChoice, doc: DocModel, trd?: TrdWordInpu
       } else {
         if (s.rematched.again.length) out.warnings.push(`${s.rematched.again.length} ${s.rematched.again.length === 1 ? "heading" : "headings"} you matched earlier ${s.rematched.again.length === 1 ? "is" : "are"} not in the template any more, so their content is not placed: ${s.rematched.again.map((p) => p.headingText).join("; ")}.`);
         if (s.leftOut.length) out.warnings.push(`${s.leftOut.length} ${s.leftOut.length === 1 ? "section is" : "sections are"} not in your template and will be left out of the Word file: ${s.leftOut.map((u) => u.title).join("; ")}.`);
-        if (s.toComplete.length) out.notes.push(`${s.toComplete.length} ${s.toComplete.length === 1 ? "heading has" : "headings have"} no content and no text of your own. ${s.toComplete.length === 1 ? "It" : "They"} will say "[To be completed.]" in the Word file: ${s.toComplete.map((h) => h.text).join("; ")}.`);
+        if (s.toComplete.length) out.notes.push(toCompleteLine(s.toComplete.map((h) => h.title)));
       }
     } else if (choice.mode === "mapped") {
       if (!t.mapping) {
@@ -505,7 +513,7 @@ export function WordPanelView({
             {result.omitted.length > 0 && <p className="small">Left out by choice: {result.omitted.join("; ")}.</p>}
             {result.toComplete.length > 0 && (
               <p className="small" data-testid={testIdPrefix ? `${testIdPrefix}-to-complete` : undefined}>
-                {result.toComplete.length} {result.toComplete.length === 1 ? "heading has" : "headings have"} no content and no text of your own. {result.toComplete.length === 1 ? "It says" : "They say"} "[To be completed.]" in the Word file: {result.toComplete.join("; ")}.
+                {toCompleteLine(result.toComplete)}
               </p>
             )}
             {result.warnings.length > 0 && (

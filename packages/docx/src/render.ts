@@ -1,4 +1,4 @@
-import { TRD_FRONT_UNIT, rematchTrdMapping, resolveHeadingTexts, type DocModel, type DocSection } from "@gap/engine";
+import { TRD_ADDITIONAL_HEADING, TRD_FRONT_UNIT, TRD_TO_COMPLETE_TEXT, trdHeadingPlan, type DocModel, type DocSection } from "@gap/engine";
 import type { TemplateRecord } from "@gap/process-model";
 import { BUILTIN_TEMPLATE_VERSION } from "./version";
 import { DOCUMENT_CLOSE, createBuiltin, documentOpen } from "./builtin";
@@ -235,8 +235,8 @@ function checkMapping(analysis: TemplateAnalysis, mapping: TemplateMapping, doc:
 
 // ------------------------------------------------------------------ mapped, the TRD
 
-export const TRD_TO_COMPLETE_TEXT = "[To be completed.]";
-export const TRD_ADDITIONAL_HEADING = "Additional content";
+// One definition in the engine (the preview, HTML and Markdown say the same words); kept exported here for callers that import them from here.
+export { TRD_ADDITIONAL_HEADING, TRD_TO_COMPLETE_TEXT };
 
 interface TrdMappedResult extends MappedResult {
   /** Headings left with "[To be completed.]". */
@@ -270,11 +270,30 @@ function writtenParas(text: string): string {
 function assembleTrd(ctx: WriterCtx, items: Item[], outline: OutlineHeading[], trd: TrdRenderInput, pdf: boolean): TrdMappedResult {
   const doc = ctx.doc;
   const warnings: string[] = [];
-  const known = new Set([TRD_FRONT_UNIT, ...doc.sections.map((s) => s.id)]);
-  const { mapping } = rematchTrdMapping(outline, trd.mapping);
-  const entries = new Map(mapping.headings.map((h) => [h.headingIndex, h]));
-  const { byIndex: written } = resolveHeadingTexts(outline, trd.headingTexts);
-  const used = new Set<string>();
+  // What goes under which heading is decided in the engine (trd-heading-plan.ts), the same code the preview, HTML and open-item list use.
+  const unitIds = [TRD_FRONT_UNIT, ...doc.sections.map((s) => s.id)];
+  const regionOf = new Map<number, Item[]>();
+  for (let i = 0; i < items.length; ) {
+    const it = items[i]!;
+    if (it.kind !== "heading") {
+      i++;
+      continue;
+    }
+    let j = i + 1;
+    while (j < items.length && items[j]!.kind !== "heading") j++;
+    regionOf.set(it.headingIndex!, items.slice(i + 1, j));
+    i = j;
+  }
+  const plan = trdHeadingPlan({
+    headings: outline,
+    mapping: trd.mapping,
+    unitIds,
+    headingTexts: trd.headingTexts,
+    addedBack: trd.addedBack,
+    // The template's own text is what the file holds under the heading (a PDF template has none to keep).
+    keptText: (h) => !pdf && (regionOf.get(h.index) ?? []).some((r) => r.content),
+  });
+  const slots = new Map(plan.slots.map((s) => [s.heading.index, s]));
   const toComplete: string[] = [];
   let picture = 0;
   const nextPicture = () => ++picture;
@@ -290,13 +309,10 @@ function assembleTrd(ctx: WriterCtx, items: Item[], outline: OutlineHeading[], t
     let j = i + 1;
     while (j < items.length && items[j]!.kind !== "heading") j++;
     const region = items.slice(i + 1, j);
-    const heading = outline[it.headingIndex!]!;
-    const entry = entries.get(heading.index);
-    // Content the TRD does not have (a placement kept from another TRD) or that another heading already holds is not written twice.
-    const ids = (entry?.units ?? []).filter((id) => known.has(id) && !used.has(id));
-    const text = written.get(heading.index)?.text.trim() ?? "";
+    const slot = slots.get(it.headingIndex!)!;
+    const heading = slot.heading;
+    const { ids, text, keptText } = slot;
     const regionXml = region.map((r) => r.xml).join("");
-    const keptText = !pdf && region.some((r) => r.content);
     out.push(it.xml);
 
     if (!ids.length) {
@@ -304,10 +320,10 @@ function assembleTrd(ctx: WriterCtx, items: Item[], outline: OutlineHeading[], t
       if (text) out.push(writtenParas(text));
       else if (!keptText) {
         out.push(para(textRuns(TRD_TO_COMPLETE_TEXT, { b: true, highlight: "yellow" })));
-        toComplete.push(heading.text);
+        toComplete.push(heading.number ? `${heading.number} ${heading.text}` : heading.text);
       }
     } else {
-      if (entry!.existing === "keep") out.push(regionXml);
+      if (slot.existing === "keep") out.push(regionXml);
       else {
         // The template's own text is replaced because the person picked that; section breaks stay so the page layout does not change.
         if (keptText) warnings.push(`The template's own text under "${heading.text}" was replaced by Cascade content, as chosen.`);
@@ -315,21 +331,15 @@ function assembleTrd(ctx: WriterCtx, items: Item[], outline: OutlineHeading[], t
       }
       if (text) out.push(writtenParas(text));
       const single = ids.length === 1;
-      for (const id of ids) {
-        used.add(id);
-        out.push(trdUnitContent(ctx, id, { sub: !single, level: heading.level + 1 }, nextPicture));
-      }
+      for (const id of ids) out.push(trdUnitContent(ctx, id, { sub: !single, level: heading.level + 1 }, nextPicture));
     }
     i = j;
   }
 
-  const added = new Set(trd.addedBack ?? []);
-  const unplaced = [TRD_FRONT_UNIT, ...doc.sections.map((s) => s.id)].filter((id) => !used.has(id));
-  const back = unplaced.filter((id) => added.has(id));
-  const omitted = unplaced.filter((id) => !added.has(id) && id !== TRD_FRONT_UNIT).map((id) => doc.sections.find((s) => s.id === id)!.title);
-  if (back.length) {
+  const omitted = plan.leftOut.map((id) => doc.sections.find((s) => s.id === id)!.title);
+  if (plan.back.length) {
     out.push(headingPara(ctx, 1, TRD_ADDITIONAL_HEADING, { noNumber: true }));
-    for (const id of back) out.push(trdUnitContent(ctx, id, { sub: true, level: 2 }, nextPicture));
+    for (const id of plan.back) out.push(trdUnitContent(ctx, id, { sub: true, level: 2 }, nextPicture));
   }
   return { body: out.join(""), omitted, warnings, toComplete };
 }

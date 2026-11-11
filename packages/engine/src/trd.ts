@@ -1,3 +1,5 @@
+import type { MatchHeading, TrdMapping } from "./trd-heading-match";
+import { trdHeadingsToComplete } from "./trd-heading-plan";
 import {
   pulledFromAnswer,
   stableStringify,
@@ -801,15 +803,27 @@ export function copyPulledValue(field: TrdField, target: "setPoint" | "nor" | "p
 
 // ------------------------------------------------------------------ open items and the check
 
+/** The words of an open item for a heading with nothing under it (read with the heading's number and words before it). */
+export const HEADING_EMPTY_TEXT = "Nothing written under this heading yet.";
+
 export interface TrdOpenItem {
   /** Where: step, item and field in words. */
   where: string;
-  kind: "not_established" | "tbd" | "provisional" | "limit_problem" | "limit_open" | "limit_note";
+  kind: "not_established" | "tbd" | "provisional" | "limit_problem" | "limit_open" | "limit_note" | "heading_empty";
   text: string;
   stepId?: string;
   itemRef?: ItemRef;
   /** The key of the field that has no value yet (not set for a limit finding). It lets the screen find the interview question that asks for it. */
   fieldKey?: string;
+  /** For "heading_empty": the heading of the person's template (its position), so the screen can open that heading's writing box. */
+  headingIndex?: number;
+}
+
+/** The template a TRD follows, for the open items: its headings, the confirmed match and the pieces the TRD has (see trdOpenItemsFor). */
+export interface TrdHeadingContext {
+  headings: readonly MatchHeading[];
+  mapping: TrdMapping | undefined;
+  unitIds: readonly string[];
 }
 
 export interface TrdItemCheck {
@@ -836,7 +850,7 @@ export function trdLimitChecks(d: TrdDocument): TrdItemCheck[] {
  * Everything the TRD still leaves open, in document order: values not established or TBD, provisional values, and the
  * findings of the PAR/NOR check. A TBD / provisional value is labelled as such wherever it is used.
  */
-export function trdOpenItems(d: TrdDocument): TrdOpenItem[] {
+export function trdOpenItems(d: TrdDocument, ctx?: TrdHeadingContext): TrdOpenItem[] {
   const out: TrdOpenItem[] = [];
   const field = (f: TrdField, where: string, ref?: ItemRef, stepId?: string) => {
     const v = effectiveField(f);
@@ -855,6 +869,13 @@ export function trdOpenItems(d: TrdDocument): TrdOpenItem[] {
           out.push({ where: `${s.label}, ${i.label}`, kind: fd.level === "problem" ? "limit_problem" : fd.level === "open" ? "limit_open" : "limit_note", text: fd.text, stepId: s.id, itemRef: ref });
         }
       }
+    }
+  }
+  // A TRD that follows the headings of a template: every heading left "[To be completed.]" is one more open item (product owner, 2026-11-11).
+  // After the TRD's own items so their order, and every caller without a template, is unchanged.
+  if (ctx) {
+    for (const h of trdHeadingsToComplete({ headings: ctx.headings, mapping: ctx.mapping, unitIds: ctx.unitIds, headingTexts: d.headingTexts, addedBack: d.addedBack })) {
+      out.push({ where: h.title, kind: "heading_empty", text: HEADING_EMPTY_TEXT, headingIndex: h.headingIndex });
     }
   }
   return out;

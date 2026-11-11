@@ -1,4 +1,5 @@
-import { NO_VALUE_YET, deleteTrd, excipientsAssessedInTrd, excipientsAssessedText, deriveTrdQuestions, trdOpenItems, trdOverrides, updateTrd, type TrdOpenItem } from "@gap/engine";
+import { useTrdTemplateFor } from "../trd-template-source";
+import { NO_VALUE_YET, deleteTrd, excipientsAssessedInTrd, excipientsAssessedText, deriveTrdQuestions, headingTextKey, trdOpenItemsFor, trdOverrides, updateTrd, type TrdOpenItem } from "@gap/engine";
 import { trdInterviewWording } from "@gap/content";
 import type { TrdDocument } from "@gap/process-model";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -75,6 +76,8 @@ const KIND_TEXT: Record<TrdOpenItem["kind"], string> = {
   limit_problem: "Check",
   limit_open: "Open item",
   limit_note: "Note",
+  // Not shown as a label (the entry reads "6.2 Filling: nothing written under this heading yet."); kept so the list of kinds is complete.
+  heading_empty: "Nothing written",
 };
 
 export function TrdEditor({ d, initialTab, initialShow, initialQuestion }: { d: TrdDocument; initialTab: TrdTab; initialShow?: InterviewShow; initialQuestion?: string }) {
@@ -100,10 +103,13 @@ export function TrdEditor({ d, initialTab, initialShow, initialQuestion }: { d: 
     setError(err ?? "");
     return !err;
   };
-  const open = useMemo(() => trdOpenItems(d), [d]);
-  // The one count (open-count.ts): the entries of the list plus the blank fields in the descriptions. The tab, the pill and the Open items tab say the same number.
+  // The template this TRD follows (if it does): its empty headings are open items too, in this list and in the one count below.
+  const trdTemplate = useTrdTemplateFor();
+  const templateSource = useMemo(() => trdTemplate(d), [trdTemplate, d]);
   const projectForCount = useStore((s) => s.project)!;
-  const count = useMemo(() => trdOpenCount(projectForCount, d), [projectForCount, d]);
+  const open = useMemo(() => trdOpenItemsFor(projectForCount, d, templateSource), [projectForCount, d, templateSource]);
+  // The one count (open-count.ts): the entries of the list plus the blank fields in the descriptions. The tab, the pill and the Open items tab say the same number.
+  const count = useMemo(() => trdOpenCount(projectForCount, d, undefined, templateSource), [projectForCount, d, templateSource]);
   // Keep the address in step with the tab so a reload or a copied link opens the same tab. replaceState fires no hashchange, so the
   // page is not re-rendered or reset by it.
   const select = (t: TrdTab) => {
@@ -440,11 +446,16 @@ function OpenItems({ d, open, count, onQuestion, onTab }: { d: TrdDocument; open
             <p className="muted small">Select an entry to go to its question.</p>
             <ul className="plain-list small">
               {open.map((o, i) => {
-                const q = openItemQuestionKey(d, o, questionKeys);
+                // A heading with nothing under it: its writing box in the interview (the interview follows the template's headings then).
+                const q = o.kind === "heading_empty" && o.headingIndex !== undefined ? headingTextKey(o.headingIndex) : openItemQuestionKey(d, o, questionKeys);
                 const tab: TrdTab = o.stepId || o.itemRef ? "process" : "details";
                 return (
                   <li key={i}>
-                    <strong>{KIND_TEXT[o.kind]}:</strong>{" "}
+                    {o.kind !== "heading_empty" && (
+                      <>
+                        <strong>{KIND_TEXT[o.kind]}:</strong>{" "}
+                      </>
+                    )}
                     <a
                       href={q ? href("/trd", { trd: d.id, tab: "interview", q }) : href("/trd", { trd: d.id, tab })}
                       data-testid="trd-open-link"
@@ -456,7 +467,7 @@ function OpenItems({ d, open, count, onQuestion, onTab }: { d: TrdDocument; open
                     >
                       {o.where}
                     </a>
-                    . {o.kind === "not_established" || o.kind === "tbd" ? "" : `${o.text}.`}
+                    {o.kind === "heading_empty" ? ": nothing written under this heading yet." : `. ${o.kind === "not_established" || o.kind === "tbd" ? "" : `${o.text}.`}`}
                   </li>
                 );
               })}

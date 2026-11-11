@@ -1,3 +1,4 @@
+import { useTrdTemplateFor } from "../trd-template-source";
 import { createTrd, trdOverrides, type TrdStart } from "@gap/engine";
 import { parseTrdSeed, type TrdSeed } from "@gap/process-model";
 import { useState } from "react";
@@ -39,6 +40,7 @@ function List({ missing, preselect }: { missing?: string | undefined; preselect:
   const update = useStore((s) => s.update);
   const fromProject = useProjectSeed();
   const library = useTrdWriteupLibrary();
+  const trdTemplate = useTrdTemplateFor();
   const [title, setTitle] = useState("");
   const [docRef, setDocRef] = useState("");
   const [kind, setKind] = useState<StartKind | "">(preselect === "project" ? "project" : "");
@@ -193,7 +195,7 @@ function List({ missing, preselect }: { missing?: string | undefined; preselect:
                     <td className="small">{ORIGIN_TEXT[d.origin.kind]}</td>
                     <td className="num">{d.steps.length}</td>
                     <td className="num">{trdOverrides(d).filter((o) => o.overridesProject).length}</td>
-                    <td className="num">{trdOpenCount(project, d).total}</td>
+                    <td className="num">{trdOpenCount(project, d, undefined, trdTemplate(d)).total}</td>
                     <td className="small">{dateTime(d.updatedAt)}</td>
                   </tr>
                 ))}

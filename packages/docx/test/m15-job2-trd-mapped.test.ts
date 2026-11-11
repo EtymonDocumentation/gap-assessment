@@ -96,7 +96,7 @@ describe("the TRD under a template's headings", () => {
   it("a heading with no content and no text of its own says [To be completed.] and is counted; written text takes its place", async () => {
     const plain = await make({ mapping: BASE }, "to-complete");
     expect(plain.text).toContain("[To be completed.]");
-    expect(plain.out.toComplete).toEqual(["Comparison of Source and Receiving Processes"]);
+    expect(plain.out.toComplete).toEqual(["4 Comparison of Source and Receiving Processes"]);
     expect(plain.xml).toContain('w:val="yellow"');
     const written = await make({ mapping: BASE, headingTexts: [{ headingIndex: 3, headingText: "Comparison of Source and Receiving Processes", text: "First line written by the person.\n\nSecond line." }] }, "written");
     expect(written.text).toContain("First line written by the person.");

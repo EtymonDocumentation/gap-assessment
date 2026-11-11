@@ -1,3 +1,4 @@
+import { useTrdTemplateFor } from "../trd-template-source";
 import { DocPreview } from "../DocPreview";
 import { buildMbrDocument, documentFingerprint, mbrBasisText, projectLabel, recordExport, stampDocument } from "@gap/engine";
 import { MBR_FORMAT_VERSION, PROCESS_MODEL_VERSION, type DocumentExport, type MbrRecord, type TemplateRecord } from "@gap/process-model";
@@ -30,7 +31,8 @@ export function MbrOutput({ rec }: { rec: MbrRecord }) {
   const [partChoice, setPartChoice] = useState<"whole" | "1" | "2">("whole");
   const part = rec.split && partChoice !== "whole" ? (Number(partChoice) as 1 | 2) : undefined;
   const versionStamp = useVersionStamp();
-  const doc = useMemo(() => stampDocument(buildMbrDocument(project, rec, { generatedAt, appVersion: APP_VERSION, catalogVersion: content.versions.catalog, part }), versionStamp), [project, rec, content, generatedAt, part, versionStamp]);
+  const trdTemplate = useTrdTemplateFor();
+  const doc = useMemo(() => stampDocument(buildMbrDocument(project, rec, { generatedAt, appVersion: APP_VERSION, catalogVersion: content.versions.catalog, part, trdTemplate }), versionStamp), [project, rec, content, generatedAt, part, versionStamp, trdTemplate]);
   const body = useMemo(() => (showPreview ? renderHtmlPreview(doc) : ""), [doc, showPreview]);
   const stamp = `${projectFileStem(project.meta)}-${rec.id}${part ? `-part${part}` : ""}-${today()}`;
   const tbd = doc.tbdCount ?? 0;

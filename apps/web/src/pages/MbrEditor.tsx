@@ -1,3 +1,4 @@
+import { useTrdTemplateFor } from "../trd-template-source";
 import {
   addBlockForRequirement,
   addBlockFromLibrary,
@@ -63,7 +64,9 @@ export function MbrEditor({ rec, tab = "edit" }: { rec: MbrRecord; tab?: "edit" 
   const sampleN = useMemo(() => sampleNotices(project, rec), [project, rec]);
   const trd = project.trd.documents.find((d) => d.id === rec.trdId);
   const plan = project.sampling.plans.find((p) => p.id === rec.planId);
-  const open = useMemo(() => mbrOpenItems(project, rec, library), [project, rec, library]);
+  // The batch record's line about its TRD's open items counts the TRD's headings still to complete, as the TRD itself does.
+  const trdTemplate = useTrdTemplateFor();
+  const open = useMemo(() => mbrOpenItems(project, rec, library, trdTemplate), [project, rec, library, trdTemplate]);
   const requirements = useMemo(() => trdRequirementsWithoutStep(rec, trd, library), [rec, trd, library]);
   const cut = splitIndex(rec);
   // Only a pointer: the author decides whether to split there. Nothing is split or preselected from this.

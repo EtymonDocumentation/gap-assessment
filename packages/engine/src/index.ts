@@ -59,6 +59,8 @@ export * from "./trd-answer-place";
 export * from "./trd-units";
 export * from "./trd-heading-match";
 export * from "./trd-heading-interview";
+export * from "./trd-heading-plan";
+export * from "./trd-template-document";
 export * from "./trd-writeup-document";
 export * from "./mbr";
 export * from "./mbr-document";

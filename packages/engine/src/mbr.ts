@@ -24,7 +24,8 @@ import {
   type TrdDocument,
   type TrdItem,
 } from "@gap/process-model";
-import { effectiveField, trdOpenItems } from "./trd";
+import { effectiveField } from "./trd";
+import { trdOpenItemsFor, type TrdTemplateFor } from "./trd-document";
 import { resolveTrdValue, trdValueDiffers } from "./mbr-values";
 import { blockVersion } from "./mbr-library";
 
@@ -1627,8 +1628,11 @@ export interface MbrOpenItem {
 
 const BEFORE_ISSUE = /(entered|completed|filled in)[^.]*before (the record is |the batch record is )?issu(e|ed)/i;
 
-/** Everything the record still leaves open, in document order. Information only. */
-export function mbrOpenItems(project: Project, rec: MbrRecord, library: readonly MbrLibraryBlock[] = []): MbrOpenItem[] {
+/**
+ * Everything the record still leaves open, in document order. Information only. `trdTemplate` finds the template a TRD follows (see trdOpenItemsFor), so
+ * the count of the TRD's open items here is the one the TRD itself shows.
+ */
+export function mbrOpenItems(project: Project, rec: MbrRecord, library: readonly MbrLibraryBlock[] = [], trdTemplate?: TrdTemplateFor): MbrOpenItem[] {
   const out: MbrOpenItem[] = [];
   // A record with no purpose or no steps is not "complete"; counting zero open items for it would read as "nothing left to do". An unknown
   // must stay visible, so the gaps that make a record empty are open items too.
@@ -1636,7 +1640,7 @@ export function mbrOpenItems(project: Project, rec: MbrRecord, library: readonly
   if (!rec.sections.length) out.push({ kind: "no_sections", where: "Batch record", text: "No steps yet" });
   // The record takes values from its TRD. While the TRD has open items, those values may still change, so the record says so (one line).
   const trd = trdOf(project, rec);
-  const trdOpen = trd ? trdOpenItems(trd).length : 0;
+  const trdOpen = trd ? trdOpenItemsFor(project, trd, trdTemplate?.(trd)).length : 0;
   if (trd && trdOpen) out.push({ kind: "trd_open", where: `${trd.id}`, text: `The TRD still has ${trdOpen} open item${trdOpen === 1 ? "" : "s"}` });
   for (const s of rec.sections) for (const b of s.blocks) {
     // A step that says its value is "entered before issue" is a placeholder: the value is missing until someone enters it.

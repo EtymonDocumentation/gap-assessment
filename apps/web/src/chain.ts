@@ -1,6 +1,6 @@
 import { content } from "@gap/content";
 import { effectiveSuggestions } from "./expected-studies-store";
-import { isAnswered, planDesignReview, type Assessment } from "@gap/engine";
+import { isAnswered, planDesignReview, type Assessment, type TrdTemplateFor } from "@gap/engine";
 import { designReviewLine, type DesignReviewView } from "@gap/sampling";
 import type { Project } from "@gap/process-model";
 import { interviewCounts, scopeRecorded } from "./next-step";
@@ -88,11 +88,11 @@ function gapStatus(project: Project, a: Assessment | null): string {
   return plural(differences, "difference", "differences");
 }
 
-function trdStatus(project: Project): string {
+function trdStatus(project: Project, trdTemplate?: TrdTemplateFor): string {
   const docs = project.trd.documents;
   if (docs.length === 0) return "Not started";
   // The one TRD count (open-count.ts): entries still open plus blank fields in the descriptions, the same number the TRD page header shows.
-  const open = docs.reduce((n, d) => n + trdOpenCount(project, d).total, 0);
+  const open = docs.reduce((n, d) => n + trdOpenCount(project, d, undefined, trdTemplate?.(d)).total, 0);
   const name = docs.length === 1 ? docs[0]!.id : `${docs.length} TRDs`;
   return `${name}, ${openItemsCountOrNone(open)}`;
 }
@@ -129,7 +129,7 @@ function samplingStatus(project: Project): string {
 }
 
 /** The stages shown for this account and project, in chain order, with the route's stage marked current. */
-export function chainStages(project: Project, a: Assessment | null, allowed: ChainAllowed, route?: ChainRoute): ChainStage[] {
+export function chainStages(project: Project, a: Assessment | null, allowed: ChainAllowed, route?: ChainRoute, trdTemplate?: TrdTemplateFor): ChainStage[] {
   const here = route ? chainStageOf(route.path) : undefined;
   const records = project.mbr.records;
   // The Process view needs a batch record: the one on screen, else the first. Without any, its link goes to the batch record list.
@@ -142,7 +142,7 @@ export function chainStages(project: Project, a: Assessment | null, allowed: Cha
       ? [{ id: "risk" as const, name: NAMES.risk, label: NAMES.risk, path: "/risk", status: countStatus(project.risk.assessments.map((r) => r.id), "assessments") }]
       : []),
     ...(allowed.excipient ? [{ id: "excipient" as const, name: NAMES.excipient, label: NAMES.excipient, path: "/excipient", status: excipientStatus(project) }] : []),
-    ...(allowed.trd ? [{ id: "trd" as const, name: NAMES.trd, label: NAMES.trd, path: "/trd", status: trdStatus(project) }] : []),
+    ...(allowed.trd ? [{ id: "trd" as const, name: NAMES.trd, label: NAMES.trd, path: "/trd", status: trdStatus(project, trdTemplate) }] : []),
     ...(allowed.sampling
       ? [{ id: "sampling" as const, name: NAMES.sampling, label: NAMES.sampling, path: "/sampling", status: samplingStatus(project) }]
       : []),
@@ -170,9 +170,9 @@ export function chainStages(project: Project, a: Assessment | null, allowed: Cha
  * document, Next goes to the document already linked to it if there is one (a batch record's own plan, the batch record built
  * from a plan), otherwise to that module's list or start.
  */
-export function chainBar(project: Project, a: Assessment | null, allowed: ChainAllowed, route: ChainRoute): ChainBar {
+export function chainBar(project: Project, a: Assessment | null, allowed: ChainAllowed, route: ChainRoute, trdTemplate?: TrdTemplateFor): ChainBar {
   // The risk assessment sits beside the chain: it is shown in the strip but is never the Back or Next document.
-  const stages = chainStages(project, a, allowed, route).filter((s) => !ALONGSIDE_STAGES.includes(s.id));
+  const stages = chainStages(project, a, allowed, route, trdTemplate).filter((s) => !ALONGSIDE_STAGES.includes(s.id));
   const at = stages.findIndex((s) => s.current);
   if (at < 0) return {};
   const here = stages[at]!;

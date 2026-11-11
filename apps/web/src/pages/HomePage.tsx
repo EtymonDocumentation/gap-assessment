@@ -1,3 +1,4 @@
+import { useTrdTemplateFor } from "../trd-template-source";
 import { localDate, openItemsText, PRODUCT_NAME, PRODUCT_SUBTITLE, renameProject, tbdItems, tbdSummary } from "@gap/engine";
 import { useMemo, useRef, useState } from "react";
 import { thenStep, chainStages } from "../chain";
@@ -62,7 +63,8 @@ export function HomePage() {
 
   // The state line of each card is the one the chain strip shows on the document pages, so Home and the pages never disagree.
   const expectedList = useEffectiveSuggestions();
-  const stages = useMemo(() => (project ? chainStages(project, a, allowed) : []), [project, a, allowed, expectedList]);
+  const trdTemplate = useTrdTemplateFor();
+  const stages = useMemo(() => (project ? chainStages(project, a, allowed, undefined, trdTemplate) : []), [project, a, allowed, expectedList, trdTemplate]);
   const statusOf = (id: DocCardSpec["id"]) => stages.find((s) => s.id === id)?.status;
   const cards: DocCardSpec[] = [
     { id: "gap", name: "Gap assessment", purpose: CARD_PURPOSE.gap, path: "/gap" },

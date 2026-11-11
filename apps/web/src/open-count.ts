@@ -1,5 +1,5 @@
 import { content } from "@gap/content";
-import { excipientOpenItems, openBlankCount, trdOpenItems, writeupsInOrder, type BlankContext, type ContentBundle } from "@gap/engine";
+import { excipientOpenItems, openBlankCount, trdOpenItemsFor, writeupsInOrder, type BlankContext, type ContentBundle, type TrdTemplateSource } from "@gap/engine";
 import type { ExcipientAssessment, Project, TrdDocument } from "@gap/process-model";
 
 /**
@@ -18,8 +18,12 @@ export interface OpenCount {
   total: number;
 }
 
-export function trdOpenCount(project: Project, d: TrdDocument, bundle: ContentBundle = content): OpenCount {
-  const entries = trdOpenItems(d).length;
+/**
+ * `template` is the template the TRD follows (trd-template-source.ts), when it follows one: every heading still to complete is then one more entry.
+ * Callers get it from that file only, so the number is the same everywhere.
+ */
+export function trdOpenCount(project: Project, d: TrdDocument, bundle: ContentBundle = content, template?: TrdTemplateSource): OpenCount {
+  const entries = trdOpenItemsFor(project, d, template).length;
   const ctx: BlankContext = { project, doc: d, content: bundle };
   const blanks = writeupsInOrder(d).reduce((n, w) => n + openBlankCount(ctx, w), 0);
   return { entries, blanks, total: entries + blanks };

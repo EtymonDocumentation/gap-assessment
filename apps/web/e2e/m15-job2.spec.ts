@@ -167,11 +167,11 @@ test("the TRD under a template's headings: match, be held back until each pick i
   // "Replace it": the template's instruction text is gone. "Keep it above": it stays.
   expect(text).not.toContain("Describe the purpose and scope of this document.");
   expect(text).toContain("List the abbreviations used in this document.");
-  // Headings with nothing under them say so; the page says only what happens (no open-item number changes).
+  // Headings with nothing under them say so; the page says what happens and that each such heading counts as an open item.
   expect(text).toContain("[To be completed.]");
   const toComplete = page.getByTestId("trd-to-complete");
-  await expect(toComplete).toContainText(/\d+ headings? (have|has) no content and no text of your own\. (They say|It says) "\[To be completed\.\]" in the Word file: /);
-  await expect(toComplete).not.toContainText(/open item/);
+  await expect(toComplete).toContainText(/\d+ headings? (have|has) no content and no text of your own\. (They say|It says) "\[To be completed\.\]" in the Word file and (count as open items|counts as an open item): /);
+  await expect(toComplete).toContainText(/open items?/);
   expect(text).toContain("Additional content");
   expect(text.replace(/\s+/g, " ")).toContain(NOTICE_DOCUMENT.replace(/\s+/g, " "));
   await expectNoSidewaysScroll(page, "TRD Document tab after the download");

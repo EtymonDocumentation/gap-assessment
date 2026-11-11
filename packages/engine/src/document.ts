@@ -21,8 +21,8 @@ import { coverStage, STAGE_NOT_ESTABLISHED, stageBasis, stagedFor, stageOpenItem
 
 export type Block =
   | { type: "paragraph"; text: string }
-  /** `level` 2 is a heading one step below the usual sub-heading (a numbered sub-sub-section such as "5.7.1 Filling"). */
-  | { type: "heading"; text: string; level?: 2 }
+  /** `level` 2 is a heading one step below the usual sub-heading (a numbered sub-sub-section such as "5.7.1 Filling"); 3 is one more below (only the TRD in the order of a template: a piece placed with others under one heading). */
+  | { type: "heading"; text: string; level?: 2 | 3 }
   | { type: "list"; items: string[] }
   /** Text with bold and unfilled-blank runs (the TRD process descriptions). `style` "note" is drawn as a note. */
   | { type: "rich"; style: "paragraph" | "note"; runs: Run[] }
@@ -92,6 +92,8 @@ export interface DocSection {
   number: string;
   appendix?: boolean;
   title: string;
+  /** The title is the whole heading: renderers print it without "N." before it (the TRD in the order of a template: the person's own numbers are in the title). */
+  exactTitle?: boolean;
   blocks: Block[];
 }
 

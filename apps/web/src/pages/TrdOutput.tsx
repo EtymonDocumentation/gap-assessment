@@ -1,15 +1,18 @@
 import { DocPreview } from "../DocPreview";
-import { buildTrdData, buildTrdDocument, documentFingerprint, clearTrdTemplateChoice, projectLabel, recordExport, setTrdTemplateChoice, stampDocument, TRD_OPTIONAL_SECTIONS, trdBasisText, trdTemplateChoiceText, type TrdOptionalSection, trdUnitModel, updateTrd } from "@gap/engine";
+import { buildTrdData, buildTrdDocument, documentFingerprint, clearTrdTemplateChoice, projectLabel, recordExport, setTrdTemplateChoice, stampDocument, TRD_FOLLOWS_HEADINGS, TRD_OPTIONAL_SECTIONS, trdBasisText, trdTemplateChoiceText, trdTemplateDocument, type TrdOptionalSection, trdUnitModel, updateTrd } from "@gap/engine";
 import type { DocModel } from "@gap/engine";
 import { PROCESS_MODEL_VERSION, TRD_FORMAT_VERSION, type DocumentExport, type TemplateRecord, type TrdApproval, type TrdDocument } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlPreview } from "@gap/renderers";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Modal } from "../components";
+import { followedTemplate, useTrdTemplateFor } from "../trd-template-source";
+import { useTemplates } from "../templates-store";
+import { href } from "../router";
 import { APP_VERSION, download, projectFileStem, today } from "../lib";
 import { useRoute } from "../router";
 import { useContent, useStore } from "../store";
 import { useVersionStamp } from "../version-ui";
-import { BUILTIN_RECORD, ExportHistory, exportsOfDocument, GENERIC_MODES, useWordChoice, WordPanel } from "./document-panels";
+import { BUILTIN_RECORD, ExportHistory, exportsOfDocument, GENERIC_MODES, trdMatchState, useWordChoice, WordPanel } from "./document-panels";
 import { ReasonDialog } from "./ReasonDialog";
 import type { Run } from "./SamplingFlow";
 import { TrdFormButton } from "./TrdUploadButton";
@@ -39,11 +42,21 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
   const evidenceChoice = useWordChoice();
   // Two documents from the same record: the short standard TRD for approval, and the evidence record for audit and inspection.
   const versionStamp = useVersionStamp();
-  const doc = useMemo(() => stampDocument(buildTrdDocument(project, d, { generatedAt, appVersion: APP_VERSION, catalogVersion: content.versions.catalog, omit, content }), versionStamp), [project, d, content, generatedAt, omit, versionStamp]);
-  const evidenceDoc = useMemo(() => stampDocument(buildTrdDocument(project, d, { generatedAt, appVersion: APP_VERSION, catalogVersion: content.versions.catalog, omit: omitEvidence, content, variant: "evidence" }), versionStamp), [project, d, content, generatedAt, omitEvidence, versionStamp]);
+  // The template this TRD follows (nothing when it follows none, or the library is still loading): its empty headings are open items in every number below.
+  const trdTemplate = useTrdTemplateFor();
+  const templateSource = useMemo(() => trdTemplate(d), [trdTemplate, d]);
+  const templates = useTemplates((s) => s.items);
+  const templatesReady = useTemplates((s) => s.ready);
+  const followed = useMemo(() => followedTemplate(d, templates, templatesReady), [d, templates, templatesReady]);
+  const doc = useMemo(() => stampDocument(buildTrdDocument(project, d, { generatedAt, appVersion: APP_VERSION, catalogVersion: content.versions.catalog, omit, content, ...(templateSource ? { template: templateSource } : {}) }), versionStamp), [project, d, content, generatedAt, omit, templateSource, versionStamp]);
+  const evidenceDoc = useMemo(() => stampDocument(buildTrdDocument(project, d, { generatedAt, appVersion: APP_VERSION, catalogVersion: content.versions.catalog, omit: omitEvidence, content, variant: "evidence", ...(templateSource ? { template: templateSource } : {}) }), versionStamp), [project, d, content, generatedAt, omitEvidence, templateSource, versionStamp]);
   // For "A template's headings": the same document regrouped into pieces that can each go under a heading of the person's own template.
   const trdWord = useMemo(() => ({ d, unitDoc: trdUnitModel(doc, d) }), [d, doc]);
-  const body = useMemo(() => (showPreview ? renderHtmlPreview(doc) : ""), [doc, showPreview]);
+  // A TRD that follows a template's headings is shown and downloaded as HTML in that order too (trdTemplateDocument), so the preview says what the Word file does.
+  // Word keeps its own render (it also carries the template's own text); both walk the same plan.
+  const shown = useMemo(() => (templateSource ? trdTemplateDocument(doc, d, templateSource) : doc), [doc, d, templateSource]);
+  const body = useMemo(() => (showPreview ? renderHtmlPreview(shown) : ""), [shown, showPreview]);
+  const matchState = useMemo(() => (followed ? trdMatchState(followed, trdWord) : undefined), [followed, trdWord]);
   const stamp = `${projectFileStem(project.meta)}-${d.id}-${today()}`;
   const tbd = doc.tbdCount ?? 0;
 
@@ -119,8 +132,8 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
             onClick={() =>
               guard(() => {
                 const file = `trd-${stamp}.html`;
-                download(file, renderHtml(doc), "text/html;charset=utf-8");
-                saved(file, record("trd-html", BUILTIN_RECORD));
+                download(file, renderHtml(shown), "text/html;charset=utf-8");
+                saved(file, record("trd-html", BUILTIN_RECORD, shown));
               })
             }
           >
@@ -251,6 +264,17 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
           <h2 id="trd-preview-h" className="no-print">
             Document preview
           </h2>
+          {followed && matchState && (
+            <div className="stack no-print">
+              <p className="small" data-testid="trd-preview-follows">
+                {TRD_FOLLOWS_HEADINGS(followed.name)}
+              </p>
+              <p className="small" data-testid="trd-preview-not-in-template">
+                Not in your template: {matchState.leftOut.length} {matchState.leftOut.length === 1 ? "section" : "sections"}.{" "}
+                {matchState.leftOut.length > 0 && <a href={href(`/templates/${followed.id}/trd-match`, { trd: d.id })}>See which and place them</a>}
+              </p>
+            </div>
+          )}
           <style>{DOCUMENT_CSS}</style>
           {/* Built from escaped text by renderHtmlBody (every value passes through escapeHtml). */}
           <DocPreview html={body} testId="trd-preview" />

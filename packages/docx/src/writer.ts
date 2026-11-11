@@ -558,7 +558,7 @@ export function blockXml(ctx: WriterCtx, b: Block, o: BlockOpts): string {
     case "paragraph":
       return para(textRuns(b.text));
     case "heading":
-      return headingPara(ctx, b.level === 2 ? o.subLevel + 1 : o.subLevel, b.text, { noNumber: true });
+      return headingPara(ctx, o.subLevel + (b.level === 3 ? 2 : b.level === 2 ? 1 : 0), b.text, { noNumber: true });
     case "rich":
       return b.style === "note"
         ? para(richRunsXml(b.runs, { i: true }), { pBdr: '<w:pBdr><w:left w:val="single" w:sz="12" w:space="8" w:color="808080"/></w:pBdr>', ind: { left: 200 } })
@@ -595,6 +595,7 @@ export interface SectionOpts {
 
 /** Heading text as the HTML document shows it, without or with the number. */
 export function sectionHeadingText(s: DocSection, withNumber: boolean): string {
+  if (s.exactTitle) return s.title;
   if (s.appendix) return `Appendix ${s.number}. ${s.title}`;
   return withNumber ? `${s.number}. ${s.title}` : s.title;
 }

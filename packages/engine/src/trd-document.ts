@@ -10,6 +10,8 @@ import { trdRangeIntro } from "./stage-chain";
 import type { ContentBundle } from "./content";
 import { activeParts } from "./trd-writeup";
 import { addWriteupSections } from "./trd-writeup-document";
+import type { MatchHeading, TrdMapping } from "./trd-heading-match";
+import { trdUnitModel, trdUnitsOf } from "./trd-units";
 
 /**
  * The TRD as a document (the same DocModel the other outputs use, so the shared renderers, the built-in Word style, a customer's
@@ -58,6 +60,8 @@ export interface TrdDocumentOptions {
   omit?: readonly TrdOptionalSection[];
   /** Content bundle: lets blanks in the process descriptions read the project's answers (barrier, labelling site ...). Optional. */
   content?: ContentBundle;
+  /** The template whose headings this TRD follows (see trdTemplateSourceOf): headings still to complete are then listed as open items, here and everywhere else. */
+  template?: TrdTemplateSource;
 }
 
 export const trdBasisText = (projectName: string, d: TrdDocument): string =>
@@ -148,6 +152,36 @@ export function trdDocumentOpenItems(d: TrdDocument): TrdOpenItem[] {
   return trdOpenItems(d);
 }
 
+/** The template a TRD follows, as the open items and the template-ordered document need it. Built by the caller from its template store. */
+export interface TrdTemplateSource {
+  /** The template's name, for "document follows the headings of <name>". */
+  name: string;
+  headings: readonly MatchHeading[];
+  /** The confirmed match; a source is only made when there is one. */
+  mapping: TrdMapping;
+}
+
+/** The caller's lookup: the template this TRD follows, or nothing (no template choice, template missing or still loading, no match stored). */
+export type TrdTemplateFor = (d: TrdDocument) => TrdTemplateSource | undefined;
+
+/**
+ * Every piece of the TRD a heading can hold, in document order ("front" first): the same ids the match screen offers and the Word render
+ * walks. Built from the standard document with nothing left out, so the open-item number is the same wherever it is asked.
+ */
+export function trdAllUnitIds(project: Project, d: TrdDocument, content?: ContentBundle): string[] {
+  const doc = buildTrdDocument(project, d, { generatedAt: "2000-01-01T00:00:00.000Z", omit: [], ...(content ? { content } : {}) });
+  return trdUnitsOf(trdUnitModel(doc, d)).map((u) => u.id);
+}
+
+/**
+ * The TRD's open items, one list for every caller. With a template source (the TRD's choice is "A template's headings", the template is found
+ * and its match is stored) each heading still to complete is one more item; without one the result is exactly trdOpenItems(d).
+ */
+export function trdOpenItemsFor(project: Project, d: TrdDocument, source?: TrdTemplateSource, content?: ContentBundle): TrdOpenItem[] {
+  if (!source || d.templateChoice?.kind !== "mapped" || source.headings.length === 0) return trdOpenItems(d);
+  return trdOpenItems(d, { headings: source.headings, mapping: source.mapping, unitIds: trdAllUnitIds(project, d, content) });
+}
+
 /** True when a step is a shipping step: the standard document then must not say the TRD leaves shipping out. */
 const isShippingStep = (s: TrdStep) => (s.key ?? "").includes("shipping") || /shipping/i.test(s.label);
 
@@ -164,7 +198,7 @@ export function buildTrdDocument(project: Project, d: TrdDocument, opts: TrdDocu
   const evidence = opts.variant === "evidence";
   const generatedAt = opts.generatedAt ?? new Date().toISOString();
   const omit = new Set<string>(opts.omit ?? []);
-  const open = trdOpenItems(d);
+  const open = trdOpenItemsFor(project, d, opts.template);
   const src = new SourceNumbers(project, d);
   const detail = (key: string) => {
     const f = d.details.find((x) => x.key === key);

@@ -224,8 +224,9 @@ test("the interview lists the template's headings in order, says where an answer
   const xml = new PizZip(await downloadWord(page)).file("word/document.xml")!.asText();
   const text = xml.replace(/<\/w:p>/g, "\n").replace(/<[^>]+>/g, "");
   const at = text.indexOf("Distribution: the sending and receiving sites (fictional).");
-  expect(at).toBeGreaterThan(text.indexOf("Distribution list"));
-  expect(at).toBeLessThan(text.indexOf("Training records"));
+  // The open-items list (job 3B) names the empty headings too, so the heading itself is the last place its title appears.
+  expect(at).toBeGreaterThan(text.lastIndexOf("Distribution list"));
+  expect(at).toBeLessThan(text.lastIndexOf("Training records"));
   expect(text).toContain("Harbourlight Fill Site (fictional)");
 
   // Taking the text away is a confirmed removal with a reason, never a silent save of an empty box. The box empties and the card is open again.

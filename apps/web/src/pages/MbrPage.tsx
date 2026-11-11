@@ -1,3 +1,4 @@
+import { useTrdTemplateFor } from "../trd-template-source";
 import { createMbr, mbrOpenItems, projectScopeSteps, proposeBlocks, type BlockProposal } from "@gap/engine";
 import { useMemo, useRef, useState } from "react";
 import { StartArt } from "../art";
@@ -40,6 +41,7 @@ function List({ missing, preTrd }: { missing?: string | undefined; preTrd?: stri
   const update = useStore((s) => s.update);
   const content = useContent();
   const library = useMbrLibrary();
+  const trdTemplate = useTrdTemplateFor();
   const [title, setTitle] = useState("");
   const [docRef, setDocRef] = useState("");
   // "Start the batch record from this TRD" (after an upload) arrives with the TRD named: the choice is then made, the title is still yours.
@@ -172,7 +174,7 @@ function List({ missing, preTrd }: { missing?: string | undefined; preTrd?: stri
                     </th>
                     <td className="small">{[r.trdId ? `TRD ${r.trdId}` : "", r.planId ? `plan ${r.planId}` : ""].filter(Boolean).join(" and ") || "Blank"}</td>
                     <td className="num">{r.sections.length}</td>
-                    <td className="num">{mbrOpenItems(project, r, library).length}</td>
+                    <td className="num">{mbrOpenItems(project, r, library, trdTemplate).length}</td>
                     <td className="small">{dateTime(r.updatedAt)}</td>
                   </tr>
                 ))}

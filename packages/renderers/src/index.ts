@@ -22,12 +22,15 @@ function mdCell(s: string): string {
 /** Rich runs as markdown: bold stays bold; an open blank shows its label in brackets (the brackets are already in the run text). */
 const mdRuns = (runs: Run[]): string => runs.map((r) => (r.bold ? `**${r.text}**` : r.text)).join("");
 
+/** A section's heading as printed: "3. Title" or "Appendix A. Title"; a section with `exactTitle` prints its title as it is. */
+const sectionHeadingText = (s: { appendix?: boolean; number: string; title: string; exactTitle?: boolean }): string => (s.exactTitle ? s.title : `${s.appendix ? "Appendix " : ""}${s.number}. ${s.title}`);
+
 function mdBlock(b: Block): string {
   switch (b.type) {
     case "paragraph":
       return b.text;
     case "heading":
-      return `${b.level === 2 ? "####" : "###"} ${b.text}`;
+      return `${b.level === 3 ? "#####" : b.level === 2 ? "####" : "###"} ${b.text}`;
     case "rich":
       return b.style === "note" ? `> ${mdRuns(b.runs)}` : mdRuns(b.runs);
     case "rich-list":
@@ -61,7 +64,7 @@ export function renderMarkdown(doc: DocModel): string {
   for (const [k, v] of doc.meta) out.push(`- **${k}:** ${v}`);
   out.push("");
   for (const s of doc.sections) {
-    out.push(`## ${s.appendix ? "Appendix " : ""}${s.number}. ${s.title}`, "");
+    out.push(`## ${sectionHeadingText(s)}`, "");
     for (const b of s.blocks) out.push(mdBlock(b), "");
   }
   out.push("---", "", `_${doc.banner}_`, "");
@@ -107,7 +110,7 @@ function htmlBlock(b: Block, opts: HtmlOptions = {}): string {
     case "paragraph":
       return `<p>${escapeHtml(b.text)}</p>`;
     case "heading":
-      return b.level === 2 ? `<h4>${escapeHtml(b.text)}</h4>` : `<h3>${escapeHtml(b.text)}</h3>`;
+      return b.level === 3 ? `<h5>${escapeHtml(b.text)}</h5>` : b.level === 2 ? `<h4>${escapeHtml(b.text)}</h4>` : `<h3>${escapeHtml(b.text)}</h3>`;
     case "rich":
       return `<p${b.style === "note" ? ' class="note"' : ""}>${htmlRuns(b.runs)}</p>`;
     case "rich-list":
@@ -178,7 +181,7 @@ export const DOCUMENT_CSS = `
 export function renderHtmlBody(doc: DocModel, opts: HtmlOptions = {}): string {
   const meta = doc.meta.map(([k, v]) => `<dt>${escapeHtml(k)}</dt><dd>${escapeHtml(v)}</dd>`).join("");
   const sections = doc.sections
-    .map((s) => `<section id="doc-${s.id}"><h2>${escapeHtml(`${s.appendix ? "Appendix " : ""}${s.number}. ${s.title}`)}</h2>${s.blocks.map((b) => htmlBlock(b, opts)).join("\n")}</section>`)
+    .map((s) => `<section id="doc-${s.id}"><h2>${escapeHtml(sectionHeadingText(s))}</h2>${s.blocks.map((b) => htmlBlock(b, opts)).join("\n")}</section>`)
     .join("\n");
   return `<article class="gap-doc">
 <div class="banner" role="note">${escapeHtml(doc.banner)}</div>
