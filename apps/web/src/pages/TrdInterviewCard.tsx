@@ -15,6 +15,11 @@ export interface CardProps {
   d: TrdDocument;
   /** The section of the document the answer lands in (number and heading), when it lands in a numbered one. */
   place?: AnswerPlace | undefined;
+  /**
+   * The interview follows a template's headings: the whole sentence for where the answer lands in the Word file ("Lands under 6.2 Filling (your
+   * template)."). It replaces the section sentence, because the number the Document tab shows is Cascade's own and the Word file prints the template's.
+   */
+  landsUnder?: string | undefined;
   /** The person has looked at the project value and kept it (a mark in this browser only). */
   kept: boolean;
   /** One-at-a-time: a large card whose heading takes the focus when the question changes. */
@@ -44,7 +49,7 @@ const numOf = (t: string): number | undefined => {
  * yes/no about a step, and the set point / NOR / PAR fields. A project value is shown as such and counts only after "Keep this" or a change.
  */
 export function InterviewCard(props: CardProps) {
-  const { q, d, place, kept, large, headingRef, sources, onSave, onKeep, onDontKnow, onSkip, onFocusCard } = props;
+  const { q, d, place, landsUnder, kept, large, headingRef, sources, onSave, onKeep, onDontKnow, onSkip, onFocusCard } = props;
   const t = q.target;
   const limitsAnswer = useRef<() => InterviewAnswer | string>(() => "");
   const projectNow = q.state === "from_project";
@@ -149,7 +154,7 @@ export function InterviewCard(props: CardProps) {
       );
     },
     asideExtra: (x) =>
-      x.usedIn.length > 0 || place ? (
+      x.usedIn.length > 0 || place || landsUnder ? (
         <>
           {x.usedIn.length > 0 && (
             <p className="small muted" data-testid="iv-used-in">
@@ -157,10 +162,10 @@ export function InterviewCard(props: CardProps) {
             </p>
           )}
           {/* Where the answer lands: the section as the document numbers it, and a link that opens the Document tab at that section. */}
-          {place && (
+          {(landsUnder || place) && (
             <p className="small iv-lands" data-testid="iv-lands">
-              <span className="muted">Lands in section {place.number}, {place.heading}.</span>{" "}
-              <a href={href("/trd", { trd: d.id, tab: "output", section: place.sectionId })} data-testid="iv-see-in-document">
+              <span className="muted">{landsUnder ?? `Lands in section ${place!.number}, ${place!.heading}.`}</span>{" "}
+              <a href={href("/trd", { trd: d.id, tab: "output", ...(place ? { section: place.sectionId } : {}) })} data-testid="iv-see-in-document">
                 See it in the document
               </a>
             </p>

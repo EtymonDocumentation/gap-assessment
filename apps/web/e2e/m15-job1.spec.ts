@@ -63,7 +63,7 @@ test("a new TRD goes through three steps: Word template, process steps, question
   // Step 1: the three kinds of the download panel and Decide later, none chosen, and a link to add a template.
   const s1 = page.getByTestId("start-step-template");
   await expect(s1.getByRole("heading", { level: 2 })).toHaveText("Step 1 of 3: Pick the Word template");
-  await expect(s1.getByRole("radio")).toHaveCount(4);
+  await expect(s1.getByRole("radio")).toHaveCount(5); // the four kinds of Word document (the same as the Document page) and "Decide later"
   await expect(s1.getByRole("radio", { checked: true })).toHaveCount(0);
   await expect(page.getByTestId("start-add-template")).toHaveAttribute("href", "#/templates");
   await expectAccessible(page, "step 1");

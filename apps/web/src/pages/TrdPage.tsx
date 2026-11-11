@@ -27,9 +27,10 @@ export function TrdPage({ params }: { params: URLSearchParams }) {
   const tab = params.get("tab");
   const show = params.get("show");
   const question = params.get("q");
-  // The start path of a new TRD (step 1 picks the Word template, step 2 the process steps). Step 3 is the interview, which opens once the person continues.
+  // The start path of a new TRD (step 1 picks the Word template, step 2 the process steps, step 3 matches a template's headings when that was chosen).
+  // The interview is the last step and opens once the person continues.
   const step = params.get("step");
-  if (step === "1" || step === "2") return <TrdStartPath step={step === "1" ? 1 : 2} trdId={id} />;
+  if (step === "1" || step === "2" || step === "3") return <TrdStartPath step={step === "1" ? 1 : step === "2" ? 2 : 3} trdId={id} />;
   return d ? <TrdEditor d={d} initialTab={TRD_TABS.includes(tab as TrdTab) ? (tab as TrdTab) : "details"} {...(show === "open" || show === "all" || show === "confirm" ? { initialShow: show as InterviewShow } : {})} {...(question ? { initialQuestion: question } : {})} /> : <List missing={id ?? undefined} preselect={params.get("start")} />;
 }
 

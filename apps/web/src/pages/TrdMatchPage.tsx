@@ -33,11 +33,27 @@ import { ReasonDialog } from "./ReasonDialog";
 
 const TITLE = "Match your headings";
 
+/** The warning for a template with no headings: one text for this screen and for step 1 of the start path, so they never drift apart. */
+export const noHeadingsText = (name: string): string =>
+  `${name} has no headings to put the TRD's sections under. Use it with "A template's look" or "Placeholder tags" instead, or add a Word version of the template that has headings.`;
+
+/**
+ * The match screen as step 3 of the TRD start path (M15, job 3A): the same screen, in the step bar. `backHref` is step 2, `onDone` opens the interview.
+ * The screen itself is not copied; only its header and its footer change.
+ */
+export interface MatchStart {
+  backHref: string;
+  onDone: () => void;
+}
+
+/** Match drafts that were not saved when the person went Back to step 2, so Back never loses a pick (kept in memory for this visit only). */
+const startDrafts = new Map<string, TrdDraftRow[]>();
+
 /**
  * Match the sections of the TRD to the headings of one of the user's own Word templates (M15). The gap assessment has its own, older
  * heading placement page; this is the TRD's. Nothing is stored until it is saved, and a suggestion is only a suggestion until it is confirmed.
  */
-export function TrdMatchPage({ id, params }: { id: string; params: URLSearchParams }) {
+export function TrdMatchPage({ id, params, start }: { id: string; params: URLSearchParams; start?: MatchStart }) {
   const items = useTemplates((s) => s.items);
   const ready = useTemplates((s) => s.ready);
   useEffect(() => {
@@ -49,10 +65,16 @@ export function TrdMatchPage({ id, params }: { id: string; params: URLSearchPara
   if (!t) {
     return (
       <div className="stack">
-        <h1>{TITLE}</h1>
+        {start ? <h2>{TITLE}</h2> : <h1>{TITLE}</h1>}
         <Empty>This template is not in the library any more.</Empty>
         <p>
-          <a href={href("/templates")}>Back to templates</a>
+          {start ? (
+            <a className="btn" href={start.backHref} data-testid="start-back">
+              Back
+            </a>
+          ) : (
+            <a href={href("/templates")}>Back to templates</a>
+          )}
         </p>
       </div>
     );
@@ -60,20 +82,32 @@ export function TrdMatchPage({ id, params }: { id: string; params: URLSearchPara
   if (!t.analysis.usableModes.includes("mapped") || t.analysis.outline.length === 0) {
     return (
       <div className="stack">
-        <h1>{TITLE}</h1>
+        {start ? <h2>{TITLE}</h2> : <h1>{TITLE}</h1>}
         <p className="notice" data-testid="trd-match-no-headings">
-          {t.name} has no headings to put the TRD's sections under. Use it with "A template's look" or "Placeholder tags" instead, or add a Word version of the template that has headings.
+          {noHeadingsText(t.name)}
         </p>
-        <p>
-          <a href={href("/templates")}>Back to templates</a>
+        <p className="row wrap">
+          {start ? (
+            <>
+              <a className="btn" href={start.backHref} data-testid="start-back">
+                Back
+              </a>
+              {/* Nothing blocks leaving: the questions then stay in Cascade's own order. */}
+              <button type="button" className="btn primary" data-testid="start-next" onClick={start.onDone}>
+                Continue to the questions
+              </button>
+            </>
+          ) : (
+            <a href={href("/templates")}>Back to templates</a>
+          )}
         </p>
       </div>
     );
   }
-  return <Editor key={`${t.id}:${params.get("trd") ?? ""}`} t={t} trdId={params.get("trd")} />;
+  return <Editor key={`${t.id}:${params.get("trd") ?? ""}`} t={t} trdId={params.get("trd")} {...(start ? { start } : {})} />;
 }
 
-function Editor({ t, trdId }: { t: StoredTemplate; trdId: string | null }) {
+function Editor({ t, trdId, start }: { t: StoredTemplate; trdId: string | null; start?: MatchStart }) {
   const project = useStore((s) => s.project);
   const update = useStore((s) => s.update);
   const content = useContent();
@@ -96,12 +130,20 @@ function Editor({ t, trdId }: { t: StoredTemplate; trdId: string | null }) {
   const titleOf = (unit: string) => units.find((u) => u.id === unit)?.title ?? unit;
 
   const rematched = useMemo(() => rematchTrdMapping(outline, t.trdMapping), [outline, t.trdMapping]);
-  const [rows, setRows] = useState<TrdDraftRow[]>(() => draftFromMapping(outline, rematched.mapping, known));
-  const [savedJson, setSavedJson] = useState(() => JSON.stringify(rows));
+  const draftKey = `${t.id}:${trdId ?? ""}`;
+  const [rows, setRows] = useState<TrdDraftRow[]>(() => (start && startDrafts.get(draftKey)) || draftFromMapping(outline, rematched.mapping, known));
+  const [savedJson, setSavedJson] = useState(() => JSON.stringify(draftFromMapping(outline, rematched.mapping, known)));
+  const [asked, setAsked] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [removing, setRemoving] = useState<{ kind: "back"; unit: string } | { kind: "text"; headingIndex: number; headingText: string } | null>(null);
   const dirty = JSON.stringify(rows) !== savedJson;
+  // Step 3 of the start path: an unsaved draft survives Back to step 2 (and is dropped once it is saved, or equals what is saved).
+  useEffect(() => {
+    if (!start) return;
+    if (dirty) startDrafts.set(draftKey, rows);
+    else startDrafts.delete(draftKey);
+  }, [start, dirty, rows, draftKey]);
   const versionChanged = !!t.trdMapping?.templateVersion && t.trdMapping.templateVersion !== t.version;
 
   const rowOf = (index: number) => rows.find((r) => r.headingIndex === index)!;
@@ -153,41 +195,74 @@ function Editor({ t, trdId }: { t: StoredTemplate; trdId: string | null }) {
     setStatus(`${titleOf(unit)} placed under ${h?.text ?? "the heading"}.`);
   }
 
-  function save() {
+  /** Says what is held back (a heading with content and no choice about the template's own text) and returns true when something is. */
+  function heldBack(): boolean {
     const missing = draftMissingPicks(rows);
-    if (missing.length) {
-      setStatus("");
-      return setError(`Choose "Replace it" or "Keep it above Cascade's content" for: ${missing.join("; ")}.`);
+    if (!missing.length) return false;
+    setStatus("");
+    setError(`Choose "Replace it" or "Keep it above Cascade's content" for: ${missing.join("; ")}.`);
+    return true;
+  }
+
+  async function save(): Promise<boolean> {
+    if (heldBack()) return false;
+    try {
+      await useTemplates.getState().patch(t.id, { trdMapping: mappingFromDraft(rows, t.trdMapping, known, t.version) });
+      setError("");
+      setSavedJson(JSON.stringify(rows));
+      setStatus(start ? "Saved. The questions will follow this match." : "Saved. The Word download of a TRD that uses this template now follows this match.");
+      return true;
+    } catch (e) {
+      setError(`The match could not be saved: ${(e as Error).message}`);
+      return false;
     }
-    useTemplates
-      .getState()
-      .patch(t.id, { trdMapping: mappingFromDraft(rows, t.trdMapping, known, t.version) })
-      .then(() => {
-        setError("");
-        setSavedJson(JSON.stringify(rows));
-        setStatus("Saved. The Word download of a TRD that uses this template now follows this match.");
-      })
-      .catch((e: Error) => setError(`The match could not be saved: ${e.message}`));
+  }
+
+  /**
+   * "Continue to the questions" (step 3 of the start path). Held back exactly as Save is, in the same words: a heading with content needs the choice
+   * about the template's own text. Suggestions nobody confirmed are only a guess, so they get one plain reminder first (the second press goes on:
+   * leaving a heading without content is allowed, it gets a writing box in the interview). A changed match is saved on the way, so the interview sees it.
+   */
+  async function goOn() {
+    if (!start) return;
+    if (heldBack()) return;
+    if (suggestions.length > 0 && !asked) {
+      setAsked(true);
+      setStatus(`${suggestions.length} ${suggestions.length === 1 ? "heading has a suggestion" : "headings have a suggestion"} that is not confirmed yet. Choose Confirm all suggestions, or press Continue again to go on without ${suggestions.length === 1 ? "it" : "them"}.`);
+      return;
+    }
+    if (dirty && !(await save())) return;
+    start.onDone();
   }
 
   const label = (h: { number?: string; text: string }) => `${h.number ? `${h.number} ` : ""}${h.text}`;
   const backToTrd = d ? href("/trd", { trd: d.id, tab: "output" }) : null;
 
   return (
-    <div className="stack-lg">
-      <PageHeader
-        title={`${TITLE}: ${t.name}`}
-        purpose="For each heading of your Word template, choose which sections of the TRD go under it."
-        meta={
-          <>
-            Version {t.version}, {t.fileName}. {d ? `The list of sections comes from ${d.id}.` : "No TRD is open here, so the list holds every section a TRD can have."}
-          </>
-        }
-        about={{
-          art: "page-mapping",
-          children: <p>Nothing changes until you save. The same match is used for every Word download of a TRD with "A template's headings". Cascade only places the content; it never changes your template's cover, headers, footers or styles.</p>,
-        }}
-      />
+    <div className="stack-lg" {...(start ? { "data-testid": "start-step-match" } : {})}>
+      {start ? (
+        <section className="stack" aria-labelledby="sp3-h">
+          <h2 id="sp3-h">Step 3 of 4: {TITLE}</h2>
+          <p>
+            For each heading of {t.name}, choose which sections of the TRD go under it. The questions then follow your headings, in your order. Version {t.version}, {t.fileName}.
+          </p>
+          <p className="small muted">Nothing changes until you save or continue. Cascade only places the content; it never changes your template's cover, headers, footers or styles.</p>
+        </section>
+      ) : (
+        <PageHeader
+          title={`${TITLE}: ${t.name}`}
+          purpose="For each heading of your Word template, choose which sections of the TRD go under it."
+          meta={
+            <>
+              Version {t.version}, {t.fileName}. {d ? `The list of sections comes from ${d.id}.` : "No TRD is open here, so the list holds every section a TRD can have."}
+            </>
+          }
+          about={{
+            art: "page-mapping",
+            children: <p>Nothing changes until you save. The same match is used for every Word download of a TRD with "A template's headings". Cascade only places the content; it never changes your template's cover, headers, footers or styles.</p>,
+          }}
+        />
+      )}
       {pdf && <p className="notice">This template is a PDF, so only its headings are used. A PDF has no text the tool can keep, so a heading without content is marked "[To be completed.]".</p>}
       {trdId && !d && (
         <p className="notice" role="status" data-testid="trd-match-missing-trd">
@@ -208,11 +283,11 @@ function Editor({ t, trdId }: { t: StoredTemplate; trdId: string | null }) {
         <button type="button" className="btn" disabled={suggestions.length === 0} onClick={confirmAll} data-testid="trd-match-confirm-all">
           Confirm all suggestions
         </button>
-        <button type="button" className="btn primary" disabled={!dirty} onClick={save} data-testid="trd-match-save">
+        <button type="button" className={start ? "btn" : "btn primary"} disabled={!dirty} onClick={() => void save()} data-testid="trd-match-save">
           Save this match
         </button>
         <span className="small muted">{dirty ? "You have unsaved changes." : t.trdMapping ? "Saved." : "Nothing saved yet."}</span>
-        {backToTrd && (
+        {backToTrd && !start && (
           <a href={backToTrd} className="small">
             Back to the TRD
           </a>
@@ -475,6 +550,17 @@ function Editor({ t, trdId }: { t: StoredTemplate; trdId: string | null }) {
           </>
         )}
       </section>
+
+      {start && (
+        <div className="row wrap">
+          <a className="btn" href={start.backHref} data-testid="start-back">
+            Back
+          </a>
+          <button type="button" className="btn primary" data-testid="start-next" onClick={() => void goOn()}>
+            Continue to the questions
+          </button>
+        </div>
+      )}
 
       {removing && d && (
         <ReasonDialog

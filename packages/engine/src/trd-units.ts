@@ -118,6 +118,22 @@ export function trdLibraryUnits(library: readonly TrdLibraryWriteup[]): TrdUnitI
 }
 
 /**
+ * The unit each write-up of the TRD sits in, by write-up id. The interview needs it to say which heading of a person's template a question's
+ * answer lands under: a question names the write-ups that read it, a heading holds units. Same ids as `trdUnitModel`: the overview's
+ * introduction is "manufacturing-overview", a process description (or a section placed inside the overview) is "overview:<library id>", and
+ * any other section is "writeup-<key>".
+ */
+export function trdWriteupUnitIds(d: TrdDocument): Map<string, string> {
+  const out = new Map<string, string>();
+  const order = writeupOrder(d);
+  if (order.intro) out.set(order.intro.id, "manufacturing-overview");
+  const taken = new Set<string>();
+  for (const w of order.overview) out.set(w.id, overviewUnitId(w, taken));
+  for (const w of order.prose) out.set(w.id, `writeup-${w.key}`);
+  return out;
+}
+
+/**
  * Other names a process description goes by, for suggesting where it belongs: the name of the step in this TRD and the catalog's own name
  * for the unit operation. Keyed by unit id. A hint helps a suggestion; a person still confirms every one.
  */

@@ -2,6 +2,7 @@ import { FACILITY_GRADE_LABEL, facilityAreas, type FacilityArea, type FacilityGr
 import type { ContentBundle } from "./content";
 import type { InterviewMapWording } from "./interview-map-content";
 import { notApplicableReason, stepExclusions } from "./scope";
+import { HEADING_ABOUT_TITLE, type HeadingInterview } from "./trd-heading-interview";
 import { INTERVIEW_DOCUMENT_GROUP, type InterviewQuestion } from "./trd-interview";
 import { isAnswered, isTbdAnswer, type QuestionInstance } from "./sequencer";
 
@@ -397,6 +398,26 @@ export function trdMapInput(content: ContentBundle, project: Project, questions:
   const withQuestions = new Set(qs.flatMap((q) => (q.stepKey === null ? [] : [q.stepKey])));
   const labels = new Map(questions.map((q) => [q.stepKey, q.stepLabel] as const));
   return { questions: qs, steps: mapSteps(content, project, withQuestions, labels), wholeLabel: wording.nodes.wholeTrd };
+}
+
+/**
+ * The TRD interview as a map when it follows the headings of a person's own Word template (M15, job 3A): the "whole" node is "About this
+ * document", and each heading of the template is a step, in the template's order ("Additional content" last, when something was added back).
+ * A heading with no question to ask (its own text kept, or no question lands there) is still a node and says "No questions here". A heading's
+ * writing box is one question of its node. Counts equal the groups' counts of `trdHeadingInterview`, for the same level.
+ */
+export function headingMapInput(hi: Pick<HeadingInterview, "groups">, kept: ReadonlySet<string> = new Set()): MapInput {
+  const stateOf = (q: InterviewQuestion): MapQuestionState =>
+    q.state === "answered" || q.state === "not_applicable" ? "answered" : q.state === "from_project" ? (kept.has(q.key) ? "answered" : "to_confirm") : q.state === "tbd" ? "tbd" : "open";
+  const qs: MapQuestion[] = [];
+  const steps: MapStep[] = [];
+  for (const g of hi.groups) {
+    const stepKey = g.kind === "about" ? null : g.id;
+    if (stepKey !== null) steps.push({ key: stepKey, label: g.title });
+    for (const s of g.subGroups) for (const q of s.questions) qs.push({ key: q.key, stepKey, state: stateOf(q), ...(q.essential ? {} : { detail: true }) });
+    if (g.writing) qs.push({ key: g.writing.key, stepKey, state: g.writing.text.trim() ? "answered" : "open" });
+  }
+  return { questions: qs, steps, wholeLabel: HEADING_ABOUT_TITLE };
 }
 
 /**

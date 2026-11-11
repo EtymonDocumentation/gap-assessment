@@ -183,7 +183,12 @@ function usePreExportChecks(choice: WordChoice, doc: DocModel, trd?: TrdWordInpu
 /** The help tip next to the Word download button (the Document page shows the button beside the other downloads, so it needs the text too). */
 export const WORD_EXPORT_HELP = "Creates a .docx in your browser from the document above, in the template style you chose. Check it in Word before you use it. Each download is recorded in the export history.";
 
-const MODES: TemplateMode[] = ["builtin", "their_look", "mapped", "tags"];
+/**
+ * Every kind of Word document, in the order the Document page offers them. The TRD's start path offers the same four, in the same order, with the same
+ * words (MODE_LABEL and MODE_HELP in lib.ts are the one source), so "A template's headings" reads the same wherever it is chosen.
+ */
+export const WORD_MODES: TemplateMode[] = ["builtin", "their_look", "mapped", "tags"];
+const MODES = WORD_MODES;
 
 /**
  * The kinds of Word document that work for any tool document. "A template's headings" is left out for the risk assessment: a

@@ -5990,3 +5990,52 @@ html:has(.iv-one) { scroll-padding-bottom: 9rem; }
     justify-self: start;
   }
 }
+
+/* ---- The TRD interview that follows a template's headings (M15, job 3A). Colours come from the tokens only; no state rests on colour. */
+
+/* A button that reads and behaves like a link (the jump list scrolls on this page, it does not change the address). Underlined, so it is not colour alone. */
+.linklike {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+.iv-jump summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.iv-jump-list {
+  margin: 0.5rem 0 0;
+  padding-left: 1.4rem;
+  display: grid;
+  gap: 4px 24px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+}
+.iv-jump-list li {
+  overflow-wrap: anywhere;
+}
+/* A multi-line answer can be a whole section of the document (the writing box under a template heading), so the box takes the card's width instead of the browser's narrow default. */
+.iv-input textarea {
+  width: 100%;
+}
+/* A process step inside a heading that holds several: a quiet label above its cards. */
+.iv-subgroup {
+  margin: 0;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--divider);
+}
+/* The list of pieces not in the template reuses the match screen's one-line-per-section rows; in the interview the last cell holds a button and a link. */
+.iv-nit-item {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+@media (max-width: 600px) {
+  .iv-nit-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

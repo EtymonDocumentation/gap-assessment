@@ -6,7 +6,8 @@ import { useTrdWriteups } from "./trd-writeups-store";
 
 /**
  * "Start a TRD". A new TRD goes through the start path of three steps on the TRD page: step 1 picks the Word template, step 2 says which process
- * steps are in the project, step 3 is the interview. Home, the TRD page and the "Start the TRD" links all use it, so a first-time reader is
+ * steps are in the project, step 3 is the interview. With "A template's headings" there are four: the match of those headings comes
+ * between the process steps and the interview. Home, the TRD page and the "Start the TRD" links all use it, so a first-time reader is
  * always taken through the same steps in the same order.
  *
  * A project that already has a TRD does not start another one by accident: with one TRD the person is taken straight to where it was (its interview),

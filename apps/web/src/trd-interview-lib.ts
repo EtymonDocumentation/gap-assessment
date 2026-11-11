@@ -51,7 +51,7 @@ export function placeInterviewTab<T extends string>(ids: readonly T[], interview
 // ------------------------------------------------------------------ one question at a time
 
 /** The questions of the one-at-a-time run, by key, in list order. A snapshot: an answered question keeps its place until the run ends. */
-export function interviewSequence(visible: readonly InterviewQuestion[]): string[] {
+export function interviewSequence(visible: readonly { key: string }[]): string[] {
   return visible.map((q) => q.key);
 }
 
@@ -62,8 +62,11 @@ export interface SequencePosition {
   stepLabel: string;
 }
 
-/** "Question 7 of 23 in Sterile filtration": counted inside the step of the question at `index`. */
-export function sequencePosition(qs: readonly InterviewQuestion[], index: number): SequencePosition | undefined {
+/**
+ * "Question 7 of 23 in Sterile filtration": counted inside the step of the question at `index`. Generic over anything with a step, so an interview that
+ * follows a template's headings (where the "step" is a heading and a writing box is one of its cards) is counted the same way.
+ */
+export function sequencePosition<T extends { stepKey: string; stepLabel: string }>(qs: readonly T[], index: number): SequencePosition | undefined {
   const q = qs[index];
   if (!q) return undefined;
   const same = qs.filter((x) => x.stepKey === q.stepKey);
