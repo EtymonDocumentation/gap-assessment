@@ -237,7 +237,7 @@ test("the risk Output tab offers the Templates library; their look and placehold
   await loadDemo(page);
   await go(page, "#/templates");
   await page.getByRole("button", { name: "Add the fictional sample templates" }).click();
-  await expect(page.getByRole("heading", { level: 2, name: "Library (4)" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("heading", { level: 2, name: "Library (5)" })).toBeVisible({ timeout: 30_000 });
   await go(page, "#/risk");
   await page.getByTestId("risk-list").getByRole("link").first().click();
   await page.getByTestId("risk-tab-output").click();
@@ -276,7 +276,7 @@ for (const scheme of ["light", "dark"] as const) {
     await loadDemo(page);
     await go(page, "#/templates");
     await page.getByRole("button", { name: "Add the fictional sample templates" }).click();
-    await expect(page.getByRole("heading", { level: 2, name: "Library (4)" })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("heading", { level: 2, name: "Library (5)" })).toBeVisible({ timeout: 30_000 });
 
     await openLibrary(page);
     await page.getByTestId("method-new").click();

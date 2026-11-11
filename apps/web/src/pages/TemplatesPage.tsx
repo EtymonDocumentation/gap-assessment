@@ -5,7 +5,7 @@ import { Empty, Modal } from "../components";
 import { ReasonDialog } from "./ReasonDialog";
 import { loadDocx, useDocx } from "../docx-loader";
 import { dateTime, download, MODE_LABEL, slug } from "../lib";
-import { addSampleHeadingsTemplate, sampleNotice, SAMPLE_BUTTON_HELP, SAMPLE_BUTTON_TEXT } from "../sample-headings-template";
+import { addSampleHeadingsTemplate } from "../sample-headings-template";
 import { fetchSample, SAMPLE_TEMPLATES } from "../sample-templates";
 import { href } from "../router";
 import { BrowserLibraryPanel, useIsRemote } from "../server/ServerUi";
@@ -29,7 +29,10 @@ function messageOf(e: unknown, what: string): string {
   return err?.name === "TemplateError" ? err.message : `${what}: ${err?.message ?? String(e)}`;
 }
 
-type Dialog = { kind: "edit"; t: StoredTemplate } | { kind: "delete"; t: StoredTemplate } | null;
+const SAMPLES_HELP =
+  "Adds five made-up company templates to try the options: a Word template, a tag template, a macro-enabled template, a PDF outline, and a Word template with seven headings for a TRD that follows \"A template's headings\". They are fictional. Samples already in the library are skipped.";
+
+type Dialog ={ kind: "edit"; t: StoredTemplate } | { kind: "delete"; t: StoredTemplate } | null;
 
 /** The template library: Word and PDF templates kept in this browser, reusable across projects. */
 export function TemplatesPage() {
@@ -89,22 +92,13 @@ export function TemplatesPage() {
         await useTemplates.getState().add(toStored(s.name, "1", s.fileName, imp));
         added++;
       }
+      // One button adds every fictional sample, including the one for "A template's headings" (the TRD start path has its own button for just
+      // that one). Two look-alike buttons here confused people about which to press.
+      if ((await addSampleHeadingsTemplate()).added) added++;
+      else skipped++;
       setNotice(`${added} sample ${added === 1 ? "template" : "templates"} added${skipped ? `; ${skipped} already in the library` : ""}. They are fictional.`);
     } catch (e) {
       fail(e, "The sample templates could not be added");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function addHeadingsSample() {
-    setError("");
-    setNotice("");
-    setBusy(true);
-    try {
-      setNotice(sampleNotice(await addSampleHeadingsTemplate()));
-    } catch (e) {
-      fail(e, "The sample template could not be added");
     } finally {
       setBusy(false);
     }
@@ -224,13 +218,10 @@ export function TemplatesPage() {
         )}
 
         <div className="row wrap">
-          <button type="button" className="btn" disabled={busy} data-testid="add-headings-sample" onClick={() => void addHeadingsSample()}>
-            {SAMPLE_BUTTON_TEXT}
-          </button>
-          <HelpTip label="the sample template" text={SAMPLE_BUTTON_HELP} />
-          <button type="button" className="btn" disabled={busy} onClick={() => void addSamples()}>
+          <button type="button" className="btn" disabled={busy} data-testid="add-samples" onClick={() => void addSamples()}>
             Add the fictional sample templates
           </button>
+          <HelpTip label="the sample templates" text={SAMPLES_HELP} />
           <button type="button" className="btn" disabled={busy} onClick={() => void downloadStarter()}>
             Download starter tag template
           </button>

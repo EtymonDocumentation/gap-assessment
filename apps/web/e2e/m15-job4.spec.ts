@@ -49,8 +49,8 @@ async function newProject(page: Page) {
 async function addSampleFromLibrary(page: Page) {
   await hash(page, "#/templates");
   await expect(page.getByRole("heading", { level: 1, name: "Templates" })).toBeVisible();
-  await page.getByTestId("add-headings-sample").click();
-  await expect(page.getByRole("heading", { level: 2, name: "Library (1)" })).toBeVisible();
+  await page.getByTestId("add-samples").click();
+  await expect(page.getByRole("heading", { level: 2, name: "Library (5)" })).toBeVisible();
 }
 
 /** Step 1 to the match screen with "A template's headings" and the sample, then confirm everything and go on to the interview. */
@@ -83,20 +83,20 @@ test("the sample template: added from an empty library, once only, used to start
   await newProject(page);
   await hash(page, "#/templates");
   await expect(page.getByRole("heading", { level: 1, name: "Templates" })).toBeVisible();
-  const button = page.getByTestId("add-headings-sample");
-  await expect(button).toHaveText(SAMPLE_BUTTON);
+  const button = page.getByTestId("add-samples");
+  await expect(button).toHaveText("Add the fictional sample templates");
   await expect(page.getByRole("heading", { level: 2, name: "Library (0)" })).toBeVisible();
   await expectAccessible(page, "Templates, empty library");
   await expectNoSidewaysScroll(page, "Templates, empty library");
   await shot(page, "templates-empty");
 
   await button.click();
-  await expect(page.getByRole("heading", { level: 2, name: "Library (1)" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Library (5)" })).toBeVisible();
   await expect(page.getByText(SAMPLE).first()).toBeVisible();
   await expect(page.getByRole("status").filter({ hasText: "fictional" }).first()).toBeVisible();
   // A second press never makes a second copy: it says it is already there.
   await button.click();
-  await expect(page.getByRole("heading", { level: 2, name: "Library (1)" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Library (5)" })).toBeVisible();
   await expect(page.getByText(/already in the library/).first()).toBeVisible();
   await expectAccessible(page, "Templates, with the sample");
   await expectNoSidewaysScroll(page, "Templates, with the sample");
@@ -143,7 +143,7 @@ test("the sample template: added from an empty library, once only, used to start
   await page.getByTestId("tpl-delete-reason").fill("Fictional: not needed any more");
   await page.getByRole("button", { name: "Delete template" }).click();
   await expect(page.getByText(`Template "${SAMPLE}" deleted.`)).toBeVisible();
-  await expect(page.getByRole("heading", { level: 2, name: "Library (0)" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Library (4)" })).toBeVisible();
   // The reason is kept with a record of the removal (name, version, reason, time).
   const kept = await page.evaluate(
     () =>

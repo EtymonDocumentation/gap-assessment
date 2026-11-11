@@ -3,7 +3,6 @@ import { newTemplateId, useTemplates, type StoredTemplate } from "./templates-st
 
 /** The words the Templates page and step 1 of the TRD start path both use for the sample, so the two never drift apart. */
 export const SAMPLE_BUTTON_TEXT = "Add a sample template (fictional)";
-export const SAMPLE_BUTTON_HELP = "A made-up company's Word template with seven headings, to try \"A template's headings\" without a file of your own. It is fictional.";
 
 export type SampleResult = { added: true; name: string } | { added: false; name: string; version: string };
 

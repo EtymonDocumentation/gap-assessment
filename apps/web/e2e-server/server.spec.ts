@@ -519,7 +519,7 @@ test.describe("storage mode client", () => {
     await loadDemo(page);
     await go(page, "#/templates");
     await page.getByRole("button", { name: "Add the fictional sample templates" }).click();
-    await expect(page.getByRole("heading", { level: 2, name: "Library (4)" })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("heading", { level: 2, name: "Library (5)" })).toBeVisible({ timeout: 30_000 });
     await expect(page.getByRole("heading", { name: "Templates in this browser" })).toHaveCount(0);
     await go(page, "#/sources");
     await expect(page.getByRole("heading", { level: 2, name: /^Files/ })).toHaveCount(0);
@@ -528,7 +528,7 @@ test.describe("storage mode client", () => {
     await page.reload();
     await expectSignedInAs(page, account.displayName);
     await go(page, "#/templates");
-    await expect(page.getByRole("heading", { level: 2, name: "Library (4)" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "Library (5)" })).toBeVisible();
     await go(page, "#/register");
     await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
 

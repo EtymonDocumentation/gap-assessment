@@ -50,8 +50,8 @@ async function addSamples(page: Page) {
   await go(page, "#/templates");
   await expect(page.getByRole("heading", { level: 1, name: "Templates" })).toBeVisible();
   await page.getByRole("button", { name: "Add the fictional sample templates" }).click();
-  await expect(page.getByRole("heading", { level: 2, name: "Library (4)" })).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByRole("status").filter({ hasText: "4 sample templates added" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Library (5)" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("status").filter({ hasText: "5 sample templates added" })).toBeVisible();
 }
 
 const card = (page: Page, text: string) => page.locator("article.card", { hasText: text });
@@ -90,7 +90,7 @@ test("templates: samples with analysis, .doc advice, rename, export, delete and 
 
   // Adding the samples again adds nothing.
   await page.getByRole("button", { name: "Add the fictional sample templates" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "0 sample templates added; 4 already in the library" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "0 sample templates added; 5 already in the library" })).toBeVisible();
 
   // An old .doc file is refused with advice, announced as an alert.
   const oldDoc = Buffer.concat([Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]), Buffer.alloc(1024)]);
@@ -99,7 +99,7 @@ test("templates: samples with analysis, .doc advice, rename, export, delete and 
   await expect(alert).toBeVisible();
   await expect(alert).toContainText("Save As");
   await expect(alert).toContainText(".docx");
-  await expect(page.getByRole("heading", { level: 2, name: "Library (4)" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Library (5)" })).toBeVisible();
 
   // Rename and change the version.
   await page.getByRole("button", { name: /^Rename \/ version of .*SOP-style/ }).click();
@@ -126,15 +126,15 @@ test("templates: samples with analysis, .doc advice, rename, export, delete and 
   await expect(page.getByRole("dialog", { name: "Delete Brightwater SOP?" })).toBeVisible();
   await page.getByTestId("tpl-delete-reason").fill("Fictional: not needed any more");
   await page.getByRole("dialog").getByRole("button", { name: "Delete template" }).click();
-  await expect(page.getByRole("heading", { level: 2, name: "Library (3)" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Library (4)" })).toBeVisible();
 
   // A changed file is refused; the real one is accepted.
   const tampered = { ...json, bytesBase64: `A${json.bytesBase64.slice(1)}` };
   await page.getByLabel(/^Import a template file/).setInputFiles({ name: "tampered.gap-template.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(tampered)) });
   await expect(page.getByRole("alert").filter({ hasText: "checksum" })).toBeVisible();
-  await expect(page.getByRole("heading", { level: 2, name: "Library (3)" })).toBeVisible();
-  await page.getByLabel(/^Import a template file/).setInputFiles({ name: "brightwater-sop.gap-template.json", mimeType: "application/json", buffer: file.bytes });
   await expect(page.getByRole("heading", { level: 2, name: "Library (4)" })).toBeVisible();
+  await page.getByLabel(/^Import a template file/).setInputFiles({ name: "brightwater-sop.gap-template.json", mimeType: "application/json", buffer: file.bytes });
+  await expect(page.getByRole("heading", { level: 2, name: "Library (5)" })).toBeVisible();
   await expect(card(page, "Brightwater SOP")).toContainText("Version 3");
   await expect(page.getByRole("alert")).toHaveCount(0);
 
@@ -343,7 +343,7 @@ test("document: the tag sample passes the pre-export check", async ({ page }) =>
   await loadDemo(page);
   await go(page, "#/templates");
   await page.getByRole("button", { name: "Add the fictional sample templates" }).click();
-  await expect(page.getByRole("heading", { level: 2, name: "Library (4)" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("heading", { level: 2, name: "Library (5)" })).toBeVisible({ timeout: 30_000 });
   await go(page, "#/document");
   const panel = page.locator("section", { has: page.getByRole("heading", { level: 2, name: "Word document" }) });
   await panel.getByRole("radio", { name: /^Placeholder tags/ }).check();

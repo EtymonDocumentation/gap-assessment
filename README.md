@@ -482,7 +482,7 @@ The Document page can make a Word file in four ways. Pick the one that fits:
 
 **Heading mapping.** To use "Map to their headings", open the template's mapping from the Templates page. This needs an open project, because the mapping lists that project's content. Assign the tool's content to the template's headings with the Add, Up, Down and Remove buttons, or use **Suggest a mapping** and adjust it. For each heading choose whether the template's own text is kept or replaced. Content you do not map is added at the end, or left out if you tick "I understand this content will be left out of the Word document". The report beside the editor updates as you work, and the mapping is saved with the template.
 
-**Fictional samples.** **Add the fictional sample templates** adds four Brightwater Biologics (fictional) templates: a Word template, a tag template, a macro-enabled template and a PDF outline. They are there for trying the feature. Samples already in the library are skipped.
+**Fictional samples.** **Add the fictional sample templates** adds five fictional templates: four Brightwater Biologics ones (a Word template, a tag template, a macro-enabled template and a PDF outline) and "Harbourlight SOP (fictional)" for "A template's headings". They are there for trying the feature. Samples already in the library are skipped.
 
 ## A TRD that follows your own template's headings (milestone 15)
 
@@ -494,7 +494,7 @@ The Document page can make a Word file in four ways. Pick the one that fits:
 
 **Version compare.** A changed Word template choice reads "Word template" (for example "A template's headings: Harbourlight SOP (fictional) (version 1)"), and changed text under headings or sections added back read "Heading match: 3 headings changed". Which heading a section is placed under is kept with the template in the library, not in a version, so it is not compared.
 
-**Try it without a file of your own.** **Add a sample template (fictional)** on the Templates page (and as a link in the start path when the library has no Word template) adds "Harbourlight SOP (fictional)": some headings that match Cascade content, some with none, and one with template text that is kept. It is added once only (a second press says it is already there) and is deleted like any template. The tour and the glossary (A template's headings, Match your headings, Not in your template, Additional content, [To be completed.]) explain the words.
+**Try it without a file of your own.** **Add the fictional sample templates** on the Templates page (or **Add a sample template (fictional)** in the start path when the library has no Word template, which adds only this one) adds "Harbourlight SOP (fictional)": some headings that match Cascade content, some with none, and one with template text that is kept. It is added once only (a second press says it is already there) and is deleted like any template. The tour and the glossary (A template's headings, Match your headings, Not in your template, Additional content, [To be completed.]) explain the words.
 
 ## Guidance library
 

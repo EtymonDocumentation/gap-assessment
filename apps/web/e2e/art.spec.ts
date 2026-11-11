@@ -186,7 +186,7 @@ test("a template's heading mapping page keeps its picture behind About this page
   await loadDemo(page);
   await go(page, "#/templates");
   await page.getByRole("button", { name: "Add the fictional sample templates" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "4 sample templates added" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "5 sample templates added" })).toBeVisible();
   await page.locator("article.card", { hasText: "SOP-style template" }).getByRole("link", { name: /^Set heading placement/ }).click();
   await expect(page.getByRole("heading", { level: 1, name: /^Heading placement:/ })).toBeVisible();
   await expect(page.locator(".art-banner")).toHaveCount(0);
