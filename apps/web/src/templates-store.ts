@@ -31,6 +31,9 @@ export interface StoredTemplate {
 }
 
 const db = createStore("gap-templates", "templates");
+// A removal keeps its reason: the library has no change log of its own, so the browser keeps a small record of each removed template (name, version,
+// reason, time) beside it, as the excipient library does. The server writes the reason into its audit log. No change to the template format.
+const logDb = createStore("gap-templates-log", "removed");
 
 interface State {
   items: StoredTemplate[];
@@ -40,7 +43,8 @@ interface State {
   load(): Promise<void>;
   add(t: StoredTemplate): Promise<void>;
   patch(id: string, patch: Partial<Pick<StoredTemplate, "name" | "version" | "mapping" | "trdMapping">>): Promise<void>;
-  remove(id: string): Promise<void>;
+  /** Removes a template and keeps the reason (required by the page; an empty one is refused here as well). */
+  remove(id: string, reason: string): Promise<void>;
 }
 
 function sorted(items: StoredTemplate[]): StoredTemplate[] {
@@ -122,10 +126,16 @@ export const useTemplates = /* @__PURE__ */ create<State>((setState, getState) =
     }
   },
 
-  async remove(id) {
+  async remove(id, reason) {
     try {
-      if (SERVER_MODE && remoteStorage()) await api.deleteTemplate(id);
-      else await del(id, db);
+      if (!reason.trim()) throw new Error("Write a short reason for removing it.");
+      if (SERVER_MODE && remoteStorage()) await api.deleteTemplate(id, reason.trim());
+      else {
+        const t = getState().items.find((x) => x.id === id);
+        const at = new Date().toISOString();
+        await set(`${at}|${id}`, { id, name: t?.name ?? "", version: t?.version ?? "", reason: reason.trim(), at }, logDb);
+        await del(id, db);
+      }
       setState({ items: getState().items.filter((x) => x.id !== id), error: null });
     } catch (e) {
       setState({ error: `The template could not be removed: ${(e as Error).message}` });

@@ -2,8 +2,10 @@ import type { ImportedTemplate, TemplateAnalysis, TemplateMode } from "@gap/docx
 import { useEffect, useRef, useState } from "react";
 import { PageHeader } from "../PageHeader";
 import { Empty, Modal } from "../components";
+import { ReasonDialog } from "./ReasonDialog";
 import { loadDocx, useDocx } from "../docx-loader";
 import { dateTime, download, MODE_LABEL, slug } from "../lib";
+import { addSampleHeadingsTemplate, sampleNotice, SAMPLE_BUTTON_HELP, SAMPLE_BUTTON_TEXT } from "../sample-headings-template";
 import { fetchSample, SAMPLE_TEMPLATES } from "../sample-templates";
 import { href } from "../router";
 import { BrowserLibraryPanel, useIsRemote } from "../server/ServerUi";
@@ -90,6 +92,19 @@ export function TemplatesPage() {
       setNotice(`${added} sample ${added === 1 ? "template" : "templates"} added${skipped ? `; ${skipped} already in the library` : ""}. They are fictional.`);
     } catch (e) {
       fail(e, "The sample templates could not be added");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function addHeadingsSample() {
+    setError("");
+    setNotice("");
+    setBusy(true);
+    try {
+      setNotice(sampleNotice(await addSampleHeadingsTemplate()));
+    } catch (e) {
+      fail(e, "The sample template could not be added");
     } finally {
       setBusy(false);
     }
@@ -209,6 +224,10 @@ export function TemplatesPage() {
         )}
 
         <div className="row wrap">
+          <button type="button" className="btn" disabled={busy} data-testid="add-headings-sample" onClick={() => void addHeadingsSample()}>
+            {SAMPLE_BUTTON_TEXT}
+          </button>
+          <HelpTip label="the sample template" text={SAMPLE_BUTTON_HELP} />
           <button type="button" className="btn" disabled={busy} onClick={() => void addSamples()}>
             Add the fictional sample templates
           </button>
@@ -247,7 +266,7 @@ export function TemplatesPage() {
         {!ready ? (
           <p className="muted">Loading…</p>
         ) : items.length === 0 ? (
-          <Empty>The library is empty. Add a template above, or add the fictional sample templates to try the options.</Empty>
+          <Empty>The library is empty. Add a template above, or add a fictional sample template to try the options.</Empty>
         ) : (
           <ul className="template-list">
             {items.map((t) => (
@@ -274,34 +293,24 @@ export function TemplatesPage() {
         />
       )}
       {dialog?.kind === "delete" && (
-        <Modal
-          open
-          onOpenChange={(o) => !o && setDialog(null)}
+        <ReasonDialog
           title={`Delete ${dialog.t.name}?`}
           description={`The template is removed from ${remote ? "your library on the server. It stays in the server's trash folder for 30 days, then the server removes it for good" : "this browser only"}. Word documents already created from it are not affected, and the export history keeps its name and checksum.`}
+          confirmLabel="Delete template"
+          keepLabel="Cancel"
+          testId="tpl-delete"
           restoreFocus={restoreFocus}
-        >
-          <div className="row end">
-            <button type="button" className="btn" onClick={() => setDialog(null)}>
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="btn danger"
-              onClick={() => {
-                const t = dialog.t;
-                void useTemplates
-                  .getState()
-                  .remove(t.id)
-                  .then(() => setNotice(`Template "${t.name}" deleted.`))
-                  .catch(() => undefined);
-                setDialog(null);
-              }}
-            >
-              Delete template
-            </button>
-          </div>
-        </Modal>
+          onClose={() => setDialog(null)}
+          onConfirm={(reason) => {
+            const t = dialog.t;
+            void useTemplates
+              .getState()
+              .remove(t.id, reason)
+              .then(() => setNotice(`Template "${t.name}" deleted.`))
+              .catch(() => undefined);
+            return null;
+          }}
+        />
       )}
     </div>
   );

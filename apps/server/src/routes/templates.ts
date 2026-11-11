@@ -123,6 +123,9 @@ export const templateRoutes: Route[] = [
     storage: true,
     async handler(ctx) {
       const id = idParam(ctx);
+      // The app sends a reason with every removal and it goes into the audit log. An older client with no body still works (no reason is logged).
+      const sent: Record<string, unknown> = await ctx.json(4096).catch(() => ({}));
+      const reason = typeof sent.reason === "string" ? sent.reason.trim().slice(0, 500) : "";
       const { store } = ctx.app;
       await store.withLock(`templates:${ctx.user.id}`, async () => {
         const meta = userPath(ctx, "templates", `${id}.json`);
@@ -132,7 +135,7 @@ export const templateRoutes: Route[] = [
           await store.toTrash(ctx.user.id, "templates", userPath(ctx, "templates", `${id}.docx`), `${id}.docx`);
         }
       });
-      await store.audit("template-delete", { userId: ctx.user.id, templateId: id, ip: ctx.ip });
+      await store.audit("template-delete", { userId: ctx.user.id, templateId: id, ...(reason ? { reason } : {}), ip: ctx.ip });
       sendNoContent(ctx.res);
     },
   },

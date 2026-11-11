@@ -19,6 +19,7 @@ export type { MappingReport } from "./mapping";
 export { TAG_REFERENCE, buildDocumentTagData, buildSamplingTagData, buildTagData, tagReferenceMarkdown } from "./tags";
 export type { DocumentTagData, GapTag, SamplingTagData, TagData, TagReferenceEntry } from "./tags";
 export { buildStarterTemplate } from "./starter";
+export { buildSampleHeadingsTemplate, SAMPLE_HEADINGS, SAMPLE_HEADINGS_FILE_NAME, SAMPLE_HEADINGS_NAME } from "./sample-headings";
 export { renderDocx } from "./render";
 export { FIGURE_DPI } from "./types";
 export { readOutlineFromPdf } from "./pdf";

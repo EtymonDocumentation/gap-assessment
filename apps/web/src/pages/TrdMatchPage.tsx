@@ -21,6 +21,7 @@ import {
   type TrdUnitInfo,
 } from "@gap/engine";
 import { useEffect, useMemo, useState } from "react";
+import { HelpTip } from "../HelpTip";
 import { PageHeader } from "../PageHeader";
 import { Empty } from "../components";
 import { APP_VERSION } from "../lib";
@@ -341,7 +342,13 @@ function Editor({ t, trdId, start }: { t: StoredTemplate; trdId: string | null; 
       )}
 
       <section className="stack" aria-labelledby="trd-match-headings-h">
-        <h2 id="trd-match-headings-h">Template headings ({outline.length})</h2>
+        <div className="row wrap">
+          <h2 id="trd-match-headings-h">Template headings ({outline.length})</h2>
+          <HelpTip
+            label="matching your headings"
+            text='Each heading of your template is listed with the sections of the TRD that go under it. Cascade suggests a place, marked Suggested, and nothing is saved as your match until you confirm it. A heading with no section gets a writing box in the interview. Sections with no heading are listed under "Not in your template".'
+          />
+        </div>
         <ol className="map-list">
           {outline.map((h) => {
             const row = rowOf(h.index);

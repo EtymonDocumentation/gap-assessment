@@ -124,6 +124,7 @@ test("templates: samples with analysis, .doc advice, rename, export, delete and 
 
   await sop.getByRole("button", { name: "Delete Brightwater SOP" }).click();
   await expect(page.getByRole("dialog", { name: "Delete Brightwater SOP?" })).toBeVisible();
+  await page.getByTestId("tpl-delete-reason").fill("Fictional: not needed any more");
   await page.getByRole("dialog").getByRole("button", { name: "Delete template" }).click();
   await expect(page.getByRole("heading", { level: 2, name: "Library (3)" })).toBeVisible();
 

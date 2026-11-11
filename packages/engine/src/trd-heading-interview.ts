@@ -19,8 +19,8 @@ import type { TrdUnitInfo } from "./trd-units";
  *  - Pure: the caller passes the template's headings and the stored match in. Nothing here reads a template store.
  */
 
-/** The label the group with the document fields and details has. */
-export const HEADING_ABOUT_TITLE = "About this document";
+/** The label of the group with the document fields and details. Named so it cannot be confused with the TRD section "About this document" (unit "product"), which can sit under a heading or in "Not in your template". */
+export const HEADING_ABOUT_TITLE = "Details of this TRD";
 /** The label of the group holding the pieces the person added back at the end of the Word file. */
 export const HEADING_ADDITIONAL_TITLE = "Additional content";
 /** The question of a writing box. */
@@ -114,7 +114,7 @@ export interface HeadingLanding {
 }
 
 export interface HeadingInterview {
-  /** About this document first, then one per heading in the template's order, then Additional content (only when something was added back). */
+  /** Details of this TRD first, then one per heading in the template's order, then Additional content (only when something was added back). */
   groups: HeadingGroup[];
   /** Questions of content with no heading that is not added back: not asked, answers kept. */
   notAsked: InterviewQuestion[];
@@ -126,11 +126,11 @@ export interface HeadingInterview {
   textsAgain: HeadingTextLike[];
   /** How many headings need matching again: a heading with a stored place or text that the template no longer has. */
   needMatching: number;
-  /** Where each asked question lands (questions of "About this document" have no entry). Writing boxes are listed under their own key. */
+  /** Where each asked question lands (questions of "Details of this TRD" have no entry). Writing boxes are listed under their own key. */
   landing: Map<string, HeadingLanding>;
   /** Counts over everything asked. */
   overall: GroupCounts;
-  /** What went to "About this document": document fields and details, and the questions with no landing place (the third is the one to watch). */
+  /** What went to "Details of this TRD": document fields and details, and the questions with no landing place (the third is the one to watch). */
   aboutKinds: { document: number; detail: number; noPlace: number };
 }
 

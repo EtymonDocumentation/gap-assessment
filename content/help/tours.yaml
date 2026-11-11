@@ -91,7 +91,7 @@ tours:
         text: The TRD (technical requirements document) states the process, its steps and its parameters, each with a source.
       - anchor: trd-new
         title: Start a TRD
-        text: A new TRD starts in three steps, the Word template, the process steps, then the questions. Back works on every step. Nothing is added unless you choose it.
+        text: A new TRD starts with the Word template, then the process steps, then the questions. Choose "A template's headings" to have the questions follow the headings of your own Word file. Nothing is added unless you choose it.
       - anchor: trd-interview
         title: The Interview tab
         text: Answer plain questions and the TRD fills itself in. Steps left out of the project get no questions, and each question says where its answer lands in the document. Anything you do not know stays open.

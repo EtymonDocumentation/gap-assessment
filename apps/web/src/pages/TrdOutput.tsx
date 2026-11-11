@@ -1,5 +1,5 @@
 import { DocPreview } from "../DocPreview";
-import { buildTrdData, buildTrdDocument, documentFingerprint, clearTrdTemplateChoice, projectLabel, recordExport, setTrdTemplateChoice, stampDocument, TRD_FOLLOWS_HEADINGS, TRD_OPTIONAL_SECTIONS, trdBasisText, trdTemplateChoiceText, trdTemplateDocument, type TrdOptionalSection, trdUnitModel, updateTrd } from "@gap/engine";
+import { buildTrdData, buildTrdDocument, documentFingerprint, clearTrdTemplateChoice, projectLabel, recordExport, setTrdTemplateChoice, stampDocument, TRD_FOLLOWS_HEADINGS, TRD_TO_COMPLETE_TEXT, TRD_OPTIONAL_SECTIONS, trdAllUnitIds, trdBasisText, trdHeadingsToComplete, trdTemplateChoiceText, trdTemplateDocument, type TrdOptionalSection, trdUnitModel, updateTrd } from "@gap/engine";
 import type { DocModel } from "@gap/engine";
 import { PROCESS_MODEL_VERSION, TRD_FORMAT_VERSION, type DocumentExport, type TemplateRecord, type TrdApproval, type TrdDocument } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlPreview } from "@gap/renderers";
@@ -57,6 +57,13 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
   const shown = useMemo(() => (templateSource ? trdTemplateDocument(doc, d, templateSource) : doc), [doc, d, templateSource]);
   const body = useMemo(() => (showPreview ? renderHtmlPreview(shown) : ""), [shown, showPreview]);
   const matchState = useMemo(() => (followed ? trdMatchState(followed, trdWord) : undefined), [followed, trdWord]);
+  // The open-item number counts every section of the TRD, whatever is unticked for one download (the TRD itself is not changed by a download choice).
+  // So a heading whose only content is a section that is unticked says "[To be completed.]" in this download but is not counted. That is said once, under the choice.
+  const emptiedByOmit = useMemo(() => {
+    if (!followed || !matchState || omit.length === 0) return [];
+    const counted = new Set(trdHeadingsToComplete({ headings: followed.analysis.outline, mapping: followed.trdMapping, unitIds: trdAllUnitIds(project, d, content), headingTexts: d.headingTexts, addedBack: d.addedBack }).map((h) => h.headingIndex));
+    return matchState.toComplete.filter((h) => !counted.has(h.headingIndex));
+  }, [followed, matchState, omit, project, d, content]);
   const stamp = `${projectFileStem(project.meta)}-${d.id}-${today()}`;
   const tbd = doc.tbdCount ?? 0;
 
@@ -123,6 +130,11 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
               <input type="checkbox" checked={!omit.includes(s.id)} data-testid={`trd-section-${s.id}`} onChange={(e) => setOmit(e.target.checked ? omit.filter((x) => x !== s.id) : [...omit, s.id])} /> <span>{s.label}</span>
             </label>
           ))}
+          {emptiedByOmit.length > 0 && (
+            <p className="small" role="status" data-testid="trd-omit-empties">
+              Left empty by the sections you unticked: {emptiedByOmit.map((h) => h.title).join("; ")}. {emptiedByOmit.length === 1 ? "It says" : "They say"} "{TRD_TO_COMPLETE_TEXT}" in this download, and {emptiedByOmit.length === 1 ? "is" : "are"} not counted as open {emptiedByOmit.length === 1 ? "item" : "items"}, because the TRD itself has content for {emptiedByOmit.length === 1 ? "it" : "them"}.
+            </p>
+          )}
         </fieldset>
         <div className="row wrap">
           <button

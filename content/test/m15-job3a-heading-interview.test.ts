@@ -115,7 +115,7 @@ for (const [name, make] of [
       expect(new Set(keys)).toEqual(new Set(s.questions.map((q) => q.key)));
     });
 
-    it("About this document is first, the headings follow in the template's order, with the heading's number and words as in the file", () => {
+    it("Details of this TRD is first, the headings follow in the template's order, with the heading's number and words as in the file", () => {
       expect(hi.groups[0]).toMatchObject({ id: "about", kind: "about", title: HEADING_ABOUT_TITLE });
       const headingGroups = hi.groups.filter((g) => g.kind === "heading");
       expect(headingGroups.map((g) => g.headingIndex)).toEqual(HEADINGS.map((x) => x.index));
@@ -123,7 +123,7 @@ for (const [name, make] of [
       expect(headingGroups[13]!.title).toBe("Company Confidentiality Statement");
     });
 
-    it("document fields and details are always asked, in About this document", () => {
+    it("document fields and details are always asked, in Details of this TRD", () => {
       const about = hi.groups[0]!;
       const aboutQs = about.subGroups.flatMap((x) => x.questions);
       for (const q of s.questions.filter((x) => x.target.kind === "document" || x.target.kind === "detail")) expect(aboutQs.map((x) => x.key)).toContain(q.key);
@@ -230,7 +230,7 @@ for (const [name, make] of [
       const m = buildProcessMap(headingMapInput(hi), { includeDetail: true });
       expect(m.totals.total).toBe(hi.overall.essentials.total + hi.overall.moreDetail.total);
       expect(m.totals.answered).toBe(hi.overall.essentials.answered + hi.overall.moreDetail.answered);
-      // One node per heading, in the template's order, and a whole node for About this document.
+      // One node per heading, in the template's order, and a whole node for Details of this TRD.
       expect(m.nodes[0]).toMatchObject({ id: "whole", label: HEADING_ABOUT_TITLE });
       expect(m.nodes.filter((n) => n.kind === "step").map((n) => n.label)).toEqual(HEADINGS.map((x) => (x.number ? `${x.number} ${x.text}` : x.text)));
       const empty = m.nodes.find((n) => n.id === "step:heading-14")!;
@@ -349,10 +349,10 @@ describe("where an answer lands", () => {
     for (const q of questions.filter((x) => x.target.kind === "document" || x.target.kind === "detail")) expect(landings.has(q.key)).toBe(false);
   });
 
-  it("how many questions have no landing place (the ones that go to About this document without being a field of the document)", () => {
+  it("how many questions have no landing place (the ones that go to Details of this TRD without being a field of the document)", () => {
     const s = setup(project, trdId);
     const hi = s.run();
-    // The watch point of the job: a question with no landing place would pile into About this document. On the widest TRD (499 questions) there is none:
+    // The watch point of the job: a question with no landing place would pile into Details of this TRD. On the widest TRD (499 questions) there is none:
     // 5 document fields and 6 details are the only ones there, as before.
     expect(hi.aboutKinds).toEqual({ document: 5, detail: 6, noPlace: 0 });
   });

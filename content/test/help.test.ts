@@ -99,8 +99,8 @@ describe("glossary (content/help/glossary.yaml)", () => {
   });
 
   it("covers every abbreviation the app expands", () => {
-    // Abbreviations written as "ABC (long form)" or "long form (ABC)" in the app source, apart from standards bodies and file types that need no entry.
-    const skip = new Set(["ICH", "GMP", "PDF", "HTML", "JSON", "FDA", "EMA", "EU", "ID", "UI", "SU", "RU", "MBR", "CFU", "WCAG", "ISO", "USP", "PDA", "AQL", "RPN", "FMEA", "IP", "MODEL"]);
+    // SOP is only the name of the fictional sample template ("Harbourlight SOP (fictional)"), not an expansion. Abbreviations written as "ABC (long form)" or "long form (ABC)" in the app source, apart from standards bodies and file types that need no entry.
+    const skip = new Set(["ICH", "GMP", "PDF", "HTML", "JSON", "FDA", "EMA", "EU", "ID", "UI", "SU", "RU", "MBR", "CFU", "WCAG", "ISO", "USP", "PDA", "AQL", "RPN", "FMEA", "IP", "MODEL", "SOP"]);
     const found = new Set<string>();
     for (const m of source.matchAll(/\b([A-Z]{2,5})\b \(([a-z][a-z -]{4,})\)/g)) found.add(m[1]!);
     for (const m of source.matchAll(/[a-z] \(([A-Z]{2,5})\)/g)) found.add(m[1]!);

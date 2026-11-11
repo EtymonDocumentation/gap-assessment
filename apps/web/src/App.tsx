@@ -262,7 +262,8 @@ function AppShell() {
         {/* The chain strip, the gap steps and the module library buttons are part of each page's header (PageHeader), under its title. */}
         {page}
         {pageReady && project && gapStepIndex(route.path) >= 0 && <GapStepFooter path={route.path} />}
-        {pageReady && project && chainStageOf(route.path) && <DocChainBar route={route} />}
+        {/* The start steps of a TRD have their own Back and Continue buttons; a second Back / Next bar under them points away from the step the person is on. */}
+        {pageReady && project && chainStageOf(route.path) && !(route.path === "/trd" && ["1", "2", "3"].includes(route.params.get("step") ?? "")) && <DocChainBar route={route} />}
       </main>
       <div className="visually-hidden" aria-live="polite">
         {status}

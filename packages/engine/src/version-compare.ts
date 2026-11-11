@@ -3,7 +3,7 @@ import { excipientTbdText } from "./excipient-analysis";
 import type { ContentBundle } from "./content";
 import { cell } from "./csv";
 import { entryDisplay, entryLabel } from "./labels";
-import { effectiveField } from "./trd";
+import { effectiveField, trdTemplateChoiceText } from "./trd";
 import { historyOf, readVersion } from "./version-history";
 
 /**
@@ -59,7 +59,7 @@ const clip = (s: string) => (s.length > MAX_TEXT ? `${s.slice(0, MAX_TEXT)}…` 
 const SKIP_KEYS = new Set(["id", "name", "createdAt", "updatedAt", "sourceIds", "locations"]);
 
 /** What the comparison does not look at, in the words the compare page shows under the summary. */
-export const COMPARE_LEFT_OUT = "Not compared: which source backs a value, and the page or section cited for it. Check those in the source register.";
+export const COMPARE_LEFT_OUT = "Not compared: which source backs a value, and the page or section cited for it. Check those in the source register. Which heading of a template each section is placed under is kept with the template in the library, not in a version, so it is not compared either.";
 
 type Json = unknown;
 const isObject = (v: Json): v is Record<string, Json> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -204,6 +204,46 @@ function approvalsView(list: NonNullable<TrdDocument["approvals"]>): Record<stri
   });
 }
 
+/** The text a person wrote under one heading of their template, named by the heading's position and words (the same key the TRD stores it by). */
+const headingTextKey = (t: { headingIndex: number; headingText: string }) => `${t.headingIndex}|${t.headingText}`;
+
+/** The state of the heading match that lives on the TRD, in words: text written under headings and sections added back. "none" when there is neither. */
+function headingMatchText(d: TrdDocument): string {
+  const w = d.headingTexts?.length ?? 0;
+  const a = d.addedBack?.length ?? 0;
+  const parts = [w ? `${w} ${w === 1 ? "heading" : "headings"} with your own text` : "", a ? `${a} ${a === 1 ? "section" : "sections"} added back` : ""].filter(Boolean);
+  return parts.length ? parts.join(", ") : "none";
+}
+
+/**
+ * One line when the heading match of a TRD changed between two versions: "Heading match: 3 headings changed". The match that lives on the TRD is
+ * the text written under headings (changed, added or removed) and the sections added back, which land under the one heading "Additional content",
+ * so a different set of add-backs counts as one heading. The placement of content under headings is kept on the template in the library, not in
+ * a project version, so it cannot be compared here; COMPARE_LEFT_OUT says so.
+ */
+function headingMatchRows(a: TrdDocument, b: TrdDocument, includeSame: boolean): CompareRow[] {
+  const ta = new Map((a.headingTexts ?? []).map((t) => [headingTextKey(t), t.text]));
+  const tb = new Map((b.headingTexts ?? []).map((t) => [headingTextKey(t), t.text]));
+  let changed = 0;
+  for (const k of new Set([...ta.keys(), ...tb.keys()])) if (ta.get(k) !== tb.get(k)) changed++;
+  const sa = [...new Set(a.addedBack ?? [])].sort().join("|");
+  const sb = [...new Set(b.addedBack ?? [])].sort().join("|");
+  if (sa !== sb) changed++;
+  const before = headingMatchText(a);
+  const after = headingMatchText(b);
+  if (changed === 0 && !(includeSame && before !== "none")) return [];
+  return [
+    {
+      doc: "trd",
+      area: [b.id, b.title].filter(Boolean).join(" "),
+      item: changed ? `Heading match: ${changed} ${changed === 1 ? "heading" : "headings"} changed` : "Heading match",
+      kind: changed ? "changed" : "same",
+      a: before,
+      b: after,
+    },
+  ];
+}
+
 /** The TRD as plain values: the shown text of every field (an override wins over the project value), the limits in words, the write-ups and the approvals. */
 function trdView(d: TrdDocument): Record<string, Json> {
   return {
@@ -213,6 +253,8 @@ function trdView(d: TrdDocument): Record<string, Json> {
     "Document reference": d.docRef,
     purpose: d.purpose,
     "Scope note": d.scopeNote,
+    // The Word template is part of what the TRD is (M15), so a changed choice is one plain line, in the words every other screen uses.
+    "Word template": trdTemplateChoiceText(d.templateChoice),
     Details: fieldsView(d.details),
     steps: d.steps.map((s) => ({
       id: s.id,
@@ -341,6 +383,10 @@ export function compareVersions(content: ContentBundle, a: Project, b: Project, 
   const docs = (doc: CompareDoc, root: string, la: Json, lb: Json) => walk(la, lb, [], root, { doc, rows, includeSame });
   // The TRD documents are listed by id like the others; a list with no entry on either side is skipped quietly by the walk.
   docs("trd", COMPARE_DOC_NAME.trd, a.trd.documents.map(trdView), b.trd.documents.map(trdView));
+  for (const db of b.trd.documents) {
+    const da = a.trd.documents.find((x) => x.id === db.id);
+    if (da) rows.push(...headingMatchRows(da, db, includeSame));
+  }
   docs("sampling", COMPARE_DOC_NAME.sampling, a.sampling.plans, b.sampling.plans);
   docs("mbr", COMPARE_DOC_NAME.mbr, a.mbr.records, b.mbr.records);
   docs("risk", COMPARE_DOC_NAME.risk, a.risk.assessments, b.risk.assessments);

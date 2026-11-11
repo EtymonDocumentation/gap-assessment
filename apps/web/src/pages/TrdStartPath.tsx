@@ -2,6 +2,8 @@ import { addCheckedSteps, effectiveWriteupLibrary, setTrdTemplateChoice, type Tr
 import type { TrdTemplateChoice } from "@gap/process-model";
 import { useEffect, useState } from "react";
 import { dateTime, MODE_HELP, MODE_LABEL } from "../lib";
+import { HelpTip } from "../HelpTip";
+import { addSampleHeadingsTemplate, sampleNotice, SAMPLE_BUTTON_TEXT } from "../sample-headings-template";
 import { href, navigate } from "../router";
 import { useContent, useStore } from "../store";
 import { createTrdForStartPath } from "../trd-start";
@@ -110,6 +112,19 @@ function PickTemplate({ trdId, stored, onKind, total }: { trdId: string | null; 
   const template = candidates.find((t) => t.id === templateId);
   const gone = !!stored?.templateId && kind === stored.kind && templateId === stored.templateId && ready && !items.some((t) => t.id === stored.templateId);
 
+  async function addSample() {
+    setSay("");
+    setBusy(true);
+    try {
+      // Only added to the library: the person still picks it in the list below, so nothing is chosen for them.
+      setSay(sampleNotice(await addSampleHeadingsTemplate()));
+    } catch (e) {
+      setSay(`The sample template could not be added. ${(e as Error).message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function next() {
     setSay("");
     if (!kind) return setSay("Pick one of the options, or choose Decide later.");
@@ -133,7 +148,13 @@ function PickTemplate({ trdId, stored, onKind, total }: { trdId: string | null; 
 
   return (
     <section className="card stack" aria-labelledby="sp1-h" data-testid="start-step-template">
-      <h2 id="sp1-h">Step 1 of {total}: Pick the Word template</h2>
+      <div className="row wrap">
+        <h2 id="sp1-h">Step 1 of {total}: Pick the Word template</h2>
+        <HelpTip
+          label="the Word template choice"
+          text={`Choose how the Word file of the TRD will look. Choose "A template's headings" to use your own Word template: the questions then follow its headings, in its order, and each answer goes under its heading. Nothing is chosen for you.`}
+        />
+      </div>
       <p>The TRD ends up as a Word document. Say which kind of Word template you will use for it. You can change this later, on the Document tab.</p>
       <fieldset className="stack start-kinds">
         <legend>Kind of Word document</legend>
@@ -163,9 +184,19 @@ function PickTemplate({ trdId, stored, onKind, total }: { trdId: string | null; 
             </p>
           )}
           {candidates.length === 0 ? (
-            <p className="notice" data-testid="start-no-templates">
-              No template in the library works with "{MODE_LABEL[kind]}" yet. Add one on the <a href={href("/templates")}>Templates page</a>, or choose another option.
-            </p>
+            <div className="notice stack" data-testid="start-no-templates">
+              <p>
+                No template in the library works with "{MODE_LABEL[kind]}" yet. Add one on the <a href={href("/templates")}>Templates page</a>, or choose another option.
+              </p>
+              {kind === "mapped" && (
+                <div className="row wrap">
+                  <button type="button" className="btn small" disabled={busy} data-testid="start-add-sample" onClick={() => void addSample()}>
+                    {SAMPLE_BUTTON_TEXT}
+                  </button>
+                  <span className="small muted">To try it without a file of your own. You still pick it in the list.</span>
+                </div>
+              )}
+            </div>
           ) : (
             <label className="field">
               <span>Template from the library</span>
@@ -214,9 +245,9 @@ function PickSteps({ trdId, matches, total }: { trdId: string; matches: boolean;
   return (
     <section className="card stack" aria-labelledby="sp2-h" data-testid="start-step-steps">
       <h2 id="sp2-h">Step 2 of {total}: Which steps are in your process?</h2>
-      <p>Untick the steps this project does not have. The questions then skip them, and the interview lists them as left out. Nothing is deleted: answers you gave for a step come back if you tick it again.</p>
-      <p className="muted small">This is the same list as the Scope step of the gap assessment. A change here shows there too.</p>
-      <ProcessStepsBlock idPrefix="trd-start" />
+      {/* One short paragraph: the list below used to repeat it in a second and third one. It is the same list as the gap assessment's Scope step, so a change shows there too. */}
+      <p>Untick the steps this project does not have. The questions skip them and the interview lists them as left out. Answers you gave come back if you tick a step again. This is the same list as the Scope step of the gap assessment.</p>
+      <ProcessStepsBlock idPrefix="trd-start" hint={false} />
       {say && (
         <p role="status" className="start-path-say">
           {say}

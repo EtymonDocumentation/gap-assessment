@@ -300,6 +300,7 @@ test("when the template is not in the library any more the interview is in Casca
 
   await hash(page, "#/templates");
   await page.getByRole("button", { name: "Delete Harbourlight SOP (fictional)" }).click();
+  await page.getByTestId("tpl-delete-reason").fill("Fictional: not needed any more");
   await page.getByRole("button", { name: "Delete template" }).click();
   await expect(page.getByText('Template "Harbourlight SOP (fictional)" deleted.')).toBeVisible();
 

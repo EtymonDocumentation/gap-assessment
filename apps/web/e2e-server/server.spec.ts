@@ -329,6 +329,7 @@ test("templates are kept on the server and follow the account", async ({ page, b
 
   // Deleting asks first and names the template.
   await card.getByRole("button", { name: "Delete Server SOP renamed (fictional)" }).click();
+  await other.getByTestId("tpl-delete-reason").fill("Fictional: test cleanup");
   await other.getByRole("dialog").getByRole("button", { name: "Delete template" }).click();
   await expect(other.getByRole("heading", { level: 2, name: "Library (0)" })).toBeVisible();
   await other.context().close();

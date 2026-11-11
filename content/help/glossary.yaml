@@ -12,6 +12,21 @@
 #  - A document is approved in the company's own document control. The tool is a drafting aid.
 version: 1
 terms:
+  - id: to-be-completed
+    term: "[To be completed.]"
+    short: What the Word file says under a heading of your template when nothing was written for it and your template has no text of its own there. Each such heading counts as an open item until you write something under it.
+    see: [template-headings, open-item]
+
+  - id: template-headings
+    term: A template's headings
+    short: One of the ways to make the Word file of a TRD. The questions follow the headings of your own Word template, in its order, and each answer goes under its heading. Your cover, headers, footers and styles are kept.
+    see: [match-your-headings, word-template-choice]
+
+  - id: additional-content
+    term: Additional content
+    short: The last heading of a TRD that follows your template. It holds the sections you added back although your template has no heading for them.
+    see: [not-in-your-template, template-headings]
+
   - id: batch-record
     term: Batch record (MBR)
     short: The step-by-step instruction for making one batch. It is built from ready-made steps. It can start from a technical requirements document and a sampling plan, or from neither. Its Process view draws it as an equipment train.
@@ -132,6 +147,11 @@ terms:
     short: A check made while a step runs, for example a pH, a weight or a filter test, to show the step is in control. It is not the release test of the finished batch.
     see: [release-testing, sampling-point]
 
+  - id: match-your-headings
+    term: Match your headings
+    short: The screen where you say which content of the TRD goes under which heading of your template. Cascade fills in suggestions, marked Suggested, and nothing is saved as your match until you confirm it.
+    see: [template-headings, not-in-your-template]
+
   - id: monograph
     term: Monograph
     short: The entry of a pharmacopoeia that describes one material, with its tests and acceptance criteria. Monographs are revised, so the edition matters.
@@ -146,6 +166,11 @@ terms:
     term: NOR (normal operating range)
     short: The range around the set point in which the process normally runs. You enter it in the TRD, with a source.
     see: [set-point, par, trd]
+
+  - id: not-in-your-template
+    term: Not in your template
+    short: The sections of the TRD that your template has no heading for. They are not asked in the interview and are not in the Word file. You can add any of them back, and it then goes under Additional content.
+    see: [match-your-headings, additional-content]
 
   - id: open-item
     term: Open item
@@ -304,5 +329,5 @@ terms:
 
   - id: word-template-choice
     term: Word template choice
-    short: The kind of Word template a TRD is meant to be downloaded in, picked at step 1 of starting a TRD. It is the built-in layout, a template's look, or placeholder tags. Decide later is a choice too, and it shows as open. The choice is kept on the TRD, and you can change or remove it on the Document tab.
-    see: [heading-placement, drafting-aid]
+    short: The kind of Word template a TRD is meant to be downloaded in, picked at step 1 of starting a TRD. It is the built-in layout, a template's look, placeholder tags, or a template's headings. Decide later is a choice too, and it shows as open. The choice is kept on the TRD, and you can change or remove it on the Document tab.
+    see: [heading-placement, template-headings, drafting-aid]

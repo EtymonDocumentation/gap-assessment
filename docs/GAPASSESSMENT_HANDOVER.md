@@ -100,6 +100,15 @@ section 1 rather than appending to it.
   their own copy and are offered "Update from library".
 - **Life stage / versions:** one project stage (`packages/engine/src/stage.ts`); stage markers in content adapt the
   wording; a stage change saves a major version with a reason; versions capped (60 / 12 MB).
+- **TRD that follows a template's headings (M15, jobs 1-4):** the start path (`TrdStartPath.tsx`: Word template, process steps, match) stores
+  `templateChoice` on the TRD (`kind: mapped`); the match lives on the template record in the library (`trdMapping`), the written heading
+  texts and sections added back on the TRD (`headingTexts`, `addedBack`). One source for "headings still to complete" is
+  `trd-heading-plan.ts` (`trdHeadingsToComplete`); the interview groups (`trd-heading-interview.ts`, whole-document group
+  "Details of this TRD"), open items (`trdOpenItemsFor`), preview and downloads (`trd-template-document.ts`, template order) all read it,
+  so the count is the same everywhere. Version compare adds "Word template" and one "Heading match: N headings changed" row per TRD
+  (`version-compare.ts`); the placement under headings is not in a version, so it is not compared (said in COMPARE_LEFT_OUT). The
+  sample template (`packages/docx/src/sample-headings.ts`, button in `apps/web/src/sample-headings-template.ts`) is one copy used by the
+  app and the e2e helper; it is added once (checksum) and deleted like any template. No schema change in job 4.
 - Demo product decision: the 12 h total time out of refrigeration counts from the start of filling (per portion) until
   the product is back in refrigerated storage. Demo specifics live in `content/demo/*.yaml` and their tests.
 

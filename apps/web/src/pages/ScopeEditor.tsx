@@ -75,7 +75,7 @@ function TriCheckbox({ state, label, onChange, disabled, id }: { state: boolean 
 
 type Pending = { uos: StepInfo[]; label: string } | null;
 
-export function ProcessStepsBlock({ idPrefix }: { idPrefix: string }) {
+export function ProcessStepsBlock({ idPrefix, hint = true }: { idPrefix: string; hint?: boolean }) {
   const content = useContent();
   const project = useStore((s) => s.project)!;
   const update = useStore((s) => s.update);
@@ -101,9 +101,13 @@ export function ProcessStepsBlock({ idPrefix }: { idPrefix: string }) {
   return (
     <div className="stack" data-testid={`${idPrefix}-steps`}>
       <div className="row between wrap">
-        <p className="small muted scope-hint">
-          Untick a step the process does not have. It is hidden in the interview and left out of the comparison, the gap register, the validation plan and the document, on both sides.
-        </p>
+        {hint ? (
+          <p className="small muted scope-hint">
+            Untick a step the process does not have. It is hidden in the interview and left out of the comparison, the gap register, the validation plan and the document, on both sides.
+          </p>
+        ) : (
+          <span />
+        )}
         <button
           type="button"
           className="btn small"
