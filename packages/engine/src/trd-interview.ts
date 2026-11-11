@@ -4,6 +4,7 @@ import type { ContentBundle } from "./content";
 import { optionsFor } from "./content";
 import type { Question } from "./content-schema";
 import { evaluate } from "./conditions";
+import { notApplicableReason, stepExclusions } from "./scope";
 import { adaptText, projectStage, resolveStageMarkers, sourceValidated, type ProgramStage } from "./stage";
 import { TrdError, addCatalogTrdItem, addEmptyTrdField, addTrdStep, effectiveField, setControl, setLimits, setOverride, updateTrd, type FieldHome, type ItemRef } from "./trd";
 import { rangeText, setPointText } from "./trd-check";
@@ -349,12 +350,19 @@ export function deriveTrdQuestions(project: Project, trdId: string, opts: Interv
   // Assemble: the document group, its prose, then each step.
   const out: Draft[] = [...docGroup, ...essentials.filter((e) => e.stepKey === INTERVIEW_DOCUMENT_GROUP)];
   const ops = [...content.catalog.unitOperations].sort((a, b) => a.sequence - b.sequence);
+  // A TRD started on the three-step path follows the project's process-steps checklist: a step left out has no questions (what was answered
+  // stays in the TRD), and a ticked step is performed, so "Is it performed?" is not asked again.
+  const follows = trdFollowsChecklist(d);
+  const leftOut = follows ? stepsLeftOut(content, project) : new Map<string, LeftOutStep>();
   for (const uo of ops) {
+    if (leftOut.has(uo.key)) continue;
     const step = stepOfKey(uo.key);
     const presenceField = step?.fields.find((f) => f.key === "presence");
     const presence: ValueState = !step ? { state: "open" } : presenceField ? fieldState(d, presenceField) : { state: "answered", current: "In the TRD" };
-    out.push(blank({ key: `step:${uo.key}.presence`, target: { kind: "presence", unitOp: uo.key }, stepKey: uo.key, label: uo.label, gapBind: `uo.${uo.key}.presence`, allOptional: false, state: presence, canNotApplicable: false, canTbd: false }));
-    if (!step || presence.state === "not_applicable") continue;
+    // The TRD itself saying "not performed" against a ticked step stays visible as the question, so nothing the person wrote is overridden by the tick.
+    const contradicted = presence.state === "not_applicable";
+    if (!follows || contradicted) out.push(blank({ key: `step:${uo.key}.presence`, target: { kind: "presence", unitOp: uo.key }, stepKey: uo.key, label: uo.label, gapBind: `uo.${uo.key}.presence`, allOptional: false, state: presence, canNotApplicable: false, canTbd: false }));
+    if (!step || contradicted) continue;
     const mine = essentials.filter((e) => e.stepKey === uo.key);
     out.push(...mine);
     const seen = new Set(out.map((x) => x.key));
@@ -740,11 +748,86 @@ function writePresence(project: Project, trdId: string, unitOp: string, a: Inter
   const home: FieldHome = { part: "step", stepId: step.id };
   p = ensureField(p, trdId, home, "presence", labelOfField(ctx.content, "presence"), (d) => Boolean(d.steps.find((s) => s.id === step.id)?.fields.some((f) => f.key === "presence")));
   p = setOverride(p, trdId, { ...home, field: "presence" }, a.performed ? { status: "established", display: "Yes", ...(text(a.reason) ? { reason: text(a.reason) } : {}) } : { status: "not_applicable", ...(text(a.reason) ? { reason: text(a.reason) } : {}) }, by);
-  if (a.performed && ctx.library) {
-    const d = p.trd.documents.find((x) => x.id === trdId)!;
-    // The library is a set of offers: the description is added only when its own condition (dilution, container) is established, as a new TRD does.
-    const offer = writeupsAvailable(d, ctx.library).find((o) => o.lib.kind === "unitOp" && o.lib.key === unitOp && o.step?.id === step.id && o.lib.autoAdd !== false && (!o.lib.onlyWhen || evaluate(o.lib.onlyWhen, { project: p, side: "shared" })));
-    if (offer) p = addWriteupFromLibrary(p, trdId, offer.lib, step.id, by).project;
+  if (a.performed) p = addStepWriteup(p, trdId, unitOp, step.id, ctx, by);
+  return p;
+}
+
+/** The library is a set of offers: the process description is added only when its own condition (dilution, container) is established, as a new TRD does. */
+function addStepWriteup(p: Project, trdId: string, unitOp: string, stepId: string, ctx: InterviewContext, by: Actor): Project {
+  if (!ctx.library) return p;
+  const d = p.trd.documents.find((x) => x.id === trdId)!;
+  const offer = writeupsAvailable(d, ctx.library).find((o) => o.lib.kind === "unitOp" && o.lib.key === unitOp && o.step?.id === stepId && o.lib.autoAdd !== false && (!o.lib.onlyWhen || evaluate(o.lib.onlyWhen, { project: p, side: "shared" })));
+  return offer ? addWriteupFromLibrary(p, trdId, offer.lib, stepId, by).project : p;
+}
+
+// ------------------------------------------------------------------ the project's process-steps checklist
+
+/**
+ * True when the interview follows the project's process-steps checklist (project.stepScope). That is a TRD started on the three-step path (it
+ * records a Word template choice, even "decide later", after the checklist step) and made blank. A TRD from before, from a project seed or an
+ * upload keeps asking "Is it performed?" for every step, as it always did: nothing there says the person ever looked at the checklist.
+ */
+export function trdFollowsChecklist(d: TrdDocument): boolean {
+  return d.templateChoice !== undefined && d.origin.kind === "blank";
+}
+
+export interface LeftOutStep {
+  key: string;
+  label: string;
+  cause: "scope" | "answer";
+  /** The reason in the person's words, or the answer that makes the step not apply (the same wording as the interview maps). */
+  reason?: string;
+}
+
+/** The steps the project leaves out: by the checklist (with its reason) or because an answer makes them not apply. In process order. */
+function stepsLeftOut(content: ContentBundle, project: Project): Map<string, LeftOutStep> {
+  const out = new Map<string, LeftOutStep>();
+  const excluded = new Map(stepExclusions(content, project).map((e) => [e.uo, e] as const));
+  for (const u of [...content.catalog.unitOperations].sort((a, b) => a.sequence - b.sequence)) {
+    const ex = excluded.get(u.key);
+    if (ex) {
+      out.set(u.key, { key: u.key, label: u.label, cause: "scope", ...(ex.reason ? { reason: ex.reason } : {}) });
+      continue;
+    }
+    const na = notApplicableReason(content, project, u.key);
+    if (na) out.set(u.key, { key: u.key, label: u.label, cause: "answer", reason: na.text.replace(/^Not applicable:\s*/i, "") });
+  }
+  return out;
+}
+
+export interface TrdLeftOutStep extends LeftOutStep {
+  /** The TRD already holds something for the step. It is kept, and comes back when the step is ticked again. */
+  hasAnswers: boolean;
+}
+
+/** The steps left out of this project, for the line "Left out of this project". Empty for a TRD that does not follow the checklist. */
+export function trdLeftOutSteps(content: ContentBundle, project: Project, trdId: string): TrdLeftOutStep[] {
+  const d = project.trd.documents.find((x) => x.id === trdId);
+  if (!d || !trdFollowsChecklist(d)) return [];
+  return [...stepsLeftOut(content, project).values()].map((s) => {
+    const step = d.steps.find((x) => x.key === s.key);
+    return { ...s, hasAnswers: !!step && (step.items.length > 0 || step.fields.length > 0 || !!step.description?.trim()) };
+  });
+}
+
+/** The ticked steps the TRD does not hold yet, in process order. */
+export function trdStepsToAdd(content: ContentBundle, project: Project, trdId: string): string[] {
+  const d = project.trd.documents.find((x) => x.id === trdId);
+  if (!d || !trdFollowsChecklist(d)) return [];
+  const out = stepsLeftOut(content, project);
+  return [...content.catalog.unitOperations].sort((a, b) => a.sequence - b.sequence).filter((u) => !out.has(u.key) && !d.steps.some((s) => s.key === u.key)).map((u) => u.key);
+}
+
+/**
+ * Adds the ticked steps the TRD does not hold yet (with their process descriptions, as a new TRD does), so the questions of those steps can
+ * be asked. It writes no "performed" answer: the tick on the checklist is the person's statement. Idempotent: nothing to add changes nothing.
+ * Steps that were left out are never removed and nothing is deleted.
+ */
+export function addCheckedSteps(project: Project, trdId: string, by: Actor, ctx: InterviewContext): Project {
+  let p = project;
+  for (const key of trdStepsToAdd(ctx.content, project, trdId)) {
+    const r = ensureStep(p, trdId, key, ctx, by);
+    p = addStepWriteup(r.project, trdId, key, r.step.id, ctx, by);
   }
   return p;
 }

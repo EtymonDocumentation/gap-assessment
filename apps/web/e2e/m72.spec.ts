@@ -217,6 +217,8 @@ test("a new plan copies the project scope's steps once, and the two lists stay i
 });
 
 test("an empty plan points to the Process steps card", async ({ page }) => {
+  // Removes every step of a new plan one by one (a confirm each); under the load of the full run that passes the 30 s limit.
+  test.setTimeout(60_000);
   await openDemoPlan(page);
   await breadcrumb(page).getByRole("link", { name: "Sampling plan", exact: true }).click();
   await page.getByTestId("plan-title-input").fill("Empty plan (fictional)");

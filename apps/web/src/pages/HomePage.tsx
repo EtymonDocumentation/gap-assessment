@@ -5,7 +5,7 @@ import { useEffectiveSuggestions } from "../expected-studies-store";
 import { useChainAllowed } from "../DocChain";
 import { InlineRename, Modal } from "../components";
 import { download, projectFileStem, today } from "../lib";
-import { interviewCounts, interviewCountsText, nextStep } from "../next-step";
+import { interviewCounts, interviewCountsText, nextStep, scopePassed, trdNextStep } from "../next-step";
 import { href } from "../router";
 import { CloseProjectButton, ProjectListCard, useIsRemote } from "../server/ServerUi";
 import { SERVER_MODE } from "../server/mode";
@@ -54,6 +54,8 @@ export function HomePage() {
   const tbd = useMemo(() => (project && a ? tbdSummary(tbdItems(eff, project, a), localDate()) : null), [eff, project, a]);
   const differences = a?.gaps.filter((g) => g.category !== "equivalent").length ?? 0;
   const next = project && a ? nextStep(project, a) : null;
+  // A project that is about a TRD (a TRD exists, nothing of the gap assessment has been done) is sent to the TRD questions, not to the gap assessment scope.
+  const trdNext = useMemo(() => (project && a && !scopePassed(project, a) ? trdNextStep(eff, project) : undefined), [eff, project, a]);
   // What follows the gap assessment, offered once the interview is complete. Shown beside the gap step, not instead of it: the project cannot show that the register was read.
   const then = project && next?.path === "/register" ? thenStep(project, allowed) : null;
   const firstRecord = project?.mbr.records[0];
@@ -71,8 +73,8 @@ export function HomePage() {
             name: "TRD",
             purpose: CARD_PURPOSE.trd,
             path: "/trd",
-            // One TRD opens straight away; with several the list lets the person choose.
-            ...(project?.trd.documents.length === 1 ? { params: { trd: project.trd.documents[0]!.id } } : {}),
+            // One TRD opens straight away; with several the list lets the person choose; with none the card starts the three-step path.
+            ...(project?.trd.documents.length === 1 ? { params: { trd: project.trd.documents[0]!.id } } : project && project.trd.documents.length === 0 ? { params: { step: "1" } } : {}),
           },
         ]
       : []),
@@ -200,8 +202,8 @@ export function HomePage() {
               <div className="next-step" data-testid="next-step" data-tour="home-next">
                 <p className="next-step-label">Next step</p>
                 <div className="row wrap">
-                  <a className="btn primary big" href={href(next.path)}>
-                    {next.label}
+                  <a className="btn primary big" href={trdNext ? href(trdNext.path, trdNext.params) : href(next.path)}>
+                    {trdNext ? trdNext.label : next.label}
                   </a>
                   <a href={href("/document")}>Go to the document</a>
                 </div>

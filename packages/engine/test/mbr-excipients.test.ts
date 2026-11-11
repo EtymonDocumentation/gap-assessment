@@ -219,7 +219,7 @@ describe("file format", () => {
     const raw = JSON.parse(JSON.stringify(s.p));
     raw.schemaVersion = "1.31.0";
     const old = parseProject(raw);
-    expect(old.schemaVersion).toBe("1.33.0");
+    expect(old.schemaVersion).toBe("1.34.0");
     expect(old.mbr).toEqual(s.p.mbr);
   });
 

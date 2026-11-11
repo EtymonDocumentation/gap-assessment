@@ -55,6 +55,7 @@ export * from "./trd-writeup";
 export * from "./trd-writeup-order";
 export * from "./trd-writeup-library";
 export * from "./trd-interview";
+export * from "./trd-answer-place";
 export * from "./trd-writeup-document";
 export * from "./mbr";
 export * from "./mbr-document";

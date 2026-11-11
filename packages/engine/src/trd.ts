@@ -27,6 +27,7 @@ import {
   type TrdRange,
   type TrdSetPoint,
   type TrdStep,
+  type TrdTemplateChoice,
 } from "@gap/process-model";
 import { checkLimits, rangeText, setPointText, type LimitFinding } from "./trd-check";
 import { seedValueText } from "./trd-outline";
@@ -56,6 +57,63 @@ const text = (v: string | undefined) => (v ?? "").trim();
 
 function log(project: Project, actor: Actor, ev: Omit<ChangeEvent, "at" | "by">): void {
   project.changeLog.push({ at: actor.at, by: actor.name, ...ev });
+}
+
+/** What a person picks for the Word template of a TRD (the stored choice also records who chose it and when). */
+export type TrdTemplatePick = Pick<TrdTemplateChoice, "kind" | "templateId" | "templateName" | "templateVersion">;
+
+/**
+ * Remembers which Word template the TRD comes out in (schema 1.34.0). Nothing is chosen for the person: `later` ("decide later") is a choice too,
+ * and it stays visible as open. The same pick twice changes nothing and logs nothing. The old choice is kept in the change log. A kind that
+ * uses a library template must name it (id and name), so the TRD can say which one it meant even where that library is not available.
+ */
+export function setTrdTemplateChoice(project: Project, id: string, pick: TrdTemplatePick, actor: Actor): Project {
+  const usesTemplate = pick.kind === "their_look" || pick.kind === "mapped" || pick.kind === "tags";
+  if (usesTemplate && (!text(pick.templateId) || !text(pick.templateName))) throw new TrdError("Choose which template to use, or choose Decide later.");
+  const next = structuredClone(project);
+  const d = docOf(next, id);
+  const choice: TrdTemplateChoice = {
+    kind: pick.kind,
+    ...(usesTemplate ? { templateId: text(pick.templateId), templateName: text(pick.templateName), ...(text(pick.templateVersion) ? { templateVersion: text(pick.templateVersion) } : {}) } : {}),
+    chosenAt: actor.at,
+    chosenBy: actor.name,
+  };
+  const same = (a: TrdTemplateChoice | undefined) => !!a && a.kind === choice.kind && a.templateId === choice.templateId && a.templateName === choice.templateName && a.templateVersion === choice.templateVersion;
+  if (same(d.templateChoice)) return project;
+  const before = d.templateChoice ?? null;
+  d.templateChoice = choice;
+  assertValid(d);
+  d.updatedAt = actor.at;
+  log(next, actor, { action: "trd_template_set", path: `trd.${id}.templateChoice`, detail: `TRD ${id}: Word template ${before ? "changed" : "chosen"} (${trdTemplateChoiceText(choice)})`, before, after: choice });
+  return next;
+}
+
+/** Removes the remembered choice (the TRD then has none recorded). A reason is kept in the change log, as for every removal. */
+export function clearTrdTemplateChoice(project: Project, id: string, reason: string, actor: Actor): Project {
+  const next = structuredClone(project);
+  const d = docOf(next, id);
+  if (!d.templateChoice) return project;
+  const before = d.templateChoice;
+  delete d.templateChoice;
+  d.updatedAt = actor.at;
+  log(next, actor, { action: "trd_template_clear", path: `trd.${id}.templateChoice`, detail: `TRD ${id}: Word template choice removed (${text(reason) || NO_REASON_RECORDED})`, before, after: null });
+  return next;
+}
+
+const TEMPLATE_KIND_WORDS: Record<TrdTemplateChoice["kind"], string> = {
+  later: "Decide later",
+  builtin: "Built-in default",
+  their_look: "A template's look",
+  mapped: "A template's headings",
+  tags: "Placeholder tags",
+};
+
+/** The choice in plain words, the same wherever it is shown: "A template's look: Site layout (version 2)". Decide later reads "Decide later (still open)". */
+export function trdTemplateChoiceText(c: TrdTemplateChoice | undefined): string {
+  if (!c) return "Not chosen yet";
+  if (c.kind === "later") return `${TEMPLATE_KIND_WORDS.later} (still open)`;
+  if (!c.templateName) return TEMPLATE_KIND_WORDS[c.kind];
+  return `${TEMPLATE_KIND_WORDS[c.kind]}: ${c.templateName}${c.templateVersion ? ` (version ${c.templateVersion})` : ""}`;
 }
 
 /** Next id of a kind. Ids are never reused: an id that survives only in the change log still counts as taken. */

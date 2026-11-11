@@ -85,6 +85,8 @@ export const ACTION_LABELS: Record<string, string> = {
   trd_add: "TRD added",
   trd_update: "TRD edited",
   trd_remove: "TRD removed",
+  trd_template_set: "Word template of a TRD chosen",
+  trd_template_clear: "Word template choice of a TRD removed",
   trd_override_set: "TRD value overridden or entered",
   trd_override_clear: "TRD override removed",
   trd_step_add: "Process step added to a TRD",

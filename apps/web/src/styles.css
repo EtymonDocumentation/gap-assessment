@@ -5870,3 +5870,89 @@ html:has(.iv-one) { scroll-padding-bottom: 9rem; }
 [data-testid="mbr-excipients-table"] th[scope="row"] {
   min-width: 9rem;
 }
+
+/* M15: "What do you want to make?" on Home, the three-step start path of a TRD, and the interview's left-out list. Colours come from the tokens above, so light and dark follow. */
+.make-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+.make-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.make-choice p {
+  margin: 0;
+  flex: 1;
+}
+.start-path-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.start-path-steps li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+}
+/* The current step is bold and underlined as well as coloured, so it never depends on colour alone. */
+.start-path-steps li.current {
+  color: var(--text);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.start-path-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  font-weight: 700;
+  color: var(--text);
+}
+.start-path-steps li.current .start-path-num {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+.start-path-say {
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 4px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+.iv-left-out {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.iv-left-out p,
+.iv-left-out ul {
+  margin: 0;
+}
+.iv-left-out ul {
+  padding-left: 1.2rem;
+}
+.iv-lands {
+  margin: 0;
+}/* One template kind per line: side by side they read as two unrelated pairs on a wide screen. */
+.start-kinds .check {
+  display: flex;
+}

@@ -13,7 +13,7 @@ import { addMbrStep, addParamRow, addPlanPointToSection, addTarget, createMbr, s
 import { addExcipientsUsed, mbrExcipientOffers } from "./mbr-excipients";
 import { addExcipientLine, addSpecRow, createExcipientAssessment, setExcipientFact, updateExcipientLine, updateSpecRow, type ExcipientFactAnswer } from "./excipient";
 import { startRiskItemFromExcipient } from "./excipient-links";
-import { createTrd, setControl, setLimits, setOverride, updateTrd, updateTrdStep } from "./trd";
+import { createTrd, setControl, setLimits, setOverride, setTrdTemplateChoice, updateTrd, updateTrdStep } from "./trd";
 import { buildTrdSeed } from "./trd-seed";
 import { addWriteupFromLibrary, moveWriteup, removePart, setBlankValue, setNotApplicable, setPartImage, setPartIncluded, setPartText, setTableRows } from "./trd-writeup";
 import { placeholderPng } from "./demo-image";
@@ -799,7 +799,8 @@ function applyTrdDemo(project: Project, content: ContentBundle, t: z.infer<typeo
   }
   const seed = buildTrdSeed(content, project, { exportedAt: t.at });
   const created = createTrd(project, { title: t.title, ...(t.docRef ? { docRef: t.docRef } : {}), start: { kind: "project", seed }, ...(library ? { library } : {}) }, who);
-  project = created.project;
+  // A demo TRD carries a Word template choice like a TRD made on the start path, so the Document tab opens on it. The built-in layout is the one every browser has.
+  project = setTrdTemplateChoice(created.project, created.trdId, { kind: "builtin" }, who);
   const id = created.trdId;
   const doc = () => project.trd.documents.find((d) => d.id === id)!;
   const stepFor = (uo: string) => {

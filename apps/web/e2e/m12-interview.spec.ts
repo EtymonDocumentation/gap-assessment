@@ -32,10 +32,13 @@ async function newProject(page: Page) {
   await hash(page, "#/trd");
 }
 
-/** "Answer questions" on the TRD page: one click makes a blank TRD (named after the project) and lands on its Interview tab. No form, no title to type. */
+/** "Answer questions" on the TRD page: the three-step start path (Word template, process steps, questions). No title to type. Decide later and every step ticked leave nothing chosen for the person. */
 async function startInterview(page: Page) {
   await newProject(page);
   await page.getByTestId("trd-interview-btn").click();
+  await page.getByTestId("start-kind-later").check();
+  await page.getByTestId("start-next").click();
+  await page.getByTestId("start-next").click();
   await expect(page.getByTestId("trd-interview")).toBeVisible();
 }
 
@@ -153,16 +156,8 @@ test("list mode: an answer is saved with the button, shows in the Details tab, a
 
 test("list mode: saying a step is performed adds its questions, and the limits card checks without blocking", async ({ page }) => {
   await startInterview(page);
-  const presence = card(page, "step:sterile_filtration.presence");
-  // Yes / No start on neither.
-  await expect(presence.getByTestId("iv-option-yes")).not.toBeChecked();
-  await expect(presence.getByTestId("iv-option-no")).not.toBeChecked();
-  await presence.getByTestId("iv-save").click();
-  await expect(presence.getByTestId("iv-error")).toContainText("Please choose Yes or No");
-  await presence.getByTestId("iv-option-yes").check();
-  await presence.getByTestId("iv-save").click();
-  await expect(presence.getByTestId("iv-saved")).toBeVisible();
-  const step = page.getByTestId("iv-step-sterile_filtration");
+  // The start path ticked every step, so a ticked step is performed: no "is it performed?" question, its questions are already here.
+  await expect(card(page, "step:sterile_filtration.presence")).toHaveCount(0);  const step = page.getByTestId("iv-step-sterile_filtration");
   await expect(step.locator('[data-testid^="iv-card-limits:"]').first()).toBeVisible();
   const limits = step.locator('[data-testid^="iv-card-limits:"]').first();
   // Three small labelled groups, nothing in them.
@@ -375,9 +370,7 @@ test("after an upload review is accepted, the interview opens on 'Only what is s
 test("list mode and one question at a time at this width, light and dark: no sideways scroll, axe clean", async ({ page }) => {
   test.setTimeout(120_000); // axe also walks the More detail list
   await startInterview(page);
-  await card(page, "step:aseptic_filling.presence").getByTestId("iv-option-yes").check();
-  await card(page, "step:aseptic_filling.presence").getByTestId("iv-save").click();
-  await expect(card(page, "step:aseptic_filling.presence").getByTestId("iv-saved")).toBeVisible();
+  await expect(card(page, "step:aseptic_filling.presence")).toHaveCount(0);
   for (const theme of ["Light", "Dark"] as const) {
     await setTheme(page, theme);
     await expectNoSidewaysScroll(page, `list mode ${theme}`);

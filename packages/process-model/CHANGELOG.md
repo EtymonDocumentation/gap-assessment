@@ -2,6 +2,16 @@
 
 All notable changes to `@gap/process-model`. Versions follow semver; see README.md for what counts as breaking.
 
+## 1.20.0
+
+Project schema 1.34.0 (was 1.33.0), catalog and questions unchanged. Additive: a TRD may remember which Word template it comes out in (M15).
+
+### Added
+- `TrdDocument.templateChoice`: optional { kind, templateId?, templateName?, templateVersion?, chosenAt, chosenBy }. `kind` is one of the four Word kinds (`builtin`,
+  `their_look`, `mapped`, `tags`) or `later` ("decide later"; the choice stays visible as open). A TRD without it has not recorded a choice and behaves as before.
+- `TRD_TEMPLATE_KINDS`, `TrdTemplateChoice`, `trdTemplateChoiceSchema`.
+- Migration 1.33.0 to 1.34.0 moves only the version.
+
 ## 1.19.0
 
 Project schema 1.33.0 (was 1.32.0), catalog and questions unchanged. Additive: a project may carry optional facility areas for the interview maps (M14).

@@ -8,8 +8,9 @@ import { dateTime } from "../lib";
 import { trdOpenCount } from "../open-count";
 import { href, navigate } from "../router";
 import { useStore } from "../store";
-import { startTrdByQuestions } from "../trd-start";
+import { openTrdStart } from "../trd-start";
 import { useTrdWriteupLibrary } from "../trd-writeups-store";
+import { TrdStartPath } from "./TrdStartPath";
 import { TRD_SCOPE_TEXT, TRD_TABS, TrdEditor, type TrdTab } from "./TrdEditor";
 import type { InterviewShow } from "./TrdInterview";
 import { TrdFormButton, TrdUploadButton } from "./TrdUploadButton";
@@ -26,6 +27,9 @@ export function TrdPage({ params }: { params: URLSearchParams }) {
   const tab = params.get("tab");
   const show = params.get("show");
   const question = params.get("q");
+  // The start path of a new TRD (step 1 picks the Word template, step 2 the process steps). Step 3 is the interview, which opens once the person continues.
+  const step = params.get("step");
+  if (step === "1" || step === "2") return <TrdStartPath step={step === "1" ? 1 : 2} trdId={id} />;
   return d ? <TrdEditor d={d} initialTab={TRD_TABS.includes(tab as TrdTab) ? (tab as TrdTab) : "details"} {...(show === "open" || show === "all" || show === "confirm" ? { initialShow: show as InterviewShow } : {})} {...(question ? { initialQuestion: question } : {})} /> : <List missing={id ?? undefined} preselect={params.get("start")} />;
 }
 
@@ -41,7 +45,6 @@ function List({ missing, preselect }: { missing?: string | undefined; preselect:
   const [fileError, setFileError] = useState("");
   const [error, setError] = useState("");
   const list = project.trd.documents;
-  const [questionsError, setQuestionsError] = useState("");
 
   async function onFile(f: File | undefined) {
     setFileError("");
@@ -148,25 +151,17 @@ function List({ missing, preselect }: { missing?: string | undefined; preselect:
       <section className="card stack" aria-labelledby="trd-interview-start" data-testid="trd-interview-start">
         <h2 id="trd-interview-start">Start by answering questions</h2>
         <p className="small">No gap assessment and no document needed. You answer plain questions, one at a time or from a list, and the TRD fills itself in. Anything you don't know stays open.</p>
-        <p className="muted small">This makes a blank TRD, named after the project (rename it on the Details tab), and opens its first question.</p>
+        <p className="muted small">Three short steps: pick the Word template, say which process steps are in your project, then answer the questions. The TRD is named after the project (rename it on the Details tab).</p>
         <div className="row wrap">
           <button
             type="button"
             className="btn primary"
             data-testid="trd-interview-btn"
-            onClick={async () => {
-              setQuestionsError("");
-              setQuestionsError((await startTrdByQuestions()) ?? "");
-            }}
+            onClick={() => openTrdStart({ startNew: true })}
           >
             Answer questions
           </button>
         </div>
-        {questionsError && (
-          <p className="error" role="alert" data-testid="trd-interview-error">
-            {questionsError}
-          </p>
-        )}
       </section>
 
       <section className="card stack" aria-labelledby="trd-list">

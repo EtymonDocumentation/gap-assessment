@@ -301,3 +301,8 @@ terms:
     term: Working copy
     short: The project you are editing now, as opposed to a saved version. It is kept as you work. It is shown as Working copy after v2.1, with the words changed since then when it has moved on from that version.
     see: [version]
+
+  - id: word-template-choice
+    term: Word template choice
+    short: The kind of Word template a TRD is meant to be downloaded in, picked at step 1 of starting a TRD. It is the built-in layout, a template's look, or placeholder tags. Decide later is a choice too, and it shows as open. The choice is kept on the TRD, and you can change or remove it on the Document tab.
+    see: [heading-placement, drafting-aid]

@@ -1,14 +1,16 @@
 import { DocPreview } from "../DocPreview";
-import { buildTrdData, buildTrdDocument, documentFingerprint, projectLabel, recordExport, stampDocument, TRD_OPTIONAL_SECTIONS, trdBasisText, type TrdOptionalSection, updateTrd } from "@gap/engine";
+import { buildTrdData, buildTrdDocument, documentFingerprint, clearTrdTemplateChoice, projectLabel, recordExport, setTrdTemplateChoice, stampDocument, TRD_OPTIONAL_SECTIONS, trdBasisText, trdTemplateChoiceText, type TrdOptionalSection, updateTrd } from "@gap/engine";
 import type { DocModel } from "@gap/engine";
 import { PROCESS_MODEL_VERSION, TRD_FORMAT_VERSION, type DocumentExport, type TemplateRecord, type TrdApproval, type TrdDocument } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlPreview } from "@gap/renderers";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Modal } from "../components";
 import { APP_VERSION, download, projectFileStem, today } from "../lib";
+import { useRoute } from "../router";
 import { useContent, useStore } from "../store";
 import { useVersionStamp } from "../version-ui";
 import { BUILTIN_RECORD, ExportHistory, exportsOfDocument, GENERIC_MODES, useWordChoice, WordPanel } from "./document-panels";
+import { ReasonDialog } from "./ReasonDialog";
 import type { Run } from "./SamplingFlow";
 import { TrdFormButton } from "./TrdUploadButton";
 
@@ -28,7 +30,12 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
   const [omit, setOmit] = useState<TrdOptionalSection[]>([]);
   const [omitEvidence, setOmitEvidence] = useState<TrdOptionalSection[]>([]);
 
-  const choice = useWordChoice();
+  // The standard document starts on the Word template stored on the TRD (chosen when it was started) and keeps it up to date; the evidence record keeps its own, unsaved choice.
+  const choice = useWordChoice(d.templateChoice, (pick) => {
+    const err = update((p, actor) => setTrdTemplateChoice(p, d.id, pick, actor), "Word template of the TRD saved");
+    if (err) setDone(err);
+  });
+  const [removing, setRemoving] = useState(false);
   const evidenceChoice = useWordChoice();
   // Two documents from the same record: the short standard TRD for approval, and the evidence record for audit and inspection.
   const versionStamp = useVersionStamp();
@@ -37,6 +44,22 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
   const body = useMemo(() => (showPreview ? renderHtmlPreview(doc) : ""), [doc, showPreview]);
   const stamp = `${projectFileStem(project.meta)}-${d.id}-${today()}`;
   const tbd = doc.tbdCount ?? 0;
+
+  // "See it in the document" (Interview card): open the preview and scroll to the section.
+  const route = useRoute();
+  const section = route.params.get("section");
+  useEffect(() => {
+    if (!section) return;
+    setShowPreview(true);
+    const t = window.setTimeout(() => {
+      const el = document.getElementById(`doc-${section}`);
+      if (!el) return;
+      el.scrollIntoView({ block: "start" });
+      el.setAttribute("tabindex", "-1");
+      el.focus({ preventScroll: true });
+    }, 60);
+    return () => window.clearTimeout(t);
+  }, [section, d.id]);
 
   const [pending, setPending] = useState<(() => void) | null>(null);
   const opener = useRef<HTMLElement | null>(null);
@@ -111,6 +134,38 @@ export function TrdOutput({ d, run }: { d: TrdDocument; run: Run }) {
         <div role="status" aria-live="polite">
           {done && <p data-testid="trd-done">{done}</p>}
         </div>
+      </section>
+
+      <section className="card stack no-print" aria-labelledby="trd-template-h" data-testid="trd-template-choice">
+        <h2 id="trd-template-h">Word template for this TRD</h2>
+        <p data-testid="trd-template-choice-text">{trdTemplateChoiceText(d.templateChoice)}</p>
+        <p className="muted small">
+          {d.templateChoice?.kind === "later" || !d.templateChoice
+            ? "Nothing is chosen yet. You can choose below at any time. The built-in layout is used for a download until you do."
+            : "The download below starts on this choice. Change the kind of Word document below to change it."}
+        </p>
+        {d.templateChoice && (
+          <div className="row">
+            <button className="btn" data-testid="trd-template-remove" onClick={() => setRemoving(true)}>
+              Remove this choice
+            </button>
+          </div>
+        )}
+        {removing && (
+          <ReasonDialog
+            title="Remove the Word template choice?"
+            description="The TRD will show no Word template as chosen. Nothing else changes."
+            confirmLabel="Remove the choice"
+            keepLabel="Keep it"
+            testId="trd-template-remove-dialog"
+            onClose={() => setRemoving(false)}
+            onConfirm={(reason) => {
+              const err = update((p, actor) => clearTrdTemplateChoice(p, d.id, reason, actor), "Word template choice removed");
+              if (!err) setRemoving(false);
+              return err ?? null;
+            }}
+          />
+        )}
       </section>
 
       <WordPanel

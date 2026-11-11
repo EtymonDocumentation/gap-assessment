@@ -97,7 +97,7 @@ describe("the demos", () => {
 
 describe("migration 1.28.0 -> 1.29.0", () => {
   it("is the current schema", () => {
-    expect(SCHEMA_VERSION).toBe("1.33.0");
+    expect(SCHEMA_VERSION).toBe("1.34.0");
   });
 
   it("keeps a saved Commercial project stage, marks it for a check and logs it (no silent re-mapping)", () => {

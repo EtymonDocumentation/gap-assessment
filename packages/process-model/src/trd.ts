@@ -212,6 +212,24 @@ export const TRD_DETAIL_KEYS = [
   ["line", "Filling line"],
 ] as const;
 
+/**
+ * The Word template a TRD comes out in (schema 1.34.0, M15). `later` means the person chose to decide later: the choice stays visible as open
+ * and nothing is assumed. The other kinds are the same four kinds the Word download offers. A library template is kept by id AND by the name and
+ * version it had when it was chosen, so a template that is not in this browser or account's library can still be named in plain words.
+ * `templateId` is general on purpose: a later job lets the person's own template drive the interview.
+ */
+export const TRD_TEMPLATE_KINDS = ["later", "builtin", "their_look", "mapped", "tags"] as const;
+export type TrdTemplateKind = (typeof TRD_TEMPLATE_KINDS)[number];
+export const trdTemplateChoiceSchema = z.object({
+  kind: z.enum(TRD_TEMPLATE_KINDS),
+  templateId: z.string().min(1).optional(),
+  templateName: z.string().min(1).optional(),
+  templateVersion: z.string().optional(),
+  chosenAt: z.string(),
+  chosenBy: z.string(),
+});
+export type TrdTemplateChoice = z.infer<typeof trdTemplateChoiceSchema>;
+
 export const trdDocumentSchema = z
   .object({
     /** TRD-001, TRD-002 ... */
@@ -231,6 +249,8 @@ export const trdDocumentSchema = z
     approvals: z.array(trdApprovalSchema).optional(),
     /** Process descriptions and TRD-level prose (TRD format 1.2.0 adds pictures, table rows and the author's place). Absent in a TRD made before; it then exports as it always did. */
     writeups: z.array(trdWriteupSchema).optional(),
+    /** The Word template the person chose for this TRD (schema 1.34.0). Absent in a TRD made before: no choice recorded, never a default. */
+    templateChoice: trdTemplateChoiceSchema.optional(),
     createdAt: z.string(),
     updatedAt: z.string(),
   })

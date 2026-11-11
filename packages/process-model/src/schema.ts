@@ -671,6 +671,13 @@ const MIGRATIONS: { from: string; to: string; migrate: Migrate }[] = [
     to: "1.33.0",
     migrate: (raw) => ({ ...raw, schemaVersion: "1.33.0" }),
   },
+  // 1.33.0 -> 1.34.0: the Word template choice a TRD remembers (M15). The new part is optional and a TRD without it has not recorded a choice,
+  // so only the version moves (nothing is chosen for the user). Running it again changes nothing.
+  {
+    from: "1.33.0",
+    to: "1.34.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.34.0" }),
+  },
 ];
 
 /**

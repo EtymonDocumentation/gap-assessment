@@ -40,7 +40,7 @@ describe("package independence", () => {
 
   it("keeps PROCESS_MODEL_VERSION equal to package.json", () => {
     expect(PROCESS_MODEL_VERSION).toBe(pkg.version);
-    expect(pkg.version).toBe("1.19.0");
+    expect(pkg.version).toBe("1.20.0");
   });
 
   it("is private until it is published on purpose", () => {
@@ -172,6 +172,7 @@ describe("public API", () => {
         "TRD_SEED_FORMAT",
         "TRD_SEED_VERSION",
         "TRD_SOURCE_DOC_TYPES",
+        "TRD_TEMPLATE_KINDS",
         "TRD_WRITEUP_FORMAT_VERSION",
         "TrdImageError",
         "TrdSeedError",
@@ -394,6 +395,7 @@ describe("public API", () => {
         "trdSetPointSchema",
         "trdStateSchema",
         "trdStepSchema",
+        "trdTemplateChoiceSchema",
         "trdWriteupSchema",
         "typeDetailSchema",
         "unitDef",

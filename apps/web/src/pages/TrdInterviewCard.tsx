@@ -1,6 +1,7 @@
-import { checkLimits, type InterviewAnswer, type InterviewQuestion } from "@gap/engine";
+import { checkLimits, type AnswerPlace, type InterviewAnswer, type InterviewQuestion } from "@gap/engine";
 import type { Source, TrdDocument, TrdItem, TrdLimits } from "@gap/process-model";
 import { useId, useRef, useState, type Ref } from "react";
+import { href } from "../router";
 import { projectValueText, sourceText, statusOf } from "../trd-interview-lib";
 import { InterviewCardBase, UnitControl, type CardCtx, type CardDraft, type CardExitDraft, type CardKit } from "./InterviewCardBase";
 import { SourcePicker, type Where } from "./TrdSourcePicker";
@@ -12,6 +13,8 @@ const PART_LABEL: Record<Part, string> = { setPoint: "Set point", nor: "Normal o
 export interface CardProps {
   q: InterviewQuestion;
   d: TrdDocument;
+  /** The section of the document the answer lands in (number and heading), when it lands in a numbered one. */
+  place?: AnswerPlace | undefined;
   /** The person has looked at the project value and kept it (a mark in this browser only). */
   kept: boolean;
   /** One-at-a-time: a large card whose heading takes the focus when the question changes. */
@@ -41,7 +44,7 @@ const numOf = (t: string): number | undefined => {
  * yes/no about a step, and the set point / NOR / PAR fields. A project value is shown as such and counts only after "Keep this" or a change.
  */
 export function InterviewCard(props: CardProps) {
-  const { q, d, kept, large, headingRef, sources, onSave, onKeep, onDontKnow, onSkip, onFocusCard } = props;
+  const { q, d, place, kept, large, headingRef, sources, onSave, onKeep, onDontKnow, onSkip, onFocusCard } = props;
   const t = q.target;
   const limitsAnswer = useRef<() => InterviewAnswer | string>(() => "");
   const projectNow = q.state === "from_project";
@@ -146,10 +149,23 @@ export function InterviewCard(props: CardProps) {
       );
     },
     asideExtra: (x) =>
-      x.usedIn.length > 0 ? (
-        <p className="small muted" data-testid="iv-used-in">
-          Used in: {x.usedIn.map((u) => u.title).join("; ")}
-        </p>
+      x.usedIn.length > 0 || place ? (
+        <>
+          {x.usedIn.length > 0 && (
+            <p className="small muted" data-testid="iv-used-in">
+              Used in: {x.usedIn.map((u) => u.title).join("; ")}
+            </p>
+          )}
+          {/* Where the answer lands: the section as the document numbers it, and a link that opens the Document tab at that section. */}
+          {place && (
+            <p className="small iv-lands" data-testid="iv-lands">
+              <span className="muted">Lands in section {place.number}, {place.heading}.</span>{" "}
+              <a href={href("/trd", { trd: d.id, tab: "output", section: place.sectionId })} data-testid="iv-see-in-document">
+                See it in the document
+              </a>
+            </p>
+          )}
+        </>
       ) : null,
   };
 

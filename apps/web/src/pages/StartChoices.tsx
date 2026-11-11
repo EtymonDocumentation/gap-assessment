@@ -7,21 +7,22 @@ import { SERVER_MODE } from "../server/mode";
 import { loadList, openProject, useSync } from "../server/sync";
 import { useStore } from "../store";
 import { useChainAllowed } from "../DocChain";
-import { startTrdByQuestions } from "../trd-start";
+import { openTrdStart } from "../trd-start";
 import { NewProjectDialog } from "./NewProjectDialog";
 
 /**
- * The starts that are not the gap assessment (that one is "Start a new project"). The TRD button is the same start as "Answer questions" on the TRD
- * page: it makes the TRD and opens its first question. The abbreviations are spelled out once, where a first-time reader meets them.
+ * The four documents, shown openly under "What do you want to make?" so a first-time reader sees what the tool makes before choosing (M15). The gap assessment is
+ * "Start a new project". The TRD starts the three-step path (Word template, process steps, questions). The other two go to their page, or ask for a project name first.
+ * Each choice has one plain line of text. The abbreviations are spelled out once, where a first-time reader meets them.
  */
 const DOCUMENT_STARTS: { id: string; title: string; text: string; button: string; path: string; params?: Record<string, string> }[] = [
-  { id: "trd", title: "A technical requirements document (TRD) on its own", text: "Answer plain questions and the TRD fills itself in. Anything you don't know stays open.", button: "Answer questions", path: "/trd" },
-  { id: "sampling", title: "A sampling plan on its own", text: "Say where and when samples are taken. No TRD is needed.", button: "Start a sampling plan", path: "/sampling" },
-  { id: "mbr", title: "A batch record (MBR) from a TRD", text: "It takes its values from a TRD. A sampling plan is welcome but not needed.", button: "Start a batch record", path: "/mbr" },
+  { id: "trd", title: "Technology transfer document (TRD)", text: "Answer plain questions and the TRD fills itself in. Anything you don't know stays open.", button: "Start a TRD", path: "/trd" },
+  { id: "sampling", title: "Sampling plan", text: "Say where and when samples are taken. No TRD is needed.", button: "Start a sampling plan", path: "/sampling" },
+  { id: "mbr", title: "Batch record (MBR)", text: "It takes its values from a TRD. A sampling plan is welcome but not needed.", button: "Start a batch record", path: "/mbr" },
 ];
 
-/** Where a start goes once the project exists: a page, or (the TRD start) a new TRD opened on its first question. */
-type After = { path: string; params?: Record<string, string> } | "trd-questions";
+/** Where a start goes once the project exists: a page, or (the TRD start) the three-step start path. */
+type After = { path: string; params?: Record<string, string> } | "trd-start";
 
 /**
  * The ways to get a project open: start a new one, or open one of the two fictional demos. Home and the "this page needs an open project" box
@@ -88,49 +89,43 @@ export function StartChoices({ stay, compact, children }: { stay?: boolean; comp
   return (
     <>
       <div className="stack" data-testid="start-options">
-        {/* One big start (EOU-01): four equal choices made a first-time reader pick before knowing what they were choosing between. Every other way in is
-            one fold away, under "More ways to start", closed at first. */}
-        <div className="start-option start-main">
-          <h3 className="start-option-title">Start fresh</h3>
-          {/* The tour's first step points at this button, not at the whole block (EOU-39). */}
-          <button className="btn primary big" data-tour="home-start" disabled={busy} onClick={() => {
-              if (!confirmReplace()) return;
-              setAfter(null);
-              setCreating(true);
-            }}>
-            Start a new project
-          </button>
-          <p className="muted small">Name it and say who is answering. Then you choose the scope and answer the guided questions.</p>
-        </div>
-        <details className="more-ways" data-testid="more-ways">
-          <summary>More ways to start</summary>
-          <p className="muted small more-ways-hint">Open a demo, start with one document, or upload a document you already have.</p>
-          <div className="start-grid">
-        {/* The other three starts of the chain, each on its own: no gap assessment is needed for any of them. With a project open the button is a plain
-            link; without one it asks for the project name first (a document lives in a project) and then goes to the page. */}
-        {!stay && starts.length > 0 && (
-          <div className="start-option" role="group" aria-labelledby="start-docs-h" data-testid="start-documents">
-            <h3 id="start-docs-h" className="start-option-title">
-              Start with one document
-            </h3>
-            {starts.map((s) => (
-              <div className="stack" key={s.id}>
+        {/* "What do you want to make?" (M15): the four documents, open, each with one line and a real button. Every other way in (a demo, an upload) is one fold
+            away, under "More ways to start", closed at first. */}
+        <div className="start-option start-main" role="group" aria-labelledby="start-make-h" data-testid="start-documents">
+          <h3 id="start-make-h" className="start-option-title">
+            What do you want to make?
+          </h3>
+          <div className="make-grid">
+            <div className="make-choice" data-testid="make-gap">
+              <h4 className="start-sub">Gap assessment</h4>
+              <p className="muted small">Compare the sending and the receiving site. Name the project, choose the scope, then answer the guided questions.</p>
+              {/* The tour's first step points at this button, not at the whole block (EOU-39). */}
+              <button className="btn primary" data-tour="home-start" disabled={busy} onClick={() => {
+                  if (!confirmReplace()) return;
+                  setAfter(null);
+                  setCreating(true);
+                }}>
+                Start a new project
+              </button>
+            </div>
+            {!stay && starts.map((s) => (
+              <div className="make-choice" key={s.id} data-testid={`make-${s.id}`}>
                 <h4 className="start-sub">{s.title}</h4>
                 <p className="muted small">{s.text}</p>
+                {/* With a project open the button is a plain link (the TRD one goes to its start path, or straight to the TRD that exists); without one it asks for the project name first. */}
                 {project && s.id !== "trd" ? (
-                  <a className="btn" href={href(s.path, s.params)} data-testid={`start-doc-${s.id}`}>
+                  <a className="btn primary" href={href(s.path, s.params)} data-testid={`start-doc-${s.id}`}>
                     {s.button}
                   </a>
                 ) : (
                   <button
-                    className="btn"
+                    className="btn primary"
                     disabled={busy}
                     data-testid={`start-doc-${s.id}`}
-                    onClick={async () => {
+                    onClick={() => {
                       setStartError("");
-                      // With a project open the TRD is made at once. Without one, the project comes first (one dialog), then the TRD and its first question.
-                      if (project) return setStartError((await startTrdByQuestions()) ?? "");
-                      setAfter(s.id === "trd" ? "trd-questions" : { path: s.path, ...(s.params ? { params: s.params } : {}) });
+                      if (project && s.id === "trd") return openTrdStart();
+                      setAfter(s.id === "trd" ? "trd-start" : { path: s.path, ...(s.params ? { params: s.params } : {}) });
                       setCreating(true);
                     }}
                   >
@@ -140,8 +135,11 @@ export function StartChoices({ stay, compact, children }: { stay?: boolean; comp
               </div>
             ))}
           </div>
-        )}
-        {/* One choice, two demos: each has its own button and a line saying what it shows, so the choice between them is easy. */}
+        </div>
+        <details className="more-ways" data-testid="more-ways">
+          <summary>More ways to start</summary>
+          <p className="muted small more-ways-hint">Open a demo, or upload a document you already have.</p>
+          <div className="start-grid">        {/* One choice, two demos: each has its own button and a line saying what it shows, so the choice between them is easy. */}
         <div className="start-option start-demos" role="group" aria-labelledby="start-demos-h">
           <h3 id="start-demos-h" className="start-option-title">
             Open a demo
@@ -199,13 +197,13 @@ export function StartChoices({ stay, compact, children }: { stay?: boolean; comp
         open={creating}
         onOpenChange={setCreating}
         description={
-          after === "trd-questions"
-            ? "Name the project and the person answering. The technical requirements document is made with it, and you land on its first question."
+          after === "trd-start"
+            ? "Name the project and the person answering. Then you pick the Word template for the technology transfer document."
             : "Name the project and the person answering."
         }
-        onCreated={async () => {
+        onCreated={() => {
           // The Scope step comes right after project setup, before the interview, so nobody answers questions about steps they do not have.
-          if (after === "trd-questions") setStartError((await startTrdByQuestions()) ?? "");
+          if (after === "trd-start") navigate("/trd", { step: "1" });
           else navigate(after?.path ?? "/scope", after?.params);
         }}
       />

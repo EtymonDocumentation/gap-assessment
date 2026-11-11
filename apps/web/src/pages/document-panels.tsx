@@ -30,22 +30,58 @@ export interface WordChoice {
   setTemplateId(id: string): void;
   /** What an export records about the chosen template. */
   record: TemplateRecord | undefined;
+  /** Set when the choice stored on the TRD names a template that is no longer in the library (the name, as it was stored). */
+  missingTemplate?: string;
 }
 
-export function useWordChoice(): WordChoice {
+/** The choice stored on a TRD (M15): the kind of Word document and, for a template, which one. */
+export interface StoredWordChoice {
+  kind: "later" | TemplateMode;
+  templateId?: string;
+  templateName?: string;
+}
+
+/** What `useWordChoice` tells the page when the person changes the stored choice. Only a complete choice is passed on. */
+export interface WordPick {
+  kind: "builtin" | "their_look" | "mapped" | "tags";
+  templateId?: string;
+  templateName?: string;
+  templateVersion?: string;
+}
+
+/**
+ * The Word choice of a download panel. With `stored` (a TRD's own choice) the panel starts on it and `onPick` is told about every change, so the TRD
+ * keeps the choice. "Decide later" has no kind of Word document, so the panel starts on the built-in layout (what a download needs) but says nothing is chosen.
+ */
+export function useWordChoice(stored?: StoredWordChoice, onPick?: (pick: WordPick) => void): WordChoice {
   const items = useTemplates((s) => s.items);
+  const loaded = useTemplates((s) => s.ready);
   useEffect(() => {
     void useTemplates.getState().load();
   }, []);
-  const [mode, setMode] = useState<TemplateMode>("builtin");
-  const [pick, setPick] = useState("");
+  const [mode, setModeState] = useState<TemplateMode>(stored && stored.kind !== "later" ? stored.kind : "builtin");
+  const [pick, setPick] = useState(stored?.templateId ?? "");
   const candidates = useMemo(() => (mode === "builtin" ? [] : items.filter((t) => t.analysis.usableModes.includes(mode))), [items, mode]);
   // Nothing is chosen for the person: the list starts on "Choose a template" even when it holds only one (EOU-38).
   const template = candidates.find((t) => t.id === pick);
   const record = mode === "builtin" ? BUILTIN_RECORD : template ? recordOf(mode, template) : undefined;
-  return { mode, setMode, candidates, template, setTemplateId: setPick, record };
+  const missing = !!stored?.templateId && mode === stored.kind && pick === stored.templateId && loaded && !items.some((t) => t.id === stored.templateId);
+  const tell = (m: TemplateMode, t: StoredTemplate | undefined) => {
+    if (!onPick) return;
+    if (m === "builtin") onPick({ kind: "builtin" });
+    else if (t) onPick({ kind: m, templateId: t.id, templateName: t.name, templateVersion: t.version });
+  };
+  const setMode = (m: TemplateMode) => {
+    setModeState(m);
+    setPick("");
+    tell(m, undefined);
+  };
+  const setTemplateId = (id: string) => {
+    setPick(id);
+    tell(mode, items.find((t) => t.id === id));
+  };
+  return { mode, setMode, candidates, template, setTemplateId, record, ...(missing && stored?.templateName ? { missingTemplate: stored.templateName } : {}) };
 }
-
 // ------------------------------------------------------------------ Word document panel
 
 export interface Checks {
@@ -300,6 +336,12 @@ export function WordPanelView({
 
       {choice.mode !== "builtin" && (
         <div className="stack">
+          {choice.missingTemplate && (
+            <p className="notice" role="status" data-testid="word-template-missing">
+              The Word template chosen for this TRD, "{choice.missingTemplate}", is not in the library any more. Pick another one below, or choose the built-in layout. The built-in
+              download still works.
+            </p>
+          )}
           {choice.candidates.length === 0 ? (
             <p className="notice">
               No template in the library works with "{MODE_LABEL[choice.mode]}".{hasPdf && choice.mode !== "mapped" ? " A PDF template can only be used with \"A template's headings\"." : ""} Add one on the{" "}

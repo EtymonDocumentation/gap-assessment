@@ -1,5 +1,5 @@
-import { applyTrdAnswer, deriveTrdQuestions, filterInterviewQuestions, trdInterviewProgress, type InterviewAnswer, type InterviewQuestion } from "@gap/engine";
-import { trdInterviewWording } from "@gap/content";
+import { addCheckedSteps, applyTrdAnswer, deriveTrdQuestions, filterInterviewQuestions, trdAnswerPlaces, trdFollowsChecklist, trdInterviewProgress, trdLeftOutSteps, trdStepsToAdd, type InterviewAnswer, type InterviewQuestion } from "@gap/engine";
+import { interviewMapWording, trdInterviewWording } from "@gap/content";
 import type { TrdDocument } from "@gap/process-model";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HelpTip } from "../HelpTip";
@@ -7,7 +7,7 @@ import { href } from "../router";
 import { StageRow, useProjectStage } from "../stage-ui";
 import { openItemsCount, trdOpenCount } from "../open-count";
 import { useContent, useStore } from "../store";
-import { useTrdWriteupLibrary } from "../trd-writeups-store";
+import { useTrdWriteupLibrary, useTrdWriteups } from "../trd-writeups-store";
 import { defaultInterviewShow, interviewSequence, nextIndex, readKept, readLast, sequencePosition, trdIsEmpty, writeKept, writeLast } from "../trd-interview-lib";
 import { InterviewCard } from "./TrdInterviewCard";
 
@@ -55,6 +55,18 @@ export function TrdInterview({ d, initialShow, initialQuestion }: { d: TrdDocume
   const all = useMemo(() => deriveTrdQuestions(project, d.id, { content, wording: trdInterviewWording }), [project, d.id, content]);
   const sources = useMemo(() => project.sources.filter((s) => !s.supersededBy), [project.sources]);
   const level = more ? "all" : "essentials";
+
+  // The interview follows the project's checklist of process steps (a TRD started on the start path). A ticked step that is not in the TRD yet is added once, after the
+  // person's own process descriptions have been read, so an edited description is never replaced by the shipped one. A step left out gets no questions and is listed below.
+  const writeupsReady = useTrdWriteups((s) => s.ready);
+  const toAdd = useMemo(() => trdStepsToAdd(content, project, d.id), [content, project, d.id]);
+  useEffect(() => {
+    if (toAdd.length === 0 || !writeupsReady) return;
+    update((p, actor) => addCheckedSteps(p, d.id, actor, { content, library }), "Steps added to the TRD");
+  }, [toAdd, writeupsReady, update, d.id, content, library]);
+  const leftOut = useMemo(() => trdLeftOutSteps(content, project, d.id), [content, project, d.id]);
+  // Where each answer lands in the document: the section number and heading, with a link that opens the Document tab there. Built once for the whole list.
+  const places = useMemo(() => trdAnswerPlaces(project, d, all, content), [project, d, all, content]);
 
   const filter = useCallback((q: InterviewQuestion, withShow: boolean) => filterInterviewQuestions([q], { show: withShow ? show : "all", level, search, kept }).length > 0, [show, level, search, kept]);
   const visible = useMemo(() => all.filter((q) => filter(q, true) || (stay.has(q.key) && filter(q, false))), [all, filter, stay]);
@@ -206,6 +218,29 @@ export function TrdInterview({ d, initialShow, initialQuestion }: { d: TrdDocume
           )}
         </div>
         <progress className="iv-bar" value={overall.answered} max={Math.max(overall.total, 1)} aria-label="Questions answered" />
+        {trdFollowsChecklist(d) && (
+          <div className="iv-left-out" data-testid="iv-left-out">
+            {leftOut.length > 0 ? (
+              <>
+                <p data-testid="iv-left-out-line">
+                  <strong>{interviewMapWording.status.leftOut}:</strong> {leftOut.map((s) => (s.reason ? `${s.label} (${s.reason})` : s.label)).join("; ")}.
+                </p>
+                {leftOut.some((s) => s.hasAnswers) && (
+                  <p className="muted small" data-testid="iv-left-out-kept">
+                    Answers you already gave for a left-out step are kept. They come back if you tick the step again.
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="muted small">Every step of your process is in this interview.</p>
+            )}
+            <p className="small">
+              <a href={href("/trd", { trd: d.id, step: "2" })} data-testid="iv-change-steps">
+                Change which steps are in your process
+              </a>
+            </p>
+          </div>
+        )}
         {lastQ && (
           <div>
             <button type="button" className="btn small" onClick={resume} data-testid="iv-resume">
@@ -284,7 +319,7 @@ export function TrdInterview({ d, initialShow, initialQuestion }: { d: TrdDocume
                 </h2>
                 <div className="stack iv-cards">
                   {g.qs.map((q) => (
-                    <InterviewCard key={q.key} q={q} d={d} kept={kept.has(q.key)} sources={sources} onSave={save} onKeep={keep} onFocusCard={seen} />
+                    <InterviewCard key={q.key} q={q} d={d} place={places.get(q.key)} kept={kept.has(q.key)} sources={sources} onSave={save} onKeep={keep} onFocusCard={seen} />
                   ))}
                 </div>
               </section>
@@ -304,6 +339,7 @@ export function TrdInterview({ d, initialShow, initialQuestion }: { d: TrdDocume
                 key={current.key}
                 q={current}
                 d={d}
+                place={places.get(current.key)}
                 large
                 kept={kept.has(current.key)}
                 headingRef={headingRef}

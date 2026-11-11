@@ -1,4 +1,5 @@
-import { isAnswered, isTbdAnswer, omittedSectionIds, type Assessment, type QuestionInstance } from "@gap/engine";
+import { trdInterviewWording } from "@gap/content";
+import { deriveTrdQuestions, isAnswered, isTbdAnswer, omittedSectionIds, trdInterviewProgress, type Assessment, type ContentBundle, type QuestionInstance } from "@gap/engine";
 import type { Project } from "@gap/process-model";
 import { openItemsCountOrNone } from "./open-count";
 
@@ -47,6 +48,25 @@ export function nextStep(project: Project, a: Assessment): NextStep {
   const open = unansweredCount(project, a);
   if (open > 0) return { path: "/interview", label: `Answer ${open} more question${open === 1 ? "" : "s"}`, step: "interview" };
   return { path: "/register", label: "Review the gap register", step: "register" };
+}
+
+/** A "next step" that goes to a TRD (the route takes parameters). */
+export interface TrdNextStep {
+  path: string;
+  params: Record<string, string>;
+  label: string;
+}
+
+/**
+ * The next step of a project that is about a TRD and has no gap assessment work yet: the TRD interview, with the number of essential questions still open
+ * (the same count the interview shows, from trdInterviewProgress). The first TRD with open questions is the one named. undefined when no TRD has any.
+ */
+export function trdNextStep(content: ContentBundle, project: Project): TrdNextStep | undefined {
+  for (const d of project.trd.documents) {
+    const open = trdInterviewProgress(deriveTrdQuestions(project, d.id, { content, wording: trdInterviewWording })).overall.essentials.open;
+    if (open > 0) return { path: "/trd", params: { trd: d.id, tab: "interview" }, label: `Answer ${open} more question${open === 1 ? "" : "s"}` };
+  }
+  return undefined;
 }
 
 export interface InterviewCounts {

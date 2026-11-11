@@ -105,11 +105,11 @@ test("Home is the Cascade start page: welcome, the three start choices and one c
   const start = page.getByRole("heading", { level: 2, name: "Start", exact: true });
   await expect(start).toBeVisible();
   const options = page.getByTestId("start-options");
-  // EOU-01: one big start; the other three are in the "More ways to start" fold, closed at first.
-  await expect(options.getByRole("heading", { level: 3 })).toHaveText(["Start fresh"]);
+  // M15: the four documents are open under "What do you want to make?"; the demos and the uploads are in the "More ways to start" fold, closed at first.
+  await expect(options.getByRole("heading", { level: 3 })).toHaveText(["What do you want to make?"]);
   await expect(page.getByTestId("more-ways")).not.toHaveAttribute("open", "");
   await openMoreWays(page);
-  await expect(options.getByRole("heading", { level: 3 })).toHaveText(["Start fresh", "Start with one document", "Open a demo", "Upload a document you have"]);
+  await expect(options.getByRole("heading", { level: 3 })).toHaveText(["What do you want to make?", "Open a demo", "Upload a document you have"]);
   // Every upload is offered with no project open too (EOU-12): the file is chosen first and the project is asked for after it, so there is
   // no "open a project first" line and no missing button.
   await expect(page.getByTestId("upload-needs-project")).toHaveCount(0);

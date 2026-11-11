@@ -33,15 +33,17 @@ async function createProject(page: Page) {
   await dialog.getByRole("button", { name: "Create project" }).click();
 }
 
-test("Home with no project: one big start, and the other three under More ways to start in plain words, and each button lands on the right page", async ({ page }) => {
+test("Home with no project: the four documents are open under What do you want to make, the demos and uploads are under More ways to start", async ({ page }) => {
   await page.goto("./");
   const options = page.getByTestId("start-options");
-  await expect(options.getByRole("heading", { level: 3 })).toHaveText(["Start fresh"]);
+  await expect(options.getByRole("heading", { level: 3 })).toHaveText(["What do you want to make?"]);
+  // The four documents are open at once; the fold holds the demos and the uploads.
   await openMoreWays(page);
-  await expect(options.getByRole("heading", { level: 3 })).toHaveText(["Start fresh", "Start with one document", "Open a demo", "Upload a document you have"]);
+  await expect(options.getByRole("heading", { level: 3 })).toHaveText(["What do you want to make?", "Open a demo", "Upload a document you have"]);
   await expect(options.getByRole("button", { name: "Start a new project" })).toBeVisible(); // the gap assessment
   const docs = page.getByTestId("start-documents");
-  await expect(docs.getByRole("heading", { level: 4 })).toHaveText(["A technical requirements document (TRD) on its own", "A sampling plan on its own", "A batch record (MBR) from a TRD"]);
+  await expect(docs.getByRole("heading", { level: 4 })).toHaveText(["Gap assessment", "Technology transfer document (TRD)", "Sampling plan", "Batch record (MBR)"]);
+  for (const id of ["trd", "sampling", "mbr"]) await expect(docs.getByTestId(`start-doc-${id}`)).toBeVisible();
   await expect(docs).toContainText("A sampling plan is welcome but not needed");
   await shot(page, "home-starts");
   await expectNoSidewaysScroll(page, "home starts");
@@ -52,40 +54,36 @@ test("Home with no project: one big start, and the other three under More ways t
 // Without a project each button first asks for the project name (a document lives in a project), then lands on its page. One test each, so
 // every one starts with a clean browser (a project left open would turn the sampling and batch record buttons into links).
 const targets: [string, string, RegExp][] = [
-  ["trd", "Answer questions", /#\/trd\?trd=[^&]+&tab=interview$/],
+  ["trd", "Start a TRD", /#\/trd\?step=1$/],
   ["sampling", "Start a sampling plan", /#\/sampling$/],
   ["mbr", "Start a batch record", /#\/mbr$/],
 ];
 for (const [id, name, url] of targets) {
   test(`Home with no project: "${name}" asks for the project name and lands on the right page`, async ({ page }) => {
     await page.goto("./");
-    await openMoreWays(page);
     await expect(page.getByTestId(`start-doc-${id}`)).toHaveText(name);
     await page.getByTestId(`start-doc-${id}`).click();
     await createProject(page);
     await expect(page).toHaveURL(url);
     if (id === "trd") {
-      // The same start as "Answer questions" on the TRD page, with the project made first: the TRD exists and its Interview tab is open, with
-      // no second form to fill in (EOU-02, EOU-12).
-      await expect(page.getByTestId("trd-interview")).toBeVisible();
-      await expect(page.getByTestId("trd-tab-interview")).toHaveAttribute("aria-selected", "true");
+      // The start path of a new TRD, with the project made first: step 1 (pick the Word template) is on screen and no TRD exists yet.
+      await expect(page.getByTestId("start-step-template")).toBeVisible();
       await expect(page.getByTestId("trd-title-input")).toHaveCount(0);
     }
   });
 }
 
-test("Home with a project open: the sampling and batch record starts are plain links, and the TRD one makes a blank TRD on the Interview tab at once", async ({ page }) => {
+test("Home with a project open: the sampling and batch record starts are plain links, and the TRD one goes straight to the TRD that exists", async ({ page }) => {
   await page.goto("./");
   await openDemo(page, "syr");
-  await openMoreWays(page);
   const docs = page.getByTestId("start-documents");
   await expect(docs).toBeVisible();
-  await expect(page.getByTestId("start-doc-trd")).toHaveText("Answer questions");
+  await expect(page.getByTestId("start-doc-trd")).toHaveText("Start a TRD");
   await expect(page.getByTestId("start-doc-sampling")).toHaveAttribute("href", "#/sampling");
   await expect(page.getByTestId("start-doc-mbr")).toHaveAttribute("href", "#/mbr");
   await expectAccessible(page, "home starts with a project");
   await page.getByTestId("start-doc-trd").click();
-  // One click: no form. The new TRD is named after the project and its first question is on screen.
+  // The demo already has a TRD: it opens where it was (its Interview tab), not a second one.
   await expect(page.getByTestId("trd-interview")).toBeVisible();
   await expect(page.getByTestId("trd-title-input")).toHaveCount(0);
   await expect(page.getByTestId("trd-tab-interview")).toHaveAttribute("aria-selected", "true");
@@ -95,7 +93,6 @@ for (const [id, h1] of [["sampling", "Sampling plan"], ["mbr", "Batch record"]] 
   test(`Home with a project open: the ${id} start goes to its page`, async ({ page }) => {
     await page.goto("./");
     await openDemo(page, "syr");
-    await openMoreWays(page);
     await page.getByTestId(`start-doc-${id}`).click();
     await expect(page.getByRole("heading", { level: 1, name: h1 })).toBeVisible();
   });
