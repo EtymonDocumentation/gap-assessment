@@ -95,9 +95,12 @@ tours:
       - anchor: trd-interview
         title: The Interview tab
         text: Answer plain questions and the TRD fills itself in. Steps left out of the project get no questions, and each question says where its answer lands in the document. Anything you do not know stays open.
+      - anchor: interview-views
+        title: List or map
+        text: Show the questions as a List, or as a map of your Process steps or Facility areas. Pick a tile to answer its questions, then use Back to the map. The questions and answers are the same in every view.
       - anchor: trd-one-at-a-time
         title: One question at a time
-        text: Use the switch Show one question at a time to see a single question with Back and Next. Turn it off to see the whole list again.
+        text: In the List, use the switch Show one question at a time to see a single question with Back and Next. Turn it off to see the whole list again.
       - anchor: page-export
         title: Download a draft
         text: Export downloads the draft as Word or HTML for review. The tool is a drafting aid, so the document is approved in your company's own document control.

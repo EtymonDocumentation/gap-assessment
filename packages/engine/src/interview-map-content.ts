@@ -17,6 +17,10 @@ export const MAP_WORDING_PLACEHOLDERS = {
   "status.toConfirmPart": ["toConfirm"],
   "status.leftOutWithReason": ["reason"],
   "areas.alsoDoneIn": ["areas"],
+  "areas.inside": ["area"],
+  "run.showingAll": ["label"],
+  "run.showingOpen": ["label"],
+  "run.showingConfirm": ["label"],
   "steps.moreDetail": ["n"],
   "run.backOnMap": ["label", "status"],
   "run.endOfNode": ["label", "open"],
@@ -35,6 +39,18 @@ export const interviewMapWordingSchema = z
         listHint: text,
         processHint: text,
         areasHint: text,
+        processHeadings: text,
+        processHeadingsHint: text,
+      })
+      .strict(),
+    legend: z
+      .object({
+        title: text,
+        allAnswered: text,
+        someOpen: text,
+        tbd: text,
+        none: text,
+        notPlaced: text,
       })
       .strict(),
     status: z
@@ -47,6 +63,7 @@ export const interviewMapWordingSchema = z
         leftOut: text,
         leftOutWithReason: text,
         notPlaced: text,
+        changeInScope: text,
         notPlacedHint: text,
       })
       .strict(),
@@ -59,11 +76,28 @@ export const interviewMapWordingSchema = z
         fromExample: text,
         gradeNotStated: text,
         unitSwitchLabel: text,
+        inside: text,
+        stepsHere: text,
       })
       .strict(),
-    run: z.object({ nextOpen: text, backToMap: text, nextStepWithOpen: text, backOnMap: text, endOfNode: text }).strict(),
+    run: z
+      .object({
+        nextOpen: text,
+        backToMap: text,
+        nextStepWithOpen: text,
+        backOnMap: text,
+        endOfNode: text,
+        answerHere: text,
+        showingAll: text,
+        showingOpen: text,
+        showingConfirm: text,
+        searchNote: text,
+        detailOff: text,
+        noneOpen: text,
+      })
+      .strict(),
     /** Longer sentences (at most 260 characters); every other text is at most 140. */
-    explain: z.object({ emptyAreas: text, addFirst: text, startExample: text, useExample: text, exampleNote: text, listIsDefault: text }).strict(),
+    explain: z.object({ emptyAreas: text, addFirst: text, startExample: text, useExample: text, exampleNote: text, listIsDefault: text, areasLater: text }).strict(),
   })
   .strict();
 export type InterviewMapWording = z.infer<typeof interviewMapWordingSchema>;

@@ -16,6 +16,7 @@ import { openItemQuestionKey, placeInterviewTab, trdIsEmpty } from "../trd-inter
 import type { Run } from "./SamplingFlow";
 import { FieldRow } from "./TrdFieldRow";
 import { TrdInterview, type InterviewShow } from "./TrdInterview";
+import type { InterviewView } from "../trd-interview-lib";
 import { TrdOutput } from "./TrdOutput";
 import { TrdSteps } from "./TrdSteps";
 import { TrdUpdate, useProjectDifferences } from "./TrdUpdate";
@@ -80,7 +81,7 @@ const KIND_TEXT: Record<TrdOpenItem["kind"], string> = {
   heading_empty: "Nothing written",
 };
 
-export function TrdEditor({ d, initialTab, initialShow, initialQuestion }: { d: TrdDocument; initialTab: TrdTab; initialShow?: InterviewShow; initialQuestion?: string }) {
+export function TrdEditor({ d, initialTab, initialShow, initialQuestion, initialView, initialNode }: { d: TrdDocument; initialTab: TrdTab; initialShow?: InterviewShow; initialQuestion?: string; initialView?: InterviewView; initialNode?: string }) {
   const update = useStore((s) => s.update);
   const [tab, setTab] = useState<TrdTab>(initialTab);
   // A link to another tab of the TRD that is already open (same page, new address) switches the tab.
@@ -198,7 +199,7 @@ export function TrdEditor({ d, initialTab, initialShow, initialQuestion }: { d: 
       )}
 
       <Tabs label="TRD steps" tabs={tabDefs} selected={tab} onSelect={select} testId="trd-tabs" tour="trd-tabs">
-        {tab === "interview" && <TrdInterview d={d} {...(initialShow ? { initialShow } : {})} {...(jump ? { initialQuestion: jump } : {})} />}
+        {tab === "interview" && <TrdInterview d={d} {...(initialShow ? { initialShow } : {})} {...(jump ? { initialQuestion: jump } : {})} {...(initialView ? { initialView } : {})} {...(initialNode ? { initialNode } : {})} />}
         {tab === "details" && <Details d={d} run={run} />}
         {/* The update (a newer seed file, or the differences from the project) sits under the details. It stays mounted while another tab is
             open, so a file already read and a review in progress are not lost by a look at the Process tab; the page shows it only here. */}

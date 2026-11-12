@@ -3,10 +3,17 @@ import {
   addCheckedSteps,
   addTrdAddedBack,
   applyTrdAnswer,
+  buildAreaMap,
+  buildProcessMap,
   clearTrdHeadingText,
   deriveTrdQuestions,
   filterInterviewQuestions,
+  firstOpenQuestion,
+  headingMapInput,
   headingWritingMatches,
+  mapAreasOf,
+  mapBackOnMapText,
+  mapEndOfNodeText,
   removeTrdAddedBack,
   setTrdHeadingText,
   trdAnswerLandings,
@@ -14,16 +21,19 @@ import {
   trdHeadingInterview,
   trdInterviewProgress,
   trdLeftOutSteps,
+  trdMapInput,
   trdStepsToAdd,
   type AnswerPlace,
   type HeadingGroup,
   type HeadingWriting,
   type InterviewAnswer,
   type InterviewQuestion,
+  type MapNode,
   type TrdUnitInfo,
 } from "@gap/engine";
 import { interviewMapWording, trdInterviewWording } from "@gap/content";
-import type { TrdDocument } from "@gap/process-model";
+import { FACILITY_UNIT_LABEL, type FacilityUnit, type TrdDocument } from "@gap/process-model";
+import { InterviewMapView } from "../interview-map-view";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HelpTip } from "../HelpTip";
 import { href } from "../router";
@@ -32,7 +42,28 @@ import { openItemsCount, trdOpenCount } from "../open-count";
 import { useContent, useStore } from "../store";
 import { useHeadingFollow, useTrdUnits } from "../trd-heading-follow";
 import { useTrdWriteupLibrary, useTrdWriteups } from "../trd-writeups-store";
-import { defaultInterviewShow, interviewSequence, nextIndex, readKept, readLast, sequencePosition, trdIsEmpty, writeKept, writeLast } from "../trd-interview-lib";
+import {
+  defaultInterviewShow,
+  interviewHash,
+  interviewSequence,
+  nextIndex,
+  nextNodeWithOpen,
+  nodeIsOpenable,
+  nodeOfQuestion,
+  nodeRunKeys,
+  readKept,
+  readLast,
+  readOne,
+  readView,
+  runStartIndex,
+  sequencePosition,
+  trdIsEmpty,
+  writeKept,
+  writeLast,
+  writeOne,
+  writeView,
+  type InterviewView,
+} from "../trd-interview-lib";
 import { ReasonDialog } from "./ReasonDialog";
 import { AddedBackList, groupCountText, HeadingNotices, HeadingWritingCard, JumpList, NotInTemplate } from "./TrdHeadingParts";
 import { InterviewCard } from "./TrdInterviewCard";
@@ -53,6 +84,9 @@ interface Entry {
 export type InterviewShow = "all" | "open" | "confirm";
 const SHOW_TEXT: Record<InterviewShow, string> = { all: "Everything", open: "Only what is still open", confirm: "Only what came from the project, to confirm" };
 
+const VIEWS_HELP =
+  "The list shows every question, grouped by step. A map shows one tile for each step, or one card for each area of your site. Pick a tile to answer its questions one at a time. The questions and answers are the same in every view.";
+
 const PROGRESS_HELP =
   "The first number is the questions you have answered on this tab. The open items are everything still to fill in the TRD: entries still open plus blank fields in the process descriptions. The Open items tab lists them, and each one links to its question. Anything you do not know stays open. You can also print the blank form.";
 
@@ -64,7 +98,7 @@ const PROGRESS_HELP =
  * `initialQuestion` is the question an entry of the Open items tab links to: the view widens to hold it, then the page scrolls to its card
  * and the cursor goes to its heading (the same move as "Continue where you left off").
  */
-export function TrdInterview({ d, initialShow, initialQuestion }: { d: TrdDocument; initialShow?: InterviewShow; initialQuestion?: string }) {
+export function TrdInterview({ d, initialShow, initialQuestion, initialView, initialNode }: { d: TrdDocument; initialShow?: InterviewShow; initialQuestion?: string; initialView?: InterviewView; initialNode?: string }) {
   const project = useStore((s) => s.project)!;
   const update = useStore((s) => s.update);
   const content = useContent();
@@ -83,6 +117,14 @@ export function TrdInterview({ d, initialShow, initialQuestion }: { d: TrdDocume
   const [stay, setStay] = useState<Set<string>>(() => new Set());
   const [saved, setSaved] = useState("");
   const [one, setOne] = useState(false);
+  // The view (M14): the list, or a map of the same questions by process step or by facility area. The address wins, then what this person chose last in this browser.
+  const [view, setViewState] = useState<InterviewView>(() => initialView ?? (initialNode ? (/^(area:|unplaced$)/.test(initialNode) ? "areas" : "process") : undefined) ?? readView(projectId, d.id) ?? "list");
+  const [unit, setUnit] = useState<FacilityUnit>("ru");
+  // The node a map run is limited to (null: the run covers every visible question), and the tile the person just came back from.
+  const [runNode, setRunNode] = useState<string | null>(null);
+  const [backTo, setBackTo] = useState<string | null>(null);
+  const pendingNode = useRef<string | undefined>(initialNode);
+  const restored = useRef(false);
   const [seq, setSeq] = useState<string[]>([]);
   const [idx, setIdx] = useState(0);
   const [skipped, setSkipped] = useState<Set<string>>(() => new Set());
@@ -268,6 +310,8 @@ export function TrdInterview({ d, initialShow, initialQuestion }: { d: TrdDocume
     setIdx(at < 0 ? 0 : at);
     setSkipped(new Set());
     setSaved("");
+    setRunNode(null);
+    setBackTo(null);
     setOne(true);
   };
   const go = (step: 1 | -1, skip?: ReadonlySet<string>) => {
@@ -276,6 +320,98 @@ export function TrdInterview({ d, initialShow, initialQuestion }: { d: TrdDocume
     if (j >= 0) setIdx(j);
     else if (step === 1) setIdx(oneQs.length);
   };
+  // ---- the maps (M14). The map is derived from the same questions and the same state as the list, so a tile can never disagree with the banner.
+  const W = interviewMapWording;
+  const inMap = view !== "list";
+  const mapInput = useMemo(() => (hi ? headingMapInput(hi, kept) : trdMapInput(content, project, all, W, kept)), [hi, content, project, all, kept, W]);
+  const map = useMemo(() => {
+    if (!inMap) return null;
+    const areas = mapAreasOf(project, unit);
+    return view === "areas" ? buildAreaMap(mapInput, areas, W, { includeDetail: more }) : buildProcessMap(mapInput, { includeDetail: more, areas });
+  }, [inMap, view, project, unit, mapInput, more, W]);
+  const nodes = map?.nodes ?? [];
+  const openKeys = useMemo(() => new Set(mapInput.questions.filter((q) => q.state !== "answered").map((q) => q.key)), [mapInput]);
+  // The address names the view and the node, so a link opens the same screen. It is replaced, not pushed: a view is not a page to go "Back" through.
+  const setAddress = (v: InterviewView, node?: string) => {
+    try {
+      const h = interviewHash(window.location.hash, v, node, { trd: d.id, tab: "interview" });
+      if (h !== window.location.hash) window.history.replaceState(null, "", h);
+    } catch {
+      // No address to write (a sandboxed frame): the page works without it.
+    }
+  };
+  const chooseView = (v: InterviewView) => {
+    setViewState(v);
+    writeView(projectId, d.id, v);
+    setOne(false);
+    setRunNode(null);
+    setBackTo(null);
+    setAddress(v);
+  };
+  const startRun = (keys: string[], at: number, nodeId: string | null) => {
+    setSeq(keys);
+    setIdx(at);
+    setSkipped(new Set());
+    setSaved("");
+    setRunNode(nodeId);
+    setBackTo(null);
+    setOne(true);
+  };
+  /** A node starts a run limited to its questions, in this same screen: the visible ones (the filters in force), its first open question first. */
+  const openNode = (n: MapNode) => {
+    const keys = nodeRunKeys(interviewSequence(visible), n.questionKeys);
+    startRun(keys, runStartIndex(keys, openKeys), n.id);
+    setAddress(view, n.id);
+  };
+  /** "Go to the next open question": the first open one in process order among the questions the filters show. The run covers the visible list from there. */
+  const goNextOpen = () => {
+    const q = firstOpenQuestion({ ...mapInput, questions: mapInput.questions.filter((x) => visibleKeys.has(x.key)) }, { includeDetail: more });
+    if (!q) return setSaved(W.run.noneOpen);
+    const keys = interviewSequence(visible);
+    startRun(keys, Math.max(0, keys.indexOf(q.key)), null);
+  };
+  const backToMap = (fromKey?: string) => {
+    const id = runNode ?? (fromKey ? nodeOfQuestion(nodes, fromKey)?.id : undefined) ?? null;
+    const n = nodes.find((x) => x.id === id);
+    setOne(false);
+    setRunNode(null);
+    setBackTo(id);
+    setSaved(n ? mapBackOnMapText(n, W) : "");
+    setAddress(view);
+  };
+  // Back on the map the focus returns to the tile that was left (and aria-current marks it), then the status line says where the person is.
+  useEffect(() => {
+    if (!backTo || one) return;
+    document.querySelector<HTMLElement>(`button[data-node="${CSS.escape(backTo)}"]`)?.focus();
+  }, [backTo, one, view]);
+  // An address with a node opens its run once the map is known (a heading view waits for its template).
+  useEffect(() => {
+    const id = pendingNode.current;
+    if (!id || !map || follow.status === "loading") return;
+    pendingNode.current = undefined;
+    const n = map.nodes.find((x) => x.id === id);
+    if (n && nodeIsOpenable(n)) openNode(n);
+  }, [map, follow.status]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A link to this page that names another view (same page, new address) switches the view.
+  useEffect(() => {
+    if (initialView && initialView !== view) setViewState(initialView);
+  }, [initialView]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The list comes back on one question at a time when that is how it was left.
+  useEffect(() => {
+    if (restored.current || follow.status === "loading") return;
+    restored.current = true;
+    if (view === "list" && !initialQuestion && !initialNode && readOne(projectId, d.id)) startOne();
+  }, [follow.status]); // eslint-disable-line react-hooks/exhaustive-deps
+  /** The one line that says what a run follows, so a short run is not a surprise. */
+  const runLine = (label: string): string =>
+    [
+      (show === "open" ? W.run.showingOpen : show === "confirm" ? W.run.showingConfirm : W.run.showingAll).replace("{label}", label),
+      search.trim() ? W.run.searchNote : "",
+      !more && (nodes.find((x) => x.id === runNode)?.moreDetail?.total ?? 0) > 0 ? W.run.detailOff : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+
   const current = one && !ended ? oneQs[idx] : undefined;
   useEffect(() => {
     if (current) writeLast(projectId, d.id, current.key);
@@ -320,6 +456,8 @@ export function TrdInterview({ d, initialShow, initialQuestion }: { d: TrdDocume
   };
 
   const empty = trdIsEmpty(d);
+  const endNode = runNode ? nodes.find((x) => x.id === runNode) : undefined;
+  const endNext = runNode ? nextNodeWithOpen(nodes, runNode) : undefined;
   const position = sequencePosition(oneQs, idx);
 
   return (
@@ -394,7 +532,7 @@ export function TrdInterview({ d, initialShow, initialQuestion }: { d: TrdDocume
             </p>
           </div>
         )}
-        {lastQ && (
+        {lastQ && !inMap && (
           <div>
             <button type="button" className="btn small" onClick={resume} data-testid="iv-resume">
               Continue where you left off
@@ -403,7 +541,7 @@ export function TrdInterview({ d, initialShow, initialQuestion }: { d: TrdDocume
         )}
       </section>
 
-      {empty && !one && (
+      {empty && !one && !inMap && (
         <section className="card stack" aria-labelledby="iv-empty-h" data-testid="iv-empty">
           <h2 id="iv-empty-h">Start here</h2>
           <p>Answer a few questions and the TRD fills itself in. Anything you don't know stays open.</p>
@@ -421,16 +559,35 @@ export function TrdInterview({ d, initialShow, initialQuestion }: { d: TrdDocume
       )}
 
       <section className="card stack iv-controls" aria-label="How to see the questions" data-tour="trd-one-at-a-time">
-        <label className="check iv-switch">
-          <input
-            type="checkbox"
-            role="switch"
-            checked={one}
-            onChange={(e) => (e.target.checked ? startOne() : setOne(false))}
-            data-testid="iv-one"
-          />{" "}
-          <span>Show one question at a time</span>
-        </label>
+        <fieldset className="fs stack iv-views" data-testid="iv-views" data-tour="interview-views">
+          <legend>
+            {W.views.groupLabel} <HelpTip label="Show the questions as" text={VIEWS_HELP} />
+          </legend>
+          <div className="row wrap">
+            {(["list", "process", "areas"] as const).map((k) => (
+              <label key={k} className="check">
+                <input type="radio" name="iv-view" checked={view === k} onChange={() => chooseView(k)} data-testid={`iv-view-${k}`} />{" "}
+                <span>{k === "list" ? W.views.list : k === "areas" ? W.views.areas : hi ? W.views.processHeadings : W.views.process}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        {!inMap && (
+          <label className="check iv-switch">
+            <input
+              type="checkbox"
+              role="switch"
+              checked={one}
+              onChange={(e) => {
+                if (e.target.checked) startOne();
+                else setOne(false);
+                writeOne(projectId, d.id, e.target.checked);
+              }}
+              data-testid="iv-one"
+            />{" "}
+            <span>Show one question at a time</span>
+          </label>
+        )}
         {!one && (
           <>
             <fieldset className="fs stack iv-filters" data-testid="iv-filters">
@@ -454,7 +611,45 @@ export function TrdInterview({ d, initialShow, initialQuestion }: { d: TrdDocume
         )}
       </section>
 
-      {!one && hi && (
+      {!one && inMap && map && (
+        <InterviewMapView
+          map={map}
+          wording={W}
+          title={view === "areas" ? W.views.areas : hi ? W.views.processHeadings : W.views.process}
+          hint={view === "areas" ? W.views.areasHint : hi ? W.views.processHeadingsHint : W.views.processHint}
+          onOpen={openNode}
+          currentId={backTo}
+          testPrefix="imap"
+          emptyAreas={
+            <>
+              {W.explain.emptyAreas} {W.explain.areasLater}
+            </>
+          }
+          actions={
+            <div className="stack">
+              <div className="row wrap">
+                <button type="button" className="btn primary" data-testid="iv-next-open" onClick={goNextOpen}>
+                  {W.run.nextOpen}
+                </button>
+              </div>
+              {view === "areas" && (
+                <fieldset className="fs iv-unit-switch" data-testid="iv-unit-switch">
+                  <legend>{W.areas.unitSwitchLabel}</legend>
+                  <div className="row wrap">
+                    {(["ru", "su"] as const).map((u) => (
+                      <label key={u} className="check">
+                        <input type="radio" name="iv-unit" checked={unit === u} onChange={() => setUnit(u)} data-testid={`iv-unit-${u}`} /> <span>{FACILITY_UNIT_LABEL[u]}</span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              )}
+            </div>
+          }
+        />
+      )}
+
+      {!one && !inMap && hi && (
         <>
           {shown.length === 0 && (
             <p className="empty" data-testid="iv-none">
@@ -510,7 +705,7 @@ export function TrdInterview({ d, initialShow, initialQuestion }: { d: TrdDocume
         </>
       )}
 
-      {!one && !hi && (
+      {!one && !inMap && !hi && (
         <>
           {groups.length === 0 && (
             <p className="empty" data-testid="iv-none">
@@ -539,6 +734,11 @@ export function TrdInterview({ d, initialShow, initialQuestion }: { d: TrdDocume
 
       {one && (
         <section className="iv-one stack" aria-label="One question at a time" data-testid="iv-one-mode">
+          {runNode && (
+            <p className="small" data-testid="iv-run-line">
+              {runLine(nodes.find((x) => x.id === runNode)?.label ?? "")}
+            </p>
+          )}
           {current && position ? (
             <>
               <p className="small" role="status" data-testid="iv-position">
@@ -583,9 +783,24 @@ export function TrdInterview({ d, initialShow, initialQuestion }: { d: TrdDocume
           ) : (
             <div className="card stack" data-testid="iv-end">
               <h2 ref={endRef} tabIndex={-1}>
-                That was the last open question. {openItemsCount(openCount.total)} left.
+                {endNode ? mapEndOfNodeText(endNode, W) : <>That was the last open question. {openItemsCount(openCount.total)} left.</>}
               </h2>
+              {endNode && (
+                <p className="small" data-testid="iv-end-line">
+                  {runLine(endNode.label)}
+                </p>
+              )}
               <div className="row wrap">
+                {inMap && (
+                  <button type="button" className="btn primary" data-testid="iv-end-map" onClick={() => backToMap(oneQs[oneQs.length - 1]?.key)}>
+                    {W.run.backToMap}
+                  </button>
+                )}
+                {endNode && endNext && (
+                  <button type="button" className="btn" data-testid="iv-end-next-node" onClick={() => openNode(endNext)}>
+                    {W.run.nextStepWithOpen}
+                  </button>
+                )}
                 <a className="btn" href={href("/trd", { trd: d.id, tab: "open" })} data-testid="iv-end-open">
                   See the Open items tab
                 </a>
@@ -602,7 +817,23 @@ export function TrdInterview({ d, initialShow, initialQuestion }: { d: TrdDocume
             <button type="button" className="btn primary" data-testid="iv-next" disabled={ended} onClick={() => go(1)}>
               Next
             </button>
-            <button type="button" className="btn" data-testid="iv-to-list" onClick={() => setOne(false)}>
+            {inMap && (
+              <button type="button" className="btn" data-testid="iv-back-to-map" onClick={() => backToMap(current?.key)}>
+                {W.run.backToMap}
+              </button>
+            )}
+            <button
+              type="button"
+              className="btn"
+              data-testid="iv-to-list"
+              onClick={() => {
+                if (inMap) chooseView("list");
+                else {
+                  setOne(false);
+                  writeOne(projectId, d.id, false);
+                }
+              }}
+            >
               Back to the list
             </button>
           </div>

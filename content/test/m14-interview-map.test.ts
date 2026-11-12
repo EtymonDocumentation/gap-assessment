@@ -579,4 +579,15 @@ describe("content/interview-map", () => {
     expect(W.explain.emptyAreas).toContain("This is optional");
     expect([W.explain.addFirst, W.explain.startExample]).toEqual(["Add the first area", "Start from an example layout"]);
   });
+
+  it("has the words of the TRD map screens (job 2): the legend says every mark in words, the run line, the template headings view", () => {
+    expect(W.legend.title).toBe("What the marks mean");
+    for (const t of [W.legend.allAnswered, W.legend.someOpen, W.legend.tbd, W.legend.none, W.legend.notPlaced]) expect(t, t).toMatch(/border/);
+    expect(W.views.processHeadings).toBe("Your template's headings");
+    expect(W.areas.inside).toContain("{area}");
+    for (const t of [W.run.showingAll, W.run.showingOpen, W.run.showingConfirm]) expect(t).toContain("{label}");
+    const bad = JSON.parse(JSON.stringify(wordingRaw));
+    bad.run.showingOpen = "Showing only the questions still open";
+    expect(() => parseInterviewMapWording(bad)).toThrow(/missing {label}/);
+  });
 });

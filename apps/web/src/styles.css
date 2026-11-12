@@ -6039,3 +6039,79 @@ html:has(.iv-one) { scroll-padding-bottom: 9rem; }
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ---- The interview map (M14): process tiles and read-only area cards. The state of a tile is said in words, an icon and a border style
+   (solid, dashed, dotted); colour is never the only cue. Only tokens are used, so light and dark follow the theme. */
+.iv-views { border: 0; padding: 0; margin: 0; min-width: 0; }
+.iv-views > legend { padding: 0; font-weight: 600; margin-bottom: 0.25rem; }
+.iv-unit-switch { border: 0; padding: 0; margin: 0; min-width: 0; }
+.iv-unit-switch > legend { padding: 0; font-weight: 600; margin-bottom: 0.25rem; }
+.imap { min-width: 0; }
+.imap h2 { margin: 0; }
+.imap-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; align-items: stretch; }
+.imap-grid > li { min-width: 0; display: flex; }
+.imap-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  text-align: left;
+  font: inherit;
+  font-size: 0.9375rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 2px solid var(--field-border);
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  overflow-wrap: anywhere;
+}
+button.imap-tile { cursor: pointer; }
+button.imap-tile:hover { background: var(--accent-soft); }
+.imap-tile[aria-current="true"], .imap-open[aria-current="true"] { box-shadow: 0 0 0 3px var(--accent); }
+.imap-b-solid { border-style: solid; }
+.imap-b-dashed { border-style: dashed; }
+.imap-b-dotted { border-style: dotted; }
+.imap-dim { color: var(--muted); }
+.imap-wide { width: 100%; }
+.imap-head { display: flex; align-items: baseline; gap: 0.5rem; font-weight: 600; }
+.imap-num { flex: none; min-width: 1.6rem; height: 1.6rem; line-height: 1.6rem; text-align: center; border: 1px solid var(--field-border); border-radius: 50%; font-size: 0.8125rem; }
+.imap-name { min-width: 0; }
+.imap-state { display: flex; align-items: baseline; gap: 0.4rem; font-size: 0.875rem; margin: 0; }
+.imap-state > span:last-child { min-width: 0; }
+.imap-icon { flex: none; display: inline-block; min-width: 1.1em; text-align: center; font-weight: 700; }
+.imap-note { color: var(--muted); font-size: 0.8125rem; }
+.imap-legend { font-size: 0.875rem; }
+.imap-legend summary { cursor: pointer; min-height: 24px; }
+.imap-legend-list { list-style: none; margin: 0.4rem 0 0; padding: 0; display: grid; gap: 0.3rem; }
+.imap-swatch { display: inline-block; min-width: 1.6rem; text-align: center; border: 2px solid var(--field-border); border-radius: 4px; }
+.imap-areas { list-style: none; margin: 0; padding: 0; }
+.imap-areas.imap-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.imap-area {
+  min-width: 0;
+  box-sizing: border-box;
+  background: var(--surface-2);
+  border: 2px solid var(--field-border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-self: start;
+  overflow-wrap: anywhere;
+}
+.imap-area > p, .imap-area > h3 { margin: 0; }
+.imap-area-name { font-size: 1.05rem; }
+.imap-nested { display: grid; gap: 0.6rem; margin-top: 0.4rem; }
+.imap-nested .imap-area { background: var(--surface); }
+.imap-steps { margin: 0; padding-left: 1.2rem; font-size: 0.875rem; }
+.imap-steps-title, .imap-none { margin: 0; }
+.imap-open { align-self: flex-start; min-height: 44px; }
+.imap-unplaced { min-width: 0; }
+@media (max-width: 1000px) {
+  .imap-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .imap-grid, .imap-areas.imap-grid { grid-template-columns: minmax(0, 1fr); }
+}

@@ -14,6 +14,7 @@ import { useTrdWriteupLibrary } from "../trd-writeups-store";
 import { TrdStartPath } from "./TrdStartPath";
 import { TRD_SCOPE_TEXT, TRD_TABS, TrdEditor, type TrdTab } from "./TrdEditor";
 import type { InterviewShow } from "./TrdInterview";
+import { parseInterviewView } from "../trd-interview-lib";
 import { TrdFormButton, TrdUploadButton } from "./TrdUploadButton";
 import { useProjectSeed } from "./TrdUpdate";
 
@@ -32,7 +33,7 @@ export function TrdPage({ params }: { params: URLSearchParams }) {
   // The interview is the last step and opens once the person continues.
   const step = params.get("step");
   if (step === "1" || step === "2" || step === "3") return <TrdStartPath step={step === "1" ? 1 : step === "2" ? 2 : 3} trdId={id} />;
-  return d ? <TrdEditor d={d} initialTab={TRD_TABS.includes(tab as TrdTab) ? (tab as TrdTab) : "details"} {...(show === "open" || show === "all" || show === "confirm" ? { initialShow: show as InterviewShow } : {})} {...(question ? { initialQuestion: question } : {})} /> : <List missing={id ?? undefined} preselect={params.get("start")} />;
+  return d ? <TrdEditor d={d} initialTab={TRD_TABS.includes(tab as TrdTab) ? (tab as TrdTab) : "details"} {...(show === "open" || show === "all" || show === "confirm" ? { initialShow: show as InterviewShow } : {})} {...(question ? { initialQuestion: question } : {})} {...(parseInterviewView(params.get("view")) ? { initialView: parseInterviewView(params.get("view"))! } : {})} {...(params.get("node") ? { initialNode: params.get("node")! } : {})} /> : <List missing={id ?? undefined} preselect={params.get("start")} />;
 }
 
 function List({ missing, preselect }: { missing?: string | undefined; preselect: string | null }) {

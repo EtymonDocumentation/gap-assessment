@@ -6,10 +6,12 @@
 #  - {braces} are filled in by the page. Each template holds exactly the placeholders the content reader expects (checked at load).
 #  - The state of a tile is always said in words as well as shown by an icon and a border style. Never colour alone.
 #  - Nothing here is an answer, a grade or a default. The example layout is in example-layout.yaml and is only an offer.
-version: 1.0.0
+version: 1.1.0
 changelog:
   - version: 1.0.0
     note: First wording (M14 job 1).
+  - version: 1.1.0
+    note: Words of the TRD map screens (M14 job 2), the legend, the run line and the template headings view.
 views:
   groupLabel: "Show the questions as"
   list: "List"
@@ -18,6 +20,15 @@ views:
   listHint: "Every question, grouped by step."
   processHint: "One tile for each process step. Pick a tile to answer its questions."
   areasHint: "One card for each room of your site. Pick a room to answer the questions of its steps."
+  processHeadings: "Your template's headings"
+  processHeadingsHint: "One tile for each heading of your Word template. Pick a tile to answer its questions."
+legend:
+  title: "What the marks mean"
+  allAnswered: "Check mark, solid border: all answered"
+  someOpen: "Empty circle, dashed border: some still open"
+  tbd: "Half circle, dashed border: some to be decided"
+  none: "Dash, dotted border: no questions here, or left out of this project"
+  notPlaced: "Question mark, dashed border: not placed in an area yet"
 status:
   allAnswered: "All {total} answered"
   someOpen: "{answered} of {total} answered, {open} open"
@@ -27,6 +38,7 @@ status:
   leftOut: "Left out of this project"
   leftOutWithReason: "Left out of this project: {reason}"
   notPlaced: "Not placed in an area yet"
+  changeInScope: "Change this in Scope"
   notPlacedHint: "These steps are not in any room yet. You can still answer their questions here."
 nodes:
   wholeAreas: "About the whole site"
@@ -40,12 +52,21 @@ areas:
   fromExample: "From the example, please check"
   gradeNotStated: "Grade not stated"
   unitSwitchLabel: "Show the rooms of"
+  inside: "Inside {area}"
+  stepsHere: "Steps done here"
 run:
   nextOpen: "Go to the next open question"
   backToMap: "Back to the map"
   nextStepWithOpen: "Next step with open questions"
   backOnMap: "Back on the map. {label}: {status}."
   endOfNode: "That was the last question in {label}. {open} left open."
+  answerHere: "Answer the questions here"
+  showingAll: "Showing every question in {label}."
+  showingOpen: "Showing only the questions still open in {label}."
+  showingConfirm: "Showing only the questions from the project, to confirm, in {label}."
+  searchNote: "Only the questions that match your search are included."
+  detailOff: "More detail is switched off, so those questions are not included."
+  noneOpen: "No open questions are left in this view."
 explain:
   emptyAreas: "Tell us the rooms of your site and which steps happen in each, and you can answer by room. This is optional; the list and the step map work without it."
   addFirst: "Add the first area"
@@ -53,3 +74,4 @@ explain:
   useExample: "Use this example"
   exampleNote: "An example; your site may be laid out differently."
   listIsDefault: "The list stays as it is. A map is one more way to reach the same questions."
+  areasLater: "Rooms are added on the gap interview's map page."

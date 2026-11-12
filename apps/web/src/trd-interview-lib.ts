@@ -169,3 +169,85 @@ export function readLast(projectId: string, trdId: string): string | undefined {
 export function writeLast(projectId: string, trdId: string, key: string): void {
   write(`${LAST}:${where(projectId, trdId)}`, key);
 }
+
+// ------------------------------------------------------------------ the maps (M14): view, remembered choice, address, node-limited run
+
+export type InterviewView = "list" | "process" | "areas";
+export const INTERVIEW_VIEWS: readonly InterviewView[] = ["list", "process", "areas"];
+
+/** The view named in an address or in storage; anything else is "no view named" (undefined), never a guess. */
+export function parseInterviewView(v: string | null | undefined): InterviewView | undefined {
+  return INTERVIEW_VIEWS.find((x) => x === v);
+}
+
+const VIEW = "gap-trd-interview-view";
+const ONE = "gap-trd-interview-one";
+
+/** The view this person last chose for this TRD, if the browser kept it. */
+export function readView(projectId: string, trdId: string): InterviewView | undefined {
+  return parseInterviewView(read(`${VIEW}:${where(projectId, trdId)}`));
+}
+export function writeView(projectId: string, trdId: string, view: InterviewView): void {
+  write(`${VIEW}:${where(projectId, trdId)}`, view);
+}
+
+/** True when the person last left the list on "one question at a time". False when the browser kept nothing. */
+export function readOne(projectId: string, trdId: string): boolean {
+  return read(`${ONE}:${where(projectId, trdId)}`) === "1";
+}
+export function writeOne(projectId: string, trdId: string, one: boolean): void {
+  write(`${ONE}:${where(projectId, trdId)}`, one ? "1" : "0");
+}
+
+/**
+ * The address (the part after #) with `view` and `node` set or taken out, every other parameter kept, so a link opens the same view.
+ * The list is the plain address: no `view` at all.
+ */
+export function interviewHash(currentHash: string, view: InterviewView, node?: string, keep: Record<string, string> = {}): string {
+  const raw = currentHash.replace(/^#/, "");
+  const [path = "/", query = ""] = raw.split("?");
+  const params = new URLSearchParams(query);
+  params.delete("view");
+  params.delete("node");
+  for (const [k, v] of Object.entries(keep)) params.set(k, v);
+  if (view !== "list") {
+    params.set("view", view);
+    if (node) params.set("node", node);
+  }
+  const q = params.toString();
+  return `#${path}${q ? `?${q}` : ""}`;
+}
+
+/** The questions of a node-limited run: the visible questions (the filters in force) that belong to the node, in list order. */
+export function nodeRunKeys(visibleKeys: readonly string[], nodeKeys: readonly string[]): string[] {
+  const mine = new Set(nodeKeys);
+  return visibleKeys.filter((k) => mine.has(k));
+}
+
+/** Where a run starts: the first question of the run that is still open, else the first one. */
+export function runStartIndex(runKeys: readonly string[], openKeys: ReadonlySet<string>): number {
+  const at = runKeys.findIndex((k) => openKeys.has(k));
+  return at < 0 ? 0 : at;
+}
+
+interface NodeLike {
+  id: string;
+  questionKeys: readonly string[];
+  counts: { open: number };
+  status: string;
+}
+
+/** The node that holds a question (the first one, in map order), for the tile that gets the focus back. */
+export function nodeOfQuestion<T extends NodeLike>(nodes: readonly T[], key: string): T | undefined {
+  return nodes.find((n) => n.questionKeys.includes(key));
+}
+
+/** "Next step with open questions": the next node after this one that still has an open question, going round to the start; undefined when none is left. */
+export function nextNodeWithOpen<T extends NodeLike>(nodes: readonly T[], currentId: string): T | undefined {
+  const at = nodes.findIndex((n) => n.id === currentId);
+  const ordered = at < 0 ? [...nodes] : [...nodes.slice(at + 1), ...nodes.slice(0, at)];
+  return ordered.find((n) => n.status !== "left_out" && n.counts.open > 0);
+}
+
+/** A node can be opened into a run when it has questions in view; a left-out step or an empty one is only a tile. */
+export const nodeIsOpenable = (n: NodeLike): boolean => n.status !== "left_out" && n.questionKeys.length > 0;
