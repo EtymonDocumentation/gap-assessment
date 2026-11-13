@@ -253,8 +253,12 @@ export function InterviewMapView({ map, wording: w, title, hint, onOpen, current
       {unplaced.map((n) => (
         <div key={n.id} className="stack imap-unplaced" data-testid={`${prefix}-unplaced`}>
           <p className="muted small">{w.status.notPlacedHint}</p>
-          <Tile n={n} w={w} current={currentId === n.id} onOpen={onOpen} prefix={prefix} />
-          <StepsList n={n} w={w} />
+          {/* The dashed border sits on this wrapper so the step list reads as part of the "Not placed" card;
+              the list cannot go inside the tile itself because the tile is a button (no lists inside buttons). */}
+          <div className="imap-unplaced-box imap-b-dashed">
+            <Tile n={n} w={w} current={currentId === n.id} onOpen={onOpen} prefix={prefix} />
+            <StepsList n={n} w={w} />
+          </div>
         </div>
       ))}
     </section>
