@@ -60,6 +60,6 @@ describe("SYR-305 demo", () => {
   it("leaves the ARX-217 demo as it was", () => {
     const arx = buildDemoProject(content, demos["arx-217"]);
     expect(arx.meta.title).not.toContain("SYR-305");
-    expect(Object.keys(demos)).toEqual(["arx-217", "syr-305"]);
+    expect(Object.keys(demos)).toEqual(["arx-217", "syr-305", "syr-305-mid"]);
   });
 });

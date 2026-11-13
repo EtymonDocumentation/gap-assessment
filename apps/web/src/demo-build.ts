@@ -2,11 +2,12 @@ import { buildDemoProject } from "@gap/engine";
 import { content, demos, designLoadouts, failureModes, mbrLibrary, riskLoadouts, samplingSuggestions, trdWriteups } from "@gap/content";
 import type { Project } from "@gap/process-model";
 
-/** The two fictional demos: the script in content/demo and the one name every button, message and heading uses. */
+/** The three fictional demos (SYR-305 comes twice: finished, and part-way through the transfer): the script in content/demo and the one name every button, message and heading uses. */
 export type DemoId = keyof typeof demos;
 export const DEMO_NAMES: Record<DemoId, string> = {
   "arx-217": "ARX-217 vials",
   "syr-305": "SYR-305 syringe",
+  "syr-305-mid": "SYR-305 mid-transfer",
 };
 
 /** The title the demo project carries in My projects (the button name above is not the project title). */

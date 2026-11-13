@@ -24,7 +24,7 @@ test("Home: one big Start a new project; the other starts sit under More ways to
   await expect(more).not.toHaveAttribute("open", "");
   await expect(page.getByRole("button", { name: /^Open demo: / }).first()).toBeHidden();
   await openMoreWays(page);
-  await expect(page.getByRole("button", { name: /^Open demo: / })).toHaveCount(2);
+  await expect(page.getByRole("button", { name: /^Open demo: / })).toHaveCount(3);
   const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
   expect(axe.violations.map((v) => v.id)).toEqual([]);
   await expectNoOverflow(page, "home");

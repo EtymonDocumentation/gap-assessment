@@ -139,7 +139,7 @@ export function StartChoices({ stay, compact, children }: { stay?: boolean; comp
         <details className="more-ways" data-testid="more-ways">
           <summary>More ways to start</summary>
           <p className="muted small more-ways-hint">Open a demo, or upload a document you already have.</p>
-          <div className="start-grid">        {/* One choice, two demos: each has its own button and a line saying what it shows, so the choice between them is easy. */}
+          <div className="start-grid">        {/* One choice, three demos: each has its own button and a line saying what it shows, so the choice between them is easy. */}
         <div className="start-option start-demos" role="group" aria-labelledby="start-demos-h">
           <h3 id="start-demos-h" className="start-option-title">
             Open a demo
@@ -171,6 +171,22 @@ export function StartChoices({ stay, compact, children }: { stay?: boolean; comp
               </p>
             )}
           </div>
+          <div className="start-demo">
+            <button className="btn big" disabled={busy} onClick={() => void startDemo("syr-305-mid")}>
+              Open demo: {DEMO_NAMES["syr-305-mid"]}
+            </button>
+            {compact ? (
+              <p className="muted small">The same syringe, part-way through the transfer: open items still to close.</p>
+            ) : (
+              <p className="muted small">
+                The same syringe as the demo above, but part-way through the transfer, the way a real one looks: some studies not reported yet, some answers still awaited, a few
+                items past their due date. It is a good way to see how open items are shown and followed up.
+              </p>
+            )}
+          </div>
+          <p className="muted small" data-testid="demo-difference">
+            SYR-305 syringe is the finished example with nothing left open. SYR-305 mid-transfer is the same product part-way through, with open items.
+          </p>
         </div>
         {children}
           </div>
@@ -186,7 +202,7 @@ export function StartChoices({ stay, compact, children }: { stay?: boolean; comp
         </p>
       )}
       <p className="muted small">
-        Both demos are fictional. {remote ? "Opening one adds it to your projects on the server." : "Opening one replaces the project open in this browser (you are asked first)."}
+        All three demos are fictional. {remote ? "Opening one adds it to your projects on the server." : "Opening one replaces the project open in this browser (you are asked first)."}
       </p>
       {startError && (
         <p className="error" role="alert" data-testid="start-error">

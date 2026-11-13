@@ -133,7 +133,7 @@ export async function openInterviewMore(page: Page): Promise<void> {
 }
 
 /** The two fictional demos on Home: the name on their buttons, messages and the project title. */
-export const DEMO_NAMES = { arx: "ARX-217 vials", syr: "SYR-305 syringe" } as const;
+export const DEMO_NAMES = { arx: "ARX-217 vials", syr: "SYR-305 syringe", mid: "SYR-305 mid-transfer" } as const;
 
 /**
  * Opens one of the demos from Home and waits until it is open. The demo builds away from the page, so the click returns long before the

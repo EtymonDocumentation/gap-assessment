@@ -40,8 +40,8 @@ test("home with no project explains the tool, what you need and how to start, wi
   await expect(page.getByTestId("before-you-start")).toHaveAttribute("open", "");
   // The two demos sit under "More ways to start" (closed at first), not in a card further down.
   await openMoreWays(page);
-  await expect(page.getByTestId("start-options").getByRole("button", { name: /^Open demo: / })).toHaveCount(2);
-  await expect(page.getByText("Both demos are fictional.")).toBeVisible();
+  await expect(page.getByTestId("start-options").getByRole("button", { name: /^Open demo: / })).toHaveCount(3);
+  await expect(page.getByText("All three demos are fictional.")).toBeVisible();
   // One card per document; the gap assessment can be read now, the rest say they need an open project.
   await expect(page.getByTestId("doc-card-gap").getByRole("link", { name: "Start the gap assessment" })).toHaveAttribute("href", "#/gap");
   await expect(page.getByTestId("doc-card-state-trd")).toHaveText("Needs an open project.");

@@ -4,6 +4,7 @@ import { catalog } from "@gap/process-model/catalog";
 import catalogOverlay from "./catalog/gap-overlay.yaml";
 import demoArx217 from "./demo/arx-217.yaml";
 import demoSyr305 from "./demo/syr-305.yaml";
+import demoSyr305Mid from "./demo/syr-305-mid.yaml";
 import glossaryRaw from "./help/glossary.yaml";
 import toursRaw from "./help/tours.yaml";
 import guidanceRaw from "./guidance/guidance.yaml";
@@ -71,7 +72,7 @@ export const rawContent: RawContent = {
 export const content: ContentBundle = buildContent(rawContent);
 
 /** Raw demo scripts; build with buildDemoProject(content, raw). */
-export const demos = { "arx-217": demoArx217, "syr-305": demoSyr305 } as const;
+export const demos = { "arx-217": demoArx217, "syr-305": demoSyr305, "syr-305-mid": demoSyr305Mid } as const;
 
 /**
  * The Guidance library (links to official regulatory text). Reference material: it is not part of the question and rule

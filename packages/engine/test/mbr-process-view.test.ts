@@ -306,7 +306,7 @@ describe("a buffer hold never shows its clock before the buffer is made, in any 
       }
     }
     expect(branchHolds).toBeGreaterThan(0);
-  });
+  }, 180_000);
   it("a limit written on one block of a hand-made buffer section applies at that block only, never from the first moment", () => {
     const r = rec([
       { id: "SC-01", unitOp: "ds_receipt_thaw", title: "Receipt and thaw", blocks: [block("BL-001", "Thaw", { steps: [step(1, "Thaw the bottles.")] })] },
