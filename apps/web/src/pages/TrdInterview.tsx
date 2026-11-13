@@ -55,6 +55,8 @@ import {
   readLast,
   readOne,
   readView,
+  unitFromHash,
+  VIEWS_HELP,
   runStartIndex,
   sequencePosition,
   trdIsEmpty,
@@ -83,9 +85,6 @@ interface Entry {
 
 export type InterviewShow = "all" | "open" | "confirm";
 const SHOW_TEXT: Record<InterviewShow, string> = { all: "Everything", open: "Only what is still open", confirm: "Only what came from the project, to confirm" };
-
-const VIEWS_HELP =
-  "The list shows every question, grouped by step. A map shows one tile for each step, or one card for each area of your site. Pick a tile to answer its questions one at a time. The questions and answers are the same in every view.";
 
 const PROGRESS_HELP =
   "The first number is the questions you have answered on this tab. The open items are everything still to fill in the TRD: entries still open plus blank fields in the process descriptions. The Open items tab lists them, and each one links to its question. Anything you do not know stays open. You can also print the blank form.";
@@ -119,7 +118,7 @@ export function TrdInterview({ d, initialShow, initialQuestion, initialView, ini
   const [one, setOne] = useState(false);
   // The view (M14): the list, or a map of the same questions by process step or by facility area. The address wins, then what this person chose last in this browser.
   const [view, setViewState] = useState<InterviewView>(() => initialView ?? (initialNode ? (/^(area:|unplaced$)/.test(initialNode) ? "areas" : "process") : undefined) ?? readView(projectId, d.id) ?? "list");
-  const [unit, setUnit] = useState<FacilityUnit>("ru");
+  const [unit, setUnit] = useState<FacilityUnit>(() => unitFromHash(window.location.hash) ?? "ru");
   // The node a map run is limited to (null: the run covers every visible question), and the tile the person just came back from.
   const [runNode, setRunNode] = useState<string | null>(null);
   const [backTo, setBackTo] = useState<string | null>(null);
@@ -620,11 +619,11 @@ export function TrdInterview({ d, initialShow, initialQuestion, initialView, ini
           onOpen={openNode}
           currentId={backTo}
           testPrefix="imap"
-          emptyAreas={
-            <>
-              {W.explain.emptyAreas} {W.explain.areasLater}
-            </>
-          }
+          areaLinks={{
+            edit: href("/interview/areas", { unit, from: "trd", trd: d.id }),
+            first: href("/interview/areas", { unit, from: "trd", trd: d.id, add: "1" }),
+            example: href("/interview/areas", { unit, from: "trd", trd: d.id, example: "1" }),
+          }}
           actions={
             <div className="stack">
               <div className="row wrap">

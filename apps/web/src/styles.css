@@ -6048,7 +6048,8 @@ html:has(.iv-one) { scroll-padding-bottom: 9rem; }
 .iv-unit-switch > legend { padding: 0; font-weight: 600; margin-bottom: 0.25rem; }
 .imap { min-width: 0; }
 .imap h2 { margin: 0; }
-.imap-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; align-items: stretch; }
+/* Not margin: 0 — that would also zero the top margin the stack gives (the "whole" tile above touched the grid). */
+.imap-grid { list-style: none; margin-inline: 0; margin-bottom: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; align-items: stretch; }
 .imap-grid > li { min-width: 0; display: flex; }
 .imap-tile {
   display: flex;
@@ -6086,7 +6087,7 @@ button.imap-tile:hover { background: var(--accent-soft); }
 .imap-legend summary { cursor: pointer; min-height: 24px; }
 .imap-legend-list { list-style: none; margin: 0.4rem 0 0; padding: 0; display: grid; gap: 0.3rem; }
 .imap-swatch { display: inline-block; min-width: 1.6rem; text-align: center; border: 2px solid var(--field-border); border-radius: 4px; }
-.imap-areas { list-style: none; margin: 0; padding: 0; }
+.imap-areas { list-style: none; margin-inline: 0; margin-bottom: 0; padding: 0; }
 .imap-areas.imap-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .imap-area {
   min-width: 0;
@@ -6114,4 +6115,22 @@ button.imap-tile:hover { background: var(--accent-soft); }
 }
 @media (max-width: 600px) {
   .imap-grid, .imap-areas.imap-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---- "Your areas" (M14 job 3) ---- */
+.areas-page .areas-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.75rem; }
+.areas-item { min-width: 0; }
+.area-card-name { margin: 0; font-size: 1.05rem; }
+.area-card .field { flex: 1 1 12rem; min-width: 0; }
+.area-card .field input, .area-card .field select { width: 100%; }
+.area-steps { border: 0; padding: 0; margin: 0; min-width: 0; }
+.area-steps > legend { padding: 0; font-weight: 600; }
+.area-step-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 0.25rem 1rem; }
+.area-remove { border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem; }
+.areas-example { border: 1px dashed var(--border); border-radius: 6px; padding: 0.75rem; }
+.areas-example-list { margin: 0.25rem 0 0.25rem 1.25rem; padding: 0; }
+.areas-add .field input { min-width: 14rem; max-width: 100%; }
+@media (max-width: 480px) {
+  .area-step-list { grid-template-columns: minmax(0, 1fr); }
+  .areas-add .field input { min-width: 0; width: 100%; }
 }

@@ -1340,3 +1340,22 @@ excipients:
           prompt: assay
           sending: { state: stated, method: "Ph. Eur. / USP monograph method", criterion: 98.5 to 101.0, unit: "%" }
           receiving: { state: open }
+
+# Facility areas (M14): the rooms the demo states for each site, so the area map has something to show. They only help find questions by room;
+# nothing else in the project reads them. Every name, grade and placement here is invented. The receiving site lists six rooms (one inside
+# another, one step in two rooms, one step in no room); the sending site a short list.
+facility:
+  at: "2026-10-14T09:00:00.000Z"
+  by: Alex Example (fictional)
+  role: MSAT engineer
+  ru:
+    - { name: Thaw and compounding suite, grade: D, steps: [ds_receipt_thaw, buffer_prep, compounding] }
+    - { name: Filtration room, grade: C, steps: [bbr_filtration, sterile_filtration] }
+    - { name: Filling room, grade: B, steps: [capping], note: Background room around the filling isolator (fictional). }
+    - { name: Filling isolator, grade: A, inside: Filling room, steps: [aseptic_filling] }
+    - { name: Inspection room 1, grade: none, steps: [visual_inspection] }
+    - { name: Inspection room 2, grade: none, steps: [visual_inspection, labeling_packaging], note: Used when room 1 is busy (fictional). }
+  su:
+    - { name: Preparation room, grade: C, steps: [ds_receipt_thaw, buffer_prep, compounding] }
+    - { name: Filling room, grade: B, steps: [bbr_filtration, sterile_filtration] }
+    - { name: Filling barrier, grade: A, inside: Filling room, steps: [aseptic_filling] }

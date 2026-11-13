@@ -6,12 +6,14 @@
 #  - {braces} are filled in by the page. Each template holds exactly the placeholders the content reader expects (checked at load).
 #  - The state of a tile is always said in words as well as shown by an icon and a border style. Never colour alone.
 #  - Nothing here is an answer, a grade or a default. The example layout is in example-layout.yaml and is only an offer.
-version: 1.1.0
+version: 1.2.0
 changelog:
   - version: 1.0.0
     note: First wording (M14 job 1).
   - version: 1.1.0
     note: Words of the TRD map screens (M14 job 2), the legend, the run line and the template headings view.
+  - version: 1.2.0
+    note: Words of the gap interview map and the "Your areas" page (M14 job 3). The line about adding rooms on the gap map page is gone.
 views:
   groupLabel: "Show the questions as"
   list: "List"
@@ -22,6 +24,8 @@ views:
   areasHint: "One card for each room of your site. Pick a room to answer the questions of its steps."
   processHeadings: "Your template's headings"
   processHeadingsHint: "One tile for each heading of your Word template. Pick a tile to answer its questions."
+  seeMap: "See the map"
+  seeMapHint: "Start from a picture of the process steps or the rooms of your site. The list stays as it is."
 legend:
   title: "What the marks mean"
   allAnswered: "Check mark, solid border: all answered"
@@ -64,6 +68,8 @@ run:
   showingAll: "Showing every question in {label}."
   showingOpen: "Showing only the questions still open in {label}."
   showingConfirm: "Showing only the questions from the project, to confirm, in {label}."
+  showingTbd: "Showing only the questions recorded as TBD in {label}."
+  finishStep: "Finish this step"
   searchNote: "Only the questions that match your search are included."
   detailOff: "More detail is switched off, so those questions are not included."
   noneOpen: "No open questions are left in this view."
@@ -74,4 +80,40 @@ explain:
   useExample: "Use this example"
   exampleNote: "An example; your site may be laid out differently."
   listIsDefault: "The list stays as it is. A map is one more way to reach the same questions."
-  areasLater: "Rooms are added on the gap interview's map page."
+editor:
+  title: "Your areas"
+  purpose: "Name the rooms of each site and tick the steps done in each. This is optional and only helps you find questions. It changes no document."
+  open: "Set up your areas"
+  edit: "Edit your areas"
+  back: "Back to the map"
+  addTitle: "Add an area"
+  nameLabel: "Area name"
+  addButton: "Add area"
+  nameMissing: "Give the area a name."
+  gradeLabel: "Grade"
+  gradeChoose: "Choose..."
+  insideLabel: "Inside another area"
+  insideNone: "Not inside another area"
+  stepsHint: "A step can be done in more than one area. A step in no area stays under Not placed in an area yet."
+  stepsIn: "Steps done in {name}"
+  noteLabel: "Note"
+  save: "Save this area"
+  saved: "Saved {name}."
+  added: "Added {name}."
+  removeButton: "Remove this area"
+  removeAsk: "Remove {name}? Its steps go back to not placed. Your answers are not touched."
+  reasonLabel: "Why are you removing it?"
+  reasonMissing: "Say why you are removing the area. The reason is kept in the change log."
+  removeConfirm: "Remove the area"
+  keep: "Keep the area"
+  removed: "Removed {name}."
+  looksRight: "Looks right"
+  exampleTitle: "An example layout"
+  exampleIntro: "Nothing is copied until you press Use this example. Then check each area and state its grade."
+  exampleClose: "Close the example"
+  exampleUsed: "The example was copied. Each area says From the example, please check until you edit or confirm it."
+  exampleOnlyEmpty: "The example can be used while this unit has no areas."
+  noAreas: "No areas yet for this unit."
+  otherUnitHint: "Each unit has its own list. Switch the unit above to edit the other one."
+  unitLabel: "Edit the areas of"
+  help: "A room or barrier where steps are done, like a filling room or isolator. Name it, state its grade if you know it, tick its steps."

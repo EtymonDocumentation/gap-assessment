@@ -170,11 +170,11 @@ test("the view group: List is the way it opens, a map is one click away, and its
 
   await view(page, "areas").check();
   await expect(page).toHaveURL(/view=areas/);
-  await expect(page.getByTestId("imap-empty")).toContainText("This is optional");
-  await expect(page.getByTestId("imap-empty")).toContainText("Rooms are added on the gap interview's map page.");
-  await expect(page.getByRole("button", { name: "Add the first area" })).toHaveCount(0);
-  await expectAccessible(page, "areas empty");
-  await expectNoSidewaysScroll(page, "areas empty");
+  // The demo now carries its own areas (M14 job 3), so the empty state is checked in m14-job3.spec.ts on a new project.
+  await expect(page.getByTestId("imap-empty")).toHaveCount(0);
+  await expect(page.getByTestId("imap-edit-areas")).toBeVisible();
+  await expectAccessible(page, "areas view");
+  await expectNoSidewaysScroll(page, "areas view");
 
   await view(page, "list").check();
   await expect(page.getByTestId("imap")).toHaveCount(0);
@@ -193,7 +193,8 @@ test("the address opens the right view and node; the view and the one-at-a-time 
 
   await openDemoInterview(page, "&view=areas");
   await expect(view(page, "areas")).toBeChecked();
-  await expect(page.getByTestId("imap-empty")).toBeVisible();
+  await expect(page.getByTestId("imap")).toBeVisible();
+  await expect(page.getByTestId("imap-empty")).toHaveCount(0);
 
   // A node in the address opens its run at once. Use a tile that still has an open question.
   await openDemoInterview(page, "&view=process");

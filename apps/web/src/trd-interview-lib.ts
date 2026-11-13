@@ -251,3 +251,33 @@ export function nextNodeWithOpen<T extends NodeLike>(nodes: readonly T[], curren
 
 /** A node can be opened into a run when it has questions in view; a left-out step or an empty one is only a tile. */
 export const nodeIsOpenable = (n: NodeLike): boolean => n.status !== "left_out" && n.questionKeys.length > 0;
+
+// ------------------------------------------------------------------ the gap interview map (M14 job 3)
+
+const GAP_VIEW = "gap-interview-view";
+
+/** The map view ("process" or "areas") this person last opened in the gap interview of this project; the list is never stored (it is the default). */
+export function readGapView(projectId: string): "process" | "areas" | undefined {
+  const v = parseInterviewView(read(`${GAP_VIEW}:${projectId}`));
+  return v === "process" || v === "areas" ? v : undefined;
+}
+export function writeGapView(projectId: string, view: "process" | "areas"): void {
+  write(`${GAP_VIEW}:${projectId}`, view);
+}
+
+/** The unit an area view follows for a question side: a sending question belongs to the sending unit, a receiving one to the receiving unit, a shared one keeps the unit already shown. */
+export function unitOfSide(side: "source" | "target" | "shared" | undefined, current: "su" | "ru"): "su" | "ru" {
+  if (side === "source") return "su";
+  if (side === "target") return "ru";
+  return current;
+}
+
+/** The unit named by `unit=` in an address (the "Your areas" page links back with it), or undefined. */
+export function unitFromHash(hash: string): "su" | "ru" | undefined {
+  const v = new URLSearchParams(hash.replace(/^#/, "").split("?")[1] ?? "").get("unit");
+  return v === "su" || v === "ru" ? v : undefined;
+}
+
+/** The help text of the "Show the questions as" group, the same in both interviews. */
+export const VIEWS_HELP =
+  "The list shows every question, grouped by step. A map shows one tile for each step, or one card for each area of your site. Pick a tile to answer its questions one at a time. The questions and answers are the same in every view. Areas are optional: you set them up on the Your areas page.";

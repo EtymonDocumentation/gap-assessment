@@ -10,6 +10,7 @@ import { GuidancePage } from "./pages/GuidancePage";
 import { GapPage } from "./pages/GapPage";
 import { HomePage } from "./pages/HomePage";
 import { NeedsProject } from "./pages/NeedsProject";
+import { AreasPage } from "./pages/AreasPage";
 import { InterviewPage } from "./pages/InterviewPage";
 import { BuilderPage } from "./pages/BuilderPage";
 import { ChangesPage } from "./pages/ChangesPage";
@@ -208,6 +209,7 @@ function AppShell() {
   else if (SERVER_MODE && route.path === "/myfiles") page = <MyFilesPage params={route.params} />;
   else if (route.path === "/scope") page = <ScopePage />;
   else if (route.path === "/interview") page = <InterviewPage params={route.params} />;
+  else if (route.path === "/interview/areas") page = <AreasPage params={route.params} />;
   else if (route.path === "/compare") page = <ComparePage />;
   else if (route.path === "/register") page = <RegisterPage />;
   else if (route.path === "/validation") page = <ValidationPage />;

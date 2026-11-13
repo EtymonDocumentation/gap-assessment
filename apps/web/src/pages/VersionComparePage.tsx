@@ -31,6 +31,7 @@ const TAB_PURPOSE: Record<CompareDoc, string> = {
   mbr: "Steps, parameter rows and sample rows of the batch record that differ.",
   risk: "Risk items, ratings and links that differ.",
   excipient: "Excipients, their answers for the sending and the receiving site, specification rows and links that differ.",
+  areas: "Rooms of the sending and the receiving unit that were added, removed or changed: name, grade, the room it sits inside and the steps done there.",
 };
 
 /** Texts longer than this show their first part and a "Show all" button, so one long paragraph never pushes the table off the screen. */

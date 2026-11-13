@@ -56,6 +56,7 @@ section 1 rather than appending to it.
 | Stage-up | `5ce06ec`, `5d8f582`, `a1cafdf` | Version history per project, stage change = new version + guided review, compare two versions, version stamp on documents |
 | M11 | `1dd435c`, `cc69e86`, `249cdb9` | Sampling plan design review (see section 1) |
 | M13 | `7883a4f`, `188d2a8`, `bd7898b`, `52233aa`, job 4B | Excipient assessment: model and engine, screens, library, links and document, demos, tour, glossary, help (see section 1) |
+| M14 (jobs 1 to 3, in progress) | job 3 not yet committed | Interview maps: engine map functions and wording (`content/interview-map/wording.yaml`), TRD map screens, then job 3: the gap Interview map page (`#/interview?view=map`, address `view`/`node`/`unit`), the "Your areas" editor (`#/interview/areas`, `AreasPage.tsx`, no new server route), demo areas, areas in version compare. No schema change beyond 1.33.0 |
 
 ## 3. Hard rules
 - **Identity:** never put a personal name or email in the repo (files, commits, issues, PRs). Git identity is

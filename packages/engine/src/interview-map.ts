@@ -4,7 +4,7 @@ import type { InterviewMapWording } from "./interview-map-content";
 import { notApplicableReason, stepExclusions } from "./scope";
 import { HEADING_ABOUT_TITLE, type HeadingInterview } from "./trd-heading-interview";
 import { INTERVIEW_DOCUMENT_GROUP, type InterviewQuestion } from "./trd-interview";
-import { isAnswered, isTbdAnswer, type QuestionInstance } from "./sequencer";
+import { isAnswered, isTbdAnswer, type QuestionInstance, type SectionProgress } from "./sequencer";
 
 /**
  * The interview map (M14): the clickable maps of an interview, by PROCESS STEP and by FACILITY AREA. Everything here is DERIVED from the
@@ -143,6 +143,16 @@ export function mapCountsText(c: MapCounts, w: InterviewMapWording): string {
   if (c.open === 0) return fill(w.status.allAnswered, { total: c.total });
   const parts = [c.tbd > 0 ? fill(w.status.tbdPart, { tbd: c.tbd }) : "", c.toConfirm > 0 ? fill(w.status.toConfirmPart, { toConfirm: c.toConfirm }) : ""].filter(Boolean);
   return fill(w.status.someOpen, { answered: c.answered, total: c.total, open: c.open }) + (parts.length ? ` (${parts.join(", ")})` : "");
+}
+
+/**
+ * The counts of one gap interview section as the Progress map lists them. `progress()` counts a "to be decided" answer as answered and names it
+ * apart; the map counts it as open and names it apart. This turns the one into the other, so the Progress map list and the map tiles print the
+ * same words (`mapCountsText`) for the same section.
+ */
+export function sectionMapCounts(s: Pick<SectionProgress, "total" | "answered" | "tbd">): MapCounts {
+  const answered = s.answered - s.tbd;
+  return { total: s.total, answered, open: s.total - answered, tbd: s.tbd, toConfirm: 0 };
 }
 
 /** The state line of a node: its counts, or "Left out of this project: <reason>". */

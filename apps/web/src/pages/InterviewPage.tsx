@@ -1,4 +1,15 @@
+import { interviewMapWording } from "@gap/content";
 import {
+  buildAreaMap,
+  buildProcessMap,
+  firstOpenQuestion,
+  gapMapInput,
+  mapAreasOf,
+  mapBackOnMapText,
+  mapCountsText,
+  mapEndOfNodeText,
+  sectionMapCounts,
+  type MapNode,
   answeringFrom,
   applyAnswer,
   autoCiteAnswer,
@@ -28,7 +39,7 @@ import {
   type QuestionInstance,
   type SectionProgress,
 } from "@gap/engine";
-import { getEntry, type DocRef, type Project, type Source } from "@gap/process-model";
+import { FACILITY_UNIT_LABEL, getEntry, type DocRef, type FacilityUnit, type Project, type Source } from "@gap/process-model";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ArtFigure, closeupArt, sectionArt } from "../art";
 import { PageHeader } from "../PageHeader";
@@ -41,6 +52,8 @@ import { AnsweringBar, type CiteNotice } from "./AnsweringBar";
 import { GapUploadButton } from "./GapUploadButton";
 import { TailorButton } from "./TailorDialog";
 import { HelpTip } from "../HelpTip";
+import { InterviewMapView } from "../interview-map-view";
+import { nextNodeWithOpen, nodeIsOpenable, readGapView, runStartIndex, unitOfSide, VIEWS_HELP, writeGapView } from "../trd-interview-lib";
 import { ApplyAnswersDialog, SaveAnswersDialog } from "./SavedAnswersDialogs";
 import { StageRow } from "../stage-ui";
 import { QuestionInput, formTouched, initialForm, initialTbd, sameForm, toAnswer, toTbdAnswer, type FormState, type TbdMeta } from "./question-inputs";
@@ -191,14 +204,70 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
   // "Show only TBD" narrows the questions the card moves through to those recorded as TBD. Progress still counts all of them.
   const [onlyTbd, setOnlyTbd] = useState(false);
   const tbdInstances = useMemo(() => allInstances.filter((i) => isTbdInstance(project, i)), [allInstances, project]);
-  const instances = onlyTbd ? tbdInstances : allInstances;
+  const baseList = onlyTbd ? tbdInstances : allInstances;
+  const W = interviewMapWording;
+  const projectId = project.meta.id;
+  // The map (M14): one more way to reach the same questions. The address names it (view=map | process | areas), the node a run is limited to (node=),
+  // the unit whose areas are drawn (unit=) and the end of a run (end=1). view=map opens the view this person last used, else the process steps.
+  const viewParam = params.get("view");
+  const nodeParam = params.get("node");
+  const mapView: "process" | "areas" | null =
+    viewParam === "areas" || viewParam === "process" ? viewParam : viewParam === "map" ? readGapView(projectId) ?? "process" : nodeParam ? (/^(area:|unplaced$)/.test(nodeParam) ? "areas" : "process") : null;
+  const unit: FacilityUnit = params.get("unit") === "su" ? "su" : "ru";
+  const mapInput = useMemo(() => gapMapInput(content, project, allInstances, W), [content, project, allInstances, W]);
+  const map = useMemo(() => {
+    if (!mapView) return null;
+    const areas = mapAreasOf(project, unit);
+    return mapView === "areas" ? buildAreaMap(mapInput, areas, W) : buildProcessMap(mapInput, { areas });
+  }, [mapView, project, unit, mapInput, W]);
+  const runNode = map && nodeParam ? map.nodes.find((n) => n.id === nodeParam) : undefined;
+  const runKeys = useMemo(() => (runNode ? new Set(runNode.questionKeys) : null), [runNode]);
+  const instances = runKeys ? baseList.filter((i) => runKeys.has(i.key)) : baseList;
+  const [backTo, setBackTo] = useState<string | null>(null);
+  useEffect(() => {
+    if (mapView) writeGapView(projectId, mapView);
+  }, [mapView, projectId]);
+  /** The unit to draw after a question of this side: a sending question belongs to the sending unit. An area belongs to one unit, so an area run keeps its unit. */
+  const unitFor = (side: InstanceSide | undefined, nodeId: string | undefined): FacilityUnit => (nodeId?.startsWith("area:") ? unit : unitOfSide(side, unit));
+  /** The address of a card in the run (or of the plain card when no run is on). */
+  const cardHref = (key: string, side?: InstanceSide): string => (mapView && runNode ? href("/interview", { view: mapView, node: runNode.id, unit: unitFor(side, runNode.id), q: key }) : href("/interview", { q: key }));
+  const openKeys = useMemo(() => new Set(mapInput.questions.filter((q) => q.state !== "answered").map((q) => q.key)), [mapInput]);
+  const openNode = (n: MapNode) => {
+    const list = baseList.filter((i) => n.questionKeys.includes(i.key));
+    const first = list[runStartIndex(list.map((i) => i.key), openKeys)];
+    setBackTo(null);
+    navigate("/interview", { view: mapView ?? "process", node: n.id, unit: unitFor(first?.side, n.id), ...(first ? { q: first.key } : { end: "1" }) });
+  };
+  const backToMap = (side?: InstanceSide) => {
+    const n = runNode;
+    setBackTo(n?.id ?? null);
+    useStore.setState({ status: n ? mapBackOnMapText(n, W) : "" });
+    navigate("/interview", { view: mapView ?? "process", unit: unitFor(side, n?.id) });
+  };
+  const goNextOpen = () => {
+    const q = firstOpenQuestion({ ...mapInput, questions: mapInput.questions.filter((x) => baseList.some((i) => i.key === x.key)) });
+    if (!q) return useStore.setState({ status: W.run.noneOpen });
+    navigate("/interview", { q: q.key });
+  };
+  const chooseView = (v: "list" | "process" | "areas") => {
+    setBackTo(null);
+    if (v === "list") navigate("/interview");
+    else navigate("/interview", { view: v, unit });
+  };
+  // Back on the map the focus returns to the tile that was left (aria-current marks it).
+  useEffect(() => {
+    if (!backTo || !map || !mapView || nodeParam || params.get("q")) return;
+    document.querySelector<HTMLElement>(`button[data-node="${CSS.escape(backTo)}"]`)?.focus();
+  }, [backTo, map, mapView, nodeParam, params]);
   const [notice, setNotice] = useState<CiteNotice | null>(null);
   const [savedDialog, setSavedDialog] = useState<"save" | "apply" | null>(null);
 
   const summaryId = params.get("summary");
   const requested = params.get("q");
   const current =
-    (requested && allInstances.find((i) => i.key === requested)) || (!summaryId ? (onlyTbd ? tbdInstances[0] : nextInstance(allInstances, project)) : undefined);
+    (requested && allInstances.find((i) => i.key === requested)) || (!summaryId ? (runKeys ? instances[runStartIndex(instances.map((i) => i.key), openKeys)] : onlyTbd ? tbdInstances[0] : nextInstance(allInstances, project)) : undefined);
+  const showMap = Boolean(mapView && !requested && !summaryId && !nodeParam);
+  const showEnd = Boolean(runNode && !summaryId && (params.get("end") === "1" || instances.length === 0));
 
   const group = current ? groupOf(allInstances, current) : [];
   const needsResponder = !project.interview.responder;
@@ -251,7 +320,8 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
     }
 
     const full = visibleInstances(content, saved, saved.settings.entrySequence);
-    const list = onlyTbd ? full.filter((i) => isTbdInstance(saved, i)) : full;
+    let list = onlyTbd ? full.filter((i) => isTbdInstance(saved, i)) : full;
+    if (runKeys) list = list.filter((i) => runKeys.has(i.key));
     const idx = list.findIndex((i) => i.key === items[items.length - 1]!.inst.key);
     const from = list[idx];
     const after = list.slice(idx + 1).filter((i) => !from || i.question.id !== from.question.id);
@@ -259,6 +329,18 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
     // answers. Jumping to the next unanswered one would skip the answered ones and land on the summary far too early. Only when
     // nothing follows does it fall back to the first open question anywhere.
     const next = after[0] ?? (from ? undefined : nextInstance(list, saved));
+    if (runNode && mapView) {
+      // A run limited to a node ends with its own card, not a section summary: the person came for this step or area.
+      if (next) {
+        useStore.setState({ status: `${done} Next: ${nextTitle(list, next)}.` });
+        markHeadingFocus(next.key);
+        navigate("/interview", { view: mapView, node: runNode.id, unit: unitFor(next.side, runNode.id), q: next.key });
+      } else {
+        useStore.setState({ status: `${done} That was the last question in ${runNode.label}.` });
+        navigate("/interview", { view: mapView, node: runNode.id, unit: unitFor(items[items.length - 1]!.inst.side, runNode.id), end: "1" });
+      }
+      return { error: null };
+    }
     if (from && (!next || next.section.id !== from.section.id)) {
       useStore.setState({ status: `${done} Next: section summary, ${from.section.title}.` });
       navigate("/interview", { summary: from.section.id, ...(next ? { then: next.key } : {}) });
@@ -272,6 +354,8 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
     }
     return { error: null };
   }
+
+  const runLine = (label: string): string => (onlyTbd ? W.run.showingTbd : W.run.showingAll).replace("{label}", label);
 
   return (
     <div className="interview">
@@ -316,6 +400,12 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
               )}
             </>
           )}
+        </div>
+        <div className="card tight" data-tour="interview-see-map">
+          <a className="btn small" href={href("/interview", { view: "map" })} data-testid="see-the-map">
+            {W.views.seeMap}
+          </a>
+          <p className="small muted">{W.views.seeMapHint}</p>
         </div>
         {answeredCount === 0 && (
           <div className="card tight" data-testid="interview-upload-card">
@@ -386,6 +476,16 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
       </aside>
 
       <div className="interview-main">
+        {runNode && !showEnd && (
+          <div className="card tight row wrap between" data-testid="run-note">
+            <p className="small" data-testid="run-line">
+              {runLine(runNode.label)}
+            </p>
+            <button type="button" className="btn small" data-testid="gap-back-to-map" onClick={() => backToMap(current?.side)}>
+              {W.run.backToMap}
+            </button>
+          </div>
+        )}
         <AnsweringBar
           notice={notice}
           onDismissNotice={() => setNotice(null)}
@@ -401,7 +501,62 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
             setNotice(null);
           }}
         />
-        {summaryId ? (
+        {showMap && map ? (
+          <section className="stack" data-testid="gap-map">
+            <div className="card stack iv-controls" data-testid="iv-controls">
+              <fieldset className="fs stack iv-views" data-testid="iv-views">
+                <legend>
+                  {W.views.groupLabel} <HelpTip label="Show the questions as" text={VIEWS_HELP} />
+                </legend>
+                <div className="row wrap">
+                  {(["list", "process", "areas"] as const).map((k) => (
+                    <label key={k} className="check">
+                      <input type="radio" name="iv-view" checked={k === "list" ? false : mapView === k} onChange={() => chooseView(k)} data-testid={`iv-view-${k}`} />{" "}
+                      <span>{k === "list" ? W.views.list : k === "areas" ? W.views.areas : W.views.process}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            </div>
+            <InterviewMapView
+              map={map}
+              wording={W}
+              title={mapView === "areas" ? W.views.areas : W.views.process}
+              hint={mapView === "areas" ? W.views.areasHint : W.views.processHint}
+              onOpen={openNode}
+              currentId={backTo}
+              testPrefix="imap"
+              areaLinks={{
+                edit: href("/interview/areas", { unit, from: "gap" }),
+                first: href("/interview/areas", { unit, from: "gap", add: "1" }),
+                example: href("/interview/areas", { unit, from: "gap", example: "1" }),
+              }}
+              actions={
+                <div className="stack">
+                  <div className="row wrap">
+                    <button type="button" className="btn primary" data-testid="iv-next-open" onClick={goNextOpen}>
+                      {W.run.nextOpen}
+                    </button>
+                  </div>
+                  {mapView === "areas" && (
+                    <fieldset className="fs iv-unit-switch" data-testid="iv-unit-switch">
+                      <legend>{W.areas.unitSwitchLabel}</legend>
+                      <div className="row wrap">
+                        {(["ru", "su"] as const).map((u) => (
+                          <label key={u} className="check">
+                            <input type="radio" name="iv-unit" checked={unit === u} onChange={() => navigate("/interview", { view: "areas", unit: u })} data-testid={`iv-unit-${u}`} /> <span>{FACILITY_UNIT_LABEL[u]}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+                  )}
+                </div>
+              }
+            />
+          </section>
+        ) : showEnd && runNode ? (
+          <RunEnd node={runNode} onMap={() => backToMap(instances[instances.length - 1]?.side)} next={nextNodeWithOpen(map?.nodes ?? [], runNode.id)} onNext={openNode} line={runLine(runNode.label)} />
+        ) : summaryId ? (
           <SectionSummary sectionId={summaryId} instances={allInstances} thenKey={params.get("then")} />
         ) : current ? (
           <QuestionCard
@@ -410,6 +565,8 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
             group={group}
             requestedKey={requested && allInstances.some((i) => i.key === requested) ? requested : null}
             instances={instances}
+            hrefFor={cardHref}
+            {...(runNode && mapView ? { endHref: href("/interview", { view: mapView, node: runNode.id, unit: unitFor(current.side, runNode.id), end: "1" }) } : {})}
             mode={mode}
             onSave={(items, opts) => save(group, items, opts)}
           />
@@ -436,6 +593,35 @@ export function InterviewPage({ params }: { params: URLSearchParams }) {
           }}
         />
       </Modal>
+    </div>
+  );
+}
+
+/** The card at the end of a run limited to one step or area: what is left, and where to go next. Nothing is decided here. */
+function RunEnd({ node, onMap, next, onNext, line }: { node: MapNode; onMap: () => void; next: MapNode | undefined; onNext: (n: MapNode) => void; line: string }) {
+  const W = interviewMapWording;
+  const ref = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    ref.current?.focus();
+  }, []);
+  return (
+    <div className="card stack" data-testid="gap-end">
+      <h2 ref={ref} tabIndex={-1}>
+        {mapEndOfNodeText(node, W)}
+      </h2>
+      <p className="small" data-testid="gap-end-line">
+        {line}
+      </p>
+      <div className="row wrap">
+        <button type="button" className="btn primary" data-testid="gap-end-map" onClick={onMap}>
+          {W.run.backToMap}
+        </button>
+        {next && nodeIsOpenable(next) && (
+          <button type="button" className="btn" data-testid="gap-end-next-node" onClick={() => onNext(next)}>
+            {W.run.nextStepWithOpen}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -469,7 +655,7 @@ function ProgressMap({
                 <span className={`pm-state ${done ? "done" : s.answered ? "partial" : ""}`} aria-hidden="true" />
                 <span className="pm-title">{s.section.title}</span>
                 <span className="pm-count">
-                  {s.answered - s.tbd} of {s.total} answered{s.total - (s.answered - s.tbd) > 0 ? `, ${s.total - (s.answered - s.tbd)} still open` : ", complete"}{s.tbd ? ` (${s.tbd} to be decided)` : ""}
+                  {mapCountsText(sectionMapCounts(s), interviewMapWording)}
                 </span>
               </a>
               {s.section.kind !== "scoping" && s.total > 0 && (
@@ -515,6 +701,8 @@ function QuestionCard({
   group,
   requestedKey,
   instances,
+  hrefFor,
+  endHref,
   mode,
   onSave,
 }: {
@@ -522,6 +710,10 @@ function QuestionCard({
   group: QuestionInstance[];
   requestedKey: string | null;
   instances: QuestionInstance[];
+  /** The address of another question's card (the run keeps its node, view and unit in it). */
+  hrefFor: (key: string, side?: InstanceSide) => string;
+  /** Set in a run limited to a node: where "Finish this step" goes when no question follows. */
+  endHref?: string;
   mode: "paired" | "sequential";
   onSave: (items: SaveItem[], opts: { quick: boolean; otherPending: boolean }) => SaveResult;
 }) {
@@ -754,7 +946,7 @@ function QuestionCard({
             group[0]!,
             isStageTarget(group[0]!) ? (
               next ? (
-                <a href={href("/interview", { q: next.key })} className="btn primary" onClick={() => markHeadingFocus(next.key)}>
+                <a href={hrefFor(next.key, next.side)} className="btn primary" onClick={() => markHeadingFocus(next.key)}>
                   Continue →
                 </a>
               ) : null
@@ -807,16 +999,22 @@ function QuestionCard({
       </p>
       <div className="row between q-nav">
         {prev ? (
-          <a href={href("/interview", { q: prev.key })} className="btn ghost" onClick={() => markHeadingFocus(prev.key)}>
+          <a href={hrefFor(prev.key, prev.side)} className="btn ghost" onClick={() => markHeadingFocus(prev.key)}>
             ← Previous
           </a>
         ) : (
           <span />
         )}
-        {next && (
-          <a href={href("/interview", { q: next.key })} className="btn ghost" onClick={() => markHeadingFocus(next.key)}>
+        {next ? (
+          <a href={hrefFor(next.key, next.side)} className="btn ghost" onClick={() => markHeadingFocus(next.key)}>
             Skip for now →
           </a>
+        ) : (
+          endHref && (
+            <a href={endHref} className="btn ghost" data-testid="gap-finish-step">
+              {interviewMapWording.run.finishStep} →
+            </a>
+          )
         )}
       </div>
       {clearing && <ClearDialog request={clearing} onClose={() => setClearing(null)} onDone={() => afterClear(clearing.insts)} restoreFocus={() => headingRef.current} />}

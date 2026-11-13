@@ -1,4 +1,4 @@
-import { EXCIPIENT_FACTS, EXCIPIENT_SIDE_LABEL, allEntries, excipientAssessments, excipientFactPath, resolveEntry, stableStringify, type ExcipientAssessment, type Project, type ReviewDoc, type TrdDocument, type TrdField, type TrdRange } from "@gap/process-model";
+import { EXCIPIENT_FACTS, EXCIPIENT_SIDE_LABEL, FACILITY_GRADE_LABEL, FACILITY_UNITS, FACILITY_UNIT_LABEL, allEntries, facilityAreas, excipientAssessments, excipientFactPath, resolveEntry, stableStringify, type ExcipientAssessment, type Project, type ReviewDoc, type TrdDocument, type TrdField, type TrdRange } from "@gap/process-model";
 import { excipientTbdText } from "./excipient-analysis";
 import type { ContentBundle } from "./content";
 import { cell } from "./csv";
@@ -20,11 +20,11 @@ import { historyOf, readVersion } from "./version-history";
 
 export const WORKING_COPY_LABEL = "Working copy";
 
-/** The five documents of the stage review, and the excipient assessment (a part of the project, not one of the five). */
-export type CompareDoc = ReviewDoc | "excipient";
-export const COMPARE_DOCS: readonly CompareDoc[] = ["gap", "trd", "sampling", "mbr", "risk", "excipient"];
+/** The five documents of the stage review, the excipient assessment and the facility areas (parts of the project, not documents of the five). */
+export type CompareDoc = ReviewDoc | "excipient" | "areas";
+export const COMPARE_DOCS: readonly CompareDoc[] = ["gap", "trd", "sampling", "mbr", "risk", "excipient", "areas"];
 /** The names the menu and the stage review use for the documents. */
-export const COMPARE_DOC_NAME: Record<CompareDoc, string> = { gap: "Gap assessment", trd: "TRD", sampling: "Sampling plan", mbr: "Batch record", risk: "Risk", excipient: "Excipient assessment" };
+export const COMPARE_DOC_NAME: Record<CompareDoc, string> = { gap: "Gap assessment", trd: "TRD", sampling: "Sampling plan", mbr: "Batch record", risk: "Risk", excipient: "Excipient assessment", areas: "Facility areas" };
 
 /** "same" only appears when the caller asks for unchanged items too (the page's "Only show changes" switched off). */
 export type CompareKind = "changed" | "added" | "removed" | "same";
@@ -327,6 +327,38 @@ function specSideText(s: { state: string; method?: string; criterion?: string; u
 
 // ------------------------------------------------------------------ the gap assessment
 
+// ------------------------------------------------------------------ the facility areas (M14)
+
+/**
+ * The areas of both units as plain values: one entry per area, listed by its id, with the grade the person stated, the area it sits inside, the
+ * steps done there (by name, in process order) and the note. The areas only help find questions, but they are a part of the project that a
+ * reviewer can see changed between two versions, so they are compared like any other part. A rename shows as "Area name".
+ */
+function areasView(content: ContentBundle, project: Project): Record<string, Json>[] {
+  const order = [...content.catalog.unitOperations, ...(project.custom?.unitOperations ?? [])].sort((x, y) => x.sequence - y.sequence);
+  const label = new Map(order.map((u) => [u.key, u.label] as const));
+  const out: Record<string, Json>[] = [];
+  for (const unit of FACILITY_UNITS) {
+    const areas = facilityAreas(project, unit);
+    for (const a of areas) {
+      const steps = order.filter((u) => a.stepKeys.includes(u.key)).map((u) => u.label);
+      const unknown = a.stepKeys.filter((k) => !label.has(k));
+      out.push({
+        id: a.id,
+        // `name` is only the label of the row (a key called name is never compared); the area's own name is compared as "Area name".
+        name: `${FACILITY_UNIT_LABEL[unit]}: ${a.name}`,
+        "Area name": a.name,
+        Grade: a.grade ? FACILITY_GRADE_LABEL[a.grade] : "Not stated",
+        "Inside area": areas.find((x) => x.id === a.insideAreaId)?.name ?? "",
+        "Steps done here": [...steps, ...unknown].join(", "),
+        Note: a.note ?? "",
+        "From the example, please check": a.fromExample ? "Yes" : "",
+      });
+    }
+  }
+  return out;
+}
+
 function gapRows(content: ContentBundle, a: Project, b: Project, includeSame: boolean): CompareRow[] {
   const refs: string[] = [];
   const seen = new Set<string>();
@@ -392,12 +424,14 @@ export function compareVersions(content: ContentBundle, a: Project, b: Project, 
   docs("risk", COMPARE_DOC_NAME.risk, a.risk.assessments, b.risk.assessments);
   // Saved versions carry the excipient assessments (spec section 8): the whole project is stored, so they are read back like the rest.
   docs("excipient", COMPARE_DOC_NAME.excipient, excipientAssessments(a).map((x) => excipientView(a, x)), excipientAssessments(b).map((x) => excipientView(b, x)));
+  // The facility areas (optional; a project from before them has none, so two such projects show no difference).
+  docs("areas", COMPARE_DOC_NAME.areas, areasView(content, a), areasView(content, b));
   return rows;
 }
 
 /** How many differences each document has (unchanged items, when listed, are not counted). */
 export function compareCounts(rows: readonly CompareRow[]): Record<CompareDoc, number> {
-  const out: Record<CompareDoc, number> = { gap: 0, trd: 0, sampling: 0, mbr: 0, risk: 0, excipient: 0 };
+  const out: Record<CompareDoc, number> = { gap: 0, trd: 0, sampling: 0, mbr: 0, risk: 0, excipient: 0, areas: 0 };
   for (const r of rows) if (r.kind !== "same") out[r.doc]++;
   return out;
 }

@@ -49,6 +49,9 @@ tours:
       - anchor: interview-progress
         title: Your progress
         text: This shows how many questions you have answered. You can leave and come back at any time. Your answers are kept.
+      - anchor: interview-see-map
+        title: See the map
+        text: A picture of the process steps or the rooms of your site. Pick a tile to answer its questions, then use Back to the map. The questions and answers are the same as in the list.
       - anchor: interview-question
         title: One question at a time
         text: Each question asks about the sending unit (SU), the receiving unit (RU), or both. Answer what you know.
@@ -61,6 +64,12 @@ tours:
       - anchor: interview-more
         title: More
         text: Open More for the progress map (jump to any section; a section that still has a TBD is not counted as done until you settle it), the entry order and your saved answers. It starts closed.
+      - anchor: interview-map
+        title: The progress map as a list
+        text: This is the list form of the map, with the same counts as the tiles. Pick a section to go to its questions.
+      - anchor: interview-areas-setup
+        title: Your areas
+        text: In the Facility areas map, set up the rooms of each unit and tick the steps done in each. This is optional and changes no document. The tool never states a grade for you.
 
   - id: risk
     path: /risk
@@ -97,7 +106,7 @@ tours:
         text: Answer plain questions and the TRD fills itself in. Steps left out of the project get no questions, and each question says where its answer lands in the document. Anything you do not know stays open.
       - anchor: interview-views
         title: List or map
-        text: Show the questions as a List, or as a map of your Process steps or Facility areas. Pick a tile to answer its questions, then use Back to the map. The questions and answers are the same in every view.
+        text: Show the questions as a List, or as a map of your Process steps or Facility areas. Pick a tile to answer its questions, then use Back to the map. In Facility areas, Edit your areas sets up your rooms.
       - anchor: trd-one-at-a-time
         title: One question at a time
         text: In the List, use the switch Show one question at a time to see a single question with Back and Next. Turn it off to see the whole list again.

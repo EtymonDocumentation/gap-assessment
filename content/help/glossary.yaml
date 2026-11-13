@@ -27,6 +27,16 @@ terms:
     short: The last heading of a TRD that follows your template. It holds the sections you added back although your template has no heading for them.
     see: [not-in-your-template, template-headings]
 
+  - id: area
+    term: Area (facility area)
+    short: A room or barrier of a site where process steps are done, such as a filling room or an isolator. You name your areas and tick the steps done in each. They only help you find questions on the interview map and change no document.
+    see: [grade, barrier, not-classified, receiving-unit, sending-unit]
+
+  - id: barrier
+    term: Barrier (isolator or RABS)
+    short: A physical enclosure that separates the product from the people and the room around it, such as an isolator or a restricted access barrier system (RABS). It can sit inside a room, and you can list it as an area inside that room.
+    see: [area, grade]
+
   - id: batch-record
     term: Batch record (MBR)
     short: The step-by-step instruction for making one batch. It is built from ready-made steps. It can start from a technical requirements document and a sampling plan, or from neither. Its Process view draws it as an equipment train.
@@ -127,6 +137,12 @@ terms:
     short: The list of every gap the tool found, one row for each, with its category and severity. You can filter, sort and export it, and record an owner, a status and a note for each gap. What to do about a gap is your decision. The tool never decides a filing category.
     see: [gap, sending-unit, receiving-unit]
 
+  - id: grade
+    term: Grade A, B, C and D (cleanroom grade)
+    short: The cleanroom grade of an area as your site states it. Choose it yourself for each area. The tool never works out a grade from a step or a name, and the example layout states none.
+    see: [area, not-classified]
+
+
   - id: heading-placement
     term: Heading placement
     short: For one of your Word templates, choosing which heading each part of our content goes under. You set it on the Heading placement page. A download uses it only when you choose it, and nothing is placed for you.
@@ -166,6 +182,12 @@ terms:
     term: NOR (normal operating range)
     short: The range around the set point in which the process normally runs. You enter it in the TRD, with a source.
     see: [set-point, par, trd]
+
+  - id: not-classified
+    term: Not classified
+    short: A grade you can choose for an area that has no cleanroom grade at your site, such as a store room. It is a statement by you. Leaving the grade on Choose... means it is not stated yet.
+    see: [area, grade]
+
 
   - id: not-in-your-template
     term: Not in your template

@@ -7,6 +7,9 @@ import {
   buildAreaMap,
   buildDemoProject,
   buildProcessMap,
+  compareCounts,
+  compareVersions,
+  sectionMapCounts,
   confirmFacilityExampleArea,
   createTrd,
   deriveTrdQuestions,
@@ -59,7 +62,10 @@ const later = { name: "Sam Sample (fictional)", at: T2 };
 
 function baseProject(): Project {
   const p = buildDemoProject(content, demos["arx-217"] as never);
-  return { ...p, trd: { documents: [] }, changeLog: p.changeLog.filter((e) => !(e.path ?? "").startsWith("trd.")) };
+  // The demo carries its own areas since job 3; these cases start with none, and add their own.
+  const { facility: _areas, ...rest } = p;
+  void _areas;
+  return { ...rest, trd: { documents: [] }, changeLog: p.changeLog.filter((e) => !/^(trd|facility)./.test(e.path ?? "")) };
 }
 
 /** A blank TRD with every step and every write-up: the widest set of questions there is. */
@@ -589,5 +595,62 @@ describe("content/interview-map", () => {
     const bad = JSON.parse(JSON.stringify(wordingRaw));
     bad.run.showingOpen = "Showing only the questions still open";
     expect(() => parseInterviewMapWording(bad)).toThrow(/missing {label}/);
+  });
+});
+
+describe("M14 job 3: demo areas, the areas compare part, the shared Progress map counts", () => {
+  const live = (p: Project) => gapMapInput(content, p, visibleInstances(content, p, p.settings.entrySequence), W).steps.filter((st) => !st.leftOut).map((st) => st.key);
+
+  for (const id of ["arx-217", "syr-305"] as const) {
+    it(`the ${id} demo has 3 to 6 receiving areas that follow the rules, and a short sending list`, () => {
+      const p = buildDemoProject(content, demos[id] as never);
+      expect(parseProject(JSON.parse(JSON.stringify(p)))).toBeTruthy();
+      const ru = facilityAreas(p, "ru");
+      const su = facilityAreas(p, "su");
+      expect(ru.length).toBeGreaterThanOrEqual(3);
+      expect(ru.length).toBeLessThanOrEqual(6);
+      expect(su.length).toBeGreaterThanOrEqual(1);
+      expect(su.length).toBeLessThanOrEqual(ru.length);
+      // Grades are stated by the demo (the example never states one); nothing is left "from the example".
+      for (const a of [...ru, ...su]) {
+        expect(a.grade, a.name).toBeDefined();
+        expect(a.fromExample, a.name).toBeUndefined();
+      }
+      // At least one nest, with the parent in the same unit.
+      expect(ru.some((a) => a.insideAreaId && ru.some((x) => x.id === a.insideAreaId))).toBe(true);
+      // One step done in two areas.
+      const counts = new Map<string, number>();
+      for (const a of ru) for (const k of a.stepKeys) counts.set(k, (counts.get(k) ?? 0) + 1);
+      expect([...counts.values()].some((n) => n >= 2)).toBe(true);
+      // At least one live step is left unplaced.
+      const placed = new Set(ru.flatMap((a) => a.stepKeys));
+      expect(live(p).some((k) => !placed.has(k))).toBe(true);
+      // Fictional names only: nothing from the private terms.
+      expectNoPrivateTerms(JSON.stringify([...ru, ...su].map((a) => ({ name: a.name, note: a.note }))));
+    });
+  }
+
+  it("the stage compare lists the areas as a changed part when they differ, and only then", () => {
+    const a = buildDemoProject(content, demos["arx-217"] as never);
+    expect(compareCounts(compareVersions(content, a, structuredClone(a))).areas).toBe(0);
+    const first = facilityAreas(a, "ru")[0]!;
+    const b = renameFacilityArea(a, first.id, "Renamed room (fictional)", who);
+    const rows = compareVersions(content, a, b);
+    expect(compareCounts(rows).areas).toBeGreaterThan(0);
+    expect(rows.some((r) => r.doc === "areas" && /Renamed room/.test(JSON.stringify(r)))).toBe(true);
+    const c = removeFacilityArea(a, first.id, "Room is not used (fictional)", who);
+    expect(compareCounts(compareVersions(content, a, c)).areas).toBeGreaterThan(0);
+  });
+
+  it("the Progress map list and the map tiles print the same counts for a section", () => {
+    const p = buildDemoProject(content, demos["syr-305"] as never);
+    const inst = visibleInstances(content, p, p.settings.entrySequence);
+    const input = gapMapInput(content, p, inst, W);
+    const map = buildProcessMap(input, {});
+    for (const s of progress(content, p, inst)) {
+      const node = map.nodes.find((n) => (s.section.uo ? n.id === `step:${s.section.uo}` : false));
+      if (!node || !s.section.uo) continue;
+      expect(mapCountsText(sectionMapCounts(s), W), s.section.title).toBe(mapCountsText(node.counts, W));
+    }
   });
 });

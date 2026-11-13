@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { addSource, readTrdImage, companyTableSnapshotSchema, emptyProject, riskBandSchema, subsectionBlockSchema, subsectionLibraryItemSchema, verifyEntry, type Actor, type CompanyTableSnapshot, type DesignLoadouts, type DocRef, type FailureModeSuggestions, type MbrLibraryBlock, type TrdLibraryWriteup, type RiskLoadouts, type Project, type SubsectionLibraryItem } from "@gap/process-model";
+import { FACILITY_GRADES, addSource, readTrdImage, companyTableSnapshotSchema, emptyProject, riskBandSchema, subsectionBlockSchema, subsectionLibraryItemSchema, verifyEntry, type Actor, type CompanyTableSnapshot, type DesignLoadouts, type DocRef, type FailureModeSuggestions, type MbrLibraryBlock, type TrdLibraryWriteup, type RiskLoadouts, type Project, type SubsectionLibraryItem } from "@gap/process-model";
 import type { ContentBundle } from "./content";
 import { PARAMETER_FIELDS, type ParameterField } from "./content-schema";
+import { addFacilityArea } from "./facility";
 import { applyAnswer, type AnswerInput, type FieldAnswer } from "./interview";
 import { setGapOverlay } from "./overlays";
 import { addAction, addItem, addReview, createAssessment, pointRef, setMethod, updateAssessment, updateItem } from "./risk";
@@ -348,6 +349,18 @@ const excipientDemoSchema = z.object({
   ),
 });
 
+/**
+ * The facility areas of a demo (M14): a short list of rooms for each unit, so the area map has something to show. Names, the grade the demo
+ * states and the steps done in each are all invented. `inside` names an earlier area of the same list; a step may be listed in several areas.
+ */
+const facilityDemoSchema = z.object({
+  at: z.string(),
+  by: z.string(),
+  role: z.string().optional(),
+  ru: z.array(z.object({ name: z.string(), grade: z.enum(FACILITY_GRADES).optional(), inside: z.string().optional(), steps: z.array(z.string()), note: z.string().optional() })).default([]),
+  su: z.array(z.object({ name: z.string(), grade: z.enum(FACILITY_GRADES).optional(), inside: z.string().optional(), steps: z.array(z.string()), note: z.string().optional() })).default([]),
+});
+
 const demoSchema = z.object({
   demo: z.object({ id: z.string(), title: z.string(), version: z.string() }),
   responder: z.object({ name: z.string(), role: z.string().optional() }),
@@ -372,6 +385,7 @@ const demoSchema = z.object({
   trd: trdDemoSchema.optional(),
   mbr: mbrDemoSchema.optional(),
   excipients: excipientDemoSchema.optional(),
+  facility: facilityDemoSchema.optional(),
 });
 
 export type DemoScript = z.infer<typeof demoSchema>;
@@ -456,6 +470,8 @@ export function buildDemoProject(content: ContentBundle, raw: unknown, suggestio
   if (demo.trd) project = applyTrdDemo(project, content, demo.trd, trd?.writeups);
   // The excipient assessment links to the TRD material and to the risk assessment, so it comes after both. Its risk link needs the failure-mode catalog.
   if (demo.excipients) project = applyExcipientDemo(project, demo.excipients, risk?.failureModes);
+  // The facility areas only need the catalog's steps; they are for finding questions by room and change nothing else.
+  if (demo.facility) project = applyFacilityDemo(content, project, demo.facility);
   // The design review's answers need the finished project (the questions read the TRD, the risk assessment and the catalog).
   if (demo.sampling && suggestions) project = applyReviewAnswersDemo(project, content, demo.sampling, suggestions);
   // The batch record takes its values from the TRD and its sample rows from the plan, so it comes last and needs the step-blocks library.
@@ -879,6 +895,23 @@ function applyTrdDemo(project: Project, content: ContentBundle, t: z.infer<typeo
     }
   }
   return project;
+}
+
+/** The demo's areas, added through the same edit as a person's own, receiving unit first. A parent must be listed before the areas inside it. */
+function applyFacilityDemo(content: ContentBundle, project: Project, f: z.infer<typeof facilityDemoSchema>): Project {
+  const actor = actorOf(f);
+  let p = project;
+  for (const unit of ["ru", "su"] as const) {
+    const ids = new Map<string, string>();
+    for (const a of f[unit]) {
+      const parent = a.inside === undefined ? undefined : ids.get(a.inside);
+      if (a.inside !== undefined && !parent) throw new Error(`Demo facility: ${a.name} sits inside ${a.inside}, which is not listed before it`);
+      const r = addFacilityArea(content, p, unit, { name: a.name, stepKeys: a.steps, ...(a.grade ? { grade: a.grade } : {}), ...(parent ? { insideAreaId: parent } : {}), ...(a.note ? { note: a.note } : {}) }, actor);
+      p = r.project;
+      ids.set(a.name, r.areaId);
+    }
+  }
+  return p;
 }
 
 function applyExcipientDemo(project: Project, e: z.infer<typeof excipientDemoSchema>, failureModes?: FailureModeSuggestions): Project {

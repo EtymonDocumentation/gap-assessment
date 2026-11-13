@@ -32,6 +32,7 @@ const t = (project: boolean, ...parts: (string | TrailPart)[]): Trail => ({ proj
 const TRAILS: Record<string, Trail> = {
   "/scope": t(true, DOCS, "Gap assessment"),
   "/interview": t(true, DOCS, gap, "Interview"),
+  "/interview/areas": t(true, DOCS, gap, { label: "Interview", path: "/interview" }, "Your areas"),
   "/compare": t(true, DOCS, gap, "Side by side"),
   "/register": t(true, DOCS, gap, "Gap register"),
   "/validation": t(true, DOCS, gap, "Validation"),

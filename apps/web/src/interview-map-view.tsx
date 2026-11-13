@@ -44,6 +44,8 @@ export interface InterviewMapViewProps {
   actions?: React.ReactNode;
   /** The text of the empty area state, when the unit has no areas. */
   emptyAreas?: React.ReactNode;
+  /** Where the "Your areas" page opens (the area view only): the edit button, and the two buttons of the empty state. */
+  areaLinks?: { edit: string; first: string; example: string };
   /** Prefix of the test ids (`<prefix>-node-<id>`). */
   testPrefix?: string;
 }
@@ -186,7 +188,7 @@ function AreaCard({ n, all, w, current, currentId, onOpen, prefix }: { n: MapNod
   );
 }
 
-export function InterviewMapView({ map, wording: w, title, hint, onOpen, currentId, actions, emptyAreas, testPrefix = "imap" }: InterviewMapViewProps) {
+export function InterviewMapView({ map, wording: w, title, hint, onOpen, currentId, actions, emptyAreas, areaLinks, testPrefix = "imap" }: InterviewMapViewProps) {
   const prefix = testPrefix;
   const head = (
     <>
@@ -195,6 +197,13 @@ export function InterviewMapView({ map, wording: w, title, hint, onOpen, current
         {hint}
       </p>
       {actions}
+      {areaLinks && map.view === "areas" && !map.empty && (
+        <p>
+          <a className="btn small" href={areaLinks.edit} data-testid={`${prefix}-edit-areas`} data-tour="interview-areas-setup">
+            {w.editor.edit}
+          </a>
+        </p>
+      )}
     </>
   );
   if (map.empty) {
@@ -202,6 +211,16 @@ export function InterviewMapView({ map, wording: w, title, hint, onOpen, current
       <section className="card stack imap" aria-labelledby={`${prefix}-h`} data-testid={prefix}>
         {head}
         <p data-testid={`${prefix}-empty`}>{emptyAreas ?? w.explain.emptyAreas}</p>
+        {areaLinks && (
+          <div className="row wrap" data-tour="interview-areas-setup">
+            <a className="btn primary" href={areaLinks.first} data-testid={`${prefix}-add-first`}>
+              {w.explain.addFirst}
+            </a>
+            <a className="btn" href={areaLinks.example} data-testid={`${prefix}-start-example`}>
+              {w.explain.startExample}
+            </a>
+          </div>
+        )}
       </section>
     );
   }
