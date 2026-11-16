@@ -36,6 +36,7 @@ import {
   openItems,
   placementText,
   planTotals,
+  SAMPLING_BOM_POINTER,
   pointsAt,
   renderSubsection,
   reportingInstructions,
@@ -677,6 +678,7 @@ export function buildSamplingPlanDocument(
         ] as Block[])
       : []),
     ...totals.notes.map((text): Block => ({ type: "note", text })),
+    { type: "paragraph", text: SAMPLING_BOM_POINTER },
     ...subsAfter("totals"),
   ]);
 

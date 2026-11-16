@@ -42,6 +42,7 @@ export * from "./expected-list";
 export * from "./sampling-figure-seed";
 export * from "./sampling-document";
 export * from "./sampling-cmo";
+export * from "./sampling-bom";
 export * from "./risk";
 export * from "./risk-seed";
 export * from "./risk-document";

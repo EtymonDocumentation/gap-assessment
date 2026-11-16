@@ -42,6 +42,11 @@ terms:
     short: The step-by-step instruction for making one batch. It is built from ready-made steps. It can start from a technical requirements document and a sampling plan, or from neither. Its Process view draws it as an equipment train.
     see: [ready-made-steps, process-view, trd, sampling-point, ppq-only-item]
 
+  - id: bom
+    term: Bill of materials (BOM)
+    short: One list of everything that may be used to take the PPQ samples, such as sample containers, connectors and other sampling parts, and equipment used only for sampling, per batch and in total. It is worked out from the sampling plan and lists what may be used. The batch record records what is actually used.
+    see: [sampling-point, batch-record, ppq]
+
   - id: bioburden
     term: Bioburden
     short: The number of living microorganisms in a solution or on a product before it is sterile filtered, counted in colony forming units (CFU). A limit is written for a stated volume, for example per 100 mL.

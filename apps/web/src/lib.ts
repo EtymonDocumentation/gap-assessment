@@ -118,6 +118,8 @@ export const FORMAT_LABEL = {
   "sampling-plan-html": "Sampling plan (HTML)",
   "sampling-cmo-instructions-docx": "CMO reporting instructions (Word)",
   "sampling-cmo-instructions-html": "CMO reporting instructions (HTML)",
+  "sampling-bom-docx": "Sampling bill of materials (Word)",
+  "sampling-bom-html": "Sampling bill of materials (HTML)",
   "risk-assessment-docx": "Risk assessment (Word)",
   "risk-assessment-html": "Risk assessment (HTML)",
   "trd-docx": "TRD (Word)",

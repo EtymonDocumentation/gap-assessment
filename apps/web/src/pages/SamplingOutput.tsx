@@ -1,5 +1,5 @@
 import { DocPreview } from "../DocPreview";
-import { buildCmoInstructionsDocument, buildSamplingData, buildSamplingPlanDocument, CMO_INSTRUCTIONS_TITLE, documentFingerprint, projectLabel, recordExport, samplingBasisText, stampDocument } from "@gap/engine";
+import { buildCmoInstructionsDocument, buildSamplingBomDocument, buildSamplingData, buildSamplingPlanDocument, CMO_INSTRUCTIONS_TITLE, documentFingerprint, projectLabel, recordExport, samplingBasisText, stampDocument } from "@gap/engine";
 import { PROCESS_MODEL_VERSION, SAMPLING_PLAN_FORMAT_VERSION, type DocumentExport, type SamplingPlan, type TemplateRecord } from "@gap/process-model";
 import { DOCUMENT_CSS, renderHtml, renderHtmlPreview } from "@gap/renderers";
 import { FIGURE_STYLE_LABEL, FIGURE_STYLES, SAMPLING_STATS_VERSION, type FigureStyle } from "@gap/sampling";
@@ -9,6 +9,7 @@ import { Modal } from "../components";
 import { APP_VERSION, download, projectFileStem, today } from "../lib";
 import { useContent, useStore } from "../store";
 import { useVersionStamp } from "../version-ui";
+import { SamplingBomView } from "./SamplingBomView";
 import { BUILTIN_RECORD, ExportHistory, exportsOfDocument, GENERIC_MODES, useWordChoice, WordPanel } from "./document-panels";
 
 /**
@@ -25,15 +26,21 @@ export function SamplingOutput({ plan }: { plan: SamplingPlan }) {
   );
 }
 
+/** The sampling bill of materials: a document of its own, with its own page (a tab of the plan), downloads and export history. */
+export function SamplingBomOutput({ plan }: { plan: SamplingPlan }) {
+  return <OutputCard plan={plan} variant="bom" />;
+}
+
 const SAMPLING_WORD_NOTE =
   `"A template's headings" is offered for the gap assessment document only: a saved heading placement names the gap document's sections. For a tagged template, {title}, {banner}, {status}, {generated}, {meta}, {sections} and the project tags ({program}, {modality}, {sourceSite}, {targetSite} and the like) are filled, and {@body} brings in the document in your template's styles. The parties from "Who does what" are available as {#parties}, {#fromParties}, {#toParties} and {#ccParties} (name, role, department), and as {sendingUnit}, {receivingSite}, {cmoName} and {sponsorName}; the Templates page lists every tag.`;
 
 /** One document card. The CMO reporting instructions are a second output of the same plan, with their own export-history kinds. */
-function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "cmo" }) {
+function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "cmo" | "bom" }) {
   const cmo = variant === "cmo";
-  const p = cmo ? "cmo" : "sampling";
-  const kindPrefix = cmo ? "sampling-cmo-instructions-" : "sampling-plan-";
-  const filePrefix = cmo ? "cmo-instructions" : "sampling-plan";
+  const bom = variant === "bom";
+  const p = bom ? "bom" : cmo ? "cmo" : "sampling";
+  const kindPrefix = bom ? "sampling-bom-" : cmo ? "sampling-cmo-instructions-" : "sampling-plan-";
+  const filePrefix = bom ? "sampling-bom" : cmo ? "cmo-instructions" : "sampling-plan";
   const project = useStore((s) => s.project)!;
   const content = useContent();
   const update = useStore((s) => s.update);
@@ -47,10 +54,10 @@ function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "
 
   const versionStamp = useVersionStamp();
   const samplingSuggestions = useEffectiveSuggestions();
-  const doc = useMemo(() => stampDocument((cmo ? buildCmoInstructionsDocument : buildSamplingPlanDocument)(content, project, plan, samplingSuggestions, { generatedAt, appVersion: APP_VERSION, ...(cmo ? {} : { figureStyle }) }), versionStamp), [content, project, plan, samplingSuggestions, generatedAt, cmo, figureStyle, versionStamp]);
+  const doc = useMemo(() => stampDocument((bom ? buildSamplingBomDocument : cmo ? buildCmoInstructionsDocument : buildSamplingPlanDocument)(content, project, plan, samplingSuggestions, { generatedAt, appVersion: APP_VERSION, ...(cmo || bom ? {} : { figureStyle }) }), versionStamp), [content, project, plan, samplingSuggestions, generatedAt, cmo, bom, figureStyle, versionStamp]);
   const body = useMemo(() => (showPreview ? renderHtmlPreview(doc) : ""), [doc, showPreview]);
   // The plan can be downloaded with each flow figure style; the style is in the name so the three files do not overwrite one another.
-  const stamp = `${projectFileStem(project.meta)}-${plan.id}${cmo ? "" : `-${figureStyle.replace(/_/g, "-")}`}-${today()}`;
+  const stamp = `${projectFileStem(project.meta)}-${plan.id}${cmo || bom ? "" : `-${figureStyle.replace(/_/g, "-")}`}-${today()}`;
   const tbd = doc.tbdCount ?? 0;
 
   const [pending, setPending] = useState<(() => void) | null>(null);
@@ -85,16 +92,19 @@ function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "
 
   return (
     <>
+      {bom && <SamplingBomView doc={doc} />}
       <section className="card stack no-print" aria-labelledby={`${p}-doc`} data-testid={`${p}-output`}>
-        <h2 id={`${p}-doc`}>{cmo ? CMO_INSTRUCTIONS_TITLE : "Sampling plan document"}</h2>
-        {cmo ? (
+        <h2 id={`${p}-doc`}>{bom ? "Download the bill of materials" : cmo ? CMO_INSTRUCTIONS_TITLE : "Sampling plan document"}</h2>
+        {bom ? (
+          <p>The same list as above, as a Word or an HTML file. It carries the drafting-aid notice and the plan version, and it is added to the export history.</p>
+        ) : cmo ? (
           <p>The reporting instructions of every sampling point, in plan order, with the custom subsections marked for the CMO and the agency requests the points answer. It carries the plan fingerprint so the CMO can see which plan version it belongs to. It contains no sample-size working.</p>
         ) : (
           <p>
             {samplingBasisText(projectLabel(project.meta))} The document shows each sample size with its working and the source of the method. It states no filing category; where a filing question arises it reads "Requires regulatory affairs assessment".
           </p>
         )}
-        {!cmo && (
+        {!cmo && !bom && (
           <fieldset className="stack" data-testid="figure-style-choice">
             <legend>Document figure in the downloaded file</legend>
             {/* One option per line: the options are inline, so "No figure" used to run into the hint that followed. */}
@@ -122,14 +132,21 @@ function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "
               })
             }
           >
-            {cmo ? "Download reporting instructions (HTML)" : "Download sampling plan (HTML)"}
+            {bom ? "Download bill of materials (HTML)" : cmo ? "Download reporting instructions (HTML)" : "Download sampling plan (HTML)"}
           </button>
-          <button type="button" className="btn" aria-expanded={showPreview} onClick={() => setShowPreview((v) => !v)} data-testid={`${p}-preview-toggle`}>
+          {!bom && <button type="button" className="btn" aria-expanded={showPreview} onClick={() => setShowPreview((v) => !v)} data-testid={`${p}-preview-toggle`}>
             {showPreview ? "Hide preview" : "Show preview"}
-          </button>
+          </button>}
         </div>
         <p className="small muted" data-testid={`${p}-open-count`}>
-          {tbd === 0 ? "No open items." : `${tbd} open ${tbd === 1 ? "item" : "items"} will be listed in the document.`} The drafting-aid notice is in every output.
+          {bom
+            ? tbd === 0
+              ? "Nothing is still to be stated."
+              : `${tbd} ${tbd === 1 ? "item" : "items"} still to be stated will be listed in the document.`
+            : tbd === 0
+              ? "No open items."
+              : `${tbd} open ${tbd === 1 ? "item" : "items"} will be listed in the document.`}{" "}
+          The drafting-aid notice is in every output.
         </p>
         <div role="status" aria-live="polite">
           {done && <p data-testid={`${p}-done`}>{done}</p>}
@@ -147,15 +164,15 @@ function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "
         onExported={(template) => record(`${kindPrefix}docx` as DocumentExport["format"], template)}
         modes={GENERIC_MODES}
         tagData={(m) => m.buildSamplingTagData(doc, project, plan, content)}
-        {...(cmo ? {} : { dataPart: () => ({ kind: "sampling-data" as const, json: buildSamplingData(content, project, plan, doc) }) })}
+        {...(cmo || bom ? {} : { dataPart: () => ({ kind: "sampling-data" as const, json: buildSamplingData(content, project, plan, doc) }) })}
         testIdPrefix={p}
         idPrefix={`${p}-word`}
-        title={cmo ? "Word document: reporting instructions" : "Word document: sampling plan"}
-        buttonLabel={cmo ? "Download reporting instructions (Word)" : "Download sampling plan (Word)"}
+        title={bom ? "Word document: bill of materials" : cmo ? "Word document: reporting instructions" : "Word document: sampling plan"}
+        buttonLabel={bom ? "Download bill of materials (Word)" : cmo ? "Download reporting instructions (Word)" : "Download sampling plan (Word)"}
         note={SAMPLING_WORD_NOTE}
       />
 
-      <ExportHistory exports={exports} idPrefix={`${p}-export-history`} title={cmo ? "CMO instructions export history" : "Export history"} />
+      <ExportHistory exports={exports} idPrefix={`${p}-export-history`} title={bom ? "Bill of materials export history" : cmo ? "CMO instructions export history" : "Export history"} />
 
       {showPreview && (
         <section className="stack" aria-labelledby={`${p}-preview`}>
@@ -173,7 +190,7 @@ function OutputCard({ plan, variant }: { plan: SamplingPlan; variant: "plan" | "
           open
           onOpenChange={(o) => !o && setPending(null)}
           title="Download with open items?"
-          description={`This plan still lists ${tbd} open ${tbd === 1 ? "item" : "items"}. They are listed in the document as open, not as decided.`}
+          description={bom ? `This list still has ${tbd} ${tbd === 1 ? "item" : "items"} to be stated, so it is not complete. They are listed in the document as open.` : `This plan still lists ${tbd} open ${tbd === 1 ? "item" : "items"}. They are listed in the document as open, not as decided.`}
           restoreFocus={() => opener.current}
         >
           <div className="stack">

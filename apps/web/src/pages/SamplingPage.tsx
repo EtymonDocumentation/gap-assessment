@@ -31,7 +31,7 @@ import { PointsTable } from "./SamplingPointsTable";
 import { ProcessStepsCard } from "./SamplingSteps";
 import { FigureDataCard } from "./SamplingFigureData";
 import { FigureView } from "./SamplingFigureView";
-import { SamplingOutput } from "./SamplingOutput";
+import { SamplingBomOutput, SamplingOutput } from "./SamplingOutput";
 import { DesignCard } from "./SamplingDesign";
 import { MethodCard } from "./SamplingMethod";
 import { NumField } from "./SamplingPointDialog";
@@ -44,8 +44,8 @@ import { useLandAtTop } from "../land-at-top";
 import { PlanSourceNote } from "./SamplingSource";
 import { SamplingFormButton, SamplingUploadButton } from "./SamplingUploadButton";
 
-type Tab = "overview" | "interview" | "review" | "subsections";
-const TAB_LABEL: Record<Tab, string> = { overview: "Overview", interview: "Interview", review: "Design review", subsections: "Subsections" };
+type Tab = "overview" | "interview" | "review" | "subsections" | "bom";
+const TAB_LABEL: Record<Tab, string> = { overview: "Overview", interview: "Interview", review: "Design review", subsections: "Subsections", bom: "Bill of materials" };
 
 /** The sentence the page and the document both carry: what the tool does and what it leaves to people. */
 export const SAMPLING_SCOPE_TEXT =
@@ -278,8 +278,8 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
   ];
   // The downloads are made in the Overview tab (the document cards), where the kind of Word document and the pre-download checks are
   // shown; the menu takes the person there with the matching button focused.
-  const toDownload = (testId: string) => () => {
-    setTab("overview");
+  const toDownload = (testId: string, to: Tab = "overview") => () => {
+    setTab(to);
     focusWhenReady(testId);
   };
 
@@ -309,6 +309,8 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
           { label: "Download sampling plan (HTML)", onSelect: toDownload("sampling-download-html") },
           { label: "Download reporting instructions (Word)", onSelect: toDownload("cmo-download-word") },
           { label: "Download reporting instructions (HTML)", onSelect: toDownload("cmo-download-html") },
+          { label: "Download bill of materials (Word)", onSelect: toDownload("bom-download-word", "bom") },
+          { label: "Download bill of materials (HTML)", onSelect: toDownload("bom-download-html", "bom") },
         ]}
       />
       <div role="group" aria-label="Plan sections" className="row wrap seg no-print" data-testid="plan-tabs" data-tour="plan-tabs">
@@ -317,7 +319,7 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
             {TAB_LABEL[t]}
           </button>
         ))}
-        <HelpTip label="Plan sections" text="Overview shows the open items, the sampling diagram, the document figure, the sampling points and the document. Interview asks about each step or study type. Design review asks questions about how the samples are taken and where they sit. Subsections holds your own text for the document, and can copy text from the subsection library. Switching tabs never loses anything you entered." />
+        <HelpTip label="Plan sections" text="Overview shows the open items, the sampling diagram, the document figure, the sampling points and the document. Interview asks about each step or study type. Design review asks questions about how the samples are taken and where they sit. Subsections holds your own text for the document, and can copy text from the subsection library. Bill of materials lists the containers, parts and equipment that may be used to take the samples. Switching tabs never loses anything you entered." />
       </div>
 
       <SamplingContents tab={tab} onTab={setTab} />
@@ -347,6 +349,7 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
       )}
 
       {tab === "subsections" && <SubsectionsEditor plan={plan} run={run} />}
+      {tab === "bom" && <SamplingBomOutput plan={plan} />}
 
       {tab === "overview" && (
       <>
@@ -471,6 +474,16 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
       </section>
 
       <SamplingOutput plan={plan} />
+
+      <section className="card stack no-print" aria-labelledby="sp-bom" data-testid="bom-open-card">
+        <h2 id="sp-bom">Sampling bill of materials</h2>
+        <p>One list of the containers, parts and equipment that may be used to take the PPQ samples, per batch and in total. It is worked out from this plan.</p>
+        <div>
+          <button type="button" className="btn" onClick={() => setTab("bom")} data-testid="bom-open">
+            Open the bill of materials
+          </button>
+        </div>
+      </section>
 
       <section className="card stack no-print" aria-labelledby="sp-delete">
         <h2 id="sp-delete">Delete this plan</h2>

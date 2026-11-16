@@ -4843,9 +4843,55 @@ fieldset.stage-options {
     font-weight: 600;
     color: var(--muted);
   }
+  /* The bill of materials: one card per line on a phone, each cell labelled by its column, so nothing scrolls sideways. */
+  .bom-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .bom-table,
+  .bom-table tbody,
+  .bom-table tr,
+  .bom-table th,
+  .bom-table td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .bom-table tr {
+    margin-bottom: 12px;
+    padding: 8px 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .bom-table th[data-label],
+  .bom-table td[data-label] {
+    border: 0;
+    padding: 4px 12px;
+  }
+  .bom-table td::before,
+  .bom-table th[scope="row"]::before {
+    content: attr(data-label) ": ";
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .bom-table td:empty {
+    display: none;
+  }
   /* The interview summary: a row with no comparison chip has nothing to label, so the empty cell is left out of the card. */
   .answers-table td:empty {
     display: none;
+  }
+}
+
+.bom-table td.num {
+  text-align: right;
+}
+@media (max-width: 700px) {
+  .bom-table td.num {
+    text-align: left;
   }
 }
 

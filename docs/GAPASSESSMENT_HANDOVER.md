@@ -37,7 +37,7 @@ section 1 rather than appending to it.
 | M1-M4 | `3b93466` | Interview, comparison, gap register, validation plan, source register, verification, change log |
 | M5-M5.7 | `4d93491`..`5461b1f` | Word export + template library, program stage per side, SU/RU wording, server mode (`88516d2`), drafting aids (TBD values, bulk citing), scope step |
 | M6 | `7d6bf9e` | Shared process model package and the TRD seed export |
-| M7-M7.2 | `7228bea`, `7b428b9`, `7714eb4` | PPQ sampling plan: five sample-size methods, interview by step / study type, CMO reporting instructions, plan subsections library, flow diagram |
+| M7-M7.2 | `7228bea`, `7b428b9`, `7714eb4` | PPQ sampling plan: five sample-size methods, interview by step / study type, CMO reporting instructions, plan subsections library, flow diagram; sampling bill of materials (own document, Word/HTML, export family `sampling-bom`) |
 | M8 | `5664b28` | Risk assessment (ICH Q9(R1)), four scoring methods, method library with versions |
 | My files | `a8cbe49` | Move any file between your own computers (server storage only) |
 | M9 / M9.1 | `6dcc1e3`, `6fc7d42`, `9f08bde` | TRD module; process descriptions from an editable write-up library (figures, table rows, placement) |

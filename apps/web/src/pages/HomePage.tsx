@@ -31,7 +31,7 @@ interface DocCardSpec {
 const CARD_PURPOSE: Record<DocCardSpec["id"], string> = {
   gap: "Compare the sending and receiving unit and list every difference.",
   trd: "The technical requirements document (TRD): what the receiving site has to meet. Start from a project, a document you have, by answering questions, or blank.",
-  sampling: "Where and when samples are taken in the PPQ (process performance qualification) batches.",
+  sampling: "Where and when samples are taken in the PPQ (process performance qualification) batches, and a list of what may be used to take them.",
   mbr: "The batch record (MBR): the step-by-step instruction for making one batch.",
   risk: "Rate what could go wrong with a method you choose.",
   excipient: "Compare the excipients of the product between the sending and the receiving site: supplier, grade, origin and specification.",

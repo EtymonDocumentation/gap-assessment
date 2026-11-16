@@ -62,6 +62,9 @@ export function unitsPerBatch(plan: SamplingPlan, point: SamplingPoint): BatchUn
 /** A quantity in a volume or a mass means the sample is a container of liquid; a count (syringes, vials) is a product unit. */
 const LIQUID_QUANTITY = /^\s*(?:[mµu]?l|litres?|liters?|[mµnk]?g|grams?)\s*$/i;
 
+/** True when a quantity's unit is a volume or a mass (a container of liquid). The bill of materials uses the same rule as the totals. */
+export const isLiquidQuantityUnit = (unit: string | undefined): boolean => LIQUID_QUANTITY.test(unit ?? "");
+
 export interface BatchTotal {
   batchId: string;
   batchLabel: string;
@@ -106,7 +109,7 @@ export function planTotals(plan: SamplingPlan): PlanTotals {
       else if (u.kind === "retain") total.retainUnits += u.units;
       else {
         total.units += u.units;
-        if (LIQUID_QUANTITY.test(point.quantity?.unit ?? "")) total.liquidUnits += u.units;
+        if (isLiquidQuantityUnit(point.quantity?.unit)) total.liquidUnits += u.units;
       }
     }
   }

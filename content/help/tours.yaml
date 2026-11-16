@@ -126,7 +126,7 @@ tours:
         text: Give the plan a title and create it. The number of batches and the sample sizes are your decisions.
       - anchor: plan-tabs
         title: Plan sections
-        text: Overview, Interview, Design review and Subsections. Switching tabs never loses anything you entered.
+        text: Overview, Interview, Design review, Subsections and Bill of materials. The bill of materials lists what may be used to take the samples. Switching tabs never loses anything you entered.
       - anchor: plan-points
         title: Sampling points
         text: Each row is a place in the process where a sample is taken. Add one, select a row to edit it, and open the question marks for help.

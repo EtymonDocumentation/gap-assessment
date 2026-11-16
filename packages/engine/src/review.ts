@@ -178,7 +178,7 @@ function cleanTemplate(t: TemplateRecord): TemplateRecord {
 
 // ------------------------------------------------------------------ exports
 
-const EXPORT_FORMATS: readonly DocumentExport["format"][] = ["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html", "sampling-plan-docx", "sampling-plan-html", "sampling-cmo-instructions-docx", "sampling-cmo-instructions-html", "risk-assessment-docx", "risk-assessment-html", "trd-docx", "trd-html", "trd-evidence-docx", "trd-evidence-html", "mbr-docx", "mbr-html", "excipient-docx", "excipient-html", "excipient-markdown"];
+const EXPORT_FORMATS: readonly DocumentExport["format"][] = ["markdown", "html", "docx", "trd-seed-json", "trd-outline-docx", "trd-outline-html", "sampling-plan-docx", "sampling-plan-html", "sampling-cmo-instructions-docx", "sampling-cmo-instructions-html", "sampling-bom-docx", "sampling-bom-html", "risk-assessment-docx", "risk-assessment-html", "trd-docx", "trd-html", "trd-evidence-docx", "trd-evidence-html", "mbr-docx", "mbr-html", "excipient-docx", "excipient-html", "excipient-markdown"];
 
 /** True for the three TRD seed outputs (the seed JSON and its Word and HTML outlines). The TRD module's own document is not one of them. */
 export function isTrdFormat(format: DocumentExport["format"]): boolean {
@@ -210,6 +210,11 @@ export function isSamplingCmoFormat(format: DocumentExport["format"]): boolean {
   return format.startsWith("sampling-cmo-instructions-");
 }
 
+/** True for the two sampling bill of materials outputs (Word and HTML): a separate document from the sampling plan. */
+export function isSamplingBomFormat(format: DocumentExport["format"]): boolean {
+  return format.startsWith("sampling-bom-");
+}
+
 /** True for the two risk assessment outputs (Word and HTML). */
 export function isRiskFormat(format: DocumentExport["format"]): boolean {
   return format.startsWith("risk-assessment-");
@@ -226,10 +231,10 @@ export function isExcipientFormat(format: DocumentExport["format"]): boolean {
  * fall into "gap" because nothing named them: their downloads were then compared with gap downloads, and the gap document's
  * omitted-section choice was written onto them.
  */
-function exportFamily(format: DocumentExport["format"]): "gap" | "trd" | "trd-document" | "trd-evidence" | "mbr" | "sampling" | "sampling-cmo" | "risk" | "excipient" {
+function exportFamily(format: DocumentExport["format"]): "gap" | "trd" | "trd-document" | "trd-evidence" | "mbr" | "sampling" | "sampling-cmo" | "sampling-bom" | "risk" | "excipient" {
   // The evidence record is its own family: it is a different document from the standard TRD, so its first download has nothing to
   // compare with ("changed since previous" stays unset) instead of being compared with a TRD download.
-  return isTrdFormat(format) ? "trd" : isTrdEvidenceFormat(format) ? "trd-evidence" : isTrdDocumentFormat(format) ? "trd-document" : isMbrFormat(format) ? "mbr" : isSamplingFormat(format) ? "sampling" : isSamplingCmoFormat(format) ? "sampling-cmo" : isRiskFormat(format) ? "risk" : isExcipientFormat(format) ? "excipient" : "gap";
+  return isTrdFormat(format) ? "trd" : isTrdEvidenceFormat(format) ? "trd-evidence" : isTrdDocumentFormat(format) ? "trd-document" : isMbrFormat(format) ? "mbr" : isSamplingFormat(format) ? "sampling" : isSamplingCmoFormat(format) ? "sampling-cmo" : isSamplingBomFormat(format) ? "sampling-bom" : isRiskFormat(format) ? "risk" : isExcipientFormat(format) ? "excipient" : "gap";
 }
 
 /** Appends an export record. No change-log entry: downloading the document does not change the project. */

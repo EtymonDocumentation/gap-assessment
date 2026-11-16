@@ -112,7 +112,7 @@ export function volumeTakenPerBatch(plan: SamplingPlan): BatchVolume[] {
 }
 
 /** Draws of a point from one batch: locations (process samples), or the derived units of a stability or retain point. Undefined when not stated. */
-function drawsOf(plan: SamplingPlan, p: SamplingPoint, batchId: string): number | undefined {
+export function drawsOf(plan: SamplingPlan, p: SamplingPoint, batchId: string): number | undefined {
   if (unitsKindOf(p) === "process") return p.locationsCount;
   return unitsPerBatch(plan, p).find((u) => u.batchId === batchId)?.units;
 }

@@ -3,7 +3,7 @@
  * would change the route; these are buttons that scroll to the section and move focus to its heading. A section that lives on
  * another tab of the page first switches to that tab.
  */
-export type ContentsTab = "overview" | "interview" | "review" | "subsections";
+export type ContentsTab = "overview" | "interview" | "review" | "subsections" | "bom";
 
 interface Item {
   id: string;
@@ -27,6 +27,7 @@ const BY_TAB: Record<ContentsTab, Item[]> = {
     { id: "sp-figure-h", label: "Document figure", tab: "overview" },
     { id: "sp-points", label: "Sampling points", tab: "overview" },
     { id: "sp-totals", label: "Sample totals per batch", tab: "overview" },
+    { id: "sp-bom", label: "Sampling bill of materials", tab: "overview" },
     { id: "sampling-doc", label: "Download the sampling plan", tab: "overview" },
     { id: "cmo-doc", label: "Download the CMO (contract manufacturing organization) reporting instructions", tab: "overview" },
   ],
@@ -41,6 +42,10 @@ const BY_TAB: Record<ContentsTab, Item[]> = {
     { id: "sub-intro", label: "Subsections of this plan", tab: "subsections" },
     { id: "sub-add", label: "Add a subsection", tab: "subsections" },
     { id: "sub-lib", label: "Insert from the library", tab: "subsections" },
+  ],
+  bom: [
+    { id: "bom-view", label: "Sampling bill of materials", tab: "bom" },
+    { id: "bom-doc", label: "Download the bill of materials", tab: "bom" },
   ],
 };
 
@@ -62,6 +67,7 @@ export function SamplingContents({ tab, onTab }: { tab: ContentsTab; onTab: (t: 
     { title: "Interview tab", items: BY_TAB.interview, tab: "interview" },
     { title: "Design review tab", items: BY_TAB.review, tab: "review" },
     { title: "Subsections tab", items: BY_TAB.subsections, tab: "subsections" },
+    { title: "Bill of materials tab", items: BY_TAB.bom, tab: "bom" },
   ];
   return (
     <nav className="card stack no-print" aria-labelledby="sp-contents" data-testid="plan-contents">

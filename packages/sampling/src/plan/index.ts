@@ -15,5 +15,6 @@ export * from "./subsections.js";
 export * from "./flow.js";
 export * from "./review.js";
 export * from "./volume.js";
+export * from "./bom.js";
 export * from "./groups.js";
 export * from "./figure/index.js";
