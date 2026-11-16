@@ -85,6 +85,11 @@ export function HomePage() {
     ...(allowed.risk ? [{ id: "risk" as const, name: "Risk assessment", purpose: CARD_PURPOSE.risk, path: "/risk" }] : []),
     ...(allowed.excipient ? [{ id: "excipient" as const, name: "Excipient assessment", purpose: CARD_PURPOSE.excipient, path: "/excipient" }] : []),
   ];
+  /** The tour step "Your documents" names only the documents this account has (a gap-only account is not told about a TRD). */
+  const chainTourText =
+    cards.length === 1
+      ? `One card for your document, the gap assessment, with its state and a button to open it.`
+      : `One card for each document, with its state and a button to open or start it. Your documents: ${cards.map((c) => (c.id === "trd" ? c.name : c.name.toLowerCase())).join(", ")}. Each can use the one before it, but none needs it.`;
   /** The card's button: Start for a document that has not been started, Continue for a gap assessment with open questions, Open otherwise. */
   const buttonOf = (c: DocCardSpec): string => {
     const status = statusOf(c.id);
@@ -268,7 +273,7 @@ export function HomePage() {
             </section>
           ) : null}
 
-          <section className="card stack" aria-labelledby="chain-h" data-testid="home-chain" data-tour="home-chain">
+          <section className="card stack" aria-labelledby="chain-h" data-testid="home-chain" data-tour="home-chain" data-tour-text={chainTourText}>
             <h2 id="chain-h">Your documents</h2>
             <p className="muted small">
               {/* An account with the gap assessment alone is not told about documents it cannot open (EOU-43). */}

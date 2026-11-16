@@ -170,6 +170,8 @@ function Bubble({
 }) {
   const phone = useNarrow(PHONE_WIDTH);
   const step = tour.steps[index]!;
+  // A page can word a step for what is on screen now (data-tour-text on the element), such as Home naming only the documents the account has.
+  const text = anchorShown(step.anchor)?.dataset["tourText"] || step.text;
   const box = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ left: number; top: number; width: number } | null>(null);
   const prev = nextShown(tour, index - 1, -1);
@@ -210,12 +212,40 @@ function Bubble({
     const width = Math.min(360, vw - 16);
     const left = Math.max(8, Math.min(r.left, vw - width - 8));
     const h = b.offsetHeight;
-    let top: number;
-    if (r.bottom + 12 + h <= vh) top = r.bottom + 12;
-    else if (r.top - 12 - h >= 0) top = r.top - 12 - h;
+    // The bubble should cover no card of the page (it hid the start of the next card when it sat under a card). Candidates in order of
+    // preference: below, above, beside (right, then left), then docked at the bottom edge. The first one that touches no other card wins;
+    // if every one does, the one that covers the least.
+    const cards = Array.from(document.querySelectorAll<HTMLElement>(".card, .doc-card")).filter(
+      (c) => c !== el && !c.contains(el) && !el.contains(c) && !c.closest(".tour-bubble") && c.getClientRects().length > 0,
+    );
+    const covered = (l: number, t: number): number =>
+      cards.reduce((sum, c) => {
+        const q = c.getBoundingClientRect();
+        const w = Math.min(l + width, q.right) - Math.max(l, q.left);
+        const hh = Math.min(t + h, q.bottom) - Math.max(t, q.top);
+        return w > 0 && hh > 0 ? sum + w * hh : sum;
+      }, 0);
+    const candidates: { left: number; top: number }[] = [];
+    if (r.bottom + 12 + h <= vh) candidates.push({ left, top: r.bottom + 12 });
+    if (r.top - 12 - h >= 0) candidates.push({ left, top: r.top - 12 - h });
+    const beside = Math.max(8, Math.min(vh - h - 8, r.top));
+    if (r.right + 12 + width <= vw - 8) candidates.push({ left: r.right + 12, top: beside });
+    if (r.left - 12 - width >= 8) candidates.push({ left: r.left - 12 - width, top: beside });
     // A very tall element leaves no room beside it: dock the bubble at the bottom edge instead of covering the element's start.
-    else top = Math.max(8, vh - h - 16);
-    setPos({ left, top, width });
+    candidates.push({ left, top: Math.max(8, vh - h - 16) });
+    let best = candidates[0]!;
+    let bestCover = covered(best.left, best.top);
+    for (const c of candidates.slice(1)) {
+      if (bestCover === 0) break;
+      const v = covered(c.left, c.top);
+      if (v < bestCover) {
+        best = c;
+        bestCover = v;
+      }
+    }
+    const top = best.top;
+    const left2 = best.left;
+    setPos({ left: left2, top, width });
   }, [step.anchor, phone]);
 
   useLayoutEffect(() => {
@@ -249,7 +279,7 @@ function Bubble({
         {step.title}
       </h2>
       <p id="tour-text" className="tour-text">
-        {step.text}
+        {text}
       </p>
       <div className="tour-actions">
         {prev >= 0 && (

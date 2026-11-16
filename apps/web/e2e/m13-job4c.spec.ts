@@ -5,6 +5,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { goTo, openDemo, setTheme } from "./nav-helper";
 
 test.beforeEach(async ({ page }) => {
@@ -115,6 +116,12 @@ test("a line edited in the excipient assessment is offered as an update; Keep le
   await expect(table).toContainText(`${oldName} renamed`);
   await expect(table).toContainText("Different");
   await expectAccessible(page, "update dialog");
+  // On a phone the table stacks per value (label: current / from source / differs): nothing is cut off, nothing scrolls sideways.
+  await expectNoSidewaysScroll(page, "update dialog");
+  const region = page.getByRole("region", { name: "Old and new values of the excipient row" });
+  expect(await region.evaluate((e) => e.scrollWidth - e.clientWidth), "update table scrolls inside its box").toBeLessThanOrEqual(1);
+  await expect(table.getByRole("cell", { name: /Different|The same/ }).first()).toBeInViewport({ ratio: 1 });
+  if (process.env["POLISH_SHOTS"]) await page.screenshot({ path: join(process.env["POLISH_SHOTS"], `polish-update-dialog-${test.info().project.name}.png`) });
   // The colour menu is behind an open dialog, so the theme is changed with the dialog closed.
   await page.getByTestId("mbr-excipient-update-keep").click();
   await setTheme(page, "Dark");

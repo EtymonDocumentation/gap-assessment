@@ -233,7 +233,7 @@ function UpdateDialog({ rec, row, notice, onClose, restoreFocus }: { rec: MbrRec
   return (
     <Modal open onOpenChange={(o) => !o && onClose()} title={`${MBR_EXCIPIENTS_CHANGED}`} description={`${row.name}: the line changed after this row was copied. Nothing changes unless you press Change.`} restoreFocus={restoreFocus} wide>
       <div className="table-scroll" role="region" aria-label="Old and new values of the excipient row" tabIndex={0}>
-        <table className="data" data-testid="mbr-excipient-update-table">
+        <table className="data bom-table" data-testid="mbr-excipient-update-table">
           <thead>
             <tr>
               <th scope="col">Value</th>
@@ -245,10 +245,10 @@ function UpdateDialog({ rec, row, notice, onClose, restoreFocus }: { rec: MbrRec
           <tbody>
             {lines.map((l) => (
               <tr key={l.key}>
-                <th scope="row">{l.label}</th>
-                <td>{l.old}</td>
-                <td>{l.next}</td>
-                <td>{notice.differs.includes(l.key) ? "Different" : "The same"}</td>
+                <th scope="row" data-label="Value">{l.label}</th>
+                <td data-label="In this record now">{l.old}</td>
+                <td data-label="In the excipient assessment now">{l.next}</td>
+                <td data-label="Difference">{notice.differs.includes(l.key) ? "Different" : "The same"}</td>
               </tr>
             ))}
           </tbody>

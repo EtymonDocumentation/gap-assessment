@@ -392,9 +392,12 @@ export function TrdInterview({ d, initialShow, initialQuestion, initialView, ini
     if (n && nodeIsOpenable(n)) openNode(n);
   }, [map, follow.status]); // eslint-disable-line react-hooks/exhaustive-deps
   // A link to this page that names another view (same page, new address) switches the view.
+  // A view named only by the address is remembered like a click on its radio button, so the next visit without an address opens it too.
   useEffect(() => {
     if (initialView && initialView !== view) setViewState(initialView);
-  }, [initialView]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (initialView) writeView(projectId, d.id, initialView);
+    else if (initialNode) writeView(projectId, d.id, /^(area:|unplaced$)/.test(initialNode) ? "areas" : "process");
+  }, [initialView, initialNode]); // eslint-disable-line react-hooks/exhaustive-deps
   // The list comes back on one question at a time when that is how it was left.
   useEffect(() => {
     if (restored.current || follow.status === "loading") return;

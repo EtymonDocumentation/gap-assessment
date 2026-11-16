@@ -9,6 +9,9 @@ import { breadcrumb, goTo, openDemo } from "./nav-helper";
 
 const SHOTS = tmpdir();
 
+// Opening a demo project takes a while under load (the whole suite runs in parallel), so these specs get a 60 s limit instead of the default 30 s.
+test.describe.configure({ timeout: 60_000 });
+
 test.beforeEach(async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
 });

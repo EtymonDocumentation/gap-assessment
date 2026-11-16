@@ -34,6 +34,10 @@ test("server build: a gap-only account with no project open is told the TRD modu
     const text = await page.getByTestId(id).innerText();
     expect(text, `${id} names a document this account does not have`).not.toMatch(/TRD|batch record|sampling plan|risk assessment/i);
   }
+  // The Home tour step "Your documents" is worded from the same cards, so it does not name a TRD either (the bubble reads this text).
+  const tourText = await page.getByTestId("home-chain").getAttribute("data-tour-text");
+  expect(tourText, "the tour step text").toContain("gap assessment");
+  expect(tourText, "the tour step names a document this account does not have").not.toMatch(/TRD|batch record|sampling plan|risk assessment/i);
 });
 
 test("server build: with the module a TRD is made, overridden and kept on the server with the project", async ({ page }) => {
