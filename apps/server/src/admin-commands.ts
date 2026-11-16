@@ -8,7 +8,7 @@ import { DEFAULT_FILES_QUOTA_MB, accountUsage } from "./limits";
 import { Store } from "./store";
 import { DEFAULT_MODULES, parseModuleList, type InviteRecord, type UserRecord } from "./types";
 
-export const USAGE = `Gap Assessment admin. Usage: admin <command> --data <dir> [options]
+export const USAGE = `Cascade admin. Usage: admin <command> --data <dir> [options]
 
   init --storage server|client --max-upload-mb <n> [--force]   create the data folder's settings
   invite [--role admin|member] [--days 7] [--modules gap[,x]]  make an invite code (shown once); modules default to gap

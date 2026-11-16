@@ -133,7 +133,13 @@ test("a tile starts a run of its own questions; Show only TBD narrows it with a 
     const link = page.locator(".q-nav").getByRole("link", { name: /^(Skip for now|Finish this step)/ });
     await expect(end.or(link)).toBeVisible();
     if (await end.isVisible()) break;
+    // Wait for the click to take effect before looking again. Without this the next round could still see the OLD question's link, find no
+    // end card yet, and then wait the whole test time for a link that the end card had meanwhile replaced (seen on the build machine).
+    const before = await page.locator("#q-prompt").innerText();
     await link.click();
+    await expect
+      .poll(async () => (await end.isVisible()) || (await page.locator("#q-prompt").innerText({ timeout: 1000 }).catch(() => "")) !== before)
+      .toBe(true);
   }
   await expect(page.getByTestId("gap-end")).toBeVisible();
   await expect(page.getByTestId("gap-end-line")).toContainText("Capping and crimping");

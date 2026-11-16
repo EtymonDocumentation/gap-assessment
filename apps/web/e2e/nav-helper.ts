@@ -142,8 +142,13 @@ export const DEMO_NAMES = { arx: "ARX-217 vials", syr: "SYR-305 syringe", mid: "
  */
 export async function openDemo(page: Page, which: keyof typeof DEMO_NAMES = "arx", then?: string): Promise<void> {
   const name = DEMO_NAMES[which];
+  const button = page.getByRole("button", { name: `Open demo: ${name}` });
+  // Wait until Home has drawn the fold (or the button itself) before asking whether the fold is there. openMoreWays looks once without
+  // waiting, so on a busy machine it looked before Home was drawn, left the fold closed, and the click below then waited the whole test
+  // time for a button hidden inside it. This was behind many "passes alone, fails in the full run" results.
+  await expect(page.getByTestId("more-ways").or(button).first()).toBeAttached({ timeout: 30_000 });
   await openMoreWays(page);
-  await page.getByRole("button", { name: `Open demo: ${name}` }).click();
+  await button.click();
   // A demo already in My projects is reopened instead of copied again; the note then adds "This is the copy you already had".
   await expect(page.getByTestId("demo-opened")).toHaveText(new RegExp(`^Demo opened: ${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\.|$)`), { timeout: 90_000 });
   if (then) await page.evaluate((h) => (window.location.hash = h), then);

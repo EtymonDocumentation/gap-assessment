@@ -188,7 +188,31 @@ function Bubble({
     el.classList.add("tour-target");
     const tall = el.getBoundingClientRect().height > window.innerHeight * 0.5;
     el.scrollIntoView({ block: tall ? "start" : "center", inline: "nearest", behavior: reducedMotion() ? "auto" : "smooth" });
-    return () => el.classList.remove("tour-target");
+    // Once the scroll has come to rest: if the bubble does not fit under the element, it docks at the bottom edge and can hide the last cards
+    // of the very section it explains. Move the page up by the missing room, once, as far as the element's own top margin allows, so the
+    // bubble fits below. (The fit was a matter of a few pixels: it held with one font and failed with another.) Not on a phone, where the
+    // bubble is always docked.
+    let nudged = false;
+    let timer: number | undefined;
+    const settle = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        const b = box.current;
+        if (nudged || !b || window.innerWidth <= PHONE_WIDTH) return;
+        nudged = true;
+        const r = el.getBoundingClientRect();
+        const missing = r.bottom + 12 + b.offsetHeight + 8 - window.innerHeight;
+        const room = r.top - (parseFloat(getComputedStyle(el).scrollMarginTop) || 0);
+        if (missing > 0 && room > 0) window.scrollBy({ top: Math.min(missing, room), behavior: reducedMotion() ? "auto" : "smooth" });
+      }, 150);
+    };
+    window.addEventListener("scroll", settle, true);
+    settle();
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("scroll", settle, true);
+      el.classList.remove("tour-target");
+    };
   }, [step.anchor]);
 
   // Focus moves into the bubble when the tour opens (not on each step, so a keyboard user stays on Next).
