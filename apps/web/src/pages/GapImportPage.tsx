@@ -1,11 +1,15 @@
 import { gapImportSynonyms } from "@gap/content";
 import {
+  aiGapRowFields,
+  aiGapRowsOf,
   applyGapImport,
   checkGapValue,
   CONFIDENCE_LABEL,
   currentGapText,
   emptyGapField,
   GAP_SIDE_LABEL,
+  gapAiCounts,
+  gapAiCountText,
   gapCounts,
   gapFieldId,
   importSummaryText,
@@ -19,6 +23,7 @@ import {
 import { Fragment, useMemo, useRef, useState } from "react";
 import { Empty } from "../components";
 import { PageHeader } from "../PageHeader";
+import { EXAMPLE_GAP_FILE, EXAMPLE_GAP_URL } from "../ai-example";
 import { holdGapImport, useHeldGapImport } from "../gap-import-store";
 import { href, navigate } from "../router";
 import * as api from "../server/api";
@@ -27,6 +32,7 @@ import { useIsRemote } from "../server/ServerUi";
 import { actorOf, useContent, useStore } from "../store";
 import { GapFormButton, GapUploadButton } from "./GapUploadButton";
 import { ImportDocPane } from "./ImportDocPane";
+import { AiTag } from "./TrdImportFields";
 
 /**
  * The review screen of "Upload a gap assessment" (levels 1 to 3). One compact ROW per question: the question, the sending-unit answer,
@@ -73,6 +79,8 @@ const SIDES: GapSide[] = ["source", "target"];
 function Review({ session, file }: { session: GapImportSession; file: File }) {
   const project = useStore((s) => s.project);
   const content = useContent();
+  // The rows the fixed rules (or the file's own data) gave; the AI items of the example reading are listed apart, as cards.
+  const ruleRows = useMemo(() => session.rows.filter((r) => !r.ai), [session]);
   const remote = SERVER_MODE && useIsRemote();
   const [decisions, setDecisions] = useState<Record<string, { value: string }>>({});
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
@@ -84,7 +92,9 @@ function Review({ session, file }: { session: GapImportSession; file: File }) {
   const [error, setError] = useState("");
   const [done, setDone] = useState<Done | null>(null);
   const [bulk, setBulk] = useState("");
-  const [docOpen, setDocOpen] = useState(() => session.rows.length <= 40 && (typeof window.matchMedia !== "function" || window.matchMedia("(min-width: 1000px)").matches)); // a whole export is a very long page: it starts hidden
+  // AI items the person rejected (example reading only). Not a decision: a rejected field has no value, so nothing of it is put in.
+  const [rejected, setRejected] = useState<ReadonlySet<string>>(new Set());
+  const [docOpen, setDocOpen] = useState(() => ruleRows.length <= 40 && (typeof window.matchMedia !== "function" || window.matchMedia("(min-width: 1000px)").matches)); // a whole export is a very long page: it starts hidden
   const docPane = useRef<HTMLDivElement>(null);
 
   const updating = mode === "update" && !!project;
@@ -106,11 +116,11 @@ function Review({ session, file }: { session: GapImportSession; file: File }) {
   };
   const kind: "exact" | "matched" = session.level === 3 ? "matched" : "exact";
   const bulkIn = (rows: GapRow[]) => rows.flatMap(allFields).filter((f) => bulkable(f, kind));
-  const totalBulk = bulkIn(session.rows).length;
+  const totalBulk = bulkIn(ruleRows).length;
 
   const sections = useMemo(() => {
     const out: { id: string; title: string; rows: GapRow[] }[] = [];
-    for (const r of session.rows) {
+    for (const r of ruleRows) {
       let s = out[out.length - 1];
       if (!s || s.id !== r.sectionId) {
         s = { id: r.sectionId, title: r.sectionTitle, rows: [] };
@@ -119,18 +129,51 @@ function Review({ session, file }: { session: GapImportSession; file: File }) {
       s.rows.push(r);
     }
     return out;
-  }, [session]);
+  }, [ruleRows]);
   // Which sections start open: a short list shows everything; a long one opens the sections that need a look (changed, not found, unreadable).
   const needsLook = (rows: GapRow[]) => rows.some((r) => allFields(r).some((f) => f.change || f.unreadable || f.notUsedWhy));
-  const [open, setOpen] = useState<Record<string, boolean>>(() => Object.fromEntries(sections.map((s) => [s.id, session.rows.length <= 40 || needsLook(s.rows) || session.level === 3])));
+  const [open, setOpen] = useState<Record<string, boolean>>(() => Object.fromEntries(sections.map((s) => [s.id, ruleRows.length <= 40 || needsLook(s.rows) || session.level === 3])));
 
-  const set = (id: string, value: string) => setDecisions((d) => ({ ...d, [id]: { value } }));
-  const clear = (id: string) =>
+  const unreject = (ids: string[]) =>
+    setRejected((r) => {
+      if (!ids.some((id) => r.has(id))) return r;
+      const n = new Set(r);
+      ids.forEach((id) => n.delete(id));
+      return n;
+    });
+  const set = (id: string, value: string) => {
+    unreject([id]);
+    setDecisions((d) => ({ ...d, [id]: { value } }));
+  };
+  const clear = (id: string) => {
+    unreject([id]);
     setDecisions((d) => {
       const n = { ...d };
       delete n[id];
       return n;
     });
+  };
+  /** An AI item is accepted or rejected as a whole: one Accept writes all its answers, one Reject drops them all. */
+  const acceptAi = (fs: GapField[]) => {
+    unreject(fs.map((f) => f.id));
+    setDecisions((d) => ({ ...d, ...Object.fromEntries(fs.map((f) => [f.id, { value: f.value }])) }));
+  };
+  const rejectAi = (fs: GapField[]) => {
+    setDecisions((d) => {
+      const n = { ...d };
+      fs.forEach((f) => delete n[f.id]);
+      return n;
+    });
+    setRejected((r) => new Set([...r, ...fs.map((f) => f.id)]));
+  };
+  const clearAi = (fs: GapField[]) => {
+    unreject(fs.map((f) => f.id));
+    setDecisions((d) => {
+      const n = { ...d };
+      fs.forEach((f) => delete n[f.id]);
+      return n;
+    });
+  };
   const take = (fs: GapField[]) => setDecisions((d) => ({ ...d, ...Object.fromEntries(fs.map((f) => [f.id, { value: f.value }])) }));
   const qOf = (id: string) => content.questionById.get(id)!;
 
@@ -401,15 +444,38 @@ function Review({ session, file }: { session: GapImportSession; file: File }) {
 
   return (
     <div className="stack-lg" data-testid="import-review">
-      <PageHeader title="Upload a gap assessment" purpose={`Check what was read from ${session.fileName}. Nothing goes into a project until you accept it; what you leave alone stays open.`} />
+      <PageHeader title={session.aiExample ? "AI reading of an example gap assessment" : "Upload a gap assessment"} purpose={`Check what was read from ${session.fileName}. Nothing goes into a project until you accept it; what you leave alone stays open.`} />
+      {session.aiExample && (
+        <section className="notice stack" aria-labelledby="import-ai-banner-h" data-testid="import-ai-banner">
+          <h2 id="import-ai-banner-h" className="small">
+            Example of AI reading
+          </h2>
+          <p>These suggestions were recorded in advance for this example file. No AI reads your own files yet. Check each suggestion against its quote before you accept it.</p>
+          <p>
+            <a href={EXAMPLE_GAP_URL} download={EXAMPLE_GAP_FILE} data-testid="import-ai-download">
+              Download the example gap assessment (Word)
+            </a>
+          </p>
+        </section>
+      )}
       <section className="card stack" aria-labelledby="import-what-h">
         <h2 id="import-what-h">What was read</h2>
         <p data-testid="import-read-as">{session.readAs}</p>
         <p className="muted small" data-testid="import-explain">
-          {session.level === 3
+          {session.aiExample
+            ? "Rows marked Matched come from fixed word rules (no AI): check each against the document, then accept it, edit it, or pick another value from the document. The AI suggestions are listed after them, one card per gap item (one question of this tool)."
+            : session.level === 3
             ? "Each row below is one question found in your document and matched to a question of this tool by its wording (fixed word rules, no AI). Every answer marked Matched is a suggestion: check it against the document, then accept it, edit it, or pick another value from the document. Not found means the answer did not fit the question and stays open."
             : "Each row below is one question with the sending unit (SU) and receiving unit (RU) answer. Accept an answer, edit it, or leave it open. The word under an answer says how sure the reading is: Exact (read straight from our own data), or Changed in Word (somebody typed over it in the file)."}
         </p>
+        {session.aiExample && (
+          <>
+            <p data-testid="import-ai-count">
+              <strong>{gapAiCountText(gapAiCounts(session))}</strong>
+            </p>
+            <p className="muted small">"Accept all" skips them: accept or reject each one.</p>
+          </>
+        )}
         <p role="status" aria-live="polite" data-testid="import-live-summary">
           {importSummaryText(counts, session.level)}
         </p>
@@ -464,7 +530,7 @@ function Review({ session, file }: { session: GapImportSession; file: File }) {
               className="btn"
               disabled={totalBulk === 0}
               onClick={() => {
-                take(bulkIn(session.rows));
+                take(bulkIn(ruleRows));
                 setBulk(`${totalBulk} exact ${totalBulk === 1 ? "answer" : "answers"} accepted.`);
               }}
               data-testid="import-accept-exact"
@@ -491,7 +557,7 @@ function Review({ session, file }: { session: GapImportSession; file: File }) {
       <div className="import-panes sp-import-panes">
         <section className="import-fields stack" aria-labelledby="import-fields-h" data-testid="import-fields">
           <h2 id="import-fields-h">Questions</h2>
-          {session.rows.length === 0 ? (
+          {ruleRows.length === 0 ? (
             <Empty>No question was found. Use "Not used yet" above to see why, or fill in the blank gap assessment form.</Empty>
           ) : (
             sections.map((sec) => {
@@ -569,6 +635,70 @@ function Review({ session, file }: { session: GapImportSession; file: File }) {
               );
             })
           )}
+          {aiGapRowsOf(session).length > 0 && (
+            <div className="stack import-ai-list" data-testid="import-ai-cards">
+              <h3>AI suggestions</h3>
+              {aiGapRowsOf(session).map((r) => {
+                const fs = aiGapRowFields(session, r);
+                const open = fs.filter((f) => f.value !== "");
+                const decided = open.every((f) => decisions[f.id] !== undefined);
+                const someDecided = open.some((f) => decisions[f.id] !== undefined);
+                const isRejected = !someDecided && open.every((f) => rejected.has(f.id));
+                const state = decided ? "Accepted" : isRejected ? "Rejected" : someDecided ? "Part accepted" : "Not accepted yet";
+                const shown = open.find((f) => session.fieldCells[f.id]?.length);
+                return (
+                  <div key={r.questionId} className="import-ai" data-testid="import-ai" data-state={decided ? "accepted" : isRejected ? "rejected" : "open"}>
+                    <p className="import-ai-head">
+                      <AiTag /> <strong>{r.label}</strong> <span className="muted small">({r.sectionTitle})</span>
+                    </p>
+                    <dl className="sp-ai-dl" data-testid="import-ai-value">
+                      {fs.map((f) => (
+                        <Fragment key={f.id}>
+                          <dt>{f.side === "shared" ? "Answer" : GAP_SIDE_LABEL[f.side]}</dt>
+                          <dd>{f.value || "Not established"}</dd>
+                        </Fragment>
+                      ))}
+                    </dl>
+                    <p className="import-ai-status">
+                      <span className="tag status import-ai-state" data-testid="import-ai-state">
+                        {state}
+                      </span>
+                    </p>
+                    {r.ai!.quotes.map((q) => (
+                      <blockquote key={q} className="import-ai-quote" data-testid="import-ai-quote">
+                        {q}
+                      </blockquote>
+                    ))}
+                    <p className="small muted import-ai-why" data-testid="import-ai-why">
+                      {r.ai!.where}. {r.ai!.why}
+                    </p>
+                    <div className="row wrap">
+                      {!decided && (
+                        <button type="button" className="btn small" aria-label={`Accept the AI suggestion: ${r.label}`} onClick={() => acceptAi(open)} data-testid="import-ai-accept">
+                          Accept
+                        </button>
+                      )}
+                      {!decided && !isRejected && (
+                        <button type="button" className="btn small" aria-label={`Reject the AI suggestion: ${r.label}`} onClick={() => rejectAi(open)} data-testid="import-ai-reject">
+                          Reject
+                        </button>
+                      )}
+                      {(decided || someDecided || isRejected) && (
+                        <button type="button" className="btn small ghost" aria-label={`Undo: ${r.label}`} onClick={() => clearAi(open)} data-testid="import-ai-undo">
+                          Undo
+                        </button>
+                      )}
+                      {shown && (
+                        <button type="button" className="btn small ghost" aria-label={`Show the passage in the document: ${r.label}`} onClick={() => showInDocument([shown.id])} data-testid="import-ai-show">
+                          Show the passage in the document
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         <ImportDocPane
@@ -628,7 +758,7 @@ function Review({ session, file }: { session: GapImportSession; file: File }) {
             </div>
           </div>
         )}
-        {SERVER_MODE && (
+        {SERVER_MODE && !session.aiExample && (
           <label className="check">
             <input type="checkbox" checked={keepCopy} onChange={(e) => setKeepCopy(e.target.checked)} data-testid="import-keep-copy" />
             <span>Keep a copy in My files</span>

@@ -1,0 +1,218 @@
+# The PRE-RECORDED "AI reading" of the example finished gap assessment (apps/web/public/examples/example-finished-gap-assessment.docx,
+# made by packages/docx/src/example-gap.ts). Nothing here is live: no AI runs, no network call is made. The items were written in advance
+# for this one fictional file, to show how an AI reader could propose gap items with the passage each one came from.
+#
+# Rules for every item (packages/docx/test/ai3-example.test.ts checks them):
+#  - One item = one gap item = one question of the catalogue = one card on the review screen.
+#  - question: the id of a catalogue question. source / target / shared: the answer for that unit, in the question's own words (the
+#    label of a choice, or a number with its unit). Nothing is converted, defaulted or rated: what the passage does not say is left out
+#    and stays "Not established" for the person.
+#  - quotes: copied word for word from the example file. where: in words. why: one short plain line.
+#  - Only items the fixed rules did NOT find (no overlap, no override).
+#  - reject: true marks an item a careful reviewer should REJECT (kept for the tests and the walkthrough, never shown as an answer).
+# A suggestion is never an answer: the person accepts or rejects each item.
+catalog:
+  id: ai-reading-example-gap-assessment
+  version: 1.0.0
+
+items:
+  - question: scope.modality
+    shared: Monoclonal antibody
+    quotes: ["ORV-118 is a humanized monoclonal antibody supplied as a lyophilized powder in a 10R glass vial."]
+    where: "2 Product and transfer, paragraph 1"
+    why: "The sentence names the product as a monoclonal antibody."
+
+  - question: scope.dosage_form
+    shared: Lyophilized powder
+    quotes: ["ORV-118 is a humanized monoclonal antibody supplied as a lyophilized powder in a 10R glass vial."]
+    where: "2 Product and transfer, paragraph 1"
+    why: "The same sentence says the product is supplied as a lyophilized powder."
+
+  - question: scope.presentation
+    shared: Vial
+    quotes: ["ORV-118 is a humanized monoclonal antibody supplied as a lyophilized powder in a 10R glass vial."]
+    where: "2 Product and transfer, paragraph 1"
+    why: "The same sentence says the container is a glass vial."
+
+  - question: scope.ds_state
+    shared: Frozen
+    quotes: ["This is a site to site transfer from the Riverside Pilot Plant to the Northfield Fill Site. The drug substance is received frozen at Northfield."]
+    where: "2 Product and transfer, paragraph 2"
+    why: "The drug substance is received frozen."
+
+  - question: scope.transfer_type
+    shared: Site to site
+    quotes: ["This is a site to site transfer from the Riverside Pilot Plant to the Northfield Fill Site. The drug substance is received frozen at Northfield."]
+    where: "2 Product and transfer, paragraph 2"
+    why: "The sentence calls the transfer a site to site transfer."
+
+  - question: scope.dilution
+    shared: "Yes"
+    quotes: ["The formulated bulk is made by diluting the drug substance with a buffer at both sites."]
+    where: "2 Product and transfer, paragraph 3"
+    why: "The sentence says the bulk is made by diluting with a buffer."
+
+  - question: scope.containment
+    shared: Standard (no special containment)
+    quotes: ["ORV-118 needs no special containment (standard handling)."]
+    where: "2 Product and transfer, paragraph 4"
+    why: "The sentence says no special containment is needed."
+
+  - question: scope.markets
+    shared: United States; European Union
+    quotes: ["ORV-118 is supplied to the United States and the European Union."]
+    where: "2 Product and transfer, paragraph 5"
+    why: "The sentence names the two markets."
+
+  - question: rt.presence
+    source: "Yes"
+    target: "Yes"
+    quotes: ["At both sites the drug substance is received and thawed, then pooled, compounded and diluted, sterile filtered, filled aseptically, freeze-dried and capped."]
+    where: "2 Product and transfer, paragraph 6"
+    why: "The sentence says both sites receive and thaw the drug substance."
+
+  - question: comp.presence
+    source: "Yes"
+    target: "Yes"
+    quotes: ["At both sites the drug substance is received and thawed, then pooled, compounded and diluted, sterile filtered, filled aseptically, freeze-dried and capped."]
+    where: "2 Product and transfer, paragraph 6"
+    why: "The sentence says both sites pool, compound and dilute."
+
+  - question: filt.presence
+    source: "Yes"
+    target: "Yes"
+    quotes: ["At both sites the drug substance is received and thawed, then pooled, compounded and diluted, sterile filtered, filled aseptically, freeze-dried and capped."]
+    where: "2 Product and transfer, paragraph 6"
+    why: "The sentence says both sites sterile filter."
+
+  - question: fill.presence
+    source: "Yes"
+    target: "Yes"
+    quotes: ["At both sites the drug substance is received and thawed, then pooled, compounded and diluted, sterile filtered, filled aseptically, freeze-dried and capped."]
+    where: "2 Product and transfer, paragraph 6"
+    why: "The sentence says both sites fill aseptically."
+
+  - question: lyo.presence
+    source: "Yes"
+    target: "Yes"
+    quotes: ["At both sites the drug substance is received and thawed, then pooled, compounded and diluted, sterile filtered, filled aseptically, freeze-dried and capped."]
+    where: "2 Product and transfer, paragraph 6"
+    why: "The sentence says both sites freeze-dry."
+
+  - question: cap.presence
+    source: "Yes"
+    target: "Yes"
+    quotes: ["At both sites the drug substance is received and thawed, then pooled, compounded and diluted, sterile filtered, filled aseptically, freeze-dried and capped."]
+    where: "2 Product and transfer, paragraph 6"
+    why: "The sentence says both sites cap."
+
+  - question: dsi.presence
+    target: "Yes"
+    quotes: ["Drug substance is shipped frozen from Riverside to Northfield in a dry-ice shipper. The shipper is qualified."]
+    where: "4 Drug substance shipping, thaw and compounding, paragraph 1"
+    why: "The drug substance is shipped to Northfield from Riverside. The text says nothing about shipments to Riverside, so that side stays empty."
+
+  - question: dsi.shipper
+    target: Dry-ice shipper (frozen)
+    quotes: ["Drug substance is shipped frozen from Riverside to Northfield in a dry-ice shipper. The shipper is qualified."]
+    where: "4 Drug substance shipping, thaw and compounding, paragraph 1"
+    why: "The sentence names a dry-ice shipper for the frozen drug substance."
+
+  - question: dsi.shipper_qual
+    target: Performance qualification (PQ) complete
+    quotes: ["Drug substance is shipped frozen from Riverside to Northfield in a dry-ice shipper. The shipper is qualified."]
+    where: "4 Drug substance shipping, thaw and compounding, paragraph 1"
+    why: "The text only says the shipper is qualified. It does not say which qualification, so this rating is a guess and I am unsure of it."
+    reject: true
+
+  - question: rt.thaw_principle
+    source: Circulating water bath
+    target: Controlled-rate thaw system (plate or jacketed)
+    quotes: ["Riverside thaws in a circulating water bath; Northfield uses a controlled-rate thaw system (plate or jacketed)."]
+    where: "4 Drug substance shipping, thaw and compounding, paragraph 2"
+    why: "One sentence names the thaw system of each site."
+
+  - question: rt.ambient_time
+    source: 4 h
+    target: 4 h
+    quotes: ["After thawing, the drug substance may stay at ambient temperature for no more than 4 h at both sites."]
+    where: "4 Drug substance shipping, thaw and compounding, paragraph 3"
+    why: "The limit of 4 h is stated for both sites."
+
+  - question: rt.cold_hold
+    target: 72 h
+    quotes: ["At Northfield the thawed drug substance may be held at 2-8 °C for up to 72 h before pooling. A freeze-thaw study for the Northfield thaw method is planned but not yet available."]
+    where: "4 Drug substance shipping, thaw and compounding, paragraph 4"
+    why: "The refrigerated hold at Northfield is up to 72 h before pooling."
+
+  - question: rt.freeze_thaw
+    target: Planned, not yet available
+    quotes: ["At Northfield the thawed drug substance may be held at 2-8 °C for up to 72 h before pooling. A freeze-thaw study for the Northfield thaw method is planned but not yet available."]
+    where: "4 Drug substance shipping, thaw and compounding, paragraph 4"
+    why: "The second sentence says the freeze-thaw study is planned but not yet available."
+
+  - question: comp.mixer
+    source: Top-entry impeller
+    target: Single-use bag impeller
+    quotes: ["Riverside mixes the formulated bulk in a stainless-steel tank with a top-entry impeller; Northfield mixes it in a single-use bag with an impeller."]
+    where: "4 Drug substance shipping, thaw and compounding, paragraph 5"
+    why: "One sentence gives the mixer of each site."
+
+  - question: bbr.presence
+    source: "No"
+    target: "Yes"
+    quotes: ["Northfield adds a bioburden-reduction (BBR) filtration of the formulated bulk; Riverside does not."]
+    where: "4 Drug substance shipping, thaw and compounding, paragraph 7"
+    why: "Northfield has a BBR filtration step and Riverside does not."
+
+  - question: bbr.bioburden_limit
+    target: 10 CFU/100 mL
+    quotes: ["At Northfield the bioburden limit before the BBR filter is 10 CFU/100 mL."]
+    where: "4 Drug substance shipping, thaw and compounding, paragraph 8"
+    why: "The limit and its unit are written in the sentence."
+
+  - question: filt.redundant
+    source: "No"
+    target: "Yes"
+    quotes: ["Northfield uses a redundant second sterilizing filter in series; Riverside uses a single filter."]
+    where: "5 Sterile filtration, paragraph 1"
+    why: "Northfield uses a second filter in series and Riverside one filter."
+
+  - question: filt.pupsit
+    source: Not performed; justified by a documented risk assessment
+    target: Performed
+    quotes: ["Riverside does not perform PUPSIT, which is justified by a documented risk assessment; Northfield performs PUPSIT."]
+    where: "5 Sterile filtration, paragraph 2"
+    why: "The sentence gives the PUPSIT status of each site and says the omission at Riverside is justified."
+
+  - question: fill.aps
+    target: 8 h
+    quotes: ["The last media fill on Line 2 covered 8 h of filling."]
+    where: "6 Filling, lyophilization and capping, paragraph 1"
+    why: "The media fill on the Northfield line covered 8 h."
+
+  - question: fill.ppq_strategy
+    target: Full PPQ at the RU (new batches)
+    quotes: ["Northfield will run a full PPQ at the receiving site with three new batches."]
+    where: "Table 2, row PPQ"
+    why: "The row says a full PPQ with new batches at Northfield."
+
+  - question: lyo.nucleation
+    source: Uncontrolled nucleation
+    target: Controlled nucleation by pressure depression
+    quotes: ["Riverside freezes with uncontrolled nucleation; Northfield uses controlled nucleation by pressure depression."]
+    where: "Table 2, first row Lyophilization"
+    why: "The row gives the nucleation of each site."
+
+  - question: lyo.cycle_verification
+    target: Planned, not yet available
+    quotes: ["Verification of the cycle on the Northfield lyophilizer (engineering run) is planned; results are not yet available."]
+    where: "Table 2, second row Lyophilization"
+    why: "The row says the cycle verification is planned and results are not yet available."
+
+  - question: cap.cci
+    target: Planned, not yet available
+    quotes: ["CCI for the Northfield vial, stopper, seal and capping process was planned for Q3 (action 7, closed on 3 November)."]
+    where: "Table 2, second row Capping"
+    why: "The row says the work was planned, but it also says the action is closed, so this item is probably already done and I am unsure it is still a gap."
+    reject: true

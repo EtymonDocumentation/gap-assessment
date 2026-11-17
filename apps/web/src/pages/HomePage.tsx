@@ -118,7 +118,7 @@ export function HomePage() {
                 </h3>
                 <div className="stack" data-testid="home-start-from-gap">
                   <h4 className="start-sub">A gap assessment</h4>
-                  <p className="muted small">Upload a gap assessment Word file that this tool made, a fill-in form, or one in another layout (Word or PDF). It makes a new project, or updates the open one. You check every answer before it is used.</p>
+                  <p className="muted small">Upload a gap assessment Word file that this tool made, a fill-in form, or one in another layout (Word or PDF). It makes a new project, or updates the open one. You check every answer before it is used. To see how an AI reader could help, try the AI reading on an example gap assessment: its suggestions were recorded in advance, and each one shows the passage it came from.</p>
                   <div className="row wrap">
                     <GapUploadButton className="btn" testId="home-upload-gap" />
                     <GapFormButton testId="home-gap-blank-form" />

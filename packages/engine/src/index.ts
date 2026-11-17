@@ -80,6 +80,7 @@ export * from "./sampling-match";
 export * from "./trd-match";
 export * from "./ai-reading";
 export * from "./ai-reading-sampling";
+export * from "./ai-reading-gap";
 export * from "./gap-synonyms";
 export * from "./gap-import";
 export * from "./gap-match";

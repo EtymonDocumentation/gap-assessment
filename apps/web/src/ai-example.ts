@@ -1,5 +1,5 @@
-import { overlayAiReading, overlaySamplingAiReading, samplingSessionFromOther, sessionFromOther, type ImportSession, type SamplingImportSession } from "@gap/engine";
-import { samplingImportSynonyms, samplingSuggestions, trdImportSynonyms } from "@gap/content";
+import { gapSessionFromOther, overlayAiReading, overlayGapAiReading, overlaySamplingAiReading, samplingSessionFromOther, sessionFromOther, type GapImportSession, type ImportSession, type SamplingImportSession } from "@gap/engine";
+import { gapImportSynonyms, samplingImportSynonyms, samplingSuggestions, trdImportSynonyms } from "@gap/content";
 import { loadDocx } from "./docx-loader";
 import { content } from "./store";
 
@@ -51,4 +51,27 @@ export async function buildAiSamplingExample(): Promise<{ session: SamplingImpor
   // A recorded point that cannot be shown with its passage is left out; a broken recording is worth knowing about.
   if (skipped.length > 0) console.warn("AI reading of the sampling plan: points left out", skipped);
   return { session, file: new File([bytes], EXAMPLE_SAMPLING_FILE, { type: DOCX_MIME }) };
+}
+
+/**
+ * "Try the AI reading on an example gap assessment" (job AI3): the same idea for a finished gap assessment. The example is a static Word file
+ * shipped with the site (a fictional ORV-118 assessment for the same transfer as the example TRD and sampling plan); the AI reading of it was
+ * recorded in advance (content/ai-reading/example-gap-assessment.yaml). The file is read by the same reader and fixed rules as any gap
+ * assessment from somewhere else (level 3), and the recorded gap items are laid on top as extra rows. Nothing is sent anywhere and no AI runs.
+ */
+export const EXAMPLE_GAP_FILE = "example-finished-gap-assessment.docx";
+export const EXAMPLE_GAP_URL = `${import.meta.env.BASE_URL}examples/${EXAMPLE_GAP_FILE}`;
+
+/** The review session of the example gap assessment, and the file it was read from (held like an uploaded file). */
+export async function buildAiGapExample(): Promise<{ session: GapImportSession; file: File }> {
+  const res = await fetch(EXAMPLE_GAP_URL);
+  if (!res.ok) throw new Error(`the example file could not be loaded (${res.status})`);
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  const [m, { exampleGapReading }] = await Promise.all([loadDocx(), import("@gap/content/ai-reading/index")]);
+  const read = m.readUpload(bytes, EXAMPLE_GAP_FILE);
+  const base = gapSessionFromOther(read, content, gapImportSynonyms);
+  const { session, skipped } = overlayGapAiReading(base, exampleGapReading, { content, syn: gapImportSynonyms });
+  // A recorded item that cannot be shown with its passage is left out; a broken recording is worth knowing about.
+  if (skipped.length > 0) console.warn("AI reading of the gap assessment: items left out", skipped);
+  return { session, file: new File([bytes], EXAMPLE_GAP_FILE, { type: DOCX_MIME }) };
 }

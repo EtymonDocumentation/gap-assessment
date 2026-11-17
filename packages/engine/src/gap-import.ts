@@ -572,6 +572,8 @@ export interface GapField {
   known?: { text: string; input: AnswerInput }[];
   /** Level 3: the table of the document (index in the view blocks) the answer was matched from. */
   table?: number;
+  /** An "AI suggestion" (the pre-recorded reading of the example gap assessment): the passage this answer came from, where, and why. */
+  ai?: { quote: string; where: string; why: string };
 }
 
 export interface GapRow {
@@ -582,6 +584,8 @@ export interface GapRow {
   sides: GapSide[];
   /** Where in the document, in words (level 3). */
   where?: string;
+  /** Set on a row that is an AI suggestion (example reading only): every passage the item rests on, where they are, and a short plain reason. */
+  ai?: { quotes: string[]; where: string; why: string };
 }
 
 export interface GapImportSession {
@@ -602,6 +606,8 @@ export interface GapImportSession {
   unfilled: number;
   /** Level 3: tables that gave at least one match, in document order. */
   matchedTables?: { block: number; label: string }[];
+  /** Set when the session is the example gap assessment with the pre-recorded AI reading laid over the fixed rules (job AI3). */
+  aiExample?: boolean;
 }
 
 export const emptyGapField = (questionId: string, side: GapSide, source: string): GapField => ({

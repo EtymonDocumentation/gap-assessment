@@ -1,6 +1,7 @@
 import { gapImportSynonyms } from "@gap/content";
 import { buildBlankGapFormSpec, buildGapFormSpec, gapSessionFromData, gapSessionFromForm, gapSessionFromOther, GapImportError } from "@gap/engine";
 import { useRef, useState } from "react";
+import { buildAiGapExample } from "../ai-example";
 import { loadDocx } from "../docx-loader";
 import { holdGapImport } from "../gap-import-store";
 import { readUploadFile } from "../import-file";
@@ -76,10 +77,29 @@ export function GapUploadButton({ className = "btn primary", testId = "gap-uploa
     }
   }
 
+  // The example: a finished gap assessment that ships with the site, read by the same rules as an upload, with the AI reading that was
+  // recorded for it. No AI runs and nothing is sent anywhere.
+  async function tryExample() {
+    setMessage(null);
+    setBusy(true);
+    try {
+      const { session, file } = await buildAiGapExample();
+      holdGapImport({ session, file });
+      navigate("/gap/import");
+    } catch (e) {
+      setMessage({ text: `The example could not be opened: ${(e as Error).message}`, offerForm: false });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <span className="upload-trd">
       <button type="button" className={className} onClick={() => input.current?.click()} disabled={busy} data-testid={testId}>
         {busy ? "Reading the file..." : "Upload a gap assessment"}
+      </button>
+      <button type="button" className="link-btn small" onClick={() => void tryExample()} disabled={busy} data-testid={`${testId}-ai-example`}>
+        Try the AI reading on an example gap assessment
       </button>
       <input
         ref={input}

@@ -29,7 +29,7 @@ terms:
 
   - id: ai-suggestion
     term: AI suggestion
-    short: A value (on the "Upload a TRD" review screen) or a whole sampling point (on the "Upload a sampling plan" review screen) that an AI reader proposed, shown with the passage it came from. For now this is a pre-recorded example, so the suggestions were recorded in advance for one example TRD and one example sampling plan, and no AI reads your own files yet. It is a drafting aid. Check each suggestion against its quote, then accept or reject it; "Accept all" never takes it, and a value you reject stays not established.
+    short: A value (on the "Upload a TRD" review screen) a whole sampling point (on the "Upload a sampling plan" review screen), or a whole gap item (on the "Upload a gap assessment" review screen) that an AI reader proposed, shown with the passage it came from. For now this is a pre-recorded example, so the suggestions were recorded in advance for one example TRD, one example sampling plan and one example gap assessment, and no AI reads your own files yet. It is a drafting aid. Check each suggestion against its quote, then accept or reject it; "Accept all" never takes it, and a value you reject stays not established.
     see: [reading-word, drafting-aid, open-item]
 
   - id: area
@@ -246,7 +246,7 @@ terms:
 
   - id: reading-word
     term: Reading word (Exact / Matched / Not found / AI suggestion)
-    short: On the "Upload a TRD" and "Upload a sampling plan" review screens, how sure the reading of a value is. Exact means it was read straight from the data our own Word export carries. Matched means it was matched to a field by its label. Not found means the file gives no value, so it stays not established. AI suggestion means the pre-recorded AI reading of the example TRD or the example sampling plan proposed it. Only Exact values are taken by "Accept all exact".
+    short: On the "Upload a TRD", "Upload a sampling plan" and "Upload a gap assessment" review screens, how sure the reading of a value is. Exact means it was read straight from the data our own Word export carries. Matched means it was matched to a field by its label. Not found means the file gives no value, so it stays not established. AI suggestion means the pre-recorded AI reading of the example TRD, sampling plan or gap assessment proposed it. Only Exact values are taken by "Accept all exact".
     see: [tbd, open-item, trd, ai-suggestion]
 
   - id: ready-made-steps
