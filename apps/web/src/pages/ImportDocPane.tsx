@@ -48,7 +48,16 @@ export function ImportDocPane({ blocks, cellFields, anyChanged, picking, onTake,
         {blocks.length === 0 && <Empty>The file has no readable text.</Empty>}
         {blocks.map((b, bi) => {
           if (b.kind === "heading") return <p key={bi} className="import-doc-heading">{b.text}</p>;
-          if (b.kind === "para") return <p key={bi} className="small">{b.text}</p>;
+          if (b.kind === "para") {
+            // A passage an AI suggestion was taken from can be focused ("Show the passage in the document"), so it has an id like a table cell.
+            const used = cellFields[`${bi}:p`] ?? [];
+            return (
+              <p key={bi} id={`imp-cell-${bi}-p`} tabIndex={-1} className={used.length > 0 ? "small import-doc-quoted" : "small"}>
+                {b.text}
+                {used.length > 0 && <span className="tag"> used</span>}
+              </p>
+            );
+          }
           const tableNo = blocks.slice(0, bi + 1).filter((x) => x.kind === "table").length;
           return (
             <div key={bi} id={`imp-table-${bi}`} className="table-scroll" role="region" aria-label={`Table ${tableNo} of the document${b.page ? `, page ${b.page}` : ""}`} tabIndex={0}>

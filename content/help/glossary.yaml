@@ -27,6 +27,11 @@ terms:
     short: The last heading of a TRD that follows your template. It holds the sections you added back although your template has no heading for them.
     see: [not-in-your-template, template-headings]
 
+  - id: ai-suggestion
+    term: AI suggestion
+    short: A value on the "Upload a TRD" review screen that an AI reader proposed, shown with the passage it came from. For now this is a pre-recorded example, so the suggestions were recorded in advance for one example TRD, and no AI reads your own files yet. It is a drafting aid. Check each suggestion against its quote, then accept or reject it; "Accept all" never takes it, and a value you reject stays not established.
+    see: [reading-word, drafting-aid, open-item]
+
   - id: area
     term: Area (facility area)
     short: A room or barrier of a site where process steps are done, such as a filling room or an isolator. You name your areas and tick the steps done in each. They only help you find questions on the interview map and change no document.
@@ -240,9 +245,9 @@ terms:
     see: [drafting-aid]
 
   - id: reading-word
-    term: Reading word (Exact / Matched / Not found)
-    short: On the "Upload a TRD" review screen, how sure the reading of a value is. Exact means it was read straight from the data our own Word export carries. Matched means it was matched to a field by its label. Not found means the file gives no value, so it stays not established. Only Exact values are taken by "Accept all exact".
-    see: [tbd, open-item, trd]
+    term: Reading word (Exact / Matched / Not found / AI suggestion)
+    short: On the "Upload a TRD" review screen, how sure the reading of a value is. Exact means it was read straight from the data our own Word export carries. Matched means it was matched to a field by its label. Not found means the file gives no value, so it stays not established. AI suggestion means the pre-recorded AI reading of the example TRD proposed it. Only Exact values are taken by "Accept all exact".
+    see: [tbd, open-item, trd, ai-suggestion]
 
   - id: ready-made-steps
     term: Ready-made steps

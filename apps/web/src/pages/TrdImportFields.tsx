@@ -1,4 +1,4 @@
-import { CONFIDENCE_LABEL, cellTextReadable, currentValue, type ImportDecisions, type ImportField, type ImportSession } from "@gap/engine";
+import { CONFIDENCE_LABEL, aiCardsOf, cellTextReadable, currentValue, type ImportDecisions, type ImportField, type ImportSession } from "@gap/engine";
 import { useState, type ReactNode } from "react";
 
 /**
@@ -26,6 +26,9 @@ export interface ImportCtx {
   takeable: (f: ImportField) => boolean;
   set: (id: string, value: string) => void;
   clear: (id: string) => void;
+  /** AI suggestions the person rejected. A rejected value is not in any decision: the field stays not established, as an unaccepted one does. */
+  rejected: ReadonlySet<string>;
+  reject: (id: string) => void;
   pick: (id: string) => void;
   show: (id: string) => void;
 }
@@ -205,10 +208,22 @@ function ParamCell({ ctx, col, label, fields }: { ctx: ImportCtx; col: Col; labe
     const text = low || high ? rangeText(low ? shownValue(ctx, low) : "", high ? shownValue(ctx, high) : "") : parts[0] ? shownValue(ctx, parts[0]) : "";
     const relevant = parts.filter((f) => f.value !== "" || ctx.decisions[f.id] !== undefined);
     const accepted = relevant.filter((f) => ctx.decisions[f.id] !== undefined).length;
-    const state = relevant.length === 0 ? "" : accepted === relevant.length ? "Accepted" : accepted === 0 ? "Read, not accepted yet" : "Part accepted";
+    const aiParts = relevant.filter((f) => f.ai && ctx.decisions[f.id] === undefined);
+    const state =
+      relevant.length === 0
+        ? ""
+        : accepted === relevant.length
+          ? "Accepted"
+          : aiParts.some((f) => ctx.rejected.has(f.id))
+            ? "AI suggestion rejected"
+            : accepted === 0
+              ? aiParts.length === relevant.length
+                ? "AI suggestion, not accepted yet"
+                : "Read, not accepted yet"
+              : "Part accepted";
     const nows = parts.map(nowOf);
     const nowText = low || high ? rangeText(low ? (nowOf(low)?.text ?? "") : "", high ? (nowOf(high)?.text ?? "") : "") : (nows[0]?.text ?? "");
-    const loose = parts.filter((f) => !f.lockedBy && f.confidence !== "exact" && f.confidence !== "matched" && f.value && ctx.decisions[f.id] === undefined);
+    const loose = parts.filter((f) => !f.lockedBy && f.confidence !== "exact" && f.confidence !== "matched" && f.confidence !== "ai_suggested" && f.value && ctx.decisions[f.id] === undefined);
     body = (
       <>
         <span className="import-value">{text || <span className="muted">Not filled</span>}</span>
@@ -317,16 +332,24 @@ function ParamRows({ ctx, name, fields }: { ctx: ImportCtx; name: string; fields
           <ParamCell key={c.col} ctx={ctx} col={c.col} label={c.label} fields={fields} />
         ))}
         <td className="import-word" data-label="Reading">
-          {wordsOf(fields).map((w) => (
-            <span key={w} className="tag status">
-              {w}
-            </span>
-          ))}
+          {wordsOf(fields).map((w) =>
+            w === CONFIDENCE_LABEL.ai_suggested ? (
+              <AiTag key={w} />
+            ) : (
+              <span key={w} className="tag status">
+                {w}
+              </span>
+            ),
+          )}
         </td>
         <td className="import-actions">
+          {/* A row whose readings are only AI suggestions has nothing for this button to take: the suggestion card under it has the Accept.
+              The button is left out rather than greyed out (a control that does not apply is absent). */}
+          {(exact.length > 0 || !fields.some((f) => f.ai)) && (
           <button type="button" className="btn small" disabled={exact.length === 0} aria-label={`Accept ${name}`} onClick={() => exact.forEach((f) => ctx.set(f.id, f.value))} data-testid="import-row-accept">
             Accept
           </button>
+          )}
           <button type="button" className="btn small" aria-label={`Edit ${name}`} disabled={editable.length === 0} onClick={() => startEdit(ctx, key, editable)} data-testid="import-edit">
             Edit
           </button>
@@ -334,7 +357,89 @@ function ParamRows({ ctx, name, fields }: { ctx: ImportCtx; name: string; fields
         </td>
       </tr>
       {editingRow && <Editor ctx={ctx} fields={editable} k={key} colSpan={PARAM_ROW_COLUMNS} />}
+      <AiRows ctx={ctx} fields={fields} colSpan={PARAM_ROW_COLUMNS} />
     </>
+  );
+}
+
+/** The mark of an AI suggestion: a colour, a symbol and the words, so no meaning rests on colour. */
+export function AiTag() {
+  return (
+    <span className="tag status status-ai" data-testid="import-ai-tag">
+      <span aria-hidden="true">✦ </span>
+      {CONFIDENCE_LABEL.ai_suggested}
+    </span>
+  );
+}
+
+/**
+ * The AI suggestions of a row, ONE CARD per parameter (all its parts together) with the passage it came from (a visible block quote),
+ * where that is, the reason, and one set of buttons: Accept writes all the parts, Reject rejects all of them.
+ * A suggestion is never taken by "Accept all": it is accepted or rejected here, one card at a time. A rejected one stays not established.
+ */
+function AiRows({ ctx, fields, colSpan }: { ctx: ImportCtx; fields: ImportField[]; colSpan: number }) {
+  const cards = aiCardsOf(fields);
+  if (cards.length === 0) return null;
+  return (
+    <tr className="import-wide import-ai-row">
+      <td colSpan={colSpan}>
+        <div className="stack import-ai-list">
+          {cards.map((c) => {
+            const decided = c.fields.every((f) => ctx.decisions[f.id] !== undefined);
+            const someDecided = c.fields.some((f) => ctx.decisions[f.id] !== undefined);
+            const rejected = !decided && !someDecided && c.fields.every((f) => ctx.rejected.has(f.id));
+            const open = c.fields.filter((f) => ctx.decisions[f.id] === undefined);
+            const state = decided ? "Accepted" : rejected ? "Rejected" : someDecided ? "Part accepted" : "Not accepted yet";
+            const shown = c.fields.find((f) => ctx.session.fieldCells[f.id]?.length);
+            return (
+              <div key={c.key} className="import-ai" data-testid="import-ai" data-field={c.key} data-state={decided ? "accepted" : rejected ? "rejected" : "open"}>
+                <p className="import-ai-head">
+                  <AiTag /> <strong>{c.title}</strong>
+                </p>
+                <p className="import-ai-value" data-testid="import-ai-value">
+                  {c.valueText}
+                </p>
+                <p className="import-ai-status">
+                  <span className="tag status import-ai-state" data-testid="import-ai-state">
+                    {state}
+                  </span>
+                </p>
+                {c.quotes.map((q) => (
+                  <blockquote key={q} className="import-ai-quote" data-testid="import-ai-quote">
+                    {q}
+                  </blockquote>
+                ))}
+                <p className="small muted import-ai-why" data-testid="import-ai-why">
+                  {c.where}. {c.why}
+                </p>
+                <div className="row wrap">
+                  {!decided && (
+                    <button type="button" className="btn small" aria-label={`Accept the AI suggestion: ${c.title}`} onClick={() => open.forEach((f) => ctx.set(f.id, f.value))} data-testid="import-ai-accept">
+                      Accept
+                    </button>
+                  )}
+                  {!decided && !rejected && (
+                    <button type="button" className="btn small" aria-label={`Reject the AI suggestion: ${c.title}`} onClick={() => open.forEach((f) => ctx.reject(f.id))} data-testid="import-ai-reject">
+                      Reject
+                    </button>
+                  )}
+                  {(decided || someDecided || rejected) && (
+                    <button type="button" className="btn small ghost" aria-label={`Undo: ${c.title}`} onClick={() => c.fields.forEach((f) => ctx.clear(f.id))} data-testid="import-ai-undo">
+                      Undo
+                    </button>
+                  )}
+                  {shown && (
+                    <button type="button" className="btn small ghost" aria-label={`Show the passage in the document: ${c.title}`} onClick={() => ctx.show(shown.id)} data-testid="import-ai-show">
+                      Show the passage in the document
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </td>
+    </tr>
   );
 }
 
@@ -370,7 +475,7 @@ export function SimpleTable({ ctx, fields }: { ctx: ImportCtx; fields: ImportFie
                 <td className="import-cell" data-label="Value">
                   <span className="import-value">{f.multiline ? <span className="block">{shown || <span className="muted">Not filled</span>}</span> : shown || <span className="muted">Not filled</span>}</span>
                   <span className="import-cell-state" data-testid="import-state">
-                    {decision !== undefined ? (decision === "" ? "Accepted as no value" : "Accepted") : f.value ? "Read, not accepted yet" : ""}
+                    {decision !== undefined ? (decision === "" ? "Accepted as no value" : "Accepted") : f.ai ? (ctx.rejected.has(f.id) ? "AI suggestion rejected" : "AI suggestion, not accepted yet") : f.value ? "Read, not accepted yet" : ""}
                   </span>
                   {now && (
                     <span className="import-cell-state" data-testid="import-now">
@@ -381,12 +486,12 @@ export function SimpleTable({ ctx, fields }: { ctx: ImportCtx; fields: ImportFie
                   )}
                 </td>
                 <td className="import-word" data-label="Reading">
-                  <span className="tag status">{CONFIDENCE_LABEL[f.confidence]}</span>
+                  {f.ai ? <AiTag /> : <span className="tag status">{CONFIDENCE_LABEL[f.confidence]}</span>}
                 </td>
                 <td className="import-actions">
                   {/* Nothing was read, so there is nothing to accept: the button is left out rather than greyed
                       out (site rule: a control that does not apply is absent). Edit stays to type a value. */}
-                  {f.value && (
+                  {f.value && !f.ai && (
                     <button type="button" className="btn small" onClick={() => ctx.set(f.id, f.value)} aria-label={`Accept ${f.label}`} data-testid="import-accept">
                       Accept
                     </button>
@@ -398,6 +503,7 @@ export function SimpleTable({ ctx, fields }: { ctx: ImportCtx; fields: ImportFie
                 </td>
               </tr>
               {ctx.editing?.key === key && <Editor ctx={ctx} fields={[f]} k={key} colSpan={4} />}
+              <AiRows ctx={ctx} fields={[f]} colSpan={4} />
             </FragmentRows>
           );
         })}

@@ -2,6 +2,7 @@ import { trdImportSynonyms } from "@gap/content";
 import { buildBlankFormSpec, buildTrdFormSpec, sessionFromData, sessionFromForm, sessionFromOther, TrdImportError, type UploadRead } from "@gap/engine";
 import type { TrdDocument } from "@gap/process-model";
 import { useRef, useState } from "react";
+import { buildAiExample } from "../ai-example";
 import { loadDocx } from "../docx-loader";
 import { readUploadFile } from "../import-file";
 import { download } from "../lib";
@@ -78,10 +79,29 @@ export function TrdUploadButton({ className = "btn primary", testId = "trd-uploa
     }
   }
 
+  // The example: a finished TRD that ships with the site, read by the same rules as an upload, with the AI reading that was recorded for it.
+  // Same project-first path as an upload. No AI runs and nothing is sent anywhere.
+  async function tryExample() {
+    setMessage(null);
+    setBusy(true);
+    try {
+      const { session, file } = await buildAiExample();
+      holdImport({ session, file });
+      proceed(() => navigate("/trd/import"));
+    } catch (e) {
+      setMessage({ text: `The example could not be opened: ${(e as Error).message}`, offerForm: false });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <span className="upload-trd">
       <button type="button" className={className} onClick={() => input.current?.click()} disabled={busy} data-testid={testId}>
         {busy ? "Reading the file..." : "Upload a TRD"}
+      </button>
+      <button type="button" className="link-btn small" onClick={() => void tryExample()} disabled={busy} data-testid={`${testId}-ai-example`}>
+        Try the AI reading on an example TRD
       </button>
       <input
         ref={input}

@@ -78,6 +78,7 @@ export * from "./sampling-synonyms";
 export * from "./sampling-import";
 export * from "./sampling-match";
 export * from "./trd-match";
+export * from "./ai-reading";
 export * from "./gap-synonyms";
 export * from "./gap-import";
 export * from "./gap-match";

@@ -56,6 +56,10 @@
   --warn: #8a4600;
   --warn-bg: #fff7ee;
   --warn-border: #b35c00;
+  /* An AI suggestion (the recorded reading of the example TRD): its own colour, always with a symbol and the words. */
+  --ai-text: #4f2a7a;
+  --ai-bg: #f4edfb;
+  --ai-border: #7b4fb0;
   --banner-bg: #7a1717;
   --banner-text: #ffffff;
   /* The dark bar at the top of every page. The same colours serve both themes; only the shade of the bar differs. */
@@ -119,6 +123,9 @@
     --warn: #f0a860;
     --warn-bg: #2a2417;
     --warn-border: #c9822f;
+    --ai-text: #e2cdf7;
+    --ai-bg: #2b2140;
+    --ai-border: #b48be0;
     --banner-bg: #5c1010;
     --header-bg: #0a0f14;
     --header-hover: #18202a;
@@ -159,6 +166,9 @@
   --warn: #f0a860;
   --warn-bg: #2a2417;
   --warn-border: #c9822f;
+  --ai-text: #e2cdf7;
+  --ai-bg: #2b2140;
+  --ai-border: #b48be0;
   --banner-bg: #5c1010;
   --header-bg: #0a0f14;
   --header-hover: #18202a;
@@ -5017,11 +5027,12 @@ fieldset.stage-options {
    the document is on the left and the fields on the right. No meaning rests on colour: every state is also written out. */
 .upload-trd {
   display: inline-flex;
-  flex-direction: column;
-  gap: 8px;
-  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
 }
 .upload-message {
+  flex-basis: 100%;
   max-width: 60ch;
 }
 .import-panes {
@@ -6193,4 +6204,80 @@ button.imap-tile:hover { background: var(--accent-soft); }
 @media (max-width: 480px) {
   .area-step-list { grid-template-columns: minmax(0, 1fr); }
   .areas-add .field input { min-width: 0; width: 100%; }
+}
+
+/* The recorded AI reading of the example TRD (job AI1). Every AI row shows its passage as a block quote under the values, so what the
+   suggestion rests on is on the screen, not behind a button. The tag is a colour plus a symbol plus words. */
+.tag.status-ai {
+  border-style: solid;
+  border-color: var(--ai-border);
+  background: var(--ai-bg);
+  color: var(--ai-text);
+  font-weight: 600;
+}
+.import-ai-row > td {
+  background: var(--surface-2);
+}
+.import-ai-list {
+  gap: 8px;
+}
+.import-ai {
+  border: 1px solid var(--ai-border);
+  border-left-width: 4px;
+  background: var(--ai-bg);
+  color: var(--ai-text);
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: grid;
+  gap: 4px;
+}
+.import-ai p {
+  margin: 0;
+}
+.import-ai .muted {
+  color: var(--ai-text);
+}
+.import-ai-quote {
+  margin: 0;
+  padding: 4px 10px;
+  border-left: 3px solid var(--ai-border);
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+.import-ai .btn {
+  color: var(--text);
+}
+.import-ai-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.import-ai-value {
+  font-weight: 600;
+  font-size: 1.05em;
+}
+/* The status sits on its own line, as a small tag with a border: words, not colour alone. */
+.import-ai-state {
+  display: inline-block;
+  font-weight: 600;
+  border: 1px solid var(--ai-border);
+  background: var(--surface);
+  color: var(--text);
+}
+.import-doc-quoted {
+  border-left: 3px solid var(--ai-border);
+  padding-left: 6px;
+}
+.import-doc-body [tabindex="-1"]:focus {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.ai-banner {
+  border-color: var(--ai-border);
+}
+.upload-trd .link-btn {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
 }

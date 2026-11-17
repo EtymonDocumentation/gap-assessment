@@ -1,0 +1,223 @@
+# The PRE-RECORDED "AI reading" of the example finished TRD (apps/web/public/examples/example-finished-trd.docx, made by
+# packages/docx/src/example-trd.ts). Nothing here is live: no AI runs, no network call is made. The suggestions were written in
+# advance for this one fictional file, to show how an AI reader could propose values with the passage each one came from.
+#
+# Rules for every entry (packages/docx/test/ai1-example.test.ts checks them):
+#  - field: a field id of the catalogue; it must be one the fixed rules did NOT find in the example file (no overlap, no override).
+#  - value: in the field's own format (a number for a limit part, the unit text for a unit); it must appear in the quote.
+#    Units are never converted: the unit is the one the passage states.
+#  - quote: copied word for word from the example file.
+#  - where: in words, so a person finds the passage; the review screen also focuses it in the document pane.
+#  - why: one short plain line.
+#  - reject: true marks a suggestion a careful reviewer should REJECT (kept for the tests and the walkthrough, never shown as an answer).
+# A suggestion is never an answer: the person accepts or rejects each one.
+catalog:
+  id: ai-reading-example-trd
+  version: 1.0.0
+
+suggestions:
+  - field: trd.title
+    value: "Technology Transfer Requirements Document: ORV-118 Lyophilized Drug Product (fictional)"
+    quote: "Technology Transfer Requirements Document: ORV-118 Lyophilized Drug Product (fictional)"
+    where: "Title line at the top"
+    why: "This is the title line at the top of the document."
+
+  - field: trd.version
+    value: "2.0"
+    quote: "Document status: Approved, version 2.0 (fictional example)"
+    where: "Status line at the end"
+    why: "The version is given in the status line at the end of the document."
+
+  - field: trd.detail.program
+    value: "ORV-118"
+    quote: "This document describes how the ORV-118 drug product process is moved from the Riverside Pilot Plant to the Northfield Fill Site."
+    where: "1 Purpose"
+    why: "The programme name is the product code used throughout the document."
+
+  - field: trd.detail.modality
+    value: "humanized monoclonal antibody"
+    quote: "ORV-118 is a humanized monoclonal antibody supplied as a lyophilized powder for solution for injection."
+    where: "2 Product and presentation, paragraph 1"
+    why: "The product is described in the first sentence of the product section."
+
+  - field: trd.detail.dosageForm
+    value: "lyophilized powder for solution for injection"
+    quote: "ORV-118 is a humanized monoclonal antibody supplied as a lyophilized powder for solution for injection."
+    where: "2 Product and presentation, paragraph 1"
+    why: "The dosage form follows the words \"supplied as\"."
+
+  - field: trd.detail.presentation
+    value: "10 mL type I glass vial, closed with a 20 mm lyophilization stopper"
+    quote: "The powder is filled into a 10 mL type I glass vial, closed with a 20 mm lyophilization stopper and sealed with an aluminium cap."
+    where: "2 Product and presentation, paragraph 2"
+    why: "The vial and the stopper are named in the second paragraph of the product section."
+
+  - field: trd.step.ds_receipt_thaw.param.thaw_temperature.set
+    value: "15"
+    quote: "The thaw is done at 15 °C and takes no longer than 6 h."
+    where: "4.1 Thaw and compounding, paragraph 1"
+    why: "The thaw temperature is the first value in the sentence about the thaw."
+
+  - field: trd.step.ds_receipt_thaw.param.thaw_temperature.unit
+    value: "°C"
+    quote: "The thaw is done at 15 °C and takes no longer than 6 h."
+    where: "4.1 Thaw and compounding, paragraph 1"
+    why: "The unit is the one written next to the 15."
+
+  - field: trd.step.ds_receipt_thaw.param.thaw_duration.par_high
+    value: "6"
+    quote: "The thaw is done at 15 °C and takes no longer than 6 h."
+    where: "4.1 Thaw and compounding, paragraph 1"
+    why: "The words \"no longer than\" make the 6 h an upper limit."
+
+  - field: trd.step.ds_receipt_thaw.param.thaw_duration.unit
+    value: "h"
+    quote: "The thaw is done at 15 °C and takes no longer than 6 h."
+    where: "4.1 Thaw and compounding, paragraph 1"
+    why: "The unit is the one written next to the 6."
+
+  - field: trd.step.ds_receipt_thaw.param.max_cold_hold.par_high
+    value: "72"
+    quote: "After thawing, the drug substance may be held at 2-8 °C for up to 72 h before compounding."
+    where: "4.1 Thaw and compounding, paragraph 1"
+    why: "The hold limit is stated in the Process description paragraph."
+
+  - field: trd.step.ds_receipt_thaw.param.max_cold_hold.unit
+    value: "h"
+    quote: "After thawing, the drug substance may be held at 2-8 °C for up to 72 h before compounding."
+    where: "4.1 Thaw and compounding, paragraph 1"
+    why: "The unit is the one written next to the 72."
+
+  - field: trd.step.ds_receipt_thaw.param.max_ambient_time.par_high
+    value: "4"
+    quote: "After thawing, the drug substance may stay at ambient temperature for no more than 4 h."
+    where: "Note a, under Table 1"
+    why: "A hold time sits in a note under the filling table, not in a table of its own."
+
+  - field: trd.step.ds_receipt_thaw.param.max_ambient_time.unit
+    value: "h"
+    quote: "After thawing, the drug substance may stay at ambient temperature for no more than 4 h."
+    where: "Note a, under Table 1"
+    why: "The unit is the one written next to the 4."
+
+  - field: trd.step.compounding.param.temperature.set
+    value: "20"
+    quote: "Compounding is carried out at 20 °C with a mixing speed of 120 rpm for 30 min."
+    where: "4.1 Thaw and compounding, paragraph 2"
+    why: "The compounding temperature is written in the first sentence of the paragraph."
+
+  - field: trd.step.compounding.param.temperature.unit
+    value: "°C"
+    quote: "Compounding is carried out at 20 °C with a mixing speed of 120 rpm for 30 min."
+    where: "4.1 Thaw and compounding, paragraph 2"
+    why: "The unit is the one written next to the 20."
+
+  - field: trd.step.compounding.param.mixing_speed.set
+    value: "120"
+    quote: "Compounding is carried out at 20 °C with a mixing speed of 120 rpm for 30 min."
+    where: "4.1 Thaw and compounding, paragraph 2"
+    why: "The mixing speed follows the words \"mixing speed of\"."
+
+  - field: trd.step.compounding.param.mixing_speed.unit
+    value: "rpm"
+    quote: "Compounding is carried out at 20 °C with a mixing speed of 120 rpm for 30 min."
+    where: "4.1 Thaw and compounding, paragraph 2"
+    why: "The unit is the one written next to the 120."
+
+  - field: trd.step.compounding.param.mixing_time.set
+    value: "30"
+    quote: "Compounding is carried out at 20 °C with a mixing speed of 120 rpm for 30 min."
+    where: "4.1 Thaw and compounding, paragraph 2"
+    why: "The mixing time follows the mixing speed in the same sentence."
+
+  - field: trd.step.compounding.param.mixing_time.unit
+    value: "min"
+    quote: "Compounding is carried out at 20 °C with a mixing speed of 120 rpm for 30 min."
+    where: "4.1 Thaw and compounding, paragraph 2"
+    why: "The unit is the one written next to the 30."
+
+  - field: trd.step.compounding.param.max_hold_time.par_high
+    value: "24"
+    quote: "The formulated bulk may be held for up to 24 h at 2-8 °C before filtration."
+    where: "4.1 Thaw and compounding, paragraph 2"
+    why: "The hold limit of the formulated bulk is the second sentence of the paragraph."
+
+  - field: trd.step.compounding.param.max_hold_time.unit
+    value: "h"
+    quote: "The formulated bulk may be held for up to 24 h at 2-8 °C before filtration."
+    where: "4.1 Thaw and compounding, paragraph 2"
+    why: "The unit is the one written next to the 24."
+
+  - field: trd.step.sterile_filtration.param.differential_pressure.par_high
+    value: "2.0"
+    quote: "The proven acceptable upper limit for the differential pressure is 2.0 bar."
+    where: "4.2 Sterile filtration, paragraph 1"
+    why: "The text calls it the proven acceptable upper limit, so it is a PAR value."
+
+  - field: trd.step.sterile_filtration.param.differential_pressure.unit
+    value: "bar"
+    quote: "The proven acceptable upper limit for the differential pressure is 2.0 bar."
+    where: "4.2 Sterile filtration, paragraph 1"
+    why: "The unit is the one written next to the 2.0."
+
+  - field: trd.step.sterile_filtration.param.max_filtration_time.par_high
+    value: "45"
+    quote: "In the engineering run the filtration took about 45 min, which is the target for the transfer."
+    where: "4.2 Sterile filtration, paragraph 2"
+    why: "The AI was unsure. Stated as a target, may not be the limit."
+    reject: true
+
+  - field: trd.step.aseptic_filling.param.line_speed.set
+    value: "100"
+    quote: "During the engineering run the line was operated at 100 vials/min."
+    where: "4.3 Filling, paragraph 1"
+    why: "The AI was unsure. It describes what one engineering run used, which may not be the set point."
+    reject: true
+
+  - field: trd.step.lyophilization.param.primary_shelf_temp.set
+    value: "-25"
+    quote: "dries them at a shelf temperature of -25 °C and a chamber pressure of 0.10 mbar"
+    where: "6 Lyophilization"
+    why: "The primary drying shelf temperature is the first value in the cycle sentence."
+
+  - field: trd.step.lyophilization.param.primary_shelf_temp.unit
+    value: "°C"
+    quote: "dries them at a shelf temperature of -25 °C and a chamber pressure of 0.10 mbar"
+    where: "6 Lyophilization"
+    why: "The unit is the one written next to the -25."
+
+  - field: trd.step.lyophilization.param.primary_pressure.set
+    value: "0.10"
+    quote: "dries them at a shelf temperature of -25 °C and a chamber pressure of 0.10 mbar"
+    where: "6 Lyophilization"
+    why: "The chamber pressure follows the shelf temperature in the same sentence."
+
+  - field: trd.step.lyophilization.param.primary_pressure.unit
+    value: "mbar"
+    quote: "dries them at a shelf temperature of -25 °C and a chamber pressure of 0.10 mbar"
+    where: "6 Lyophilization"
+    why: "The unit is the one written next to the 0.10."
+
+  - field: trd.step.lyophilization.param.secondary_shelf_temp.set
+    value: "30"
+    quote: "Secondary drying is done at a shelf temperature of 30 °C for 6 h."
+    where: "6 Lyophilization"
+    why: "The secondary drying shelf temperature is in the second sentence."
+
+  - field: trd.step.lyophilization.param.secondary_shelf_temp.unit
+    value: "°C"
+    quote: "Secondary drying is done at a shelf temperature of 30 °C for 6 h."
+    where: "6 Lyophilization"
+    why: "The unit is the one written next to the 30."
+
+  - field: trd.step.lyophilization.param.secondary_time.set
+    value: "6"
+    quote: "Secondary drying is done at a shelf temperature of 30 °C for 6 h."
+    where: "6 Lyophilization"
+    why: "The secondary drying time follows the shelf temperature."
+
+  - field: trd.step.lyophilization.param.secondary_time.unit
+    value: "h"
+    quote: "Secondary drying is done at a shelf temperature of 30 °C for 6 h."
+    where: "6 Lyophilization"
+    why: "The unit is the one written next to the 6."

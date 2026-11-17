@@ -128,7 +128,7 @@ export function HomePage() {
                   <div className="stack" data-testid="home-start-from-document">
                     <h4 className="start-sub">A technical requirements document (TRD)</h4>
                     <p className="muted small">
-                      Upload a TRD Word file that this tool made, or fill in the blank TRD form and upload that. {project ? "" : "You name the project after you choose the file. "}You check every value before it is used.
+                      Upload a TRD Word file that this tool made, or fill in the blank TRD form and upload that. {project ? "" : "You name the project after you choose the file. "}You check every value before it is used. To see how an AI reader could help, try the AI reading on an example TRD: its suggestions were recorded in advance, and each one shows the passage it came from.
                     </p>
                     <div className="row wrap">
                       <TrdUploadButton className="btn" testId="home-upload-trd" />

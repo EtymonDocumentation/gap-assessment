@@ -1,4 +1,6 @@
 import {
+  aiCounts,
+  aiCountText,
   applyImport,
   cellTextReadable,
   currentValue,
@@ -12,6 +14,7 @@ import {
   type ImportSession,
 } from "@gap/engine";
 import { useMemo, useRef, useState } from "react";
+import { EXAMPLE_TRD_FILE, EXAMPLE_TRD_URL } from "../ai-example";
 import { Empty } from "../components";
 import { PageHeader } from "../PageHeader";
 import { href, navigate } from "../router";
@@ -72,6 +75,8 @@ function Review({ session, file }: { session: ImportSession; file: File }) {
   const [error, setError] = useState("");
   const [done, setDone] = useState<Done | null>(null);
   const [bulk, setBulk] = useState("");
+  // AI suggestions the person rejected (example reading only). Not a decision: a rejected field has no value, so it stays not established.
+  const [rejected, setRejected] = useState<ReadonlySet<string>>(new Set());
   // On a wide screen the document sits beside the fields. On a phone it is long, so it starts closed below the fields.
   const [docOpen, setDocOpen] = useState(() => typeof window.matchMedia !== "function" || window.matchMedia("(min-width: 1000px)").matches);
   const docPane = useRef<HTMLDivElement>(null);
@@ -102,13 +107,34 @@ function Review({ session, file }: { session: ImportSession; file: File }) {
   };
   const matchedIn = (block: number) => session.fields.filter((f) => f.table === block && f.confidence === "matched" && takeable(f));
 
-  const set = (id: string, value: string) => setDecisions((d) => ({ ...d, [id]: { value } }));
-  const clear = (id: string) =>
+  const unreject = (id: string) =>
+    setRejected((r) => {
+      if (!r.has(id)) return r;
+      const n = new Set(r);
+      n.delete(id);
+      return n;
+    });
+  const set = (id: string, value: string) => {
+    unreject(id);
+    setDecisions((d) => ({ ...d, [id]: { value } }));
+  };
+  const clear = (id: string) => {
+    unreject(id);
     setDecisions((d) => {
       const n = { ...d };
       delete n[id];
       return n;
     });
+  };
+  const reject = (id: string) => {
+    setDecisions((d) => {
+      if (d[id] === undefined) return d;
+      const n = { ...d };
+      delete n[id];
+      return n;
+    });
+    setRejected((r) => new Set(r).add(id));
+  };
 
   function acceptAllExact() {
     const take = session.fields.filter(bulkable);
@@ -250,6 +276,8 @@ function Review({ session, file }: { session: ImportSession; file: File }) {
     takeable,
     set,
     clear,
+    rejected,
+    reject,
     pick: (id) => {
       setEditing(null);
       setPicking(id);
@@ -280,17 +308,40 @@ function Review({ session, file }: { session: ImportSession; file: File }) {
   return (
     <div className="stack-lg" data-testid="import-review">
       <PageHeader
-        title="Upload a TRD"
+        title={session.aiExample ? "AI reading of an example TRD" : "Upload a TRD"}
         purpose={`Check what was read from ${session.fileName}. Nothing goes into a TRD until you accept it; what you leave alone stays not established and becomes an open item.`}
       />
+      {session.aiExample && (
+        <section className="notice stack" aria-labelledby="import-ai-banner-h" data-testid="import-ai-banner">
+          <h2 id="import-ai-banner-h" className="small">
+            Example of AI reading
+          </h2>
+          <p>These suggestions were recorded in advance for this example file. No AI reads your own files yet. Check each suggestion against its quote before you accept it.</p>
+          <p>
+            <a href={EXAMPLE_TRD_URL} download={EXAMPLE_TRD_FILE} data-testid="import-ai-download">
+              Download the example TRD (Word)
+            </a>
+          </p>
+        </section>
+      )}
       <section className="card stack" aria-labelledby="import-what-h">
         <h2 id="import-what-h">What was read</h2>
         <p data-testid="import-read-as">{session.readAs}</p>
         <p className="muted small" data-testid="import-explain">
-          {session.level === 3
+          {session.aiExample
+            ? "Matched values come from fixed word rules (no AI). Check each against the document, then accept it, edit it, or pick another value from the document."
+            : session.level === 3
             ? "Two parts: your document as it was read, and the fields taken from it. Every value marked Matched is a suggestion from fixed word rules (no AI): check it against the document, then accept it, edit it, or pick another value from the document. Not found means nothing was recognised and the field stays open."
             : "Two parts: your document as it was read, and the fields taken from it. Accept a value, edit it, or pick it from the document. The word next to a field says how sure the reading is: Exact (read straight from our own data), Matched, or Not found."}
         </p>
+        {session.aiExample && (
+          <>
+            <p data-testid="import-ai-count">
+              <strong>{aiCountText(aiCounts(session))}</strong>
+            </p>
+            <p className="muted small">"Accept all" skips them: accept or reject each one.</p>
+          </>
+        )}
         <p role="status" aria-live="polite" data-testid="import-live-summary">
           {importSummaryText(counts, session.level)}
         </p>
@@ -375,7 +426,7 @@ function Review({ session, file }: { session: ImportSession; file: File }) {
             <span className="muted small">Leave empty to use the title from the file, if you accepted it.</span>
           </label>
         )}
-        {SERVER_MODE && (
+        {SERVER_MODE && !session.aiExample && (
           <label className="check">
             <input type="checkbox" checked={keepCopy} onChange={(e) => setKeepCopy(e.target.checked)} data-testid="import-keep-copy" />
             <span>Keep a copy in My files</span>

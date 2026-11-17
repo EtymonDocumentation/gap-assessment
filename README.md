@@ -168,6 +168,8 @@ Other commands (run from the repository root):
    - *Export history:* every Markdown, HTML and Word download, newest first, with the template, a fingerprint, the TBD count, the sections left out and whether the answers changed since the previous download.
 7. **Templates.** Add, rename, export, import and delete Word and PDF templates, read what the tool found in each one, and build the heading mapping for the "Map to their headings" option. This page also opens without a project.
 
+**Try the AI reading on an example TRD.** Next to every "Upload a TRD" button is a link with this name. It opens a fictional finished TRD (a Word file you can also download) on the same review screen as an upload: the fixed rules read it, and a set of suggestions that was **recorded in advance** is laid on top, each tagged "AI suggestion" and shown with the passage it came from. You accept or reject each one; "Accept all" never takes them. This is a pre-recorded example only: no AI runs, nothing is sent anywhere, and no AI reads your own files yet. The recording is `content/ai-reading/example-trd.yaml`; the example file is made by `packages/docx/src/example-trd.ts` and shipped as `apps/web/public/examples/example-finished-trd.docx`.
+
 Your project is saved automatically in this browser only (IndexedDB). Use **Export project (JSON)** to keep a copy or move it to another browser. Nothing is sent to a server.
 
 ## The eight categories

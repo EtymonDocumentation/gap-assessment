@@ -63,8 +63,9 @@ export interface UploadRead {
   noText?: boolean;
 }
 
-export type Confidence = "exact" | "matched" | "not_found" | "changed";
-export const CONFIDENCE_LABEL: Record<Confidence, string> = { exact: "Exact", matched: "Matched", not_found: "Not found", changed: "Changed in Word" };
+/** "ai_suggested": a value from the PRE-RECORDED AI reading of the example TRD (job AI1). It is never taken in bulk, only one by one. */
+export type Confidence = "exact" | "matched" | "not_found" | "changed" | "ai_suggested";
+export const CONFIDENCE_LABEL: Record<Confidence, string> = { exact: "Exact", matched: "Matched", not_found: "Not found", changed: "Changed in Word", ai_suggested: "AI suggestion" };
 
 // ------------------------------------------------------------------ counts and the summary sentence
 

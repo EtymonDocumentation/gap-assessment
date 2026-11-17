@@ -407,6 +407,8 @@ export interface ImportField {
   parts?: TrdPart[];
   /** Level 3: the table of the document (index in the view blocks) the value was matched from, for "Accept all matched in this table". */
   table?: number;
+  /** An "AI suggestion" (the pre-recorded reading of the example TRD): the passage it came from, where that is, and a short plain reason. */
+  ai?: { quote: string; where: string; why: string };
 }
 
 export interface ImportSession {
@@ -426,6 +428,8 @@ export interface ImportSession {
   form?: TrdFormSpec;
   /** Level 3: the tables of the document that gave at least one match, in document order (for "Accept all matched in this table"). */
   matchedTables?: { block: number; label: string }[];
+  /** Set when the session is the example TRD with the pre-recorded AI reading on top of the fixed rules (job AI1). */
+  aiExample?: boolean;
 }
 
 const FILLED = (c: { text: string; placeholder: boolean } | undefined): string => {
