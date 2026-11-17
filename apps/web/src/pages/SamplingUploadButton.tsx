@@ -2,6 +2,7 @@ import { samplingImportSynonyms, samplingSuggestions } from "@gap/content";
 import { buildBlankSamplingFormSpec, buildSamplingFormSpec, samplingSessionFromData, samplingSessionFromForm, samplingSessionFromOther, SamplingImportError, stepNamesFor, unitOpLabels } from "@gap/engine";
 import type { SamplingPlan } from "@gap/process-model";
 import { useRef, useState } from "react";
+import { buildAiSamplingExample } from "../ai-example";
 import { loadDocx } from "../docx-loader";
 import { readUploadFile } from "../import-file";
 import { download } from "../lib";
@@ -84,10 +85,29 @@ export function SamplingUploadButton({ className = "btn primary", testId = "samp
     }
   }
 
+  // The example: a finished sampling plan that ships with the site, read by the same rules as an upload, with the AI reading that was recorded
+  // for it. Same project-first path as an upload. No AI runs and nothing is sent anywhere.
+  async function tryExample() {
+    setMessage(null);
+    setBusy(true);
+    try {
+      const { session, file } = await buildAiSamplingExample();
+      holdSamplingImport({ session, file });
+      proceed(() => navigate("/sampling/import"));
+    } catch (e) {
+      setMessage({ text: `The example could not be opened: ${(e as Error).message}`, offerForm: false });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <span className="upload-trd">
       <button type="button" className={className} onClick={() => input.current?.click()} disabled={busy} data-testid={testId}>
         {busy ? "Reading the file..." : "Upload a sampling plan"}
+      </button>
+      <button type="button" className="link-btn small" onClick={() => void tryExample()} disabled={busy} data-testid={`${testId}-ai-example`}>
+        Try the AI reading on an example sampling plan
       </button>
       <input
         ref={input}

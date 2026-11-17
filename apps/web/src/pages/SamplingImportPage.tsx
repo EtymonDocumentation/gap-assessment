@@ -1,5 +1,7 @@
 import { samplingImportSynonyms } from "@gap/content";
 import {
+  aiRowFields,
+  aiRowsOf,
   applySamplingImport,
   checkSamplingValue,
   CONFIDENCE_LABEL,
@@ -9,6 +11,8 @@ import {
   SAMPLING_COLUMN_LABEL,
   SAMPLING_COLUMNS,
   SamplingImportError,
+  samplingAiCounts,
+  samplingAiCountText,
   samplingCounts,
   stepNamesFor,
   unitOpLabels,
@@ -16,10 +20,12 @@ import {
   type SamplingDecisions,
   type SamplingField,
   type SamplingImportSession,
+  type SamplingRow,
 } from "@gap/engine";
 import { SAMPLING_TYPES } from "@gap/process-model";
 import { TYPE_LABEL } from "@gap/sampling";
 import { Fragment, useMemo, useRef, useState } from "react";
+import { EXAMPLE_SAMPLING_FILE, EXAMPLE_SAMPLING_URL } from "../ai-example";
 import { Empty } from "../components";
 import { PageHeader } from "../PageHeader";
 import { holdSamplingImport, useHeldSamplingImport } from "../sampling-import-store";
@@ -29,6 +35,7 @@ import { SERVER_MODE } from "../server/mode";
 import { StageChangeButton, useProjectStage } from "../stage-ui";
 import { useContent, useStore } from "../store";
 import { ImportDocPane } from "./ImportDocPane";
+import { AiTag } from "./TrdImportFields";
 import { SamplingFormButton, SamplingUploadButton } from "./SamplingUploadButton";
 
 /**
@@ -85,6 +92,8 @@ function Review({ session, file }: { session: SamplingImportSession; file: File 
   const [error, setError] = useState("");
   const [done, setDone] = useState<Done | null>(null);
   const [bulk, setBulk] = useState("");
+  // AI points the person rejected (example reading only). Not a decision: a rejected field has no value, so the point is not added.
+  const [rejected, setRejected] = useState<ReadonlySet<string>>(new Set());
   // On a wide screen the document sits beside the rows. On a phone it is long, so it starts closed below them.
   const [docOpen, setDocOpen] = useState(() => typeof window.matchMedia !== "function" || window.matchMedia("(min-width: 1000px)").matches);
   const docPane = useRef<HTMLDivElement>(null);
@@ -111,13 +120,46 @@ function Review({ session, file }: { session: SamplingImportSession; file: File 
   const exactCount = session.fields.filter((f) => bulkable(f, ["exact"])).length;
   const matchedIn = (block: number) => session.fields.filter((f) => f.table === block && bulkable(f, ["matched"]));
 
-  const set = (id: string, value: string) => setDecisions((d) => ({ ...d, [id]: { value } }));
-  const clear = (id: string) =>
+  const unreject = (ids: string[]) =>
+    setRejected((r) => {
+      if (!ids.some((id) => r.has(id))) return r;
+      const n = new Set(r);
+      ids.forEach((id) => n.delete(id));
+      return n;
+    });
+  const set = (id: string, value: string) => {
+    unreject([id]);
+    setDecisions((d) => ({ ...d, [id]: { value } }));
+  };
+  const clear = (id: string) => {
+    unreject([id]);
     setDecisions((d) => {
       const n = { ...d };
       delete n[id];
       return n;
     });
+  };
+  /** An AI point is accepted or rejected as a whole row: one Accept writes all its values, one Reject drops them all. */
+  const acceptAi = (fs: SamplingField[]) => {
+    unreject(fs.map((f) => f.id));
+    setDecisions((d) => ({ ...d, ...Object.fromEntries(fs.map((f) => [f.id, { value: f.value }])) }));
+  };
+  const rejectAi = (fs: SamplingField[]) => {
+    setDecisions((d) => {
+      const n = { ...d };
+      fs.forEach((f) => delete n[f.id]);
+      return n;
+    });
+    setRejected((r) => new Set([...r, ...fs.map((f) => f.id)]));
+  };
+  const clearAi = (fs: SamplingField[]) => {
+    unreject(fs.map((f) => f.id));
+    setDecisions((d) => {
+      const n = { ...d };
+      fs.forEach((f) => delete n[f.id]);
+      return n;
+    });
+  };
   const take = (fs: SamplingField[]) => setDecisions((d) => ({ ...d, ...Object.fromEntries(fs.map((f) => [f.id, { value: f.value }])) }));
 
   function saveEdit() {
@@ -364,17 +406,40 @@ function Review({ session, file }: { session: SamplingImportSession; file: File 
   return (
     <div className="stack-lg" data-testid="import-review">
       <PageHeader
-        title="Upload a sampling plan"
+        title={session.aiExample ? "AI reading of an example sampling plan" : "Upload a sampling plan"}
         purpose={`Check what was read from ${session.fileName}. Nothing goes into a plan until you accept it; what you leave alone stays open.`}
       />
+      {session.aiExample && (
+        <section className="notice stack" aria-labelledby="import-ai-banner-h" data-testid="import-ai-banner">
+          <h2 id="import-ai-banner-h" className="small">
+            Example of AI reading
+          </h2>
+          <p>These suggestions were recorded in advance for this example file. No AI reads your own files yet. Check each suggestion against its quote before you accept it.</p>
+          <p>
+            <a href={EXAMPLE_SAMPLING_URL} download={EXAMPLE_SAMPLING_FILE} data-testid="import-ai-download">
+              Download the example sampling plan (Word)
+            </a>
+          </p>
+        </section>
+      )}
       <section className="card stack" aria-labelledby="import-what-h">
         <h2 id="import-what-h">What was read</h2>
         <p data-testid="import-read-as">{session.readAs}</p>
         <p className="muted small" data-testid="import-explain">
-          {session.level === 3
+          {session.aiExample
+            ? "Rows marked Matched come from fixed word rules (no AI): check each against the document, then accept it, edit it, or pick another value from the document. The AI suggestions are listed after them, one card per sampling point."
+            : session.level === 3
             ? "Each row below is one sampling point found in your document. Every value marked Matched is a suggestion from fixed word rules (no AI): check it against the document, then accept it, edit it, or pick another value from the document. Not found means nothing was recognised and the value stays open."
             : "Each row below is one sampling point. Accept a value, edit it, or leave it open. The word under a value says how sure the reading is: Exact (read straight from our own data), or Changed in Word (somebody typed over it in the file)."}
         </p>
+        {session.aiExample && (
+          <>
+            <p data-testid="import-ai-count">
+              <strong>{samplingAiCountText(samplingAiCounts(session))}</strong>
+            </p>
+            <p className="muted small">"Accept all" skips them: accept or reject each one.</p>
+          </>
+        )}
         <p role="status" aria-live="polite" data-testid="import-live-summary">
           {importSummaryText(counts, session.level)}
         </p>
@@ -446,7 +511,7 @@ function Review({ session, file }: { session: SamplingImportSession; file: File 
       <div className="import-panes sp-import-panes">
         <section className="import-fields stack" aria-labelledby="import-fields-h" data-testid="import-fields">
           <h2 id="import-fields-h">Sampling points</h2>
-          {session.rows.length === 0 ? (
+          {session.rows.filter((r) => !r.ai).length === 0 ? (
             <Empty>No sampling point was found. Use "Not used yet" above to see why, or fill in the blank sampling plan form.</Empty>
           ) : (
             <div className="table-scroll" role="region" aria-label="Sampling points read from the file" tabIndex={0}>
@@ -463,7 +528,7 @@ function Review({ session, file }: { session: SamplingImportSession; file: File 
                   </tr>
                 </thead>
                 <tbody>
-                  {session.rows.map((r) => {
+                  {session.rows.filter((r) => !r.ai).map((r) => {
                     const fs = fieldsOf(r.n);
                     const takeKinds: ("exact" | "matched")[] = session.level === 3 ? ["matched"] : ["exact"];
                     const rowTake = fs.filter((f) => bulkable(f, takeKinds));
@@ -496,6 +561,71 @@ function Review({ session, file }: { session: SamplingImportSession; file: File 
                   })}
                 </tbody>
               </table>
+            </div>
+          )}
+          {aiRowsOf(session).length > 0 && (
+            <div className="stack import-ai-list" data-testid="import-ai-cards">
+              <h3>AI suggestions</h3>
+              {aiRowsOf(session).map((r) => {
+                const fs = aiRowFields(session, r);
+                const open = fs.filter((f) => f.value !== "");
+                const decided = open.every((f) => decisions[f.id] !== undefined);
+                const someDecided = open.some((f) => decisions[f.id] !== undefined);
+                const isRejected = !someDecided && open.every((f) => rejected.has(f.id));
+                const state = decided ? "Accepted" : isRejected ? "Rejected" : someDecided ? "Part accepted" : "Not accepted yet";
+                const title = `${fs[0]!.value}: ${fs[1]!.value || fs[2]!.value || "sampling point"}`;
+                const shown = open.find((f) => session.fieldCells[f.id]?.length);
+                return (
+                  <div key={r.n} className="import-ai" data-testid="import-ai" data-state={decided ? "accepted" : isRejected ? "rejected" : "open"}>
+                    <p className="import-ai-head">
+                      <AiTag /> <strong>{title}</strong>
+                    </p>
+                    <dl className="sp-ai-dl" data-testid="import-ai-value">
+                      {fs.map((f) => (
+                        <Fragment key={f.id}>
+                          <dt>{f.label}</dt>
+                          <dd>{f.value || "Not established"}</dd>
+                        </Fragment>
+                      ))}
+                    </dl>
+                    <p className="import-ai-status">
+                      <span className="tag status import-ai-state" data-testid="import-ai-state">
+                        {state}
+                      </span>
+                    </p>
+                    {r.ai!.quotes.map((q) => (
+                      <blockquote key={q} className="import-ai-quote" data-testid="import-ai-quote">
+                        {q}
+                      </blockquote>
+                    ))}
+                    <p className="small muted import-ai-why" data-testid="import-ai-why">
+                      {r.ai!.where}. {r.ai!.why}
+                    </p>
+                    <div className="row wrap">
+                      {!decided && (
+                        <button type="button" className="btn small" aria-label={`Accept the AI suggestion: ${title}`} onClick={() => acceptAi(open)} data-testid="import-ai-accept">
+                          Accept
+                        </button>
+                      )}
+                      {!decided && !isRejected && (
+                        <button type="button" className="btn small" aria-label={`Reject the AI suggestion: ${title}`} onClick={() => rejectAi(open)} data-testid="import-ai-reject">
+                          Reject
+                        </button>
+                      )}
+                      {(decided || someDecided || isRejected) && (
+                        <button type="button" className="btn small ghost" aria-label={`Undo: ${title}`} onClick={() => clearAi(open)} data-testid="import-ai-undo">
+                          Undo
+                        </button>
+                      )}
+                      {shown && (
+                        <button type="button" className="btn small ghost" aria-label={`Show the passage in the document: ${title}`} onClick={() => showInDocument(shown.id)} data-testid="import-ai-show">
+                          Show the passage in the document
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
           <datalist id="import-step-names">
@@ -565,7 +695,7 @@ function Review({ session, file }: { session: SamplingImportSession; file: File 
             )}
           </div>
         )}
-        {SERVER_MODE && (
+        {SERVER_MODE && !session.aiExample && (
           <label className="check">
             <input type="checkbox" checked={keepCopy} onChange={(e) => setKeepCopy(e.target.checked)} data-testid="import-keep-copy" />
             <span>Keep a copy in My files</span>

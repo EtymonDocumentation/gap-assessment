@@ -291,6 +291,8 @@ export interface SamplingField {
   change?: { old: string; new: string };
   /** Level 3: the table of the document (index in the view blocks) the value was matched from. */
   table?: number;
+  /** An "AI suggestion" (the pre-recorded reading of the example sampling plan): the passage this value came from, where, and why. */
+  ai?: { quote: string; where: string; why: string };
 }
 
 export interface SamplingRow {
@@ -301,6 +303,8 @@ export interface SamplingRow {
   label: string;
   /** Where in the document, in words (level 3). */
   where?: string;
+  /** Set on a row that is an AI suggestion (example reading only): every passage the point rests on, where they are, and a short plain reason. */
+  ai?: { quotes: string[]; where: string; why: string };
 }
 
 export interface SamplingImportSession {
@@ -321,6 +325,8 @@ export interface SamplingImportSession {
   form?: SamplingFormSpec;
   /** Level 3: tables that gave at least one match, in document order. */
   matchedTables?: { block: number; label: string }[];
+  /** Set when the session is the example sampling plan with the pre-recorded AI reading laid over the fixed rules (job AI2). */
+  aiExample?: boolean;
 }
 
 export const emptyField = (row: number, column: SamplingColumn | "title", label: string, source: string): SamplingField => ({

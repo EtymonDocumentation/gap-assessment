@@ -6276,8 +6276,32 @@ button.imap-tile:hover { background: var(--accent-soft); }
 .ai-banner {
   border-color: var(--ai-border);
 }
+/* The "Try the AI reading" link sits on its own line under the upload button and wraps, so a page header's action
+   column stays as narrow as the button and the purpose sentence keeps its width (page-header spec: at most 2 lines). */
+.upload-trd {
+  max-width: 20rem;
+}
 .upload-trd .link-btn {
   min-height: 28px;
   display: inline-flex;
   align-items: center;
+  flex-basis: 100%;
+  white-space: normal;
+  text-align: start;
+}
+
+/* The AI card of a sampling point: its six values as a small list that wraps at 390 px. */
+.sp-ai-dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px 12px;
+  margin: 0;
+}
+.sp-ai-dl dt {
+  font-weight: 400;
+}
+.sp-ai-dl dd {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
 }

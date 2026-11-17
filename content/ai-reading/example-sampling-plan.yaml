@@ -1,0 +1,214 @@
+# The PRE-RECORDED "AI reading" of the example finished sampling plan (apps/web/public/examples/example-finished-sampling-plan.docx,
+# made by packages/docx/src/example-sampling-plan.ts). Nothing here is live: no AI runs, no network call is made. The points were written
+# in advance for this one fictional file, to show how an AI reader could propose sampling points with the passage each one came from.
+#
+# Rules for every point (packages/docx/test/ai2-example.test.ts checks them):
+#  - One point = one sampling point = one card on the review screen (a row of the plan: step, attribute, test, amount, timing, type).
+#  - step: a step name of the catalogue (a mapping: the document may word it differently). type: a study type by the tool's own name.
+#  - attribute, test, amount, timing: the words of a quote, unit as written. Nothing is converted and nothing is invented: what the
+#    passage does not say is left out and stays "Not established" for the person.
+#  - quotes: copied word for word from the example file. where: in words. why: one short plain line.
+#  - Only points the fixed rules did NOT find (no overlap, no override).
+#  - reject: true marks a point a careful reviewer should REJECT (kept for the tests and the walkthrough, never shown as an answer).
+# A suggestion is never an answer: the person accepts or rejects each point.
+catalog:
+  id: ai-reading-example-sampling-plan
+  version: 1.0.0
+
+points:
+  - step: Drug substance receipt and thaw
+    attribute: Protein concentration
+    test: UV absorbance at 280 nm
+    amount: 3 mL
+    timing: After thawing
+    type: In-process control (IPC)
+    quotes:
+      - "After thawing, 3 mL of the thawed drug substance is taken for protein concentration by UV absorbance at 280 nm."
+    where: "3 Drug substance, paragraph 1"
+    why: "One sentence gives the test, the amount and the time. The step is the thaw."
+
+  - step: Drug substance receipt and thaw
+    attribute: pH
+    test: potentiometry
+    amount: 2 mL
+    timing: at T0 and at the end of the hold
+    type: Hold time
+    quotes:
+      - "In each lot, 2 mL is taken for pH by potentiometry at T0 and at the end of the hold."
+    where: "3 Drug substance, paragraph 2"
+    why: "A sample of the held drug substance, at the start and the end of its hold."
+
+  - step: Drug substance receipt and thaw
+    attribute: Bioburden
+    test: membrane filtration
+    amount: 10 mL
+    timing: at T0 and at the end of the hold
+    type: Hold time
+    quotes:
+      - "10 mL is taken for bioburden by membrane filtration at T0 and at the end of the hold."
+    where: "3 Drug substance, paragraph 2"
+    why: "A bioburden sample of the held drug substance, at the start and the end of its hold."
+
+  - step: Pooling, compounding and dilution
+    attribute: Protein concentration
+    test: UV absorbance at 280 nm
+    amount: 3 mL
+    timing: When mixing is complete
+    type: Mixing / homogeneity
+    quotes:
+      - "When mixing is complete, 3 mL is taken from the top, middle and bottom of the vessel for protein concentration by UV absorbance at 280 nm."
+    where: "4 Compounding, hold and filtration, after Table 1"
+    why: "Samples from three places in the vessel show whether the mixing is uniform."
+
+  - step: Pooling, compounding and dilution
+    attribute: Protein concentration
+    test: UV absorbance at 280 nm
+    amount: 3 mL
+    timing: at T0 and at the end of the hold
+    type: Hold time
+    quotes:
+      - "In each lot, 3 mL of the bulk is taken for protein concentration by UV absorbance at 280 nm at T0 and at the end of the hold."
+    where: "4 Compounding, hold and filtration, formulated bulk hold"
+    why: "A sample of the formulated bulk at the start and the end of its 24 h hold."
+
+  - step: Sterile filtration
+    attribute: Bioburden
+    amount: 100 mL
+    timing: at the end of the hold
+    type: In-process control (IPC)
+    quotes:
+      - "A bioburden sample of 100 mL is drawn from the formulated bulk before the filter, at the end of the hold."
+    where: "4 Compounding, hold and filtration, bulk before the filter"
+    why: "The sentence gives no test. The sample is taken before the filter, so it belongs to the filtration step."
+
+  - step: Sterile filtration
+    attribute: Filter integrity
+    test: bubble point
+    timing: before use and after use
+    type: Filter study
+    quotes:
+      - "Filter integrity is tested by bubble point before use and after use."
+    where: "4 Compounding, hold and filtration, filter sentence"
+    why: "A test of the filter, with its method and the two times. No amount is given."
+
+  - step: Aseptic filling and stoppering
+    attribute: Fill volume
+    test: weighing
+    amount: 5 vials
+    timing: every 30 min
+    type: In-process control (IPC)
+    quotes:
+      - "During filling, the fill volume is checked on 5 vials every 30 min by weighing."
+    where: "5 Filling, lyophilization and capping, paragraph 1"
+    why: "One sentence gives the check, the number of vials, the interval and the method."
+
+  - step: Aseptic filling and stoppering
+    attribute: Visible particles
+    test: inspected visually
+    amount: 100 vials
+    timing: at the end of the filling run
+    type: PPQ enhanced sampling
+    quotes:
+      - "Filled vials, visible particles"
+      - "100 vials are inspected visually at the end of the filling run."
+    where: "Table 2, first row"
+    why: "Table 2 has no column headings the rules know, so the row was read from its two cells."
+
+  - step: Lyophilization
+    attribute: Reconstitution time
+    amount: 6 vials
+    timing: at the end of the cycle
+    type: PPQ enhanced sampling
+    quotes:
+      - "Lyophilized vials, reconstitution time"
+      - "6 vials, one from each shelf position, are reconstituted and timed at the end of the cycle."
+    where: "Table 2, second row"
+    why: "The attribute is in the first cell, the vials and the time in the second. No method is named."
+
+  - step: Lyophilization
+    attribute: Cake appearance
+    timing: at the end of the cycle
+    type: In-process control (IPC)
+    quotes:
+      - "Lyophilized vials, cake appearance"
+      - "All vials of one shelf are inspected for cake appearance at the end of the cycle."
+    where: "Table 2, third row"
+    why: "No number of vials is given ('all vials of one shelf'), so no amount is suggested."
+
+  - step: Capping and crimping
+    attribute: Container closure integrity
+    test: dye ingress
+    amount: 10 vials
+    timing: at the end of the capping run
+    type: PPQ enhanced sampling
+    quotes:
+      - "After capping, 10 vials are tested for container closure integrity by dye ingress at the end of the capping run."
+    where: "5 Filling, lyophilization and capping, after Table 2"
+    why: "Two sentences share a paragraph; this one is about the seal of the capped vials."
+
+  - step: Capping and crimping
+    attribute: Crimp quality
+    test: residual seal force
+    amount: 20 vials
+    timing: every 60 min
+    type: In-process control (IPC)
+    quotes:
+      - "Crimp quality is checked by residual seal force on 20 vials every 60 min."
+    where: "5 Filling, lyophilization and capping, after Table 2"
+    why: "The second sentence of the capping paragraph is a separate check."
+
+  - step: Finished product
+    attribute: Sterility
+    test: membrane filtration
+    amount: 20 filled vials
+    timing: at release
+    type: Release testing
+    quotes:
+      - "Sterility is tested on 20 filled vials per lot by membrane filtration at release."
+    where: "6 Finished product, paragraph 1"
+    why: "Tested on filled vials, as the plan says in section 2."
+
+  - step: Finished product
+    attribute: Bacterial endotoxins
+    test: kinetic chromogenic assay
+    amount: 3 vials
+    timing: at release
+    type: Release testing
+    quotes:
+      - "Bacterial endotoxins are tested on 3 vials per lot by kinetic chromogenic assay at release."
+    where: "6 Finished product, paragraph 1"
+    why: "A release test of the finished vials."
+
+  - step: Finished product
+    attribute: Retain samples
+    amount: 40 vials
+    timing: after capping
+    type: Retain / reserve
+    quotes:
+      - "40 vials per lot are kept as retain samples after capping."
+    where: "6 Finished product, paragraph 2"
+    why: "Vials kept back, not tested. The sentence names no test."
+
+  # Two a careful reviewer should REJECT.
+  - step: Sterile filtration
+    attribute: Protein concentration
+    test: UV absorbance at 280 nm
+    amount: 20 mL
+    type: PPQ enhanced sampling
+    reject: true
+    quotes:
+      - "If the receiving site wants an extra check, 20 mL of the filtrate can be taken from the sterile bag for protein concentration by UV absorbance at 280 nm."
+    where: "4 Compounding, hold and filtration, last sentence"
+    why: "The AI was unsure. The sample is taken after the sterile filter, where the plan uses filled vials, and the sentence says the check is optional."
+
+  - step: Pooling, compounding and dilution
+    attribute: Protein concentration
+    test: UV absorbance at 280 nm
+    amount: 25 mL
+    timing: every 15 min
+    type: PPQ enhanced sampling
+    reject: true
+    quotes:
+      - "Note a: During the engineering run only, 25 mL of the formulated bulk was taken every 15 min during mixing for protein concentration by UV absorbance at 280 nm."
+    where: "Note a, under Table 1"
+    why: "The AI was unsure. The note says the engineering run only, so this may not be a sample of the PPQ lots."

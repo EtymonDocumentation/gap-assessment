@@ -19,11 +19,11 @@ import PizZip from "pizzip";
 /** Everything in the example is made up. Nothing in it is a real product, site or company. */
 export const EXAMPLE_TRD_FILE_NAME = "example-finished-trd.docx";
 
-const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+export const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-const p = (text: string, style?: string) => `<w:p>${style ? `<w:pPr><w:pStyle w:val="${style}"/></w:pPr>` : ""}<w:r><w:t xml:space="preserve">${esc(text)}</w:t></w:r></w:p>`;
+export const p = (text: string, style?: string) => `<w:p>${style ? `<w:pPr><w:pStyle w:val="${style}"/></w:pPr>` : ""}<w:r><w:t xml:space="preserve">${esc(text)}</w:t></w:r></w:p>`;
 
-type Cell = string | { text: string; span?: number; vmerge?: "restart" | "continue" };
+export type Cell = string | { text: string; span?: number; vmerge?: "restart" | "continue" };
 
 function tc(cell: Cell): string {
   const c = typeof cell === "string" ? { text: cell } : cell;
@@ -31,7 +31,7 @@ function tc(cell: Cell): string {
   return `<w:tc>${pr ? `<w:tcPr>${pr}</w:tcPr>` : ""}${p(c.text, "TableText")}</w:tc>`;
 }
 
-const table = (rows: Cell[][]) => `<w:tbl><w:tblPr><w:tblStyle w:val="TableGrid"/><w:tblW w:w="0" w:type="auto"/></w:tblPr>${rows.map((r) => `<w:tr>${r.map(tc).join("")}</w:tr>`).join("")}</w:tbl>`;
+export const table = (rows: Cell[][]) => `<w:tbl><w:tblPr><w:tblStyle w:val="TableGrid"/><w:tblW w:w="0" w:type="auto"/></w:tblPr>${rows.map((r) => `<w:tr>${r.map(tc).join("")}</w:tr>`).join("")}</w:tbl>`;
 
 /** The paragraphs and tables of the example, in order. */
 export function exampleTrdBodyXml(): string {
@@ -102,6 +102,11 @@ ${style("Note", "Note", '<w:spacing w:before="240"/>', '<w:i/><w:sz w:val="18"/>
 /** The example Word file. Every part's content is the same on every run (fixed file dates, fixed compression); the raw
  *  zip bytes can still differ between time zones, because zip stores the dates in local time. */
 export function exampleTrdDocx(): Uint8Array {
+  return packExampleDocx(exampleTrdBodyXml());
+}
+
+/** Packs body XML into the example Word file (shared with the example sampling plan, job AI2, so both files are made the same way). */
+export function packExampleDocx(bodyXml: string): Uint8Array {
   const zip = new PizZip();
   const date = new Date(Date.UTC(2026, 10, 17, 0, 0, 0));
   const add = (name: string, xml: string) => zip.file(name, xml, { date });
@@ -120,7 +125,7 @@ export function exampleTrdDocx(): Uint8Array {
   add("word/styles.xml", stylesXml());
   add(
     "word/document.xml",
-    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${NS}><w:body>${exampleTrdBodyXml()}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`,
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${NS}><w:body>${bodyXml}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`,
   );
   return zip.generate({ type: "uint8array", compression: "DEFLATE" });
 }

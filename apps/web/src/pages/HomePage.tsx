@@ -140,7 +140,7 @@ export function HomePage() {
                   <div className="stack" data-testid="home-start-from-sampling-document">
                     <h4 className="start-sub">A sampling plan</h4>
                     <p className="muted small">
-                      Upload a sampling plan Word file that this tool made, a fill-in form, or a plan in another layout (Word or PDF). {project ? "" : "You name the project after you choose the file. "}You check every value before it is used.
+                      Upload a sampling plan Word file that this tool made, a fill-in form, or a plan in another layout (Word or PDF). {project ? "" : "You name the project after you choose the file. "}You check every value before it is used. To see how an AI reader could help, try the AI reading on an example sampling plan: its suggestions were recorded in advance, and each one shows the passage it came from.
                     </p>
                     <div className="row wrap">
                       <SamplingUploadButton className="btn" testId="home-upload-sampling" />

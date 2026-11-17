@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { ViewBlock } from "./import-shared";
 import type { ImportField, ImportSession } from "./trd-import";
 
 /**
@@ -57,7 +58,7 @@ const squash = (s: string) => s.replace(/\s+/g, " ").trim();
  * Where a quote sits in the document as read: a paragraph ("block:p") or a table cell ("block:row:col"), the same keys the review
  * screen uses to focus a passage. Undefined when the quote is not in the document.
  */
-export function locateQuote(blocks: ImportSession["blocks"], quote: string): string | undefined {
+export function locateQuote(blocks: readonly ViewBlock[], quote: string): string | undefined {
   const q = squash(quote);
   for (let bi = 0; bi < blocks.length; bi++) {
     const b = blocks[bi]!;
