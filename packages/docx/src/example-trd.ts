@@ -99,7 +99,8 @@ ${style("Note", "Note", '<w:spacing w:before="240"/>', '<w:i/><w:sz w:val="18"/>
 </w:styles>`;
 }
 
-/** The example Word file. The bytes are the same on every run (fixed file dates, fixed compression). */
+/** The example Word file. Every part's content is the same on every run (fixed file dates, fixed compression); the raw
+ *  zip bytes can still differ between time zones, because zip stores the dates in local time. */
 export function exampleTrdDocx(): Uint8Array {
   const zip = new PizZip();
   const date = new Date(Date.UTC(2026, 10, 17, 0, 0, 0));

@@ -33,9 +33,9 @@ describe("the shipped example Word file", () => {
     const a = new PizZip(readFileSync(SHIPPED));
     const b = new PizZip(exampleTrdDocx());
     expect(Object.keys(a.files).sort()).toEqual(Object.keys(b.files).sort());
+    // Compared part by part, not byte for byte: zip stores file dates in LOCAL time, so the same fixed date gives
+    // different bytes on a laptop and on the UTC build server, while every part's content is identical.
     for (const name of Object.keys(b.files)) expect(a.file(name)!.asText(), name).toBe(b.file(name)!.asText());
-    // Byte for byte as well: the generator uses fixed file dates, so a rebuild changes nothing.
-    expect(Buffer.from(exampleTrdDocx()).equals(readFileSync(SHIPPED))).toBe(true);
   });
 
   it("reads as a foreign document: level 3, no hidden data part, no content controls", () => {
