@@ -67,11 +67,11 @@ const HEADINGS: MatchHeading[] = [
 
 describe("schema 1.35.0: text under a template heading, and sections added at the end", () => {
   it("a 1.34.0 project opens with only the version changed", () => {
-    expect(SCHEMA_VERSION).toBe("1.35.0");
-    expect(PROCESS_MODEL_VERSION).toBe("1.21.0");
+    expect(SCHEMA_VERSION).toBe("1.36.0");
+    expect(PROCESS_MODEL_VERSION).toBe("1.22.0");
     const base = JSON.parse(JSON.stringify(project));
     const once = parseProject({ ...base, schemaVersion: "1.34.0" });
-    expect(once.schemaVersion).toBe("1.35.0");
+    expect(once.schemaVersion).toBe("1.36.0");
     expect(once.trd).toEqual(base.trd);
     expect(once.trd.documents[0]!.headingTexts).toBeUndefined();
     expect(once.trd.documents[0]!.addedBack).toBeUndefined();

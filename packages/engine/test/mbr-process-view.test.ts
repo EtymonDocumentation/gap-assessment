@@ -2,7 +2,7 @@
 // where the record does not state one, the check says what is missing. All data are fictional.
 import { describe, expect, it, vi } from "vitest";
 import { mbrRecordSchema, type MbrRecord } from "@gap/process-model";
-import { branchStatusAt, buildDemoProject, buildProcessView, clockStatusAt, describeMoment, mergeMbr, parseHours, parseQuantity, shapeForUnitOp } from "@gap/engine";
+import { branchStatusAt, buildDemoProject, buildProcessView, clockStatusAt, describeMoment, mergeMbr, parseHours, updateSplit, parseQuantity, shapeForUnitOp } from "@gap/engine";
 import { ACTOR } from "./helpers";
 import { content, demos, designLoadouts, failureModes, mbrLibrary, riskLoadouts, samplingSuggestions, trdWriteups } from "../../../content/index";
 
@@ -201,10 +201,24 @@ describe("the SYR-305 demo record, split at its hold", () => {
     const hs = v.moments.find((m) => m.kind === "hold_start")!;
     const he = v.moments.find((m) => m.kind === "hold_end")!;
     expect([hs.part, he.part]).toEqual([1, 2]);
-    expect(he.index).toBe(hs.index + 1);
+    // The demo names the step at which the hold ends, so the hold-end moment follows that step and not the hold-start moment.
+    expect(he.index).toBeGreaterThan(hs.index + 1);
+    expect(he.title).toMatch(/^Hold end \(after step \d+\.\d+\)$/);
+    const prev = v.moments[he.index - 1]!;
+    expect(prev.kind).toBe("block");
+    expect(prev.stepIds).toContain(rec0.split!.holdEndStepId);
+    expect(v.moments[he.index + 1]!.blockId).toBe(prev.blockId);
     expect(v.moments.filter((m) => m.kind === "block" && m.part === 1).length).toBeGreaterThan(5);
     expect(v.moments.filter((m) => m.kind === "block" && m.part === 2).length).toBeGreaterThan(3);
     expect(vw.moments.some((m) => m.kind === "hold_start")).toBe(false);
+  });
+  it("with no step chosen, the hold-end moment stays right after the hold-start moment", () => {
+    const none = updateSplit(demo, rec0.id, { holdEndStepId: null }, ACTOR);
+    const vn = buildProcessView(none, none.mbr.records[0]!);
+    const hs = vn.moments.find((m) => m.kind === "hold_start")!;
+    const he = vn.moments.find((m) => m.kind === "hold_end")!;
+    expect(he.index).toBe(hs.index + 1);
+    expect(he.title).toBe("Hold end (start of Part 2)");
   });
   it("puts SP-007 on the hold-start entry and SP-009 on the hold-end entry", () => {
     const at = (id: string) => v.moments[v.samples.find((s) => s.pointId === id)!.momentIndex]!.kind;
@@ -221,8 +235,11 @@ describe("the SYR-305 demo record, split at its hold", () => {
     const hs = v.moments.find((m) => m.kind === "hold_start")!.index;
     expect(clockStatusAt(c, hs - 1)).toBe("not_started");
     expect(clockStatusAt(c, hs)).toBe("running");
+    // The clock runs until the hold-end moment, which follows the step the author chose.
+    const he = v.moments.find((m) => m.kind === "hold_end")!.index;
     expect(clockStatusAt(c, hs + 1)).toBe("running");
-    expect(clockStatusAt(c, hs + 2)).toBe("finished");
+    expect(clockStatusAt(c, he)).toBe("running");
+    expect(clockStatusAt(c, he + 1)).toBe("finished");
   });
   it("finds the demo's 30 h planned holds as study points over their limits, not as errors", () => {
     expect(findingsOf(v, "C2").map((f) => f.severity)).toEqual(["note"]);

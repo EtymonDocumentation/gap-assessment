@@ -34,7 +34,7 @@ import {
   type TrdNotice,
 } from "@gap/engine";
 import { MBR_CHOICE_LABEL, POINT_AFTER_PPQ_LABEL, mbrChoiceText, type MbrBlock, type MbrChoice, type MbrLibraryBlock, type MbrParamRow, type MbrRecord, type MbrSection, type MbrTimeLimit, type MbrTrdRef, type Project } from "@gap/process-model";
-import { useId, useRef, useState } from "react";
+import { Fragment, useId, useRef, useState } from "react";
 import { useStore } from "../store";
 import type { Run } from "./SamplingFlow";
 import { countOf } from "../lib";
@@ -181,7 +181,14 @@ function Steps({ env, block }: { env: BlockEnv; block: MbrBlock }) {
       ) : (
         <ol className="mbr-steps plain-list" aria-label={`Steps of ${block.title}`}>
           {block.steps.map((s, i) => (
-            <StepItem key={s.id} env={env} block={block} step={s} index={i} count={block.steps.length} />
+            <Fragment key={s.id}>
+              <StepItem env={env} block={block} step={s} index={i} count={block.steps.length} />
+              {rec.split?.holdEndStepId === s.id && (
+                <li className="mbr-hold-end" data-testid="mbr-hold-end-entry">
+                  <strong>Hold end entry</strong>: the hold is over once step {env.numbers.get(s.id)} is done. Write the date and time the hold ended, the elapsed hold time and who did and checked it on this entry.
+                </li>
+              )}
+            </Fragment>
           ))}
         </ol>
       )}

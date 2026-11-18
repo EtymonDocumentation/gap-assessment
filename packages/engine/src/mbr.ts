@@ -14,6 +14,7 @@ import {
   type MbrRecord,
   type MbrSampleRow,
   type MbrSplit,
+  type MbrStep,
   type MbrSection,
   type MbrTimeLimit,
   type MbrTrdRef,
@@ -630,12 +631,21 @@ export interface HoldEntry {
   samples: MbrSampleRow[];
 }
 
+/** The steps of Part 2 in order, with their section and block: the choices for "The hold ends at step". */
+export function partTwoSteps(rec: MbrRecord): { step: MbrStep; section: MbrSection; block: MbrBlock }[] {
+  const cut = splitIndex(rec);
+  if (cut < 0) return [];
+  return rec.sections.flatMap((s, si) => (si > cut ? s.blocks.flatMap((b) => b.steps.map((step) => ({ step, section: s, block: b }))) : []));
+}
+
 export interface HoldEntryInfo {
   /** The plan hold the author named for the gap. Absent when none was named, or when the plan no longer has it (`holdMissing`). */
   hold?: PlanHold;
   holdMissing: boolean;
   /** The time limit row of the record the elapsed hold time is compared with. Absent: "no limit stated". */
   limit?: MbrTimeLimit;
+  /** The step after which the hold-end entry sits (the author's choice). Absent: the author has not said, and the entry stays at the top of Part 2. */
+  holdEndStepId?: string;
   entries: HoldEntry[];
 }
 
@@ -662,6 +672,7 @@ export function holdEntryInfo(project: Project, rec: MbrRecord): HoldEntryInfo {
     ...(hold ? { hold } : {}),
     holdMissing: Boolean(sp.planHoldId && !hold),
     ...(limit ? { limit } : {}),
+    ...(sp.holdEndStepId && partTwoSteps(rec).some((x) => x.step.id === sp.holdEndStepId) ? { holdEndStepId: sp.holdEndStepId } : {}),
     entries: [
       { edge: "start", part: 1, samples: at("hold_start") },
       { edge: "end", part: 2, samples: at("hold_end") },
@@ -721,6 +732,12 @@ function keepSplitValid(rec: MbrRecord): string | undefined {
     delete rec.split;
     return "the split was removed and the record is one again, because a part would have been empty";
   }
+  if (sp.holdEndStepId && !partTwoSteps(rec).some((x) => x.step.id === sp.holdEndStepId)) {
+    // The chosen step was removed, or a section move put it in Part 1. Clearing it is simpler and kinder than refusing the edit; the open
+    // item "Say at which step the hold ends" then shows again and the change log says why.
+    delete sp.holdEndStepId;
+    return "the step the hold ended at is no longer in Part 2, so the hold-end entry is back at the top of Part 2 until a step is chosen";
+  }
   if (sp.holdLimitId && !rec.sections.some((s) => s.blocks.some((b) => b.timeLimits.some((t) => t.id === sp.holdLimitId)))) {
     delete sp.holdLimitId;
     return "the time limit the hold entries were compared with is gone, so they now read no limit stated";
@@ -769,6 +786,8 @@ export interface SplitPatch {
   /** null clears it. */
   planHoldId?: string | null;
   holdLimitId?: string | null;
+  /** The step (in Part 2) after which the hold ends. null clears it. */
+  holdEndStepId?: string | null;
 }
 
 /** Edits the document numbers of the parts, the plan hold the gap is, and the time limit the elapsed hold time is compared with. */
@@ -794,6 +813,16 @@ export function updateSplit(project: Project, recordId: string, patch: SplitPatc
       after.holdLimit = label(patch.holdLimitId ?? undefined);
       if (patch.holdLimitId === null) delete sp.holdLimitId;
       else sp.holdLimitId = patch.holdLimitId;
+    }
+    if (patch.holdEndStepId !== undefined && (patch.holdEndStepId ?? undefined) !== sp.holdEndStepId) {
+      const steps = partTwoSteps(rec);
+      if (patch.holdEndStepId && !steps.some((x) => x.step.id === patch.holdEndStepId)) throw new MbrError("The hold can only end at a step of Part 2");
+      const numbers = numberSteps(rec);
+      const words = (id: string | undefined) => (id ? `step ${numbers.get(id) ?? id}` : undefined);
+      before.holdEndStep = words(sp.holdEndStepId);
+      after.holdEndStep = words(patch.holdEndStepId ?? undefined);
+      if (patch.holdEndStepId === null) delete sp.holdEndStepId;
+      else sp.holdEndStepId = patch.holdEndStepId;
     }
     if (patch.planHoldId !== undefined && (patch.planHoldId ?? undefined) !== sp.planHoldId) {
       if (patch.planHoldId && !(plan?.holds ?? []).some((h) => h.id === patch.planHoldId)) throw new MbrError(`Hold ${patch.planHoldId} is not in the sampling plan of ${rec.id}`);
@@ -1614,7 +1643,7 @@ export function addBlockForRequirement(
 }
 
 export interface MbrOpenItem {
-  kind: "not_decided" | "no_step" | "broken_reference" | "no_trd_value" | "sample_not_placed" | "sample_not_in_record" | "no_purpose" | "no_sections" | "trd_open" | "before_issue";
+  kind: "not_decided" | "no_step" | "broken_reference" | "no_trd_value" | "sample_not_placed" | "sample_not_in_record" | "no_purpose" | "no_sections" | "trd_open" | "before_issue" | "hold_end_unset";
   where: string;
   text: string;
   blockId?: string;
@@ -1638,6 +1667,8 @@ export function mbrOpenItems(project: Project, rec: MbrRecord, library: readonly
   // must stay visible, so the gaps that make a record empty are open items too.
   if (!rec.purpose?.trim()) out.push({ kind: "no_purpose", where: "Batch record", text: "No purpose entered" });
   if (!rec.sections.length) out.push({ kind: "no_sections", where: "Batch record", text: "No steps yet" });
+  // A split record that does not say where the hold ends: nothing is chosen for the author, the entry stays at the top of Part 2 meanwhile.
+  if (rec.split && !holdEntryInfo(project, rec).holdEndStepId) out.push({ kind: "hold_end_unset", where: "Split of the record", text: "Say at which step the hold ends" });
   // The record takes values from its TRD. While the TRD has open items, those values may still change, so the record says so (one line).
   const trd = trdOf(project, rec);
   const trdOpen = trd ? trdOpenItemsFor(project, trd, trdTemplate?.(trd)).length : 0;

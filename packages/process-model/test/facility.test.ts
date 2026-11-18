@@ -29,8 +29,8 @@ const refuses = (f: unknown, message: RegExp) => {
 };
 
 describe("schema 1.35.0 (the facility part)", () => {
-  it("is schema 1.35.0, and a new project has no facility part and so no areas", () => {
-    expect(SCHEMA_VERSION).toBe("1.35.0");
+  it("is schema 1.36.0, and a new project has no facility part and so no areas", () => {
+    expect(SCHEMA_VERSION).toBe("1.36.0");
     const p = empty();
     expect(p.facility).toBeUndefined();
     expect(facilityAreas(p, "su")).toEqual([]);
@@ -42,7 +42,7 @@ describe("schema 1.35.0 (the facility part)", () => {
     const raw = json(p);
     raw.schemaVersion = "1.32.0";
     const once = parseProject(raw);
-    expect(once.schemaVersion).toBe("1.35.0");
+    expect(once.schemaVersion).toBe("1.36.0");
     expect(once.facility).toBeUndefined();
     expect({ ...once, schemaVersion: "" }).toEqual({ ...p, schemaVersion: "" });
     expect(parseProject(json(once))).toEqual(once);
@@ -52,7 +52,7 @@ describe("schema 1.35.0 (the facility part)", () => {
   it("runs an older project through every minor on the way (1.31.0 to the current version)", () => {
     const raw = json(empty());
     raw.schemaVersion = "1.31.0";
-    expect(parseProject(raw).schemaVersion).toBe("1.35.0");
+    expect(parseProject(raw).schemaVersion).toBe("1.36.0");
   });
 
   it("keeps the areas of both units through a round trip, in the order they were listed", () => {

@@ -10,6 +10,8 @@ import {
   mbrOpenItems,
   mergeMbr,
   moveSection,
+  partTwoSteps,
+  removeMbrStep,
   numberSteps,
   removeSection,
   removeTimeLimit,
@@ -194,5 +196,68 @@ describe("the suggestion", () => {
   it("gives nothing without a plan or without holds", () => {
     expect(mbrHoldSuggestions(undefined, wholeRec)).toEqual([]);
     expect(mbrHoldSuggestions({ ...plan, holds: undefined }, wholeRec)).toEqual([]);
+  });
+});
+
+describe("the author says at which step the hold ends", () => {
+  const rec = demo.mbr.records[0]!;
+  const stepOf = (project: typeof demo, text: string) => steps(project).find((x) => x.text.includes(text))!;
+  const unset = updateSplit(demo, rid, { holdEndStepId: null }, ACTOR);
+
+  it("the demo names step 2 of the in-line filtration start block (taking the holding bag out of cold storage)", () => {
+    const step = stepOf(demo, "Take the holding bag out of cold storage");
+    expect(rec.split?.holdEndStepId).toBe(step.id);
+    expect(holdEntryInfo(demo, rec).holdEndStepId).toBe(step.id);
+    const block = rec.sections.flatMap((s) => s.blocks).find((b) => b.steps.some((x) => x.id === step.id))!;
+    expect(block.libraryId).toBe("sterile_filtration_inline_start");
+    expect(partTwoSteps(rec).some((x) => x.step.id === step.id)).toBe(true);
+    expect(mbrOpenItems(demo, rec).some((i) => i.kind === "hold_end_unset")).toBe(false);
+  });
+  it("starts empty on a new split: nothing is preselected and an open item asks", () => {
+    const fresh = splitMbr(whole, rid, { afterSectionId: sec("bbr_filtration").id }, ACTOR);
+    expect(fresh.mbr.records[0]!.split?.holdEndStepId).toBeUndefined();
+    const open = mbrOpenItems(fresh, fresh.mbr.records[0]!).filter((i) => i.kind === "hold_end_unset");
+    expect(open.map((i) => i.text)).toEqual(["Say at which step the hold ends"]);
+    expect(mbrOpenItems(whole, wholeRec).some((i) => i.kind === "hold_end_unset")).toBe(false);
+  });
+  it("clearing the choice brings the open item back; the change log says which step it was", () => {
+    expect(mbrOpenItems(unset, unset.mbr.records[0]!).some((i) => i.text === "Say at which step the hold ends")).toBe(true);
+    const ev = unset.changeLog.at(-1)!;
+    expect(ev.action).toBe("mbr_split_update");
+    expect(JSON.stringify(ev.before)).toContain("holdEndStep");
+  });
+  it("accepts only a step of Part 2", () => {
+    const part1Step = rec.sections[0]!.blocks.flatMap((b) => b.steps)[0]!;
+    expect(() => updateSplit(unset, rid, { holdEndStepId: part1Step.id }, ACTOR)).toThrow(/Part 2/);
+    expect(() => updateSplit(unset, rid, { holdEndStepId: "ST-9999" }, ACTOR)).toThrow(/Part 2/);
+    const bad = structuredClone(rec);
+    bad.split!.holdEndStepId = part1Step.id;
+    expect(mbrRecordSchema.safeParse(bad).success).toBe(false);
+    const missing = structuredClone(rec);
+    missing.split!.holdEndStepId = "ST-9999";
+    expect(mbrRecordSchema.safeParse(missing).success).toBe(false);
+    expect(mbrRecordSchema.safeParse(rec).success).toBe(true);
+  });
+  it("merging drops it", () => {
+    expect(mergeMbr(demo, rid, ACTOR).mbr.records[0]!.split).toBeUndefined();
+  });
+  it("clears it, and says so in the log, when the chosen step is removed or its section moves into Part 1", () => {
+    const step = stepOf(demo, "Take the holding bag out of cold storage");
+    const removed = removeMbrStep(demo, rid, step.id, ACTOR);
+    expect(removed.mbr.records[0]!.split?.holdEndStepId).toBeUndefined();
+    expect(removed.changeLog.at(-1)!.detail).toContain("hold-end entry is back at the top of Part 2");
+    expect(mbrOpenItems(removed, removed.mbr.records[0]!).some((i) => i.kind === "hold_end_unset")).toBe(true);
+    // Move the section that holds the step up until it crosses the split: the choice is cleared and the record stays valid.
+    const section = rec.sections.find((s) => s.blocks.some((bl) => bl.steps.some((x) => x.id === step.id)))!;
+    let now = demo;
+    for (let i = 0; i < 20; i++) {
+      const r = now.mbr.records[0]!;
+      if (!r.split || r.split.holdEndStepId === undefined) break;
+      now = moveSection(now, rid, section.id, -1, ACTOR);
+    }
+    const after = now.mbr.records[0]!;
+    expect(after.split?.holdEndStepId).toBeUndefined();
+    expect(mbrRecordSchema.safeParse(after).success).toBe(true);
+    expect(now.changeLog.at(-1)!.detail).toContain("no longer in Part 2");
   });
 });

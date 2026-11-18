@@ -8,6 +8,7 @@ import {
   blocksForUnitOp,
   deleteMbr,
   holdEntryInfo,
+  partTwoSteps,
   mbrHoldSuggestions,
   mbrOpenItems,
   mbrPpqOnlyItems,
@@ -15,6 +16,7 @@ import {
   mergeMbr,
   moveSection,
   numberSteps,
+  renderStepText,
   removeBlock,
   removeSection,
   sampleHomeBlock,
@@ -726,6 +728,7 @@ function SplitGap({ rec, section, plan, suggestions, run }: { rec: MbrRecord; se
 
 function SplitPanel({ rec, plan, run, info }: { rec: MbrRecord; plan: SamplingPlan | undefined; run: Run; info: ReturnType<typeof holdEntryInfo> }) {
   const split = rec.split!;
+  const numbers = useMemo(() => numberSteps(rec), [rec]);
   const [ref1, setRef1] = useState(split.part1DocRef ?? "");
   const [ref2, setRef2] = useState(split.part2DocRef ?? "");
   const limits = rec.sections.flatMap((s) => s.blocks.flatMap((b) => b.timeLimits));
@@ -779,6 +782,24 @@ function SplitPanel({ rec, plan, run, info }: { rec: MbrRecord; plan: SamplingPl
           </select>
         </label>
       </div>
+      <div className="row wrap end-align">
+        <label className="field grow">
+          <span>The hold ends at step</span>
+          <select value={split.holdEndStepId ?? ""} onChange={(e) => patch({ holdEndStepId: e.target.value || null }, "Hold end step changed")} data-testid="mbr-split-hold-end-step">
+            <option value="">Not said yet</option>
+            {partTwoSteps(rec).map((x) => (
+              <option key={x.step.id} value={x.step.id}>
+                {numbers.get(x.step.id)} ({x.section.title}): {renderStepText(x.step.text, numbers).slice(0, 80)}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <p className="small muted">
+        {info.holdEndStepId
+          ? "The hold-end entry sits right after this step, in the batch record, the Process view and the Word and HTML files."
+          : "Not said yet: the hold-end entry stays at the top of Part 2 and the open items ask. Choose the step once the hold is over."}
+      </p>
       {info.holdMissing && <p className="notice small">The hold named earlier is no longer in the sampling plan. Choose another or none.</p>}
       <div className="table-scroll" role="region" aria-label="Hold entries where the parts meet" tabIndex={0}>
         <table data-testid="mbr-split-entries">
@@ -793,7 +814,7 @@ function SplitPanel({ rec, plan, run, info }: { rec: MbrRecord; plan: SamplingPl
           <tbody>
             {info.entries.map((e) => (
               <tr key={e.edge} data-testid={`mbr-split-entry-${e.edge}`}>
-                <th scope="row">{e.edge === "start" ? "Hold start (end of Part 1)" : "Hold end (start of Part 2)"}</th>
+                <th scope="row">{e.edge === "start" ? "Hold start (end of Part 1)" : info.holdEndStepId ? `Hold end (after step ${numbers.get(info.holdEndStepId)})` : "Hold end (start of Part 2)"}</th>
                 <td>Part {e.part}</td>
                 <td>{e.samples.length ? e.samples.map((x) => `${x.pointId} ${x.test}`).join(", ") : info.hold ? "none in the plan" : "no hold chosen"}</td>
               </tr>

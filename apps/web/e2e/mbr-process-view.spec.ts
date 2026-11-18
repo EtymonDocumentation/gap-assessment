@@ -67,6 +67,11 @@ for (const [name, size] of [["desktop", { width: 1280, height: 900 }], ["phone",
     await expect(page.getByTestId("pv-panel-clocks").locator('[data-testid^="pv-clock-"]').first()).toBeVisible();
     if (name === "desktop") await page.screenshot({ path: join(SHOTS, "procview-demo-hold-desktop.png") });
 
+    // The hold ends at the step the author chose, a few steps into Part 2.
+    await goToMoment(page, /Hold end \(after step/);
+    await expect(page.getByTestId("pv-moment-title")).toContainText(/Hold end \(after step \d+\.\d+\)/);
+    await page.screenshot({ path: join(tmpdir(), `holdend-procview-${name}.png`) });
+
     await goToMoment(page, /Aseptic filling/i);
     await expect(page.getByTestId("pv-moment-title")).toContainText(/Aseptic filling/i);
     if (name === "desktop") await page.screenshot({ path: join(SHOTS, "procview-demo-filling-desktop.png") });

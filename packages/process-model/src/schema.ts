@@ -686,6 +686,13 @@ const MIGRATIONS: { from: string; to: string; migrate: Migrate }[] = [
     to: "1.35.0",
     migrate: (raw) => ({ ...raw, schemaVersion: "1.35.0" }),
   },
+  // 1.35.0 -> 1.36.0: a split batch record may name the step at which the hold ends (`split.holdEndStepId`, MBR format 1.4.0). Optional and
+  // absent in every older record, so no data changes; only the version moves (no step is chosen for the author). Running it again changes nothing.
+  {
+    from: "1.35.0",
+    to: "1.36.0",
+    migrate: (raw) => ({ ...raw, schemaVersion: "1.36.0" }),
+  },
 ];
 
 /**

@@ -290,6 +290,9 @@ const mbrDemoSchema = z.object({
       part1DocRef: z.string().optional(),
       part2DocRef: z.string().optional(),
       limit: z.object({ uo: z.string(), limit: z.string() }).optional(),
+      // The step after which the hold ends (the product owner's choice for this demo): the step of the block whose text contains `find`.
+      // Left out: the hold-end entry stays at the top of Part 2 and the record shows the open item.
+      holdEndStep: z.object({ uo: z.string(), block: z.string(), find: z.string() }).optional(),
       rewrite: z.array(z.object({ uo: z.string(), block: z.string(), find: z.string(), replace: z.array(z.object({ from: z.string(), to: z.string() })) })).default([]),
     })
     .optional(),
@@ -789,6 +792,12 @@ function applyMbrDemo(project: Project, content: ContentBundle, m: z.infer<typeo
         text = text.replace(x.from, () => x.to);
       }
       project = updateMbrStep(project, recordId, step.id, text, who);
+    }
+    if (sp.holdEndStep) {
+      const h = sp.holdEndStep;
+      const step = sectionFor(h.uo).blocks.find((b) => b.libraryId === h.block)?.steps.find((x) => x.text.includes(h.find));
+      if (!step) throw new Error(`Demo MBR: ${h.uo} has no step with the text "${h.find}" in block ${h.block}`);
+      project = updateSplit(project, recordId, { holdEndStepId: step.id }, who);
     }
   }
   if (m.excipientsUsed) {

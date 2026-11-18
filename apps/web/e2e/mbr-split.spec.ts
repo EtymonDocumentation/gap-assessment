@@ -43,6 +43,14 @@ for (const [name, size] of [["desktop", { width: 1280, height: 900 }], ["phone",
     await expect(page.getByTestId("mbr-split-ref2")).toHaveValue("DEMO-MBR-305-01-P2");
     await expect(page.getByTestId("mbr-split-entry-start")).toContainText("SP-007");
     await expect(page.getByTestId("mbr-split-entry-end")).toContainText("SP-009");
+    // The demo says where the hold ends: the choice shows the step, the entry sits right after it and no open item asks.
+    const endStep = page.getByTestId("mbr-split-hold-end-step");
+    await expect(endStep).not.toHaveValue("");
+    await expect(endStep.locator("option:checked")).toContainText("Take the holding bag out of cold storage");
+    await expect(page.getByTestId("mbr-split-entry-end")).toContainText(/Hold end \(after step \d+\.\d+\)/);
+    await expect(page.getByTestId("mbr-open-items")).not.toContainText("Say at which step the hold ends");
+    await endStep.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: join(tmpdir(), `holdend-editor-${name}.png`), fullPage: false });
     await page.screenshot({ path: join(tmpdir(), `mbrsplit-demo-${name}.png`), fullPage: false });
     await panel.scrollIntoViewIfNeeded();
     await panel.screenshot({ path: join(tmpdir(), `mbrsplit-record-${name}.png`) });
@@ -58,7 +66,8 @@ for (const [name, size] of [["desktop", { width: 1280, height: 900 }], ["phone",
     await page.getByTestId("mbr-preview-toggle").click();
     const preview = page.getByTestId("mbr-preview");
     await expect(preview).toContainText("DEMO-MBR-305-01-P2");
-    await expect(preview).toContainText("Hold end (start of Part 2)");
+    await expect(preview).toContainText(/Hold end \(after step \d+\.\d+\)/);
+    await expect(preview).not.toContainText("Hold end (start of Part 2)");
     await expect(preview).not.toContainText("Hold start (end of Part 1)");
     await page.getByTestId("mbr-part-1").check();
     await expect(preview).toContainText("DEMO-MBR-305-01-P1");
@@ -84,6 +93,9 @@ for (const [name, size] of [["desktop", { width: 1280, height: 900 }], ["phone",
     await expect(page.getByTestId("mbr-split-hold")).toHaveValue("");
     await expect(page.getByTestId("mbr-split-limit")).toHaveValue("");
     await expect(page.getByTestId("mbr-split-entry-start")).toContainText("no hold chosen");
+    // Nothing is preselected for the hold-end step: it reads "Not said yet" and an open item asks, with the entry at the top of Part 2.
+    await expect(page.getByTestId("mbr-split-hold-end-step")).toHaveValue("");
+    await expect(page.getByTestId("mbr-open-items")).toContainText("Say at which step the hold ends");
     await page.getByTestId("mbr-split-ref1").fill("DEMO-MBR-305-01-A");
     await page.getByTestId("mbr-split-ref2").fill("DEMO-MBR-305-01-B");
     await page.getByTestId("mbr-split-refs-save").click();
@@ -97,3 +109,31 @@ for (const [name, size] of [["desktop", { width: 1280, height: 900 }], ["phone",
     await expect(page.getByTestId("mbr-preview")).toContainText("No limit stated");
   });
 }
+
+// The hold-end entry sits right after the step the author chooses: the choice is changed here, and the entry appears under that step.
+test("the author picks the step where the hold ends and the entry follows it in the record", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openSyringeRecord(page);
+  const select = page.getByTestId("mbr-split-hold-end-step");
+  await expect(select).toBeVisible();
+  // Clear the demo's choice: nothing chosen reads "Not said yet", the open item asks and the entry has no step to sit after.
+  await select.selectOption("");
+  await expect(page.getByTestId("mbr-open-items")).toContainText("Say at which step the hold ends");
+  await expect(page.getByTestId("mbr-split-entry-end")).toContainText("Hold end (start of Part 2)");
+  await page.getByTestId("mbr-blocks-toggle-all").click();
+  await expect(page.getByTestId("mbr-hold-end-entry")).toHaveCount(0);
+  // Choose the second step of the first Part 2 block that has steps (a plain list of Part 2 steps, in order).
+  const options = select.locator("option");
+  expect(await options.count()).toBeGreaterThan(3);
+  await select.selectOption({ index: 2 });
+  await expect(page.getByTestId("mbr-open-items")).not.toContainText("Say at which step the hold ends");
+  await expect(page.getByTestId("mbr-split-entry-end")).toContainText(/Hold end \(after step \d+\.\d+\)/);
+  const entry = page.getByTestId("mbr-hold-end-entry");
+  await expect(entry).toHaveCount(1);
+  await entry.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: join(tmpdir(), "holdend-record-phone.png") });
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+  await expectAccessible(page, "hold-end entry in the record");
+});

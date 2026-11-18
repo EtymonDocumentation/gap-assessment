@@ -2468,7 +2468,7 @@ html:has(.answering-bar) {
   border-color: var(--text);
 }
 .scope-step.is-na {
-  background: var(--surface-2, var(--bg));
+  background: var(--surface-2);
   border-style: dotted;
 }
 .scope-step.is-na strong {
@@ -3394,6 +3394,13 @@ tr.row-hl > td {
   display: grid;
   gap: 0.5rem;
   grid-template-columns: 3.5rem minmax(0, 1fr);
+}
+.mbr-hold-end {
+  list-style: none;
+  background: var(--surface-2);
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
 }
 .mbr-step-no {
   color: var(--muted);

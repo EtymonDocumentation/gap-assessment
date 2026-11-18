@@ -1374,6 +1374,8 @@ mbr:
     part1DocRef: DEMO-MBR-305-01-P1
     part2DocRef: DEMO-MBR-305-01-P2
     limit: { uo: bbr_filtration, limit: cold_hold }
+    # The hold ends once the holding bag is out of cold storage (the product owner's choice): step 2 of block BL-021 in Part 2.
+    holdEndStep: { uo: aseptic_filling, block: sterile_filtration_inline_start, find: "Take the holding bag out of cold storage" }
     rewrite:
       - uo: bbr_filtration
         block: bbr_filtration_run

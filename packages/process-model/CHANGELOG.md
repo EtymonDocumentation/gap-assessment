@@ -2,6 +2,15 @@
 
 All notable changes to `@gap/process-model`. Versions follow semver; see README.md for what counts as breaking.
 
+## 1.22.0
+
+Project schema 1.36.0 (was 1.35.0), catalog and questions unchanged. Additive: a split batch record may say at which step the hold ends (MBR format 1.4.0).
+
+### Added
+- `MbrSplit.holdEndStepId`: optional id of a Part 2 step. The hold-end entry sits right after it. Absent = the author has not said (nothing is chosen for them).
+- The record schema checks that the step exists and is in a Part 2 section.
+- Migration 1.35.0 to 1.36.0 moves only the version.
+
 ## 1.21.0
 
 Project schema 1.35.0 (was 1.34.0), catalog and questions unchanged. Additive: what a TRD needs to come out under the headings of a person's own Word template (M15, job 2).

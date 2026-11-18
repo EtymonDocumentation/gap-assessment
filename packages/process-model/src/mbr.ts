@@ -22,8 +22,8 @@ import { SEED_STATUSES } from "./trd-seed";
  *    is only offered as an update.
  */
 
-/** Version of the MBR format (shapes, output). Independent of the project schema version. 1.3.0: the optional "Excipients used" table. */
-export const MBR_FORMAT_VERSION = "1.3.0";
+/** Version of the MBR format (shapes, output). Independent of the project schema version. 1.4.0: a split may name the step at which the hold ends. 1.3.0: the optional "Excipients used" table. */
+export const MBR_FORMAT_VERSION = "1.4.0";
 
 export const MBR_CHOICES = ["same_as_trd", "tightened_by_cmo", "not_decided"] as const;
 export type MbrChoice = (typeof MBR_CHOICES)[number];
@@ -209,6 +209,11 @@ export const mbrSplitSchema = z.object({
   planHoldId: z.string().regex(/^HD-\d{2,}$/).optional(),
   /** The time limit row (R-nnnn) of this record the elapsed hold time is compared with. Never preselected: absent reads "no limit stated". */
   holdLimitId: z.string().regex(/^R-\d{4,}$/).optional(),
+  /**
+   * The step (in a Part 2 section) after which the hold is over (MBR format 1.4.0). The hold-end entry sits right after it. Never
+   * preselected: absent = the author has not said, the entry stays at the top of Part 2 and an open item asks.
+   */
+  holdEndStepId: z.string().regex(/^ST-\d{4,}$/).optional(),
   /** Sampling steps taken out of the sections when the split was made, so that a merge puts each back where it was. */
   moved: z.array(z.object({ blockId: z.string(), at: z.number().int().min(0), step: mbrStepSchema })).optional(),
 });
@@ -290,6 +295,11 @@ export const mbrRecordSchema = z
       else if (at >= r.sections.length - 1) ctx.addIssue({ code: "custom", message: `MBR ${r.id}: the split must sit between two sections; Part 2 would be empty` });
       const limits = new Set(r.sections.flatMap((s) => s.blocks.flatMap((b) => b.timeLimits.map((t) => t.id))));
       if (r.split.holdLimitId && !limits.has(r.split.holdLimitId)) ctx.addIssue({ code: "custom", message: `MBR ${r.id}: the hold limit ${r.split.holdLimitId} is not a time limit of the record` });
+      if (r.split.holdEndStepId) {
+        const stepAt = r.sections.findIndex((s) => s.blocks.some((b) => b.steps.some((st) => st.id === r.split!.holdEndStepId)));
+        if (stepAt < 0) ctx.addIssue({ code: "custom", message: `MBR ${r.id}: the hold ends at step ${r.split.holdEndStepId}, which is not a step of the record` });
+        else if (at >= 0 && stepAt <= at) ctx.addIssue({ code: "custom", message: `MBR ${r.id}: the hold ends at step ${r.split.holdEndStepId}, which is in Part 1; choose a step in Part 2` });
+      }
     }
   });
 export type MbrRecord = z.infer<typeof mbrRecordSchema>;

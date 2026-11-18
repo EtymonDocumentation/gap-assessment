@@ -135,7 +135,7 @@ function holdLimitWords(info: HoldEntryInfo, src: SourceNumbers): string {
  * made, so the fields are write-in lines. The elapsed hold time is written by the operator and sits next to the limit the record already
  * holds; the document does not say whether a time is acceptable.
  */
-function holdEntrySection(project: Project, rec: MbrRecord, info: HoldEntryInfo, edge: "start" | "end", src: SourceNumbers): DocSection {
+function holdEntrySection(project: Project, rec: MbrRecord, info: HoldEntryInfo, edge: "start" | "end", src: SourceNumbers, endAfter?: string): DocSection {
   const sp = rec.split!;
   const start = edge === "start";
   const hold = info.hold;
@@ -145,8 +145,10 @@ function holdEntrySection(project: Project, rec: MbrRecord, info: HoldEntryInfo,
   blocks.push({
     type: "note",
     text: start
-      ? `This entry closes Part 1 (${partRef(1)}). The product is held after the last step of Part 1. Part 2 (${partRef(2)}) opens with the hold-end entry.`
-      : `This entry opens Part 2 (${partRef(2)}). Fill it in when the product leaves the hold: it closes the hold that began at the hold-start entry at the end of Part 1 (${partRef(1)}).`,
+      ? `This entry closes Part 1 (${partRef(1)}). The product is held after the last step of Part 1. ${endAfter ? `The hold ends at step ${endAfter} of Part 2 (${partRef(2)}).` : `Part 2 (${partRef(2)}) opens with the hold-end entry.`}`
+      : endAfter
+        ? `This entry sits after step ${endAfter} of Part 2 (${partRef(2)}): the hold is over once that step is done. Fill it in when the product leaves the hold: it closes the hold that began at the hold-start entry at the end of Part 1 (${partRef(1)}).`
+        : `This entry opens Part 2 (${partRef(2)}). Fill it in when the product leaves the hold: it closes the hold that began at the hold-start entry at the end of Part 1 (${partRef(1)}).`,
   });
   const planHold = hold ? `${hold.label}${hold.condition?.trim() ? ` (${hold.condition.trim()})` : ""}` : info.holdMissing ? "The hold named earlier is no longer in the sampling plan" : "No hold of the sampling plan was named for this gap";
   const rows: string[][] = [
@@ -180,7 +182,7 @@ function holdEntrySection(project: Project, rec: MbrRecord, info: HoldEntryInfo,
   } else {
     blocks.push({ type: "paragraph", text: "No sampling plan hold was named for this gap, so no samples are listed here." });
   }
-  return { id: start ? "hold-start" : "hold-end", number: start ? "H1" : "H2", title: start ? "Hold start (end of Part 1)" : "Hold end (start of Part 2)", blocks };
+  return { id: start ? "hold-start" : "hold-end", number: start ? "H1" : "H2", title: start ? "Hold start (end of Part 1)" : endAfter ? `Hold end (after step ${endAfter})` : "Hold end (start of Part 2)", blocks };
 }
 
 export function mbrDocumentOpenItems(project: Project, rec: MbrRecord, trdTemplate?: TrdTemplateFor): MbrOpenItem[] {
@@ -209,11 +211,14 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
   const cut = splitIndex(rec);
   const part = cut >= 0 ? opts.part : undefined;
   const holdInfo = cut >= 0 ? holdEntryInfo(project, rec) : undefined;
+  // Where the author says the hold ends. A step the project stage leaves out cannot carry the entry, so the entry then stays at the top of Part 2.
+  const endStepId = holdInfo?.holdEndStepId && !out.has(holdInfo.holdEndStepId) ? holdInfo.holdEndStepId : undefined;
+  const endStepNo = endStepId ? numbers.get(endStepId) : undefined;
 
   // The process sections, numbered exactly like the record so that "Step 9.14" is in section 9.
   rec.sections.forEach((s, si) => {
     if ((part === 1 && si > cut) || (part === 2 && si <= cut)) return;
-    if (holdInfo && si === cut + 1 && part !== 1) sections.push(holdEntrySection(project, rec, holdInfo, "end", src));
+    if (holdInfo && si === cut + 1 && part !== 1 && !endStepId) sections.push(holdEntrySection(project, rec, holdInfo, "end", src));
     const blocks: Block[] = [];
     if (s.blocks.length === 0) blocks.push({ type: "paragraph", text: "No block has been added to this section yet." });
     for (const b of s.blocks) {
@@ -237,14 +242,19 @@ export function buildMbrDocument(project: Project, rec: MbrRecord, opts: MbrDocu
             .filter(Boolean)
             .join(" ");
         };
-        blocks.push({
-          type: "table",
-          columns: ["Step", "Instruction"],
-          rows: steps.map((st) => {
-            const how = methodOf(sampleIdsTakenAt(st));
-            return [numbers.get(st.id) ?? "", `${renderStepText(st.text, numbers)}${how ? ` ${how}` : ""}`];
-          }),
-        });
+        const stepRow = (st: (typeof steps)[number]) => {
+          const how = methodOf(sampleIdsTakenAt(st));
+          return [numbers.get(st.id) ?? "", `${renderStepText(st.text, numbers)}${how ? ` ${how}` : ""}`];
+        };
+        const endAt = endStepId ? steps.findIndex((st) => st.id === endStepId) : -1;
+        if (endAt < 0 || !holdInfo || part === 1) blocks.push({ type: "table", columns: ["Step", "Instruction"], rows: steps.map(stepRow) });
+        else {
+          // The hold ends at one of these steps: the steps up to it, the hold-end entry, then the steps after it.
+          blocks.push({ type: "table", columns: ["Step", "Instruction"], rows: steps.slice(0, endAt + 1).map(stepRow) });
+          const entry = holdEntrySection(project, rec, holdInfo, "end", src, endStepNo);
+          blocks.push({ type: "heading", text: `${entry.number} ${entry.title}` }, ...entry.blocks);
+          if (endAt < steps.length - 1) blocks.push({ type: "table", columns: ["Step", "Instruction"], rows: steps.slice(endAt + 1).map(stepRow) });
+        }
       }
       if (paramRows.length) {
         blocks.push({ type: "table", columns: ["Parameter", "Batch record value (TRD value, source)", "Choice", "Reason and notes"], rows: paramRows.map((r) => paramRow(r, src)), caption: "Parameters", weights: MBR_PARAM_WEIGHTS });

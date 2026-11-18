@@ -324,16 +324,28 @@ export function buildProcessView(project: Project, rec: MbrRecord, opts?: { expe
     const b = ids.length ? nums.get(ids[ids.length - 1]!) : undefined;
     return a && b ? (a === b ? a : `${a} to ${b}`) : undefined;
   };
+  // Where the author says the hold ends: the hold-end moment then follows that step (a block with the step is shown in two moments, the
+  // steps up to it and the steps after it). Not set: the hold-end moment stays right after the hold-start moment.
+  const endStepId = holdEntryInfo(project, rec).holdEndStepId;
+  const holdEndWords = () => {
+    const n = endStepId ? nums.get(endStepId) : undefined;
+    return n ? `Hold end (after step ${n})` : "Hold end (start of Part 2)";
+  };
   rec.sections.forEach((s, si) => {
     const first = moments.length;
     for (const b of s.blocks) {
       if (b.steps.length === 0) continue;
-      const ids = b.steps.map((x) => x.id);
-      const r = range(ids);
-      const m: ViewMoment = { index: moments.length, kind: "block", title: `${s.title}: ${b.title}`, equipmentId: eqOfSection(s.id), sectionId: s.id, sectionNumber: si + 1, blockId: b.id, part: partOf(si), stepIds: ids, ...(r ? { stepRange: r } : {}), sampleIds: [] };
-      moments.push(m);
-      blockMoment.set(b.id, m.index);
-      for (const id of ids) stepMoment.set(id, m.index);
+      const cutAt = endStepId ? b.steps.findIndex((x) => x.id === endStepId) : -1;
+      const groups = cutAt >= 0 ? [b.steps.slice(0, cutAt + 1), b.steps.slice(cutAt + 1)].filter((g) => g.length) : [b.steps];
+      groups.forEach((g, gi) => {
+        const ids = g.map((x) => x.id);
+        const r = range(ids);
+        const m: ViewMoment = { index: moments.length, kind: "block", title: `${s.title}: ${b.title}`, equipmentId: eqOfSection(s.id), sectionId: s.id, sectionNumber: si + 1, blockId: b.id, part: partOf(si), stepIds: ids, ...(r ? { stepRange: r } : {}), sampleIds: [] };
+        moments.push(m);
+        if (gi === 0) blockMoment.set(b.id, m.index);
+        for (const id of ids) stepMoment.set(id, m.index);
+        if (cutAt >= 0 && gi === 0) moments.push({ index: moments.length, kind: "hold_end", title: holdEndWords(), equipmentId: "EQ-HOLD", part: 2, stepIds: [], sampleIds: [] });
+      });
     }
     if (moments.length === first) {
       // A section with no stepped block (a custom section the author has not filled) still has its place in the train.
@@ -342,7 +354,7 @@ export function buildProcessView(project: Project, rec: MbrRecord, opts?: { expe
     for (const b of s.blocks) if (!blockMoment.has(b.id)) blockMoment.set(b.id, first);
     if (si === cut) {
       moments.push({ index: moments.length, kind: "hold_start", title: "Hold start (end of Part 1)", equipmentId: "EQ-HOLD", part: 1, stepIds: [], sampleIds: [] });
-      moments.push({ index: moments.length, kind: "hold_end", title: "Hold end (start of Part 2)", equipmentId: "EQ-HOLD", part: 2, stepIds: [], sampleIds: [] });
+      if (!endStepId) moments.push({ index: moments.length, kind: "hold_end", title: holdEndWords(), equipmentId: "EQ-HOLD", part: 2, stepIds: [], sampleIds: [] });
     }
   });
   moments.push({ index: moments.length, kind: "end", title: "After the last step", part: cut >= 0 ? 2 : 1, stepIds: [], sampleIds: [] });
