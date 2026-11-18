@@ -61,7 +61,7 @@ describe("SYR-305 mid-transfer demo", () => {
   });
 
   it("carries the open items on into the sampling plan, the batch record and the risk assessment", () => {
-    const plan = samplingOpenItems(content, project, project.sampling.plans[0]!);
+    const plan = samplingOpenItems(content, project, project.sampling.plans[0]!, samplingSuggestions).filter((o) => o.kind !== "review");
     expect(plan.filter((o) => o.kind === "point")).toHaveLength(2);
     expect(plan).toHaveLength(3);
     expect(project.sampling.plans[0]!.readiness?.filter((r) => r.status === "open").map((r) => r.key).sort()).toEqual(["batch_records", "equipment_qualified", "methods_ready", "training"]);

@@ -19,7 +19,8 @@ const setPointOf = (uo: string, key: string) => {
 
 describe("SYR-305 PPQ sampling plan", () => {
   it("is built complete: the only open item is the agency-requests statement", () => {
-    const open = samplingOpenItems(content, project, plan);
+    // Design review questions the demo has not answered are open items too (kind "review"); the plan itself has only the agency item.
+    const open = samplingOpenItems(content, project, plan, samplingSuggestions).filter((o) => o.kind !== "review");
     // One plan-level item, and no point is incomplete. The demo schema cannot state "no agency requests", so that one stays open on purpose.
     expect([...new Set(open.map((o) => o.ref))]).toEqual(["plan"]);
     expect(open).toHaveLength(1);

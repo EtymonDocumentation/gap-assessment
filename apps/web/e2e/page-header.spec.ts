@@ -391,11 +391,11 @@ test("nothing scrolls sideways at 390, 360 and 320 px with the explanation and t
     for (const route of [...records, "#/document", "#/register", "#/guidance"]) {
       await go(page, route);
       await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
-      // At 390 px the breadcrumb is one line and only the project name gives way (with an ellipsis): the area and the page are never cut
-      // off. At 360 and 320 px the trail may use a second line, so the project name is shown whole.
+      // On a phone (390 px and narrower) the trail may use a second line, so the project name is shown whole and the area and the page
+      // are never cut off.
       const crumbs = page.locator(".page-crumbs ol");
       if (await crumbs.count()) {
-        if (width <= 380) {
+        {
           const first = page.locator(".page-crumbs li:first-child > a");
           if (await first.count()) {
             expect(await first.evaluate((a) => a.scrollWidth - a.clientWidth), `${route} at ${width}px: the project name is cut off`).toBeLessThanOrEqual(1);

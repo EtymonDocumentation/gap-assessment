@@ -4603,10 +4603,10 @@ table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
     max-width: 360px;
   }
 }
-/* On the narrowest phones (360 and 320 px) a four-part breadcrumb ("project > area > module > page") left the project name only a
-   few letters before its ellipsis. The trail may use a second line here instead: the project name wraps and stays whole, and the
-   rest follows. It stays one line wherever it fits, and the wider phones keep the one-line trail above. */
-@media (max-width: 380px) {
+/* On phones (up to 430 px: 390 px included, the common width) a four-part breadcrumb ("project > area > module > page") left the
+   project name only a few letters before its ellipsis. The trail may use a second line here instead: the project name wraps and stays
+   whole, and the rest follows. It stays one line wherever it fits; wider screens keep the one-line trail above. */
+@media (max-width: 430px) {
   .page-crumbs ol {
     flex-wrap: wrap;
     white-space: normal;
@@ -4619,6 +4619,13 @@ table.rows-editor th[scope="row"] { width: 1%; white-space: nowrap; }
     overflow: visible;
     text-overflow: clip;
     overflow-wrap: anywhere;
+  }
+  /* A wrapped trail stacks its links on top of each other: each keeps the 24 px touch target (WCAG 2.2 target size) so two lines never
+     share one. */
+  .page-crumbs a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
   }
 }
 /* A printed page shows the document, not the page's own title block (the old banner was hidden in print the same way). */

@@ -32,7 +32,7 @@ export function buildCmoInstructionsDocument(content: ContentBundle, project: Pr
   labels.set(UNIT_OP_FINISHED_PRODUCT, "Finished product");
   labels.set(UNIT_OP_NONE, "Supporting work (no single step)");
   const unitOpLabel = (k: string) => labels.get(k) ?? k;
-  const open = samplingOpenItems(content, project, plan);
+  const open = samplingOpenItems(content, project, plan, library);
   const program = seed.meta.product.program.display ?? TBD_MARKER;
   const ctx = tokenContext(plan, {
     ...(seed.meta.product.program.display ? { productName: seed.meta.product.program.display } : {}),

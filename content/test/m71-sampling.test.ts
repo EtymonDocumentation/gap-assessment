@@ -42,7 +42,7 @@ const loadout = (id: string) => designLoadouts.loadouts.find((l) => l.id === id)
 describe("the demo plan covers every study type", () => {
   it("has at least one point of every type and exactly one incomplete point", () => {
     expect(new Set(plan.points.map((p) => p.type))).toEqual(new Set(SAMPLING_TYPES));
-    expect([...new Set(samplingOpenItems(content, demo, plan).map((o) => o.ref))]).toEqual(["SP-007"]);
+    expect([...new Set(samplingOpenItems(content, demo, plan, samplingSuggestions).filter((o) => o.kind !== "review").map((o) => o.ref))]).toEqual(["SP-007"]);
   });
 
   it("links an agency request to a regulatory commitment point and has the stability, hold and retain shapes asked for", () => {
@@ -179,7 +179,8 @@ describe("the CMO reporting instructions export", () => {
 
   it("states the plan version it belongs to and that the plan still has open items", () => {
     expect(doc.meta.find(([k]) => k === "Plan version")![1]).toContain(documentFingerprint(planDoc()).slice(0, 12));
-    expect(md).toContain("The plan still has 12 open items");
+    expect(md).toContain(`The plan still has ${samplingOpenItems(content, demo, plan, samplingSuggestions).length} open items`);
+    expect(samplingOpenItems(content, demo, plan, samplingSuggestions).filter((o) => o.kind !== "review")).toHaveLength(12);
     expect(md).toContain("SP-007 is incomplete in the plan");
   });
 
@@ -226,7 +227,7 @@ describe("agency requests", () => {
   it("a request nobody answers is an open item, not a hidden one", () => {
     const { project, planId } = bare();
     const a = addAgencyRequest(project, planId, { agency: "Example Agency (fictional)", question: "Why?", status: "open", sourceIds: [] } as never, ACTOR);
-    expect(samplingOpenItems(content, a.project, a.project.sampling.plans[0]!).some((o) => o.kind === "agency" && /no sampling point is linked/.test(o.text))).toBe(true);
+    expect(samplingOpenItems(content, a.project, a.project.sampling.plans[0]!, samplingSuggestions).some((o) => o.kind === "agency" && /no sampling point is linked/.test(o.text))).toBe(true);
   });
 });
 
@@ -246,7 +247,7 @@ describe("plan subsections", () => {
   it("an unknown token is an open item and is shown in the document, never hidden", () => {
     const { project, planId } = bare();
     const a = addSubsection(project, planId, { title: "Tokens", blocks: [{ type: "paragraph", text: "Hello {nobody}." }], placement: "appendix" }, ACTOR);
-    const items = samplingOpenItems(content, a.project, a.project.sampling.plans[0]!);
+    const items = samplingOpenItems(content, a.project, a.project.sampling.plans[0]!, samplingSuggestions);
     expect(items.some((o) => o.kind === "subsection" && o.ref === "CS-001")).toBe(true);
     expect(renderMarkdown(planDoc(a.project))).toContain("CS-001");
   });

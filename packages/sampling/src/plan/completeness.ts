@@ -193,9 +193,9 @@ export function checkPoint(plan: SamplingPlan, point: SamplingPoint): PointCheck
 }
 
 export interface OpenItem {
-  /** "plan", a batch id, a point id, an agency request id or a subsection id. */
+  /** "plan", a batch id, a point id, an agency request id, a subsection id or (kind "review") the design review finding's key. */
   ref: string;
-  kind: "plan" | "batch" | "point" | "agency" | "subsection";
+  kind: "plan" | "batch" | "point" | "agency" | "subsection" | "review";
   text: string;
 }
 

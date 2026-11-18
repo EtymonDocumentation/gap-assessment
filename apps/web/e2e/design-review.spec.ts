@@ -32,16 +32,35 @@ async function expectNoHorizontalScroll(page: Page, label: string) {
   expect(overflow, `${label}: page scrolls sideways by ${overflow}px`).toBeLessThanOrEqual(1);
 }
 
-test("the Overview line counts the questions and opens the tab; the chain strip shows the open count", async ({ page }) => {
+test("the open items list the questions and open the tab (no second summary line); the chain strip shows the open count", async ({ page }) => {
   test.setTimeout(90000);
   await openReview(page);
-  const line = page.getByTestId("review-line");
-  await expect(line).toContainText(/\d+ design review questions? not answered yet/);
+  // The questions are rows of the open items list, each with its link; the summary line would only repeat them.
+  await expect(page.getByTestId("review-line")).toHaveCount(0);
+  const texts = await page.getByTestId("plan-open-items").locator("li", { hasText: "From the design review (" }).allInnerTexts();
+  expect(texts.length).toBeGreaterThan(0);
+  expect(new Set(texts).size, "no two design review items read the same").toBe(texts.length);
   // The wide strip carries each stage's status; a phone shows one line ("Chain 3 of 5 · Sampling plan") and the Overview line above has the count.
   if (isPhone(page)) await expect(page.getByTestId("doc-chain")).toContainText("Chain 3 of 5 · Sampling plan");
   else await expect(page.getByTestId("doc-chain")).toContainText(/design review questions? not answered yet/);
   await page.screenshot({ path: join(SHOTS, `m11-j1-overview-line-${test.info().project.name}.png`) });
-  await page.getByTestId("review-line-open").click();
+  await page.getByTestId("open-item-review").first().click();
+  await expect(page.getByTestId("design-review")).toBeVisible();
+  await expect(page.getByTestId("tab-review")).toHaveAttribute("aria-pressed", "true");
+});
+
+test("open design review questions are counted in the plan's open items, listed as coming from the review, and link to the tab", async ({ page }) => {
+  test.setTimeout(90000);
+  await openReview(page);
+  const rows = page.getByTestId("plan-open-items").locator("li", { hasText: "From the design review (" });
+  const n = await rows.count();
+  expect(n).toBeGreaterThan(0);
+  // The pill, the heading and the list agree: one number.
+  const total = await page.getByTestId("plan-open-items").locator("li").count();
+  await expect(page.getByTestId("plan-pill-open")).toContainText(`${total} open item`);
+  await expect(page.getByRole("heading", { name: `Open items (${total})` })).toBeVisible();
+  await page.getByTestId("plan-open-items").screenshot({ path: join(SHOTS, `leftovers-plan-open-items-${test.info().project.name}.png`) });
+  await rows.first().getByTestId("open-item-review").click();
   await expect(page.getByTestId("design-review")).toBeVisible();
   await expect(page.getByTestId("tab-review")).toHaveAttribute("aria-pressed", "true");
 });

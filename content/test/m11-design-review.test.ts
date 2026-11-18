@@ -16,7 +16,7 @@ import {
 import { SAMPLING_PLAN_FORMAT_VERSION, SCHEMA_VERSION, parseProject, type Actor, type Project } from "@gap/process-model";
 import { designReview } from "@gap/sampling";
 import { describe, expect, it, vi } from "vitest";
-import { content, demos, designLoadouts, failureModes, mbrLibrary, riskLoadouts, samplingSuggestions } from "../index";
+import { content, demos, designLoadouts, failureModes, mbrLibrary, riskLoadouts, samplingSuggestions, trdWriteups } from "../index";
 
 vi.setConfig({ testTimeout: 60000 });
 
@@ -101,14 +101,29 @@ describe("SYR-305: the review raises no false alarm for what the plan already co
 });
 
 describe("unanswered review questions are visible where the plan lists its open items", () => {
-  it("the plan export has its own line and meta row, and the plan's open-item number is unchanged", () => {
+  it("the plan export lists them among the open items, has its own meta row, and the open-item number counts them", () => {
     const plan = planOf(SYR);
-    const n = planDesignReview(content, SYR, plan, samplingSuggestions).unanswered;
+    const v = planDesignReview(content, SYR, plan, samplingSuggestions);
+    const n = v.unanswered;
     const doc = buildSamplingPlanDocument(content, SYR, plan, samplingSuggestions, { generatedAt: T0 });
     const text = JSON.stringify(doc.sections.find((s) => s.id === "open-items"));
-    expect(text).toContain(`${n} design review questions not answered yet. These are not counted in the open items above.`);
+    // The list already says it, so no second "N questions not answered yet" paragraph follows it.
+    expect(text).not.toContain("not answered yet. Each of these");
+    // One list row per question still open, worded as coming from the design review; none is counted twice.
+    const items = samplingOpenItems(content, SYR, plan, samplingSuggestions);
+    const fromReview = items.filter((o) => o.kind === "review");
+    expect(fromReview).toHaveLength(v.unanswered + v.lookAgain);
+    expect(new Set(fromReview.map((o) => o.ref)).size).toBe(fromReview.length);
+    expect(fromReview.every((o) => o.text.startsWith("From the design review ("))).toBe(true);
+    expect(text).toContain("From the design review (not answered yet)");
+    // Every item carries what makes it distinct (the step, sample or failure mode the question is about): no two read alike, in any demo.
+    for (const id of ["arx-217", "syr-305", "syr-305-mid"] as const) {
+      const p = buildDemoProject(content, demos[id], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes }, { library: mbrLibrary }, { writeups: trdWriteups });
+      const texts = p.sampling.plans.flatMap((pl) => samplingOpenItems(content, p, pl, samplingSuggestions)).filter((o) => o.kind === "review").map((o) => o.text);
+      expect(new Set(texts).size, id).toBe(texts.length);
+    }
     expect(doc.meta).toContainEqual(["Design review", `${n} design review questions not answered yet`]);
-    expect(doc.meta).toContainEqual(["Open items", String(samplingOpenItems(content, SYR, plan).length)]);
+    expect(doc.meta).toContainEqual(["Open items", String(samplingOpenItems(content, SYR, plan, samplingSuggestions).length)]);
   });
 });
 

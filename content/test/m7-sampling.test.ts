@@ -91,7 +91,7 @@ describe("suggestions from the RU data", () => {
     const s = suggestPoints(content, cut, samplingSuggestions);
     expect(s.some((x) => x.uo === "capping")).toBe(false);
     expect(s.some((x) => x.uo === "aseptic_filling")).toBe(true);
-    const leftOut = (p: Project) => samplingOpenItems(content, p, p.sampling.plans[0]!).filter((i) => /left out of the assessment/.test(i.text)).map((w) => w.ref);
+    const leftOut = (p: Project) => samplingOpenItems(content, p, p.sampling.plans[0]!, samplingSuggestions).filter((i) => /left out of the assessment/.test(i.text)).map((w) => w.ref);
     // The demo plan has its own "Capping and crimping" step (the plan's steps are separate from the gap Scope), so the container
     // closure point sitting on it is not warned about.
     expect(leftOut(cut)).toEqual([]);
@@ -212,8 +212,9 @@ describe("the demo plan", () => {
   });
 
   it("has exactly one incomplete point so that open items show, and a report-only characterization point", () => {
-    const open = samplingOpenItems(content, demo, plan);
-    expect([...new Set(open.map((o) => o.ref))]).toEqual(["SP-007"]);
+    const open = samplingOpenItems(content, demo, plan, samplingSuggestions);
+    // The design review questions the demo has not answered are open items too (kind "review"); the plan itself has one incomplete point.
+    expect([...new Set(open.filter((o) => o.kind !== "review").map((o) => o.ref))]).toEqual(["SP-007"]);
     expect(plan.points.find((p) => p.acceptance?.kind === "report_only")?.type).toBe("characterization");
   });
 
@@ -304,7 +305,7 @@ describe("the sampling plan document", () => {
   });
 
   it("lists the open items of the incomplete point and counts them", () => {
-    expect(doc.tbdCount).toBe(samplingOpenItems(content, demo, plan).length);
+    expect(doc.tbdCount).toBe(samplingOpenItems(content, demo, plan, samplingSuggestions).length);
     expect(md).toContain("SP-007");
   });
 

@@ -202,6 +202,57 @@ describe("TRD upload, level 2: the fill-in form (I1)", () => {
     writeFileSync(join(dir, "trd-form-filled.docx"), filled);
   });
 
+  // LEFTOVERS job: the handover once recorded that DS shipping, stand-alone stoppering, lyophilization and capping had no place in the
+  // hand-fill form. They have one (the form is built from the catalog, one table per step with parameters); this keeps it that way and
+  // proves the whole round trip for exactly these four: fill their boxes, upload, review shows them, apply puts them in the TRD.
+  it("the four steps once missing (DS shipping, stand-alone stoppering, lyophilization, capping) have boxes and round-trip", () => {
+    const FOUR = ["ds_shipping_inbound", "stoppering", "lyophilization", "capping"];
+    const spec = buildBlankFormSpec(content.catalog);
+    const steps = FOUR.map((k) => spec.steps.find((s) => s.key === k));
+    expect(steps.every(Boolean)).toBe(true);
+    const base = buildTrdFormDocx(spec, { generatedAt: GENERATED_AT });
+    const baseXml = new PizZip(base).file("word/document.xml")!.asText();
+    // The same heading as the generated TRD uses for the step (its catalog label), and a box for every part of every parameter.
+    for (const st of steps) {
+      expect(baseXml).toContain(st!.label.replace(/&/g, "&amp;"));
+      for (const p of st!.params) expect(baseXml).toContain(`w:val="trd.step.${st!.ref}.param.${p.key}.nor_low"`);
+    }
+    const fill = (xml: string, tag: string, text: string) => {
+      const start = xml.indexOf(`<w:tag w:val="${tag}"/>`);
+      expect(start).toBeGreaterThan(0);
+      const open = xml.lastIndexOf("<w:sdt>", start);
+      const end = xml.indexOf("</w:sdt>", start) + "</w:sdt>".length;
+      const filled = xml.slice(open, end).replace("<w:showingPlcHdr/>", "").replace(/<w:sdtContent>[\s\S]*<\/w:sdtContent>/, `<w:sdtContent><w:r><w:t>${text}</w:t></w:r></w:sdtContent>`);
+      return xml.slice(0, open) + filled + xml.slice(end);
+    };
+    const ids = steps.map((st) => `trd.step.${st!.ref}.param.${st!.params[0]!.key}`);
+    const filled = editDocument(base, (xml) => {
+      let x = xml;
+      ids.forEach((id, i) => {
+        x = fill(x, `${id}.nor_low`, String(10 + i));
+        x = fill(x, `${id}.nor_high`, String(20 + i));
+        x = fill(x, `${id}.unit`, "min");
+      });
+      return x;
+    });
+    const s = sessionFromForm(readTrdUpload(filled, "four-steps.docx"));
+    const got = s.fields.filter((f) => f.value).map((f) => f.id).sort();
+    expect(got).toEqual(ids.flatMap((id) => [`${id}.nor_high`, `${id}.nor_low`, `${id}.unit`]).sort());
+    const dec: ImportDecisions = {};
+    for (const f of s.fields.filter((x) => x.value)) dec[f.id] = { value: f.value };
+    const r = applyImport(project, s, dec, { actor, target: { kind: "new", title: "Four steps" } });
+    expect(r.counts.taken).toBe(12);
+    const made = r.project.trd.documents.find((x) => x.id === r.trdId)!;
+    steps.forEach((st, i) => {
+      const item = made.steps.find((x) => x.key === st!.key)!.items.find((it) => it.key === st!.params[0]!.key)!;
+      expect(item.limits).toMatchObject({ nor: { min: 10 + i, max: 20 + i, unit: "min" } });
+    });
+    const out = join(tmpdir(), "gap-docx-samples", "leftovers");
+    mkdirSync(out, { recursive: true });
+    writeFileSync(join(out, "trd-blank-form.docx"), base);
+    writeFileSync(join(out, "trd-form-four-steps-filled.docx"), filled);
+  });
+
   it("the form with what we know so far carries the TRD's own values", () => {
     const spec = buildTrdFormSpec(d);
     const bytes = buildTrdFormDocx(spec, { generatedAt: GENERATED_AT });

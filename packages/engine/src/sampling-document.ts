@@ -126,7 +126,7 @@ export function unitOpLabels(content: ContentBundle, project: Project): Map<stri
  * out of the assessment, and the problems of the custom subsections (an unknown token, an empty title). Such a point is kept (the
  * plan never deletes anything by itself) but the owner must decide about it.
  */
-export function samplingOpenItems(content: ContentBundle, project: Project, plan: SamplingPlan): OpenItem[] {
+export function samplingOpenItems(content: ContentBundle, project: Project, plan: SamplingPlan, library: EffectiveSuggestions): OpenItem[] {
   const items = openItems(plan);
   const seed = buildTrdSeed(content, project, { exportedAt: "1970-01-01T00:00:00.000Z" });
   const live = new Set(seed.scope.included.map((u) => u.key));
@@ -138,6 +138,12 @@ export function samplingOpenItems(content: ContentBundle, project: Project, plan
   }
   const ctx = tokenContext(plan, { ...(seed.meta.product.program.display ? { productName: seed.meta.product.program.display } : {}), ...(seed.meta.receivingSite.name.display ? { ruSite: seed.meta.receivingSite.name.display } : {}) });
   for (const s of subsectionProblems(plan, ctx)) for (const text of s.problems) items.push({ ref: s.id, kind: "subsection", text: `${s.id}: ${text}` });
+  // Design review questions still open (not answered, or answered but the plan changed since) are open work too, so the plan's one number
+  // counts them. Each finding is listed once (its key is its identity); the questions are the team's answers to give, and the item says so.
+  for (const it of planDesignReview(content, project, plan, library).items) {
+    if (it.state === "answered") continue;
+    items.push({ ref: it.finding.key, kind: "review", text: `From the design review (${it.state === "look_again" ? "to look at again" : "not answered yet"}): ${it.finding.title}. ${it.finding.states} ${it.finding.question}` });
+  }
   return items;
 }
 
@@ -174,9 +180,9 @@ export function buildSamplingPlanDocument(
   const live = new Set(seed.scope.included.map((u) => u.key));
   const stepText = (uo: string) => (uo === UNIT_OP_FINISHED_PRODUCT || uo === UNIT_OP_NONE || live.has(uo) ? labelOf(uo) : `${labelOf(uo)} (now left out of the assessment)`);
   const basis = samplingBasisText(projectLabel(project.meta));
-  const open = samplingOpenItems(content, project, plan);
-  // Unanswered design review questions are still open work, but they are the team's answers, not entries missing from the plan: counted on
-  // their own line so they are visible without changing the plan's open-item number.
+  const open = samplingOpenItems(content, project, plan, library);
+  // Open design review questions are listed among the open items and counted in the number (see samplingOpenItems); the cover facts say
+  // how many of them there are. Each item carries what the review found ("states": the step, sample or failure mode), so no two read alike.
   const review = planDesignReview(content, project, plan, library);
   const reviewOpen = review.unanswered + review.lookAgain > 0;
   const totals = planTotals(plan);
@@ -696,11 +702,10 @@ export function buildSamplingPlanDocument(
           {
             type: "table",
             columns: ["Reference", "Item", "Open item"],
-            rows: open.map((o) => [o.ref === "plan" ? "Plan" : o.ref, o.kind === "point" ? (plan.points.find((p) => p.id === o.ref)?.attribute.trim() || "(no attribute)") : "", o.text]),
+            rows: open.map((o) => [o.ref === "plan" ? "Plan" : o.kind === "review" ? "Design review" : o.ref, o.kind === "point" ? (plan.points.find((p) => p.id === o.ref)?.attribute.trim() || "(no attribute)") : "", o.text]),
           },
         ] as Block[])
       : []),
-    ...(reviewOpen ? ([{ type: "paragraph", text: `${designReviewLine(review)}. These are not counted in the open items above.` }] as Block[]) : []),
     ...subsAfter("open-items"),
   ]);
 

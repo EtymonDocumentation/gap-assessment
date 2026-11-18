@@ -39,6 +39,7 @@ import { AgencyCard, Interview, PartiesCard, PointCard, type ViewBy } from "./Sa
 import { SubsectionsEditor } from "./SamplingSubsections";
 import { SamplingContents } from "./SamplingContents";
 import { DesignReviewLine, SamplingReview } from "./SamplingReview";
+import { useEffectiveSuggestions } from "../expected-studies-store";
 import { HelpTip } from "../HelpTip";
 import { useLandAtTop } from "../land-at-top";
 import { PlanSourceNote } from "./SamplingSource";
@@ -174,7 +175,8 @@ function PlanList({ missing }: { missing?: string | undefined }) {
 function PlanRow({ plan }: { plan: SamplingPlan }) {
   const project = useStore((s) => s.project)!;
   const content = useContent();
-  const open = samplingOpenItems(content, project, plan).length;
+  const suggestions = useEffectiveSuggestions();
+  const open = samplingOpenItems(content, project, plan, suggestions).length;
   return (
     <tr>
       <th scope="row">
@@ -253,7 +255,8 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
     return !err;
   };
 
-  const open = useMemo(() => samplingOpenItems(content, project, plan), [content, project, plan]);
+  const effective = useEffectiveSuggestions();
+  const open = useMemo(() => samplingOpenItems(content, project, plan, effective), [content, project, plan, effective]);
   const selectedPoint = plan.points.find((p) => p.id === selected);
   const selectedCard = useRef<HTMLDivElement>(null);
   const removeConfirm = useConfirmRemove();
@@ -373,6 +376,13 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
               <li key={i}>
                 {o.ref === "plan" ? (
                   o.text
+                ) : o.kind === "review" ? (
+                  <>
+                    {o.text}{" "}
+                    <button type="button" className="link-btn" onClick={() => setTab("review")} data-testid="open-item-review">
+                      Open the Design review tab
+                    </button>
+                  </>
                 ) : (
                   <>
                     <strong>{o.ref}</strong>: {o.text}
@@ -382,7 +392,8 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
             ))}
           </ul>
         )}
-        <DesignReviewLine plan={plan} onOpen={() => setTab("review")} />
+        {/* The open questions are listed above, each with its own link; the summary line (and its link) is only for when none is open. */}
+        {!open.some((o) => o.kind === "review") && <DesignReviewLine plan={plan} onOpen={() => setTab("review")} />}
       </section>
 
       <SuggestionsCard
