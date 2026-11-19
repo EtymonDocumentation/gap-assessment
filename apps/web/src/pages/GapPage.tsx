@@ -1,6 +1,7 @@
 import { TBD_DEFINITION } from "@gap/engine";
 import { useState } from "react";
 import { PageBanner } from "../art";
+import { GlossaryLink } from "../components";
 import { ProductEyebrow } from "../brand";
 import { useChainAllowed } from "../DocChain";
 import { documentDownloadedNote, nextStep, stepDone } from "../next-step";
@@ -49,7 +50,7 @@ export function GapPage() {
   // Each item ticks only where the project data proves it; the rest are plain links (no tick never means "not done").
   const checklist: { key: string; label: string; hint: string; path?: string; params?: Record<string, string>; ticked: boolean; note?: string | undefined }[] = [
     { key: "create", label: "Create a project", hint: "Press “Start a new project” on the Home page. Give it a name and say who is answering.", path: "/", ticked: !!project },
-    { key: "scope", label: "Choose the scope", hint: "Untick the process steps and document sections that do not apply.", path: "/scope", ticked: !!done.scope },
+    { key: "scope", label: "Choose the scope", hint: "Untick the process steps and document sections that do not apply.", path: "/scope", ticked: !!done.scope || !!done.interview, note: !done.scope && done.interview ? "Scope: not changed (all in scope)" : undefined },
     { key: "interview", label: "Answer the interview", hint: "One question at a time, for the sending and receiving side. Choose TBD for anything not known yet.", path: "/interview", ticked: !!done.interview },
     { key: "register", label: "Review the gap register", hint: "Check every difference the tool found and decide what to do about each.", path: "/register", ticked: !!done.register },
     {
@@ -97,7 +98,7 @@ export function GapPage() {
       <section className="stack home-intro" aria-labelledby="gap-what-h" data-tour="gap-intro">
         <h2 id="gap-what-h">What the gap assessment does</h2>
         <p className="lede">
-          You compare how a product is made at the <strong>sending unit</strong> (SU) with how the <strong>receiving unit</strong> (RU) site plans to make it. The tool asks guided
+          You compare how a product is made at the <strong>sending unit</strong> (<GlossaryLink id="sending-unit">SU</GlossaryLink>) with how the <strong>receiving unit</strong> (<GlossaryLink id="receiving-unit">RU</GlossaryLink>) site plans to make it. The tool asks guided
           questions, lists every difference (gap), and drafts the gap assessment document. The other documents (TRD, sampling plan, batch record) can follow from it, and every stage is optional.
         </p>
         <p className="muted">

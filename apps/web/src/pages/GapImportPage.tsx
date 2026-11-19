@@ -1,3 +1,4 @@
+import { PracticeProjectDelete } from "./NewProjectDialog";
 import { gapImportSynonyms } from "@gap/content";
 import {
   aiGapRowFields,
@@ -235,7 +236,10 @@ function Review({ session, file }: { session: GapImportSession; file: File }) {
   async function submitOnce() {
     setError("");
     if (!mode) return setError("Choose whether this makes a new project or updates the open one.");
-    const newTitle = title.trim() || session.title.value.trim();
+    // A project made from a file but not named by the person is told apart from the demo or the file it came from: "(from upload)" and the time.
+    const fromFile = session.title.value.trim();
+    const stamp = new Date().toLocaleString("sv-SE", { dateStyle: "short", timeStyle: "short" });
+    const newTitle = title.trim() || (fromFile ? `${fromFile} (from upload, ${stamp})` : "");
     if (mode === "new") {
       if (!newTitle) return setError("Give the new project a name, or use the name from the file.");
       if (!who.name.trim()) return setError("Say who is answering: enter your name.");
@@ -283,6 +287,12 @@ function Review({ session, file }: { session: GapImportSession; file: File }) {
           </p>
           <p data-testid="import-added">{done.detail}</p>
           {done.copy && <p className="small">{done.copy}</p>}
+          {done.mode === "new" && session.aiExample && <PracticeProjectDelete />}
+          {done.mode === "new" && (
+            <p className="small" data-testid="import-stage-note">
+              Project stage is not set. Choose it on Home.
+            </p>
+          )}
           {done.warnings.length > 0 && (
             <div className="notice" data-testid="import-warnings">
               <strong>Left open:</strong>
@@ -479,6 +489,27 @@ function Review({ session, file }: { session: GapImportSession; file: File }) {
         <p role="status" aria-live="polite" data-testid="import-live-summary">
           {importSummaryText(counts, session.level)}
         </p>
+        <div className="notice stack" data-testid="import-next">
+          <strong>What happens next</strong>
+          <p className="small">
+            Check the answers below and accept the ones that are right. Then choose where they go and press the button at the end of this page. Nothing is put into a project before that. The project's stage is not set by the upload; you choose it on Home afterwards.
+          </p>
+          <div>
+            <button
+              type="button"
+              className="btn small"
+              onClick={() => {
+                const h = document.getElementById("import-make-h");
+                h?.setAttribute("tabindex", "-1");
+                h?.scrollIntoView({ block: "start" });
+                h?.focus({ preventScroll: true });
+              }}
+              data-testid="import-jump-make"
+            >
+              Go to "Put the answers in a project"
+            </button>
+          </div>
+        </div>
         {session.notUsed.length > 0 && (
           <details className="notice import-not-used" open={session.notUsed.length <= 8} data-testid="import-not-used">
             <summary>
@@ -735,6 +766,7 @@ function Review({ session, file }: { session: GapImportSession; file: File }) {
             <label className="field">
               <span>Name of the new project</span>
               <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} data-testid="import-title" />
+              <span className="small muted">Left empty, the project is named like the file, with "(from upload)" and the time, so it is not mistaken for the original.</span>
             </label>
             {session.title.value && (
               <div className="row wrap">

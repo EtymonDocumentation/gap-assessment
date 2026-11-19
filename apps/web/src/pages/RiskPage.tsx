@@ -4,7 +4,7 @@ import { describeMethod } from "@gap/risk";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { StartArt } from "../art";
 import { Empty, Modal } from "../components";
-import { focusWhenReady, PageHeader, type PagePill } from "../PageHeader";
+import { downloadWhenReady, PageHeader, type PagePill } from "../PageHeader";
 import { Tabs, type TabDef } from "../Tabs";
 import { countOf, dateTime } from "../lib";
 import { href, navigate } from "../router";
@@ -64,7 +64,7 @@ export function RiskPage({ params }: { params: URLSearchParams }) {
   const id = params.get("ra");
   const a = id ? project.risk.assessments.find((x) => x.id === id) : undefined;
   const tab = params.get("tab");
-  return a ? <Editor a={a} initialTab={TABS.includes(tab as Tab) ? (tab as Tab) : "method"} /> : <List missing={id ?? undefined} />;
+  return a ? <Editor a={a} initialTab={TABS.includes(tab as Tab) ? (tab as Tab) : a.config ? "items" : "method"} /> : <List missing={id ?? undefined} />;
 }
 
 function List({ missing }: { missing?: string | undefined }) {
@@ -214,7 +214,7 @@ function Editor({ a, initialTab }: { a: RiskAssessment; initialTab: Tab }) {
   // person there with the matching button focused.
   const toDownload = (testId: string) => () => {
     select("output");
-    focusWhenReady(testId);
+    downloadWhenReady(testId);
   };
   const openItems = (
     <section className="card stack" aria-labelledby="ra-open" data-testid="risk-open-items">

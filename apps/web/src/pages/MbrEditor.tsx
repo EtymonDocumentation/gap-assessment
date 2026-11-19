@@ -738,11 +738,11 @@ function SplitPanel({ rec, plan, run, info }: { rec: MbrRecord; plan: SamplingPl
       <div className="row wrap between">
         <h3 id="mbr-split-h">Split of the record: Part 1 ends here, Part 2 starts after the hold</h3>
         <button type="button" className="btn small" data-testid="mbr-merge" onClick={() => run((p, a) => mergeMbr(p, rec.id, a), "Parts merged back into one record")}>
-          Merge the parts
+          Merge back into one record
         </button>
       </div>
       <p className="small muted">
-        Both parts are one record: they share the TRD links, notices and time limits, and the section and step numbers run on from Part 1 into Part 2. Each part has its own document number and its own Word export.
+        Both parts are one record: they share the TRD links, notices and time limits, and the section and step numbers run on from Part 1 into Part 2. Each part has its own document number and its own Word export. The choices in the lists below are saved as soon as you make them; the document numbers are saved with their button.
       </p>
       <div className="row wrap end-align">
         <label className="field grow">
@@ -759,9 +759,9 @@ function SplitPanel({ rec, plan, run, info }: { rec: MbrRecord; plan: SamplingPl
       </div>
       <div className="row wrap end-align">
         <label className="field grow">
-          <span>Hold of the sampling plan at this gap</span>
+          <span>Hold the sampling plan describes at this break</span>
           <select value={split.planHoldId ?? ""} onChange={(e) => patch({ planHoldId: e.target.value || null }, "Hold changed")} data-testid="mbr-split-hold">
-            <option value="">No hold chosen</option>
+            <option value="">Not chosen yet</option>
             {(plan?.holds ?? []).map((h) => (
               <option key={h.id} value={h.id}>
                 {h.label}
@@ -772,7 +772,7 @@ function SplitPanel({ rec, plan, run, info }: { rec: MbrRecord; plan: SamplingPl
         <label className="field grow">
           <span>Hold time limit the elapsed time is compared with</span>
           <select value={split.holdLimitId ?? ""} onChange={(e) => patch({ holdLimitId: e.target.value || null }, "Hold time limit changed")} data-testid="mbr-split-limit">
-            <option value="">No limit stated</option>
+            <option value="">Not chosen yet</option>
             {limits.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.label}
@@ -785,11 +785,12 @@ function SplitPanel({ rec, plan, run, info }: { rec: MbrRecord; plan: SamplingPl
       <div className="row wrap end-align">
         <label className="field grow">
           <span>The hold ends at step</span>
-          <select value={split.holdEndStepId ?? ""} onChange={(e) => patch({ holdEndStepId: e.target.value || null }, "Hold end step changed")} data-testid="mbr-split-hold-end-step">
-            <option value="">Not said yet</option>
+          <span className="small muted" id="mbr-hold-end-help">Pick the step in which the bag or tank is emptied, the step where the hold stops.</span>
+          <select aria-describedby="mbr-hold-end-help" value={split.holdEndStepId ?? ""} onChange={(e) => patch({ holdEndStepId: e.target.value || null }, "Hold end step changed")} data-testid="mbr-split-hold-end-step">
+            <option value="">Not chosen yet</option>
             {partTwoSteps(rec).map((x) => (
-              <option key={x.step.id} value={x.step.id}>
-                {numbers.get(x.step.id)} ({x.section.title}): {renderStepText(x.step.text, numbers).slice(0, 80)}
+              <option key={x.step.id} value={x.step.id} title={renderStepText(x.step.text, numbers)}>
+                {numbers.get(x.step.id)} ({x.section.title}): {renderStepText(x.step.text, numbers).slice(0, 60)}
               </option>
             ))}
           </select>
@@ -798,7 +799,7 @@ function SplitPanel({ rec, plan, run, info }: { rec: MbrRecord; plan: SamplingPl
       <p className="small muted">
         {info.holdEndStepId
           ? "The hold-end entry sits right after this step, in the batch record, the Process view and the Word and HTML files."
-          : "Not said yet: the hold-end entry stays at the top of Part 2 and the open items ask. Choose the step once the hold is over."}
+          : "Not chosen yet: the hold-end entry stays at the top of Part 2 and the open items ask. Choose the step once the hold is over."}
       </p>
       {info.holdMissing && <p className="notice small">The hold named earlier is no longer in the sampling plan. Choose another or none.</p>}
       <div className="table-scroll" role="region" aria-label="Hold entries where the parts meet" tabIndex={0}>

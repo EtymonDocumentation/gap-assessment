@@ -281,10 +281,11 @@ test("the C1 card has an optional percent field: blank shows the numbers, a valu
 test("the plan document has the Design review appendix and the study-only equipment", async ({ page }) => {
   test.setTimeout(150000);
   await openReview(page, "syr");
+  await page.getByTestId("tab-downloads").click();
   await page.getByTestId("sampling-preview-toggle").click();
   const preview = page.getByTestId("sampling-preview");
   await expect(preview).toContainText("Design review");
-  await expect(preview).toContainText("Not answered yet");
+  await expect(preview).toContainText("all 15 questions answered");
   await expect(preview).toContainText("Checks switched off for this plan");
   await expect(preview).toContainText("Equipment used only for sampling");
   await expect(preview).toContainText("Single-use tubing set with sterile bottles");

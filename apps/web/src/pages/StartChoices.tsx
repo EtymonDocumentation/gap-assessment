@@ -16,7 +16,7 @@ import { NewProjectDialog } from "./NewProjectDialog";
  * Each choice has one plain line of text. The abbreviations are spelled out once, where a first-time reader meets them.
  */
 const DOCUMENT_STARTS: { id: string; title: string; text: string; button: string; path: string; params?: Record<string, string> }[] = [
-  { id: "trd", title: "Technology transfer document (TRD)", text: "Answer plain questions and the TRD fills itself in. Anything you don't know stays open.", button: "Start a TRD", path: "/trd" },
+  { id: "trd", title: "Technical requirements document (TRD)", text: "Answer plain questions and the TRD fills itself in. Anything you don't know stays open.", button: "Start a TRD", path: "/trd" },
   { id: "sampling", title: "Sampling plan", text: "Say where and when samples are taken. No TRD is needed.", button: "Start a sampling plan", path: "/sampling" },
   { id: "mbr", title: "Batch record (MBR)", text: "It takes its values from a TRD. A sampling plan is welcome but not needed.", button: "Start a batch record", path: "/mbr" },
 ];
@@ -139,6 +139,9 @@ export function StartChoices({ stay, compact, children }: { stay?: boolean; comp
         <details className="more-ways" data-testid="more-ways">
           <summary>More ways to start</summary>
           <p className="muted small more-ways-hint">Open a demo, or upload a document you already have.</p>
+          <p className="muted small">
+            All three demos are fictional. {remote ? "Opening one adds it to your projects on the server." : "Opening one replaces the project open in this browser (you are asked first)."}
+          </p>
           <div className="start-grid">        {/* One choice, three demos: each has its own button and a line saying what it shows, so the choice between them is easy. */}
         <div className="start-option start-demos" role="group" aria-labelledby="start-demos-h">
           <h3 id="start-demos-h" className="start-option-title">
@@ -201,9 +204,6 @@ export function StartChoices({ stay, compact, children }: { stay?: boolean; comp
           {homeFlash}
         </p>
       )}
-      <p className="muted small">
-        All three demos are fictional. {remote ? "Opening one adds it to your projects on the server." : "Opening one replaces the project open in this browser (you are asked first)."}
-      </p>
       {startError && (
         <p className="error" role="alert" data-testid="start-error">
           {startError}
@@ -214,7 +214,7 @@ export function StartChoices({ stay, compact, children }: { stay?: boolean; comp
         onOpenChange={setCreating}
         description={
           after === "trd-start"
-            ? "Name the project and the person answering. Then you pick the Word template for the technology transfer document."
+            ? "Name the project and the person answering. Then you pick the Word template for the technical requirements document."
             : "Name the project and the person answering."
         }
         onCreated={() => {

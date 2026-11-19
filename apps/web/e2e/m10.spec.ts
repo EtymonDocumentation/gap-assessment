@@ -119,6 +119,7 @@ test("time target and sub-process editors work and a sample can carry an hour", 
 
 test("the export choice sets the figure in the HTML and in the Word file (real pictures, landscape, numbered captions)", async ({ page }) => {
   await openDemoPlan(page);
+  await page.getByTestId("tab-downloads").click();
   const choice = page.getByTestId("figure-style-choice");
   await expect(choice.getByTestId("export-figure-time_scale")).toBeChecked();
   await choice.getByTestId("export-figure-none").check();

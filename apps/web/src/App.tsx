@@ -168,7 +168,7 @@ function AppShell() {
           covers: ["/gap", "/gap/import", ...GAP_STEPS.map((s) => s.path)],
           children: [{ path: "/gap", label: "Getting started" }, ...GAP_STEPS.map((s) => ({ path: s.path, label: s.label }))],
         },
-        ...(trdAllowed ? [{ path: "/trd", label: "TRD", num: 2, desc: "Technical requirements. Start from this project or blank." }] : []),
+        ...(trdAllowed ? [{ path: "/trd", label: "TRD", num: 2, desc: "Technical requirements document. Start from this project or blank." }] : []),
         ...(samplingAllowed ? [{ path: "/sampling", label: "Sampling plan", num: 3, desc: "Where and when to sample in the PPQ (process performance qualification) batches." }] : []),
         ...(mbrAllowed ? [{ path: "/mbr", label: "Batch record", num: 4, desc: "The step-by-step instruction for making one batch. Also opens the Process view." }] : []),
       ],

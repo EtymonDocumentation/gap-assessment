@@ -331,6 +331,8 @@ const excipientDemoSchema = z.object({
       trd: z.object({ uo: z.string(), item: z.string() }).optional(),
       /** A key of an excipient suggestion of the failure-mode catalog, started as a draft item of the demo risk assessment. */
       risk: z.string().optional(),
+      /** The team's own score for the risk item started from this line (the tool never scores): lets a finished example have no unscored draft. */
+      riskScore: z.object({ initial: z.object({ severity: z.number(), occurrence: z.number(), detection: z.number() }), accepted: z.enum(["yes", "no"]) }).optional(),
       regulatoryReference: z.string().optional(),
       facts: z
         .array(
@@ -984,7 +986,9 @@ function applyExcipientDemo(project: Project, e: z.infer<typeof excipientDemoSch
     if (l.risk && failureModes) {
       const risk = project.risk.assessments[0];
       if (!risk) throw new Error("Demo excipients: the demo has no risk assessment to start an item in");
-      project = startRiskItemFromExcipient(project, aid, lid, risk.id, l.risk, failureModes, who).project;
+      const started = startRiskItemFromExcipient(project, aid, lid, risk.id, l.risk, failureModes, who);
+      project = started.project;
+      if (l.riskScore) project = updateItem(project, risk.id, started.itemId, { initial: { values: l.riskScore.initial }, accepted: l.riskScore.accepted }, who);
     }
   }
   return project;

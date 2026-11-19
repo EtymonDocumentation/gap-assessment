@@ -137,9 +137,21 @@ interface State {
   clearError(): void;
 }
 
+/**
+ * Who a change, a saved version or a download is credited to (ease-of-use pass 2, row 22): the signed-in account's display name. With no
+ * account (browser-only mode) it is the project's responder, and the history pages label that name "project responder" so nobody
+ * takes it for a sign-in.
+ */
 export function actorOf(p: Project): Actor {
   const r = p.interview.responder;
-  return { name: r?.name ?? "Unnamed user", ...(r?.role ? { role: r.role } : {}), at: new Date().toISOString() };
+  const account = SERVER_MODE ? useSession.getState().user?.displayName : undefined;
+  return { name: account ?? r?.name ?? "Unnamed user", ...(r?.role ? { role: r.role } : {}), at: new Date().toISOString() };
+}
+
+/** A name in a history list: with no signed-in account it is the project responder's name, and says so. */
+export function whoLabel(name: string): string {
+  const signedIn = SERVER_MODE && !!useSession.getState().user;
+  return signedIn ? name : `${name} (project responder)`;
 }
 
 /**

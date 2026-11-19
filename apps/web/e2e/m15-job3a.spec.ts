@@ -8,7 +8,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
-import { goTo, openDemo } from "./nav-helper";
+import { checkWordKind, goTo, openDemo } from "./nav-helper";
 import { addTemplate, downloadWord, HEADINGS } from "./word-template-helper";
 
 test.beforeEach(async ({ page }) => {
@@ -327,7 +327,7 @@ test("a TRD that already exists follows the headings once its Document tab says 
   await page.getByTestId("trd-list-table").getByRole("link").first().click();
   await expect(page.getByTestId("trd-tabs")).toBeVisible();
   await page.getByTestId("trd-tab-output").click();
-  await page.getByRole("radio", { name: /A template's headings/ }).check();
+  await checkWordKind(page, /A template's headings/);
   const value = await page.locator("select option", { hasText: "Harbourlight SOP (fictional)" }).first().getAttribute("value");
   await page.getByRole("combobox", { name: "Template", exact: true }).selectOption(value!);
   await expect(page.getByText("This template has no match for the TRD yet.")).toBeVisible();

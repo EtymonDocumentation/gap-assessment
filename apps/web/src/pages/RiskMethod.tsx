@@ -4,7 +4,7 @@ import type { RiskAssessment, RiskConfig, RiskMethod as Method } from "@gap/proc
 import { RISK_METHODS } from "@gap/process-model";
 import { describeMethod, METHOD_LABEL, scoreIsEmpty } from "@gap/risk";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Modal } from "../components";
+import { GlossaryLink, Modal } from "../components";
 import { href } from "../router";
 import { configToDraft, draftToConfig, emptyDraft, lookupCombos, type BandDraft, type Draft, type DraftResult, type FactorDraft, type LevelDraft, type ScaleDraft } from "../risk-draft";
 import { configFromEntry, libraryStatus } from "../risk-library";
@@ -85,15 +85,20 @@ export function RiskMethod({ a, run }: { a: RiskAssessment; run: Run }) {
 
   const description = useMemo(() => (a.config ? describeMethod(a.config, "you") : undefined), [a.config]);
   const differsKind = confirm ? (a.config?.method ?? null) !== (confirm.config?.method ?? null) : false;
+  const startBody = (
+    <>
+      <p className="muted small">
+        The tool has no default method. A starter is a shape you may take and then change: its scales, bands and labels are examples from the company-neutral catalog, not rules. One method applies to the whole assessment.
+      </p>
+      <StarterPicker onLoadout={(l) => apply({ ...structuredClone(l.config), loadoutId: l.id }, l.title, `Method set from the starter ${l.title}`, true)} onBlank={(m) => setDraft(emptyDraft(m))} />
+    </>
+  );
 
   return (
     <>
       <section className="card stack" aria-labelledby="rm-start" data-testid="risk-method-start">
-        <h2 id="rm-start">Choose a starting point</h2>
-        <p className="muted small">
-          The tool has no default method. A starter is a shape you may take and then change: its scales, bands and labels are examples from the company-neutral catalog, not rules. One method applies to the whole assessment.
-        </p>
-        <StarterPicker onLoadout={(l) => apply({ ...structuredClone(l.config), loadoutId: l.id }, l.title, `Method set from the starter ${l.title}`, true)} onBlank={(m) => setDraft(emptyDraft(m))} />
+        <h2 id="rm-start">{a.config ? "Change the starting point" : "Choose a starting point"}</h2>
+        {a.config ? <details data-testid="risk-method-start-details"><summary>Show the starting points</summary><div className="stack">{startBody}</div></details> : startBody}
       </section>
 
       {a.config && description && (
@@ -493,7 +498,7 @@ function ScaleEditor({ name, s, edit }: { name: string; s: ScaleDraft; edit: Edi
       ))}
       <div>
         <button type="button" className="btn small" onClick={() => edit((x) => void x.levels.push({ value: "", description: "" }))}>
-          Add a {name.toLowerCase()} level description
+          Add {/^[aeiou]/i.test(name) ? "an" : "a"} {name.toLowerCase()} level description
         </button>
       </div>
     </fieldset>
@@ -574,7 +579,7 @@ function LevelsEditor({ title, levels, edit, onRemove, testid }: { title: string
 function FmeaEditor({ d, edit }: { d: D<"fmea">; edit: Edit<D<"fmea">> }) {
   return (
     <div className="stack">
-      <p className="muted small">FMEA: the risk priority number is severity x occurrence x detection. Enter the scales your quality system uses; the tool does not assume 1 to 10.</p>
+      <p className="muted small"><GlossaryLink id="fmea">FMEA</GlossaryLink>: the risk priority number (<GlossaryLink id="rpn">RPN</GlossaryLink>) is severity x occurrence x detection. Enter the scales your quality system uses; the tool does not assume 1 to 10.</p>
       <ScaleEditor name="Severity" s={d.severity} edit={(fn) => edit((x) => fn(x.severity))} />
       <ScaleEditor name="Occurrence" s={d.occurrence} edit={(fn) => edit((x) => fn(x.occurrence))} />
       <ScaleEditor name="Detection" s={d.detection} edit={(fn) => edit((x) => fn(x.detection))} />

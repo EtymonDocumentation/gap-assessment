@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { buildCmoInstructionsDocument, buildDemoProject, buildMbrDocument, buildSamplingPlanDocument, removePoint, updatePlan, type Block, type DocModel } from "@gap/engine";
+import { buildCmoInstructionsDocument, buildDemoProject, buildMbrDocument, buildSamplingPlanDocument, removePoint, samplingOpenItems, updatePlan, type Block, type DocModel } from "@gap/engine";
 import { planMethodReminders } from "@gap/sampling";
 import { content, demos, designLoadouts, mbrLibrary, samplingSuggestions } from "../index";
 
@@ -37,7 +37,9 @@ describe("How each sample is taken: demos, reminders and documents", () => {
       // Reminders are not open items of the plan: the count in the header is unchanged by them.
       const noMethod = structuredClone(project);
       for (const p of noMethod.sampling.plans[0]!.points) delete p.method;
-      expect(buildSamplingPlanDocument(content, noMethod, noMethod.sampling.plans[0]!, samplingSuggestions, { generatedAt: GENERATED }).tbdCount).toBe(planDoc.tbdCount);
+      // (Design review questions are left out: removing the methods rightly makes "how the sample is taken" a question again.)
+      const nonReview = (p: typeof project) => samplingOpenItems(content, p, p.sampling.plans[0]!, samplingSuggestions).filter((o) => o.kind !== "review").length;
+      expect(nonReview(noMethod)).toBe(nonReview(project));
     });
   }
 

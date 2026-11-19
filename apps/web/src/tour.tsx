@@ -242,8 +242,10 @@ function Bubble({
     const cards = Array.from(document.querySelectorAll<HTMLElement>(".card, .doc-card")).filter(
       (c) => c !== el && !c.contains(el) && !el.contains(c) && !c.closest(".tour-bubble") && c.getClientRects().length > 0,
     );
+    // The highlighted box counts too (ease-of-use pass 2, row 20): a bubble that sat on the Start card it describes hid what it was explaining.
+    const avoid = [el, ...cards];
     const covered = (l: number, t: number): number =>
-      cards.reduce((sum, c) => {
+      avoid.reduce((sum, c) => {
         const q = c.getBoundingClientRect();
         const w = Math.min(l + width, q.right) - Math.max(l, q.left);
         const hh = Math.min(t + h, q.bottom) - Math.max(t, q.top);

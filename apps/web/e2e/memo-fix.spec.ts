@@ -6,7 +6,7 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
-import { goTo, NOTICE_DOCUMENT, openDemo } from "./nav-helper";
+import { checkWordKind, goTo, NOTICE_DOCUMENT, openDemo } from "./nav-helper";
 
 const SHOTS = tmpdir();
 
@@ -42,6 +42,7 @@ async function download(page: Page, testId: string): Promise<{ file: string; byt
   const [dl] = (await Promise.all([
     page.waitForEvent("download"),
     (async () => {
+      await page.getByTestId("tab-downloads").click();
       await page.getByTestId(testId).click();
       const anyway = page.getByRole("button", { name: "Download anyway" });
       if (await anyway.isVisible().catch(() => false)) await anyway.click();
@@ -113,6 +114,7 @@ test("the sampling plan and the CMO instructions can use a library template; the
   await loadDemo(page);
   await addMemoTemplate(page);
   await openSamplingPlan(page);
+  await page.getByTestId("tab-downloads").click();
 
   // The built-in look stays the default, and a template is only offered for the options that need one.
   const planPanel = page.getByRole("region", { name: "Word document: sampling plan" });
@@ -121,7 +123,7 @@ test("the sampling plan and the CMO instructions can use a library template; the
   await expect(planPanel.getByRole("radio", { name: /^A template's headings/ })).toHaveCount(0);
   await expect(planPanel.getByRole("combobox")).toHaveCount(0);
 
-  await planPanel.getByRole("radio", { name: /^Placeholder tags/ }).check();
+  await checkWordKind(planPanel, /^Placeholder tags/);
   await expect(planPanel.getByRole("combobox")).toContainText("Memo sample (fictional)");
   // The list starts on "Choose a template": nothing is picked for the person, even with one template (EOU-38).
   await expect(planPanel.getByRole("combobox")).toHaveValue("");
@@ -142,7 +144,7 @@ test("the sampling plan and the CMO instructions can use a library template; the
   expect(zipText(plan.bytes, "docProps/custom.xml")).toContain("tags");
   await expect(page.getByTestId("sampling-word-result")).toContainText("Memo sample (fictional)");
 
-  await cmoPanel.getByRole("radio", { name: /^Placeholder tags/ }).check();
+  await checkWordKind(cmoPanel, /^Placeholder tags/);
   await cmoPanel.getByRole("combobox").selectOption({ index: 1 });
   const cmo = await download(page, "cmo-download-word");
   expect(cmo.file).toMatch(/^cmo-instructions-.*\.docx$/);
@@ -163,7 +165,8 @@ test("the sampling plan and the CMO instructions can use a library template; the
 test("a template that has no tags is refused as a tag template; the picker says so in plain words", async ({ page }) => {
   await loadDemo(page);
   await openSamplingPlan(page);
-  await page.getByRole("region", { name: "Word document: sampling plan" }).getByRole("radio", { name: /^Placeholder tags/ }).check();
+  await page.getByTestId("tab-downloads").click();
+  await checkWordKind(page.getByRole("region", { name: "Word document: sampling plan" }), /^Placeholder tags/);
   await expect(page.getByRole("region", { name: "Word document: sampling plan" })).toContainText(/No template in the library works with/);
   await expect(page.getByTestId("sampling-download-word")).toBeDisabled();
 });
@@ -232,8 +235,9 @@ for (const scheme of ["light", "dark"] as const) {
     await loadDemo(page);
     await addMemoTemplate(page);
     await openSamplingPlan(page);
+    await page.getByTestId("tab-downloads").click();
     const panel = page.getByRole("region", { name: "Word document: sampling plan" });
-    await panel.getByRole("radio", { name: /^Placeholder tags/ }).check();
+    await checkWordKind(panel, /^Placeholder tags/);
     await expect(panel.getByRole("combobox")).toBeVisible();
     await expectAccessible(page, `${scheme} sampling Word panel`);
     await expectNoHorizontalScroll(page, `${scheme} sampling Word panel`);

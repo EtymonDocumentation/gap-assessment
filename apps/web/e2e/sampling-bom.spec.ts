@@ -21,7 +21,8 @@ async function openBom(page: Page) {
   await goTo(page, "Sampling plan");
   await page.getByTestId("plan-list").getByRole("link").first().click();
   await expect(page.getByTestId("points-table")).toBeVisible();
-  await page.getByTestId("bom-open").click();
+  // The bill of materials is its own tab of the plan (no separate card on the Overview tab any more).
+  await page.getByTestId("tab-bom").click();
   await expect(page.getByTestId("bom-view")).toBeVisible();
 }
 

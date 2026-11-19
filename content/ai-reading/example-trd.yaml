@@ -17,8 +17,8 @@ catalog:
 
 suggestions:
   - field: trd.title
-    value: "Technology Transfer Requirements Document: ORV-118 Lyophilized Drug Product (fictional)"
-    quote: "Technology Transfer Requirements Document: ORV-118 Lyophilized Drug Product (fictional)"
+    value: "Technical requirements document: ORV-118 Lyophilized Drug Product (fictional)"
+    quote: "Technical requirements document: ORV-118 Lyophilized Drug Product (fictional)"
     where: "Title line at the top"
     why: "This is the title line at the top of the document."
 

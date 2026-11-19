@@ -4,7 +4,7 @@ import type { MbrRecord } from "@gap/process-model";
 import { useMemo, type ReactNode } from "react";
 import { dateTime } from "../lib";
 import { useMbrLibrary } from "../mbr-blocks-store";
-import { focusWhenReady, PageHeader, type PageAbout, type PagePill } from "../PageHeader";
+import { downloadWhenReady, PageHeader, type PageAbout, type PagePill } from "../PageHeader";
 import { navigate } from "../router";
 import { useStore } from "../store";
 import { Tabs, type TabDef } from "../Tabs";
@@ -63,7 +63,7 @@ export function MbrFrame({ rec, tab, children }: { rec: MbrRecord; tab: MbrTab; 
   // tab and puts focus on the matching button.
   const toDownload = (testId: string) => () => {
     go("word");
-    focusWhenReady(testId);
+    downloadWhenReady(testId);
   };
   // The Process view has its own "What this shows" card, open on a wide screen; a second explanation there would only repeat it.
   const about: { about?: PageAbout } =

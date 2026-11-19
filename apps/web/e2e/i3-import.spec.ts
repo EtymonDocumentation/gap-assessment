@@ -76,9 +76,10 @@ async function expectNoHorizontalScroll(page: Page, label: string) {
   expect(overflow, `${label}: page scrolls sideways by ${overflow}px`).toBeLessThanOrEqual(1);
 }
 
-/** The Word export of the first plan (it carries its data), from the plan's Overview. */
+/** The Word export of the first plan (it carries its data), from the plan's Downloads tab. */
 async function exportDemoPlan(page: Page): Promise<Buffer> {
   await page.getByTestId("plan-list").getByRole("link").first().click();
+  await page.getByTestId("tab-downloads").click();
   await expect(page.getByTestId("sampling-download-word")).toBeVisible();
   return downloadOf(page, () => page.getByTestId("sampling-download-word").click());
 }

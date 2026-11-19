@@ -106,7 +106,7 @@ export function statusOf(q: InterviewQuestion, kept: boolean): QuestionStatus {
     case "from_project":
       return kept ? { icon: "\u2713", text: `Kept: ${sourceText(q).toLowerCase() || "from the project"}`, tone: "done" } : { icon: "\u2197", text: `${sourceText(q) || "From the project"}, not yet looked at`, tone: "project" };
     default:
-      return { icon: "\u25CB", text: "Open", tone: "open" };
+      return { icon: "\u25CB", text: "Not answered yet", tone: "open" };
   }
 }
 

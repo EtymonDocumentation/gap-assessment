@@ -1,3 +1,4 @@
+import { PracticeProjectDelete } from "./NewProjectDialog";
 import { samplingImportSynonyms } from "@gap/content";
 import {
   aiRowFields,
@@ -244,6 +245,7 @@ function Review({ session, file }: { session: SamplingImportSession; file: File 
           </p>
           <p data-testid="import-added">{done.detail}</p>
           {done.copy && <p className="small">{done.copy}</p>}
+          {session.aiExample && <PracticeProjectDelete />}
           {done.warnings.length > 0 && (
             <div className="notice" data-testid="import-warnings">
               <strong>Left open:</strong>

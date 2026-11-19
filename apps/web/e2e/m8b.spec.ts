@@ -7,7 +7,7 @@ import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
-import { NOTICE_DOCUMENT, openAbout, openDemo } from "./nav-helper";
+import { checkWordKind, NOTICE_DOCUMENT, openAbout, openDemo } from "./nav-helper";
 
 const SHOTS = tmpdir();
 
@@ -246,7 +246,7 @@ test("the risk Output tab offers the Templates library; their look and placehold
   await expect(page.getByRole("radio", { name: /^A template's headings/ })).toHaveCount(0);
   await expect(page.getByTestId("risk-word-note")).toBeVisible();
 
-  await page.getByRole("radio", { name: /^A template's look/ }).check();
+  await checkWordKind(page, /^A template's look/);
   // Nothing is picked for the person: the first real template is index 1, after "Choose a template".
   await page.getByRole("combobox", { name: "Template", exact: true }).selectOption({ index: 1 });
   const look = await download(page, "risk-download-word");
@@ -260,7 +260,7 @@ test("the risk Output tab offers the Templates library; their look and placehold
   await expect(history.getByRole("cell", { name: "Risk assessment (Word)" })).toBeVisible();
   await expect(history.locator("tbody")).toContainText("SOP-style template");
 
-  await page.getByRole("radio", { name: /^Placeholder tags/ }).check();
+  await checkWordKind(page, /^Placeholder tags/);
   await page.getByRole("combobox", { name: "Template", exact: true }).selectOption({ index: 1 });
   await expect(page.getByTestId("risk-download-word")).toBeEnabled();
   const tags = await download(page, "risk-download-word");
@@ -350,7 +350,7 @@ for (const scheme of ["light", "dark"] as const) {
     await page.keyboard.press("Escape");
 
     await page.getByTestId("risk-tab-output").click();
-    await page.getByRole("radio", { name: /^A template's look/ }).check();
+    await checkWordKind(page, /^A template's look/);
     await expect(page.getByTestId("risk-download-word")).toBeVisible();
     await expectAccessible(page, `${scheme} output template picker`);
     await expectNoHorizontalScroll(page, `${scheme} output template picker`);

@@ -133,6 +133,9 @@ test("risk assessment tabs: four real tabs with a purpose each", async ({ page }
   await openFirst(page, "/risk", "ra");
   const tablist = page.getByRole("tablist", { name: "Assessment steps" });
   await expect(tablist.getByRole("tab")).toHaveCount(4);
+  // A risk assessment whose method is already chosen opens on its items; the method tab is one click away.
+  await expect(page.getByTestId("risk-tab-items")).toHaveAttribute("aria-selected", "true");
+  await page.getByTestId("risk-tab-method").click();
   await expect(page.getByTestId("risk-tab-method")).toHaveAttribute("aria-selected", "true");
   await expect(page.getByTestId("tab-purpose")).toContainText("Choose how risks are scored");
   await shot(page, "risk-method-" + test.info().project.name);

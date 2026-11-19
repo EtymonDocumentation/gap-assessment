@@ -19,11 +19,15 @@ export function countOf(n: number, one: string, many = `${one}s`): string {
 }
 
 export function slug(s: string): string {
-  return s
+  const full = s
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 60);
+    .replace(/^-|-$/g, "");
+  if (full.length <= 60) return full;
+  // Cut at a word boundary, so a long name never ends in half a word (ease-of-use pass 2, row 23). One very long word is still cut.
+  const cut = full.slice(0, 60);
+  const lastDash = full[60] === "-" ? 60 : cut.lastIndexOf("-");
+  return (lastDash > 20 ? cut.slice(0, lastDash) : cut).replace(/-$/, "");
 }
 
 /**

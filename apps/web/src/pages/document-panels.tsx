@@ -9,6 +9,7 @@ import { browserRasteriser } from "../figureRasteriser";
 import { dateTime, download, FORMAT_LABEL, MODE_HELP, MODE_LABEL, shortHash } from "../lib";
 import { HelpTip } from "../HelpTip";
 import { href } from "../router";
+import { whoLabel } from "../store";
 import { recordOf, useTemplates, type StoredTemplate } from "../templates-store";
 
 export const BUILTIN_RECORD: TemplateRecord = { mode: "builtin", name: "Built-in default", version: BUILTIN_TEMPLATE_VERSION };
@@ -368,6 +369,14 @@ export function WordPanelView({
   const items = useTemplates((s) => s.items);
   const hasPdf = items.some((t) => t.analysis.sourceFormat === "pdf");
   const t = choice.template;
+  // Ease-of-use pass 2 (row 8): the built-in layout is the one choice shown first. "Use my own template" opens the other kinds, and a
+  // document that already uses one of them shows them open, so the choice made earlier is never hidden.
+  const [ownOpen, setOwnOpen] = useState(choice.mode !== "builtin");
+  useEffect(() => {
+    if (choice.mode !== "builtin") setOwnOpen(true);
+  }, [choice.mode]);
+  const hasBuiltin = modes.includes("builtin");
+  const shownModes = !hasBuiltin || ownOpen ? modes : modes.filter((m) => m === "builtin");
 
   return (
     <section className="card stack no-print" aria-labelledby={`${idPrefix}-title`}>
@@ -378,8 +387,10 @@ export function WordPanelView({
       </p>
       <fieldset className="stack">
         <legend>Kind of Word document</legend>
-        <p className="small muted">Most people keep the built-in layout. The other kinds use a Word template of your own, added on the Templates page.</p>
-        {modes.map((m) => (
+        <p className="small muted">
+          {hasBuiltin && !ownOpen ? "Most people keep the built-in layout." : "Most people keep the built-in layout. The other kinds use a Word template of your own, added on the Templates page."}
+        </p>
+        {shownModes.map((m) => (
           <label key={m} className="check top">
             <input
               type="radio"
@@ -397,6 +408,21 @@ export function WordPanelView({
             </span>
           </label>
         ))}
+        {hasBuiltin && modes.length > 1 && (
+          <p className="small">
+            {ownOpen ? (
+              choice.mode === "builtin" && (
+                <button type="button" className="link-btn small" aria-expanded="true" onClick={() => setOwnOpen(false)}>
+                  Hide the other kinds
+                </button>
+              )
+            ) : (
+              <button type="button" className="link-btn small" aria-expanded="false" data-testid={`${idPrefix}-own-template`} onClick={() => setOwnOpen(true)}>
+                Use my own template
+              </button>
+            )}
+          </p>
+        )}
       </fieldset>
       {note && (
         <details className="small" data-testid={testIdPrefix ? `${testIdPrefix}-word-note` : undefined}>
@@ -583,7 +609,7 @@ export function ExportHistory({ exports, idPrefix = "export-history", title = "E
                 <tr key={`${r.at}-${i}`}>
                   <td className="small">
                     {dateTime(r.at)}
-                    {r.by && <div className="muted">{r.by}</div>}
+                    {r.by && <div className="muted">{whoLabel(r.by)}</div>}
                   </td>
                   <td>{FORMAT_LABEL[r.format]}</td>
                   <td className="small">

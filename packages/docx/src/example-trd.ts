@@ -36,7 +36,7 @@ export const table = (rows: Cell[][]) => `<w:tbl><w:tblPr><w:tblStyle w:val="Tab
 /** The paragraphs and tables of the example, in order. */
 export function exampleTrdBodyXml(): string {
   return [
-    p("Technology Transfer Requirements Document: ORV-118 Lyophilized Drug Product (fictional)", "Title"),
+    p("Technical requirements document: ORV-118 Lyophilized Drug Product (fictional)", "Title"),
     table([
       ["Document number", "ORV-TRD-0118"],
       ["Receiving site", "Northfield Fill Site (fictional)"],

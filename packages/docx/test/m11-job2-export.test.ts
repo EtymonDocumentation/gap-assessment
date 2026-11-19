@@ -2,6 +2,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { Project } from "@gap/process-model";
 import { buildCmoInstructionsDocument, buildDemoProject, buildSamplingPlanDocument } from "@gap/engine";
 import { renderHtml } from "@gap/renderers";
 import { describe, expect, it, vi } from "vitest";
@@ -12,10 +13,20 @@ import { plainText, strictDocx } from "./strict";
 
 vi.setConfig({ testTimeout: 60000 });
 
+// The finished example answers every question, so these tests reopen two of them: one answer is removed (not answered yet) and one is made stale (look again).
+const reopenReview = (p: Project): Project => {
+  const c = structuredClone(p);
+  const answers = c.sampling.plans[0]!.designReview!.answers;
+  delete answers!["A5:EQ-02"];
+  answers!["B5:ST-004"] = { ...answers!["B5:ST-004"]!, factsFingerprint: "demo-earlier-facts" };
+  return c;
+};
+
+
 /** M11 job 2: the plan's "Design review" appendix and the study-only equipment reach the HTML and the Word file. Samples go to the temp folder. */
 describe("plan and CMO exports: design review appendix and study-only equipment", () => {
   it("writes valid Word files that carry the appendix and the equipment", async () => {
-    const project = buildDemoProject(content, demos["syr-305"], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes }, { library: mbrLibrary });
+    const project = reopenReview(buildDemoProject(content, demos["syr-305"], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes }, { library: mbrLibrary }));
     const plan = project.sampling.plans[0]!;
     const planDoc = buildSamplingPlanDocument(content, project, plan, samplingSuggestions, { generatedAt: GENERATED_AT, appVersion: "0.0.0-test" });
     const cmoDoc = buildCmoInstructionsDocument(content, project, plan, samplingSuggestions, { generatedAt: GENERATED_AT, appVersion: "0.0.0-test" });

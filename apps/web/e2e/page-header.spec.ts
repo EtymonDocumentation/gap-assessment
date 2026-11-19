@@ -273,10 +273,16 @@ test("Export menu: the page's downloads, arrow keys, Home and End, Escape return
   await page.keyboard.press("Enter");
   await expect(items.first()).toBeFocused();
   await page.keyboard.press("ArrowDown");
+  // The item really downloads (EOU2 row 7): the page's own button is pressed, so its open-items warning comes first when there is one.
+  const gotFile = page.waitForEvent("download", { timeout: 15_000 }).then(() => "file");
+  const gotWarning = page.getByRole("dialog").first().waitFor({ timeout: 15_000 }).then(() => "warning");
   await page.keyboard.press("Enter");
   await expect(page.getByRole("menu")).toHaveCount(0);
   await expect(page.getByTestId("trd-tab-output")).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByTestId("trd-download-html")).toBeFocused();
+  expect(["file", "warning"]).toContain(await Promise.race([gotFile, gotWarning]));
+  gotFile.catch(() => undefined);
+  gotWarning.catch(() => undefined);
+  if (await page.getByRole("dialog").count()) await page.keyboard.press("Escape");
 
   // A click or tap outside closes an open menu.
   await button.click();

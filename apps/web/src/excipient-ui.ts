@@ -37,7 +37,7 @@ export function questionStatus(q: Pick<ExcipientQuestion, "state">): CardStatus 
     case "tbd":
       return { icon: "◐", text: "To be decided (TBD)", tone: "open" };
     default:
-      return { icon: "○", text: "Open", tone: "open" };
+      return { icon: "○", text: "Not answered yet", tone: "open" };
   }
 }
 

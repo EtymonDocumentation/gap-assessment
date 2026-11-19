@@ -76,7 +76,6 @@ export function DocumentPage() {
   const printPdf = () => guard(() => window.print());
 
   const n = doc.tbdCount;
-  const included = summary.steps.included;
   return (
     <div className="stack-lg">
       <PageHeader
@@ -144,18 +143,18 @@ export function DocumentPage() {
           </button>
         </div>
         <p className="small" data-testid="download-contents">
-          Downloads include {included} process {included === 1 ? "step" : "steps"} and {summary.sectionsIncluded} of {summary.sectionsTotal} document sections
+          Downloads include {summary.text}, and every required section
           {omitted.length ? ` (${omitted.length} optional ${omitted.length === 1 ? "section" : "sections"} left out)` : ""}. They match the preview below.
         </p>
       </div>
       <WordPanelView choice={choice} exporter={word} showButton={false} />
       <section className="card no-print" aria-labelledby="verif-summary-title">
         <h2 id="verif-summary-title">Verification status</h2>
+        <p className="small muted">Verifying an entry records who checked it against its source. It is optional, and it is done one entry at a time in the <a href={href("/builder")}>Builder</a>.</p>
         <p className="small">
           {vs.all.verified} of {vs.all.total} entries are verified. {vs.all.withdrawn} {vs.all.withdrawn === 1 ? "verification is" : "verifications are"} withdrawn
           after a change, {vs.all.unverified} {vs.all.unverified === 1 ? "entry is" : "entries are"} unverified and {vs.all.notVerifiable}{" "}
-          {vs.all.notVerifiable === 1 ? "has" : "have"} no value to verify yet (TBD). Verify entries in the{" "}
-          <a href={href("/builder")}>Builder</a>.
+          {vs.all.notVerifiable === 1 ? "has" : "have"} no value to verify yet (TBD).
         </p>
         <div className="table-scroll" role="region" aria-label="Verification counts by side" tabIndex={0}>
           <table className="data vs-table">

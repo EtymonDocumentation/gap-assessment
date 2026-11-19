@@ -109,7 +109,7 @@ test("'Answer questions' starts a blank TRD on the Interview tab, with no gap as
   expect(n.answered).toBe(1);
   await expect(page.getByTestId("iv-stage-prompt")).toContainText("Set the project stage to get questions that fit");
   await expect(card(page, "doc:purpose").getByTestId("iv-input")).toHaveValue("");
-  await expect(card(page, "detail:modality").getByTestId("iv-status")).toContainText("Open");
+  await expect(card(page, "detail:modality").getByTestId("iv-status")).toContainText("Not answered yet");
   await expectAccessible(page, "empty state");
   await expectNoSidewaysScroll(page, "empty state");
   await shot(page, "empty-state");
@@ -193,7 +193,7 @@ test("the three exits: Don't know yet writes nothing, Not applicable here and TB
   const version = card(page, "doc:version");
   await version.getByTestId("iv-dontknow").click();
   await expect(version.getByTestId("iv-note")).toContainText("Left open");
-  await expect(version.getByTestId("iv-status")).toContainText("Open");
+  await expect(version.getByTestId("iv-status")).toContainText("Not answered yet");
   expect(await openCount()).toBe(before);
   expect((await progressNumbers(page)).answered).toBe(base);
 

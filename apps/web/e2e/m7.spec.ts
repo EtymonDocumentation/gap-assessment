@@ -66,6 +66,7 @@ async function download(page: Page, testId: string): Promise<{ file: string; byt
   const [dl] = (await Promise.all([
     page.waitForEvent("download"),
     (async () => {
+      await page.getByTestId("tab-downloads").click();
       await page.getByTestId(testId).click();
       await page.getByRole("button", { name: "Download anyway" }).click();
     })(),
@@ -205,6 +206,7 @@ test("while the Word file is being made the button is disabled and says so, then
     };
   });
   await openDemoPlan(page);
+  await page.getByTestId("tab-downloads").click();
   const button = page.getByTestId("sampling-download-word");
   const idleText = (await button.textContent()) ?? "";
   const downloaded = page.waitForEvent("download");
@@ -221,6 +223,7 @@ test("while the Word file is being made the button is disabled and says so, then
 
 test("Word and HTML downloads carry the banner, the headings, the working and the versions; the export history lists them", async ({ page }) => {
   await openDemoPlan(page);
+  await page.getByTestId("tab-downloads").click();
   await page.getByTestId("sampling-preview-toggle").click();
   const preview = page.getByTestId("sampling-preview");
   await expect(preview).toContainText(TITLE);
@@ -253,6 +256,7 @@ test("Word and HTML downloads carry the banner, the headings, the working and th
 
 test("the TBD warning shows the open item count before a download", async ({ page }) => {
   await openDemoPlan(page);
+  await page.getByTestId("tab-downloads").click();
   await page.getByTestId("sampling-download-html").click();
   await expect(page.getByTestId("sampling-tbd-warning")).toContainText(/open item/);
   await page.getByRole("button", { name: "Go back" }).click();
@@ -276,6 +280,7 @@ for (const name of ["layout"] as const) {
       await page.screenshot({ path: join(SHOTS, `m7-point-${test.info().project.name}-${scheme}.png`) });
       await page.getByTestId("tab-overview").click();
 
+      await page.getByTestId("tab-downloads").click();
       await page.getByTestId("sampling-preview-toggle").click();
       await expect(page.getByTestId("sampling-preview")).toBeVisible();
       await expectAccessible(page, `${name}/${scheme} preview`);

@@ -305,7 +305,7 @@ function MyFilesView({ folder }: { folder: string }) {
           {notice}
         </p>
         <p className="small muted">
-          How do I move a file?
+          Moving a file between computers
           <HelpTip label="moving files between computers" text="Upload a file here, sign in on your other computer and download it from the same list. Files are stored on the server for your account only, exactly as you uploaded them. Use it for drafts and downloads you need on another machine." />
         </p>
       </div>

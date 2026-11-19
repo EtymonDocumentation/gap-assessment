@@ -33,7 +33,7 @@ export function exampleSamplingBodyXml(): string {
     table([
       ["Document number", "ORV-SP-0118"],
       ["Receiving site", "Northfield Fill Site (fictional)"],
-      ["Related document", "ORV-TRD-0118, Technology Transfer Requirements Document"],
+      ["Related document", "ORV-TRD-0118, technical requirements document"],
     ]),
 
     p("1 Purpose", "Heading1"),

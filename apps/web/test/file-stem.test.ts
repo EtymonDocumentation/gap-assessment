@@ -37,3 +37,17 @@ describe("countOf", () => {
     expect(countOf(2, "activity", "activities")).toBe("2 activities");
   });
 });
+
+// Ease-of-use pass 2, row 23: a long name is cut at a word boundary, never in the middle of a word.
+describe("projectFileStem, long names", () => {
+  it("cuts at a word boundary", () => {
+    const stem = projectFileStem({ title: "Gap assessment for the sterile injectable syringe transfer to the receiving site (fictional)", id: "P-3" });
+    expect(stem.length).toBeLessThanOrEqual(60);
+    expect(stem).toBe("gap-assessment-for-the-sterile-injectable-syringe-transfer");
+    expect(stem.endsWith("-")).toBe(false);
+  });
+
+  it("keeps a name of 60 characters or fewer whole", () => {
+    expect(projectFileStem({ title: "ARX-217 transfer (fictional)", id: "P-3" })).toBe("arx-217-transfer-fictional");
+  });
+});

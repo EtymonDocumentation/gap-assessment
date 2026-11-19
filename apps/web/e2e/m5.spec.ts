@@ -2,7 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Download, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { expectNotice, openDemo, setTheme } from "./nav-helper";
+import { checkWordKind, expectNotice, openDemo, setTheme } from "./nav-helper";
 
 const FIXTURES = new URL("../../../packages/docx/fixtures/", import.meta.url);
 const fixture = (name: string) => fileURLToPath(new URL(name, FIXTURES));
@@ -252,7 +252,7 @@ test("document: Word export in all four modes, from the saved mapping, with the 
   // The Word button sits beside the other downloads (under the page header), not inside the panel that holds the choices.
   const exportBtn = page.getByRole("button", { name: "Download gap assessment (Word)" });
   const pick = async (mode: RegExp, templateText?: string) => {
-    await panel.getByRole("radio", { name: mode }).check();
+    await checkWordKind(panel, mode);
     if (templateText) {
       const opt = panel.locator("select").locator("option", { hasText: templateText });
       await panel.locator("select").selectOption(await opt.getAttribute("value"));
@@ -283,16 +283,16 @@ test("document: Word export in all four modes, from the saved mapping, with the 
   expectZip(await downloadBytes(page, () => exportBtn.click()), "mapped");
 
   // 4. Tags: only the tag template is offered.
-  await panel.getByRole("radio", { name: /^Placeholder tags/ }).check();
+  await checkWordKind(panel, /^Placeholder tags/);
   await expect(panel.locator("select").locator("option")).toHaveCount(2);
   await expect(panel.locator("select")).toContainText("placeholder-tag");
   await panel.locator("select").selectOption({ index: 1 });
   expectZip(await downloadBytes(page, () => exportBtn.click()), "tags");
 
   // 5. Mapped with the PDF template (headings only). The PDF is not offered for the other options.
-  await panel.getByRole("radio", { name: /^A template's look/ }).check();
+  await checkWordKind(panel, /^A template's look/);
   await expect(panel.locator("select").locator("option", { hasText: "PDF outline" })).toHaveCount(0);
-  await panel.getByRole("radio", { name: /^A template's headings/ }).check();
+  await checkWordKind(panel, /^A template's headings/);
   await expect(panel.locator("select").locator("option", { hasText: "PDF outline" })).toHaveCount(1);
   await panel.locator("select").selectOption(await panel.locator("select").locator("option", { hasText: "PDF outline" }).getAttribute("value"));
   await expect(exportBtn).toBeDisabled();
@@ -346,7 +346,7 @@ test("document: the tag sample passes the pre-export check", async ({ page }) =>
   await expect(page.getByRole("heading", { level: 2, name: "Library (5)" })).toBeVisible({ timeout: 30_000 });
   await go(page, "#/document");
   const panel = page.locator("section", { has: page.getByRole("heading", { level: 2, name: "Word document" }) });
-  await panel.getByRole("radio", { name: /^Placeholder tags/ }).check();
+  await checkWordKind(panel, /^Placeholder tags/);
   await panel.locator("select").selectOption({ index: 1 });
   await expect(panel.getByText("No problems found.").or(panel.getByText("Warnings"))).toBeVisible();
   await expect(page.getByRole("button", { name: "Download gap assessment (Word)" })).toBeEnabled();
@@ -409,7 +409,7 @@ for (const theme of ["light", "dark"] as const) {
     // The document page: panels, then each dialog.
     await go(page, "#/document");
     const panel = page.locator("section", { has: page.getByRole("heading", { level: 2, name: "Word document" }) });
-    await panel.getByRole("radio", { name: /^A template's headings/ }).check();
+    await checkWordKind(panel, /^A template's headings/);
     await expect(page.getByRole("button", { name: "Download gap assessment (Word)" })).toBeDisabled();
     await page.getByRole("button", { name: "Download gap assessment (Markdown)" }).click();
     await confirmTbd(page);

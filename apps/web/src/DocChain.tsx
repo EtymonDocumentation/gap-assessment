@@ -101,9 +101,10 @@ export function DocChainStrip({ route, heading = true }: { route?: ChainRoute; h
                   ) : (
                     // The risk assessment has no number (it is not a step the next document is built on), so the strip says what it is
                     // instead of leaving a gap that looks like a mistake. The Documents menu lists it under the same word.
-                    <span className="doc-chain-num">Alongside: </span>
+                    <span className="doc-chain-num">Alongside (not a step of the chain): </span>
                   )}
                   {s.name}
+                  {s.id === "view" && <span className="doc-chain-sub"> (a tab of the batch record)</span>}
                   {s.current && <span className="doc-chain-here"> (you are here)</span>}
                 </span>
                 <span className="doc-chain-status">{s.status}</span>

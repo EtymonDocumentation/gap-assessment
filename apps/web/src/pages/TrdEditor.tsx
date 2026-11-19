@@ -4,7 +4,7 @@ import { trdInterviewWording } from "@gap/content";
 import type { TrdDocument } from "@gap/process-model";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Modal } from "../components";
-import { focusWhenReady, PageHeader, type PagePill } from "../PageHeader";
+import { downloadWhenReady, focusWhenReady, PageHeader, type PagePill } from "../PageHeader";
 import { Tabs, type TabDef } from "../Tabs";
 import { landAtTop } from "../land-at-top";
 import { countOf, dateTime } from "../lib";
@@ -161,7 +161,7 @@ export function TrdEditor({ d, initialTab, initialShow, initialQuestion, initial
   // person there with the matching button focused.
   const toOutput = (testId: string) => () => {
     select("output");
-    focusWhenReady(testId);
+    downloadWhenReady(testId);
   };
 
   return (

@@ -4,14 +4,14 @@ import { useMemo, useRef, useState } from "react";
 import { thenStep, chainStages } from "../chain";
 import { useEffectiveSuggestions } from "../expected-studies-store";
 import { useChainAllowed } from "../DocChain";
-import { InlineRename, Modal } from "../components";
+import { GlossaryLink, InlineRename, Modal } from "../components";
 import { download, projectFileStem, today } from "../lib";
 import { interviewCounts, interviewCountsText, nextStep, scopePassed, trdNextStep } from "../next-step";
 import { href } from "../router";
 import { CloseProjectButton, ProjectListCard, useIsRemote } from "../server/ServerUi";
 import { SERVER_MODE } from "../server/mode";
 import { ensureSaved, loadList, useSync } from "../server/sync";
-import { StageCheckNotice, StageReviewNotice, StageRow } from "../stage-ui";
+import { StageCheckNotice, StageReviewNotice, StageRow, useOpenReviewCount } from "../stage-ui";
 import { HomeVersion } from "../version-ui";
 import { GapFormButton, GapUploadButton } from "./GapUploadButton";
 import { SamplingFormButton, SamplingUploadButton } from "./SamplingUploadButton";
@@ -57,8 +57,33 @@ export function HomePage() {
   const next = project && a ? nextStep(project, a) : null;
   // A project that is about a TRD (a TRD exists, nothing of the gap assessment has been done) is sent to the TRD questions, not to the gap assessment scope.
   const trdNext = useMemo(() => (project && a && !scopePassed(project, a) ? trdNextStep(eff, project) : undefined), [eff, project, a]);
-  // What follows the gap assessment, offered once the interview is complete. Shown beside the gap step, not instead of it: the project cannot show that the register was read.
-  const then = project && next?.path === "/register" ? thenStep(project, allowed) : null;
+  // The one big button depends on the state (ease-of-use pass 2, rows 4 and 5), in this order: an open stage review, overdue TBD values, the
+  // interview (the open items of a fresh project), open items still listed, the next document that is not finished, then the gap register.
+  const reviewOpen = useOpenReviewCount();
+  const follow = project && next?.path === "/register" ? thenStep(project, allowed) : null;
+  const followStart = follow && follow.path !== "/mbr/view" ? follow : null;
+  const trdUnfinished = useMemo(() => (project && a && next?.path === "/register" ? trdNextStep(eff, project) : undefined), [eff, project, a, next?.path]);
+  const openN = a?.openItems.length ?? 0;
+  const primary: { label: string; to: string } | null =
+    !project || !a || !next
+      ? null
+      : reviewOpen > 0
+        ? { label: "Go to the stage review", to: href("/stage-review") }
+        : tbd && tbd.overdue > 0
+          ? { label: `Look at the ${tbd.overdue} overdue TBD ${tbd.overdue === 1 ? "value" : "values"}`, to: href("/tbd") }
+          : trdNext
+            ? { label: trdNext.label, to: href(trdNext.path, trdNext.params) }
+            : next.path !== "/register"
+              ? { label: next.label, to: href(next.path) }
+              : openN > 0
+                ? { label: `Go through the ${openN} open ${openN === 1 ? "item" : "items"}`, to: href("/tbd") }
+                : trdUnfinished
+                  ? { label: `TRD: ${trdUnfinished.label.charAt(0).toLowerCase()}${trdUnfinished.label.slice(1)}`, to: href(trdUnfinished.path, trdUnfinished.params) }
+                  : followStart
+                    ? { label: followStart.label, to: href(followStart.path, followStart.params) }
+                    : { label: next.label, to: href(next.path) };
+  // The "After that" line stays for what is optional and is not the big button (the Process view of a finished chain).
+  const then = project && next?.path === "/register" && !followStart ? follow : null;
   const firstRecord = project?.mbr.records[0];
 
   // The state line of each card is the one the chain strip shows on the document pages, so Home and the pages never disagree.
@@ -166,7 +191,7 @@ export function HomePage() {
             </p>
             <h1 id="welcome-h">Welcome to {PRODUCT_NAME}</h1>
             <p className="lede">
-              Cascade helps you write the documents of a GMP technology transfer. It asks guided questions, lists the differences between the sending and the receiving site, and
+              Cascade helps you write the documents of a <GlossaryLink id="gmp">GMP</GlossaryLink> technology transfer. It asks guided questions, lists the differences between the sending and the receiving site, and
               drafts the documents from your answers. Every document is optional, and anything not yet known stays visible as an open item.
             </p>
           </section>
@@ -209,8 +234,8 @@ export function HomePage() {
               <div className="next-step" data-testid="next-step" data-tour="home-next">
                 <p className="next-step-label">Next step</p>
                 <div className="row wrap">
-                  <a className="btn primary big" href={trdNext ? href(trdNext.path, trdNext.params) : href(next.path)}>
-                    {trdNext ? trdNext.label : next.label}
+                  <a className="btn primary big" href={primary!.to}>
+                    {primary!.label}
                   </a>
                   <a href={href("/document")}>Go to the document</a>
                 </div>
@@ -223,11 +248,17 @@ export function HomePage() {
               <dl className="stats stats-quiet">
                 <div>
                   <dt>Questions answered</dt>
-                  <dd>{interviewCountsText(interviewCounts(project, a.instances), a.openItems.length)}</dd>
+                  <dd>
+                    {interviewCountsText(interviewCounts(project, a.instances), a.openItems.length)}
+                    <span className="stat-note small muted">Counts the questions of the gap interview.</span>
+                  </dd>
                 </div>
                 <div>
                   <dt>Differences</dt>
-                  <dd>{differences}</dd>
+                  <dd>
+                    {differences}
+                    <span className="stat-note small muted">Counts the gap register rows that are not equivalent.</span>
+                  </dd>
                 </div>
                 <div>
                   <dt>Open items</dt>
@@ -235,6 +266,7 @@ export function HomePage() {
                     {/* The two counts sit together and say how they relate: every value marked TBD is an open item, and so is every question not answered yet. */}
                     {tbd ? <a href={href("/tbd")}>{openItemsText(a.openItems.length, tbd.total)}</a> : a.openItems.length}
                     {tbd && tbd.overdue > 0 && <span className="small"> ({tbd.overdue} overdue)</span>}
+                    <span className="stat-note small muted">Counts what the gap assessment document still lists as open: questions not answered yet and values marked TBD (to be decided). The cards below count their own document.</span>
                   </dd>
                 </div>
                 <div>
@@ -251,7 +283,7 @@ export function HomePage() {
                 </div>
                 <div>
                   <dt>Sending-site stage</dt>
-                  <dd>{wording.sourceLabel}</dd>
+                  <dd>{wording.sourceLabel} <span className="muted small">(where the process stands at the sending site. The project stage above is the stage of this transfer.)</span></dd>
                 </div>
                 <div>
                   <dt>Responder</dt>
@@ -282,7 +314,7 @@ export function HomePage() {
                   ? "Anything not yet known stays visible as an open item."
                   : "The gap assessment can be read now."
                 : project
-                  ? `Each document can use the one before it, but none needs it: ${allowed.trd ? "a TRD can start blank, and you can skip" : "you can skip"} the gap assessment. Anything not yet known stays visible as an open item.`
+                  ? `Each document can use the one before it, but none needs it: ${allowed.trd ? "a TRD can start blank, and you can skip" : "you can skip"} the gap assessment. Anything not yet known stays visible as an open item. Each card counts its own document: an open item is something that document still lists as open.`
                   : "One card for each document. The gap assessment can be read now; the others open once a project is open."}
             </p>
             <ul className="doc-cards">
@@ -343,7 +375,7 @@ export function HomePage() {
           <li>The sending unit process description, and the documents you will cite as sources, such as the process description, a batch record or specifications.</li>
           <li>What the receiving site plans: the filling line, the equipment and the scale.</li>
           <li>Your choice of which process steps and document sections apply (the Scope step asks for this before the interview).</li>
-          <li>Unknowns are fine. Choose TBD for anything not known yet: it becomes an open item you can track, and nothing is filled in for you.</li>
+          <li>Unknowns are fine. Choose <GlossaryLink id="tbd">TBD</GlossaryLink> for anything not known yet: it becomes an open item you can track, and nothing is filled in for you.</li>
         </ul>
       </details>
 

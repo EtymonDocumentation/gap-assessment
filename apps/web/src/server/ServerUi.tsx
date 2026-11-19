@@ -206,20 +206,37 @@ function CreateAccountForm() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
+  // Which field the message is about. The message is shown right under that field and focus moves to it (ease-of-use pass 2, row 28), so
+  // nobody has to scroll down to the button to find out what is wrong. A message from the server has no field and stays above the button.
+  const [errorField, setErrorField] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const fail = (field: string, message: string) => {
+    setErrorField(field);
+    setError(message);
+    window.setTimeout(() => document.getElementById(field)?.focus(), 0);
+  };
+  const under = (field: string) =>
+    error && errorField === field ? (
+      <p className="error" role="alert" id={`${field}-error`}>
+        {error}
+      </p>
+    ) : null;
+  const bad = (field: string) => (error && errorField === field ? { "aria-invalid": true as const, "aria-describedby": `${field}-error` } : {});
   return (
     <form
       className="card stack"
       aria-labelledby="signup-h"
+      noValidate
       onSubmit={(e) => {
         e.preventDefault();
-        if (!invite.trim()) return setError("Enter your invite code.");
-        if (!/^[a-z0-9._-]{3,40}$/i.test(username.trim())) return setError("The username must be 3 to 40 characters: letters, numbers, dots, dashes or underscores.");
-        if (!displayName.trim()) return setError("Enter the name to show next to your account.");
-        if (password.length < 12) return setError("Please use at least 12 characters in your password. A few unrelated words in a row make a good password.");
-        if (password !== confirm) return setError("The two passwords are not the same.");
+        if (!invite.trim()) return fail("signup-invite", "Enter your invite code.");
+        if (!/^[a-z0-9._-]{3,40}$/i.test(username.trim())) return fail("signup-username", "The username must be 3 to 40 characters: letters, numbers, dots, dashes or underscores.");
+        if (!displayName.trim()) return fail("signup-display", "Enter the name to show next to your account.");
+        if (password.length < 12) return fail("signup-password", "Please use at least 12 characters in your password. A few unrelated words in a row make a good password.");
+        if (password !== confirm) return fail("signup-confirm", "The two passwords are not the same.");
         setBusy(true);
         setError("");
+        setErrorField(null);
         useSession
           .getState()
           .signUp({ inviteCode: invite.trim().toUpperCase(), username: username.trim(), displayName: displayName.trim(), password })
@@ -230,33 +247,38 @@ function CreateAccountForm() {
       }}
     >
       <h2 id="signup-h">Have an invite code? Create account</h2>
-      <label className="field">
-        <span>Invite code</span>
-        <input value={invite} onChange={(e) => setInvite(e.target.value)} autoComplete="off" autoCapitalize="characters" spellCheck={false} placeholder="XXXXX-XXXXX-XXXXX-XXXXX" />
-      </label>
+      <div className="field">
+        <label htmlFor="signup-invite">Invite code</label>
+        <input id="signup-invite" value={invite} onChange={(e) => setInvite(e.target.value)} autoComplete="off" autoCapitalize="characters" spellCheck={false} placeholder="XXXXX-XXXXX-XXXXX-XXXXX" {...bad("signup-invite")} />
+        {under("signup-invite")}
+      </div>
       <div className="field">
         <label htmlFor="signup-username">Choose a username</label>
-        <input id="signup-username" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" autoCapitalize="none" spellCheck={false} aria-describedby="username-rules" />
+        <input id="signup-username" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" autoCapitalize="none" spellCheck={false} aria-describedby={error && errorField === "signup-username" ? "signup-username-error username-rules" : "username-rules"} aria-invalid={error && errorField === "signup-username" ? true : undefined} />
         <span id="username-rules" className="small muted">
           3 to 40 letters, numbers, dots, dashes or underscores.
         </span>
+        {under("signup-username")}
       </div>
-      <label className="field">
-        <span>Display name</span>
-        <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} autoComplete="name" />
-      </label>
+      <div className="field">
+        <label htmlFor="signup-display">Display name</label>
+        <input id="signup-display" value={displayName} onChange={(e) => setDisplayName(e.target.value)} autoComplete="name" {...bad("signup-display")} />
+        {under("signup-display")}
+      </div>
       <div className="field">
         <label htmlFor="signup-password">Choose a password</label>
-        <input id="signup-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" aria-describedby="password-rules" />
+        <input id="signup-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" aria-describedby={error && errorField === "signup-password" ? "signup-password-error password-rules" : "password-rules"} aria-invalid={error && errorField === "signup-password" ? true : undefined} />
         <span id="password-rules" className="small muted">
           {PASSWORD_RULES}
         </span>
+        {under("signup-password")}
       </div>
-      <label className="field">
-        <span>Confirm password</span>
-        <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" />
-      </label>
-      {error && (
+      <div className="field">
+        <label htmlFor="signup-confirm">Confirm password</label>
+        <input id="signup-confirm" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" {...bad("signup-confirm")} />
+        {under("signup-confirm")}
+      </div>
+      {error && errorField === null && (
         <p className="error" role="alert">
           {error}
         </p>

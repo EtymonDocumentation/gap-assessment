@@ -62,6 +62,7 @@ async function download(page: Page, testId: string): Promise<{ file: string; byt
   const [dl] = (await Promise.all([
     page.waitForEvent("download"),
     (async () => {
+      await page.getByTestId("tab-downloads").click();
       await page.getByTestId(testId).click();
       await page.getByRole("button", { name: "Download anyway" }).click();
     })(),
@@ -239,7 +240,7 @@ for (const scheme of ["light", "dark"] as const) {
     await page.getByTestId("tab-subsections").click();
     await expectAccessible(page, `${scheme} subsections`);
 
-    await page.getByTestId("tab-overview").click();
+    await page.getByTestId("tab-downloads").click();
     await page.getByTestId("cmo-preview-toggle").click();
     await expect(page.getByTestId("cmo-preview")).toBeVisible();
     await expectAccessible(page, `${scheme} CMO preview`);

@@ -45,7 +45,7 @@ test("Home with no project: the four documents are open under What do you want t
   await expect(options.getByRole("heading", { level: 3 })).toHaveText(["What do you want to make?", "Open a demo", "Upload a document you have"]);
   await expect(options.getByRole("button", { name: "Start a new project" })).toBeVisible(); // the gap assessment
   const docs = page.getByTestId("start-documents");
-  await expect(docs.getByRole("heading", { level: 4 })).toHaveText(["Gap assessment", "Technology transfer document (TRD)", "Sampling plan", "Batch record (MBR)"]);
+  await expect(docs.getByRole("heading", { level: 4 })).toHaveText(["Gap assessment", "Technical requirements document (TRD)", "Sampling plan", "Batch record (MBR)"]);
   for (const id of ["trd", "sampling", "mbr"]) await expect(docs.getByTestId(`start-doc-${id}`)).toBeVisible();
   await expect(docs).toContainText("A sampling plan is welcome but not needed");
   await shot(page, "home-starts");

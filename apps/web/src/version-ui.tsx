@@ -126,7 +126,7 @@ export function VersionChip({ short }: { short?: boolean }) {
   const unsaved = useUnsaved();
   const label = real ? lastVersion(real)?.label : undefined;
   if (!label) return null;
-  const text = viewing ? `Viewing ${viewing.label}` : unsaved && !short ? `Changed since ${label}` : label;
+  const text = viewing ? `Viewing ${viewing.label}` : unsaved && !short ? `Changed since ${label}` : short ? label : `Version ${label}`;
   const name = viewing ? `Viewing ${viewing.label}, read-only. Open the version history` : `${unsaved ? `Changed since ${label}` : `Version ${label}`}. Open the version history`;
   return (
     <a className="stage-chip version-chip" href={href("/versions")} data-testid="version-chip" data-tour="version-chip" aria-label={name}>

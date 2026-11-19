@@ -14,7 +14,7 @@ version: 1
 terms:
   - id: to-be-completed
     term: "[To be completed.]"
-    short: What the Word file says under a heading of your template when nothing was written for it and your template has no text of its own there. Each such heading counts as an open item until you write something under it.
+    short: The words the Word file shows under a heading of your template when nothing was written for it and your template has no text of its own there. Each such heading counts as an open item until you write something under it.
     see: [template-headings, open-item]
 
   - id: template-headings
@@ -29,7 +29,8 @@ terms:
 
   - id: ai-suggestion
     term: AI suggestion
-    short: A value (on the "Upload a TRD" review screen) a whole sampling point (on the "Upload a sampling plan" review screen), or a whole gap item (on the "Upload a gap assessment" review screen) that an AI reader proposed, shown with the passage it came from. For now this is a pre-recorded example, so the suggestions were recorded in advance for one example TRD, one example sampling plan and one example gap assessment, and no AI reads your own files yet. It is a drafting aid. Check each suggestion against its quote, then accept or reject it; "Accept all" never takes it, and a value you reject stays not established.
+    short: >-
+      Something an AI reader proposed, shown with the passage it came from: a value (on the "Upload a TRD" review screen), a whole sampling point (on the "Upload a sampling plan" review screen), or a whole gap item (on the "Upload a gap assessment" review screen). For now this is a pre-recorded example, so the suggestions were recorded in advance for one example TRD, one example sampling plan and one example gap assessment, and no AI reads your own files yet. It is a drafting aid. Check each suggestion against its quote, then accept or reject it; "Accept all" never takes it, and a value you reject stays not established.
     see: [reading-word, drafting-aid, open-item]
 
   - id: area
@@ -137,6 +138,11 @@ terms:
     short: A material in the drug product that is not the active substance, for example a buffer salt, a sugar or a surfactant. The Excipient assessment compares each one between the sending and the receiving site.
     see: [specification, supplier-qualification]
 
+  - id: fmea
+    term: FMEA (failure modes and effects analysis)
+    short: A way to assess risk by listing what could go wrong, how bad it would be (severity), how likely (occurrence) and how easily it would be noticed (detection). Each is scored, and the scores give the RPN.
+    see: [rpn, risk-rating]
+
   - id: gap
     term: Gap
     short: A difference between how the product is made at the sending unit and how the receiving unit plans to make it. The tool lists every gap. What to do about it is your decision. The tool never decides a filing category. Where one may be needed it only says "Requires regulatory affairs assessment".
@@ -146,6 +152,10 @@ terms:
     term: Gap register
     short: The list of every gap the tool found, one row for each, with its category and severity. You can filter, sort and export it, and record an owner, a status and a note for each gap. What to do about a gap is your decision. The tool never decides a filing category.
     see: [gap, sending-unit, receiving-unit]
+
+  - id: gmp
+    term: GMP (good manufacturing practice)
+    short: The rules a company follows so a medicine is made and checked the same way every time, and so everything is written down. This tool is a drafting aid and is not validated for GMP use.
 
   - id: grade
     term: Grade A, B, C and D (cleanroom grade)
@@ -268,6 +278,11 @@ terms:
     term: Risk rating
     short: The score given to a risk item by the method your team chooses in the risk assessment. The tool does not choose a method or a score for you.
     see: [gap]
+
+  - id: rpn
+    term: RPN (risk priority number)
+    short: In an FMEA, the number you get by multiplying severity, occurrence and detection. A higher number means more attention is needed. Your team decides what each band is called and what to do; the tool never says a risk is acceptable.
+    see: [fmea, risk-rating]
 
   - id: sampling-diagram
     term: Sampling diagram

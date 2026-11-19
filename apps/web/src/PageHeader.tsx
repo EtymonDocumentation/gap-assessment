@@ -274,3 +274,21 @@ export function focusWhenReady(testId: string): void {
   };
   requestAnimationFrame(look);
 }
+
+/**
+ * The Export menu items really download (ease-of-use pass 2, row 7): the tab with the download buttons opens, then the same button the
+ * person would press is pressed for them. Its own warning about open items, and its disabled state when something blocks the file, still
+ * apply, because the page's own button handles the click; the menu has no second path to a file.
+ */
+export function downloadWhenReady(testId: string): void {
+  let tries = 0;
+  const look = () => {
+    const el = document.querySelector<HTMLElement>(`[data-testid="${testId}"]`);
+    if (el) {
+      el.scrollIntoView({ block: "center" });
+      el.focus();
+      el.click();
+    } else if (++tries < 30) requestAnimationFrame(look);
+  };
+  requestAnimationFrame(look);
+}

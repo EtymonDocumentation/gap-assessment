@@ -2,6 +2,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { Project } from "@gap/process-model";
 import { buildDemoProject, buildSamplingPlanDocument } from "@gap/engine";
 import { renderHtml } from "@gap/renderers";
 import { describe, expect, it, vi } from "vitest";
@@ -12,15 +13,25 @@ import { plainText, strictDocx } from "./strict";
 
 vi.setConfig({ testTimeout: 60000 });
 
+// The finished example answers every question, so these tests reopen two of them: one answer is removed (not answered yet) and one is made stale (look again).
+const reopenReview = (p: Project): Project => {
+  const c = structuredClone(p);
+  const answers = c.sampling.plans[0]!.designReview!.answers;
+  delete answers!["A5:EQ-02"];
+  answers!["B5:ST-004"] = { ...answers!["B5:ST-004"]!, factsFingerprint: "demo-earlier-facts" };
+  return c;
+};
+
+
 /** Unanswered design review questions get their own line in the plan's HTML and Word export, apart from the open-item number. Samples go to the temp folder. */
 describe("sampling plan export: design review line", () => {
-  it("carries the unanswered-question line in HTML and Word, and writes samples", async () => {
-    const project = buildDemoProject(content, demos["syr-305"], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes }, { library: mbrLibrary });
+  it("carries the design review line in HTML and Word, and writes samples", async () => {
+    const project = reopenReview(buildDemoProject(content, demos["syr-305"], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes }, { library: mbrLibrary }));
     const doc = buildSamplingPlanDocument(content, project, project.sampling.plans[0]!, samplingSuggestions, { generatedAt: GENERATED_AT, appVersion: "0.0.0-test" });
     const html = renderHtml(doc);
-    expect(html).toMatch(/\d+ design review questions not answered yet/);
+    expect(html).toMatch(/\d+ design review questions? not answered yet/);
     const out = await renderDocx({ doc, mode: "builtin", generatedAt: GENERATED_AT });
-    expect(plainText(strictDocx(out.bytes))).toMatch(/\d+ design review questions not answered yet/);
+    expect(plainText(strictDocx(out.bytes))).toMatch(/\d+ design review questions? not answered yet/);
     const dir = join(tmpdir(), "gap-docx-samples", "fix2");
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "sampling-plan.docx"), out.bytes);

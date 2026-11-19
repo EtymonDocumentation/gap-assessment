@@ -120,6 +120,8 @@ test("matrix method: score an item, see the cell in the heat view, then a differ
   await expect(page.getByTestId("heat-2-3")).toContainText("RA-001");
 
   await page.getByTestId("risk-tab-method").click();
+  // Once a method is set, the starting points fold away behind a disclosure so the chosen method reads first.
+  await page.getByTestId("risk-method-start-details").locator("summary").click();
   await page.getByTestId("risk-loadout-qualitative-hml").click();
   await expect(page.getByTestId("risk-method-clear-warning")).toContainText("1 item has scores");
   await page.getByTestId("risk-method-confirm").click();

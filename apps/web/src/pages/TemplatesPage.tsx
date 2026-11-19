@@ -442,7 +442,7 @@ function TemplateCard({
           <>
             <dt>Heading placement</dt>
             <dd>
-              {t.mapping ? `Saved: content placed under ${mapped} of ${t.analysis.outline.length} headings.` : "Not set yet."}{" "}
+              {t.mapping ? `Saved: content placed under ${mapped} of ${t.analysis.outline.length} headings.` : "Not set yet. Needed only for the Word kind \"A template's headings\"."}{" "}
               {hasProject ? (
                 <a href={href(`/templates/${t.id}/mapping`)} aria-label={`${t.mapping ? "Edit" : "Set"} heading placement for ${t.name}`}>
                   {t.mapping ? "Edit heading placement" : "Set heading placement"}
@@ -453,7 +453,7 @@ function TemplateCard({
             </dd>
             <dt>TRD heading match</dt>
             <dd data-testid={`trd-match-card-${t.id}`}>
-              {t.trdMapping ? `Saved: TRD content placed under ${trdPlaced} of ${t.analysis.outline.length} headings.` : "Not set yet."}{" "}
+              {t.trdMapping ? `Saved: TRD content placed under ${trdPlaced} of ${t.analysis.outline.length} headings.` : "Not set yet. Needed only for the Word kind \"A template's headings\"."}{" "}
               <a href={href(`/templates/${t.id}/trd-match`)} aria-label={`${t.trdMapping ? "Edit the TRD match" : "Match your headings"} for ${t.name}`}>
                 {t.trdMapping ? "Edit the TRD match" : "Match your headings"}
               </a>

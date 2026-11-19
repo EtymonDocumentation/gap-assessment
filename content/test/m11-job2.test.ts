@@ -24,7 +24,16 @@ const GEN = "2026-11-03T09:00:00.000Z";
 const actor = { name: "Alex Example (fictional)", at: GEN };
 const build = (id: "syr-305" | "arx-217") =>
   buildDemoProject(content, demos[id], samplingSuggestions, designLoadouts, { loadouts: riskLoadouts, failureModes }, { library: mbrLibrary }, { writeups: trdWriteups });
-const SYR = build("syr-305");
+const SYR_FINISHED = build("syr-305");
+// The finished example answers every question, so these tests reopen two of them: one answer is removed (not answered yet) and one is made stale (look again).
+const reopenReview = (p: Project): Project => {
+  const c = structuredClone(p);
+  const answers = c.sampling.plans[0]!.designReview!.answers;
+  delete answers!["A5:EQ-02"];
+  answers!["B5:ST-004"] = { ...answers!["B5:ST-004"]!, factsFingerprint: "demo-earlier-facts" };
+  return c;
+};
+const SYR = reopenReview(SYR_FINISHED);
 const ARX = build("arx-217");
 const planOf = (p: Project) => p.sampling.plans[0]!;
 const view = (p: Project) => planDesignReview(content, p, planOf(p), samplingSuggestions);

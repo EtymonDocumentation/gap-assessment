@@ -3,7 +3,7 @@ import { editChangesBlock, editLibraryBlock, newLibraryBlock, type LibraryEdit }
 import { MBR_TRD_COLLECTIONS, type MbrLibraryBlock, type MbrLibraryParam, type MbrLibraryTimeLimit } from "@gap/process-model";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader } from "../PageHeader";
-import { Empty, Modal } from "../components";
+import { Empty, GlossaryLink, Modal } from "../components";
 import { countOf, dateTime } from "../lib";
 import { useMbrBlocks, useMbrLibrary } from "../mbr-blocks-store";
 import { SERVER_MODE } from "../server/mode";
@@ -42,7 +42,7 @@ export function MbrLibraryPage() {
     <div className="stack-lg">
       <PageHeader
         title="Ready-made steps library"
-        purpose="The ready-made steps a batch record is built from: steps, rows that take a value from the TRD, time limits, and what the CMO (contract manufacturer) completes."
+        purpose={<>The ready-made steps a batch record is built from: steps, rows that take a value from the TRD, time limits, and what the <GlossaryLink id="cmo">CMO</GlossaryLink> (contract manufacturer) completes.</>}
         about={{
           art: "page-document",
           children: (

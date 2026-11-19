@@ -41,7 +41,7 @@ test("Home shows the four documents openly, each with one line and a real button
   await page.goto("./");
   const group = page.getByTestId("start-documents");
   await expect(group.getByRole("heading", { level: 3, name: "What do you want to make?" })).toBeVisible();
-  await expect(group.getByRole("heading", { level: 4 })).toHaveText(["Gap assessment", "Technology transfer document (TRD)", "Sampling plan", "Batch record (MBR)"]);
+  await expect(group.getByRole("heading", { level: 4 })).toHaveText(["Gap assessment", "Technical requirements document (TRD)", "Sampling plan", "Batch record (MBR)"]);
   await expect(group.getByRole("button", { name: "Start a new project" })).toBeVisible();
   for (const [id, name] of [["trd", "Start a TRD"], ["sampling", "Start a sampling plan"], ["mbr", "Start a batch record"]] as const) {
     await expect(group.getByTestId(`start-doc-${id}`)).toHaveText(name);

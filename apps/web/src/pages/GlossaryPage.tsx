@@ -23,6 +23,16 @@ export function GlossaryPage({ params }: { params: URLSearchParams }) {
   // Arriving at a term: show every term (a filter could hide it), then scroll to it and give it focus so a keyboard or screen reader
   // user lands there too. The wait lets the app shell finish its own scroll-to-top on a page change first.
   useEffect(() => {
+    if (params.get("section") !== "fit") return;
+    const timer = window.setTimeout(() => {
+      const el = document.getElementById("fit-together");
+      el?.scrollIntoView({ block: "start" });
+      el?.focus({ preventScroll: true });
+    }, 50);
+    return () => window.clearTimeout(timer);
+  }, [params]);
+
+  useEffect(() => {
     if (!target || !byId.has(target)) return;
     setFilter("");
     const timer = window.setTimeout(() => {
@@ -37,6 +47,21 @@ export function GlossaryPage({ params }: { params: URLSearchParams }) {
   return (
     <div className="stack-lg" data-testid="glossary">
       <PageHeader title="Glossary" purpose="The words used in the app and the documents, in plain language." />
+      <section className="card stack" id="fit-together" tabIndex={-1} aria-labelledby="fit-together-h" data-testid="fit-together">
+        <h2 id="fit-together-h">How the documents fit together</h2>
+        <p>
+          Each document builds on the one before it, and each stage is optional: start wherever you have the information. The gap assessment finds what
+          is missing, the technical requirements document (TRD) records what the process needs, the sampling plan says what to test, and the batch record
+          says how to make it. The risk assessment sits beside the chain and feeds it.
+        </p>
+        <ol className="fit-chain" aria-label="The document chain">
+          <li>Gap assessment</li>
+          <li>Technical requirements document (TRD)</li>
+          <li>Sampling plan</li>
+          <li>Batch record</li>
+          <li>Risk assessment (alongside, not a step)</li>
+        </ol>
+      </section>
       <section className="card stack">
         <div className="field">
           <label htmlFor={inputId}>Filter the terms</label>

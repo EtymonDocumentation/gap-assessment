@@ -93,7 +93,7 @@ export function SamplingUploadButton({ className = "btn primary", testId = "samp
     try {
       const { session, file } = await buildAiSamplingExample();
       holdSamplingImport({ session, file });
-      proceed(() => navigate("/sampling/import"));
+      proceed(() => navigate("/sampling/import"), true);
     } catch (e) {
       setMessage({ text: `The example could not be opened: ${(e as Error).message}`, offerForm: false });
     } finally {

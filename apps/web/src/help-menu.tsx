@@ -120,6 +120,11 @@ export function HelpMenu({ routePath }: { routePath: string }) {
               </li>
             )}
             <li role="none">
+              <a role="menuitem" className="help-menu-item" href={href("/glossary", { section: "fit" })} onClick={() => setOpen(false)} data-testid="help-fit">
+                How the documents fit together
+              </a>
+            </li>
+            <li role="none">
               <a role="menuitem" className="help-menu-item" href={href("/glossary")} onClick={() => setOpen(false)} data-testid="help-glossary">
                 Glossary
               </a>
@@ -159,6 +164,11 @@ export function PhoneHelp({ routePath, onPick }: { routePath: string; onPick: ()
             </button>
           </li>
         )}
+        <li>
+          <a href={href("/glossary", { section: "fit" })} onClick={onPick} data-testid="help-fit">
+            How the documents fit together
+          </a>
+        </li>
         <li>
           <a href={href("/glossary")} onClick={onPick} data-testid="help-glossary">
             Glossary

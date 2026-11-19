@@ -93,7 +93,7 @@ for (const [name, size] of [["desktop", { width: 1280, height: 900 }], ["phone",
     await expect(page.getByTestId("mbr-split-hold")).toHaveValue("");
     await expect(page.getByTestId("mbr-split-limit")).toHaveValue("");
     await expect(page.getByTestId("mbr-split-entry-start")).toContainText("no hold chosen");
-    // Nothing is preselected for the hold-end step: it reads "Not said yet" and an open item asks, with the entry at the top of Part 2.
+    // Nothing is preselected for the hold-end step: it reads "Not chosen yet" and an open item asks, with the entry at the top of Part 2.
     await expect(page.getByTestId("mbr-split-hold-end-step")).toHaveValue("");
     await expect(page.getByTestId("mbr-open-items")).toContainText("Say at which step the hold ends");
     await page.getByTestId("mbr-split-ref1").fill("DEMO-MBR-305-01-A");
@@ -117,7 +117,7 @@ test("the author picks the step where the hold ends and the entry follows it in 
   await openSyringeRecord(page);
   const select = page.getByTestId("mbr-split-hold-end-step");
   await expect(select).toBeVisible();
-  // Clear the demo's choice: nothing chosen reads "Not said yet", the open item asks and the entry has no step to sit after.
+  // Clear the demo's choice: nothing chosen reads "Not chosen yet", the open item asks and the entry has no step to sit after.
   await select.selectOption("");
   await expect(page.getByTestId("mbr-open-items")).toContainText("Say at which step the hold ends");
   await expect(page.getByTestId("mbr-split-entry-end")).toContainText("Hold end (start of Part 2)");

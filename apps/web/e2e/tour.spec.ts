@@ -70,7 +70,10 @@ test("the Help menu works from the keyboard: opens, moves, closes with Escape an
   const tour = page.getByRole("menuitem", { name: "Tour of this page" });
   await expect(tour).toBeFocused();
   await page.keyboard.press("ArrowDown");
+  await expect(page.getByTestId("help-fit")).toBeFocused();
+  await page.keyboard.press("ArrowDown");
   await expect(page.getByRole("menuitem", { name: "Glossary" })).toBeFocused();
+  await page.keyboard.press("ArrowUp");
   await page.keyboard.press("ArrowUp");
   await expect(tour).toBeFocused();
   await page.keyboard.press("Escape");

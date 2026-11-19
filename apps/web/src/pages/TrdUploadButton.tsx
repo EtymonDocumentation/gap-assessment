@@ -87,7 +87,7 @@ export function TrdUploadButton({ className = "btn primary", testId = "trd-uploa
     try {
       const { session, file } = await buildAiExample();
       holdImport({ session, file });
-      proceed(() => navigate("/trd/import"));
+      proceed(() => navigate("/trd/import"), true);
     } catch (e) {
       setMessage({ text: `The example could not be opened: ${(e as Error).message}`, offerForm: false });
     } finally {

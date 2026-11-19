@@ -74,7 +74,8 @@ test("home with the demo open leads with the next step; demo cards say what they
   await page.evaluate(() => (window.location.hash = "#/"));
   const next = page.getByTestId("next-step");
   await expect(next).toContainText("Next step");
-  await expect(next.getByRole("link", { name: "Review the gap register" })).toHaveAttribute("href", "#/register");
+  // The big button follows the state (EOU2 rows 4 and 5): this demo has an overdue TBD value, so that comes before the gap register.
+  await expect(next.getByRole("link", { name: /^Look at the \d+ overdue TBD values?$/ })).toHaveAttribute("href", "#/tbd");
   await expect(page.getByTestId("about-poc")).not.toHaveAttribute("open", "");
   if (!isPhone(test.info())) await expect(mainNav(page).getByRole("link", { name: "Gap assessment" })).toHaveAttribute("href", "#/scope");
   await expectNoSidewaysScroll(page, "home with demo");
@@ -231,4 +232,13 @@ test("the step bar marks the current step, ticks only what is proven, and Back /
   // Library pages have no step bar.
   await page.evaluate(() => (window.location.hash = "#/guidance"));
   await expect(page.getByRole("navigation", { name: "Gap assessment steps" })).toHaveCount(0);
+});
+
+test("a reload on a project page reopens the same project on the same page (row 31)", async ({ page }) => {
+  await startProject(page);
+  await page.goto("./#/interview");
+  await page.reload();
+  await expect(page.getByTestId("needs-project")).toHaveCount(0);
+  await expect(page).toHaveURL(/#\/interview/);
+  await expect(page.getByText("Navigation test (fictional)").first()).toBeVisible();
 });

@@ -6319,3 +6319,22 @@ button.imap-tile:hover { background: var(--accent-soft); }
   font-weight: 600;
   overflow-wrap: anywhere;
 }
+
+/* Ease-of-use pass 2: a short line under a count that says what the number counts. */
+.stat-note {
+  display: block;
+  font-weight: 400;
+  margin-top: 0.15rem;
+}
+.glossary-link {
+  text-decoration: underline dotted;
+  text-underline-offset: 0.15em;
+}
+
+.doc-chain-sub {
+  font-weight: normal;
+  color: var(--muted);
+  font-size: 0.85em;
+}
+
+.fit-chain { margin: 0; padding-left: 1.4rem; }

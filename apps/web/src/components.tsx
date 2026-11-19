@@ -427,3 +427,12 @@ export function VerifierFields({
     </>
   );
 }
+
+/** A word that links to its glossary entry (ease-of-use pass 2, row 19): used for the first mention on a page, so a first-time reader can look it up. */
+export function GlossaryLink({ id, children }: { id: string; children: ReactNode }) {
+  return (
+    <a href={href("/glossary", { term: id })} className="glossary-link" title="What does this mean? Opens the glossary">
+      {children}
+    </a>
+  );
+}

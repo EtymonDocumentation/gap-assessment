@@ -1,3 +1,4 @@
+import { PracticeProjectDelete } from "./NewProjectDialog";
 import {
   aiCounts,
   aiCountText,
@@ -203,6 +204,7 @@ function Review({ session, file }: { session: ImportSession; file: File }) {
             {done.text}
           </p>
           {done.copy && <p className="small">{done.copy}</p>}
+          {session.aiExample && <PracticeProjectDelete />}
           {done.warnings.length > 0 && (
             <div className="notice" data-testid="import-warnings">
               <strong>Left open:</strong>

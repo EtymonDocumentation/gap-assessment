@@ -4,7 +4,7 @@ import { useId, useRef, useState } from "react";
 import { PageHeader } from "../PageHeader";
 import { Modal } from "../components";
 import { href, navigate } from "../router";
-import { READ_ONLY_MESSAGE, useStore } from "../store";
+import { READ_ONLY_MESSAGE, useStore, whoLabel } from "../store";
 import { compareHref, dayOf, SaveVersionButton, stageName, stageWords, useRealProject, useUnsaved, workingCopyText } from "../version-ui";
 
 const mb = (n: number) => `${(n / (1024 * 1024)).toFixed(1)} MB`;
@@ -168,7 +168,7 @@ export function VersionsPage() {
                         {e.kind === "start" && <span className="tag">Start</span>}
                       </th>
                       <td data-label="Date" style={{ whiteSpace: "nowrap" }}>{dayOf(e.at)}</td>
-                      <td data-label="Who">{e.by}</td>
+                      <td data-label="Who">{whoLabel(e.by)}</td>
                       <td data-label="Project stage">{e.kind === "stage-change" ? stageWords(e.stage, e.fromStage, true) : stageName(e.stage)}</td>
                       <td data-label="Reason">{e.reason || <span className="muted">No note</span>}</td>
                       <td data-label="Stage review">

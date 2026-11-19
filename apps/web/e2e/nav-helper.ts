@@ -153,3 +153,15 @@ export async function openDemo(page: Page, which: keyof typeof DEMO_NAMES = "arx
   await expect(page.getByTestId("demo-opened")).toHaveText(new RegExp(`^Demo opened: ${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\.|$)`), { timeout: 90_000 });
   if (then) await page.evaluate((h) => (window.location.hash = h), then);
 }
+
+/** Ticks one kind of Word document. The kinds that use the person's own template sit behind "Use my own template" until chosen. */
+export async function checkWordKind(scope: import("@playwright/test").Page | import("@playwright/test").Locator, name: RegExp | string) {
+  const radio = scope.getByRole("radio", { name }).first();
+  if (!(await radio.isVisible())) await scope.getByRole("button", { name: "Use my own template" }).first().click();
+  await radio.check();
+}
+
+/** The sampling plan keeps its Word and HTML downloads (and their previews) on the Downloads tab; opens it. */
+export async function openDownloads(page: Page): Promise<void> {
+  await page.getByTestId("tab-downloads").click();
+}

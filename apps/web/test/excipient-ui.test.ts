@@ -14,7 +14,7 @@ describe("excipient screens: small helpers", () => {
       expect(s.icon.length).toBeGreaterThan(0);
       expect(s.text.length).toBeGreaterThan(0);
     }
-    expect(questionStatus({ state: "open" }).text).toBe("Open");
+    expect(questionStatus({ state: "open" }).text).toBe("Not answered yet");
   });
 
   it("keeps an unknown fact visible as 'Not established' and counts it as open", () => {

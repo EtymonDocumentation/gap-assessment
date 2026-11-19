@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import PizZip from "pizzip";
 import { addTemplate, downloadWord, HEADINGS } from "./word-template-helper";
-import { goTo, NOTICE_DOCUMENT, openDemo } from "./nav-helper";
+import { checkWordKind, goTo, NOTICE_DOCUMENT, openDemo } from "./nav-helper";
 
 test.beforeEach(async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
@@ -53,7 +53,7 @@ test("the TRD under a template's headings: match, be held back until each pick i
 
   // The TRD's Document tab: "A template's headings" is now offered for the TRD. Nothing is matched yet, so the download is held back in words.
   await openTrdOutput(page);
-  await page.getByRole("radio", { name: /A template's headings/ }).check();
+  await checkWordKind(page, /A template's headings/);
   await pickTemplate(page);
   await expect(page.getByTestId("trd-match-links")).toBeVisible();
   await expect(page.getByText("This template has no match for the TRD yet.")).toBeVisible();
@@ -155,7 +155,7 @@ test("the TRD under a template's headings: match, be held back until each pick i
   await page.getByRole("link", { name: /Back to the TRD/ }).click();
   await expect(page.getByTestId("trd-tabs")).toBeVisible();
   await page.getByTestId("trd-tab-output").click();
-  await page.getByRole("radio", { name: /A template's headings/ }).check();
+  await checkWordKind(page, /A template's headings/);
   await pickTemplate(page);
   await expect(page.getByText("This template has no match for the TRD yet.")).toHaveCount(0);
   await expect(page.getByTestId("trd-not-in-template")).toContainText(/Not in your template: \d+ sections?/);

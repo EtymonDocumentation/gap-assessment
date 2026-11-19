@@ -481,6 +481,11 @@ export function TrdInterview({ d, initialShow, initialQuestion, initialView, ini
           <strong data-testid="iv-progress">
             {overall.answered} of {overall.total} answered
           </strong>{" "}
+          {overall.total - overall.answered > 0 && (
+            <span data-testid="iv-unanswered-count">
+              {" "}({overall.total - overall.answered} not answered yet)
+            </span>
+          )}{" "}
           <span aria-hidden="true">·</span>{" "}
           <a href={href("/trd", { trd: d.id, tab: "open" })} data-testid="iv-open-count">
             {openItemsCount(openCount.total)}
