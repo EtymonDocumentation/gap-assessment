@@ -114,15 +114,10 @@ test("Home is the Cascade start page: welcome, the three start choices and one c
   // no "open a project first" line and no missing button.
   await expect(page.getByTestId("upload-needs-project")).toHaveCount(0);
   for (const id of ["home-upload-gap", "home-upload-trd", "home-upload-sampling"]) await expect(page.getByTestId(id)).toBeVisible();
-  // One card per document, in chain order, each with its purpose.
-  const names = await page.getByTestId("home-chain").getByRole("heading", { level: 3 }).allInnerTexts();
-  expect(names).toEqual(["Gap assessment", "TRD", "Sampling plan", "Batch record", "Risk assessment", "Excipient assessment"]);
-  await expect(page.getByTestId("doc-card-state-gap")).toHaveText("Read how it works, then start a project.");
-  await expect(page.getByTestId("doc-card-open-gap")).toHaveAttribute("href", "#/gap");
-  for (const id of ["trd", "sampling", "mbr", "risk", "excipient"]) {
-    await expect(page.getByTestId(`doc-card-state-${id}`)).toHaveText("Needs an open project.");
-    await expect(page.getByTestId(`doc-card-open-${id}`)).toHaveCount(0);
-  }
+  // Without a project the Start cards above are the one place to begin a document; the "Your documents" row (state of each) is not shown yet.
+  await expect(page.getByTestId("home-chain")).toHaveCount(0);
+  await expect(page.getByTestId("make-gap").getByRole("button", { name: "Start a new project" })).toBeVisible();
+  await expect(page.locator('[data-testid^="doc-card-"]')).toHaveCount(0);
   await expectNoSidewaysScroll(page, "home, no project");
   await shot(page, "home-light");
   await expectAccessible(page, "home, light");

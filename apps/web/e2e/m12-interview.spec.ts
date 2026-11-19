@@ -203,7 +203,7 @@ test("the three exits: Don't know yet writes nothing, Not applicable here and TB
   await site.getByTestId("iv-tbd-due").fill("2026-12-15");
   await site.getByTestId("iv-exit-save").click();
   await expect(site.getByTestId("iv-saved")).toBeVisible();
-  await expect(site.getByTestId("iv-status")).toContainText("To be decided (TBD)");
+  await expect(site.getByTestId("iv-status")).toContainText("TBD (to be decided)");
 
   const presentation = card(page, "detail:presentation");
   await presentation.getByTestId("iv-na").click();

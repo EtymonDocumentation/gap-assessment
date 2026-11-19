@@ -38,7 +38,7 @@ export function seedValueText(f: SeedAnswer): string {
   if (f.status === "tbd") {
     const owner = f.tbd?.owner ? `; owner ${f.tbd.owner}` : "";
     const due = f.tbd?.due ? `; due ${f.tbd.due}` : "";
-    return f.provisional && shown ? `${shown} (TBD best guess, provisional${owner}${due})` : `To be decided (TBD)${owner}${due}`;
+    return f.provisional && shown ? `${shown} (TBD best guess, provisional${owner}${due})` : `TBD (to be decided)${owner}${due}`;
   }
   if (f.status === "not_applicable") return f.justification ? `Not applicable: ${f.justification}` : "Not applicable";
   return NOT_ESTABLISHED;

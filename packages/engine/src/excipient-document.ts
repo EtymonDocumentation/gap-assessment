@@ -30,7 +30,7 @@ import { buildTrdSeed } from "./trd-seed";
  * The excipient assessment as a document (the same DocModel the other outputs use, so the shared HTML, Markdown and Word renderers draw it).
  *
  * GMP rules kept here:
- *  - An open fact prints as "Not established" or "TBD (owner, due date)". Nothing is filled in on the team's behalf, and the document can be
+ *  - An open fact prints as "TBD" or "TBD (owner, due date)". Nothing is filled in on the team's behalf, and the document can be
  *    made with anything open.
  *  - The tool never decides a filing category. A line with a change marker carries the one fixed sentence "Requires regulatory affairs
  *    assessment" and nothing more; the person's own reference to that assessment is printed as they wrote it.
@@ -76,13 +76,13 @@ function reading(project: Project, assessmentId: string, lineId: string, q: Exci
       return "TBD";
     }
     default:
-      return "Not established";
+      return "TBD";
   }
 }
 
 /** One side of a comparison row. */
 function specSideText(s: ExcipientSpecSide): string {
-  if (s.state === "open") return "Not established";
+  if (s.state === "open") return "TBD";
   if (s.state === "not_tested") return "Not tested";
   const value = [s.criterion, s.unit].filter(Boolean).join(" ");
   const method = s.method ? `method: ${s.method}` : "";

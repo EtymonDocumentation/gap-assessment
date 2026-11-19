@@ -305,48 +305,43 @@ export function HomePage() {
             </section>
           ) : null}
 
+          {/* Without an open project the Start cards above already offer these same documents, so the second row of cards only shows once a
+              project is open (it then shows each document's state). The tour step for it is skipped while it is absent. */}
+          {project && (
           <section className="card stack" aria-labelledby="chain-h" data-testid="home-chain" data-tour="home-chain" data-tour-text={chainTourText}>
             <h2 id="chain-h">Your documents</h2>
             <p className="muted small">
               {/* An account with the gap assessment alone is not told about documents it cannot open (EOU-43). */}
               {cards.length === 1
-                ? project
-                  ? "Anything not yet known stays visible as an open item."
-                  : "The gap assessment can be read now."
-                : project
-                  ? `Each document can use the one before it, but none needs it: ${allowed.trd ? "a TRD can start blank, and you can skip" : "you can skip"} the gap assessment. Anything not yet known stays visible as an open item. Each card counts its own document: an open item is something that document still lists as open.`
-                  : "One card for each document. The gap assessment can be read now; the others open once a project is open."}
+                ? "Anything not yet known stays visible as an open item."
+                : `Each document can use the one before it, but none needs it: ${allowed.trd ? "a TRD can start blank, and you can skip" : "you can skip"} the gap assessment. Anything not yet known stays visible as an open item. Each card counts its own document: an open item is something that document still lists as open.`}
             </p>
             <ul className="doc-cards">
               {cards.map((c) => {
                 const status = statusOf(c.id);
-                // The gap assessment can be read without a project (its page explains it). The others work on a project's data, so without one
-                // the card says so instead of offering a button that would only lead to a "needs an open project" box.
-                const usable = c.id === "gap" || !!project;
                 return (
                   <li key={c.id} className="doc-card" data-testid={`doc-card-${c.id}`}>
                     <h3>{c.name}</h3>
                     <p className="muted small">{c.purpose}</p>
                     <p className="doc-card-state small" data-testid={`doc-card-state-${c.id}`}>
-                      {project ? status : c.id === "gap" ? "Read how it works, then start a project." : "Needs an open project."}
+                      {status}
                     </p>
-                    {usable && (
-                      <div className="doc-card-actions">
-                        <a className="btn" href={href(c.path, c.params)} aria-label={`${buttonOf(c)} the ${c.id === "trd" ? "TRD" : c.name.toLowerCase()}`} data-testid={`doc-card-open-${c.id}`}>
-                          {buttonOf(c)}
+                    <div className="doc-card-actions">
+                      <a className="btn" href={href(c.path, c.params)} aria-label={`${buttonOf(c)} the ${c.id === "trd" ? "TRD" : c.name.toLowerCase()}`} data-testid={`doc-card-open-${c.id}`}>
+                        {buttonOf(c)}
+                      </a>
+                      {c.id === "mbr" && firstRecord && (
+                        <a className="small" href={href("/mbr/view", { mbr: firstRecord.id })} data-testid="chain-view">
+                          Open the Process view
                         </a>
-                        {c.id === "mbr" && firstRecord && (
-                          <a className="small" href={href("/mbr/view", { mbr: firstRecord.id })} data-testid="chain-view">
-                            Open the Process view
-                          </a>
-                        )}
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </li>
                 );
               })}
             </ul>
           </section>
+          )}
 
           {project && (
             // With a project open the documents come first; starting something else is one tight section after them, so it is there when

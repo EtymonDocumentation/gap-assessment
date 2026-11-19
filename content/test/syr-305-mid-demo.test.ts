@@ -79,7 +79,7 @@ describe("SYR-305 mid-transfer demo", () => {
 
   it("exports a TRD that lists its open items", () => {
     const text = JSON.stringify(buildTrdDocument(project, doc, { content, generatedAt: "2026-11-13T09:00:00.000Z" }));
-    expect(text).toContain("To be decided (TBD)");
+    expect(text).toContain("TBD (to be decided)");
     expect(text).toContain("Single-use assembly supplier");
   });
 

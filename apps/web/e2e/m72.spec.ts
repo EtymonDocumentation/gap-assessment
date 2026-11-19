@@ -22,7 +22,19 @@ async function openDemoPlan(page: Page) {
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
   await goTo(page, "Sampling plan");
   await page.getByTestId("plan-list").getByRole("link").first().click();
-  await expect(page.getByTestId("flow-diagram")).toBeVisible();
+  // The plan opens on its short Overview (the set-up and the steps list); the diagram is on the Diagram tab.
+  await expect(page.getByTestId("plan-contents")).toBeVisible();
+  await expect(page.getByTestId("flow-card")).toHaveCount(0);
+}
+
+async function openDiagramTab(page: Page) {
+  await page.getByTestId("tab-diagram").click();
+  await expect(page.getByTestId("flow-card")).toBeVisible();
+}
+
+async function openOverviewTab(page: Page) {
+  await page.getByTestId("tab-overview").click();
+  await expect(page.getByTestId("plan-totals")).toBeVisible();
 }
 
 async function expectAccessible(page: Page, label: string) {
@@ -37,7 +49,13 @@ async function expectNoHorizontalScroll(page: Page, label: string) {
   expect(overflow, `${label}: page scrolls sideways by ${overflow}px`).toBeLessThanOrEqual(1);
 }
 
-const boxLabels = (page: Page) => page.locator('[data-testid^="flow-box-"]').evaluateAll((els) => els.map((e) => e.getAttribute("data-step-label")));
+/** The step boxes of the diagram (read on the Diagram tab; the page is left on the Overview, where the steps list is). */
+const boxLabels = async (page: Page) => {
+  await openDiagramTab(page);
+  const labels = await page.locator('[data-testid^="flow-box-"]').evaluateAll((els) => els.map((e) => e.getAttribute("data-step-label")));
+  await openOverviewTab(page);
+  return labels;
+};
 const stepLabels = (page: Page) => page.getByTestId("step-list").locator("li strong").allTextContents();
 
 /** Centre of an SVG element on the page. */
@@ -73,10 +91,12 @@ test("the diagram has exactly the plan's steps as boxes, in order, and follows r
 
 test("removing a step that holds samples asks, then moves them to Not on the diagram", async ({ page }) => {
   await openDemoPlan(page);
+  await openDiagramTab(page);
   // The step of the first marker that sits on a step.
   const marker = page.locator('[data-testid^="marker-SP-"]:not([data-place="Not on the diagram"])').first();
   const id = (await marker.getAttribute("data-testid"))!.replace("marker-", "");
   const stepId = await page.getByTestId(`row-step-${id}`).inputValue();
+  await openOverviewTab(page);
   await page.getByTestId(`step-remove-${stepId}`).click();
   await expect(page.getByTestId("step-remove-confirm")).toContainText("moves them to Not on the diagram");
   await page.getByTestId("step-remove-cancel").click();
@@ -84,6 +104,7 @@ test("removing a step that holds samples asks, then moves them to Not on the dia
   await page.getByTestId(`step-remove-${stepId}`).click();
   await page.getByTestId("step-remove-move").click();
   await expect(page.getByTestId(`step-${stepId}`)).toHaveCount(0);
+  await openDiagramTab(page);
   await expect(page.getByTestId(`marker-${id}`)).toHaveAttribute("data-place", "Not on the diagram");
   await expect(page.getByTestId(`row-step-${id}`)).toHaveValue("");
 });
@@ -91,6 +112,7 @@ test("removing a step that holds samples asks, then moves them to Not on the dia
 test("dragging a marker with the mouse moves the sample and the table row", async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 900 });
   await openDemoPlan(page);
+  await openDiagramTab(page);
   const id = await trayMarkerId(page);
   const target = page.locator('[data-drop$=":after"]').first();
   const dropKey = (await target.getAttribute("data-drop"))!;
@@ -124,9 +146,10 @@ test("dragging a marker with the mouse moves the sample and the table row", asyn
 
 test("changing the Step or Position in the table moves the marker at once; selection is shared", async ({ page }) => {
   await openDemoPlan(page);
-  const id = await trayMarkerId(page);
   const second = (await page.getByTestId("step-list").locator("li").nth(1).getAttribute("data-testid"))!.replace("step-", "");
   const label = (await page.getByTestId(`step-${second}`).locator("strong").textContent())!;
+  await openDiagramTab(page);
+  const id = await trayMarkerId(page);
   await page.getByTestId(`row-step-${id}`).selectOption(second);
   await expect(page.getByTestId(`marker-${id}`)).toHaveAttribute("data-place", `${label}, position not set`);
   await page.getByTestId(`row-pos-${id}`).selectOption("before");
@@ -142,6 +165,7 @@ test("changing the Step or Position in the table moves the marker at once; selec
 
 test("the keyboard moves a marker: Enter picks up, arrows choose, Enter drops, Escape cancels", async ({ page }) => {
   await openDemoPlan(page);
+  await openDiagramTab(page);
   const id = await trayMarkerId(page);
   const marker = page.getByTestId(`marker-${id}`);
   const live = page.getByTestId("flow-live");
@@ -168,6 +192,7 @@ test("the keyboard moves a marker: Enter picks up, arrows choose, Enter drops, E
 test("the plus on a box and Add a sample use the one add dialog", async ({ page }) => {
   await openDemoPlan(page);
   const firstStep = (await page.getByTestId("step-list").locator("li").first().getAttribute("data-testid"))!.replace("step-", "");
+  await openDiagramTab(page);
   const ids = () => page.locator('[data-testid^="point-SP-"]').evaluateAll((els) => els.map((e) => e.getAttribute("data-testid")!.replace("point-", "")));
   const idsBefore = await ids();
   const before = idsBefore.length;
@@ -230,6 +255,7 @@ test("an empty plan points to the Process steps card", async ({ page }) => {
     await page.getByTestId("step-list").locator('[data-testid^="step-remove-"]').first().click();
     await page.getByTestId("remove-confirm").click();
   }
+  await openDiagramTab(page);
   await expect(page.getByTestId("flow-empty")).toContainText("Process steps");
   await expect(page.getByTestId("points-empty")).toBeVisible();
 });
@@ -249,20 +275,29 @@ test("the plan page is accessible, has no sideways scroll at 390 px, and looks r
   test.setTimeout(120_000);
   await page.setViewportSize({ width: 1366, height: 900 });
   await openDemoPlan(page);
-  await expectAccessible(page, "plan page 1366");
+  await expectAccessible(page, "plan overview 1366");
   await page.getByTestId("steps-card").screenshot({ path: join(SHOTS, "m72-steps-card.png") });
-  await page.getByTestId("flow-card").screenshot({ path: join(SHOTS, "m72-diagram-1366.png") });
   await page.getByTestId("points-table").screenshot({ path: join(SHOTS, "m72-table.png") });
+  await openDiagramTab(page);
+  await expectAccessible(page, "plan diagram 1366");
+  await page.getByTestId("flow-card").screenshot({ path: join(SHOTS, "m72-diagram-1366.png") });
 
   await page.emulateMedia({ colorScheme: "dark" });
-  await expectAccessible(page, "plan page dark");
+  await expectAccessible(page, "plan diagram dark");
   await page.getByTestId("flow-card").screenshot({ path: join(SHOTS, "m72-diagram-dark.png") });
+  await openOverviewTab(page);
+  await expectAccessible(page, "plan overview dark");
   await page.emulateMedia({ colorScheme: "light" });
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await expectNoHorizontalScroll(page, "plan page 390");
-  await expectAccessible(page, "plan page 390");
+  await expectNoHorizontalScroll(page, "plan overview 390");
+  await expectAccessible(page, "plan overview 390");
+  await openDiagramTab(page);
+  await expectNoHorizontalScroll(page, "plan diagram 390");
+  await expectAccessible(page, "plan diagram 390");
   await page.getByTestId("flow-card").screenshot({ path: join(SHOTS, "m72-diagram-390.png") });
   await page.setViewportSize({ width: 1280, height: 800 });
-  await expectNoHorizontalScroll(page, "plan page 1280");
+  await expectNoHorizontalScroll(page, "plan diagram 1280");
+  await openOverviewTab(page);
+  await expectNoHorizontalScroll(page, "plan overview 1280");
 });

@@ -5568,7 +5568,7 @@ fieldset.stage-options {
   padding-top: 6px;
 }
 
-/* My projects as a compact list: the name on one line with an ellipsis, Open, and a "..." menu. */
+/* My projects as a compact list: the whole name (it wraps, never cut off: two uploads can differ only at the end), Open, and a "..." menu. */
 .project-card {
   padding: 12px;
 }
@@ -5584,9 +5584,7 @@ fieldset.stage-options {
 }
 .project-name {
   display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 .project-tags {
   display: flex;

@@ -35,13 +35,13 @@ export function questionStatus(q: Pick<ExcipientQuestion, "state">): CardStatus 
     case "not_applicable":
       return { icon: "–", text: "Not applicable here", tone: "done" };
     case "tbd":
-      return { icon: "◐", text: "To be decided (TBD)", tone: "open" };
+      return { icon: "◐", text: "TBD (to be decided)", tone: "open" };
     default:
       return { icon: "○", text: "Not answered yet", tone: "open" };
   }
 }
 
-/** What a fact shows in a table cell or on the line page: an unknown stays visible as "Not established". */
+/** What a fact shows in a table cell or on the line page: an unknown stays visible as "TBD". */
 export function factCell(q: ExcipientQuestion | undefined): { icon: string; text: string; open: boolean } {
   if (!q) return { icon: "–", text: "Not asked", open: false };
   switch (q.state) {
@@ -51,9 +51,9 @@ export function factCell(q: ExcipientQuestion | undefined): { icon: string; text
     case "not_applicable":
       return { icon: "–", text: q.reason ? `Not applicable (${q.reason})` : "Not applicable", open: false };
     case "tbd":
-      return { icon: "◐", text: "To be decided (TBD)", open: true };
+      return { icon: "◐", text: "TBD (to be decided)", open: true };
     default:
-      return { icon: "○", text: "Not established", open: true };
+      return { icon: "○", text: "TBD", open: true };
   }
 }
 
@@ -66,7 +66,7 @@ export function openItemQuestionKey(o: ExcipientOpenItem): string | undefined {
 }
 
 export const KIND_TEXT: Record<ExcipientOpenItem["kind"], string> = {
-  not_established: "Not established",
+  not_established: "No value yet",
   tbd: "TBD",
   not_compared: "Not compared yet",
   no_sources: "No document cited",

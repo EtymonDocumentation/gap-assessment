@@ -80,10 +80,10 @@ describe("split batch record in Word", () => {
     expectNoPrivateTerms(t1 + t2);
   });
 
-  it("says 'No limit stated' on the hold-end entry when the record names no limit row", async () => {
+  it("says 'TBD' on the hold-end entry when the record names no limit row", async () => {
     const none = updateSplit(demo, rec.id, { holdLimitId: null }, { name: "Alex Example (fictional)", at: "2026-10-20T09:00:00.000Z" });
     const t = await text(buildMbrDocument(none, none.mbr.records[0]!, { ...opts, part: 2 }));
-    expect(t).toContain("No limit stated");
+    expect(t).toContain("TBD");
   });
 
   it("the whole-record export of a split record carries both entries and both document numbers", () => {

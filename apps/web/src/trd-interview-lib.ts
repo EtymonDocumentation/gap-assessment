@@ -102,7 +102,7 @@ export function statusOf(q: InterviewQuestion, kept: boolean): QuestionStatus {
     case "not_applicable":
       return { icon: "\u2013", text: "Not applicable here", tone: "done" };
     case "tbd":
-      return { icon: "\u25D0", text: "To be decided (TBD)", tone: "open" };
+      return { icon: "\u25D0", text: "TBD (to be decided)", tone: "open" };
     case "from_project":
       return kept ? { icon: "\u2713", text: `Kept: ${sourceText(q).toLowerCase() || "from the project"}`, tone: "done" } : { icon: "\u2197", text: `${sourceText(q) || "From the project"}, not yet looked at`, tone: "project" };
     default:

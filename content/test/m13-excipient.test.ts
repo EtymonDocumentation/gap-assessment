@@ -276,7 +276,7 @@ describe("the derived interview", () => {
     p = setExcipientFact(p, "EXA-001", "EXL-001", "amount", undefined, { kind: "value", value: { value: 0.02, unit: "%" } }, ACTOR);
     const qs = questions(p);
     expect(byKey(qs, "EXL-001/fact:origin.sending")).toMatchObject({ state: "answered", current: "Not known" });
-    expect(byKey(qs, "EXL-001/fact:supplier.sending")).toMatchObject({ state: "tbd", current: "To be decided (TBD)" });
+    expect(byKey(qs, "EXL-001/fact:supplier.sending")).toMatchObject({ state: "tbd", current: "TBD (to be decided)" });
     expect(byKey(qs, "EXL-001/fact:storage.sending")).toMatchObject({ state: "not_applicable", reason: "Held by the supplier" });
     expect(byKey(qs, "EXL-001/fact:supplier.receiving")).toMatchObject({ state: "same_as_sending" });
     expect(byKey(qs, "EXL-001/fact:amount").current).toBe("0.02 %");

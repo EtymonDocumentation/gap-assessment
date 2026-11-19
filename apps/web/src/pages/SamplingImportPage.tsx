@@ -370,7 +370,7 @@ function Review({ session, file }: { session: SamplingImportSession; file: File 
     const shown = decided?.value ?? f.value;
     return (
       <td data-label={headLabel} className="sp-import-cell" data-testid={`import-cell-${col}`}>
-        <span className="import-value">{shown || <span className="muted">Not established</span>}</span>
+        <span className="import-value">{shown || <span className="muted">TBD</span>}</span>
         <span className="import-word">
           <span className="tag">{decided ? (decided.value === f.value ? "Accepted" : "Accepted (edited)") : f.value ? CONFIDENCE_LABEL[f.confidence] : CONFIDENCE_LABEL.not_found}</span>
         </span>
@@ -586,7 +586,7 @@ function Review({ session, file }: { session: SamplingImportSession; file: File 
                       {fs.map((f) => (
                         <Fragment key={f.id}>
                           <dt>{f.label}</dt>
-                          <dd>{f.value || "Not established"}</dd>
+                          <dd>{f.value || "TBD"}</dd>
                         </Fragment>
                       ))}
                     </dl>

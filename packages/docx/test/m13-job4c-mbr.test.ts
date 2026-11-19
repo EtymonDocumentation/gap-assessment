@@ -34,7 +34,7 @@ describe("The Excipients used table of a batch record in Word and HTML", () => {
   const rec = edited.mbr.records[0]!;
   const doc = buildMbrDocument(edited, rec, { generatedAt: GENERATED_AT, appVersion: "0.0.0-test" });
 
-  it("prints the table with the same words as the app, the unknowns as Not established, and the changed note", async () => {
+  it("prints the table with the same words as the app, the unknowns as TBD, and the changed note", async () => {
     const out = await renderDocx({ doc, mode: "builtin", generatedAt: GENERATED_AT });
     const text = plainText(strictDocx(out.bytes));
     expect(text).toContain(MBR_EXCIPIENTS_TITLE);

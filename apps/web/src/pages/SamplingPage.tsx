@@ -45,8 +45,8 @@ import { useLandAtTop } from "../land-at-top";
 import { PlanSourceNote } from "./SamplingSource";
 import { SamplingFormButton, SamplingUploadButton } from "./SamplingUploadButton";
 
-type Tab = "overview" | "interview" | "review" | "subsections" | "bom" | "downloads";
-const TAB_LABEL: Record<Tab, string> = { overview: "Overview", interview: "Interview", review: "Design review", subsections: "Subsections", bom: "Bill of materials", downloads: "Downloads" };
+type Tab = "overview" | "diagram" | "interview" | "review" | "subsections" | "bom" | "downloads";
+const TAB_LABEL: Record<Tab, string> = { overview: "Overview", diagram: "Diagram", interview: "Interview", review: "Design review", subsections: "Subsections", bom: "Bill of materials", downloads: "Downloads" };
 
 /** The sentence the page and the document both carry: what the tool does and what it leaves to people. */
 export const SAMPLING_SCOPE_TEXT =
@@ -286,6 +286,46 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
     downloadWhenReady(testId);
   };
 
+  // The sampling points table. It is on the Overview and also under the diagram on the Diagram tab (never both at once): the table is the
+  // keyboard and screen-reader way to do what the diagram does by dragging, so it sits next to the diagram it stays in step with.
+  const pointsSection = (
+    <section className="card stack" aria-labelledby="sp-points" data-tour="plan-points">
+      <h2 id="sp-points">Sampling points ({plan.points.length})</h2>
+      <PointsTable
+        plan={plan}
+        selectedId={selected}
+        highlightId={hl}
+        onHighlight={setHl}
+        onSelect={select}
+        run={run}
+        openAdd={openAdd}
+        onEdit={(id) => {
+          // The full editor is in the interview too, so Open shows that point there.
+          openInInterview(id);
+        }}
+      />
+      <div role="status" className="visually-hidden" data-testid="add-announce">
+        {announce}
+      </div>
+      {selectedPoint && (
+          <div className="stack" data-testid="selected-point" ref={selectedCard}>
+            <h3>Selected sample</h3>
+            <PointCard
+              key={selectedPoint.id}
+              plan={plan}
+              point={selectedPoint}
+              step={labelOf(selectedPoint.unitOp)}
+              expanded={overviewOpen === selectedPoint.id}
+              openLabel="More details"
+              onToggle={() => setOverviewOpen(overviewOpen === selectedPoint.id ? null : selectedPoint.id)}
+              run={run}
+              onRemove={() => removeConfirm.ask(removePointRequest(plan, selectedPoint, run))}
+            />
+          </div>
+      )}
+    </section>
+  );
+
   return (
     <div className="stack-lg">
       <PageHeader
@@ -322,7 +362,7 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
             {TAB_LABEL[t]}
           </button>
         ))}
-        <HelpTip label="Plan sections" text="Overview shows the set-up, the open items, the sampling diagram, the document figure, the sampling points and the totals. Downloads has the plan and the reporting instructions as Word or HTML. Interview asks about each step or study type. Design review asks questions about how the samples are taken and where they sit. Subsections holds your own text for the document, and can copy text from the subsection library. Bill of materials lists the containers, parts and equipment that may be used to take the samples. Switching tabs never loses anything you entered." />
+        <HelpTip label="Plan sections" text="Overview shows the set-up, the open items, the sampling points and the totals. Diagram has the sampling diagram, where you can place samples, the document figure that goes into the Word and HTML files, and the sampling points table beside them. Downloads has the plan and the reporting instructions as Word or HTML. Interview asks about each step or study type. Design review asks questions about how the samples are taken and where they sit. Subsections holds your own text for the document, and can copy text from the subsection library. Bill of materials lists the containers, parts and equipment that may be used to take the samples. Switching tabs never loses anything you entered." />
       </div>
 
       <SamplingContents tab={tab} onTab={setTab} />
@@ -349,6 +389,14 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
             openInInterview(id);
           }}
         />
+      )}
+
+      {tab === "diagram" && (
+        <>
+          <FlowDiagram plan={plan} selectedId={selected} onSelect={select} run={run} openAdd={openAdd} />
+          <FigureView plan={plan} highlightId={hl} onHighlight={setHl} onSelect={select} />
+          {pointsSection}
+        </>
       )}
 
       {tab === "subsections" && <SubsectionsEditor plan={plan} run={run} />}
@@ -402,45 +450,7 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
         onAdd={(s) => run((p, actor) => acceptSuggestion(p, plan.id, s, actor).project, `Point added from a suggestion`)}
       />
 
-      <FlowDiagram plan={plan} selectedId={selected} onSelect={select} run={run} openAdd={openAdd} />
-
-      <FigureView plan={plan} highlightId={hl} onHighlight={setHl} onSelect={select} />
-
-      <section className="card stack" aria-labelledby="sp-points" data-tour="plan-points">
-        <h2 id="sp-points">Sampling points ({plan.points.length})</h2>
-        <PointsTable
-          plan={plan}
-          selectedId={selected}
-          highlightId={hl}
-          onHighlight={setHl}
-          onSelect={select}
-          run={run}
-          openAdd={openAdd}
-          onEdit={(id) => {
-            // The full editor is in the interview too, so Open shows that point there.
-            openInInterview(id);
-          }}
-        />
-        <div role="status" className="visually-hidden" data-testid="add-announce">
-          {announce}
-        </div>
-        {selectedPoint && (
-          <div className="stack" data-testid="selected-point" ref={selectedCard}>
-            <h3>Selected sample</h3>
-            <PointCard
-              key={selectedPoint.id}
-              plan={plan}
-              point={selectedPoint}
-              step={labelOf(selectedPoint.unitOp)}
-              expanded={overviewOpen === selectedPoint.id}
-              openLabel="More details"
-              onToggle={() => setOverviewOpen(overviewOpen === selectedPoint.id ? null : selectedPoint.id)}
-              run={run}
-              onRemove={() => removeConfirm.ask(removePointRequest(plan, selectedPoint, run))}
-            />
-          </div>
-        )}
-      </section>
+      {pointsSection}
 
       <section className="card stack" aria-labelledby="sp-totals" data-testid="plan-totals">
         <h2 id="sp-totals">Sample totals per batch</h2>

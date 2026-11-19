@@ -22,7 +22,19 @@ async function openDemoPlan(page: Page) {
   await expect(page.getByRole("heading", { level: 1, name: "Gap register" })).toBeVisible();
   await goTo(page, "Sampling plan");
   await page.getByTestId("plan-list").getByRole("link").first().click();
+  // The plan opens on its short Overview; the diagram, the document figure and the points table are on the Diagram tab.
+  await expect(page.getByTestId("plan-contents")).toBeVisible();
+  await expect(page.getByTestId("plan-figure")).toHaveCount(0);
+}
+
+async function openDiagramTab(page: Page) {
+  await page.getByTestId("tab-diagram").click();
   await expect(page.getByTestId("plan-figure")).toBeVisible();
+}
+
+async function openOverviewTab(page: Page) {
+  await page.getByTestId("tab-overview").click();
+  await expect(page.getByTestId("plan-totals")).toBeVisible();
 }
 
 async function expectAccessible(page: Page, label: string) {
@@ -39,6 +51,7 @@ async function expectNoHorizontalScroll(page: Page, label: string) {
 
 test("the demo plan shows a buffer figure first and the main figure, in the time scale style", async ({ page }) => {
   await openDemoPlan(page);
+  await openDiagramTab(page);
   const fig = page.getByTestId("plan-figure");
   await expect(fig.getByTestId("figure-1")).toContainText("Buffer");
   await expect(fig.getByTestId("figure-2")).toContainText("process flow and sampling plan");
@@ -50,13 +63,13 @@ test("the demo plan shows a buffer figure first and the main figure, in the time
 
 test("pointing at or focusing a sample in the figure outlines its table row, and the other way round", async ({ page }) => {
   await openDemoPlan(page);
+  await openDiagramTab(page);
   const mark = page.getByTestId("figure-2").locator('[data-sp^="SP-"][tabindex="0"]').first();
   await mark.scrollIntoViewIfNeeded();
   const id = (await mark.getAttribute("data-sp"))!;
   await mark.focus();
   const row = page.getByTestId(`point-${id}`);
   await expect(row).toHaveAttribute("data-highlighted", "true");
-  await page.getByTestId("plan-totals").focus().catch(() => undefined);
   await mark.blur();
   await expect(row).not.toHaveAttribute("data-highlighted", "true");
   // Back: hovering the row marks the sample in the figure.
@@ -77,7 +90,9 @@ test("a step's More details saves figure text and hours; hold suggestions need a
   await page.getByTestId(`step-text-${stepId}`).fill("Mix 20 min\nTemperature 5 C (fictional)");
   await page.getByTestId(`step-hours-${stepId}`).fill("5");
   await page.getByTestId(`step-more-save-${stepId}`).click();
+  await openDiagramTab(page);
   await expect(page.getByTestId("figure-2")).toContainText("Mix 20 min");
+  await openOverviewTab(page);
 
   // Bad hours are refused in words, nothing is saved.
   await page.getByTestId(`step-more-${stepId}`).locator("summary").click().catch(() => undefined);
@@ -91,9 +106,10 @@ test("a step's More details saves figure text and hours; hold suggestions need a
   await page.getByTestId("hold-new-label").fill("Extra hold (fictional)");
   await page.getByTestId("hold-new-add").click();
   await expect(page.getByTestId("figure-holds")).toContainText("Extra hold (fictional)");
-  await expect(page.getByTestId("figure-2")).toContainText("Extra hold (fictional)");
   const opts = await page.getByTestId("figure-holds").locator('[data-testid^="hold-remove-"]').count();
   expect(opts).toBeGreaterThanOrEqual(3);
+  await openDiagramTab(page);
+  await expect(page.getByTestId("figure-2")).toContainText("Extra hold (fictional)");
 });
 
 test("time target and sub-process editors work and a sample can carry an hour", async ({ page }) => {
@@ -103,12 +119,13 @@ test("time target and sub-process editors work and a sample can carry an hour", 
   await page.getByTestId("target-new-hours").fill("30");
   await page.getByTestId("target-new-add").click();
   await expect(page.getByTestId("figure-targets")).toContainText("Extra window (fictional)");
-  await expect(page.getByTestId("figure-2")).toContainText("Extra window (fictional)");
 
   await page.getByTestId("figure-subs").locator("summary").click();
   await expect(page.getByTestId("figure-subs")).toContainText("Buffer");
+  await openDiagramTab(page);
+  await expect(page.getByTestId("figure-2")).toContainText("Extra window (fictional)");
 
-  // Hour of a sample, in the full editor (opened from the points table).
+  // Hour of a sample, in the full editor (opened from the points table, which is also under the diagram).
   await page.locator('[data-testid^="edit-SP-"]').first().click();
   const hour = page.getByTestId("point-hour");
   if (!(await hour.isVisible())) await page.getByTestId("group-toggle-sampling").click();
@@ -155,6 +172,7 @@ test("accessible and without sideways scrolling, light and dark, with screenshot
   test.setTimeout(180000);
   const name = info.project.name;
   await openDemoPlan(page);
+  await openDiagramTab(page);
   for (const style of ["time_scale", "step_cards"] as const) {
     await page.getByTestId(`figure-style-${style}`).click();
     for (const scheme of ["light", "dark"] as const) {
@@ -180,6 +198,7 @@ test("accessible and without sideways scrolling, light and dark, with screenshot
     await page.getByTestId("plan-figure").scrollIntoViewIfNeeded();
     await page.getByTestId("plan-figure").screenshot({ path: join(SHOTS, `m10-${style === "time_scale" ? "F" : "E"}-${name}.png`) });
   }
+  await openOverviewTab(page);
   await page.getByTestId("figure-data-card").locator("summary").first().click();
   await expectAccessible(page, `${name} details`);
   await expectNoHorizontalScroll(page, `${name} details`);

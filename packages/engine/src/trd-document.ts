@@ -145,7 +145,7 @@ class SourceNumbers {
 const fieldOf = (it: TrdItem, key: string) => it.fields.find((f) => f.key === key);
 
 function openLines(open: readonly TrdOpenItem[]): string[][] {
-  return open.map((o) => [o.where, stop(o.kind === "tbd" ? "To be decided (TBD)" : o.kind === "provisional" ? `${o.text}` : o.text)]);
+  return open.map((o) => [o.where, stop(o.kind === "tbd" ? "TBD (to be decided)" : o.kind === "provisional" ? `${o.text}` : o.text)]);
 }
 
 export function trdDocumentOpenItems(d: TrdDocument): TrdOpenItem[] {
@@ -517,7 +517,7 @@ const KNOWN_ACRONYMS: Record<string, string> = {
   PES: "Polyethersulfone (PES)",
   PFS: "Prefilled syringe (PFS)",
   PQ: "Performance qualification (PQ)",
-  TBD: "To be decided (TBD)",
+  TBD: "TBD (to be decided)",
 };
 
 function blockText(b: Block): string {

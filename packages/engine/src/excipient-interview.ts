@@ -138,7 +138,7 @@ function factQuestion(project: Project, a: ExcipientAssessment, line: ExcipientL
   const look = topic ? cls?.teamsOftenLookAt[topic] : undefined;
   const hint = [w?.hint, look ? `Teams often look at: ${look}` : undefined].filter(Boolean).join(" ");
 
-  const current = state === "same_as_sending" ? `Same as the sending site${r.status === "established" && r.value !== undefined ? ` (${readable(r.value, labelOf)})` : ""}` : state === "answered" ? readable(r.value, labelOf) : state === "tbd" ? "To be decided (TBD)" : state === "not_applicable" ? "Not applicable" : undefined;
+  const current = state === "same_as_sending" ? `Same as the sending site${r.status === "established" && r.value !== undefined ? ` (${readable(r.value, labelOf)})` : ""}` : state === "answered" ? readable(r.value, labelOf) : state === "tbd" ? "TBD (to be decided)" : state === "not_applicable" ? "Not applicable" : undefined;
 
   return {
     key: `${line.id}/fact:${def.key}${side ? `.${side}` : ""}`,

@@ -285,7 +285,7 @@ export function excipientOpenItems(project: Project, assessment: ExcipientAssess
       const r = excipientFactResolved(project, assessment.id, line.id, f.def.key, f.side);
       const where = `${head}, ${f.def.label}${f.side ? ` (${EXCIPIENT_SIDE_LABEL[f.side].toLowerCase()})` : ""}`;
       const base = { where, assessmentId: assessment.id, lineId: line.id, factKey: f.def.key, ...(f.side ? { side: f.side } : {}) };
-      if (r.status === "not_established") out.push({ ...base, kind: "not_established", text: "Not established" });
+      if (r.status === "not_established") out.push({ ...base, kind: "not_established", text: "No value yet" });
       else if (r.status === "tbd" || r.provisional) out.push({ ...base, kind: "tbd", text: tbdText(r.tbd), ...(r.tbd ? { tbd: r.tbd } : {}) });
     }
     for (const row of line.specs) {

@@ -825,7 +825,7 @@ function SplitPanel({ rec, plan, run, info }: { rec: MbrRecord; plan: SamplingPl
       </div>
       <p className="small muted">
         Each entry has write-in lines for date and time, done by, checked by, vessel or bag ID, storage temperature and room. The hold-end entry also has the elapsed hold time, written by the operator next to{" "}
-        {info.limit ? `the limit "${info.limit.label}"` : 'the words "No limit stated"'}.
+        {info.limit ? `the limit "${info.limit.label}"` : 'the word "TBD"'}.
       </p>
     </section>
   );

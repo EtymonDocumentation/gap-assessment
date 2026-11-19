@@ -1,7 +1,7 @@
 # Fixed wording for the generated gap assessment document.
 # Placeholders: {program} {modality} {dosageForm} {presentation} {transferType}
 # {markets} {sourceSite} {targetSite} {sourceStage} {targetStage} {date}. Values that are not known appear as written
-# by the engine (for example "To be decided (TBD)", or "[TBD]" for a program stage);
+# by the engine (for example "TBD (to be decided)", or "[TBD]" for a program stage);
 # nothing is invented.
 #
 # Stage-aware wording: {{validated wording|other wording}}. The first variant is used only when the source

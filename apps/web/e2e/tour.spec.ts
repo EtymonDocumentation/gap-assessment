@@ -132,7 +132,7 @@ test("a tour can be walked to Done, including the stage step on Home", async ({ 
   const titles: string[] = [];
   for (let i = 0; i < 8; i++) {
     titles.push((await bubble(page).getByRole("heading").textContent()) ?? "");
-    if (i === 1) await shot(page, "tour-stage-step");
+    if (i === 2) await shot(page, "tour-stage-step");
     const done = bubble(page).getByRole("button", { name: "Done" });
     if (await done.isVisible()) {
       await done.click();
@@ -141,7 +141,7 @@ test("a tour can be walked to Done, including the stage step on Home", async ({ 
     await bubble(page).getByRole("button", { name: "Next" }).click();
   }
   // "Your projects" is the server-mode step; this static build has no projects list, so the tour skips it.
-  expect(titles).toEqual(["Start here", "Project stage", "Next step", "Your documents"]);
+  expect(titles).toEqual(["Start here", "More ways to start", "Project stage", "Next step", "Your documents"]);
   await expect(bubble(page)).toHaveCount(0);
   // Back works, and the first step has no Back.
   await openHelp(page);

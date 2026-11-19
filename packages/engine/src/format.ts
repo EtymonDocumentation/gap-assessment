@@ -8,7 +8,7 @@ import { isQuantity, isRange } from "./values";
 // the screen, in the HTML and in Word (Tester D rows 6 and 25). The status key stays `not_established` in the data; only the words changed.
 export const STATUS_TEXT = {
   not_established: "TBD",
-  tbd: "To be decided (TBD)",
+  tbd: "TBD (to be decided)",
   not_applicable: "Not applicable",
 } as const;
 

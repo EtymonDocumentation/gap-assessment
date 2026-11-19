@@ -26,7 +26,7 @@ import { MbrError } from "./mbr";
  *  - THE ROW IS A COPY. It keeps its own name, grade statement and specification reference, and says where it came from. The excipient
  *    assessment stays the record of truth: a newer line is only offered as an update, with old and new side by side, and only that click
  *    changes the copy (one logged edit). A deleted source line is said so and the copy stays.
- *  - UNKNOWN STAYS VISIBLE. A value the assessment does not hold is not copied; the table then says "Not established". Nothing is filled in.
+ *  - UNKNOWN STAYS VISIBLE. A value the assessment does not hold is not copied; the table then says "TBD". Nothing is filled in.
  *  - EVERYTHING CAN BE REMOVED, one row or the whole table, with a reason that is kept in the change log.
  *  - The table decides nothing and states no filing category.
  */
@@ -35,7 +35,7 @@ import { MbrError } from "./mbr";
 export const MBR_EXCIPIENTS_TITLE = "Excipients used";
 export const MBR_EXCIPIENTS_COLUMNS = ["Excipient", "Grade", "Specification reference", "From the excipient assessment"] as const;
 /** The words for a value the excipient assessment does not hold (the excipient assessment document says the same). */
-export const MBR_EXCIPIENTS_NOT_ESTABLISHED = "Not established";
+export const MBR_EXCIPIENTS_NOT_ESTABLISHED = "TBD";
 export const MBR_EXCIPIENTS_INTRO =
   "The excipients the excipient assessment lists for this record's TRD, as the assessment said when each row was added. Grade and specification are those of the receiving site. The bill of materials stays an entry only the CMO makes.";
 export const MBR_EXCIPIENTS_CHANGED = "Changed in the excipient assessment";
@@ -98,7 +98,7 @@ export function excipientCopyOf(project: Project, assessmentId: string, lineId: 
   return { name: line.name, grade: gradeText(project, a, line), specification: specificationText(project, line) };
 }
 
-/** A copied value as the table prints it: an empty one reads "Not established", never a guess. */
+/** A copied value as the table prints it: an empty one reads "TBD", never a guess. */
 export const mbrExcipientValue = (v: string | undefined): string => (text(v) ? text(v) : MBR_EXCIPIENTS_NOT_ESTABLISHED);
 
 /** The row of the printed table (the same in the app, the HTML and the Word document). */

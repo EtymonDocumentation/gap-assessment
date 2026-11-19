@@ -18,6 +18,8 @@ async function openPlan(page: Page, demo: "syr" | "arx") {
   await expect(page.getByTestId("home-chain")).toBeVisible();
   await goTo(page, "Sampling plan");
   await page.getByTestId("plan-list").getByRole("link").first().click();
+  // The document figure is on the plan's Diagram tab.
+  await page.getByTestId("tab-diagram").click();
   await expect(page.getByTestId("plan-figure")).toBeVisible();
 }
 

@@ -77,7 +77,7 @@ test("the mid-transfer demo opens with its TRD open items, an overdue list and o
   await expect(preview).toContainText("10 blank fields in the process descriptions have no value yet");
   await expect(preview).toContainText("[Drug substance item number]");
   await expect(preview).toContainText("[Product density, with the unit (g/mL)]");
-  await expect(preview).toContainText("To be decided (TBD)");
+  await expect(preview).toContainText("TBD (to be decided)");
   await noSidewaysScroll(page, "TRD output");
   await expectAxeClean(page, "TRD output");
   await page.screenshot({ path: shot(`trd-${info.project.name}`), fullPage: true });

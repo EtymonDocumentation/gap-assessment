@@ -42,10 +42,10 @@ test("home with no project explains the tool, what you need and how to start, wi
   await openMoreWays(page);
   await expect(page.getByTestId("start-options").getByRole("button", { name: /^Open demo: / })).toHaveCount(3);
   await expect(page.getByText("All three demos are fictional.")).toBeVisible();
-  // One card per document; the gap assessment can be read now, the rest say they need an open project.
-  await expect(page.getByTestId("doc-card-gap").getByRole("link", { name: "Start the gap assessment" })).toHaveAttribute("href", "#/gap");
-  await expect(page.getByTestId("doc-card-state-trd")).toHaveText("Needs an open project.");
-  await expect(page.getByTestId("doc-card-open-trd")).toHaveCount(0);
+  // No project yet: the Start cards offer the documents, and the second row of "Your documents" cards is not there (it shows with a project).
+  await expect(page.getByTestId("home-chain")).toHaveCount(0);
+  await expect(page.getByTestId("make-gap").getByRole("button", { name: "Start a new project" })).toBeVisible();
+  await expect(page.getByTestId("start-doc-trd")).toBeVisible();
   // Without a project there is no gap assessment to open, so the top link is left out instead of looking dead (it comes back with a project).
   await expect(mainNav(page).getByRole("link", { name: "Gap assessment", exact: true })).toHaveCount(0);
   await expectNoSidewaysScroll(page, "home, no project");

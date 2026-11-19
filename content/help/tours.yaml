@@ -15,6 +15,9 @@ tours:
       - anchor: home-start
         title: Start here
         text: Pick a document under What do you want to make. Each has its own button, and nothing is filled in for you. More ways to start holds a fictional demo or a document you already have.
+      - anchor: home-more
+        title: More ways to start
+        text: Open this for a fictional demo, or to upload a document you already have so the tool can read it. Nothing is filled in for you.
       - anchor: stage-chip
         title: Project stage
         text: Which batches the receiving site will make next (Engineering, Clinical, PPQ or Commercial). It changes the wording of your documents, and each change is saved as a version (the chip beside it, such as v2, opens the version history). Your own text is never changed.
@@ -126,10 +129,10 @@ tours:
         text: Give the plan a title and create it. The number of batches and the sample sizes are your decisions.
       - anchor: plan-tabs
         title: Plan sections
-        text: Overview, Interview, Design review, Subsections and Bill of materials. The bill of materials lists what may be used to take the samples. Switching tabs never loses anything you entered.
+        text: Overview, Diagram, Interview, Design review, Subsections, Bill of materials and Downloads. The diagram is where you place samples; the bill of materials lists what may be used to take them; Downloads has the Word and HTML files. Switching tabs never loses anything you entered.
       - anchor: plan-points
         title: Sampling points
-        text: Each row is a place in the process where a sample is taken. Add one, select a row to edit it, and open the question marks for help.
+        text: Each row is a place in the process where a sample is taken. Add one, select a row to edit it, and open the question marks for help. The Diagram tab shows the same samples as a picture.
       - anchor: page-export
         title: Download a draft
         text: Export downloads the draft as Word or HTML for review. The tool is a drafting aid, so the document is approved in your company's own document control.

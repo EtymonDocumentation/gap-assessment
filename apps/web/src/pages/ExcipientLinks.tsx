@@ -78,7 +78,7 @@ export function ExcipientLinksBox({ a, line }: { a: ExcipientAssessment; line: E
     const amount = new Map(questions.map((q) => [q.key, q.current]));
     const rows = excipientTableRows(project, a.id, link.trdId, {
       role: (l) => classText(l) ?? "Role not chosen yet",
-      composition: (l) => amount.get(`${l.id}/fact:amount`) ?? "Not established",
+      composition: (l) => amount.get(`${l.id}/fact:amount`) ?? "TBD",
     });
     return excipientTableText(rows);
   }, [project, a.id, link, questions]);

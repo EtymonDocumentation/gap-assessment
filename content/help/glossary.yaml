@@ -110,7 +110,7 @@ terms:
 
   - id: document-figure
     term: Document figure
-    short: The picture of the sampling plan that goes into the downloaded Word or HTML file. You choose how it looks when you download, and that choice is not kept in the plan. The sampling diagram on the page is the picture you work with.
+    short: The picture of the sampling plan that goes into the downloaded Word or HTML file. You choose how it looks when you download, and that choice is not kept in the plan. The sampling diagram, on the Diagram tab of the Sampling plan page, is the picture you work with.
     see: [sampling-diagram, sampling-point]
 
   - id: drafting-aid
@@ -286,7 +286,7 @@ terms:
 
   - id: sampling-diagram
     term: Sampling diagram
-    short: The picture of the sampling plan on the Sampling plan page. It shows the steps in order with the samples at their places. It is the picture you work with. The document figure is the version that goes into the downloaded file.
+    short: The picture of the sampling plan, on the Diagram tab of the Sampling plan page. It shows the steps in order with the samples at their places. It is the picture you work with. The document figure is the version that goes into the downloaded file.
     see: [document-figure, sampling-point]
 
   - id: sampling-point

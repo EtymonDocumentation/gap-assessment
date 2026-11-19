@@ -4,7 +4,7 @@ import { href } from "../router";
 
 /*
  * The shared interview card. One question: the prompt, the reason beside it (always visible), a hint with a glossary link, the input, and
- * the same exits everywhere ("Don't know yet", "Not applicable here", "Mark as to be decided (TBD)"). Nothing is filled in for the person:
+ * the same exits everywhere ("Don't know yet", "Not applicable here", "Mark as TBD (to be decided)"). Nothing is filled in for the person:
  * boxes start empty, lists start on "Choose...", a yes/no on neither.
  *
  * It was the technical requirements document's card (M12) and moved here for the excipient assessment (M13), so the two interviews look and
@@ -361,7 +361,7 @@ export function InterviewCardBase<Q extends CardQuestion, A>(props: BaseCardProp
             )}
             {q.canTbd && (
               <button type="button" className="btn small" data-testid="iv-tbd" aria-expanded={exit === "tbd"} onClick={() => setExit(exit === "tbd" ? null : "tbd")}>
-                Mark as to be decided (TBD)
+                Mark as TBD (to be decided)
               </button>
             )}
             {onSkip && (

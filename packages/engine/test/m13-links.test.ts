@@ -180,7 +180,7 @@ describe("the excipient assessment document", () => {
       expect(out).toContain(NOTICE_DOCUMENT);
       expect(out).toContain("Polysorbate 80 (fictional grade)");
       expect(out).toContain("Sucrose (fictional grade)");
-      expect(out).toContain("Not established");
+      expect(out).toContain("TBD");
       expect(out).not.toMatch(/\b(approved for|acceptable)\b/i);
     }
   });

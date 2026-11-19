@@ -762,8 +762,8 @@ export function ProjectListCard() {
                     />
                   ) : (
                     <>
-                      {/* One line with an ellipsis so a long name never makes the row tall; the full name is in the tooltip and in the buttons' names. */}
-                      <strong className="project-name" title={title}>
+                      {/* The whole name is shown and wraps (two uploads can differ only at the end), so it is readable on hover, on focus and on a phone without a tooltip. */}
+                      <strong className="project-name">
                         {title}
                       </strong>
                       {(p.id === currentId || isNew) && (

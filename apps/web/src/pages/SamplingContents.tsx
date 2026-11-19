@@ -3,7 +3,7 @@
  * would change the route; these are buttons that scroll to the section and move focus to its heading. A section that lives on
  * another tab of the page first switches to that tab.
  */
-export type ContentsTab = "overview" | "interview" | "review" | "subsections" | "bom" | "downloads";
+export type ContentsTab = "overview" | "diagram" | "interview" | "review" | "subsections" | "bom" | "downloads";
 
 interface Item {
   id: string;
@@ -23,10 +23,12 @@ const BY_TAB: Record<ContentsTab, Item[]> = {
   overview: [
     { id: "sp-open", label: "Open items", tab: "overview" },
     { id: "sp-sugg", label: "Suggestions", tab: "overview" },
-    { id: "sp-flow", label: "Sampling diagram", tab: "overview" },
-    { id: "sp-figure-h", label: "Document figure", tab: "overview" },
     { id: "sp-points", label: "Sampling points", tab: "overview" },
     { id: "sp-totals", label: "Sample totals per batch", tab: "overview" },
+  ],
+  diagram: [
+    { id: "sp-flow", label: "Sampling diagram", tab: "diagram" },
+    { id: "sp-figure-h", label: "Document figure", tab: "diagram" },
   ],
   downloads: [
     { id: "sampling-doc", label: "Download the sampling plan", tab: "downloads" },
@@ -65,6 +67,7 @@ export function SamplingContents({ tab, onTab }: { tab: ContentsTab; onTab: (t: 
   const groups: { title: string; items: Item[]; tab?: ContentsTab }[] = [
     { title: "Plan set-up", items: SETUP, tab: "overview" },
     { title: "Overview tab", items: BY_TAB.overview, tab: "overview" },
+    { title: "Diagram tab", items: BY_TAB.diagram, tab: "diagram" },
     { title: "Interview tab", items: BY_TAB.interview, tab: "interview" },
     { title: "Design review tab", items: BY_TAB.review, tab: "review" },
     { title: "Subsections tab", items: BY_TAB.subsections, tab: "subsections" },

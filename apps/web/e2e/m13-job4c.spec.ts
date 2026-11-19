@@ -46,7 +46,7 @@ test("the demo record lists the excipients its TRD links to, in a table that is 
   const count = await rows(page).count();
   expect(count).toBeGreaterThan(0);
   await expect(table).toContainText("Excipient A (fictional)");
-  await expect(table).toContainText("Not established"); // an unknown stays visible, nothing is filled in
+  await expect(table).toContainText("TBD"); // an unknown stays visible, nothing is filled in
   await expect(page.getByTestId("mbr-excipients")).toContainText("The bill of materials stays an entry only the CMO makes.");
   // Nothing has changed in the excipient assessment yet, so no row carries a notice.
   await expect(page.locator('[data-testid^="mbr-excipient-changed-"]')).toHaveCount(0);

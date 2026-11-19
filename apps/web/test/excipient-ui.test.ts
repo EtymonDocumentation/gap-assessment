@@ -17,9 +17,9 @@ describe("excipient screens: small helpers", () => {
     expect(questionStatus({ state: "open" }).text).toBe("Not answered yet");
   });
 
-  it("keeps an unknown fact visible as 'Not established' and counts it as open", () => {
+  it("keeps an unknown fact visible as 'TBD' and counts it as open", () => {
     const c = factCell({ state: "open" } as never);
-    expect(c).toMatchObject({ text: "Not established", open: true });
+    expect(c).toMatchObject({ text: "TBD", open: true });
     expect(factCell({ state: "answered", current: "Acme (fictional)" } as never)).toMatchObject({ text: "Acme (fictional)", open: false });
     expect(factCell({ state: "tbd" } as never).open).toBe(true);
   });

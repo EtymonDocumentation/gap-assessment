@@ -141,7 +141,7 @@ test("the excipient's own page: different suppliers raise the marker and the reg
   await expect(page.getByTestId("ex-regulatory-sentence")).toHaveText("Requires regulatory affairs assessment");
   await expect(page.getByTestId("ex-links")).toContainText("Nothing is linked yet");
   // an unknown stays visible
-  await expect(page.getByTestId("ex-group-origin")).toContainText("Not established");
+  await expect(page.getByTestId("ex-group-origin")).toContainText("TBD");
   // the excipient table on tab 1 shows the marker as an icon plus words
   await page.getByTestId("ex-line-back").click();
   await expect(page.getByTestId("ex-lines-table")).toContainText("Different supplier");

@@ -16,7 +16,7 @@ import { ReasonDialog } from "./ReasonDialog";
 /**
  * The page of one excipient: every fact in groups, the sending and receiving site side by side, the change-risk markers in words, and what
  * the excipient is linked to. A fact is one question: "Answer" or "Change" opens the same card as the Questions tab, so there is one way to
- * answer. An unknown reads "Not established" and stays visible. Nothing here decides a filing category; a marker only says what differs.
+ * answer. An unknown reads "TBD" and stays visible. Nothing here decides a filing category; a marker only says what differs.
  */
 export function ExcipientLinePage({ a, line }: { a: ExcipientAssessment; line: Line }) {
   const project = useStore((s) => s.project)!;

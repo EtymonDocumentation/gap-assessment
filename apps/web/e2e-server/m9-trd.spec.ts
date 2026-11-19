@@ -30,10 +30,15 @@ test("server build: a gap-only account with no project open is told the TRD modu
   await expect(page.getByRole("heading", { level: 1, name: /Welcome to/ })).toBeVisible();
   // The starts are folded under "More ways to start": open it, so the text checked below is the whole of it.
   await openMoreWays(page);
-  for (const id of ["start-options", "home-chain"]) {
-    const text = await page.getByTestId(id).innerText();
-    expect(text, `${id} names a document this account does not have`).not.toMatch(/TRD|batch record|sampling plan|risk assessment/i);
-  }
+  // With no project open Home has no "Your documents" row; it shows once a project is open (checked below).
+  await expect(page.getByTestId("home-chain")).toHaveCount(0);
+  const startText = await page.getByTestId("start-options").innerText();
+  expect(startText, "start-options names a document this account does not have").not.toMatch(/TRD|batch record|sampling plan|risk assessment/i);
+  await loadDemo(page);
+  await go(page, "#/");
+  await expect(page.getByTestId("home-chain")).toBeVisible();
+  const chainText = await page.getByTestId("home-chain").innerText();
+  expect(chainText, "home-chain names a document this account does not have").not.toMatch(/TRD|batch record|sampling plan|risk assessment/i);
   // The Home tour step "Your documents" is worded from the same cards, so it does not name a TRD either (the bubble reads this text).
   const tourText = await page.getByTestId("home-chain").getAttribute("data-tour-text");
   expect(tourText, "the tour step text").toContain("gap assessment");

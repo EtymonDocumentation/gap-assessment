@@ -24,6 +24,8 @@ async function openDemoPlan(page: Page, which: "arx" | "syr" = "syr") {
   await loadDemo(page, which);
   await goTo(page, "Sampling plan");
   await page.getByTestId("plan-list").getByRole("link").first().click();
+  // The diagram and the points table are on the plan's Diagram tab (the Overview is the short summary).
+  await page.getByTestId("tab-diagram").click();
   await expect(page.getByTestId("flow-diagram")).toBeVisible();
 }
 
@@ -73,6 +75,7 @@ test("sampling: removing a point asks first (Cancel has focus), and Cancel keeps
 test("sampling: the Plan details labels wrap like normal text at 390 px", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 800 });
   await openDemoPlan(page);
+  await page.getByTestId("tab-overview").click(); // plan details are on the Overview tab
   const summary = page.getByTestId("plan-details-summary");
   await summary.scrollIntoViewIfNeeded();
   const label = summary.locator("dt", { hasText: "Why this number of batches" });

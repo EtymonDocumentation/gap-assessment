@@ -1,5 +1,5 @@
 // Job H1 on the server: "Your projects" is a compact side column beside the Home content on a wide screen and sits below the content on a
-// phone; each row has one Open button and the other actions in a "..." menu; long names are cut with the full name in the title; the list
+// phone; each row has one Open button and the other actions in a "..." menu; long names are shown whole and wrap; the list
 // shows the first few rows then "Show all"; and a project page asked for with no project open names itself and lands there after Open.
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -43,9 +43,11 @@ test("the projects list is a side column on a wide screen and goes below the con
     await page.screenshot({ path: join(tmpdir(), "h1-home-1920-projects.png") });
   }
   void m;
-  // Long names are cut to one line; the full name is in the title attribute and in the buttons' accessible names.
+  // Long names are shown whole (they wrap, never cut off with "..."), so the end of a name is readable without hover or focus.
   const name = projectList(page).locator(".project-name").first();
-  await expect(name).toHaveAttribute("title", long);
+  await expect(name).toHaveText(long);
+  const clipped = await name.evaluate((el) => el.scrollWidth > el.clientWidth + 1 || getComputedStyle(el).textOverflow === "ellipsis");
+  expect(clipped, "the project name is not cut off").toBe(false);
   await expect(projectList(page).getByRole("button", { name: `More actions for ${long}` })).toBeVisible();
   // The open project says "Open now" and has no Open button (a greyed one beside the tag looked broken).
   await expect(projectList(page).getByText("Open now")).toBeVisible();

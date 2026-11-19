@@ -92,7 +92,7 @@ function excipientCiting(project: Project, ref: string, sourceId: string): Omit<
     const side = row?.[spec[4] as "sending" | "receiving"];
     const attribute = `Specification: ${row?.test ?? spec[3]!} (${SITE_WORD[spec[4] as "sending" | "receiving"]})`;
     const shown = side ? [side.criterion, side.unit, side.method ? `method ${side.method}` : ""].filter(Boolean).join(" ") : "";
-    return { ...base, sectionTitle: `Excipient assessment: ${line?.name ?? spec[2]!}`, attribute, text: `Excipient assessment: ${line?.name ?? spec[2]!}: ${attribute}`, display: shown || "Not established", location: locationText(side?.sourceLocations?.[sourceId]) };
+    return { ...base, sectionTitle: `Excipient assessment: ${line?.name ?? spec[2]!}`, attribute, text: `Excipient assessment: ${line?.name ?? spec[2]!}: ${attribute}`, display: shown || "TBD", location: locationText(side?.sourceLocations?.[sourceId]) };
   }
   const p = parseExcipientPath(ref);
   const line = p ? excipientLineOfRef(project, p.assessmentId, p.lineId) : undefined;
@@ -101,7 +101,7 @@ function excipientCiting(project: Project, ref: string, sourceId: string): Omit<
   const attribute = `${def?.label ?? ref}${p?.side ? ` (${SITE_WORD[p.side]})` : ""}`;
   const v = entry?.value;
   const shown = v === undefined ? "" : Array.isArray(v) ? v.join(", ") : typeof v === "object" ? [String((v as { value?: unknown }).value ?? ""), (v as { unit?: string }).unit ?? ""].filter(Boolean).join(" ") : String(v).replace(/_/g, " ");
-  return { ...base, sectionTitle: `Excipient assessment: ${line?.name ?? ref}`, attribute, text: `Excipient assessment: ${line?.name ?? ref}: ${attribute}`, display: shown || "Not established", location: locationText(entry?.sourceLocations?.[sourceId]) };
+  return { ...base, sectionTitle: `Excipient assessment: ${line?.name ?? ref}`, attribute, text: `Excipient assessment: ${line?.name ?? ref}: ${attribute}`, display: shown || "TBD", location: locationText(entry?.sourceLocations?.[sourceId]) };
 }
 
 /** One row per source, with the entries citing it. */

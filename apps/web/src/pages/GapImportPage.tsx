@@ -686,7 +686,7 @@ function Review({ session, file }: { session: GapImportSession; file: File }) {
                       {fs.map((f) => (
                         <Fragment key={f.id}>
                           <dt>{f.side === "shared" ? "Answer" : GAP_SIDE_LABEL[f.side]}</dt>
-                          <dd>{f.value || "Not established"}</dd>
+                          <dd>{f.value || "TBD"}</dd>
                         </Fragment>
                       ))}
                     </dl>

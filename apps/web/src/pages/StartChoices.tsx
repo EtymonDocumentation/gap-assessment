@@ -136,7 +136,7 @@ export function StartChoices({ stay, compact, children }: { stay?: boolean; comp
             ))}
           </div>
         </div>
-        <details className="more-ways" data-testid="more-ways">
+        <details className="more-ways" data-testid="more-ways" data-tour="home-more">
           <summary>More ways to start</summary>
           <p className="muted small more-ways-hint">Open a demo, or upload a document you already have.</p>
           <p className="muted small">

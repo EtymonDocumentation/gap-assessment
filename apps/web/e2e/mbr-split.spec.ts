@@ -106,7 +106,7 @@ for (const [name, size] of [["desktop", { width: 1280, height: 900 }], ["phone",
     await page.getByTestId("mbr-part-2").check();
     await page.getByTestId("mbr-preview-toggle").click();
     await expect(page.getByTestId("mbr-preview")).toContainText("DEMO-MBR-305-01-B");
-    await expect(page.getByTestId("mbr-preview")).toContainText("No limit stated");
+    await expect(page.getByTestId("mbr-preview")).toContainText("TBD");
   });
 }
 

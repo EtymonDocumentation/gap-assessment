@@ -165,7 +165,7 @@ test("an old project (schema 1.8.0, with Unknown answers) converts on import and
   await expect(rows.first()).toContainText("Status converted (file update)");
   await expect(rows.first()).toContainText("Unknown converted to TBD (schema 1.9.0, no change in meaning)");
   await expect(rows.first()).toContainText("Unknown"); // before: the old status, as recorded
-  await expect(rows.first()).toContainText("To be decided (TBD)");
+  await expect(rows.first()).toContainText("TBD (to be decided)");
   await expectAccessible(page, "change log with conversion records");
   await expectNoHorizontalScroll(page, "change log with conversion records");
 

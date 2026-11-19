@@ -757,7 +757,7 @@ function ClockBar({ clock: c, status }: { clock: ViewClock; status: string }) {
         </div>
       ) : null}
       <p className="small">
-        {c.limitText ? `Limit ${c.limitText}` : "No limit stated"}
+        {c.limitText ? `Limit ${c.limitText}` : "TBD"}
         {c.limitSource ? ` (${c.limitSource})` : ""}.{" "}
         {c.plannedText ? (
           <>
@@ -894,7 +894,7 @@ function Tables({ view, go }: { view: ProcessView; go: (i: number) => void }) {
                 <th scope="row">
                   {clockLabel(c)} <span className="muted small">({c.id})</span>
                 </th>
-                <td>{c.limitText ? `${c.limitText} (${c.limitSource})` : "No limit stated"}</td>
+                <td>{c.limitText ? `${c.limitText} (${c.limitSource})` : "TBD"}</td>
                 <td>{c.plannedText ? `${c.plannedText} (${c.plannedSource})${c.studyPoint ? ", study point" : ""}` : "Not stated"}</td>
                 <td>{c.spanText}</td>
               </tr>

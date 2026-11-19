@@ -126,7 +126,7 @@ function paramRow(r: MbrParamRow, src: SourceNumbers): string[] {
 function holdLimitWords(info: HoldEntryInfo, src: SourceNumbers): string {
   const t = info.limit;
   const value = t ? withUnit(t.value, t.unit) : "";
-  if (!t || !value) return "No limit stated" + (t ? ` (the time limit "${t.label}" has no value)` : "");
+  if (!t || !value) return "TBD" + (t ? ` (the time limit "${t.label}" has no value)` : "");
   return `${t.label}: ${value} (${trdWords(t.trd, src)})`;
 }
 

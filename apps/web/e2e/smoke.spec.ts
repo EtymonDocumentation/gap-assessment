@@ -187,7 +187,7 @@ test("new project: responder, scoping answers, TBD and not-applicable handling",
   await go(page, "#/builder");
   await expect(page.getByRole("heading", { level: 1, name: "Builder" })).toBeVisible();
   await expect(page.locator("main")).toContainText("SMOKE-1");
-  await expect(page.locator("main")).toContainText("To be decided (TBD)");
+  await expect(page.locator("main")).toContainText("TBD (to be decided)");
 });
 
 test("side by side markers link to the register row", async ({ page }) => {
