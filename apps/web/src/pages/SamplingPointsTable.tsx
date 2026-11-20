@@ -1,6 +1,6 @@
 import { pointStageReminder, updatePoint } from "@gap/engine";
 import { FLOW_POSITIONS, SAMPLING_TYPES, reportOnlyAllowed, type FlowPosition, type SamplingPlan, type SamplingPoint, type SamplingType } from "@gap/process-model";
-import { METHOD_LABEL, NOT_ON_DIAGRAM, POSITION_NOT_SET, STATUS_TEXT, SLOT_LABEL, TYPE_LABEL, checkPoint, methodInputsText, tableOrder, typeCode, unitsPerBatch, usesSampleSizeMethod, stepOf } from "@gap/sampling";
+import { METHOD_LABEL, NOT_ON_DIAGRAM, POSITION_NOT_SET, STATUS_TEXT, SLOT_LABEL, TYPE_LABEL, checkPoint, tableOrder, typeCode, unitsPerBatch, usesSampleSizeMethod, stepOf } from "@gap/sampling";
 import { useMemo } from "react";
 import { useProjectStage } from "../stage-ui";
 import { PointRiskLinks } from "./RiskLinks";
@@ -51,16 +51,14 @@ export function PointsTable({
         </p>
       ) : (
         <div className="table-scroll" role="region" aria-label="Sampling points table" tabIndex={0}>
-          <table className="data points-table" data-testid="points-table">
-            <caption className="visually-hidden">Sampling points in process order: step, position, type, what is tested, sample amount and status</caption>
+          <table className="data points-table sampling-points" data-testid="points-table">
+            <caption className="visually-hidden">Sampling points in process order: step and position, type and what is tested, sample amount, status and actions</caption>
             <thead>
               <tr>
                 <th scope="col">ID</th>
-                <th scope="col">Step</th>
-                <th scope="col">Position</th>
-                <th scope="col">Type</th>
-                <th scope="col">What is tested</th>
-                <th scope="col">Sample amount / size</th>
+                <th scope="col">Step and position</th>
+                <th scope="col">Type and what is tested</th>
+                <th scope="col">Sample amount</th>
                 <th scope="col">Status</th>
                 <th scope="col">Actions</th>
               </tr>
@@ -126,8 +124,6 @@ function PointRow({ plan, point, selected, highlighted, onHighlight, onSelect, r
             </option>
           ))}
         </select>
-      </td>
-      <td onClick={(e) => e.stopPropagation()}>
         <select
           value={here.kind === "slot" ? slot : ""}
           disabled={here.kind === "tray"}
@@ -168,8 +164,6 @@ function PointRow({ plan, point, selected, highlighted, onHighlight, onSelect, r
             </option>
           ))}
         </select>
-      </td>
-      <td onClick={(e) => e.stopPropagation()}>
         <input
           // Keyed by the stored text so a change made elsewhere (the interview form) replaces what is shown.
           key={point.attribute}
@@ -182,30 +176,25 @@ function PointRow({ plan, point, selected, highlighted, onHighlight, onSelect, r
           }}
         />
       </td>
-      <td className="small">
+      <td className="small pt-amount" data-testid={`amount-${point.id}`}>
         {!usesSampleSizeMethod(point) ? "Not by sample-size method" : point.sampleSize.method ? METHOD_LABEL[point.sampleSize.method] : "No method chosen"}
-        <div className="muted">{usesSampleSizeMethod(point) && point.sampleSize.method ? methodInputsText(point) : ""}</div>
         {units.length === 0 ? (
           <div className="muted">No batches</div>
         ) : (
-          <ul className="plain-list">
-            {units.map((u) => (
-              <li key={u.batchId}>
-                {u.batchLabel}: {u.text}
-              </li>
-            ))}
-          </ul>
+          // Short on purpose: the method's long details (inputs, basis) are in the point's full editor (Open). One line when every batch takes the
+          // same, one line per batch only when they differ. A value that is not known stays visible ("Not worked out"), never left out.
+          <AmountLines units={units} />
         )}
       </td>
       <td>
-        <span className={`sp-status sp-status-${check.status}`} data-testid={`status-${point.id}`}>
+        <span className={`sp-status sp-status-${check.status} nowrap`} data-testid={`status-${point.id}`}>
           <span aria-hidden="true">{check.status === "complete" ? "✓ " : "○ "}</span>
           {STATUS_TEXT[check.status]}
         </span>
         {check.problems.length > 0 && <div className="muted small">{check.problems.length} open</div>}
       </td>
       <td onClick={(e) => e.stopPropagation()}>
-        <div className="row wrap">
+        <div className="pt-actions">
           <button type="button" className="btn small" onClick={onEdit} aria-label={`Open point ${point.id}`} data-testid={`edit-${point.id}`}>
             Open
           </button>
@@ -221,5 +210,22 @@ function PointRow({ plan, point, selected, highlighted, onHighlight, onSelect, r
         </div>
       </td>
     </tr>
+  );
+}
+
+/** "3 x 2 = 6 per PPQ batch" when every batch takes the same; otherwise one line per batch. */
+function AmountLines({ units }: { units: ReturnType<typeof unitsPerBatch> }) {
+  const first = units[0]!;
+  if (units.every((u) => u.text === first.text)) {
+    return <div className="muted">{first.units !== undefined ? `${first.text} per PPQ batch` : first.text === "Not planned" ? "Not planned in any batch" : `${first.text} (every batch)`}</div>;
+  }
+  return (
+    <ul className="plain-list muted">
+      {units.map((u) => (
+        <li key={u.batchId}>
+          {u.batchLabel}: {u.text}
+        </li>
+      ))}
+    </ul>
   );
 }
