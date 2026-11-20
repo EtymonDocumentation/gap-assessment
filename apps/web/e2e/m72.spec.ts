@@ -5,7 +5,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { breadcrumb, goTo, openDemo } from "./nav-helper";
+import { breadcrumb, goTo, openDemo, openPlanSetup } from "./nav-helper";
 
 const SHOTS = tmpdir();
 
@@ -74,6 +74,7 @@ async function trayMarkerId(page: Page): Promise<string> {
 
 test("the diagram has exactly the plan's steps as boxes, in order, and follows reordering and a custom step", async ({ page }) => {
   await openDemoPlan(page);
+  await openPlanSetup(page);
   const steps = await stepLabels(page);
   expect(steps.length).toBeGreaterThanOrEqual(6);
   expect(await boxLabels(page)).toEqual(steps);
@@ -96,7 +97,7 @@ test("removing a step that holds samples asks, then moves them to Not on the dia
   const marker = page.locator('[data-testid^="marker-SP-"]:not([data-place="Not on the diagram"])').first();
   const id = (await marker.getAttribute("data-testid"))!.replace("marker-", "");
   const stepId = await page.getByTestId(`row-step-${id}`).inputValue();
-  await openOverviewTab(page);
+  await openPlanSetup(page);
   await page.getByTestId(`step-remove-${stepId}`).click();
   await expect(page.getByTestId("step-remove-confirm")).toContainText("moves them to Not on the diagram");
   await page.getByTestId("step-remove-cancel").click();
@@ -275,6 +276,9 @@ test("the plan page is accessible, has no sideways scroll at 390 px, and looks r
   test.setTimeout(120_000);
   await page.setViewportSize({ width: 1366, height: 900 });
   await openDemoPlan(page);
+  // The overview as it opens (the set-up folded), then with the set-up open.
+  await expectAccessible(page, "plan overview 1366 folded");
+  await openPlanSetup(page);
   await expectAccessible(page, "plan overview 1366");
   await page.getByTestId("steps-card").screenshot({ path: join(SHOTS, "m72-steps-card.png") });
   await page.getByTestId("points-table").screenshot({ path: join(SHOTS, "m72-table.png") });

@@ -6336,3 +6336,15 @@ button.imap-tile:hover { background: var(--accent-soft); }
 }
 
 .fit-chain { margin: 0; padding-left: 1.4rem; }
+
+/* Sampling plan: the whole plan set-up is one fold on the Overview, shut once the plan has steps and batches, open for a new plan. */
+.plan-setup > summary {
+  cursor: pointer;
+  min-height: 24px;
+}
+.plan-setup > summary h2 {
+  display: inline;
+}
+.plan-setup[open] > summary {
+  margin-bottom: var(--space-stack-lg, 1rem);
+}

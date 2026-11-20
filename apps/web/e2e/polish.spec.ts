@@ -5,7 +5,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { goTo, openDemo } from "./nav-helper";
+import { goTo, openDemo, openPlanSetup } from "./nav-helper";
 
 const SHOTS = tmpdir();
 
@@ -76,7 +76,7 @@ test("the demo plan puts every point that belongs to a process step on that step
 
 test("Plan details: collapsed summary with Edit; Edit opens the form; Cancel restores; Save collapses; focus follows", async ({ page }) => {
   await openDemoPlan(page);
-  await page.getByTestId("tab-overview").click(); // plan details are on the Overview tab
+  await openPlanSetup(page); // plan details are in the Plan set-up fold on the Overview tab
   const summary = page.getByTestId("plan-details-summary");
   await expect(summary).toBeVisible();
   await expect(page.getByTestId("plan-title")).toHaveCount(0);
@@ -127,7 +127,7 @@ test("a brand-new plan opens its details expanded, with no Cancel, and collapses
 test("Plan details card: accessible, no sideways scroll, collapsed and expanded, light and dark, 390 px", async ({ page }, info) => {
   const phone = info.project.name === "phone";
   await openDemoPlan(page);
-  await page.getByTestId("tab-overview").click(); // plan details are on the Overview tab
+  await openPlanSetup(page); // plan details are in the Plan set-up fold on the Overview tab
   const card = page.locator('section[aria-labelledby="sp-details"]');
   for (const scheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme: scheme });

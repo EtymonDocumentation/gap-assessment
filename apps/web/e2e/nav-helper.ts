@@ -165,3 +165,16 @@ export async function checkWordKind(scope: import("@playwright/test").Page | imp
 export async function openDownloads(page: Page): Promise<void> {
   await page.getByTestId("tab-downloads").click();
 }
+
+/**
+ * The sampling plan's Overview keeps its one-time set-up cards (details, steps, figure details, batches, design, method) in one "Plan set-up"
+ * fold. It starts folded once the plan has steps and batches (every demo plan does), so a spec that touches one of those cards opens it first.
+ * Safe to call when it is already open; it stays open when the tab is switched.
+ */
+export async function openPlanSetup(page: Page): Promise<void> {
+  await page.getByTestId("tab-overview").click();
+  const fold = page.getByTestId("plan-setup");
+  await expect(fold).toBeVisible();
+  if (!(await fold.evaluate((el) => (el as HTMLDetailsElement).open))) await page.getByTestId("plan-setup-toggle").click();
+  await expect(fold).toHaveAttribute("open", "");
+}

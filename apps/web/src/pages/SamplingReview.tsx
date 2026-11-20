@@ -45,15 +45,10 @@ export function DesignReviewLine({ plan, onOpen }: { plan: SamplingPlan; onOpen:
 
 const STATE_TEXT = { unanswered: "Open", answered: "Answered", look_again: "Look again" } as const;
 
-export function SamplingReview({ plan, run, onOpenPoint }: { plan: SamplingPlan; run: Run; onOpenPoint: (id: string) => void }) {
+export function SamplingReview({ plan, run, onOpenPoint, onOpenSteps }: { plan: SamplingPlan; run: Run; onOpenPoint: (id: string) => void; onOpenSteps: () => void }) {
   const view = useDesignReview(plan);
-  const onOpenStep = () => {
-    const el = document.getElementById("sp-steps-h");
-    if (!el) return;
-    el.setAttribute("tabindex", "-1");
-    el.scrollIntoView({ block: "start" });
-    el.focus({ preventScroll: true });
-  };
+  // The steps card is on the Overview tab inside the "Plan set-up" fold, so the page switches the tab and opens the fold first.
+  const onOpenStep = onOpenSteps;
   return (
     <section className="card stack" aria-labelledby="sp-review" data-testid="design-review">
       <h2 id="sp-review">Design review</h2>

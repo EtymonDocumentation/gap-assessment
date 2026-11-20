@@ -3,7 +3,7 @@
 // hour of a sample, the export choice, the Word export with real pictures, accessibility, 390 px and light / dark screenshots.
 // All data are fictional.
 import AxeBuilder from "@axe-core/playwright";
-import { goTo, openDemo } from "./nav-helper";
+import { goTo, openDemo, openPlanSetup } from "./nav-helper";
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -84,6 +84,7 @@ test("pointing at or focusing a sample in the figure outlines its table row, and
 
 test("a step's More details saves figure text and hours; hold suggestions need a button press; nothing is required", async ({ page }) => {
   await openDemoPlan(page);
+  await openPlanSetup(page);
   const step = page.getByTestId("step-list").locator("li").first();
   const stepId = (await step.getAttribute("data-testid"))!.replace("step-", "");
   await step.locator("summary").click();
@@ -114,6 +115,7 @@ test("a step's More details saves figure text and hours; hold suggestions need a
 
 test("time target and sub-process editors work and a sample can carry an hour", async ({ page }) => {
   await openDemoPlan(page);
+  await openPlanSetup(page);
   await page.getByTestId("figure-targets").locator("summary").click();
   await page.getByTestId("target-new-label").fill("Extra window (fictional)");
   await page.getByTestId("target-new-hours").fill("30");
@@ -198,7 +200,7 @@ test("accessible and without sideways scrolling, light and dark, with screenshot
     await page.getByTestId("plan-figure").scrollIntoViewIfNeeded();
     await page.getByTestId("plan-figure").screenshot({ path: join(SHOTS, `m10-${style === "time_scale" ? "F" : "E"}-${name}.png`) });
   }
-  await openOverviewTab(page);
+  await openPlanSetup(page);
   await page.getByTestId("figure-data-card").locator("summary").first().click();
   await expectAccessible(page, `${name} details`);
   await expectNoHorizontalScroll(page, `${name} details`);

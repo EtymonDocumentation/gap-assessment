@@ -59,7 +59,7 @@ export function SamplingPage({ params }: { params: URLSearchParams }) {
   const plan = planId ? planById(project, planId) : undefined;
   const tabParam = params.get("tab") ?? "";
   const initialTab: Tab = tabParam in TAB_LABEL ? (tabParam as Tab) : "overview";
-  return plan ? <PlanEditor plan={plan} initialTab={initialTab} /> : <PlanList missing={planId ?? undefined} />;
+  return plan ? <PlanEditor key={plan.id} plan={plan} initialTab={initialTab} /> : <PlanList missing={planId ?? undefined} />;
 }
 
 function PlanList({ missing }: { missing?: string | undefined }) {
@@ -194,6 +194,21 @@ function PlanRow({ plan }: { plan: SamplingPlan }) {
 
 // ------------------------------------------------------------------ the editor
 
+/** "Set up" means the plan has process steps and batches: the two things everything else on the Overview hangs on. */
+function planIsSetUp(plan: SamplingPlan): boolean {
+  return plan.steps.length > 0 && plan.batches.length > 0;
+}
+
+/** The one line shown on the folded set-up. It only counts what is there; what is not given says so and is never filled in. */
+function setupSummary(plan: SamplingPlan, batchWord: string): string {
+  const s = plan.steps.length;
+  const b = plan.batches.length;
+  const steps = s === 0 ? "No process steps yet" : countOf(s, "process step");
+  const batches = b === 0 ? "no batches yet" : `${b} ${batchWord}${b === 1 ? "" : "es"}`;
+  const why = plan.batchRationale.trim() ? "" : ". Why this number of batches: Not given yet";
+  return `${steps}, ${batches}${why}`;
+}
+
 function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab }) {
   // A plan that has just been made (or opened from the list) shows from its top, not level with the button that made it.
   useLandAtTop(plan.id);
@@ -224,6 +239,25 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
   // The point whose editor is open under the points table (the Overview twin of the interview's expanded card).
   const [overviewOpen, setOverviewOpen] = useState<string | null>(null);
   const [announce, setAnnounce] = useState("");
+  // The plan set-up (details, steps, figure data, batches, design, method) starts folded once the plan is set up (it has steps and
+  // batches) and open for a new or empty plan. Only the start is decided from the plan; after that the person (or a link into the
+  // set-up) opens and closes it, and nothing about it is stored in the project.
+  const [setupOpen, setSetupOpen] = useState(() => !planIsSetUp(plan));
+  /**
+   * Shows a card of the plan set-up: the Overview tab, the fold opened, then the heading focused. Every link into a set-up card calls this,
+   * because a card inside a closed fold cannot be scrolled to or focused. The card is drawn a frame later, so the look-up waits.
+   */
+  const goToSetup = (id: string) => {
+    setTab("overview");
+    setSetupOpen(true);
+    window.setTimeout(() => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.setAttribute("tabindex", "-1");
+      el.scrollIntoView({ block: "start" });
+      el.focus({ preventScroll: true });
+    }, 60);
+  };
   /**
    * The ONE place every add control calls: the diagram's "+", the table's "Add a sample" and the add buttons of the interview. It opens
    * the add dialog (short form, or the step-by-step wizard if the person chose that), and remembers the opener so focus goes back to it.
@@ -362,10 +396,10 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
             {TAB_LABEL[t]}
           </button>
         ))}
-        <HelpTip label="Plan sections" text="Overview shows the set-up, the open items, the sampling points and the totals. Diagram has the sampling diagram, where you can place samples, the document figure that goes into the Word and HTML files, and the sampling points table beside them. Downloads has the plan and the reporting instructions as Word or HTML. Interview asks about each step or study type. Design review asks questions about how the samples are taken and where they sit. Subsections holds your own text for the document, and can copy text from the subsection library. Bill of materials lists the containers, parts and equipment that may be used to take the samples. Switching tabs never loses anything you entered." />
+        <HelpTip label="Plan sections" text="Overview shows the plan set-up (one section that is folded once the plan has steps and batches; select it to open it), the open items, the sampling points and the totals. Diagram has the sampling diagram, where you can place samples, the document figure that goes into the Word and HTML files, and the sampling points table beside them. Downloads has the plan and the reporting instructions as Word or HTML. Interview asks about each step or study type. Design review asks questions about how the samples are taken and where they sit. Subsections holds your own text for the document, and can copy text from the subsection library. Bill of materials lists the containers, parts and equipment that may be used to take the samples. Switching tabs never loses anything you entered." />
       </div>
 
-      <SamplingContents tab={tab} onTab={setTab} />
+      <SamplingContents tab={tab} onTab={setTab} onSetup={goToSetup} />
       {error && (
         <p className="notice" role="alert" data-testid="sampling-error">
           {error}
@@ -384,6 +418,7 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
         <SamplingReview
           plan={plan}
           run={run}
+          onOpenSteps={() => goToSetup("sp-steps-h")}
           onOpenPoint={(id) => {
             // The full editor of a sample is in the interview, as with the table's Open.
             openInInterview(id);
@@ -393,7 +428,7 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
 
       {tab === "diagram" && (
         <>
-          <FlowDiagram plan={plan} selectedId={selected} onSelect={select} run={run} openAdd={openAdd} />
+          <FlowDiagram plan={plan} selectedId={selected} onSelect={select} run={run} openAdd={openAdd} onOpenSteps={() => goToSetup("sp-steps-h")} />
           <FigureView plan={plan} highlightId={hl} onHighlight={setHl} onSelect={select} />
           {pointsSection}
         </>
@@ -405,15 +440,33 @@ function PlanEditor({ plan, initialTab }: { plan: SamplingPlan; initialTab: Tab 
 
       {tab === "overview" && (
       <>
-      {/* The plan's set-up, in the order a plan is filled in. It used to sit above the tab strip and push it thousands of pixels down.
+      {/* The plan's set-up, in the order a plan is filled in, in ONE fold. It used to sit above the tab strip and push it thousands of pixels
+          down, and on the Overview it was still most of the page. It starts folded once the plan is set up and open for a new plan.
           The note on where the steps came from opens it, below the tabs for the same reason (on a phone it pushed the tabs off the first screen). */}
-      <PlanSourceNote made />
-      <DetailsCard plan={plan} run={run} />
-      <ProcessStepsCard plan={plan} run={run} />
-      <FigureDataCard plan={plan} run={run} />
-      <BatchesCard plan={plan} run={run} />
-      <DesignCard plan={plan} run={run} />
-      <MethodCard plan={plan} run={run} />
+      <details
+        className="card stack plan-setup"
+        open={setupOpen}
+        onToggle={(e) => setSetupOpen(e.currentTarget.open)}
+        data-testid="plan-setup"
+        data-tour="plan-setup"
+      >
+        <summary data-testid="plan-setup-toggle">
+          <h2 id="sp-setup">Plan set-up</h2>
+          <span className="small muted" data-testid="plan-setup-summary">
+            {" "}
+            {setupSummary(plan, batchWord)}
+          </span>
+        </summary>
+        <div className="stack-lg">
+          <PlanSourceNote made />
+          <DetailsCard plan={plan} run={run} />
+          <ProcessStepsCard plan={plan} run={run} />
+          <FigureDataCard plan={plan} run={run} />
+          <BatchesCard plan={plan} run={run} />
+          <DesignCard plan={plan} run={run} />
+          <MethodCard plan={plan} run={run} />
+        </div>
+      </details>
 
       <section className="card stack" aria-labelledby="sp-open" data-testid="plan-open-items">
         <h2 id="sp-open">Open items ({open.length})</h2>

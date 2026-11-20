@@ -243,12 +243,15 @@ export function FlowDiagram({
   onSelect,
   run,
   openAdd,
+  onOpenSteps,
 }: {
   plan: SamplingPlan;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   run: Run;
   openAdd: OpenAdd;
+  /** Opens the Process steps card (inside the folded plan set-up on the Overview tab). */
+  onOpenSteps: () => void;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -430,7 +433,11 @@ export function FlowDiagram({
       </p>
       {empty && (
         <p className="notice" data-testid="flow-empty">
-          No process steps yet. Choose them in the <a href="#sp-steps">Process steps</a> card above; the diagram draws one box for each step, in order.
+          No process steps yet. Choose them in the{" "}
+          <button type="button" className="link-btn" onClick={onOpenSteps} data-testid="flow-open-steps">
+            Process steps
+          </button>{" "}
+          card (under Plan set-up on the Overview tab); the diagram draws one box for each step, in order.
         </p>
       )}
       <div ref={wrapRef} className="flow-wrap" data-testid="flow-diagram">

@@ -5,7 +5,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { goTo, openDemo as openDemoFromHome } from "./nav-helper";
+import { goTo, openDemo as openDemoFromHome, openPlanSetup } from "./nav-helper";
 
 test.beforeEach(async ({ page }) => {
   page.on("dialog", (d) => void d.accept());
@@ -49,6 +49,7 @@ test("PPQ plan: design and readiness card, After PPQ flag and statistical justif
   test.setTimeout(120_000);
   await openDemo(page, "Sampling plan");
   await page.getByTestId("plan-list").getByRole("link").first().click();
+  await openPlanSetup(page);
 
   const card = page.getByTestId("plan-design");
   await expect(card).toBeVisible();

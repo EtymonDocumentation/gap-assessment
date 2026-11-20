@@ -4,7 +4,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { goTo, openDemo } from "./nav-helper";
+import { goTo, openDemo, openPlanSetup } from "./nav-helper";
 
 const SHOTS = tmpdir();
 
@@ -71,6 +71,7 @@ test("a point's method section starts with nothing chosen and its answers show a
 
 test("the plan switch asks every point and can be switched off again", async ({ page }) => {
   await openDemoPlan(page);
+  await openPlanSetup(page);
   const before = await page.getByTestId("plan-method-reminders").locator("li").count();
   await page.getByTestId("plan-method-switch").check();
   await expect(page.getByTestId("plan-method-SP-003")).toContainText("State how this sample is taken");

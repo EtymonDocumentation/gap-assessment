@@ -52,8 +52,13 @@ const BY_TAB: Record<ContentsTab, Item[]> = {
   ],
 };
 
-export function SamplingContents({ tab, onTab }: { tab: ContentsTab; onTab: (t: ContentsTab) => void }) {
+export function SamplingContents({ tab, onTab, onSetup }: { tab: ContentsTab; onTab: (t: ContentsTab) => void; onSetup: (id: string) => void }) {
   const go = (it: Item) => {
+    // A set-up card sits inside the folded "Plan set-up" section, so the page opens that first (and the tab, if needed).
+    if (SETUP.some((s) => s.id === it.id)) {
+      onSetup(it.id);
+      return;
+    }
     if (it.tab && it.tab !== tab) onTab(it.tab);
     // The other tab renders on the next frame; look for the heading after it has.
     window.setTimeout(() => {

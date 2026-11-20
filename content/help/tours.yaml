@@ -130,6 +130,9 @@ tours:
       - anchor: plan-tabs
         title: Plan sections
         text: Overview, Diagram, Interview, Design review, Subsections, Bill of materials and Downloads. The diagram is where you place samples; the bill of materials lists what may be used to take them; Downloads has the Word and HTML files. Switching tabs never loses anything you entered.
+      - anchor: plan-setup
+        title: Plan set-up
+        text: The plan's details, process steps, document figure details, batches, design and how each sample is taken. A new plan shows it open; once the plan has steps and batches it is folded to one line. Select the line to open or fold it.
       - anchor: plan-points
         title: Sampling points
         text: Each row is a place in the process where a sample is taken. Add one, select a row to edit it, and open the question marks for help. The Diagram tab shows the same samples as a picture.

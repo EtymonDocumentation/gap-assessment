@@ -5,7 +5,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { goTo, openAbout, openDemo } from "./nav-helper";
+import { goTo, openAbout, openDemo, openPlanSetup } from "./nav-helper";
 
 const shot = (page: Page, name: string) => page.screenshot({ path: join(tmpdir(), `wfix-${name}.png`) });
 
@@ -75,7 +75,7 @@ test("sampling: removing a point asks first (Cancel has focus), and Cancel keeps
 test("sampling: the Plan details labels wrap like normal text at 390 px", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 800 });
   await openDemoPlan(page);
-  await page.getByTestId("tab-overview").click(); // plan details are on the Overview tab
+  await openPlanSetup(page); // plan details are in the Plan set-up fold on the Overview tab
   const summary = page.getByTestId("plan-details-summary");
   await summary.scrollIntoViewIfNeeded();
   const label = summary.locator("dt", { hasText: "Why this number of batches" });

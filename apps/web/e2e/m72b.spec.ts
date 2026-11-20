@@ -1,11 +1,11 @@
-﻿// Milestone 7.2 part B: streamlined adding. The short add form (4 fields), the step-by-step wizard (remembered choice), the "More
+// Milestone 7.2 part B: streamlined adding. The short add form (4 fields), the step-by-step wizard (remembered choice), the "More
 // details" editor with collapsible groups, collapsed point cards in the interview, catalog steps inserted in process order, and the
 // Type select that can be cleared. All data are fictional.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { goTo, openDemo } from "./nav-helper";
+import { goTo, openDemo, openPlanSetup } from "./nav-helper";
 
 const SHOTS = tmpdir();
 
@@ -217,6 +217,7 @@ test("interview cards are collapsed with a summary line; selecting a row expands
 
 test("a ticked catalog step goes in process order, not at the end", async ({ page }) => {
   await openDemoPlan(page);
+  await openPlanSetup(page);
   await page.getByTestId("steps-choose").click();
   const checks = page.locator('[data-testid^="step-check-"]');
   const labels = await checks.evaluateAll((els) => els.map((e) => (e.closest("label")!.textContent ?? "").trim()));
